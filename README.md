@@ -16,24 +16,24 @@ You can also use **`ado`** to get features like data-tracking, data-sharing, too
 ## Key Features
 
 * 💻 *CLI*: Our human-centric CLI follows [best practices](https://clig.dev) 
-* 🤝 *Projects*: Allow distributed groups of users to [collaborate and share data](https://ibm.github.io/ado/resources/metastore.md)
-* 🔌 *Extendable*: Easily [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments.md), [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators.md)
+* 🤝 *Projects*: Allow distributed groups of users to [collaborate and share data](https://ibm.github.io/ado/resources/metastore)
+* 🔌 *Extendable*: Easily [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments.md), [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators)
 * ⚙️ *Scalable*: We use [ray](https://ray.io) as our execution engine allowing experiments and tools to easily scale
-* ♻️ *Automatic data-reuse*: Avoid repeating work with [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing.md). `ado` internal protocols ensure this happens only when it makes sense 
+* ♻️ *Automatic data-reuse*: Avoid repeating work with [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing). `ado` internal protocols ensure this happens only when it makes sense 
 * 🔗 *Provenance*: As you work, the relationship between the data you create and operations you perform are [automatically tracked](https://ibm.github.io/ado/getting-started/ado#ado-show-related)
-* 🔎 *Optimization and sampling*: Out-of-the-box, leverage powerful optimization methods [via `raytune`](https://ibm.github.io/ado/operators/optimisation-with-ray-tune.md) or use our [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk.md) 
+* 🔎 *Optimization and sampling*: Out-of-the-box, leverage powerful optimization methods [via `raytune`](https://ibm.github.io/ado/operators/optimisation-with-ray-tune.md) or use our [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk) 
 
 ### Foundation Model Experimentation
 
 We have developed `ado` plugins providing advanced experiments for testing foundation-models:
 
-* ⏱️ [fine-tuning performance benchmarking ](actuators/sft-trainer.md)
+* ⏱️ [fine-tuning performance benchmarking ](https://ibm.github.io/ado/actuators/sft-trainer)
 * ⏱️ inference performance benchmarking (using the [vLLM performance benchmark](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html))
 * **COMING SOON** 🔮 inference and fine-tuning prediction 
 
 ## Requirements
 
-A basic installation of `ado` only requires a recent Python version (3.10+). This will allow you to run [many of our examples](https://ibm.github.io/ado/examples/examples.md) and explore ado features.
+A basic installation of `ado` only requires a recent Python version (3.10+). This will allow you to run [many of our examples](https://ibm.github.io/ado/examples/examples) and explore ado features.
 
 ### Additional Requirements
 
@@ -44,7 +44,7 @@ Some advanced features have additional requirements:
 
 In addition `ado` plugins may have additional requirements for executing **_realistic_** experiments. For example,
 
-* **_Fine-Tuning Benchmarking_**: Requires a [RayCluster with GPUs](https://ibm.github.io/ado/actuators/sft-trainer.md#configure-your-raycluster)
+* **_Fine-Tuning Benchmarking_**: Requires a [RayCluster with GPUs](https://ibm.github.io/ado/actuators/sft-trainer#configure-your-raycluster)
 * **_vLLM Performance Benchmarking_**: Requires an OpenShift cluster with GPUs 
 ## Install
 
@@ -70,7 +70,7 @@ To run unit-tests read [tests/README.md](tests/README.md).
 
 This video shows listing [actuators](website/docs/actuators/working-with-actuators.md) and getting the details of an experiment.
 
-Check [demo](https://ibm.pages.io/ado/getting-started/demo) for more videos.
+Check [demo](https://ibm.github.io/ado/getting-started/demo) for more videos.
 
 
 [![Watch the video](website/docs/getting-started/videos/step1_trimmed_thumbnail.png)](website/docs/getting-started/videos/step1_trimmed.mp4)

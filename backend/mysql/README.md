@@ -29,7 +29,7 @@ using the **Operator Lifecycle Manager (OLM)**.
 Refer to the official OpenShift-specific guide here:
 
 👉
-[OpenShift Deployment Guide](https://docs.percona.com/percona-operator-for-mysql/)
+[OpenShift Deployment Guide](https://docs.percona.com/percona-operator-for-mysql/pxc/openshift.html)
 
 ## Onboarding projects
 

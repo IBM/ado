@@ -46,7 +46,7 @@ To explore this space, you will:
 
 === "Install the SFTTrainer Actuator plugin from PyPi"
 
-     Run `pip install sfttrainer` to install the SFTTrainer actuator plugin using the wheel that we push to PypI.
+     Run `pip install ado-sfttrainer` to install the SFTTrainer actuator plugin using the wheel that we push to PyPi.
 
     !!! info end
 

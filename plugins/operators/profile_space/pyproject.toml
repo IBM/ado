@@ -1,7 +1,10 @@
+[tool.setuptools_scm]
+root = "../../../"
+
 [project]
 name = "profile_space"
-version = "0.1.0"
 dependencies = ["ydata_profiling"]
+dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
 profile_space = "profile_space.operator"

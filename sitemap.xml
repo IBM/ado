@@ -1,171 +1,171 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/</loc>
+         <loc>https://ibm.github.io/ado/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/tags/</loc>
+         <loc>https://ibm.github.io/ado/tags/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/actuators/creating-actuator-classes/</loc>
+         <loc>https://ibm.github.io/ado/actuators/creating-actuator-classes/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/actuators/creating-custom-experiments/</loc>
+         <loc>https://ibm.github.io/ado/actuators/creating-custom-experiments/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/actuators/replay/</loc>
+         <loc>https://ibm.github.io/ado/actuators/replay/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/actuators/sft-trainer/</loc>
+         <loc>https://ibm.github.io/ado/actuators/sft-trainer/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/actuators/working-with-actuators/</loc>
+         <loc>https://ibm.github.io/ado/actuators/working-with-actuators/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/actuators/</loc>
+         <loc>https://ibm.github.io/ado/core-concepts/actuators/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/concepts/</loc>
+         <loc>https://ibm.github.io/ado/core-concepts/concepts/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/data-sharing/</loc>
+         <loc>https://ibm.github.io/ado/core-concepts/data-sharing/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/discovery-spaces/</loc>
+         <loc>https://ibm.github.io/ado/core-concepts/discovery-spaces/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/entity-spaces/</loc>
+         <loc>https://ibm.github.io/ado/core-concepts/entity-spaces/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/best-configuration-search/</loc>
+         <loc>https://ibm.github.io/ado/examples/best-configuration-search/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/examples/</loc>
+         <loc>https://ibm.github.io/ado/examples/examples/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/finetune-locally/</loc>
+         <loc>https://ibm.github.io/ado/examples/finetune-locally/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/finetune-remotely/</loc>
+         <loc>https://ibm.github.io/ado/examples/finetune-remotely/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/lhu/</loc>
+         <loc>https://ibm.github.io/ado/examples/lhu/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/random-walk/</loc>
+         <loc>https://ibm.github.io/ado/examples/random-walk/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/search-custom-objective/</loc>
+         <loc>https://ibm.github.io/ado/examples/search-custom-objective/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/MAINTAINERS/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/MAINTAINERS/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/ado/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/contributing/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/contributing/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/contributing_readme/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/contributing_readme/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/demo/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/demo/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/developing/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/developing/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/install/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/install/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/installing-backend-services/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/installing-backend-services/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/kuberay/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/kuberay/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/remote_run/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/remote_run/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/roadmap/</loc>
+         <loc>https://ibm.github.io/ado/getting-started/roadmap/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/creating-operators/</loc>
+         <loc>https://ibm.github.io/ado/operators/creating-operators/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/explore_operators/</loc>
+         <loc>https://ibm.github.io/ado/operators/explore_operators/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/optimisation-with-ray-tune/</loc>
+         <loc>https://ibm.github.io/ado/operators/optimisation-with-ray-tune/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/random-walk/</loc>
+         <loc>https://ibm.github.io/ado/operators/random-walk/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/working-with-operators/</loc>
+         <loc>https://ibm.github.io/ado/operators/working-with-operators/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/actuatorconfig/</loc>
+         <loc>https://ibm.github.io/ado/resources/actuatorconfig/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/datacontainer/</loc>
+         <loc>https://ibm.github.io/ado/resources/datacontainer/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/discovery-spaces/</loc>
+         <loc>https://ibm.github.io/ado/resources/discovery-spaces/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/metastore/</loc>
+         <loc>https://ibm.github.io/ado/resources/metastore/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/operation/</loc>
+         <loc>https://ibm.github.io/ado/resources/operation/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/resources/</loc>
+         <loc>https://ibm.github.io/ado/resources/resources/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
     <url>
-         <loc>https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/sample-stores/</loc>
+         <loc>https://ibm.github.io/ado/resources/sample-stores/</loc>
          <lastmod>2025-08-29</lastmod>
     </url>
 </urlset>

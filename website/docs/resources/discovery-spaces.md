@@ -430,5 +430,5 @@ metadata:
 Here entities will be generated with a temperatures property that ranges from 20 to 30 degrees. 
 When the experiment is run on the entity it will retrieve the value of the temperature from it rather than the Experiment. 
 
-Our toy [example actuator](https://github.ibm.com/Discovery-Orchestrator/example_actuator) contains the above examples.
+Our toy [example actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) contains the above examples.
 You can use it to experiment and explore custom parameterization. 

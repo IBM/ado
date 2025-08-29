@@ -31,10 +31,10 @@ foundation model inference and fine-tuning respectively.
 The [search a space based on a custom objective function](search-custom-objective.md) example, combines with the [creating a custom experiment](../actuators/creating-custom-experiments.md)
 documentation to illustrate a simple method for adding your own experiments to `ado`.
 
-For adding actuators, we provide an [example template actuator repository](https://github.ibm.com/Discovery-Orchestrator/example_actuator) that can be used with our
+For adding actuators, we provide an [example template actuator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) that can be used with our
 [documentation on writing actuators](../actuators/creating-actuator-classes.md).
 
-For adding operators, we have an [example template operator repository](https://github.ibm.com/Discovery-Orchestrator/example_actuator) that can be used with our
+For adding operators, we have an [example template operator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) that can be used with our
 [documentation on writing operators](../operators/creating-operators.md). 
 
 ## What's next

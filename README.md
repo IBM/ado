@@ -17,11 +17,11 @@ You can also use **`ado`** to get features like data-tracking, data-sharing, too
 
 * 💻 *CLI*: Our human-centric CLI follows [best practices](https://clig.dev) 
 * 🤝 *Projects*: Allow distributed groups of users to [collaborate and share data](https://ibm.github.io/ado/resources/metastore)
-* 🔌 *Extendable*: Easily [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments.md), [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators)
+* 🔌 *Extendable*: Easily [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments), [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators)
 * ⚙️ *Scalable*: We use [ray](https://ray.io) as our execution engine allowing experiments and tools to easily scale
 * ♻️ *Automatic data-reuse*: Avoid repeating work with [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing). `ado` internal protocols ensure this happens only when it makes sense 
 * 🔗 *Provenance*: As you work, the relationship between the data you create and operations you perform are [automatically tracked](https://ibm.github.io/ado/getting-started/ado#ado-show-related)
-* 🔎 *Optimization and sampling*: Out-of-the-box, leverage powerful optimization methods [via `raytune`](https://ibm.github.io/ado/operators/optimisation-with-ray-tune.md) or use our [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk) 
+* 🔎 *Optimization and sampling*: Out-of-the-box, leverage powerful optimization methods [via `raytune`](https://ibm.github.io/ado/operators/optimisation-with-ray-tune) or use our [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk) 
 
 ### Foundation Model Experimentation
 

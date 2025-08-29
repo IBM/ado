@@ -1,8 +1,11 @@
+[tool.setuptools_scm]
+root = "../../../"
+
 [project]
 name = "anomalous_series"
-version = "0.1.0"
 dependencies = [
 ]
+dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
 anomalous_series = "anomalous_series.operator"

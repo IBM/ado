@@ -1,0 +1,23 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+specification:
+  module:
+    moduleClass: SQLSampleStore
+    moduleName: orchestrator.model.sqlstore
+copyFrom:
+  - module:
+      moduleClass: CSVSampleStore
+    storageLocation:
+      path: 'data/GM_Comparison/MolGX/Sample_0/PFAS_MolGX_test_SHORT_v0.csv'
+    parameters:
+      generatorIdentifier: 'gt4sd-pfas-molgx-model-one'
+      identifierColumn: 'smiles'
+      constitutivePropertyColumns: ['smiles']
+      experiments:
+        - experimentIdentifier: 'molgx-toxicity-inference-experiment'
+          propertyMap:
+            pka: "Real_pKa (-0.83, 10.58)"
+            logws: "Real_LogWS (-6.19, 1.13)"
+            "biodegradation halflife": "Real_BioDeg (0.47, 2.66)"
+            ld50: "Real_LD50 (3.9, 7543.0)"

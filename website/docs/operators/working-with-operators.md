@@ -1,0 +1,81 @@
+---
+status: published #Status can be draft, reviewed or published.
+---
+
+An `operator` is a code module that provides a capability to perform an `operation` on a `discoveryspace`.
+For example the `RandomWalk` operator provides the capability to perform a random walk `operation` on a `discoveryspace`.
+
+The pages in this section (see left hand nav menu) give details about some of the operators available in `ado`: what they are for,
+what they do and how to use them.
+
+!!! info end
+
+    In addition, the [examples](../examples/examples.md) section contains worked examples of using some of these operators.
+
+## `operator` types
+
+Operators are grouped into the following types:
+
+* **explore**: sample and measure entities from a `discoveryspace`
+* **characterize**: analyse a `discoveryspace`
+* **modify**: create a new `discoveryspace` by changing the entityspace or measurementspace of an input `discoveryspace`
+* **compare**: compare one or more `discoveryspaces`
+* **fuse**: create a new `discoveryspace` from a set of input `discoveryspaces`
+
+[This page](explore_operators.md) describes **explore** operators in more detail as 
+they are the only operators that sample and measure entities. 
+
+## Listing the available operators
+
+The following CLI command will list the available `operators`
+```commandline
+ado get operators
+```
+Example output:
+```commandline
+                                       OPERATOR          TYPE
+1                       detect_anomalous_series  characterize
+0                                       profile  characterize
+2                                   random_walk       explore
+3                                      ray_tune       explore
+9                       export_to_llm_lakehouse        export
+8  integrate_and_export_to_llm_lakehouse_format        export
+4                                add_experiment        modify
+7              generate_representative_subspace        modify
+5                                learning_split        modify
+6                                      rifferla        modify
+```
+
+## Using operators
+
+Using an operators involves the following steps:
+
+1. Find the input parameters for an operator
+2. Write an operation YAML for applying the operator. This involves setting specific values for its input parameters.
+3. Create the operation
+
+These steps are covered in detail in [operations](../resources/operation.md).
+
+## What's next
+
+
+<div class="grid cards" markdown>
+
+  -   :octicons-workflow-24:{ .lg .middle } __Try our examples__
+
+      ---
+
+      Explore using some of these operators with our [examples](../examples/examples.md).
+
+      [Our examples :octicons-arrow-right-24:](../examples/examples.md)
+
+-   :octicons-rocket-24:{ .lg .middle } __Learn about Actuators__
+
+    ---
+
+    Learn about extending ado with new [Actuators](../actuators/working-with-actuators.md).
+
+    [Creating new Actuators :octicons-arrow-right-24:](../actuators/working-with-actuators.md)
+
+
+</div>

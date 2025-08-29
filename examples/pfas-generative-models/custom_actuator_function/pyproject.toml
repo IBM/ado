@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true # This is on by default, including it for clarity
+
+[tool.setuptools_scm]
+root = "../../../"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["build"]
+
+[tool.setuptools.package-data]
+# Note: This is optional. If you don't specify it, every non python file that's in SCM will be added
+_ = ["*/custom_experiments.yaml", # Required: The file that describes the actuator classes the plugin provides
+                        ]
+[project]
+name="pfas_custom_functions"
+description="Custom functions for pfas generative models"
+dynamic = ["version"]

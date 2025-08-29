@@ -1,0 +1,4 @@
+{
+    "model": "llama3.2:3b-instruct-fp16",
+    "messages": [{"role": "user", "content": "Hello!"}]
+}

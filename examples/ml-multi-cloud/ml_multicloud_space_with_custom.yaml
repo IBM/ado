@@ -1,0 +1,25 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: dba6b0
+metadata:
+  name: "ml-multi-cloud-custom-really-fixed"
+  description: "Example space that uses a custom experiment defined as a python function"
+entitySpace:
+  - identifier: "provider"
+    propertyDomain:
+      values: ['A', 'B', 'C']
+  - identifier: "cpu_family"
+    propertyDomain:
+      values: [0, 1]
+  - identifier: "vcpu_size"
+    propertyDomain:
+      values: [0, 1]
+  - identifier: "nodes"
+    propertyDomain:
+      values: [2, 3, 4, 5]
+experiments:
+  - experimentIdentifier: 'benchmark_performance'
+    actuatorIdentifier: 'replay'
+  - experimentIdentifier: 'ml-multicloud-cost-v1.0'
+    actuatorIdentifier: 'custom_experiments'

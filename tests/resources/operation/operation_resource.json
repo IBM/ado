@@ -1,0 +1,38 @@
+{
+  "kind": "operation",
+  "config": {
+    "spaces": [
+      "space-6eeb27-4847c1"
+    ],
+    "metadata": {},
+    "operation": {
+      "module": {
+        "moduleName": "orchestrator.modules.operators.randomwalk",
+        "modulePath": ".",
+        "moduleType": "operation",
+        "moduleClass": "RandomWalk"
+      },
+      "parameters": {
+        "mode": "sequential",
+        "filter": {
+          "filterMode": "noFilter"
+        },
+        "batchSize": 1,
+        "maxRetries": 0,
+        "samplerType": "generator",
+        "numberEntities": 48,
+        "singleMeasurement": true
+      }
+    }
+  },
+  "status": [],
+  "created": "2024-11-13T15:01:01.272167Z",
+  "version": "v1",
+  "metadata": {
+    "entities_submitted": 0,
+    "experiments_requested": 0
+  },
+  "identifier": "randomwalk-0.6.8.dev6+ga4934402.d20241108-2b4c08",
+  "operationType": "search",
+  "operatorIdentifier": "randomwalk-0.6.8.dev6+ga4934402.d20241108"
+}

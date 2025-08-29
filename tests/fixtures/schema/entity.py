@@ -1,0 +1,190 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+import typing
+
+import pytest
+
+from orchestrator.schema.entity import Entity
+from orchestrator.schema.entityspace import EntitySpaceRepresentation
+from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.measurementspace import (
+    MeasurementSpace,
+    MeasurementSpaceConfiguration,
+)
+from orchestrator.schema.observed_property import ObservedProperty
+from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.property_value import PropertyValue, ValueTypeEnum
+from orchestrator.schema.result import ValidMeasurementResult
+
+
+@pytest.fixture
+def value_for_value_type():
+    def _value_for_value_type(
+        value_type: ValueTypeEnum = ValueTypeEnum.NUMERIC_VALUE_TYPE,
+    ):
+        import os
+        import random
+        import string
+
+        import numpy as np
+
+        vector_length = 3
+        vector_width = 2
+        string_length = 8
+        blob_length_bytes = 16
+
+        if value_type == ValueTypeEnum.NUMERIC_VALUE_TYPE:
+            value = np.random.rand()
+        elif value_type == ValueTypeEnum.VECTOR_VALUE_TYPE:
+            value = list(np.random.rand(vector_length, vector_width))
+        elif value_type == ValueTypeEnum.STRING_VALUE_TYPE:
+            value = "".join(
+                random.choices(string.ascii_letters + string.digits, k=string_length)
+            )
+        elif value_type == ValueTypeEnum.BLOB_VALUE_TYPE:
+            value = os.urandom(blob_length_bytes)
+        else:
+            value = None
+
+        return value
+
+    return _value_for_value_type
+
+
+@pytest.fixture
+def values_for_properties(
+    value_for_value_type,
+):
+    def _values_for_properties(
+        properties: typing.Union[
+            ConstitutiveProperty,
+            ObservedProperty,
+            list[ConstitutiveProperty],
+            list[ObservedProperty],
+        ],
+        value_type: ValueTypeEnum = ValueTypeEnum.NUMERIC_VALUE_TYPE,
+    ) -> list[PropertyValue]:
+        if not isinstance(properties, list):
+            properties = [properties]
+
+        return [
+            PropertyValue(
+                value=value_for_value_type(value_type),
+                valueType=value_type,
+                property=p,
+            )
+            for p in properties
+        ]
+
+    return _values_for_properties
+
+
+@pytest.fixture
+def property_values(
+    values_for_properties,
+    experiment: Experiment,
+) -> typing.List[PropertyValue]:
+
+    return values_for_properties(
+        properties=experiment.observedProperties,
+        value_type=ValueTypeEnum.NUMERIC_VALUE_TYPE,
+    )
+
+
+@pytest.fixture
+def entity(
+    experiment,
+    constitutive_properties,
+    property_values,
+    values_for_properties,
+) -> Entity:
+
+    entity_identifier = "COOH"
+    generator_id = "testgen"
+
+    constitutive_property_values = values_for_properties(
+        properties=constitutive_properties
+    )
+
+    measurement_results = [
+        ValidMeasurementResult(
+            entityIdentifier=entity_identifier, measurements=property_values
+        )
+    ]
+
+    return Entity(
+        identifier=entity_identifier,
+        generatorid=generator_id,
+        constitutive_property_values=tuple(constitutive_property_values),
+        measurement_results=measurement_results,
+    )
+
+
+@pytest.fixture(params=["required_only_in_es", "optional_in_es"])
+def entity_for_parameterized_experiment(
+    parameterized_experiment: ParameterizedExperiment, global_registry, request
+) -> typing.Tuple[Entity, ParameterizedExperiment]:
+    """Returns various entities that are compatible with parameterized experiments
+
+    For required-only, the entity constitutive properties are == experiments
+    For with-optional, an optional property is moved into the entity space
+    """
+
+    # Create a measurement space with the parameterized experiment reference
+    ms = MeasurementSpace(
+        configuration=MeasurementSpaceConfiguration(
+            experiments=[parameterized_experiment]
+        )
+    )
+
+    # Create an entity space compatible with the measurement space
+    es = ms.compatibleEntitySpace()
+    if request.param == "optional_in_es":
+        # add an optional parameter to the entity space
+        es = EntitySpaceRepresentation(
+            constitutiveProperties=es.constitutiveProperties
+            + list(parameterized_experiment.optionalProperties[:1])
+        )
+
+    # We might get required_only_in_es with an experiment which has no_required
+    # This is not possible
+    if (
+        request.param == "required_only_in_es"
+        and len(parameterized_experiment.requiredProperties) == 0
+    ):
+        pytest.skip(
+            "Can't create an entity from a space that only contains required properties given an experiment that has no required properties"
+        )
+
+    from orchestrator.core.discoveryspace.samplers import (
+        ExplicitEntitySpaceGridSampleGenerator,
+        WalkModeEnum,
+    )
+
+    # Sample an entity from the entity space
+    s = ExplicitEntitySpaceGridSampleGenerator(mode=WalkModeEnum.RANDOM)
+    entity = None
+    for e in s.entitySpaceIterator(es):
+        entity = e[0]
+        break
+
+    # If the experiment has a required observed property, add a value for it to the entity
+    props = parameterized_experiment.requiredObservedProperties
+    if len(props) == 1:
+        entity.add_measurement_result(
+            ValidMeasurementResult(
+                entityIdentifier=entity.identifier,
+                measurements=[PropertyValue(property=props[0], value=3)],
+            )
+        )
+
+    return entity, parameterized_experiment
+
+
+@pytest.fixture
+def random_entities(csv_sample_store):
+    def _random_entities(quantity: int) -> list[Entity]:
+        return csv_sample_store.entities[:quantity]
+
+    return _random_entities

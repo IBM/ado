@@ -1,0 +1,128 @@
+{
+  "llama-7b": {
+    "hash": "2693f9ac66a0c813a75df7c4f9e17f9d",
+    "num_parameters": 6738415616,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "granite-13b-v2": {
+    "hash": "924cef3b5d73e6d27c852fe659ea8f09",
+    "num_parameters": 13360702464,
+    "architectures": [
+      "GPTBigCodeForCausalLM"
+    ],
+    "tokenizer_model_max_length": 8192
+  },
+  "llama-13b": {
+    "hash": "75b8ad14f6ceb2a39147c797468b87d2",
+    "num_parameters": 13015864320,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "granite-20b-v2": {
+    "hash": "7c747f5c5d924976d5eb87e945c962e9",
+    "num_parameters": 20368983040,
+    "architectures": [
+      "GPTBigCodeForCausalLM"
+    ],
+    "tokenizer_model_max_length": 8192
+  },
+  "granite-7b-base": {
+    "hash": "2693f9ac66a0c813a75df7c4f9e17f9d",
+    "num_parameters": 6738415616,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "granite-8b-japanese": {
+    "hash": "7301007ee2c3e0f98281512afd46ed83",
+    "num_parameters": 8415005184,
+    "architectures": null,
+    "tokenizer_model_max_length": 9223372036854775807
+  },
+  "granite-8b-code-base": {
+    "hash": "ccda21c51185dcbb022834bc4febad0c",
+    "num_parameters": 8256237568,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 9223372036854775807
+  },
+  "granite-34b-code-base": {
+    "hash": "d329e70be6278af28eeede05de6574e7",
+    "num_parameters": 34017593344,
+    "architectures": [
+      "GPTBigCodeForCausalLM"
+    ],
+    "tokenizer_model_max_length": 8192
+  },
+  "mistral-7b-v0.1": {
+    "hash": "5e2cc0c95f550c0ddf4ea1c934a51dc8",
+    "num_parameters": 7241732096,
+    "architectures": [
+      "MistralForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "llama3-8b": {
+    "hash": "f1a541c082a97cf5385c998d478fa4c2",
+    "num_parameters": 8030261248,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "llama3-70b": {
+    "hash": "983b3f95f3adfa7e734f806946403719",
+    "num_parameters": 70553706496,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "mixtral-8x7b-instruct-v0.1": {
+    "hash": "4bc3df15cc84dfff71c1d14ab85665fd",
+    "num_parameters": 46702792704,
+    "architectures": [
+      "MixtralForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "llama2-70b": {
+    "hash": "cd749b679f74aec28bb99628ddd57b21",
+    "num_parameters": 68976648192,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "llama3.1-8b": {
+    "hash": "f1a541c082a97cf5385c998d478fa4c2",
+    "num_parameters": 8030261248,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "llama3.1-70b": {
+    "hash": "983b3f95f3adfa7e734f806946403719",
+    "num_parameters": 70553706496,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  },
+  "llama3.1-405b": {
+    "hash": "729447acd8cbec92ebf5dc586bf44325",
+    "num_parameters": 410081247232,
+    "architectures": [
+      "LlamaForCausalLM"
+    ],
+    "tokenizer_model_max_length": 1000000000000000019884624838656
+  }
+}

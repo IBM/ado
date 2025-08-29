@@ -1,0 +1,7 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+specification:
+  module:
+    moduleName: orchestrator.core.samplestore.sql
+    moduleClass: SQLSampleStore

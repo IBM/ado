@@ -1,0 +1,38 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+experiments:
+  - identifier: 'nevergrad_opt_3d_test_func'
+    actuatorIdentifier: "custom_experiments"
+    metadata:
+        module:
+          moduleName: ado_actuators.optimization_test_functions.optimization_test_functions
+          moduleFunction: artificial_function
+    targetProperties:
+      - identifier: "function_value"
+    requiredProperties:
+      - identifier: "x0"
+        propertyDomain:
+          variableType:  "CONTINUOUS_VARIABLE_TYPE"
+      - identifier: "x1"
+        propertyDomain:
+          variableType:  "CONTINUOUS_VARIABLE_TYPE"
+      - identifier: "x2"
+        propertyDomain:
+          variableType: "CONTINUOUS_VARIABLE_TYPE"
+    optionalProperties:
+      - identifier: "name"
+        propertyDomain:
+          values: ['discus', 'sphere', 'cigar', 'griewank', 'rosenbrock', 'st1']
+      - identifier: "num_blocks"
+        propertyDomain:
+          domainRange: [1,10]
+          variableType: "DISCRETE_VARIABLE_TYPE"
+          interval: 1
+    defaultParameterization:
+      - value: "rosenbrock"
+        property:
+          identifier: "name"
+      - value: 1
+        property:
+          identifier: "num_blocks"

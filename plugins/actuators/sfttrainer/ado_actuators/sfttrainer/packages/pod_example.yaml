@@ -1,0 +1,27 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: fms-hf-tuning-pkgs-
+spec:
+  containers:
+  - name: packages
+    # VV: Update the image
+    image: quay.io/modh/fms-hf-tuning:v{THE VERSION}
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+    command:
+      - pip
+    args:
+      - freeze
+    securityContext:
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
+    workingDir: "/tmp"
+  restartPolicy: Never

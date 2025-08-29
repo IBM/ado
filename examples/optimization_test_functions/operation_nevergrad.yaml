@@ -1,0 +1,19 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+spaces:
+  - space-ccf2bf-a50274 #substitute with your space id
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    tuneConfig:
+      metric: "function_value" # The metric that the test function measure
+      mode: 'min'
+      num_samples: 40
+      max_concurrent_trials: 4  # This is set for debugging. Increase if you want multiple measurements at once.
+      search_alg:
+        name: nevergrad
+        params:
+            optimizer: "CMA"

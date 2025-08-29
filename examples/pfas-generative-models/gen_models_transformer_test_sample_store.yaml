@@ -1,0 +1,15 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+specification:
+  module:
+    moduleClass: SQLSampleStore
+    moduleName: orchestrator.core.samplestore.sql
+copyFrom:
+  - module:
+      moduleClass: GT4SDTransformer
+      moduleName: orchestrator.plugins.samplestores.gt4sd
+    storageLocation:
+      path: 'data/GM_Comparison/Transfromer/Sample_0/test_generations.csv'
+    parameters:
+      generatorIdentifier: 'gt4sd-pfas-transformer-model-one'

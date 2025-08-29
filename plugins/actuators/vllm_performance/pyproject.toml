@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true # This is on by default, including it for clarity
+
+[tool.setuptools_scm]
+root = "../../../"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["build", "build.*", "yamls", "docker_image"]
+
+[tool.setuptools.package-data]
+# Note: This is optional. If you don't specify every non python file that's in SCM will be added
+vllm_performance = [
+    "actuator_definitions.yaml", # Required: The file that describes the actuator classes the plugin provides
+    "experiments.yaml" # Optional file that contains definitions for experiment catalog
+]
+
+[project]
+name="ado-vllm-performance"
+description="VLLM performance testing actuator"
+readme = "README.md"
+
+#[tool.setuptools.dynamic]
+#dependencies = {file = ["requirements.txt"]}
+
+# Deps/Build-related section
+dynamic = ["version"]
+dependencies = [
+    "kubernetes >= 31.0.0",
+    "transformers >= 4.45.0",
+    "huggingface_hub",
+    "datasets"
+]
+
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "pre-commit>=4.2.0",
+    "ruff>=0.12.1",
+]

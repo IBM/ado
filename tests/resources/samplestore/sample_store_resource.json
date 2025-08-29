@@ -1,0 +1,45 @@
+{
+  "kind": "samplestore",
+  "config": {
+    "copyFrom": [
+      {
+        "module": {
+          "moduleName": "orchestrator.core.samplestore.csv",
+          "modulePath": ".",
+          "moduleType": "sample_store",
+          "moduleClass": "CSVSampleStore"
+        },
+        "parameters": {
+          "experiments": [
+            {
+              "propertyMap": { "wallClockRuntime": "wallClockRuntime" },
+              "experimentIdentifier": "benchmark_performance"
+            }
+          ],
+          "constitutivePropertyColumns": ["cpu_family", "vcpu_size", "nodes", "provider"],
+          "identifierColumn": "config",
+          "generatorIdentifier": "multi-cloud-ml"
+        },
+        "storageLocation": {
+          "path": "examples/ml-multi-cloud/ml_export.csv",
+          "scheme": "file"
+        }
+      }
+    ],
+    "specification": {
+      "module": {
+        "moduleName": "orchestrator.core.samplestore.sql",
+        "modulePath": ".",
+        "moduleType": "sample_store",
+        "moduleClass": "SQLSampleStore"
+      },
+      "parameters": { "identifier": "4847c1" },
+      "storageLocation": {}
+    }
+  },
+  "status": [],
+  "created": "2024-11-13T10:26:37.090387Z",
+  "version": "v2",
+  "metadata": {},
+  "identifier": "4847c1"
+}

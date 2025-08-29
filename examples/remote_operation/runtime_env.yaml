@@ -1,0 +1,20 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+#
+# Example runtime configuration for running an ado operation on a remote ray cluster (value to --runtime-env option of ray job submit)
+#
+# ray job submit --no-wait --address http://localhost:8265  --working-dir . --runtime-env ray_runtime.yaml -v --  ado -c context.yaml create operation -f operation.yaml
+#
+# This configuration installs ado, and any plugins, dynamically on the cluster when the job is submitted
+#
+pip: # One line for each wheel to install e.g. list plugin wheels here
+ - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADORCHESTRATOR.whl #The wheel must be in the directory where ray job submit is run
+env_vars: # These envars are recommended. Some plugins may require others. Check plugin docs.
+  PYTHONUNBUFFERED: "x" # Turns of buffering of the jobs logs. Useful if there is some error
+  OMP_NUM_THREADS: "1" # Restricts the number of threads started by the python process in the job. If this is not set it can cause the ray job to exceed OpenShift node thread limits. 
+  OPENBLAS_NUM_THREADS: "1" # Same as above
+  RAY_AIR_NEW_PERSISTENCE_MODE: "0" # Required for using the ray_tune operator
+  #The following envars may be required or useful depending 
+  #HOME: "/tmp" # Optional: Use if python code used by operation assumes $HOME is writable which it may not be
+  #LOGLEVEL: "INFO" # Optional: Set this to get more/less debug logs from ado.

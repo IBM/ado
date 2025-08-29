@@ -1,0 +1,31 @@
+.*influx_vars*
+.*mysql_vars*
+.DS_Store
+.eggs/
+.vscode/
+.idea/
+*.egg-info/
+build/
+__pycache__/
+# vim
+*.swp
+*.swo
+examples/*/dist/*
+examples/*/build/*
+.run/
+.run
+.actuator_plugin_cache.json*
+.actuator_catalog_cache.json*
+discovery_space*.json
+.log
+dist/*
+plugins/*/dist/*
+
+# to be save...
+*_runtime.env.yaml
+*_runtime*.env.yaml
+.env
+.venv
+pytest-sqlite.db
+.tox
+toxenv

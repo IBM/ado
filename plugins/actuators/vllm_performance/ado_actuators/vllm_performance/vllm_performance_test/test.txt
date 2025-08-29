@@ -1,0 +1,17 @@
+curl http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llama3.2:3b-instruct-fp16",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Hello, what is the capital of ireland"
+          },
+        ]
+      }
+    ],
+    "max_tokens": 300
+  }'

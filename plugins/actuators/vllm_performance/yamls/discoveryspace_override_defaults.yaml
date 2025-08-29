@@ -1,0 +1,56 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: 2963a5
+entitySpace:
+  - identifier: model
+    propertyDomain:
+      values:
+        - ibm-granite/granite-3.3-8b-instruct
+      variableType: CATEGORICAL_VARIABLE_TYPE
+  - identifier: image
+    propertyDomain:
+      values:
+        - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
+      variableType: CATEGORICAL_VARIABLE_TYPE
+  - identifier: n_cpus
+    propertyDomain:
+      values: [8]
+  - identifier: memory
+    propertyDomain:
+      values: ["128Gi"]
+  - identifier: dtype
+    propertyDomain:
+      values: ["auto"]
+  - identifier: "num_prompts"
+    propertyDomain:
+      values: [500]
+  - identifier: "request_rate"
+    propertyDomain:
+      values: [-1]
+  - identifier: "max_concurrency"
+    propertyDomain:
+      values: [-1]
+  - identifier: "gpu_memory_utilization"
+    propertyDomain:
+      values: [.9]
+  - identifier: "cpu_offload"
+    propertyDomain:
+      values: [0]
+  - identifier: "max_batch_tokens"
+    propertyDomain:
+      values: [16384]
+  - identifier: "max_num_seq"
+    propertyDomain:
+      values: [256]
+  - identifier: "n_gpus"
+    propertyDomain:
+      values: [1]
+  - identifier: "gpu_type"
+    propertyDomain:
+      values: ["NVIDIA-A100-80GB-PCIe"]
+experiments:
+  - actuatorIdentifier: vllm_performance
+    experimentIdentifier: performance-testing-full
+metadata:
+  description: Parameters for VLLM performance testing

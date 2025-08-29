@@ -1,0 +1,8 @@
+[project]
+name = "profile_space"
+version = "0.1.0"
+dependencies = ["ydata_profiling"]
+
+[project.entry-points."ado.operators"]
+profile_space = "profile_space.operator"
+

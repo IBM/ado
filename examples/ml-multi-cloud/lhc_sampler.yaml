@@ -1,0 +1,26 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+metadata:
+  description: "Perform latin hypercube sampling with mutual information stopper"
+  name: "lhc-example"
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    runtimeConfig:
+      stop:
+        - name: InformationGainStopper
+          keywordParams:
+            mi_diff_limit: 1.0
+            samples_below_limit: 5
+            consider_pareto_front_convergence: True
+    tuneConfig:
+      metric: wallClockRuntime
+      max_concurrent_trials: 1  # This is set for debugging. Increase if you want multiple measurements at once.
+      mode: min
+      num_samples: 32
+      search_alg:
+        name: lhu_sampler
+spaces:
+  - space-60b5c0-12e5dd

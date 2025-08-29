@@ -1,0 +1,32 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: 8ab4e8
+entitySpace:
+- identifier: model
+  propertyDomain:
+    values:
+      - meta-llama/Llama-3.1-8B-Instruct
+    variableType: CATEGORICAL_VARIABLE_TYPE
+- identifier: endpoint
+  propertyDomain:
+    values:
+      - []
+    variableType: CATEGORICAL_VARIABLE_TYPE
+- identifier: 'num_prompts'
+  propertyDomain:
+    domainRange: [100,1000]
+    interval: 10
+- identifier: 'request_rate'
+  propertyDomain:
+    domainRange: [1,10]
+    interval: 1
+- identifier: 'max_concurrency'
+  propertyDomain:
+    domainRange: [1,10]
+    interval: 1
+experiments:
+  - actuatorIdentifier: vllm_performance
+    experimentIdentifier: performance-testing-endpoint
+metadata:
+  description: Parameters for VLLM performance testing

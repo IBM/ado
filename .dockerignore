@@ -1,0 +1,15 @@
+website
+toxenv
+tests
+schemas
+notebooks
+installation
+deploy
+build
+.venv
+.vscode
+*.egg*
+adorchestrator.egg-info
+__pycache__
+temp
+*IBM_CLOUD*

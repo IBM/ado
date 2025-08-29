@@ -1,0 +1,15 @@
+{
+    "model": "llama3.2:3b-instruct-fp16",
+    "messages": [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "This is the webpage for the accelerated discovery orchestrator (ado). ado is a unified platform for executing computational experiments at scale and analysing their results. It can be extended with new experiments or new analysis tools. It allows distributed teams of researchers and engineers to collaborate on projects, execute experiments, and share data. You can run the experiments and analysis tools already available in ado in a distributed, shared, environment with your team. You can also use ado to get features like data-tracking, data-sharing, tool integration and a CLI, for your analysis method or experiment for free. Using ado assumes familiarity with command line tools. Developing ado requires knowledge of python. The following examples illustrate general features of ado. They build on the concepts learned in the tutorial and leverage pre-existing data and/or toy measurements so they run quickly. The following examples illustrate using the vllm_performance and SFTTrainer actuators which provide benchmarking experiments for foundation model inference and fine-tuning respectively. The search a space based on a custom objective function example, combines with the creating a custom experiment documentation to illustrate a simple method for adding your own experiments to ado. For adding actuators, we provide an example template actuator repository that can be used with our documentation on writing actuators. For adding operators, we have an example template operator repository that can be used with our documentation on writing operators. When you deploy a workload you have to choose values for workload parameters like the number of CPUs or the node type. To choose a combination of parameters that, for example, maximizes performance, a common strategy is to measure changes in performance by exploring the workload parameter space. This pattern applies to many domains where there is a parameter space to explore. In this example ado is used to explore the workload parameter space for a cloud application. To explore a workload parameter space you have to. For this example we will use some pre-existing data. This makes the example simpler and quicker to execute but can also be useful in other situations. The data is in the file ml_export.csv and is consists of results of running a benchmark on different cloud hardware configurations from different providers."
+                }
+            ]
+        }
+    ],
+    "max_tokens": 128
+}

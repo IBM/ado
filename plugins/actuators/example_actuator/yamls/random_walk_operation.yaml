@@ -1,0 +1,14 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+spaces:
+- 'space-75f7af-c04713' # REPLACE WITH REAL SPACE ID. Note only one spaceid allowed
+operation:
+  module:
+    moduleClass: RandomWalk
+    moduleName: orchestrator.modules.operators.randomwalk
+  parameters:
+    numberEntities: 10
+    batchSize: 2
+    mode: 'sequential'
+    samplerType: 'generator'

@@ -1,0 +1,30 @@
+ARG base_image=mirror.gcr.io/rayproject/ray:latest-py310-cu121
+FROM $base_image
+
+# AP 19/05/2025:
+# CUDA_HOME is not set in the image and is required
+ENV CUDA_HOME=/usr/local/cuda
+
+USER 0
+RUN chgrp -R 0 /home/ray && \
+    chmod -R g=u /home/ray
+USER 1000
+
+# Install prerequisites for other packages
+# AP: we need to install torch before flash-attn
+RUN uv pip install --system "torch>=2.4,<2.5.0" && \
+    uv pip install --system --no-build-isolation "flash-attn==2.6.3"
+
+# Copy source code
+COPY --chown=1000:0 ./ ad-orchestrator
+
+## Install ad-orchestrator
+RUN cd ad-orchestrator && \
+    uv pip install --system \
+    '.'
+## Install ray-tune operator
+RUN cd ad-orchestrator && \
+    uv pip install --system \
+    'plugins/operators/ray_tune/'
+
+CMD ado -h

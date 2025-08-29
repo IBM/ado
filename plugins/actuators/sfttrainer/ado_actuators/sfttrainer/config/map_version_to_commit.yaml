@@ -1,0 +1,16 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+# Maps a fms-hf-tuning version to its respective commit id on https://github.com/foundation-model-stack/fms-hf-tuning
+
+2.0.1: 9b8245e74144f7ee73b7241a1687b6c77f0eb2e4
+2.1.0: 8f168183a70b41cb66902f438ecba7734144138c
+2.1.1: e2ac09183d8ba29084e110fd16b6b6c872e4a267
+2.1.2: 1e82e020f64d5a53acf98eecccb33c3597881b5e
+2.2.1: e6f7a2205c06e703c6b22bdcc5e1f248823c2a2e
+2.3.1: 3ec30a0f9c47b0b6b9f43ce9200ab4ff24ed01e8
+2.4.0: 76bd76d0cfef0852e8490c344b791a35a1080ead
+2.5.0: 6f9bab223987732826f625fc7a522a78b58697fb
+2.6.0: 53f2babaddf07c85f5274167af9aaa947f19faf3
+2.7.1: 456fe2a840e7f0b2d8d48c04cefe24faddbf261a
+2.8.2: ad594c7270e934679d48286aa87c5ade7bfc54e2

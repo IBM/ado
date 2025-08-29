@@ -1,0 +1,22 @@
+ARG base_image=mirror.gcr.io/rayproject/ray:latest-py310-cpu
+FROM $base_image
+
+USER 0
+RUN chgrp -R 0 /home/ray && \
+    chmod -R g=u /home/ray
+USER 1000
+
+# Copy source code
+COPY --chown=1000:0 ./ ad-orchestrator
+
+## Install ad-orchestrator
+RUN cd ad-orchestrator && \
+    uv pip install --system \
+    '.'
+
+## Install ray-tune operator
+RUN cd ad-orchestrator && \
+    uv pip install --system \
+    'plugins/operators/ray_tune/'
+
+CMD ado -h

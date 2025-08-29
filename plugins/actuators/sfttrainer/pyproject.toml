@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true # This is on by default, including it for clarity
+
+[tool.setuptools_scm]
+root = "../../../"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["build", "build.*", "yamls"]
+
+[tool.setuptools.package-data]
+# Note: This is optional. If you don't specify it, every non python file that's in SCM will be added
+sfttrainer = [
+    "actuator_definitions.yaml", # Required: The file that describes the actuator classes the plugin provides
+]
+
+[project.scripts]
+sfttrainer_generate_dataset_text = "ado_actuators.sfttrainer.scripts.generate_dataset:app"
+sfttrainer_generate_dataset_vision = "ado_actuators.sfttrainer.scripts.generate_vision_dataset:app"
+sfttrainer_download_hf_weights = "ado_actuators.sfttrainer.scripts.download_hf_weights:app"
+
+[project]
+name="ado-sfttrainer"
+description="An actuator for benchmarking fine-tuning of foundation models" # Change to describing your actuator
+dependencies=[
+    "jwt",
+    "aim>=3.23.0",
+    "transformers>=4.44.2",
+    "psutil",
+    "torch>=2.4,<2.5.0",
+]
+dynamic = ["version"]

@@ -9,12 +9,12 @@ For example, an experiment might measure the run time of an application, while *
 the cost per hour of the GPUs used**. 
 Another common scenario involves aggregating data points from one or more experiments into a single value. 
 
-In this example we will install **a custom objective function that calculates a cost** for the application workload configurations used in the [talking a random walk example](/ibm/ado/examples/random-walk/).
+In this example we will install **a custom objective function that calculates a cost** for the application workload configurations used in the [talking a random walk example](/ado/examples/random-walk/).
 When the workload configuration space is explored using a random walk, both the `wallClockRuntime` and the `cost`, as defined by the custom function, will be measured.
 
 > [!CAUTION]
 > The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
-> See [here](/ibm/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
+> See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 
 ## Pre-requisites
 
@@ -92,8 +92,8 @@ From the observed property identifier,  the experiment is called `benchmark_perf
 
 ## Create a discoveryspace that uses the custom experiment
 
-First create a `samplestore` with the `ml-multi-cloud` example data following [these instructions](/ibm/ado/examples/random-walk/#using-pre-existing-data-with-ado).
-If you have already completed the [talking a random walk example](/ibm/ado/examples/random-walk/), reuse the `samplestore` you created there (use `ado get samplestores` if you cannot recall the identifier).
+First create a `samplestore` with the `ml-multi-cloud` example data following [these instructions](/ado/examples/random-walk/#using-pre-existing-data-with-ado).
+If you have already completed the [talking a random walk example](/ado/examples/random-walk/), reuse the `samplestore` you created there (use `ado get samplestores` if you cannot recall the identifier).
 
 To use the custom experiment you must add it in the `experiments` list of a `discoveryspace`.
 The `acutauatorIdentifer` will be `custom_experiments` and the `experimentIdentifier` will be the name of your experiment.
@@ -185,7 +185,7 @@ To run a `randomwalk` operation on the new space, execute ((replacing `$DISCOVER
 ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
 ```
 
-This produces an output similar to that described in the [talking a random walk example](/ibm/ado/examples/random-walk/#exploring-the-discoveryspace) and will exit printing the operation identifier.
+This produces an output similar to that described in the [talking a random walk example](/ado/examples/random-walk/#exploring-the-discoveryspace) and will exit printing the operation identifier.
 However, in this case there is additional information related to the dependent experiment.
 
 
@@ -250,9 +250,9 @@ request_index
 
 ## Explore Further
 
-- *perform an optimization instead of a random walk*: See the [search a space with an optimizer example](/ibm/ado/examples/best-configuration-search).
+- *perform an optimization instead of a random walk*: See the [search a space with an optimizer example](/ado/examples/best-configuration-search).
 - *modify the objective function*: Try modifying the cost function and creating a new space - be careful to change the name of the experiment!
-- *create a custom experiment*: Explore [the documentation for writing your own custom experiment](/ibm/ado/actuators/creating-custom-experiments/)
+- *create a custom experiment*: Explore [the documentation for writing your own custom experiment](/ado/actuators/creating-custom-experiments/)
 - *break the discoveryspace*: See what happens if you try to create the `discoveryspace` without the experiment that provides input to the cost function. 
 - *examine the requests*: Run `ado show requests operation` to see what is replayed (`benchmark_performance`) and what is calculated (`ml_multicloud_cost-v1.0`)
 

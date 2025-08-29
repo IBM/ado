@@ -4,7 +4,7 @@ status: published #Status can be draft, reviewed or published.
 
 !!! info end
 
-    A reposistory providing a complete template actuator [here](https://github.ibm.com/Discovery-Orchestrator/example_actuator).
+    A reposistory providing a complete template actuator [here](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator).
     This example actuator is functional out-of-the-box and can be used as the basis to create new actuators.
 
 Developers can write their own [actuator](../core-concepts/actuators.md) plugins to add new experiments (a.k.a. tests, experiment protocols) in new domains to `ado`.
@@ -15,7 +15,7 @@ The main part of writing an actuator plugin is writing a python class that imple
 
 This page gives an overview of how to get started creating your own actuator. 
 It's not intended to be comprehensive. 
-After reading this page the best resource is to [our example actuator](https://github.ibm.com/Discovery-Orchestrator/example_actuator) or to check an existing actuator plugin.
+After reading this page the best resource is to [our example actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) or to check an existing actuator plugin.
 
 ## Knowledge required
 

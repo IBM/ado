@@ -32,7 +32,7 @@ status: published #Status can be draft, reviewed or published.
 === "Cloning the repo"
 
     This, method **requires having set up an SSH key** for the repository to be cloned. In case
-    you haven't already, you can do so [here](https://github.ibm.com/settings/keys)
+    you haven't already, you can do so [here](https://github.com/settings/keys)
     by following GitHub's
     [documentation](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
 
@@ -45,7 +45,7 @@ status: published #Status can be draft, reviewed or published.
 === "Via GitHub"
 
     This, method **requires having set up an SSH key** for the repository to be cloned. In case
-    you haven't already, you can do so [here](https://github.ibm.com/settings/keys)
+    you haven't already, you can do so [here](https://github.com/settings/keys)
     by following GitHub's
     [documentation](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
 

@@ -15,16 +15,16 @@ This example illustrates calculating the morgan fingerprint of a set of molecule
 2. Access to a project for storing resources i.e. a valid active context
 3. The example files
 
-To get the example files, checkout the ad-orchestrator repo: 
+To get the example files, checkout the ado repo: 
 
 ```commandline
-git clone git@github.ibm.com:Discovery-Orchestrator/ad-orchestrator.git
+git clone https://github.com/IBM/ado.git
 ```
 
 and go to the following example directory
 
 ```commandline
-cd ad-orchestrator/examples/pfas-generative-models
+cd ado/examples/pfas-generative-models
 ```
 
 ## Create a samplestore, copying in existing molecular data

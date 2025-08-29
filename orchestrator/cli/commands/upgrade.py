@@ -40,7 +40,7 @@ def upgrade_resource(
     """
     Upgrade resources and contexts.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-upgrade
+    See https://ibm.github.io/ado/getting-started/ado/#ado-upgrade
     for detailed documentation and examples.
 
 

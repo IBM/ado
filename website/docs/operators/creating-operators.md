@@ -4,7 +4,7 @@ status: draft #Status can be draft, reviewed or published.
 
 !!! info end
 
-    A complete example operator is provided [here](https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/plugins/operators/profile_space).
+    A complete example operator is provided [here](https://github.com/ibm/ado/plugins/operators/profile_space).
     This example operator is functional, and useful, out-of-the-box. It can be used as the basis to create new operators.
     It references this document to help tie details here to implementation. 
 
@@ -16,7 +16,7 @@ The main part of writing an operator plugin, from an integration standpoint, is 
 From this function you then call your operator logic (or in many cases it can just live in this function).
 
 This page gives an overview of how to get started creating your own operator.
-After reading this page the best resource is to check [our example operator](https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/plugins/operators/profile_space).
+After reading this page the best resource is to check [our example operator](https://github.com/ibm/ado/plugins/operators/profile_space).
 
 ## Knowledge required
 

@@ -139,7 +139,7 @@ def template_resource(
     """
     Output templates for creating resources and contexts.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-template
+    See https://ibm.github.io/ado/getting-started/ado/#ado-template
     for detailed documentation and examples.
 
 

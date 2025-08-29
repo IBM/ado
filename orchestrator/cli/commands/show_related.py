@@ -60,7 +60,7 @@ def show_related_for_resources(
     """
     Show resources directly (one-hop) related to the requested resource, grouped by type.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-show-related
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-related
     for detailed documentation and examples.
 
 

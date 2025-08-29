@@ -18,7 +18,7 @@ Here we will try to find **which dimensions have most influence over the `wallCl
 
 > [!CAUTION]
 > The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
-> See [here](/Discovery-Orchestrator/ad-orchestrator/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
+> See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 
 ## Pre-requisites
 
@@ -42,17 +42,17 @@ Available operators by type:
 
 ### Creating the `discoveryspace`
 
-This example uses the same `discoveryspace` created in the [talking a random walk example](/Discovery-Orchestrator/ad-orchestrator/examples/random-walk/).
+This example uses the same `discoveryspace` created in the [talking a random walk example](/ado/examples/random-walk/).
 You can use `ado get spaces` to find the identifier. 
 
 ## Discovering what workload parameters most impact cost
 
-We will use the [latin-hyper-cube sampler](/Discovery-Orchestrator/ad-orchestrator/operators/optimisation-with-ray-tune/#latin-hypercube-sampler) to sample points. This is a sampling method which tries maintaining properties similar to true random sampling, while ensuring the samples are more evenly spread across the space.  An example operation file is given in `lhc-sampler.yaml`.
+We will use the [latin-hyper-cube sampler](/ado/operators/optimisation-with-ray-tune/#latin-hypercube-sampler) to sample points. This is a sampling method which tries maintaining properties similar to true random sampling, while ensuring the samples are more evenly spread across the space.  An example operation file is given in `lhc-sampler.yaml`.
 
 The operation also configures the exploration to monitor the relationship between the four parameters and the cost metric and stop when it has determined
-which are most important using the [InformationGain stopper](/Discovery-Orchestrator/ad-orchestrator/operators/optimisation-with-ray-tune/#informationgainstopper).
+which are most important using the [InformationGain stopper](/ado/operators/optimisation-with-ray-tune/#informationgainstopper).
 
-To execute this operation run (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the identifier of the space created in the [talking a random walk example](/Discovery-Orchestrator/ad-orchestrator/examples/random-walk/)):
+To execute this operation run (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the identifier of the space created in the [talking a random walk example](/ado/examples/random-walk/)):
 
 ```commandline
 ado create operation -f lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"

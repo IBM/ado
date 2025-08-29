@@ -11,15 +11,15 @@ from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.operators.collections import characterize_operation
 
 
-# See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/creating-operators/#ado-operator-functions
+# See https://ibm.github.io/ado/operators/creating-operators/#ado-operator-functions
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
-    configuration_model=None,  # You can use this field to define the option of your operator if any - see https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/creating-operators/#describing-your-operation-input-parameters
+    configuration_model=None,  # You can use this field to define the option of your operator if any - see https://ibm.github.io/ado/operators/creating-operators/#describing-your-operation-input-parameters
     configuration_model_default=None,  # Use this field to provide default/example values for your operator
     description="Returns a ydata_profiling ProfileReport for the space",
 )
-# operator function can have any name but have similar parameters - see https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/creating-operators/#operator-function-parameters
+# operator function can have any name but have similar parameters - see https://ibm.github.io/ado/operators/creating-operators/#operator-function-parameters
 def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: typing.Optional[FunctionOperationInfo] = None,
@@ -41,6 +41,6 @@ def profile(
         ]
     )
 
-    # See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/operators/creating-operators/#returning-data-from-your-operation
+    # See https://ibm.github.io/ado/operators/creating-operators/#returning-data-from-your-operation
     # for documentation on the return value of an operator function
     return OperationOutput(other=[ydata_profiling.ProfileReport(df)])

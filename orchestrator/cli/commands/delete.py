@@ -83,7 +83,7 @@ def delete_resource(
     """
     Delete resources and contexts.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-delete
+    See https://ibm.github.io/ado/getting-started/ado/#ado-delete
     for detailed documentation and examples.
 
 

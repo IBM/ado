@@ -40,7 +40,7 @@ ado context local
 
 === "Install the SFTTrainer Actuator plugin from PyPi"
 
-     Run `pip install sfttrainer` to install the SFTTrainer actuator plugin using the wheel that we push to PyPi.
+     Run `pip install ado-sfttrainer` to install the SFTTrainer actuator plugin using the wheel that we push to PyPi.
 
     !!! info end
 

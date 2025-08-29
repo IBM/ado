@@ -1,6 +1,9 @@
+[tool.setuptools_scm]
+root = "../../../"
+
 [project]
 name = "ado-ray-tune"
-version = "0.1.0"
+dynamic = ["version"]
 dependencies = [
     "ray[tune]>=2.9",
     "ax-platform==0.3.6",

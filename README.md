@@ -73,7 +73,7 @@ This video shows listing [actuators](website/docs/actuators/working-with-actuato
 Check [demo](https://ibm.github.io/ado/getting-started/demo) for more videos.
 
 
-[![Watch the video](website/docs/getting-started/videos/step1_trimmed_thumbnail.png)](website/docs/getting-started/videos/step1_trimmed.mp4)
+[![Watch the video](website/docs/getting-started/videos/step1_trimmed_thumbnail.png)](https://github.com/user-attachments/assets/fc4862f3-763b-4967-ab3c-4bd359900a50)
 
 
 ## Technical Report

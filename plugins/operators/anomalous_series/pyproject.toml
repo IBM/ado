@@ -1,0 +1,9 @@
+[project]
+name = "anomalous_series"
+version = "0.1.0"
+dependencies = [
+]
+
+[project.entry-points."ado.operators"]
+anomalous_series = "anomalous_series.operator"
+

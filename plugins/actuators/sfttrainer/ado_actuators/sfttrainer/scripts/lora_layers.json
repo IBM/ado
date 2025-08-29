@@ -1,0 +1,171 @@
+{
+  "llama-7b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "granite-13b-v2": [
+    "c_attn",
+    "c_fc",
+    "c_proj",
+    "lm_head"
+  ],
+  "llama-13b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "granite-20b-v2": [
+    "c_attn",
+    "c_fc",
+    "c_proj",
+    "lm_head"
+  ],
+  "granite-7b-base": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "granite-8b-japanese": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "granite-8b-code-base": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "granite-34b-code-base": [
+    "c_attn",
+    "c_fc",
+    "c_proj",
+    "lm_head"
+  ],
+  "mistral-7b-v0.1": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "llama3-8b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "llama3-70b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "mixtral-8x7b-instruct-v0.1": [
+    "gate",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "v_proj",
+    "w1",
+    "w2",
+    "w3"
+  ],
+  "llama2-70b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "llama3.1-8b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "llama3.1-70b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "llama3.1-405b": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "granite-3b-code-base-128k": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ],
+  "granite-8b-code-base-128k": [
+    "down_proj",
+    "gate_proj",
+    "k_proj",
+    "lm_head",
+    "o_proj",
+    "q_proj",
+    "up_proj",
+    "v_proj"
+  ]
+}

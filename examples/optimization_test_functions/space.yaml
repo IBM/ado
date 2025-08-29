@@ -1,0 +1,22 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: dfe035
+entitySpace:
+- identifier: x2
+  propertyDomain:
+    domainRange: [-10,10]
+    variableType: CONTINUOUS_VARIABLE_TYPE
+- identifier: x1
+  propertyDomain:
+    domainRange: [-10,10]
+    variableType: CONTINUOUS_VARIABLE_TYPE
+- identifier: x0
+  propertyDomain:
+    domainRange: [-10,10]
+    variableType: CONTINUOUS_VARIABLE_TYPE
+experiments:
+- actuatorIdentifier: custom_experiments
+  experimentIdentifier: nevergrad_opt_3d_test_func
+metadata:
+  name: 'rosenbrock_3d'

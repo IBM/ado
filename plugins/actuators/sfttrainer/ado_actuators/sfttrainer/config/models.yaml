@@ -1,0 +1,69 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+allam-1-13b:
+  Vanilla: /hf-models-pvc/allam-1-13b-instruct-20240607
+granite-13b-v2:
+  Vanilla: /hf-models-pvc/granite-13b-base-v2/step_300000_ckpt
+granite-20b-v2:
+  GPTQ-Quantized: /hf-models-pvc/granite-20b-code-base-v2/step_280000_ckpt-gptq/
+  Vanilla: /hf-models-pvc/granite-20b-code-base-v2/step_280000_ckpt/
+granite-3-8b:
+  Vanilla: ibm-granite/granite-3.0-8b-base
+granite-3.1-2b:
+  Vanilla: ibm-granite/granite-3.1-2b-base
+granite-3.1-3b-a800m-instruct:
+  Vanilla: ibm-granite/granite-3.1-3b-a800m-instruct
+granite-3.1-8b-instruct:
+  Vanilla: ibm-granite/granite-3.1-8b-instruct
+granite-34b-code-base:
+  GPTQ-Quantized: /hf-models-pvc/granite-34b-gptq/
+  Vanilla: /hf-models-pvc/granite-34b-code-base/
+granite-3b-1.5:
+  Vanilla: /cos-wisdom-dev/wisdom-ansible-granite3bcodeplusansible-all-yaml-v1.5-internal/wisdom-ansible-granite3bcodeplusansible-all-yaml-v1.5_internal_20230926-022936/wisdom-ansible-granite3bcodeplusansible-all-yaml-v1.5-internal
+granite-3b-code-base-128k:
+  Vanilla: ibm-granite/granite-3b-code-base-128k
+granite-7b-base:
+  GPTQ-Quantized: /hf-models-pvc/granite-7b-base-gtpq/
+  Vanilla: ibm-granite/granite-7b-base
+granite-8b-code-base:
+  Vanilla: /hf-models-pvc/granite-8b-code-base/
+granite-8b-code-base-128k:
+  Vanilla: ibm-granite/granite-8b-code-base-128k
+granite-8b-code-instruct:
+  GPTQ-Quantized: /hf-models-pvc/granite-8b-code-instruct-gptq/
+granite-8b-japanese:
+  Vanilla: /hf-models-pvc/granite-8b-japanese-base-v1-llama/
+granite-vision-3.2-2b:
+  Vanilla: ibm-granite/granite-vision-3.2-2b
+hf-tiny-model-private/tiny-random-BloomForCausalLM:
+  Vanilla: hf-tiny-model-private/tiny-random-BloomForCausalLM
+llama-13b:
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/13B
+llama-7b:
+  GPTQ-Quantized: /hf-models-pvc/LLaMa/models/hf/7B-gptq
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/7B
+llama2-70b:
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/llama2-70b/
+llama3-70b:
+  GPTQ-Quantized: /hf-models-pvc/LLaMa/models/hf/llama3-70b-gptq/
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/llama3-70b/
+llama3-8b:
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/llama3-8b
+llama3.1-405b:
+  GPTQ-Quantized: /hf-models-pvc/LLaMa/models/hf/llama3.1-405b-gptq
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/llama3.1-405b
+llama3.1-70b:
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/llama3.1-70b
+llama3.1-8b:
+  Vanilla: /hf-models-pvc/LLaMa/models/hf/llama3.1-8b
+mistral-123b-v2:
+  Vanilla: /hf-models-pvc/mistral-large/fp16_240620
+mistral-7b-v0.1:
+  GPTQ-Quantized: /hf-models-pvc/mistral-7B-v0.3-gptq
+  Vanilla: /hf-models-pvc/mistralai-mistral-7b-v0.1
+mixtral-8x7b-instruct-v0.1:
+  GPTQ-Quantized: /hf-models-pvc/mixtral_8x7b_instruct_v0.1_gptq
+  Vanilla: /hf-models-pvc/Mixtral-8x7B-Instruct-v0.1/
+smollm2-135m:
+  Vanilla: HuggingFaceTB/SmolLM2-135M

@@ -1,0 +1,13 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+spaces:
+  - 'space-abcdef-123456' # Replace with space id from space_transformer_with_objective.yaml
+
+operation:
+  module:
+    moduleClass: "RandomWalk"
+  parameters:
+    numberEntities: 43000
+    batchSize: 1000
+    mode: 'sequential'

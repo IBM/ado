@@ -1,0 +1,28 @@
+ARG base_image=icr.io/drl-nextgen/ad-orchestrator:latest-py310-cu121
+FROM $base_image
+
+# VV: Install MOFED from https://network.nvidia.com/products/infiniband-drivers/linux/mlnx_ofed/
+USER 0
+
+ENV MOFED_VER=24.10-1.1.4.0
+ENV OS_VER=ubuntu22.04
+ENV PLATFORM=x86_64
+
+# AP: the ucx-cuda package depends on libnvidia-compute | libnvidia-ml1 (>= 560.35.03)
+# Installing these libraries via:
+#   apt-get install -y libnvidia-compute-575 libnvidia-decode-575 libnvidia-gpucomp-575 ibverbs-providers
+# would break the existing drivers with:
+#   Failed to initialize NVML: Driver/library version mismatch
+# We can either install them and uninstall them, or add --without-ucx-cuda
+RUN mkdir app && \
+    cd app && \
+    wget -q http://content.mellanox.com/ofed/MLNX_OFED-${MOFED_VER}/MLNX_OFED_LINUX-${MOFED_VER}-${OS_VER}-${PLATFORM}.tgz && \
+    tar -xvzf MLNX_OFED_LINUX-${MOFED_VER}-${OS_VER}-${PLATFORM}.tgz && \
+    cd MLNX_OFED_LINUX-${MOFED_VER}-${OS_VER}-${PLATFORM} && \
+    ./mlnxofedinstall --user-space-only --without-fw-update --without-ucx-cuda --all --force --distro $OS_VER && \
+    cd .. && \
+    rm -rf MLNX* && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/*
+
+USER 1000

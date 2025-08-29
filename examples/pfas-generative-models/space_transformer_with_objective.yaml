@@ -1,0 +1,16 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: 'abc123-source' # Replace with id of source created from gen_models_transformer_test_sample_store
+entitySpace:
+  - identifier: 'smiles'
+experiments:
+  - experimentIdentifier: 'transformer-toxicity-inference-experiment'
+    actuatorIdentifier: 'replay'
+    targetProperties:
+      - logws
+      - ld50
+      - "biodegradation halflife"
+      - "pka"
+  - experimentIdentifier: 'acid_test'
+    actuatorIdentifier: 'custom_experiments'

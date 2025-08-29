@@ -1,0 +1,94 @@
+{
+  "kind": "discoveryspace",
+  "config": {
+    "metadata": {},
+    "properties": { "stochastic": false },
+    "entitySpace": [
+      {
+        "identifier": "provider",
+        "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+        "propertyDomain": {
+          "values": ["A", "B", "C"],
+          "variableType": "CATEGORICAL_VARIABLE_TYPE",
+          "probabilityFunction": { "identifier": "uniform" }
+        }
+      },
+      {
+        "identifier": "cpu_family",
+        "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+        "propertyDomain": {
+          "values": [0, 1],
+          "domainRange": [0, 2],
+          "variableType": "DISCRETE_VARIABLE_TYPE",
+          "probabilityFunction": { "identifier": "uniform" }
+        }
+      },
+      {
+        "identifier": "vcpu_size",
+        "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+        "propertyDomain": {
+          "values": [0, 1],
+          "domainRange": [0, 2],
+          "variableType": "DISCRETE_VARIABLE_TYPE",
+          "probabilityFunction": { "identifier": "uniform" }
+        }
+      },
+      {
+        "identifier": "nodes",
+        "propertyType": "CONSTITUTIVE_PROPERTY_TYPE",
+        "propertyDomain": {
+          "values": [2, 3, 4, 5],
+          "domainRange": [2, 6],
+          "variableType": "DISCRETE_VARIABLE_TYPE",
+          "probabilityFunction": { "identifier": "uniform" }
+        }
+      }
+    ],
+    "experiments": {
+      "experiments": [
+        {
+          "metadata": {},
+          "deprecated": false,
+          "identifier": "benchmark_performance",
+          "targetProperties": [
+            {
+              "identifier": "wallClockRuntime",
+              "propertyType": "MEASURED_PROPERTY_TYPE",
+              "propertyDomain": {
+                "variableType": "UNKNOWN_VARIABLE_TYPE",
+                "probabilityFunction": { "identifier": "uniform" }
+              }
+            }
+          ],
+          "actuatorIdentifier": "replay",
+          "optionalProperties": [],
+          "requiredProperties": [],
+          "defaultParameterization": []
+        }
+      ],
+      "observedProperties": [
+        {
+          "metadata": {},
+          "targetProperty": {
+            "identifier": "wallClockRuntime",
+            "propertyType": "MEASURED_PROPERTY_TYPE",
+            "propertyDomain": {
+              "variableType": "UNKNOWN_VARIABLE_TYPE",
+              "probabilityFunction": { "identifier": "uniform" }
+            }
+          },
+          "experimentReference": {
+            "actuatorIdentifier": "replay",
+            "experimentIdentifier": "benchmark_performance"
+          }
+        }
+      ]
+    },
+    "sampleStoreIdentifier": "4847c1"
+  },
+  "status": [],
+  "created": "2024-11-13T12:56:47.381080Z",
+  "version": "v2",
+  "metadata": {},
+  "identifier": "space-6eeb27-4847c1"
+}

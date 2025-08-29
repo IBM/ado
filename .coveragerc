@@ -1,0 +1,12 @@
+[run]
+parallel = True
+concurrency = multiprocessing
+source = orchestrator
+#debug = multiprocessing,config
+
+[report]
+omit =
+    */tests/*
+    */__init__.py
+show_missing = True
+

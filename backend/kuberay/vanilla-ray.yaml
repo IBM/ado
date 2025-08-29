@@ -1,0 +1,106 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+
+image:
+  repository: rayproject/ray
+  tag: 2.46.0-py310-cpu
+  pullPolicy: Always
+
+head:
+  rayVersion: 2.46.0
+  enableInTreeAutoscaling: true
+  autoscalerOptions:
+    upscalingMode: Default
+    idleTimeoutSeconds: 600
+    imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+  lifecycle: #https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html#pod-and-container-lifecyle-prestophook
+    preStop:
+      exec:
+        command: [ "/bin/sh","-c","ray stop" ]
+  rayStartParams:
+    dashboard-host: '0.0.0.0'
+    num-cpus: "0"
+    block: 'true'
+  resources:
+    limits:
+      cpu: 4
+      memory: 16Gi
+    requests:
+      cpu: 4
+      memory: 16Gi
+
+worker:
+  groupName: cpuWG
+  replicas: 1
+  minReplicas: 1
+  maxReplicas: 4
+  rayStartParams:
+    block: 'true'
+  containerEnv:
+    - name: OMP_NUM_THREADS
+      value: "1"
+    - name: OPENBLAS_NUM_THREADS
+      value: "1"
+  lifecycle: #https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html#pod-and-container-lifecyle-prestophook
+    preStop:
+      exec:
+        command: [ "/bin/sh","-c","ray stop" ]
+
+  resources:
+    limits:
+      cpu: 10
+      memory: 64Gi
+    requests:
+      cpu: 10
+      memory: 64Gi
+
+#additionalWorkerGroups:
+#
+#  two-A100-80G-gpu-WG:
+#    replicas: 1
+#    minReplicas: 0
+#    maxReplicas: 1
+#    rayStartParams:
+#      block: 'true'
+#      num-gpus: '2'
+#      resources: '"{\"NVIDIA-A100-80GB-PCIe\": 2}"'
+#    image:
+#      repository: rayproject/ray
+#      tag: 2.46.0-py310-gpu
+#      pullPolicy: Always
+#    containerEnv:
+#      - name: OMP_NUM_THREADS
+#        value: "1"
+#      - name: OPENBLAS_NUM_THREADS
+#        value: "1"
+#    lifecycle:
+#      preStop:
+#        exec:
+#          command: [ "/bin/sh","-c","ray stop" ]
+#
+#    affinity:
+#      nodeAffinity:
+#        requiredDuringSchedulingIgnoredDuringExecution:
+#          nodeSelectorTerms:
+#            - matchExpressions:
+#                - key: nvidia.com/gpu.product
+#                  operator: In
+#                  values:
+#                    - NVIDIA-A100-80GB-PCIe
+#    resources:
+#      limits:
+#        cpu: 20
+#        nvidia.com/gpu: 2
+#        memory: 200Gi
+#      requests:
+#        cpu: 20
+#        nvidia.com/gpu: 2
+#        memory: 200Gi

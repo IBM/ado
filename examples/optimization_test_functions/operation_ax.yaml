@@ -1,0 +1,17 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+spaces:
+  - space-ccf2bf-a50274 #substitute with your space id
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    tuneConfig:
+      metric: "function_value" # The metric that the test function measures
+      mode: 'min'
+      num_samples: 40
+      max_concurrent_trials: 2  # Ax can struggle a bit if too many concurrent trials
+      search_alg:
+        name: ax

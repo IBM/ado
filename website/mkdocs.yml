@@ -1,0 +1,203 @@
+# Project Information
+site_name: "ado Documentation"
+site_url: "https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/"
+site_description: "Documentation website for https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator"
+site_author: "The ado authors"
+
+# Repository Information
+repo_name: 'Discovery-Orchestrator/ad-orchestrator'
+repo_url: 'https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator'
+edit_uri: 'edit/master/website/docs'
+docs_dir: 'docs'
+site_dir: 'site'
+remote_branch: 'gh-pages'
+remote_name: 'origin'
+
+# Server info
+dev_addr: '127.0.0.1:8000'
+
+# Copyright
+copyright: Copyright IBM Research.
+
+# Extra links as icons at the bottom of the page
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator
+    - icon: fontawesome/solid/globe
+      link: https://www.ibm.com/
+
+extra_css:
+  - https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap
+  - https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&display=swap
+
+theme:
+  name: material
+  language: en
+  include_search_page: true
+  search_index_only: true
+
+  custom_dir: theme
+  favicon: 'favicon.ico'
+  logo: 'logo-ibm.png'
+  font: false
+  palette:
+
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: black
+      accent: blue
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+
+  features:
+    - content.action.edit
+    - content.action.feedback
+#    # - content.action.view
+    - content.code.annotate   # Attach arbitrary content to specific sections of code blocks by adding numeric markers
+    - content.code.copy       # Button to allow the user to copy a code block's contents to the clipboard
+    - content.tabs.link
+    - navigation.footer       # Links to previous and next page
+    - navigation.expand       # Expand left sidebar by default
+    - navigation.indexes      # Attach documents to sections, useful for providing overview pages
+    - navigation.instant      # Single page instant refresh
+    - navigation.sections     # Top level tabs rendered in sidebar
+    - navigation.tabs         # Navigation tabs across top. Comment this out to have navigation on the left
+    - navigation.tabs.sticky  # Tab always displayed
+    - navigation.top          # Back-to-top button. Rendered centered and just below the header
+    - navigation.tracking     # URL updated with active anchor
+    - search.share
+    - search.suggest
+    - toc.integrate           # Integrate page TOC in left sidebar - wider page
+  icon:
+    edit: 'material/pencil-outline'
+
+
+
+markdown_extensions:
+  admonition: {}
+#  def_list: {}
+  tables: {}
+  footnotes: {}
+  # attr_list and md_in_html are needed for the grid cards
+  attr_list: {}
+  md_in_html: {}
+  # Better emphasis handling: https://facelessuser.github.io/pymdown-extensions/extensions/betterem/
+  pymdownx.betterem: {}
+  # Sections that can be disclosed: https://facelessuser.github.io/pymdown-extensions/extensions/details/
+  pymdownx.details: {}
+  # Emojis via shortnames: https://facelessuser.github.io/pymdown-extensions/extensions/emoji/
+  pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  # Better list support: https://facelessuser.github.io/pymdown-extensions/extensions/fancylists/
+  pymdownx.fancylists: {}
+  # Code syntax highlighting: https://facelessuser.github.io/pymdown-extensions/extensions/highlight/
+  pymdownx.highlight: {}
+  # Inline code highlighting: https://facelessuser.github.io/pymdown-extensions/extensions/inlinehilite/
+  pymdownx.inlinehilite: {}
+  # Autolink: https://facelessuser.github.io/pymdown-extensions/extensions/magiclink/
+  pymdownx.magiclink: {}
+  # Highlighter: https://facelessuser.github.io/pymdown-extensions/extensions/mark/
+  pymdownx.mark: {}
+  # Symbols: https://facelessuser.github.io/pymdown-extensions/extensions/smartsymbols/
+  pymdownx.smartsymbols: {}
+  # Strip HTML: https://facelessuser.github.io/pymdown-extensions/extensions/striphtml/
+  pymdownx.striphtml: {}
+  # Better fencing: https://facelessuser.github.io/pymdown-extensions/extensions/superfences/
+  pymdownx.superfences:
+     preserve_tabs: true
+  # Tabs: https://facelessuser.github.io/pymdown-extensions/extensions/tabbed/
+  pymdownx.tabbed:
+      alternate_style: true
+  # Tasklists: https://facelessuser.github.io/pymdown-extensions/extensions/tasklist/
+  pymdownx.tasklist:
+      custom_checkbox: true
+  # Strikethrough: https://facelessuser.github.io/pymdown-extensions/extensions/tilde/
+  pymdownx.tilde: {}
+  pymdownx.progressbar: {}
+  pymdownx.arithmatex: {}
+  toc:
+    permalink: true
+    toc_depth: 4
+
+plugins:
+  - search:
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+  - include-markdown:
+  - gh-admonitions:
+
+nav:
+  - Getting Started:
+      - index.md
+      - Demo: getting-started/demo.md
+      - Installation: getting-started/install.md
+      - The ado CLI: getting-started/ado.md
+      - Installing backend services: getting-started/installing-backend-services.md
+      - Running ado on remote ray clusters: getting-started/remote_run.md
+      - Developing ado: getting-started/developing.md
+      - Roadmap: getting-started/roadmap.md
+      - Contributing: getting-started/contributing.md
+  - Examples:
+      - examples/examples.md
+      - Taking a random walk: examples/random-walk.md
+      - Search a space with an optimizer: examples/best-configuration-search.md
+      - Search based on a custom objective function: examples/search-custom-objective.md
+      - Identify the important dimensions of a space: examples/lhu.md
+      - Measure throughput of fine-tuning locally: examples/finetune-locally.md
+      - Measure throughput of fine-tuning on a remote RayCluster: examples/finetune-remotely.md
+  - Core Concepts:
+      - core-concepts/concepts.md
+      - Entities and Entity Spaces: core-concepts/entity-spaces.md
+      - Actuators, Experiments & Measurement Spaces: core-concepts/actuators.md
+      - Discovery Spaces: core-concepts/discovery-spaces.md
+      - Shared Sample Stores: core-concepts/data-sharing.md
+  - Resources:
+      - resources/resources.md
+      - The metastore: resources/metastore.md
+      - samplestore: resources/sample-stores.md
+      - discoveryspace: resources/discovery-spaces.md
+      - operation: resources/operation.md
+      - actuatorconfiguration: resources/actuatorconfig.md
+      - datacontainer: resources/datacontainer.md
+  - Actuators:
+      - Actuators overview: actuators/working-with-actuators.md
+      - Extending `ado` with new actuators: actuators/creating-actuator-classes.md
+      - Adding custom experiments: actuators/creating-custom-experiments.md
+      - Using externally obtained data: actuators/replay.md
+      #- ST4SD: actuators/st4sd.md
+      - SFTTrainer - measure fine-tuning performance : actuators/sft-trainer.md
+      #- Molformer: actuators/molformer.md
+      # - CaikitTestHarness: actuators/caikit-test-harness.md
+  - Operators:
+      - Operators overview: operators/working-with-operators.md
+      - Explore operators: operators/explore_operators.md
+      - Extending `ado` with new Operators: operators/creating-operators.md
+      - The Random Walk Operator: operators/random-walk.md
+      - The Ray Tune Operator: operators/optimisation-with-ray-tune.md
+
+
+

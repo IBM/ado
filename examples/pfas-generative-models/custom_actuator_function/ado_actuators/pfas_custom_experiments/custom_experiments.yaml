@@ -1,0 +1,18 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+experiments:
+  - identifier: 'acid_test'
+    metadata:
+        module:
+          moduleName: ado_actuators.pfas_custom_experiments.experiment
+          moduleFunction: acid_test
+    actuatorIdentifier: "custom_experiments"
+    targetProperties:
+        - identifier: isAcid
+    requiredProperties:
+      - targetProperty:
+          identifier: 'pka'
+        experimentReference:
+          experimentIdentifier: 'transformer-toxicity-inference-experiment'
+          actuatorIdentifier: 'replay'

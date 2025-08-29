@@ -1,0 +1,32 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: "replace-me"
+
+experiments:
+- experimentIdentifier: finetune_full_benchmark-v1.0.0
+  actuatorIdentifier: SFTTrainer
+  parameterization:
+    - property:
+        identifier: fms_hf_tuning_version
+      value: "2.8.2"
+    - property:
+        identifier: stop_after_seconds
+      value: 30
+    - property:
+        identifier: flash_attn
+      value: False
+
+entitySpace:
+- identifier: "model_name"
+  propertyDomain:
+    values: [ 'smollm2-135m' ]
+- identifier: "number_gpus"
+  propertyDomain:
+    values: [ 0 ]
+- identifier: "model_max_length"
+  propertyDomain:
+    values: [ 512, 1024 ]
+- identifier: "batch_size"
+  propertyDomain:
+    values: [ 1, 2 ]

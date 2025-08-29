@@ -1,0 +1,763 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+"""Module containing discovery state interfaces"""
+
+import importlib.metadata
+import typing
+
+import pydantic
+from pydantic import ConfigDict
+
+from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.observed_property import ObservedProperty
+from orchestrator.schema.property import (
+    ConstitutiveProperty,
+    MeasuredPropertyTypeEnum,
+    Property,
+)
+from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.reference import ExperimentReference
+from orchestrator.schema.result import (
+    DuplicateMeasurementResultError,
+    ValidMeasurementResult,
+)
+from orchestrator.schema.virtual_property import (
+    PropertyAggregationMethod,
+    PropertyAggregationMethodEnum,
+    VirtualObservedProperty,
+)
+
+if typing.TYPE_CHECKING:  # pragma: nocover
+    import pandas as pd
+
+
+class Entity(pydantic.BaseModel):
+    """Represents an entity in a discovery space
+
+    Entities have properties which have values.
+    An entities properties can be measured (ObservedProperty) or deduced from its identity (ConstitutiveProperty)
+
+    An ObservedProperty represents a specific way to measure a target property.  It is associated with an Experiment.
+
+    A ConstitutiveProperty does not have a target property and is not associated with an Experiment
+
+    Some operations can process both types of properties, others depend on if the property is one type or another.
+
+    """
+
+    identifier: typing.Optional[str] = pydantic.Field(
+        default=None,
+        description="An id that uniquely defines this entity w.r.t others."
+        "If one is not supplied it is generated from the constitutive properties",
+    )
+    generatorid: str = pydantic.Field(
+        "unk", description="The id of the generator that created this entity"
+    )
+    constitutive_property_values: tuple[PropertyValue, ...] = pydantic.Field(
+        frozen=True,
+        description=" A list of PropertyValue objects giving values for constitutive properties",
+    )
+    measurement_results: list["ValidMeasurementResult"] = pydantic.Field(
+        default_factory=list,
+        description="A list of ValidMeasurementResult objects giving values for observed properties. "
+        "InvalidMeasurementResults are not supported.",
+    )
+    metadata: typing.Optional[typing.Dict] = pydantic.Field(
+        default=None, description="Additional metadata on this entity"
+    )
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "version": importlib.metadata.version(distribution_name="ado-base")
+        },
+    )
+
+    @property
+    def propertyValues(self) -> list[PropertyValue]:
+        v = []
+        for result in self.measurement_results:
+            v.extend(result.measurements)
+        v.extend(self.constitutive_property_values)
+        return v
+
+    @property
+    def properties(self) -> list[typing.Union[ObservedProperty, ConstitutiveProperty]]:
+        """
+        Return a list of unique properties from the entity's measurement results.
+
+        Returns:
+            list[typing.Union[ObservedProperty, ConstitutiveProperty]]: A list of unique properties.
+        """
+        known_property_identifiers = set()
+        unique_properties = []
+
+        for result in self.measurement_results:
+            for measurement in result.measurements:
+                if (
+                    identifier := measurement.property.identifier
+                ) not in known_property_identifiers:
+                    unique_properties.append(measurement.property)
+                    known_property_identifiers.add(identifier)
+
+        return unique_properties + self.constitutiveProperties
+
+    @classmethod
+    def identifier_from_property_values(
+        cls, property_values: typing.Iterable[PropertyValue]
+    ):
+        """Returns the identifier that would be generated for an entity with the given constitutive property values is No external identifier was given
+
+        Raise ValueError if all members of property_values do not refer to ConstitutiveProperties
+        """
+
+        if not all(
+            isinstance(pv.property, ConstitutiveProperty) for pv in property_values
+        ):
+            raise ValueError("All values must be for ConstitutiveProperties")
+
+        cp_id = ["%s.%s" % (pv.property.identifier, pv.value) for pv in property_values]
+        return "-".join(cp_id)
+
+    @pydantic.field_validator("constitutive_property_values", mode="after")
+    @classmethod
+    def guarantee_constitutive_properties_are_unique(
+        cls, values: tuple[PropertyValue]
+    ) -> tuple[PropertyValue]:
+
+        if not values:
+            return values
+
+        unique_property_identifiers = {value.property.identifier for value in values}
+        if len(unique_property_identifiers) != len(values):
+            from collections import Counter
+
+            property_occurrences = Counter(
+                [value.property.identifier for value in values]
+            )
+            raise ValueError(
+                "Constitutive properties must be unique. "
+                "The occurrences of each of the constitutive properties were: "
+                f"{property_occurrences}"
+            )
+
+        return values
+
+    @pydantic.field_validator("measurement_results", mode="after")
+    @classmethod
+    def guarantee_unique_measurement_results(
+        cls, measurement_results: list["ValidMeasurementResult"]
+    ):
+
+        if not measurement_results:
+            return measurement_results
+
+        unique_results_uid = {result.uid for result in measurement_results}
+        if len(unique_results_uid) != len(measurement_results):
+            from collections import Counter
+
+            uid_occurrences = Counter([result.uid for result in measurement_results])
+            raise DuplicateMeasurementResultError(
+                f"There were {len(measurement_results) - len(unique_results_uid)} "
+                "duplicate MeasurementResults (they had the same UID). "
+                f"Occurrences were: {uid_occurrences}"
+            )
+
+        return measurement_results
+
+    @pydantic.model_validator(mode="after")
+    def check_identifier(self):
+        """Checks if an external identifier was passed and if not generates one"""
+
+        self.identifier = (
+            self.identifier
+            if self.identifier is not None
+            else Entity.identifier_from_property_values(
+                self.constitutive_property_values
+            )
+        )
+
+        return self
+
+    def __str__(self):
+        return "%s (%s)" % (self.identifier, self.generatorid)
+
+    def _repr_pretty_(self, p, cycle=False):
+
+        import pandas as pd
+
+        if cycle:  # pragma: nocover
+            p.text("Cycle detected")
+        else:
+            p.text(f"Identifier: {self.identifier}")
+            p.breakable()
+            p.text(f"Generator: {self.generatorid}")
+            p.breakable()
+            p.breakable()
+            with p.group(2, "Constitutive properties:"):
+                p.breakable()
+                data = [
+                    [cv.property.identifier, cv.value]
+                    for cv in self.constitutive_property_values
+                ]
+                df = pd.DataFrame(data, columns=["name", "value"])
+                p.pretty(df)
+            p.breakable()
+            p.breakable()
+            with p.group(2, "Observed properties:"):
+                p.breakable()
+                data = [
+                    [
+                        op.identifier,
+                        op.experimentReference,
+                        op.targetProperty.identifier,
+                        [v.value for v in self.valuesForProperty(op)],
+                    ]
+                    for op in self.observedProperties
+                ]
+                df = pd.DataFrame(
+                    data, columns=["name", "experiment", "target-property", "values"]
+                )
+                p.pretty(df)
+            p.breakable()
+            p.breakable()
+            with p.group(2, "Associated experiments:"):
+                p.breakable()
+                for e in self.experimentReferences:
+                    p.breakable()
+                    p.text(str(e))
+
+    @property
+    def observedProperties(self) -> typing.List[ObservedProperty]:
+        """Returns the measured properties"""
+
+        return [
+            p for p in self.properties if p.propertyType in MeasuredPropertyTypeEnum
+        ]
+
+    @property
+    def observedPropertyValues(self) -> typing.List[PropertyValue]:
+
+        return [
+            p for p in self.propertyValues if isinstance(p.property, ObservedProperty)
+        ]
+
+    @property
+    def constitutiveProperties(self):
+        """
+        Returns a list of unique constitutive properties.
+
+        Returns:
+        List[Property]: A list of unique constitutive properties.
+        """
+        known_property_identifiers = set()
+        unique_properties = []
+
+        for constitutive_property in self.constitutive_property_values:
+            if (
+                identifier := constitutive_property.property.identifier
+                not in known_property_identifiers
+            ):
+                unique_properties.append(constitutive_property.property)
+                known_property_identifiers.add(identifier)
+
+        return unique_properties
+
+    def observedPropertiesFromExperimentReference(
+        self, experimentReference: ExperimentReference
+    ) -> typing.List[ObservedProperty]:
+        """Returns all the properties of the entity that are measured by experimentReference
+
+        If there are no observed properties for the experiment this method returns an empty list
+
+        :param experimentReference: An ExperimentReference instance"""
+
+        return [
+            v
+            for v in self.observedProperties
+            if v.experimentReference == experimentReference
+        ]
+
+    def propertyValuesFromExperiment(self, experiment: Experiment):
+        """Returns all the property values of the entity measured by experiment
+
+        If there are no measured properties for experiment this method returns an empty list
+
+        :param experiment: An Experiment instance"""
+
+        return [
+            v
+            for v in self.observedPropertyValues
+            if v.property.experimentReference == experiment.reference
+        ]
+
+    def measurement_results_for_experiment_reference(
+        self, experiment_reference: ExperimentReference
+    ):
+        return [
+            result
+            for result in self.measurement_results
+            if result.experimentReference == experiment_reference
+        ]
+
+    def propertyValuesFromExperimentReference(
+        self, experimentReference: ExperimentReference
+    ):
+        """Returns all the property values of the entity measured by experiment
+
+        If there are no measured properties for experiment this method returns an empty list
+
+        :param experimentReference: An ExperimentReference instance"""
+
+        return [
+            v
+            for v in self.observedPropertyValues
+            if v.property.experimentReference == experimentReference
+        ]
+
+    def virtualObservedPropertiesFromIdentifier(
+        self, identifier
+    ) -> typing.Optional[typing.List[VirtualObservedProperty]]:
+        """Returns a list of VirtualObservedProperty instances given a virtual property identifier
+
+        A virtual property identifier has two parts - the base property identifier and the aggregation method identifier
+        The base property identifier can be the identifier of an ObservedProperty or a target property.
+        The aggregation method identifier must be one of the know aggregation method identifiers
+
+        This method finds the observed properties of the receiver that match the base property identifier
+        and creates virtual properties for them.
+        If the base property identifier matches an ObservedProperty then a single VirtualObservedProperty is created.
+        If the base property identifier matches a TargetProperty then a VirtualObservedProperty is created
+        for each ObservedProperty that has that TargetProperty
+
+        Exceptions:
+            Raises ValueError if identifier is not a virtual property identifier
+
+        Returns:
+            None if the receiver has no observed or target properties that match the base property ident.
+            Otherwise, a list of VirtualObservedProperty instances.
+            This list will be of length 1 if the base-property-identifier matches an ObservedProperty.
+            If the base property identifier matches a TargetProperty then a VirtualObservedProperty is created
+            for each ObservedProperty that has that TargetProperty.
+
+        """
+
+        return VirtualObservedProperty.from_observed_properties_matching_identifier(
+            self.observedProperties, identifier
+        )
+
+    def valuesForProperty(
+        self,
+        property: typing.Union[
+            ObservedProperty, ConstitutiveProperty, VirtualObservedProperty
+        ],
+    ) -> typing.List[PropertyValue]:
+        """Returns all values for given observed property. If none exit returns an empty list"""
+
+        if isinstance(property, VirtualObservedProperty):
+            values = self.valuesForProperty(property.baseObservedProperty)
+            if len(values) > 0:
+                check = [property.aggregate([v.value for v in values])]
+            else:
+                check = []
+        else:
+            check = list(
+                filter(
+                    lambda x: x.property.identifier == property.identifier,
+                    self.propertyValues,
+                )
+            )
+
+        return check
+
+    def valueForProperty(
+        self,
+        property: typing.Union[
+            ObservedProperty, ConstitutiveProperty, VirtualObservedProperty
+        ],
+    ) -> PropertyValue:
+        """Returns an PropertyValue for Property if one exists otherwise None
+
+        If the property is an ObservedProperty and multiple values exist the first is returned.
+        """
+
+        check = self.valuesForProperty(property)
+        return check[0] if len(check) != 0 else None
+
+    def valuesForTargetProperty(
+        self, targetProperty: Property
+    ) -> typing.List[PropertyValue]:
+        """Returns all PropertyValue instances for targetProperty if one exists otherwise empty list"""
+
+        return list(
+            filter(
+                lambda x: x.property.targetProperty.identifier
+                == targetProperty.identifier,
+                self.observedPropertyValues,
+            )
+        )
+
+    def valueForConstitutivePropertyIdentifier(self, identifier: str) -> PropertyValue:
+        """Returns the value of the ConstitutiveProperty with the given identifier if one exists otherwise None"""
+
+        check = list(
+            filter(
+                lambda x: x.property.identifier == identifier,
+                self.constitutive_property_values,
+            )
+        )
+        return check[0] if len(check) != 0 else None
+
+    def valuesForObservedPropertyIdentifier(
+        self, identifier: str
+    ) -> list[PropertyValue]:
+        """Returns the values of the ObservedProperty with the given identifier if one exists otherwise an empty list"""
+
+        return list(
+            filter(
+                lambda x: x.property.identifier == identifier,
+                self.observedPropertyValues,
+            )
+        )
+
+    def add_measurement_result(self, result: typing.Union["ValidMeasurementResult"]):
+        """
+        Adds a ValidMeasurementResult object to the entity.
+        """
+        if any(
+            result.uid == existing_result.uid
+            for existing_result in self.measurement_results
+        ):
+            raise DuplicateMeasurementResultError(
+                f"Entity {self.identifier} already contained a MeasurementResult with id {result.uid}.\n"
+                f"Measurements were {self.measurement_results}."
+            )
+
+        self.measurement_results.append(result)
+
+    @property
+    def experimentReferences(self) -> typing.List[ExperimentReference]:
+        """Returns a list of the Experiments that measure the observed properties"""
+
+        return list({op.experimentReference for op in self.observedProperties})
+
+    def seriesRepresentation(
+        self,
+        experimentReferences: typing.Optional[typing.List[ExperimentReference]] = None,
+        constitutiveOnly: bool = False,
+        virtualTargetPropertyIdentifiers: typing.Optional[typing.List[str]] = None,
+        aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
+    ) -> "pd.Series":
+        """Returns a pandas series containing the receivers constitutive and optional observed property values
+
+        The keys of the pandas series are the property identifiers and the values, the property values
+
+        If there is more than one value for a property the behaviour depends on the aggregate parameter.
+        If it is False, the default, the value for the property will be a list of the values.
+
+        If aggregate is True multiple numeric values will be averaged to produce one value.
+        The name of property in this case will be the corresponding virtual property name
+
+        If one, more or all values are non-numeric then a list of the values is returned i.e. same as aggregate=False
+        """
+
+        import numpy.core._exceptions
+        import pandas as pd
+
+        def add_value(
+            value: PropertyValue,
+            references: typing.List[ExperimentReference],
+            restrictConstitutive=False,
+        ):
+            """Checks if a property value should be added to the series
+
+            The rules are
+            - ConstitutiveProperties are always added
+            - ObservedProperties are added if restrictConstitutive is False AND either
+                A   no/None experiment references are passed
+                B.  the property is from an experiment in the references list
+
+            """
+
+            retval = False
+            if isinstance(value.property, ConstitutiveProperty):
+                retval = True
+            elif not restrictConstitutive:
+                if not references:
+                    retval = True
+                elif value.property.experimentReference in references:
+                    retval = True
+
+            return retval
+
+        d = {}
+        observed_property_map = {op.identifier: op for op in self.observedProperties}
+        for v in self.propertyValues:
+            if add_value(v, experimentReferences, constitutiveOnly):
+                if d.get(v.property.identifier) is None:
+                    d[v.property.identifier] = []
+
+                d[v.property.identifier].append(v.value)
+
+        if virtualTargetPropertyIdentifiers is not None:
+            for ident in virtualTargetPropertyIdentifiers:
+                vops = self.virtualObservedPropertiesFromIdentifier(ident)
+                for vop in vops:
+                    v = self.valueForProperty(vop)
+                    if v is not None:
+                        if d.get(vop.identifier) is None:
+                            d[vop.identifier] = []
+
+                        d[vop.identifier].append(v.value)
+
+        # This is so the dict can be modified in the loop
+        props = list(d.keys())
+        for o in props:
+            if observed_property_map.get(o, None):
+                if aggregationMethod:
+                    vop = VirtualObservedProperty(
+                        baseObservedProperty=observed_property_map[o],
+                        aggregationMethod=PropertyAggregationMethod(
+                            identifier=aggregationMethod
+                        ),
+                    )
+
+                    try:
+                        # Replace the observed property id with the virtual property id
+                        mean = vop.aggregate(d[o])
+                        d.pop(o)
+                        d[vop.identifier] = mean.value
+                    except (ValueError, numpy.core._exceptions.UFuncTypeError) as error:
+                        # We can't take the mean of all the values for some reason
+                        # An example is that the values are arrays of different length
+                        import logging
+
+                        log = logging.getLogger("entity")
+                        log.debug(
+                            f"Unable to calculate mean of value for {o} due to {error}. Will not aggregate"
+                        )
+                else:
+                    # Remove list if only one entry
+                    if len(d[o]) == 1:
+                        d[o] = d[o][0]
+            else:
+                # Remove list for constitutive properties
+                if isinstance(d[o], list):
+                    d[o] = d[o][0]
+
+        d["identifier"] = self.identifier
+        d["generatorid"] = self.generatorid
+
+        return pd.Series(d)
+
+    def experimentSeries(
+        self,
+        experimentReferences: typing.Optional[typing.List[ExperimentReference]] = None,
+        virtualTargetPropertyIdentifiers: typing.Optional[typing.List[str]] = None,
+        aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
+    ):
+        """Returns a tuple of series' where each series contains the observed property values for a specific experiment (protocol).
+
+        The key of each observed property value is the target property identifier c.f. seriesRepresentation where it is the observed property identifier
+        Each series also contains the entities constitutive property values.
+
+        The value of the "experiment_id" is the relevant ExperimentReference instance
+
+        Params:
+            experimentReferences: The experiments to add results for. If empty, no series will be returned.
+            virtualTargetPropertyIdentifiers: virtual properties that should be added to the output
+            aggregate: If True properties with multiple values are averaged if possible
+
+        """
+
+        import numpy.core._exceptions
+        import pandas as pd
+
+        if experimentReferences is None:
+            experimentReferences = self.experimentReferences
+
+        resultsDict = {}
+        for e in experimentReferences:
+
+            if len(self.propertyValuesFromExperimentReference(e)) == 0:
+                continue
+
+            refString = f"{e}"
+            if resultsDict.get(refString) is None:
+                resultsDict[refString] = {}
+
+            # Constitutive properties
+            d = resultsDict[refString]
+            d["identifier"] = self.identifier
+            d["generatorid"] = self.generatorid
+            d["experiment_id"] = e
+
+            # There should be only one value for a constitutive property
+            for v in self.constitutive_property_values:
+                d[v.property.identifier] = v.value
+
+            # Experiment properties
+            # Keep them separate from "d" until we average multiple values
+            # to avoid trying to average string values
+            expProperties = {}
+            for v in self.propertyValuesFromExperimentReference(e):
+                if expProperties.get(v.property.targetProperty.identifier) is None:
+                    expProperties[v.property.targetProperty.identifier] = []
+
+                expProperties[v.property.targetProperty.identifier].append(v.value)
+
+            #
+            # Add any virtual properties
+            #
+            if virtualTargetPropertyIdentifiers is not None:
+                for ident in virtualTargetPropertyIdentifiers:
+                    vops = self.virtualObservedPropertiesFromIdentifier(ident)
+                    for vop in vops:
+                        v = self.valueForProperty(vop)
+                        if v is not None:
+                            if (
+                                expProperties.get(vop.virtualTargetPropertyIdentifier)
+                                is None
+                            ):
+                                expProperties[vop.virtualTargetPropertyIdentifier] = []
+
+                            expProperties[vop.virtualTargetPropertyIdentifier].append(
+                                v.value
+                            )
+
+            props = list(expProperties.keys())
+            prop_map = {
+                op.targetProperty.identifier: op
+                for op in self.observedPropertiesFromExperimentReference(e)
+            }
+            for o in props:
+                if len(expProperties[o]) > 1:
+                    if aggregationMethod:
+                        vop = VirtualObservedProperty(
+                            baseObservedProperty=prop_map[o],
+                            aggregationMethod=PropertyAggregationMethod(
+                                identifier=aggregationMethod
+                            ),
+                        )
+
+                        try:
+                            # Replace the target property with the virtual target property id
+                            mean = vop.aggregate(expProperties[o])
+                            expProperties.pop(o)
+                            expProperties[vop.virtualTargetPropertyIdentifier] = (
+                                mean.value
+                            )
+                        except (
+                            ValueError,
+                            numpy.core._exceptions.UFuncTypeError,
+                        ) as error:
+                            # We can't take the mean of all the values for some reason
+                            # An example is that the values are arrays of different length
+                            import logging
+
+                            log = logging.getLogger("entity")
+                            log.debug(
+                                f"Unable to calculate mean of value for {o} due to {error}. Will not aggregate"
+                            )
+                    else:
+                        pass
+                else:
+                    expProperties[o] = expProperties[o][0]
+
+            d.update(expProperties)
+
+        return [pd.Series(d) for d in resultsDict.values()]
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Entity):
+            return False
+
+        return {
+            (constitutive_property.value, constitutive_property.property.identifier)
+            for constitutive_property in self.constitutive_property_values
+        } == {
+            (constitutive_property.value, constitutive_property.property.identifier)
+            for constitutive_property in other.constitutive_property_values
+        }
+
+
+def CheckRequiredObservedPropertyValuesPresent(
+    entity: Entity,
+    experiment: Experiment,
+    exactMatch: bool = True,
+) -> bool:
+    """
+    Checks if an Entity has values for the observed properties required by Experiment
+
+    :param: entity: The Entity instance to check
+    :param: experiment: The Experiment that has required properties
+    :param: exactMatch: If True an exact match, including parameterization, must be made.
+        If the entity has a result of a different parameterization to the one required
+        by Experiment this function will return False
+        If False, if the entity has a result from any parameterization of the base experiment
+        required by Experiment this function will returh True
+
+    :return:
+        True if Entity has values for the required observed properties, false otherwise
+        NOTE: If an Experiment has no required observed properties this method returns True
+    """
+
+    retval = True
+    for p in experiment.requiredObservedProperties:
+        if entity.valueForProperty(p) is None:
+            retval = False
+            break
+
+    if not exactMatch:
+        retval = True
+        for requiredProperty in experiment.requiredObservedProperties:
+            found = False
+            for ref in entity.experimentReferences:
+                # Check if base experiment match
+                if (
+                    ref.experimentIdentifier
+                    == requiredProperty.experimentReference.experimentIdentifier
+                ):
+                    # The entity has observed properties from a parameterization of the base experiment
+                    # Check if the values are present
+                    for pv in entity.propertyValuesFromExperimentReference(ref):
+                        # Check if the pv measures the targetProperty
+                        if (
+                            pv.property.targetProperty
+                            == requiredProperty.targetProperty
+                        ):
+                            # We've found one value, we can exit
+                            found = True
+                            break
+
+            # If we couldn't find a value for this required property across
+            # all the measurements then we can exit
+            if not found:
+                retval = False
+                break
+
+    return retval
+
+
+def CheckRequiredConstitutivePropertyValuesPresent(
+    entity: Entity, experiment: Experiment
+) -> bool:
+    """
+    Checks if an Entity has the constitutive properties required by Experiment
+
+    :param: entity: An Entity instance
+    :param: experiment: An Experiment instance
+
+    :return:
+        True if Entity has values for the required properties, false otherwise
+
+        NOTE: If the experiment does not define any required constitutive properties this function will return True
+    """
+
+    retval = True
+    for p in experiment.requiredConstitutiveProperties:
+        if entity.valueForProperty(p) is None:
+            retval = False
+            break
+
+    return retval

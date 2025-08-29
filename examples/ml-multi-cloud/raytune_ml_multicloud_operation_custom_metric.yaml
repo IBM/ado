@@ -1,0 +1,39 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+metadata:
+  name: 'ml-multi-cloud-optimization-custom'
+  description: 'Perform an optimization on custom metric total_cost'
+spaces:
+- 'space-f36fd9-edd052'
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    tuneConfig:
+      search_alg: 
+        name: ax
+        params:
+          points_to_evaluate:
+            - provider: A
+              cpu_family: 0
+              vcpu_size: 0
+              nodes: 2
+      metric: total_cost
+      mode: min
+      max_concurrent_trials: 1
+      num_samples: 2
+    runtimeConfig:
+      storage_path: "/tmp/ray_results_historic"
+      stop:
+        - name: SimpleStopper # Stops when its see the same configuration being tested twice or it is not improving any more
+          positionalParams:
+            - min # mode
+            - total_cost # metric
+          keywordParams:
+            experiment_key: config
+            min_trials: 5 # Will run at least this many trials before applying stopping criteria
+            buffer_states: 5 # If it sees no improvement in buffer_states trails it will stop
+            # stop_on_repeat: true  # Stops if same experiment is repeated
+

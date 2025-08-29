@@ -1,0 +1,15 @@
+[project]
+name = "ado-ray-tune"
+version = "0.1.0"
+dependencies = [
+    "ray[tune]>=2.9",
+    "ax-platform==0.3.6",
+    "bayesian-optimization>=1.4.0",
+    "nevergrad>=1.0.12",
+    "paretoset>=1.2.4",
+]
+
+[project.entry-points."ado.operators"]
+ado-ray-tune = "ado_ray_tune.operator_function"
+rifferla = "ado_ray_tune.rifferla"
+

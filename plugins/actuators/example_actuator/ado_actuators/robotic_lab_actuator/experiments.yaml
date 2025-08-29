@@ -1,0 +1,62 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+# The input to an experiment is an Entity. For the Entity to be a valid input
+# it's properties which  match what is defined here
+peptide_mineralization:
+  identifier: peptide_mineralization
+  actuatorIdentifier: "robotic_lab"
+  requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
+    - identifier: 'peptide_identifier'
+      metadata:
+        description: 'The identifier of the peptide to use'
+      propertyDomain: # Example categorical variable
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ["test_peptide", "test_peptide_new"]
+    - identifier: 'peptide_concentration'
+      metadata:
+        description: 'The concentration of the peptide'
+      propertyDomain: # Example discrete variable with set values
+        values: [ 0.1,0.4,0.6,0.8 ]
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+    - identifier: 'lanthanide_concentration'
+      metadata:
+        description: 'The concentration of lanthanide'
+      propertyDomain: # Example discrete variable with range and interval.
+        values: [ 0.1,0.4,0.6,0.8 ]
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+  optionalProperties: # This a list of properties that an Entity can have (can be inputs) but if not have default values - see the defaultParameterization field
+    - identifier: 'temperature'
+      metadata:
+        description: 'The temperature at which to execute the experiment'
+      propertyDomain: # Example continuous variable with range and interval
+        domainRange: [ 0, 100 ]
+        variableType: 'CONTINUOUS_VARIABLE_TYPE'
+    - identifier: 'replicas'
+      metadata:
+        description: 'How many replicas to average the adsorption_timeseries over'
+      propertyDomain: # Example discrete variable with range and interval
+        domainRange: [1,4]
+        interval: 1
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+    - identifier: 'robot_identifier'
+      metadata:
+        description: 'The identifier of the robot to use to perform the experiment'
+      propertyDomain: # Example continuous variable with range and interval
+        values: [ 'harry', 'hermione' ]
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+  defaultParameterization: # If there are optional properties this field must give the default values for them
+    - value: 23 # The default value
+      property:
+        identifier: 'temperature'  #The id of the property whose default value this is
+    - value: 1
+      property:
+        identifier: 'replicas'
+    - value: 'hermione'
+      property:
+        identifier: 'robot_identifier'
+  targetProperties: # What properties experiment will measure
+    - identifier: adsorption_timeseries
+    - identifier: adsorption_plateau_value
+  metadata:
+    description: 'Measures adsorption of peptide lanthanide combinations'

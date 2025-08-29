@@ -1,0 +1,10 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+actuatorIdentifier: SFTTrainer
+parameters:
+  aim_db: /tmp/ado-sft-trainer-hello-world/aim
+  cache: /tmp/ado-sft-trainer-hello-world/cache
+  data_directory: /tmp/ado-sft-trainer-hello-world/data-files
+  hf_home: ~/.cache/huggingface
+  match_exact_dependencies: false

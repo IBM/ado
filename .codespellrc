@@ -1,0 +1,5 @@
+[codespell]
+skip = toxenv,./examples/pfas-generative-models/data,./website/theme,adorchestrator.egg-info,*.svg,examples/pfas-generative-models/data/GM_Comparison/Transfromer/Sample_0/test_generations.csv
+count =
+quiet-level = 3
+ignore-words-list = ser,Transfromer

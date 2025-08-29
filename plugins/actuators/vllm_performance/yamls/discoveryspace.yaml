@@ -1,0 +1,19 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: 84d5cd
+entitySpace:
+- identifier:  vllm-identifier
+  propertyDomain:
+    values: ['test_peptide']
+- identifier: peptide_concentration
+  propertyDomain:
+    values: [0.1, 0.4, 0.6, 0.8]
+- identifier: lanthanide_concentration
+  propertyDomain:
+    values: [ 0.1, 0.4, 0.6, 0.8 ]
+experiments:
+- actuatorIdentifier: "vllm_performance"
+  experimentIdentifier: performance-testing-full
+metadata:
+  description: Space for exploring vllm testing

@@ -1,0 +1,22 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: "d976ee" # Replace with correct id
+entitySpace:
+  - identifier: "provider"
+    propertyDomain:
+      values: ['A', 'B', 'C']
+  - identifier: "cpu_family"
+    propertyDomain:
+      values: [0, 1]
+  - identifier: "vcpu_size"
+    propertyDomain:
+      values: [0, 1]
+  - identifier: "nodes"
+    propertyDomain:
+      values: [2, 3, 4, 5]
+experiments:
+  - experimentIdentifier: 'benchmark_performance'
+    actuatorIdentifier: 'replay'
+metadata:
+  name: "ml_multicloud_basic"

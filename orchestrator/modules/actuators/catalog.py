@@ -1,0 +1,147 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+import abc
+import enum
+import logging
+import typing
+
+import pydantic
+
+from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.reference import ExperimentReference
+
+
+class ActuatorCatalogExtensionConf(pydantic.BaseModel):
+    """Represents a dynamically loadable set of experiments for an actuator"""
+
+    name: str = pydantic.Field(description="The name of the catalog extension")
+    location: str = pydantic.Field(description="The location of the catalog extension")
+
+    @property
+    def catalogExtensionLocation(self):
+        import os
+
+        return os.path.join(self.location, self.name)
+
+
+class ActuatorCatalogExtension(pydantic.BaseModel):
+    """A list of experiments that can be added to a catalog
+
+    TODO: This should be combined with ExperimentCatalog so they are the same class.
+    Holding off on this as ExperimentCatalog has internal data-structures that need to change
+    """
+
+    experiments: typing.List[Experiment] = pydantic.Field(
+        description="A list of experiments"
+    )
+
+
+class BaseCatalog(abc.ABC):
+
+    @property
+    @abc.abstractmethod
+    def experiments(self) -> typing.List[Experiment]:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def experimentsMap(self) -> typing.Dict:
+        pass
+
+    @abc.abstractmethod
+    def experimentForReference(self, reference: ExperimentReference) -> Experiment:
+        pass
+
+
+class ExperimentCatalog(BaseCatalog):
+    """Base class for class that provide information on the available experiments"""
+
+    def __init__(
+        self, experiments: typing.Dict | None = None, catalogIdentifier="UnnamedCatalog"
+    ):
+        """
+        Parameters:
+            experiments: A dictionary whose keys are experiment identifiers
+                The values are orchestrator.model.data.Experiment instances
+
+        :return: An ExperimentCatalog subclass
+        """
+
+        import os
+
+        LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
+        logging.basicConfig(level=LOGLEVEL)
+        self.log = logging.getLogger("experiment-catalog")
+        self._identifier = catalogIdentifier
+        self._experiments = experiments if experiments is not None else {}
+
+    def __str__(self):
+
+        return f"Catalog {self._identifier} with {len(self._experiments)} experiments"
+
+    @property
+    def experiments(self) -> typing.List[Experiment]:
+        return list(self._experiments.values())
+
+    @property
+    def supported_experiments(self) -> typing.List[Experiment]:
+        return [e for e in self.experiments if not e.deprecated]
+
+    @property
+    def deprecated_experiments(self) -> typing.List[Experiment]:
+        return [e for e in self.experiments if e.deprecated]
+
+    @property
+    def identifier(self) -> str:
+
+        return self._identifier
+
+    @property
+    def experimentsMap(self) -> typing.Dict[str, Experiment]:
+        return {e.identifier: e for e in self.experiments}
+
+    def experimentForReference(self, reference: ExperimentReference) -> Experiment:
+        """Returns the experiment matching reference or None if there is no match
+
+        Note: Here an experiment matches a reference if they have same actuator id and experiment id.
+        In particular if the ExperimentReference is parameterized it does not affect the matching
+        """
+
+        experiments = self.experiments
+        match = [
+            e
+            for e in experiments
+            if e.reference.compareWithoutParameterization(reference)
+        ]
+        if len(match) == 0:
+            retval = None
+        else:
+            retval = match[0]
+
+        return retval
+
+    def addExperiment(self, experiment: Experiment):
+
+        if self._experiments.get(experiment.identifier) is not None:
+            self.log.warning(
+                f"Experiment with identifier {experiment.identifier} already in receiver. Overwriting"
+            )
+            self.log.debug(
+                f"New experiment {experiment.model_dump()}, existing experiment "
+                f"{self._experiments.get(experiment.identifier).model_dump()}"
+            )
+
+        self._experiments[experiment.identifier] = experiment
+
+
+class ExperimentNotInCatalogError(Exception):
+
+    pass
+
+
+class CatalogConfigurationRequirementEnum(enum.Enum):
+
+    REQUIRED = "required"
+    NOT_REQUIRED = "not_required"
+    OPTIONAL = "optional"

@@ -1,0 +1,257 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+from __future__ import print_function
+
+import typing
+
+import pytest
+
+from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.property import AbstractProperty, ConstitutiveProperty
+from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.reference import ExperimentReference
+
+
+@pytest.fixture
+def experiment_identifier():
+    return "pytest-mock-experiment"
+
+
+@pytest.fixture
+def actuator_identifier():
+    return "mock"
+
+
+@pytest.fixture
+def experiment_reference(
+    experiment_identifier: typing.AnyStr, actuator_identifier: typing.AnyStr
+) -> ExperimentReference:
+    return ExperimentReference(
+        experimentIdentifier=experiment_identifier,
+        actuatorIdentifier=actuator_identifier,
+    )
+
+
+@pytest.fixture
+def experiment(
+    experiment_identifier: typing.AnyStr,
+    actuator_identifier: typing.AnyStr,
+    abstract_properties: typing.List[AbstractProperty],
+    requiredProperties,
+) -> Experiment:
+    return Experiment(
+        identifier=experiment_identifier,
+        metadata={"maintainer": "unknown@somewhere.com"},
+        requiredProperties=requiredProperties,
+        targetProperties=abstract_properties,
+        actuatorIdentifier=actuator_identifier,
+    )
+
+
+@pytest.fixture
+def expected_observed_property_identifiers(
+    target_property_list: typing.List[typing.AnyStr],
+    experiment_identifier: typing.AnyStr,
+) -> typing.List[typing.AnyStr]:
+    return ["%s-%s" % (experiment_identifier, t) for t in target_property_list]
+
+
+@pytest.fixture(scope="module")
+def optionalProperties() -> typing.List[ConstitutiveProperty]:
+
+    return [
+        ConstitutiveProperty(
+            identifier="test_opt1",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+                values=["A", "B", "C"],
+            ),
+        ),
+        ConstitutiveProperty(
+            identifier="test_opt2",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                domainRange=[-5, 10],
+                interval=2,
+            ),
+        ),
+        ConstitutiveProperty(
+            identifier="test_opt3",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+                domainRange=[0, 100],
+            ),
+        ),
+    ]
+
+
+@pytest.fixture(scope="module")
+def defaultParameterization(optionalProperties) -> typing.List[PropertyValue]:
+    return [
+        PropertyValue(value="B", property=ConstitutiveProperty(identifier="test_opt1")),
+        PropertyValue(value=-3, property=ConstitutiveProperty(identifier="test_opt2")),
+        PropertyValue(
+            value=5.78, property=ConstitutiveProperty(identifier="test_opt3")
+        ),
+    ]
+
+
+@pytest.fixture
+def experimentRawNoOptional(experiment) -> typing.Dict:
+    """Returns an experiment model as dict without optionalProperties or defaultParameterization"""
+
+    d = experiment.model_dump()
+    d.pop("optionalProperties")
+    d.pop("defaultParameterization")
+
+    return d
+
+
+@pytest.fixture(scope="module")
+def customParameterization(optionalProperties) -> typing.List[PropertyValue]:
+    return [
+        PropertyValue(value="C", property=ConstitutiveProperty(identifier="test_opt1")),
+        PropertyValue(value=-1, property=ConstitutiveProperty(identifier="test_opt2")),
+        PropertyValue(
+            value=6.78, property=ConstitutiveProperty(identifier="test_opt3")
+        ),
+    ]
+
+
+@pytest.fixture(scope="module")
+def mock_parameterizable_experiment(
+    requiredProperties, optionalProperties, defaultParameterization
+) -> Experiment:
+    "A parameterizable experiment that has required and optional properties"
+
+    return Experiment(
+        actuatorIdentifier="mock",
+        identifier="test_parameterizable_experiment",
+        requiredProperties=tuple(requiredProperties),
+        optionalProperties=tuple(optionalProperties),
+        defaultParameterization=tuple(defaultParameterization),
+        targetProperties=[AbstractProperty(identifier="measurable_one")],
+        metadata={"description": "A mock experiment for testing"},
+    )
+
+
+@pytest.fixture(scope="module")
+def mock_parameterizable_experiment_no_required(
+    optionalProperties, defaultParameterization
+) -> Experiment:
+    "A parameterizable experiment that has no required properties"
+
+    return Experiment(
+        actuatorIdentifier="mock",
+        identifier="test_parameterizable_experiment_two",
+        optionalProperties=optionalProperties,
+        defaultParameterization=defaultParameterization,
+        targetProperties=[AbstractProperty(identifier="measurable_two")],
+        metadata={"description": "A mock experiment for testing"},
+    )
+
+
+@pytest.fixture(scope="module")
+def mock_parameterizable_experiment_with_required_observed(
+    requiredProperties,
+    optionalProperties,
+    defaultParameterization,
+    mock_parameterizable_experiment,
+):
+    "A parameterizable experiment that has a required observed property"
+
+    # We add the observed property of the standard mock experiment
+    op = mock_parameterizable_experiment.observedProperties[0]
+
+    # leave out description so we have one test experiment without it
+    return Experiment(
+        actuatorIdentifier="mock",
+        identifier="test_parameterizable_experiment_three",
+        requiredProperties=(*requiredProperties, op),
+        optionalProperties=tuple(optionalProperties),
+        defaultParameterization=tuple(defaultParameterization),
+        targetProperties=[AbstractProperty(identifier="measurable_three")],
+    )
+
+
+@pytest.fixture(scope="module")
+def parameterizable_experiments(
+    mock_parameterizable_experiment_no_required,
+    mock_parameterizable_experiment,
+    mock_parameterizable_experiment_with_required_observed,
+) -> list[Experiment]:
+    """Returns a set of parameterizable experiments"""
+
+    return [
+        mock_parameterizable_experiment,
+        mock_parameterizable_experiment_no_required,
+        mock_parameterizable_experiment_with_required_observed,
+    ]
+
+
+@pytest.fixture(scope="module")
+def parameterized_experiments(
+    parameterizable_experiments,
+    customParameterization,
+):
+    """Returns a set of parameterized experiments"""
+
+    # Note: We deliberately leave out the last custom parameterization
+    # to enable tests where that parameter is made part of an entity space
+    return [
+        ParameterizedExperiment(
+            parameterization=customParameterization[:-1],
+            **parameterizable_experiments[0].model_dump(),
+        ),
+        ParameterizedExperiment(
+            parameterization=customParameterization[:-1],
+            **parameterizable_experiments[1].model_dump(),
+        ),
+        # A different parameterization of the same experiment
+        ParameterizedExperiment(
+            parameterization=customParameterization[:-1],
+            **parameterizable_experiments[2].model_dump(),
+        ),
+    ]
+
+
+@pytest.fixture(scope="module")
+def parameterized_references(
+    parameterized_experiments, global_registry
+) -> typing.List[ExperimentReference]:
+    return [e.reference for e in parameterized_experiments]
+
+
+@pytest.fixture(params=["standard", "no_required", "with_required_observed"])
+def parameterizable_experiment(
+    mock_parameterizable_experiment,
+    mock_parameterizable_experiment_no_required,
+    mock_parameterizable_experiment_with_required_observed,
+    customParameterization,
+    request,
+) -> Experiment:
+    """Use to obtain a single Experiment instance with optional properties"""
+
+    exp = None
+    if request.param == "standard":
+        exp = mock_parameterizable_experiment
+    elif request.param == "no_required":
+        exp = mock_parameterizable_experiment_no_required
+    elif request.param == "with_required_observed":
+        exp = mock_parameterizable_experiment_with_required_observed
+
+    return exp
+
+
+@pytest.fixture
+def parameterized_experiment(
+    parameterizable_experiment: Experiment, customParameterization
+) -> ParameterizedExperiment:
+    """Use to obtain a single ParameterizedExperiment instance"""
+
+    return ParameterizedExperiment(
+        parameterization=customParameterization[:-1],
+        **parameterizable_experiment.model_dump(),
+    )

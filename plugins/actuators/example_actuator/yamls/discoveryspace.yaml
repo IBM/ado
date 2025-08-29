@@ -1,0 +1,19 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+sampleStoreIdentifier: a267f0 # PUT REAL ID HERE
+entitySpace:
+- identifier:  peptide_identifier
+  propertyDomain:
+    values: ['test_peptide']
+- identifier: peptide_concentration
+  propertyDomain:
+    values: [0.1,0.4,0.6,0.8]
+- identifier: lanthanide_concentration
+  propertyDomain:
+    values: [ 0.1,0.4,0.6,0.8 ]
+experiments:
+- actuatorIdentifier: robotic_lab
+  experimentIdentifier: peptide_mineralization
+metadata:
+  description: Space for exploring the absorption properties of test_peptide

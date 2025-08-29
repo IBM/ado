@@ -1,0 +1,7 @@
+[
+  {
+    "cve": "CVE-2024-48063",
+    "alwaysOmit": true,
+    "comment": "We require a specific torch version at the moment"
+  }
+]

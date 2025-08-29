@@ -1,0 +1,13 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+spaces:
+  - 'space-d1f737-fcb7d1'
+
+operation:
+  module:
+    moduleClass: "RandomWalk"
+  parameters:
+    numberEntities: 200
+    batchSize: 1
+    mode: 'sequential'

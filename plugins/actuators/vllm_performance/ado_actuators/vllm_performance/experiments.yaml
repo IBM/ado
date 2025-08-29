@@ -1,0 +1,246 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+# The input to an experiment is an Entity. For the Entity to be a valid input
+# it's properties which  match what is defined here
+performance_testing-full:
+  identifier: performance-testing-full
+  actuatorIdentifier: "vllm_performance"
+  requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
+    - identifier: 'model'
+      metadata:
+        description: 'model to use for testing. Must be available through the huggingface hub'
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct"]
+  optionalProperties:
+    - identifier: image
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ "quay.io/dataprep1/data-prep-kit/vllm_image:0.1" ]
+    - identifier: n_cpus
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ 4, 8, 16 ]
+    - identifier: memory
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ "64Gi", "128Gi", "256Gi" ]
+    - identifier: dtype
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ "auto", "half", "float16",  "bfloat16", "float", "float32"]
+    - identifier: 'num_prompts'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ 100, 250, 500 ]
+    - identifier: 'request_rate'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ -1, 50, 100, 200 ]  # -1 means as fast as possible
+    - identifier: 'max_concurrency'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ -1, 50, 100, 200 ]  # -1 means no concurrency control
+    - identifier: 'gpu_memory_utilization'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ .5, .75, .9 ]
+    - identifier: 'cpu_offload'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ 0, 8, 16, 24, 32 ]
+    - identifier: 'max_batch_tokens'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ 8096, 16384, 32768]
+    - identifier: 'max_num_seq'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ 256, 512, 1024 ]
+    - identifier: 'n_gpus'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ 1, 2, 3, 4 ]
+    - identifier: 'gpu_type'
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
+    - identifier: 'dataset'
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ "sharegpt", "sonnet", "random", "hf"]
+  defaultParameterization:
+    - value: "quay.io/dataprep1/data-prep-kit/vllm_image:0.1"
+      property:
+        identifier: 'image'
+    - value: 8
+      property:
+        identifier: n_cpus
+    - value:  "128Gi"
+      property:
+        identifier: memory
+    - value: "auto"
+      property:
+        identifier: dtype
+    - value: 500
+      property:
+        identifier: 'num_prompts'
+    - value: -1
+      property:
+        identifier: 'request_rate'
+    - value: -1
+      property:
+        identifier: 'max_concurrency'
+    - value: .9
+      property:
+        identifier: 'gpu_memory_utilization'
+    - value: 0
+      property:
+        identifier: 'cpu_offload'
+    - value: 16384
+      property:
+        identifier: 'max_batch_tokens'
+    - value: 256
+      property:
+        identifier: 'max_num_seq'
+    - value: 1
+      property:
+        identifier: 'n_gpus'
+    - value: 'NVIDIA-A100-80GB-PCIe'
+      property:
+        identifier: 'gpu_type'
+    - value: "random"
+      property:
+        identifier: 'dataset'
+  # measurements
+  targetProperties:
+    - identifier: "model_id"
+    - identifier: "num_prompts"
+    - identifier: "request_rate"
+    - identifier: "max_concurrency"
+    - identifier: "duration"
+    - identifier: "completed"
+    - identifier: "total_input_tokens"
+    - identifier: "total_output_tokens"
+    - identifier: "request_throughput"
+    - identifier: "output_throughput"
+    - identifier: "total_token_throughput"
+    - identifier: "mean_ttft_ms"
+    - identifier: "median_ttft_ms"
+    - identifier: "std_ttft_ms"
+    - identifier: "p25_ttft_ms"
+    - identifier: "p50_ttft_ms"
+    - identifier: "p75_ttft_ms"
+    - identifier: "p99_ttft_ms"
+    - identifier: "mean_tpot_ms"
+    - identifier: "median_tpot_ms"
+    - identifier: "std_tpot_ms"
+    - identifier: "p25_tpot_ms"
+    - identifier: "p50_tpot_ms"
+    - identifier: "p75_tpot_ms"
+    - identifier: "p99_tpot_ms"
+    - identifier: "mean_itl_ms"
+    - identifier: "median_itl_ms"
+    - identifier: "std_itl_ms"
+    - identifier: "p25_itl_ms"
+    - identifier: "p50_itl_ms"
+    - identifier: "p75_itl_ms"
+    - identifier: "p99_itl_ms"
+    - identifier: "mean_e2el_ms"
+    - identifier: "median_e2el_ms"
+    - identifier: "std_e2el_ms"
+    - identifier: "p25_e2el_ms"
+    - identifier: "p50_e2el_ms"
+    - identifier: "p75_e2el_ms"
+    - identifier: "p99_e2el_ms"
+  metadata:
+    description: 'VLLM performance testing across compute resource and workload configuration'
+performance_testing-endpoint:
+  identifier: performance-testing-endpoint
+  actuatorIdentifier: "vllm_performance"
+  requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
+    - identifier: 'model'
+      metadata:
+        description: 'model to use for testing. Assumed to be served by all endpoints tested'
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ["meta-llama/Llama-3.1-8B-Instruct"]
+    - identifier: 'endpoint'
+      metadata:
+        description: 'The endpoint to test'
+      propertyDomain:
+        variableType: "UNKNOWN_VARIABLE_TYPE"
+  optionalProperties:
+    - identifier: 'num_prompts'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ 100, 250, 500 ]
+    - identifier: 'request_rate'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ -1, 50, 100, 200 ]  # -1 means as fast as possible
+    - identifier: 'max_concurrency'
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [ -1, 50, 100, 200 ]  # -1 means no concurrency control
+    - identifier: 'dataset'
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ "sharegpt", "sonnet", "random", "hf"]
+  defaultParameterization:
+    - value: 500
+      property:
+        identifier: 'num_prompts'
+    - value: -1
+      property:
+        identifier: 'request_rate'
+    - value: -1
+      property:
+        identifier: 'max_concurrency'
+    - value: "random"
+      property:
+        identifier: 'dataset'
+  # measurements
+  targetProperties:
+    - identifier: "model_id"
+    - identifier: "num_prompts"
+    - identifier: "request_rate"
+    - identifier: "max_concurrency"
+    - identifier: "duration"
+    - identifier: "completed"
+    - identifier: "total_input_tokens"
+    - identifier: "total_output_tokens"
+    - identifier: "request_throughput"
+    - identifier: "output_throughput"
+    - identifier: "total_token_throughput"
+    - identifier: "mean_ttft_ms"
+    - identifier: "median_ttft_ms"
+    - identifier: "std_ttft_ms"
+    - identifier: "p25_ttft_ms"
+    - identifier: "p50_ttft_ms"
+    - identifier: "p75_ttft_ms"
+    - identifier: "p99_ttft_ms"
+    - identifier: "mean_tpot_ms"
+    - identifier: "median_tpot_ms"
+    - identifier: "std_tpot_ms"
+    - identifier: "p25_tpot_ms"
+    - identifier: "p50_tpot_ms"
+    - identifier: "p75_tpot_ms"
+    - identifier: "p99_tpot_ms"
+    - identifier: "mean_itl_ms"
+    - identifier: "median_itl_ms"
+    - identifier: "std_itl_ms"
+    - identifier: "p25_itl_ms"
+    - identifier: "p50_itl_ms"
+    - identifier: "p75_itl_ms"
+    - identifier: "p99_itl_ms"
+    - identifier: "mean_e2el_ms"
+    - identifier: "median_e2el_ms"
+    - identifier: "std_e2el_ms"
+    - identifier: "p25_e2el_ms"
+    - identifier: "p50_e2el_ms"
+    - identifier: "p75_e2el_ms"
+    - identifier: "p99_e2el_ms"
+  metadata:
+    description: 'Test inference performance of a model served by vLLM endpoint across inference workload configurations'

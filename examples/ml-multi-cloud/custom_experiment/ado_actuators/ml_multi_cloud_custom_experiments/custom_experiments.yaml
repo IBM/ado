@@ -1,0 +1,25 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+experiments:
+  - identifier: 'ml-multicloud-cost-v1.0'
+    actuatorIdentifier: "custom_experiments"
+    metadata:
+        module:
+          moduleName: ado_actuators.ml_multi_cloud_custom_experiments.objective_function
+          moduleFunction: cost
+    targetProperties:
+      - identifier: total_cost
+    requiredProperties: # We put all required observed properties here as it makes writing the objective function slightly cleaner and avoids errors
+      - identifier: "nodes"
+        propertyDomain:
+          interval: 1
+          domainRange: [0,1000]
+      - identifier: "cpu_family"
+        propertyDomain:
+          values: [ 0, 1 ]
+      - targetProperty:
+          identifier: 'wallClockRuntime'
+        experimentReference:
+          experimentIdentifier: 'benchmark_performance'
+          actuatorIdentifier: 'replay'

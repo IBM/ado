@@ -36,7 +36,7 @@ def manage_contexts(
     """
     View or set the active context.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-context for
+    See https://ibm.github.io/ado/getting-started/ado/#ado-context for
     detailed documentation and examples.
 
 
@@ -83,7 +83,7 @@ def list_contexts(
     """
     List available contexts.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-context
+    See https://ibm.github.io/ado/getting-started/ado/#ado-context
     for detailed documentation and examples.
 
 

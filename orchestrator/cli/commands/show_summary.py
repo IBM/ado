@@ -63,7 +63,7 @@ def show_summary_for_resources(
             and value is a JSON document.
 
             Please refer to the documentation provided for more information and examples:
-            https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#using-the-field-level-querying-functionality
+            https://ibm.github.io/ado/getting-started/ado/#using-the-field-level-querying-functionality
             """,
             show_default=False,
         ),
@@ -125,7 +125,7 @@ def show_summary_for_resources(
     """
     Show a formatted summary of one or more discovery spaces.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-show-summary
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-summary
     for detailed documentation and examples.
 
 

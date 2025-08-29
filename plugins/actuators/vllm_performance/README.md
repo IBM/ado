@@ -1,4 +1,4 @@
-This repository contains the vLLM `ado` actuator for benchmarking LLM inference performance with vLLM. (For more about Actuators, what they represent, how to create them etc., see the `ado` [docs](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/actuators/working-with-actuators/)).
+This repository contains the vLLM `ado` actuator for benchmarking LLM inference performance with vLLM. (For more about Actuators, what they represent, how to create them etc., see the `ado` [docs](https://ibm.github.io/ado/actuators/working-with-actuators/)).
 
 The actuator implements a set of functionalities to deploy and run serving benchmarks for different LLMs for vLLM. This actuator deploys [vLLM](https://github.com/vllm-project/vllm) on to an [OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift) cluster to serve [IBM Granite-3.3-8b](https://huggingface.co/ibm-granite/granite-3.3-8b-instruct) and runs an experiment that utilises the [vLLM serving benchmark](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html). 
 The actuator is called `vllm_performance` and features two experiments: `performance-testing-full` and `performance-testing-endpoint`.
@@ -19,7 +19,7 @@ After running the exercise, please feel free to [explore further](#exploring-fur
 >[!NOTE]
 >These pre-requisites must be fulfilled before you start with this actuator
 >1. Access to an OpenShift cluster with at least 1 node with 1 available NVIDIA GPU. You will need access to a namespace with permissions for GPU-based deployments
->2. You will need to have downloaded and installed `ado` according to [this guide](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/install/).
+>2. You will need to have downloaded and installed `ado` according to [this guide](https://ibm.github.io/ado/getting-started/install/).
 
 
 ## Installing and configuring the vLLM actuator
@@ -54,7 +54,7 @@ You should see an output like below:
 ```
 
 On the last two lines you can see the new actuator and the experiments. 
-You can understand the [constitutive properties required for the experiment](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/actuators/#experiments) and the [target and observed properties](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/actuators/#target-and-observed-properties) measured by an experiment by running:
+You can understand the [constitutive properties required for the experiment](https://ibm.github.io/ado/core-concepts/actuators/#experiments) and the [target and observed properties](https://ibm.github.io/ado/core-concepts/actuators/#target-and-observed-properties) measured by an experiment by running:
 ```commandline
 ado describe experiment performance-testing-full
 ```
@@ -123,7 +123,7 @@ Activate the `ado` context you want to use to store the results, for example the
 which should return your selected context.
 
 #### Creating an sample store, if needed
-First, we have to create an [sample store](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/concepts/#sample-store), if  you do not have one already, to store the sampled vLLM configurations and the results of the measurements on them.
+First, we have to create an [sample store](https://ibm.github.io/ado/core-concepts/concepts/#sample-store), if  you do not have one already, to store the sampled vLLM configurations and the results of the measurements on them.
 ```commandline
 ado create samplestore --new-sample-store
 ```
@@ -143,9 +143,9 @@ should return output like below:
 ```
 
 #### Defining a Discovery Space of vLLM configurations
-`ado` uses the concept of [Discovery Spaces](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/concepts/) to describe what to test (in this case vLLM workload configurations) and how to test them (the vLLM benchmark(s) to run).
+`ado` uses the concept of [Discovery Spaces](https://ibm.github.io/ado/core-concepts/concepts/) to describe what to test (in this case vLLM workload configurations) and how to test them (the vLLM benchmark(s) to run).
 
-The set of configurations to test is defined by the [entity space](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/entity-spaces/), and the set of experiments to perform by the [measurement space](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/core-concepts/actuators#measurementspace/).
+The set of configurations to test is defined by the [entity space](https://ibm.github.io/ado/core-concepts/entity-spaces/), and the set of experiments to perform by the [measurement space](https://ibm.github.io/ado/core-concepts/actuators#measurementspace/).
 
 An example `discoveryspace` for vLLM inference benchmarking can be found in [`yamls/discoveryspace_override_defaults.yaml`](yamls/discoveryspace_override_defaults.yaml).
 This defines a simple discovery space with a **single** entity.

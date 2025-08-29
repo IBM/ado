@@ -16,14 +16,14 @@ RUN uv pip install --system "torch>=2.4,<2.5.0" && \
     uv pip install --system --no-build-isolation "flash-attn==2.6.3"
 
 # Copy source code
-COPY --chown=1000:0 ./ ad-orchestrator
+COPY --chown=1000:0 ./ ado
 
-## Install ad-orchestrator
-RUN cd ad-orchestrator && \
+## Install ado
+RUN cd ado && \
     uv pip install --system \
     '.'
 ## Install ray-tune operator
-RUN cd ad-orchestrator && \
+RUN cd ado && \
     uv pip install --system \
     'plugins/operators/ray_tune/'
 

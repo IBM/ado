@@ -8,7 +8,6 @@ status: published #Status can be draft, reviewed or published.
 
 1. By **cloning the GitHub repository** locally 
 2. Via **GitHub** .
-3. Via the pre-built wheel published on **Artifactory**.
 
 
 ???+ warning
@@ -38,8 +37,8 @@ status: published #Status can be draft, reviewed or published.
     [documentation](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
 
     ```shell
-    git clone git@github.ibm.com:Discovery-Orchestrator/ad-orchestrator.git
-    cd ad-orchestrator
+    git clone https://github.com/IBM/ado.git
+    cd ado
     pip install .
     ```
 
@@ -51,30 +50,13 @@ status: published #Status can be draft, reviewed or published.
     [documentation](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
 
     ```shell
-    pip install "ado-base @ git+ssh://git@github.ibm.com/Discovery-Orchestrator/ad-orchestrator"
-    ```
-
-=== "Via Artifactory"
-
-    **If you have access to the Artifactory repository `res-drl-pypi-local`**, you
-    can install ado using the prebuilt wheel. Export the two following variables
-    (you can get a token from
-    [here](https://eu.artifactory.swg-devops.com/ui/user_profile) if you don't have
-    one yet):
-
-    - `ARTIFACTORY_USER`: your IBM email address.
-    - `ARTIFACTORY_TOKEN`: a valid Artifactory access token.
-
-    And run:
-
-    ```shell
-    pip install "ado-base" --extra-index-url="$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@eu.artifactory.swg-devops.com/artifactory/api/pypi/res-drl-pypi-local/simple"
+    pip install git+https://github.com/IBM/ado"
     ```
 
 ## Installing plugins
 
 ado uses a plugin system to provide **additional actuators** and **operators**. 
-We maintain a set of actuators and operators in the ado main repo which you can see [here](https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/tree/master/plugins/).
+We maintain a set of actuators and operators in the ado main repo which you can see [here](https://github.com/ibm/ado/tree/main/plugins/).
 You can install these actuators as follows:
 
 !!! info 
@@ -104,7 +86,7 @@ You can install these actuators as follows:
     If you don't, look at the previous section for additional pointers.
 
     ```shell
-    pip install "git+ssh://git@github.ibm.com/Discovery-Orchestrator/ad-orchestrator#subdirectory=plugins/actuators/$ACTUATOR_NAME"
+    pip install "git+https://github.com/IBM/ado.git#subdirectory=plugins/actuators/$ACTUATOR_NAME"
     ```
 
 

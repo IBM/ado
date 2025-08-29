@@ -254,7 +254,7 @@ class DiscoveryOperationResourceConfiguration(BaseOperationRunConfiguration):
                 deprecated_fields=key,
                 deprecated_from_ado_version="v0.9.6",
                 removed_from_ado_version="v1.0.0",
-                latest_format_documentation_url="https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/operation/#the-operation-configuration-yaml",
+                latest_format_documentation_url="https://ibm.github.io/ado/resources/operation/#the-operation-configuration-yaml",
             )
             values.pop(key, None)
         return values

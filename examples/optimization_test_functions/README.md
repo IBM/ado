@@ -9,7 +9,7 @@
 > 3. Parameterizable and parameterized experiments
 
 > [!NOTE]
-> We recommend trying the [talking a random walk example](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/examples/random-walk/) first to get familiar with some basic concepts and commands.
+> We recommend trying the [talking a random walk example](https://ibm.github.io/ado/examples/random-walk/) first to get familiar with some basic concepts and commands.
 
 ## The scenario
 
@@ -22,7 +22,7 @@ which provides access to the RayTune framework.
 
 > [!CAUTION]
 > The commands below assume you are in the directory `examples/optimization_test_functions` in **the ado source repository**. 
-> See [here](/Discovery-Orchestrator/ad-orchestrator/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
+> See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 
 ## Setup
 
@@ -120,7 +120,7 @@ Then:
 ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
 ```
 
-where `$SAMPLE_STORE_IDENTIFIER` is the identifier of the [samplestore](/Discovery-Orchestrator/ad-orchestrator/resources/sample-stores/#creating-a-samplestore) you want to use to store the results.
+where `$SAMPLE_STORE_IDENTIFIER` is the identifier of the [samplestore](/ado/resources/sample-stores/#creating-a-samplestore) you want to use to store the results.
 
 >[!Note]
 > This can be the same `samplestore` used in another example. 
@@ -311,7 +311,7 @@ Try the following:
 - *change optimizer*: The file `optimization_nevergrad.yaml` shows using the CMA optimizer from nevergrad. Modify and run in the same way as the Ax example
 - *different results views*: Use `ado show entities space $SPACE_ID` where `SPACE_ID` is the identifier of the space the operations run on. Compare to the output of `ado show entities operation`
 - *modify the entity space*: Extending or limiting the dimensions of the entity space considered
-- *change optimizer options*: Change the optimization options and run another optimization. See [the ray tune operator documentation](/Discovery-Orchestrator/ad-orchestrator/operators/optimisation-with-ray-tune/) for details and further examples on what can be configured.
+- *change optimizer options*: Change the optimization options and run another optimization. See [the ray tune operator documentation](/ado/operators/optimisation-with-ray-tune/) for details and further examples on what can be configured.
 - *parameterize the experiment*: Perform an optimization on the `discus` function <!-- codespell:ignore discus --> - this involves parameterizing the `nevergrad_opt_3d_test_func`. 
     - See how this changes the description of `discoveryspace`. 
 - *discretize the space*: Run the optimization on a discretized version of one of the functions and see if memoization works. **Hint**: change the entity space. 
@@ -321,7 +321,7 @@ Try the following:
 
 The `nevergrad_opt_3d_test_func` experiment can be expanded to include more functions or options. 
 It is also straightforward to add custom experiment for more dimensions. 
-See [the documentation for custom experiments](/Discovery-Orchestrator/ad-orchestrator/actuators/creating-custom-experiments/) to find out more.
+See [the documentation for custom experiments](/ado/actuators/creating-custom-experiments/) to find out more.
 
 > [!IMPORTANT]
 > If you change what the function does consider the name of the experiment. If it is not changed in some way

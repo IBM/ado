@@ -55,7 +55,7 @@ def show_results_for_resources(
     """
     Show the timeseries of results for an operation.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-show-results
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-results
     for detailed documentation and examples.
 
 

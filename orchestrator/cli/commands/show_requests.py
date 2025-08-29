@@ -59,7 +59,7 @@ def show_requests_for_resources(
     """
     Show the timeseries of requests for an operation.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-show-requests
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-requests
     for detailed documentation and examples.
 
 

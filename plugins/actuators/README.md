@@ -50,7 +50,7 @@ It assumes *you are in the directory of the actuator you want to install* : in t
 
 3. `mv dist/*.whl` .
 
-    Required if the plugins is in the ad-orchestrator repo as `dist/` is in `.gitignore` and will not be uploaded by `ray job submit`
+    Required if the plugins is in the ado repo as `dist/` is in `.gitignore` and will not be uploaded by `ray job submit`
 
 4. Write a `ray_runtime_env.yaml` file that installs the wheel from your current dir using pip e.g.
 
@@ -83,7 +83,7 @@ If you need to install multiple actuators you repeat steps 1-3 above for each ad
 Sending the namespace package directory and trying to install from it on the remote cluster is problematic for the following reasons
 1. You cannot use ray `py_modules` with the package directory as it doesn't actually install the package
    - It just adds the module dir to python path which does not work for namespace packages as they have no `__init__.py`
-2. For plugins stored in `ado` repo, you can't use ray `pip` field with the package directory as it requires sending `.git` dir of ad-orchestrator which exceeds ray transfer limit
+2. For plugins stored in `ado` repo, you can't use ray `pip` field with the package directory as it requires sending `.git` dir of ado which exceeds ray transfer limit
    - This is because the namespace package `setup.py` uses `setuptools_scm` to dynamically compute version and identify non-python files
    - NOTE: If you have a standalone plugin repository you may not have this issue. 
 

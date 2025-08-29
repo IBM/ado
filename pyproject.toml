@@ -43,11 +43,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/"
+Homepage = "https://ibm.github.io/ado/"
 #Documentation = "https://readthedocs.org"
-Repository = "https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator.git"
-Issues = "https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/issues"
-Changelog = "https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/CHANGELOG.md"
+Repository = "https://github.com/ibm/ado.git"
+Issues = "https://github.com/ibm/ado/issues"
+Changelog = "https://github.com/ibm/ado/CHANGELOG.md"
 
 [dependency-groups]
 dev = [

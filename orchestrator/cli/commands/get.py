@@ -85,7 +85,7 @@ def get_resource(
             and value is a JSON document.
 
             Please refer to the documentation provided for more information and examples:
-            https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#using-the-field-level-querying-functionality
+            https://ibm.github.io/ado/getting-started/ado/#using-the-field-level-querying-functionality
             """,
             show_default=False,
         ),
@@ -251,7 +251,7 @@ def get_resource(
     """
     List, search, and retrieve representation of resources, contexts, actuators, and operators.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-get
+    See https://ibm.github.io/ado/getting-started/ado/#ado-get
     for detailed documentation and examples.
 
 

@@ -10,7 +10,7 @@ By hosting a metastore on a dedicated server `ado` can be used by multiple distr
 !!! info  end
 
     The `ado` CLI can create local metastore instances.
-    Shared metastores require [separately provisioning the database server](/Discovery-Orchestrator/ad-orchestrator/getting-started/installing-backend-services/#using-the-distributed-mysql-backend-for-ado).
+    Shared metastores require [separately provisioning the database server](/ado/getting-started/installing-backend-services/#using-the-distributed-mysql-backend-for-ado).
 
 ## Contexts and Projects
 

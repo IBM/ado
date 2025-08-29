@@ -131,7 +131,7 @@ def create_resource(
     """
     Create resources, contexts, and start operations.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-create
+    See https://ibm.github.io/ado/getting-started/ado/#ado-create
     for detailed documentation and examples.
 
 

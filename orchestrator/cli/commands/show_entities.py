@@ -115,7 +115,7 @@ def show_entities_for_resources(
     """
     Show entities related to a space or an operation and their measurements.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-show-entities
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-entities
     for detailed documentation and examples.
 
 

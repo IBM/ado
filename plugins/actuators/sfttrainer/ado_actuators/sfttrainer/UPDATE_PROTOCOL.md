@@ -25,7 +25,7 @@ This document describes the protocol for upgrading the experiments of the SFTTra
  Details
  * fms_hf_tuning image location: quay.io/modh/fms-hf-tuning:release
  * pinned packages extraction method: `docker run --rm quay.io/modh/fms-hf-tuning:release pip freeze`
- * location for storing pinned packages: `https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/tree/master/orchestrator_plugins/controller/ado_actuators/fms_hf_tuning/packages`
+ * location for storing pinned packages: `https://github.com/ibm/ado/tree/main/orchestrator_plugins/controller/ado_actuators/fms_hf_tuning/packages`
  * fms_hf_tuning dependencies to be checked on upgrade: `torch`, `transformers`, `accelerate`, `flash-attn`
 
 
@@ -39,7 +39,7 @@ Tick the checkboxes after providing an answer.
 - [ ] Does this release require a change in experiment versioning?
      - [ ] Yes
      - [ ] No
-- [ ] stored the packages of v{VERSION} under https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/tree/master/orchestrator_plugins/controller/ado_actuators/fms_hf_tuning/packages 
+- [ ] stored the packages of v{VERSION} under https://github.com/ibm/ado/tree/main/orchestrator_plugins/controller/ado_actuators/fms_hf_tuning/packages 
 - [ ] looked at the releases of torch, transformers, accelerate, flash-attn
      - ...
 - [ ] decided whether there is a need to update the experiments to include this version

@@ -40,7 +40,7 @@ app = typer.Typer(
     help="""
     ado is a unified platform for executing computational experiments at scale and analysing their results.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/ for detailed
+    See https://ibm.github.io/ado/getting-started/ado/ for detailed
     documentation and examples.
     """,
 )

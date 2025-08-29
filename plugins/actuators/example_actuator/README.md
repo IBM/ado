@@ -1,6 +1,6 @@
 This repository contains an example for creating an actuator for `ado`.
 
-For more about Actuators, what they represent, how to create them etc., see the `ado` [docs](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/actuators/working-with-actuators/).
+For more about Actuators, what they represent, how to create them etc., see the `ado` [docs](https://ibm.github.io/ado/actuators/working-with-actuators/).
 
 This example defines an actuator called "robotic_lab" with one experiment called "peptide_mineralization".
 The example is fully installable and works as is - the only caveat being it makes up properties it measures.
@@ -43,7 +43,7 @@ A `samplestore` is a database for storing entities and measurement results. It c
 The above command will output an identifier, record this for the next step. 
 We will refer to it as `$SAMPLE_STORE_IDENTIFIER`.
 
-2. Create a [discoveryspace](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/discovery-spaces/)
+2. Create a [discoveryspace](https://ibm.github.io/ado/resources/discovery-spaces/)
 ```commandline
 ado create space -f yamls/discoveryspace.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
 ```
@@ -52,7 +52,7 @@ Record the id output by above. We will refer to it as `$DISCOVERY_SPACE_IDENTIFI
 At this point you can also `ado get` or `ado describe` the `discoveryspace`
 
 
-3. Create a random walk [operation](https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/resources/operation/)
+3. Create a random walk [operation](https://ibm.github.io/ado/resources/operation/)
 ```commandline
 ado create operation -f yamls/random_walk_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
 ```

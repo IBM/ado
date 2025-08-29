@@ -57,7 +57,7 @@ def show_details_for_resources(
     For spaces, it will show the size of the space, and information about the entities.
     For operations, it will show information about measured entities.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-show-details
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-details
     for detailed documentation and examples.
 
 

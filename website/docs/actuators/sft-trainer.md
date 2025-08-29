@@ -17,7 +17,7 @@ Under the hood, this actuator wraps the [fms-hf-tuning](https://github.com/found
 
 ## Available experiments
 
-The `SFTTrainer` actuator includes a set of experiments that evaluate different fine-tuning strategies under controlled conditions. These experiments use artificial datasets to ensure reproducibility and comparability across runs. A full list of available experiments and their configurations is available in the [README.MD file](https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/tree/master/plugins/actuators/sfttrainer/ado_actuators/sfttrainer) of the Actuator.
+The `SFTTrainer` actuator includes a set of experiments that evaluate different fine-tuning strategies under controlled conditions. These experiments use artificial datasets to ensure reproducibility and comparability across runs. A full list of available experiments and their configurations is available in the [README.MD file](https://github.com/ibm/ado/tree/main/plugins/actuators/sfttrainer/ado_actuators/sfttrainer) of the Actuator.
 
 The most frequently used experiments are:
 
@@ -1203,7 +1203,7 @@ ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yam
 
 ## Model Weights
 
-The actuator supports model weights from both the **HuggingFace repository** and **local directories**. You can find the full list of supported models in the [models.yaml](https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator/blob/master/plugins/actuators/sfttrainer/ado_actuators/sfttrainer/config/models.yaml) file.
+The actuator supports model weights from both the **HuggingFace repository** and **local directories**. You can find the full list of supported models in the [models.yaml](https://github.com/ibm/ado/blob/main/plugins/actuators/sfttrainer/ado_actuators/sfttrainer/config/models.yaml) file.
 
 !!! note
 

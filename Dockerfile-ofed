@@ -1,4 +1,4 @@
-ARG base_image=icr.io/drl-nextgen/ad-orchestrator:latest-py310-cu121
+ARG base_image=quay.io/ado/ado:latest-py310-cu121
 FROM $base_image
 
 # VV: Install MOFED from https://network.nvidia.com/products/infiniband-drivers/linux/mlnx_ofed/

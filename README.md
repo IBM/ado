@@ -60,13 +60,13 @@ In addition `ado` plugins may have additional requirements for realistic runs. F
 
 To install you can execute the following (we recommend you set up a virtual environment)
 ```commandline
-git clone git@github.ibm.com:Discovery-Orchestrator/ad-orchestrator.git
-cd ad-orchestrator
+git clone https://github.com/IBM/ado.git
+cd ado
 pip install .
 ```
 
 Alternate instructions to install `ado` can be found
-here: https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/install/
+here: https://ibm.github.io/ado/getting-started/install/
 
 ## Development
 
@@ -83,3 +83,6 @@ This video shows listing [actuators](website/docs/actuators/working-with-actuato
 [![Watch the video](website/docs/getting-started/videos/step1_trimmed_thumbnail.png)](website/docs/getting-started/videos/step1_trimmed.mp4)
 
 
+## Technical Report
+
+For more details on the Discovery Spaces concept underlying ado, please refer to this [technical report](https://arxiv.org/abs/2506.21467)

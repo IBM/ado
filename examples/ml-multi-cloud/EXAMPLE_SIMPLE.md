@@ -25,7 +25,7 @@ Here, we will use the simplest sampling method, random walk, where some number o
 
 > [!CAUTION]
 > The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
-> See [here](/Discovery-Orchestrator/ad-orchestrator/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
+> See [here](/ibm/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 
 ## Using pre-existing data with `ado`
 
@@ -33,7 +33,7 @@ For this example we will use some **pre-existing data**.
 This makes the example simpler and quicker to execute but can also be useful in other situations. 
 The data is in the file `ml_export.csv` and is consists of results of running a benchmark on different cloud hardware configurations from different providers.
 
-In `ado` such configurations are called `entities`, and are stored, along with the results of measurements executed on them, in a [`samplestore`](/Discovery-Orchestrator/ad-orchestrator/resources/sample-stores). 
+In `ado` such configurations are called `entities`, and are stored, along with the results of measurements executed on them, in a [`samplestore`](/ibm/ado/resources/sample-stores). 
 Let's start by copying the data in `ml_export.csv` into a new `samplestore`. 
 
 To do this execute,

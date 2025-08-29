@@ -27,7 +27,7 @@ show_command = typer.Typer(
     help="""
     Display content related to one or more resources.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-show for detailed
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show for detailed
     documentation and examples.
     """,
     rich_markup_mode="rich",

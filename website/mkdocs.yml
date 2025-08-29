@@ -1,13 +1,13 @@
 # Project Information
 site_name: "ado Documentation"
-site_url: "https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/"
-site_description: "Documentation website for https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator"
+site_url: "https://ibm.github.io/ado"
+site_description: "Documentation website for https://github.com/ibm/ado"
 site_author: "The ado authors"
 
 # Repository Information
-repo_name: 'Discovery-Orchestrator/ad-orchestrator'
-repo_url: 'https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator'
-edit_uri: 'edit/master/website/docs'
+repo_name: 'ibm/ado'
+repo_url: 'https://github.com/ibm/ado'
+edit_uri: 'edit/main/website/docs'
 docs_dir: 'docs'
 site_dir: 'site'
 remote_branch: 'gh-pages'
@@ -23,7 +23,7 @@ copyright: Copyright IBM Research.
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.ibm.com/Discovery-Orchestrator/ad-orchestrator
+      link: https://github.com/ibm/ado
     - icon: fontawesome/solid/globe
       link: https://www.ibm.com/
 

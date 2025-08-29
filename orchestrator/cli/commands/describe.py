@@ -83,7 +83,7 @@ def describe_resource(
     """
     Print a human-friendly description of a resource or an experiment.
 
-    See https://pages.github.ibm.com/Discovery-Orchestrator/ad-orchestrator/getting-started/ado/#ado-describe
+    See https://ibm.github.io/ado/getting-started/ado/#ado-describe
     for detailed documentation and examples.
 
 

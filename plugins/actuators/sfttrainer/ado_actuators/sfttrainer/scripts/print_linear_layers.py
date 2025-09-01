@@ -82,8 +82,8 @@ linear_layers = {}
 # (the version of the fms-hf-tuning Orchestrator Plugin on the ray cluster won't have the changes you just made)
 
 ModelMap: typing.Dict[str, typing.Dict[str, str]] = {
-    "granite-3.1-8b-instruct": {
-        "Vanilla": "ibm-granite/granite-3.1-8b-instruct",
+    "llava-v1.6-mistral-7b": {
+        "Vanilla": "llava-hf/llava-v1.6-mistral-7b-hf",
     }
 }
 

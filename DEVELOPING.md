@@ -172,7 +172,7 @@ uv add pydantic
 
 ### Adding optional dependencies
 
-Dependencies may be optional, making them available only when using extras, such as `ado-base[my-extra]`. To add
+Dependencies may be optional, making them available only when using extras, such as `ado-core[my-extra]`. To add
 these kind of dependencies, use the [
 `uv add --optional` command](https://docs.astral.sh/uv/concepts/projects/dependencies/#optional-dependencies):
 

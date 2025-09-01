@@ -69,7 +69,7 @@ class Entity(pydantic.BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={
-            "version": importlib.metadata.version(distribution_name="ado-base")
+            "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
 

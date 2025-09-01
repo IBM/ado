@@ -218,7 +218,7 @@ In this section, we’ll focus on the second approach.
        PYTHONUNBUFFERED: "x"
     ```
     
-    If your RayCluster doesn't already have `ado` installed in its virtual environment then build the wheel for `ado-base` by repeating the above in the root directory of `ado`. Then add an entry under `pip` pointing to the the resulting `ado` wheel file.
+    If your RayCluster doesn't already have `ado` installed in its virtual environment then build the wheel for `ado-core` by repeating the above in the root directory of `ado`. Then add an entry under `pip` pointing to the the resulting `ado` wheel file.
 
     !!! info end
 

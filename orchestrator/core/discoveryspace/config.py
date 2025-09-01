@@ -81,45 +81,6 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
     )
     model_config = ConfigDict(extra="forbid")
 
-    @pydantic.model_validator(mode="before")
-    @classmethod
-    def pop_properties_field(cls, values):
-        from orchestrator.core.resources import (
-            CoreResourceKinds,
-            warn_deprecated_resource_model_in_use,
-        )
-
-        old_key = "properties"
-        if old_key in values:
-            warn_deprecated_resource_model_in_use(
-                affected_resource=CoreResourceKinds.DISCOVERYSPACE,
-                deprecated_fields=old_key,
-                deprecated_from_ado_version="v0.10.1",
-                removed_from_ado_version="v1.0.0",
-            )
-            values.pop(old_key, None)
-        return values
-
-    @pydantic.model_validator(mode="before")
-    @classmethod
-    def convert_entitySourceIdentifier_field_to_sampleStoreIdentifier(cls, values):
-        from orchestrator.core.resources import (
-            CoreResourceKinds,
-            warn_deprecated_resource_model_in_use,
-        )
-
-        old_key = "entitySourceIdentifier"
-        new_key = "sampleStoreIdentifier"
-        if old_key in values:
-            warn_deprecated_resource_model_in_use(
-                affected_resource=CoreResourceKinds.DISCOVERYSPACE,
-                deprecated_fields=old_key,
-                deprecated_from_ado_version="v0.9.6",
-                removed_from_ado_version="v1.0.0",
-            )
-            values[new_key] = values.pop(old_key, None)
-        return values
-
     def convert_experiments_to_reference_list(self) -> "DiscoverySpaceConfiguration":
         """Returns a copy where the experiments field is a list of experiment references"""
 

@@ -28,7 +28,7 @@ A context for a local metastore looks like:
 ```yaml
 project: local-test
 metadataStore:
-  path: $USERNAME/Library/Application Support/ado/databases/local-test.db
+  path: $HOME/Library/Application Support/ado/databases/local-test.db
   sslVerify: false
 ```
 

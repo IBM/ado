@@ -25,6 +25,7 @@ sfttrainer_download_hf_weights = "ado_actuators.sfttrainer.scripts.download_hf_w
 
 [project]
 name="ado-sfttrainer"
+readme = "ado_actuators/sfttrainer/README.md"
 description="An actuator for benchmarking fine-tuning of foundation models" # Change to describing your actuator
 dependencies=[
     "jwt",

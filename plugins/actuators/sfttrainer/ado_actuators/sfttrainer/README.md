@@ -643,6 +643,7 @@ Sets the `--target_modules` layer names based on the `model_name`:
 - `granite-3-8b`: `["q_proj", "v_proj"]`
 - `granite-3.1-2b`: `["q_proj", "v_proj"]`
 - `granite-3.1-8b-instruct`: `["q_proj", "v_proj"]`
+- `llava-v1.6-mistral-7b`: `["q_proj", "v_proj"]`
 
 > **NOTE**: Because running `accelerate` with a single gpu is unsupported, when setting `number_gpus` to 1 this experiment actually runs the `tuning.sft_trainer` script directly (i.e. a DataParallel (DP) run).
 

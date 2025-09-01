@@ -585,6 +585,7 @@ Executes LoRA-based fine-tuning, a parameter-efficient method that adapts only a
     - `granite-3-8b`: `["q_proj", "v_proj"]`
     - `granite-3.1-2b`: `["q_proj", "v_proj"]`
     - `granite-3.1-8b-instruct`: `["q_proj", "v_proj"]`
+    - `llava-v1.6-mistral-7b`: `["q_proj", "v_proj"]`
       
     !!! info end
 

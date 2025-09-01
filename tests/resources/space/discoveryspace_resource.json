@@ -2,7 +2,6 @@
   "kind": "discoveryspace",
   "config": {
     "metadata": {},
-    "properties": { "stochastic": false },
     "entitySpace": [
       {
         "identifier": "provider",

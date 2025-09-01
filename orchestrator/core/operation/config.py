@@ -242,23 +242,6 @@ class DiscoveryOperationResourceConfiguration(BaseOperationRunConfiguration):
 
         return value
 
-    @pydantic.model_validator(mode="before")
-    @classmethod
-    def remove_actuators_field(cls, values):
-        from orchestrator.core.resources import warn_deprecated_resource_model_in_use
-
-        key = "actuators"
-        if key in values:
-            warn_deprecated_resource_model_in_use(
-                affected_resource=CoreResourceKinds.OPERATION,
-                deprecated_fields=key,
-                deprecated_from_ado_version="v0.9.6",
-                removed_from_ado_version="v1.0.0",
-                latest_format_documentation_url="https://ibm.github.io/ado/resources/operation/#the-operation-configuration-yaml",
-            )
-            values.pop(key, None)
-        return values
-
     def validate_actuatorconfigurations(
         self, project_context: ProjectContext
     ) -> list[ActuatorConfiguration]:

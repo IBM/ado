@@ -39,6 +39,7 @@ default_target_modules = {
     "granite-3.1-8b-instruct": ["q_proj", "v_proj"],
     "granite-3.1-3b-a800m-instruct": ["q_proj", "v_proj"],
     "granite-vision-3.2-2b": ["q_proj", "v_proj"],
+    "llava-v1.6-mistral-7b": ["q_proj", "v_proj"],
 }
 
 

@@ -154,7 +154,7 @@ Versioning:
 #### Entity space
 
 Required:
-- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m"]`
+- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b"]`
 - model_max_length: Maximum sequence length. Sequences will be right padded (and possibly truncated)
 - number_gpus: The effective number of GPUs (to be evenly distributed to `number_nodes` machines)
 - batch_size: the effective batch_size (will be evenly distributed to max(1, number_gpus) devices)
@@ -376,7 +376,7 @@ Versioning:
 
 #### Entity space
 
-- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m"]`
+- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b"]`
 - dataset_id: One of 
   - `news-chars-512-entries-4096`: 4096 entries with samples of 512 + 127 (prompt) + 512 characters
   - `news-chars-1024-entries-4096`: 4096 entries with samples of 1024 + 127 (prompt) + 1024 characters
@@ -567,7 +567,7 @@ Versioning:
 #### Entity space
 
 Required:
-- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m"]`
+- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b"]`
 - model_max_length: Maximum sequence length. Sequences will be right padded (and possibly truncated)
 - number_gpus: The effective number of GPUs (to be evenly distributed to `number_nodes` machines)
 - batch_size: the effective batch_size (will be evenly distributed to max(1, number_gpus) devices)
@@ -1103,7 +1103,7 @@ Versioning:
 #### Entity space
 
 Required:
-- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m"]`
+- model_name: Supported models: `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-hf/llava-v1.6-mistral-7b-hf]`
 - model_max_length: Maximum sequence length. Sequences will be right padded (and possibly truncated)
 - number_gpus: The effective number of GPUs (to be evenly distributed to `number_nodes` machines)
 - batch_size: the effective batch_size (will be evenly distributed to max(1, number_gpus) devices)

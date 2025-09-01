@@ -371,7 +371,7 @@ You can find the complete list of the entity space properties in the documentati
 
      ```
      my-remote-measurements
-     ├── ado_base-1.1.0.dev133+f4b639c1.dirty-py3-none-any.whl
+     ├── ado_core-1.1.0.dev133+f4b639c1.dirty-py3-none-any.whl
      ├── context.yaml
      ├── operation.yaml
      ├── ray_runtime_env.yaml

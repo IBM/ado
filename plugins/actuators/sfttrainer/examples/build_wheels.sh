@@ -31,7 +31,7 @@ rm -rf build dist
 cd ${my_working_dir}
 
 sftrainer_wheel_prefix="ado_sfttrainer"
-ado_wheel_prefix="ado_base"
+ado_wheel_prefix="ado_core"
 
 cat <<EOF >ray_runtime_env.yaml
 pip:

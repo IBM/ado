@@ -761,8 +761,8 @@ class SFTTrainer(ActuatorBase):
         additional_wheels = [
             x
             for x in packages
-            # VV: Do not install the ado_base wheel. Its dependencies may conflict with those in fms-hf-tuning
-            if x.endswith(".whl") and not os.path.basename(x).startswith("ado_base-")
+            # VV: Do not install the ado_core wheel. Its dependencies may conflict with those in fms-hf-tuning
+            if x.endswith(".whl") and not os.path.basename(x).startswith("ado_core-")
         ]
 
         if additional_wheels:

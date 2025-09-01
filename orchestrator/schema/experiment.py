@@ -71,7 +71,7 @@ class Experiment(pydantic.BaseModel):
         frozen=True,
         extra="forbid",
         json_schema_extra={
-            "version": importlib.metadata.version(distribution_name="ado-base")
+            "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
     optionalProperties: typing.Tuple[ConstitutiveProperty, ...] = pydantic.Field(

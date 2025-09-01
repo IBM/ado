@@ -802,7 +802,7 @@ class RandomWalk(Characterize):
 
         from importlib.metadata import version
 
-        version = version("ado-base")
+        version = version("ado-core")
 
         return "randomwalk-%s" % version
 

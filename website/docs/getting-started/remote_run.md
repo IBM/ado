@@ -67,7 +67,7 @@ Then there are two steps:
     ```
     
     * First command removes any previous build artifacts and wheels. This prevents issues with old files being included in the new wheel
-    * Second command creates a `dist/` directory with the wheel. It will have a name like `ado_base-$VERSION-py3-none.whl`
+    * Second command creates a `dist/` directory with the wheel. It will have a name like `ado_core-$VERSION-py3-none.whl`
     * Last command copies the wheel to the directory you made
 
 === "Build the plugin wheels"
@@ -94,7 +94,7 @@ In our case it is the wheels we just created e.g.
 
 ```yaml
 pip: # One line for each wheel to install, in this example there is two. Be sure to check spelling.
- - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_BASE.whl
+ - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_CORE.whl
  - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_PLUGIN1.whl
 env_vars: # See below
   ...
@@ -162,7 +162,7 @@ The environment of the ray job is given in a YAML file. An example is:
 
 ```yaml
 pip: # One line for each wheel to install, in this example there is two. Be sure to check spelling.
- - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_BASE.whl
+ - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_CORE.whl
  - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_PLUGIN1.whl
 env_vars: # These envars are recommend. Some plugins may require others. Check plugin docs.
   PYTHONUNBUFFERED: "x" # Turns of buffering of the jobs logs. Useful if there is some error

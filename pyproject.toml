@@ -1,5 +1,5 @@
 [project]
-name = "ado-base"
+name = "ado-core"
 description = """ado is a unified platform for executing computational experiments at scale and analysing their results.
 It can be easily extended with new experiments or new analysis tools. It allows distributed teams of
 researchers and engineers to collaborate on projects, execute experiments, and share data.

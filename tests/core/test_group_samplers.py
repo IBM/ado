@@ -1,8 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
-from typing import Any, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -38,9 +37,9 @@ def explicit_entity_space(constitutive_property_configuration_general):
 
 def check_group_order(
     sampler: GroupSampler,
-    group_order: typing.List[frozenset[Tuple[str, Any]]],
+    group_order: list[frozenset[tuple[str, Any]]],
     space: DiscoverySpace,
-    group: List[str],
+    group: list[str],
 ):
 
     # For selectors the sequential order depends on the order returned by the samplestore which may differ

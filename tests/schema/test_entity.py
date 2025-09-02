@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import re
-import typing
 
 import numpy as np
 import pytest
@@ -286,7 +285,7 @@ def test_entity_to_json(
 
 
 def test_identifier_from_property_values(
-    entity_for_parameterized_experiment: typing.Tuple[Entity, Experiment],
+    entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ):
 
     test_entity, test_experiment = entity_for_parameterized_experiment
@@ -330,7 +329,7 @@ def test_identifier_from_property_values(
 
 
 def test_value_error_duplicate_constitutive_properties(
-    entity_for_parameterized_experiment: typing.Tuple[Entity, Experiment],
+    entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ):
     test_entity, test_experiment = entity_for_parameterized_experiment
     constitutive_property_values = test_entity.constitutive_property_values
@@ -355,7 +354,7 @@ def test_value_error_duplicate_constitutive_properties(
 
 
 def test_value_error_duplicate_measurement_results(
-    valid_measurement_result_and_entity: typing.Tuple[Entity, ValidMeasurementResult],
+    valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
 ):
 
     test_entity, result = valid_measurement_result_and_entity
@@ -385,7 +384,7 @@ def test_value_error_duplicate_measurement_results(
 
 
 def test_observed_properties_from_experiment_reference(
-    valid_measurement_result_and_entity: typing.Tuple[Entity, ValidMeasurementResult],
+    valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
 ):
 
@@ -417,7 +416,7 @@ def test_observed_properties_from_experiment_reference(
 
 
 def test_series_representation_with_observed_property_values(
-    valid_measurement_result_and_entity: typing.Tuple[Entity, ValidMeasurementResult],
+    valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
 ):
 
@@ -501,7 +500,7 @@ def test_series_representation_with_observed_property_values(
 
 
 def test_series_representation_multiple_observed(
-    valid_measurement_result_and_entity: typing.Tuple[Entity, ValidMeasurementResult],
+    valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
 ):
 
@@ -575,7 +574,7 @@ def test_series_representation_multiple_observed(
 
 
 def test_experiment_series(
-    valid_measurement_result_and_entity: typing.Tuple[Entity, ValidMeasurementResult],
+    valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
 ):
     test_entity, result = valid_measurement_result_and_entity
@@ -664,7 +663,7 @@ def test_experiment_series(
 
 
 def test_experiment_series_multiple_observed(
-    valid_measurement_result_and_entity: typing.Tuple[Entity, ValidMeasurementResult],
+    valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
 ):
 
@@ -744,7 +743,7 @@ def test_experiment_series_multiple_observed(
 
 
 def test_required_constitutive_properties_present(
-    entity_for_parameterized_experiment: typing.Tuple[Entity, Experiment],
+    entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ):
 
     test_entity, test_experiment = entity_for_parameterized_experiment

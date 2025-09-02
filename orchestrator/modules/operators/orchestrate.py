@@ -281,7 +281,7 @@ def run_general_operation_core_closure(
     ],
     discovery_space: DiscoverySpace,
     operationInfo: FunctionOperationInfo,
-    operation_parameters: typing.Dict,
+    operation_parameters: dict,
 ):
 
     def _run_general_operation_core() -> OperationOutput:
@@ -440,8 +440,8 @@ def orchestrate_general_operation(
         ],
         OperationOutput,
     ],
-    operation_parameters: typing.Dict,
-    parameters_model: typing.Optional[typing.Type[pydantic.BaseModel]],
+    operation_parameters: dict,
+    parameters_model: typing.Optional[type[pydantic.BaseModel]],
     discovery_space: DiscoverySpace,
     operation_info: FunctionOperationInfo,
     operation_type: orchestrator.core.operation.config.DiscoveryOperationEnum,
@@ -518,7 +518,7 @@ def orchestrate_explore_operation(
     discovery_space: DiscoverySpace,
     namespace: str,
     queue: ray.util.queue.Queue,
-) -> typing.Tuple[
+) -> tuple[
     "DiscoverySpace",
     "OperationResource",
     "orchestrator.modules.operators.base.OperationOutput",
@@ -663,7 +663,7 @@ def orchestrate_explore_operation(
 def explore_operation_function_wrapper(
     discovery_space: DiscoverySpace,
     module: orchestrator.core.operation.config.OperatorModuleConf,
-    parameters: typing.Dict,
+    parameters: dict,
     namespace: str,
     operation_info: typing.Optional["FunctionOperationInfo"] = None,
     queue: typing.Optional["ray.util.queue.Queue"] = None,
@@ -699,7 +699,7 @@ def orchestrate_operation_function(
     base_operation_configuration: BaseOperationRunConfiguration,
     project_configuration: ProjectContext,
     discovery_space: DiscoverySpace,
-) -> typing.Tuple[
+) -> tuple[
     "DiscoverySpace",
     "OperationResource",
     "OperationOutput",

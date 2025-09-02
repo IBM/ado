@@ -69,7 +69,7 @@ class MockActuator(ActuatorBase):
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,

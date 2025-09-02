@@ -34,7 +34,7 @@ class Property(pydantic.BaseModel):
     """A named property with a domain"""
 
     identifier: str
-    metadata: typing.Optional[typing.Dict] = pydantic.Field(
+    metadata: typing.Optional[dict] = pydantic.Field(
         default=None, description="Metadata on the property"
     )
     propertyDomain: PropertyDomain = pydantic.Field(
@@ -82,7 +82,7 @@ class AbstractProperty(Property):
     propertyType: MeasuredPropertyTypeEnum = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
-    concretePropertyIdentifiers: typing.Optional[typing.List[str]] = None
+    concretePropertyIdentifiers: typing.Optional[list[str]] = None
     model_config = ConfigDict(frozen=True)
 
     def __str__(self):

@@ -130,7 +130,7 @@ def is_pip_available() -> bool:
     return spec is not None and spec.loader is not None
 
 
-def model_dump_all(model: pydantic.BaseModel) -> typing.Dict[str, typing.Any]:
+def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
     """Recursively dumps all fields of a pydantic model ignoring exclude directives
 
     Args:
@@ -203,7 +203,7 @@ class ActuatorParameters(
         "your token and the cache will be stored in this folder.",
     )
 
-    model_map: typing.Dict[str, typing.Dict[WeightsFormat, str]] = pydantic.Field(
+    model_map: dict[str, dict[WeightsFormat, str]] = pydantic.Field(
         default_factory=lambda: copy.deepcopy(ModelMap),
         description="Maps model identifiers to their corresponding Hugging Face model ids and absolute paths."
         "The contents of this dictionary will override the defaults that ship with the Actuator.",
@@ -223,8 +223,8 @@ class ActuatorParameters(
     @classmethod
     def upgrade_simple_model_map(
         cls,
-        values: typing.Dict[str, typing.Union[str, typing.Dict[WeightsFormat, str]]],
-    ) -> typing.Dict[str, typing.Dict[WeightsFormat, str]]:
+        values: dict[str, typing.Union[str, dict[WeightsFormat, str]]],
+    ) -> dict[str, dict[WeightsFormat, str]]:
         """Auto converts model_map entries whose values are strings to {"Vanilla": <the str>}"""
         if not isinstance(values, dict):
             return values
@@ -265,13 +265,13 @@ class FinetuneContext:
     def __init__(
         self,
         args: "finetune.FineTuneArgs",
-        runtime_env: typing.Dict[str, typing.Any],
+        runtime_env: dict[str, typing.Any],
         exp: "Experiment",
         exp_params: ExperimentParameters,
         entity_space: EntitySpace,
-        aim_metadata: typing.Dict[str, typing.Any],
+        aim_metadata: dict[str, typing.Any],
         log_level: int,
-        extra: typing.Dict[str, typing.Any],
+        extra: dict[str, typing.Any],
         actuator_params: ActuatorParameters,
         request_id: str,
     ):
@@ -375,8 +375,8 @@ def get_ip(host: str) -> str:
 
 
 def update_dict(
-    target: typing.Dict[typing.Any, typing.Dict[typing.Any, typing.Any]],
-    updates: typing.Dict[typing.Any, typing.Dict[typing.Any, typing.Any]],
+    target: dict[typing.Any, dict[typing.Any, typing.Any]],
+    updates: dict[typing.Any, dict[typing.Any, typing.Any]],
 ):
     """Merges 2 dictionaries of dictionaries
 
@@ -440,9 +440,9 @@ class SFTTrainer(ActuatorBase):
             )
 
         # VV: Keeps track of running experiments that this Actuator has launched and have not completed yet
-        self.running_tasks: typing.Set[asyncio.Task] = set()
+        self.running_tasks: set[asyncio.Task] = set()
 
-    def model_map(self) -> typing.Dict[str, typing.Dict[WeightsFormat, str]]:
+    def model_map(self) -> dict[str, dict[WeightsFormat, str]]:
         return self.typed_parameters.model_map.copy()
 
     @classmethod
@@ -495,7 +495,7 @@ class SFTTrainer(ActuatorBase):
                 f"supported models are {list(actuator_parameters.model_map)}"
             )
 
-        kwargs: typing.Dict[str, typing.Any] = actuator_parameters.model_dump(
+        kwargs: dict[str, typing.Any] = actuator_parameters.model_dump(
             exclude_none=True,
             # VV: Manually exclude fields which are not CLI args of the fms-hf-tuning wrapper
             exclude={
@@ -554,12 +554,12 @@ class SFTTrainer(ActuatorBase):
         entity_id: str,
         exp_id: str,
         args: "finetune.FineTuneArgs",
-        aim_metadata: typing.Dict[str, typing.Any],
+        aim_metadata: dict[str, typing.Any],
         method: "ray.actor.ActorMethod",
         distributed_settings: finetune.DistributedSettings,
         multi_node: typing.Optional[finetune.MultiNodeSettings] = None,
         log_level: typing.Optional[int] = None,
-    ) -> typing.Dict[str, float]:
+    ) -> dict[str, float]:
         metrics = {
             "f_gpu_oom": 0,
             "f_other_error": 0,
@@ -863,7 +863,7 @@ class SFTTrainer(ActuatorBase):
             nodes = ray.nodes()
             pg_table = ray.util.placement_group_table(pg)
 
-            bundles_to_node_id: typing.Dict[int, str] = {
+            bundles_to_node_id: dict[int, str] = {
                 int(k): str(v) for k, v in pg_table["bundles_to_node_id"].items()
             }
 
@@ -911,7 +911,7 @@ class SFTTrainer(ActuatorBase):
                         multi_node=multi_node,
                     )
                 )
-            results: typing.List[metrics_tracker.Metrics] = await asyncio.gather(*tasks)
+            results: list[metrics_tracker.Metrics] = await asyncio.gather(*tasks)
         finally:
             for task in tasks:
                 ray.cancel(task, force=True, recursive=True)
@@ -1007,7 +1007,7 @@ class SFTTrainer(ActuatorBase):
         entity: Entity,
         exp: Experiment,
         context: FinetuneContext,
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> dict[str, typing.Any]:
         """Runs an experiment on an identity and returns the measured properties
 
         Args:
@@ -1045,7 +1045,7 @@ class SFTTrainer(ActuatorBase):
             )
 
             if not context.exp_params.multi_node:
-                metrics: typing.Dict[str, typing.Any] = await self._measurement(
+                metrics: dict[str, typing.Any] = await self._measurement(
                     context=context,
                     entity=entity,
                     method=context.generate_method_call(),
@@ -1089,7 +1089,7 @@ class SFTTrainer(ActuatorBase):
         entity: "Entity",
         exp: "Experiment",
         distributed_backend: typing.Optional[typing.Literal["FSDP", "DDP"]],
-    ) -> typing.Dict[str, typing.Any]:
+    ) -> dict[str, typing.Any]:
         try:
             return metrics.to_scalar_observations(
                 distributed_backend=distributed_backend
@@ -1128,7 +1128,7 @@ class SFTTrainer(ActuatorBase):
         # VV: This is just to make the linter happy
         exp = None
         context: typing.Optional[FinetuneContext] = None
-        scalar_observations: typing.Dict[str, typing.Any] = {}
+        scalar_observations: dict[str, typing.Any] = {}
 
         try:
 
@@ -1317,11 +1317,11 @@ class SFTTrainer(ActuatorBase):
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ) -> typing.List[str]:
+    ) -> list[str]:
         """Submits the entities for measurement by experiment via the receiver
 
         :param entities: A list of Entity representing the entities to be measured

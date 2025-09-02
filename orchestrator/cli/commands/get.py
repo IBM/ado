@@ -3,7 +3,7 @@
 
 import pathlib
 import typing
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
 
 import typer
 
@@ -73,7 +73,7 @@ def get_resource(
         ),
     ] = None,
     query: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         typer.Option(
             "--query",
             "-q",
@@ -91,7 +91,7 @@ def get_resource(
         ),
     ] = None,
     labels: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         typer.Option(
             "--label",
             "-l",

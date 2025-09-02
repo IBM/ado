@@ -60,7 +60,7 @@ class ValidMeasurementResult(MeasurementResult):
     ValidMeasurementResult.measurements[0].property.experimentReference
     """
 
-    measurements: typing.List[PropertyValue] = pydantic.Field(
+    measurements: list[PropertyValue] = pydantic.Field(
         description="A list of the values measured. Cannot be empty"
     )
 

@@ -16,9 +16,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 
 class TabularData(pydantic.BaseModel):
 
-    data: typing.Dict = pydantic.Field(
-        description="A valid string description of a table"
-    )
+    data: dict = pydantic.Field(description="A valid string description of a table")
 
     @classmethod
     def from_dataframe(cls, dataframe: "pd.DataFrame"):
@@ -52,12 +50,12 @@ class TabularData(pydantic.BaseModel):
 
 class DataContainer(pydantic.BaseModel):
 
-    tabularData: typing.Optional[typing.Dict[str, TabularData]] = pydantic.Field(
+    tabularData: typing.Optional[dict[str, TabularData]] = pydantic.Field(
         default=None,
         description="Contains a dictionary whose values are string representations of dataframes",
     )
     locationData: typing.Optional[
-        typing.Dict[
+        dict[
             str,
             typing.Union[
                 orchestrator.utilities.location.SQLStoreConfiguration,
@@ -70,11 +68,11 @@ class DataContainer(pydantic.BaseModel):
         default=None,
         description="A dictionary whose values are references to data i.e. data locations",
     )
-    data: typing.Optional[
-        typing.Dict[str, typing.Union[typing.Dict, typing.List, typing.AnyStr]]
-    ] = pydantic.Field(
-        default=None,
-        description="A dictionary of other pydantic objects e.g. lists, dicts, strings,",
+    data: typing.Optional[dict[str, typing.Union[dict, list, typing.AnyStr]]] = (
+        pydantic.Field(
+            default=None,
+            description="A dictionary of other pydantic objects e.g. lists, dicts, strings,",
+        )
     )
     metadata: ConfigurationMetadata = pydantic.Field(
         default=ConfigurationMetadata(),

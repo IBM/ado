@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import re
-import typing
 
 import pydantic
 import pytest
@@ -162,8 +161,8 @@ def test_parameterized_experiment_pretty(parameterized_experiment, global_regist
 
 def test_experiment_observed_properties(
     experiment: Experiment,
-    expected_observed_property_identifiers: typing.List[str],
-    target_property_list: typing.List[str],
+    expected_observed_property_identifiers: list[str],
+    target_property_list: list[str],
 ):
     """Test that the observed properties created by an experiment are as expected"""
 
@@ -237,9 +236,9 @@ def experimentWithOptions(
 
 
 def test_create_experiment_with_optional_params(
-    experimentRawNoOptional: typing.Dict,
-    optionalProperties: typing.List[ConstitutiveProperty],
-    defaultParameterization: typing.List[PropertyValue],
+    experimentRawNoOptional: dict,
+    optionalProperties: list[ConstitutiveProperty],
+    defaultParameterization: list[PropertyValue],
 ):
     """Test we can create an experiment with optional parameters"""
 
@@ -426,7 +425,7 @@ def test_retrieve_parameterizable_experiment(
 def test_parameterized_experiment_serialize_deserialize(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: typing.List[PropertyValue],
+    customParameterization: list[PropertyValue],
 ):
     ref = ExperimentReference(
         actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,
@@ -441,7 +440,7 @@ def test_parameterized_experiment_serialize_deserialize(
 
 def test_create_parameterized_experiment(
     experimentWithOptions: Experiment,
-    customParameterization: typing.List[PropertyValue],
+    customParameterization: list[PropertyValue],
     global_registry: ActuatorRegistry,
 ):
 
@@ -528,7 +527,7 @@ def test_create_parameterized_experiment(
 # - Testing when there are multiple observed property values for the required observed property
 # - Testing a Entity that doesn't have the correct ConstitutiveProperties
 def test_experiment_property_values_from_entity(
-    entity_for_parameterized_experiment: typing.Tuple[Entity, ParameterizedExperiment],
+    entity_for_parameterized_experiment: tuple[Entity, ParameterizedExperiment],
 ):
     """Test Experiment.propertyValuesFromEntity works"""
 

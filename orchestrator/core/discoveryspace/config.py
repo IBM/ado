@@ -44,7 +44,7 @@ MeasurementSpaceConfigurationType = typing.Annotated[
             pydantic.Tag("MeasurementSpaceConfiguration"),
         ],
         typing.Annotated[
-            typing.List[ExperimentReference], pydantic.Tag("ExperimentReferenceList")
+            list[ExperimentReference], pydantic.Tag("ExperimentReferenceList")
         ],
     ],
     pydantic.Discriminator(ms_config_type_discriminator),
@@ -67,7 +67,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             description="The id of the sample store to use.", coerce_numbers_to_str=True
         ),
     ]
-    entitySpace: typing.Optional[typing.List[ConstitutiveProperty]] = pydantic.Field(
+    entitySpace: typing.Optional[list[ConstitutiveProperty]] = pydantic.Field(
         default=None,
         description="Describes how entities can be generated in this space",
     )

@@ -63,7 +63,7 @@ class Entity(pydantic.BaseModel):
         description="A list of ValidMeasurementResult objects giving values for observed properties. "
         "InvalidMeasurementResults are not supported.",
     )
-    metadata: typing.Optional[typing.Dict] = pydantic.Field(
+    metadata: typing.Optional[dict] = pydantic.Field(
         default=None, description="Additional metadata on this entity"
     )
     model_config = ConfigDict(
@@ -228,7 +228,7 @@ class Entity(pydantic.BaseModel):
                     p.text(str(e))
 
     @property
-    def observedProperties(self) -> typing.List[ObservedProperty]:
+    def observedProperties(self) -> list[ObservedProperty]:
         """Returns the measured properties"""
 
         return [
@@ -236,7 +236,7 @@ class Entity(pydantic.BaseModel):
         ]
 
     @property
-    def observedPropertyValues(self) -> typing.List[PropertyValue]:
+    def observedPropertyValues(self) -> list[PropertyValue]:
 
         return [
             p for p in self.propertyValues if isinstance(p.property, ObservedProperty)
@@ -265,7 +265,7 @@ class Entity(pydantic.BaseModel):
 
     def observedPropertiesFromExperimentReference(
         self, experimentReference: ExperimentReference
-    ) -> typing.List[ObservedProperty]:
+    ) -> list[ObservedProperty]:
         """Returns all the properties of the entity that are measured by experimentReference
 
         If there are no observed properties for the experiment this method returns an empty list
@@ -317,7 +317,7 @@ class Entity(pydantic.BaseModel):
 
     def virtualObservedPropertiesFromIdentifier(
         self, identifier
-    ) -> typing.Optional[typing.List[VirtualObservedProperty]]:
+    ) -> typing.Optional[list[VirtualObservedProperty]]:
         """Returns a list of VirtualObservedProperty instances given a virtual property identifier
 
         A virtual property identifier has two parts - the base property identifier and the aggregation method identifier
@@ -351,7 +351,7 @@ class Entity(pydantic.BaseModel):
         property: typing.Union[
             ObservedProperty, ConstitutiveProperty, VirtualObservedProperty
         ],
-    ) -> typing.List[PropertyValue]:
+    ) -> list[PropertyValue]:
         """Returns all values for given observed property. If none exit returns an empty list"""
 
         if isinstance(property, VirtualObservedProperty):
@@ -384,9 +384,7 @@ class Entity(pydantic.BaseModel):
         check = self.valuesForProperty(property)
         return check[0] if len(check) != 0 else None
 
-    def valuesForTargetProperty(
-        self, targetProperty: Property
-    ) -> typing.List[PropertyValue]:
+    def valuesForTargetProperty(self, targetProperty: Property) -> list[PropertyValue]:
         """Returns all PropertyValue instances for targetProperty if one exists otherwise empty list"""
 
         return list(
@@ -436,16 +434,16 @@ class Entity(pydantic.BaseModel):
         self.measurement_results.append(result)
 
     @property
-    def experimentReferences(self) -> typing.List[ExperimentReference]:
+    def experimentReferences(self) -> list[ExperimentReference]:
         """Returns a list of the Experiments that measure the observed properties"""
 
         return list({op.experimentReference for op in self.observedProperties})
 
     def seriesRepresentation(
         self,
-        experimentReferences: typing.Optional[typing.List[ExperimentReference]] = None,
+        experimentReferences: typing.Optional[list[ExperimentReference]] = None,
         constitutiveOnly: bool = False,
-        virtualTargetPropertyIdentifiers: typing.Optional[typing.List[str]] = None,
+        virtualTargetPropertyIdentifiers: typing.Optional[list[str]] = None,
         aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
     ) -> "pd.Series":
         """Returns a pandas series containing the receivers constitutive and optional observed property values
@@ -466,7 +464,7 @@ class Entity(pydantic.BaseModel):
 
         def add_value(
             value: PropertyValue,
-            references: typing.List[ExperimentReference],
+            references: list[ExperimentReference],
             restrictConstitutive=False,
         ):
             """Checks if a property value should be added to the series
@@ -552,8 +550,8 @@ class Entity(pydantic.BaseModel):
 
     def experimentSeries(
         self,
-        experimentReferences: typing.Optional[typing.List[ExperimentReference]] = None,
-        virtualTargetPropertyIdentifiers: typing.Optional[typing.List[str]] = None,
+        experimentReferences: typing.Optional[list[ExperimentReference]] = None,
+        virtualTargetPropertyIdentifiers: typing.Optional[list[str]] = None,
         aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
     ):
         """Returns a tuple of series' where each series contains the observed property values for a specific experiment (protocol).

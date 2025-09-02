@@ -76,7 +76,7 @@ class DiscoveryOperationBase(metaclass=abc.ABCMeta):
     @classmethod
     def validateOperationParameters(
         cls,
-        parameters: typing.Dict,
+        parameters: dict,
     ) -> pydantic.BaseModel:
         """If the parameters are valid returns a model for them.
 
@@ -107,9 +107,9 @@ class MultivariateDiscoveryOperation(metaclass=abc.ABCMeta):
 def measure_or_replay(
     requestIndex: int,
     requesterid: str,
-    entities: typing.List[Entity],
+    entities: list[Entity],
     experimentReference: ExperimentReference,
-    actuators: typing.Dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+    actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
     measurement_queue: MeasurementQueue,
     memoize: bool,
 ):
@@ -201,9 +201,9 @@ def measure_or_replay(
 async def measure_or_replay_async(
     requestIndex: int,
     requesterid: str,
-    entities: typing.List[Entity],
+    entities: list[Entity],
     experimentReference: ExperimentReference,
-    actuators: typing.Dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+    actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
     measurement_queue: MeasurementQueue,
     memoize: bool,
 ):
@@ -311,7 +311,7 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         namespace: typing.Optional[str],
         state: DiscoverySpaceManager,
         # Will actually be ray.actor.ActorHandle accessing InternalState
-        actuators: typing.Dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: typing.Any = None,
         metadata: typing.Optional[
             orchestrator.core.metadata.ConfigurationMetadata
@@ -512,6 +512,4 @@ def warn_deprecated_operator_parameters_model_in_use(
 
 
 if typing.TYPE_CHECKING:
-    OperatorActor = typing.Type[
-        ActorHandle[DiscoverySpaceSubscribingDiscoveryOperation]
-    ]
+    OperatorActor = type[ActorHandle[DiscoverySpaceSubscribingDiscoveryOperation]]

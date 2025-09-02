@@ -70,8 +70,8 @@ class SQLSampleStore(ActiveSampleStore):
         storeConfiguration: SQLStoreConfiguration,
         generatorIdentifier: typing.Optional[str] = None,
         experimentIdentifier: typing.Optional[str] = None,
-        observedPropertyColumns: typing.Optional[typing.List[str]] = None,
-        constitutivePropertyColumns: typing.Optional[typing.List[str]] = None,
+        observedPropertyColumns: typing.Optional[list[str]] = None,
+        constitutivePropertyColumns: typing.Optional[list[str]] = None,
     ):
 
         csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
@@ -261,7 +261,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         identifier: typing.Optional[str],
         storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
-        parameters: typing.Optional[typing.Dict],
+        parameters: typing.Optional[dict],
     ):
 
         import uuid
@@ -306,7 +306,7 @@ class SQLSampleStore(ActiveSampleStore):
         return self._configuration.model_copy()
 
     @property
-    def entities(self) -> typing.List[Entity]:
+    def entities(self) -> list[Entity]:
 
         if not self._entities:
 
@@ -397,7 +397,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         return self._identifier
 
-    def addEntities(self, entities: typing.List[Entity]):
+    def addEntities(self, entities: list[Entity]):
         """
         Add the entities to the sample store.
 
@@ -495,7 +495,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     def upsertExperimentResults(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experiment: Experiment,
     ):
 
@@ -503,8 +503,8 @@ class SQLSampleStore(ActiveSampleStore):
 
     def upsertEntities(
         self,
-        entities: typing.List[Entity],
-        experiments: typing.List[Experiment] | None = None,
+        entities: list[Entity],
+        experiments: list[Experiment] | None = None,
     ):
         """Raises:
         SystemError: If there are any errors encountered with upserting entities to SQL DB
@@ -723,7 +723,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     def add_measurement_results(
         self,
-        results: typing.List[MeasurementResult],
+        results: list[MeasurementResult],
         skip_relationship_to_request: bool,
         request_db_id: typing.Optional[uuid.uuid4] = None,
     ):
@@ -766,7 +766,7 @@ class SQLSampleStore(ActiveSampleStore):
     def add_relationship_between_request_and_results(
         self,
         request_db_id: uuid.uuid4,
-        results: typing.List[MeasurementResult],
+        results: list[MeasurementResult],
     ):
 
         # 24/04/2025 AP:

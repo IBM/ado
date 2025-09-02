@@ -144,7 +144,7 @@ class PropertyValue(pydantic.BaseModel):
 
 
 def constitutive_property_values_from_point(
-    point: typing.Dict, properties: typing.List[ConstitutiveProperty]
+    point: dict, properties: list[ConstitutiveProperty]
 ) -> list[PropertyValue]:
     """Given a dict of {property id:property value}, and the Property instances, returns the PropertyValue instances"""
 

@@ -46,16 +46,13 @@ import logging
 import os.path
 import pathlib
 import sys
-import typing
 
 import typer
 
 app = typer.Typer(rich_markup_mode="markdown")
 
 
-def generate_sequence(
-    words: typing.List[str], start: int, length: int
-) -> typing.Tuple[str, int]:
+def generate_sequence(words: list[str], start: int, length: int) -> tuple[str, int]:
     ret = []
     idx = 0
     while idx < length:

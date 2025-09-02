@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
 
 
 def was_gpu_in_use(
-    gpu_cuda_id: int, cuda_visible_devices: typing.List[int], num_gpus: int
+    gpu_cuda_id: int, cuda_visible_devices: list[int], num_gpus: int
 ) -> bool:
     # VV: We used that GPU if cuda_visible_devices is empty BUT we did ask
     # FSDP to use at least 1 GPU. OR the gpu cuda id is in the cuda_visible_devices array (i.e. AIM/pytorch knew
@@ -34,7 +34,7 @@ class AggregatedValues:
 
 
 def aggregate_values(
-    values: typing.Union[typing.List[float], typing.Dict[str, typing.Optional[float]]],
+    values: typing.Union[list[float], dict[str, typing.Optional[float]]],
 ) -> typing.Union[float, AggregatedValues]:
     if isinstance(values, list):
         len_values = 0
@@ -88,7 +88,7 @@ class GPUMetrics:
     )
 
     @classmethod
-    def from_aim_info_dict(cls, info: typing.Dict[str, typing.Any]) -> "GPUMetrics":
+    def from_aim_info_dict(cls, info: dict[str, typing.Any]) -> "GPUMetrics":
         return GPUMetrics(
             gpu=aggregate_values(info["__system__gpu"]["values"]),
             gpu_memory_percent=aggregate_values(
@@ -122,7 +122,7 @@ class SystemMetrics:
     )
 
     @classmethod
-    def from_aim_info_dict(cls, info: typing.Dict[str, typing.Any]) -> "SystemMetrics":
+    def from_aim_info_dict(cls, info: dict[str, typing.Any]) -> "SystemMetrics":
         return SystemMetrics(
             cpu=aggregate_values(info["__system__cpu"]["values"]),
             memory_percent=aggregate_values(info["__system__memory_percent"]["values"]),
@@ -153,7 +153,7 @@ class TrainingMetrics:
 
     @classmethod
     def from_aim_info_list(
-        cls, training_metrics: typing.Dict[str, typing.Dict[str, typing.Any]]
+        cls, training_metrics: dict[str, dict[str, typing.Any]]
     ) -> "TrainingMetrics":
         if "runtime" not in training_metrics:
             return TrainingMetrics()
@@ -184,7 +184,7 @@ class ModelMetrics:
 
 @dataclasses.dataclass
 class Metrics:
-    gpus: typing.List[GPUMetrics]
+    gpus: list[GPUMetrics]
     system: SystemMetrics
     training: TrainingMetrics
     model: ModelMetrics
@@ -194,7 +194,7 @@ class Metrics:
     aim_run_hash: typing.Optional[str] = None
     train_time_start: typing.Optional[datetime.datetime] = None
     train_time_stop: typing.Optional[datetime.datetime] = None
-    hostname_gpus: typing.Dict[str, typing.List[int]] = dataclasses.field(
+    hostname_gpus: dict[str, list[int]] = dataclasses.field(
         default_factory=dict,
         metadata={
             "help": "Key=value pairs where the key is a hostname and the value an "
@@ -205,13 +205,13 @@ class Metrics:
     def to_scalar_observations(
         self,
         distributed_backend: typing.Optional[typing.Literal["FSDP", "DDP"]],
-    ) -> typing.Dict[str, float]:
+    ) -> dict[str, float]:
         scalar_observations = {}
         import dataclasses
 
         def aggregate_metrics(
-            vals: typing.List[float],
-        ) -> typing.Tuple[float, float, float]:
+            vals: list[float],
+        ) -> tuple[float, float, float]:
             """Utility method that returns min, avg, max of a list of floats
             If the array is empty then the method assumes that it's equal to [0.0]
             """
@@ -297,7 +297,7 @@ class Metrics:
         return scalar_observations
 
     @classmethod
-    def from_aim_info_dict(cls, aim_info: typing.Dict[str, typing.Any], num_gpus: int):
+    def from_aim_info_dict(cls, aim_info: dict[str, typing.Any], num_gpus: int):
         json_metrics = aim_info["metrics"]
 
         training_metrics = {
@@ -416,7 +416,7 @@ class ResourceTracker:
     AGG_DEFAULT = AGG_NOTHING
 
     @classmethod
-    def aggregate(cls, items: typing.List, mode: str):
+    def aggregate(cls, items: list, mode: str):
         """
         Aggregates array of numbers by a given 'mode'
         """
@@ -444,9 +444,7 @@ class ResourceTracker:
         self._stat = aim.ext.resource.stat.Stat(self._process)
         self._fix_stat(self._stat.stat_item)
 
-        self.metrics: typing.List[aim.ext.resource.stat.StatDict] = [
-            self._stat.stat_item
-        ]
+        self.metrics: list[aim.ext.resource.stat.StatDict] = [self._stat.stat_item]
 
         # VV: end_track() puts a message here asking the thread to stop
         self._end_requested = Event()
@@ -508,7 +506,7 @@ class ResourceTracker:
     @classmethod
     def aggregate_items(
         cls,
-        items: typing.List[aim.ext.resource.stat.StatDict],
+        items: list[aim.ext.resource.stat.StatDict],
         agg_mode: str = AGG_NOTHING,
     ):
         """

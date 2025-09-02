@@ -279,7 +279,7 @@ class FineTuneArgs:
     # VV: Options for lora
     r: int = 8
     lora_alpha: int = 32
-    target_modules: typing.List[str] = dataclasses.field(
+    target_modules: list[str] = dataclasses.field(
         default_factory=lambda: ["q_proj", "v_proj"],
         metadata={
             "help": "The names of the modules to apply LORA to. LORA selects modules which either completely match or "
@@ -291,17 +291,17 @@ class FineTuneArgs:
     lora_dropout: float = 0.05
 
     # VV: Options for fused_ops_and_kernels
-    fast_kernels: typing.Optional[typing.List[str]] = dataclasses.field(default=None)
-    fused_lora: typing.Optional[typing.List[str]] = dataclasses.field(default=None)
+    fast_kernels: typing.Optional[list[str]] = dataclasses.field(default=None)
+    fused_lora: typing.Optional[list[str]] = dataclasses.field(default=None)
 
     # VV: options for AttentionAndDistributedPackingConfig
-    padding_free: typing.Optional[typing.List[str]] = None
+    padding_free: typing.Optional[list[str]] = None
 
     # VV: This is a [str, bool] for the parameters (kernel, from_quantized)
-    auto_gptq: typing.Optional[typing.List[typing.Union[str, bool]]] = None
+    auto_gptq: typing.Optional[list[typing.Union[str, bool]]] = None
 
     # VV: This is a [int] for the parameters (ep_degree)
-    fast_moe: typing.Optional[typing.List[int]] = dataclasses.field(
+    fast_moe: typing.Optional[list[int]] = dataclasses.field(
         default=None,
         metadata={
             "help": "Configures the amount of expert parallel sharding. "
@@ -454,7 +454,7 @@ def extract_metrics(aim_info_path: str, number_gpus: int):
     import json
 
     with open(aim_info_path, "r", encoding="utf-8") as f:
-        aim_info: typing.Dict[str, typing.Any] = json.load(f)
+        aim_info: dict[str, typing.Any] = json.load(f)
 
     if "error" in aim_info:
         exc = aim_info.get("exception")
@@ -478,7 +478,7 @@ def extract_metrics(aim_info_path: str, number_gpus: int):
 
 def _finetune_launch_kernel(
     args: FineTuneArgs,
-    aim_metadata: typing.Optional[typing.Dict[str, typing.Any]],
+    aim_metadata: typing.Optional[dict[str, typing.Any]],
     multi_node: MultiNodeSettings,
     distributed_settings: DistributedSettings,
     working_directory: str,
@@ -745,7 +745,7 @@ def _finetune_launch_kernel(
 
 def _update_num_tokens_cache_for_model_and_dataset(
     cache_file: str,
-    num_tokens: typing.List[int],
+    num_tokens: list[int],
     model_id: str,
     path_data: str,
 ):
@@ -782,7 +782,7 @@ def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
     model_id: typing.Optional[str],
     num_tokens_cache_dir: typing.Optional[str],
-) -> typing.Tuple[typing.Optional[str], typing.List[int]]:
+) -> tuple[typing.Optional[str], list[int]]:
     import json
 
     num_tokens = []
@@ -877,7 +877,7 @@ def calculate_tokens_in_image_text_dataset(
 def calculate_tokens_in_text_dataset(
     path_model: str,
     path_data: str,
-) -> typing.List[int]:
+) -> list[int]:
     from transformers import AutoTokenizer
 
     log = logging.getLogger("sft_trainer")
@@ -1061,7 +1061,7 @@ def tokenize_text(
 
 def launch_finetune(
     args: FineTuneArgs,
-    aim_metadata: typing.Optional[typing.Dict[str, typing.Any]],
+    aim_metadata: typing.Optional[dict[str, typing.Any]],
     count_dataset_tokens: bool,
     distributed_settings: DistributedSettings,
     multi_node: typing.Optional[MultiNodeSettings],
@@ -1118,7 +1118,7 @@ def launch_finetune(
     return metrics
 
 
-def generate_arguments_sft_trainer(args: FineTuneArgs) -> typing.Dict[str, typing.Any]:
+def generate_arguments_sft_trainer(args: FineTuneArgs) -> dict[str, typing.Any]:
     """Generate arguments for tuning.sft_trainer.train_wrapper() from FineTuneArgs plus some HardcodedArgs"""
     excluded = {
         "gradient_checkpointing_use_reentrant",

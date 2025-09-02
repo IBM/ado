@@ -58,7 +58,7 @@ example output:
 
 def _update_num_tokens_cache_for_model_and_dataset(
     cache_file: str,
-    num_tokens: typing.List[int],
+    num_tokens: list[int],
     model_id: str,
     path_data: str,
 ):
@@ -95,7 +95,7 @@ def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
     model_id: typing.Optional[str],
     num_tokens_cache_dir: typing.Optional[str],
-) -> typing.Tuple[typing.Optional[str], typing.List[int]]:
+) -> tuple[typing.Optional[str], list[int]]:
     import json
 
     num_tokens = []
@@ -161,7 +161,7 @@ def _get_tokens_of_dataset_entries(
     path_data: str,
     model_id: typing.Optional[str],
     num_tokens_cache_dir: typing.Optional[str],
-) -> typing.List[int]:
+) -> list[int]:
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(path_model)

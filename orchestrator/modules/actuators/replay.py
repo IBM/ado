@@ -30,10 +30,10 @@ moduleLog = logging.getLogger("replay")
 def replay(
     requestIndex: int,
     requesterid: str,
-    entities: typing.List[Entity],
+    entities: list[Entity],
     experiment_reference: ExperimentReference,
     measurement_queue: MeasurementQueue,
-) -> typing.List[ReplayedMeasurement]:
+) -> list[ReplayedMeasurement]:
     """Reuses (memoizes) pre-existing results for executing experiment_reference on entities if possible.
 
     Memoization involves creating a ReplayedMeasurementRequest for each existing MeasurementResult for experiment_reference on an entity.
@@ -118,7 +118,7 @@ class Replay(ActuatorBase):
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,

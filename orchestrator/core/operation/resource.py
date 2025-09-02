@@ -71,7 +71,7 @@ class OperationResource(ADOResource):
         description="The id of the operator resource that executed this operation"
     )
     config: DiscoveryOperationResourceConfiguration
-    status: typing.List[OperationResourceStatus] = pydantic.Field(
+    status: list[OperationResourceStatus] = pydantic.Field(
         default=[OperationResourceStatus(event=ADOResourceEventEnum.CREATED)],
         description="A list of status objects",
     )

@@ -166,7 +166,7 @@ class DiscoverySpaceManager:
             self.monitorUpdates(debug=False)
         )
 
-    async def matchingEntitiesInSource(self, selection: typing.List[int] | None = None):
+    async def matchingEntitiesInSource(self, selection: list[int] | None = None):
         """Returns an ordered list of all matchingEntities or a selected subset of them
 
         :param: selection: A list of ints. If supplied the entities at these indexes are returned.
@@ -201,7 +201,7 @@ class DiscoverySpaceManager:
         )
 
     def storedEntitiesWithConstitutivePropertyValues(
-        self, propVals: typing.List[PropertyValue]
+        self, propVals: list[PropertyValue]
     ):
 
         return self._discoverySpace.storedEntitiesWithConstitutivePropertyValues(
@@ -386,4 +386,4 @@ class DiscoverySpaceManager:
 
 
 if typing.TYPE_CHECKING:
-    DiscoverySpaceManagerActor = typing.Type[ActorHandle[DiscoverySpaceManager]]
+    DiscoverySpaceManagerActor = type[ActorHandle[DiscoverySpaceManager]]

@@ -124,7 +124,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
             self.aggregationMethod.identifier.value,
         )
 
-    def aggregate(self, values: typing.List) -> PropertyValue:
+    def aggregate(self, values: list) -> PropertyValue:
         """
         Aggregate a list of values and return a PropertyValue object.
 

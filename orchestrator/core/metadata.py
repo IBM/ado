@@ -19,7 +19,7 @@ class ConfigurationMetadata(pydantic.BaseModel):
         default=None,
         description="One or more sentences describing this configuration. ",
     )
-    labels: typing.Optional[typing.Dict[str, str]] = pydantic.Field(
+    labels: typing.Optional[dict[str, str]] = pydantic.Field(
         default=None,
         description="Optional labels to allow for quick filtering of this resource",
     )

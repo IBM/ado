@@ -821,7 +821,7 @@ class RandomWalk(Characterize):
 def random_walk(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
-    **kwargs: typing.Dict,
+    **kwargs: dict,
 ) -> OperationOutput:
     """
     Performs a random_walk operation on a given discoverySpace

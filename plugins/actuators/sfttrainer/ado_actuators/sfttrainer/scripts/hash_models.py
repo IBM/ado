@@ -78,7 +78,7 @@ def get_model_hash(path_model: str):
 def main():
     ray.init()
 
-    model_information: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
+    model_information: dict[str, dict[str, typing.Any]] = {}
 
     all_models = {
         "llama-7b": "/hf-models-pvc/LLaMa/models/hf/7B",
@@ -111,7 +111,7 @@ def main():
         print("All so far")
         print(json.dumps(model_information, indent=2))
 
-    unique_hashes: typing.Dict[str, typing.List[str]] = {}
+    unique_hashes: dict[str, list[str]] = {}
 
     for model_name, info in model_information.items():
         if info["hash"] not in unique_hashes:

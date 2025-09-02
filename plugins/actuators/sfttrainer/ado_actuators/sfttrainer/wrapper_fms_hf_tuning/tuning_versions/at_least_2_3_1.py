@@ -14,10 +14,8 @@ if typing.TYPE_CHECKING:
 
 
 def parse_arguments_and_execute_wrapper(
-    callbacks: typing.Optional[
-        typing.List["transformers.trainer_callback.TrainerCallback"]
-    ],
-    job_config: typing.Dict[str, typing.Any],
+    callbacks: typing.Optional[list["transformers.trainer_callback.TrainerCallback"]],
+    job_config: dict[str, typing.Any],
 ):
 
     parser = tuning.sft_trainer.get_parser()

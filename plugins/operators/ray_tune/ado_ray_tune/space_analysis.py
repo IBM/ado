@@ -5,7 +5,7 @@
 import itertools
 import logging
 import sys
-from typing import Any, Dict, NamedTuple
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -79,7 +79,7 @@ def get_clusters(
 
 class MutualInformationOutput(NamedTuple):
 
-    mutual_information: Dict[str, float]
+    mutual_information: dict[str, float]
     entropy: float
     cluster_labels: Any
 

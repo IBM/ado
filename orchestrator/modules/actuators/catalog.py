@@ -4,7 +4,6 @@
 import abc
 import enum
 import logging
-import typing
 
 import pydantic
 
@@ -32,21 +31,19 @@ class ActuatorCatalogExtension(pydantic.BaseModel):
     Holding off on this as ExperimentCatalog has internal data-structures that need to change
     """
 
-    experiments: typing.List[Experiment] = pydantic.Field(
-        description="A list of experiments"
-    )
+    experiments: list[Experiment] = pydantic.Field(description="A list of experiments")
 
 
 class BaseCatalog(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def experiments(self) -> typing.List[Experiment]:
+    def experiments(self) -> list[Experiment]:
         pass
 
     @property
     @abc.abstractmethod
-    def experimentsMap(self) -> typing.Dict:
+    def experimentsMap(self) -> dict:
         pass
 
     @abc.abstractmethod
@@ -58,7 +55,7 @@ class ExperimentCatalog(BaseCatalog):
     """Base class for class that provide information on the available experiments"""
 
     def __init__(
-        self, experiments: typing.Dict | None = None, catalogIdentifier="UnnamedCatalog"
+        self, experiments: dict | None = None, catalogIdentifier="UnnamedCatalog"
     ):
         """
         Parameters:
@@ -81,15 +78,15 @@ class ExperimentCatalog(BaseCatalog):
         return f"Catalog {self._identifier} with {len(self._experiments)} experiments"
 
     @property
-    def experiments(self) -> typing.List[Experiment]:
+    def experiments(self) -> list[Experiment]:
         return list(self._experiments.values())
 
     @property
-    def supported_experiments(self) -> typing.List[Experiment]:
+    def supported_experiments(self) -> list[Experiment]:
         return [e for e in self.experiments if not e.deprecated]
 
     @property
-    def deprecated_experiments(self) -> typing.List[Experiment]:
+    def deprecated_experiments(self) -> list[Experiment]:
         return [e for e in self.experiments if e.deprecated]
 
     @property
@@ -98,7 +95,7 @@ class ExperimentCatalog(BaseCatalog):
         return self._identifier
 
     @property
-    def experimentsMap(self) -> typing.Dict[str, Experiment]:
+    def experimentsMap(self) -> dict[str, Experiment]:
         return {e.identifier: e for e in self.experiments}
 
     def experimentForReference(self, reference: ExperimentReference) -> Experiment:

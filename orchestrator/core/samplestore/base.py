@@ -48,7 +48,7 @@ class SampleStore(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def entities(self) -> typing.List[Entity]:  # pragma: nocover
+    def entities(self) -> list[Entity]:  # pragma: nocover
         pass
 
     @property
@@ -61,8 +61,8 @@ class SampleStore(abc.ABC):
         pass
 
     def entitiesWithConstitutivePropertyValues(
-        self, values: typing.List[PropertyValue]
-    ) -> typing.List[Entity]:
+        self, values: list[PropertyValue]
+    ) -> list[Entity]:
         """Returns entities with which have the given constitutive property values
 
         Note: This is a non-optimized base method provided for convenience
@@ -77,7 +77,7 @@ class SampleStore(abc.ABC):
             If there are no matches the list will be empty.
         """
 
-        def _same(entity, searchValues: typing.List[PropertyValue]):
+        def _same(entity, searchValues: list[PropertyValue]):
             # Does this entity have the same properties
             unmatchedProperties = [
                 val
@@ -159,7 +159,7 @@ class ActiveSampleStore(SampleStore, ABC):
     def add_external_entities(self, entities: list[Entity]): ...  # pragma: nocover
 
     @abc.abstractmethod
-    def addEntities(self, entities: typing.List[Entity]):  # pragma: nocover
+    def addEntities(self, entities: list[Entity]):  # pragma: nocover
         """Add the entities to the sample store
 
         Check implementation for details on behaviour e.g. add v upsert.
@@ -210,7 +210,7 @@ class ExperimentDescription(pydantic.BaseModel):
 
 
 class SampleStoreDescription(pydantic.BaseModel):
-    experiments: typing.List[ExperimentDescription] = pydantic.Field(
+    experiments: list[ExperimentDescription] = pydantic.Field(
         default=[], description="A list describing the experiments in the source"
     )
     generatorIdentifier: typing.Optional[str] = pydantic.Field(
@@ -252,7 +252,7 @@ class SampleStoreDescription(pydantic.BaseModel):
         return observedProperties
 
     @property
-    def constitutiveProperties(self) -> typing.List[ConstitutiveProperty]:
+    def constitutiveProperties(self) -> list[ConstitutiveProperty]:
 
         raise ValueError("Subclasses must implement this method")
 

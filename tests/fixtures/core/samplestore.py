@@ -6,7 +6,6 @@ from __future__ import print_function
 import copy
 import json
 import pathlib
-import typing
 
 import pytest
 import yaml
@@ -104,7 +103,7 @@ def csv_sample_store_identifier():
 
 
 @pytest.fixture
-def csv_sample_store_parameters() -> typing.Tuple:
+def csv_sample_store_parameters() -> tuple:
 
     parameters = {
         "generatorIdentifier": "gt4sd-pfas-molgx-model-one",

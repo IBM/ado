@@ -3,8 +3,6 @@
 
 from __future__ import print_function
 
-import typing
-
 import pytest
 
 import orchestrator.core.samplestore.csv
@@ -45,7 +43,7 @@ def global_registry(
 
 @pytest.fixture
 def experiment_catalogs() -> (
-    typing.List[orchestrator.modules.actuators.catalog.ExperimentCatalog]
+    list[orchestrator.modules.actuators.catalog.ExperimentCatalog]
 ):
     parameters = {}
 

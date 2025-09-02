@@ -3,7 +3,6 @@
 
 import os
 import pathlib
-import typing
 
 import ray
 import typer
@@ -68,7 +67,7 @@ def main(
     """
 
     with open(path_to_models, "r") as f:
-        model_map: typing.Dict[str, typing.Dict[str, str]] = yaml.safe_load(f)
+        model_map: dict[str, dict[str, str]] = yaml.safe_load(f)
 
     for model_name, items in model_map.items():
         for model_type, model_path in items.items():

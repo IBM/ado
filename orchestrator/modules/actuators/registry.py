@@ -129,7 +129,7 @@ class ActuatorRegistry:
 
         import pydantic
 
-        ActuatorFileModel = pydantic.RootModel[typing.List[ActuatorModuleConf]]
+        ActuatorFileModel = pydantic.RootModel[list[ActuatorModuleConf]]
 
         self.log.debug(f"{plugins.__path__}, {plugins.__name__}")
 
@@ -244,7 +244,7 @@ class ActuatorRegistry:
     def registerActuator(
         self,
         actuatorid: str,
-        actuatorClass: "typing.Type[ActuatorBase]",
+        actuatorClass: "type[ActuatorBase]",
     ):
         """Adds an actuator and a catalog of experiments it can execute to the registry
 
@@ -356,7 +356,7 @@ class ActuatorRegistry:
     def experimentForReference(
         self,
         reference: ExperimentReference,
-        additionalCatalogs: typing.List[ExperimentCatalog] | None = None,
+        additionalCatalogs: list[ExperimentCatalog] | None = None,
     ):
         """
         Returns the Experiment object corresponding to reference
@@ -503,7 +503,7 @@ class ActuatorRegistry:
 
     def checkMeasurementSpaceSupported(
         self, measurement_space: MeasurementSpace
-    ) -> typing.List:
+    ) -> list:
         """Checks that all the actuators and experiments in measurement_space are in/available via the registry
 
         Returns:

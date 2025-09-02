@@ -3,7 +3,7 @@
 
 import pathlib
 import random
-from typing import Optional, Tuple
+from typing import Optional
 
 import pytest
 import yaml
@@ -264,7 +264,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         number_requests: int = 3,
         measurements_per_result: int = 2,
         operation_id: Optional[str] = None,
-    ) -> Tuple[SQLSampleStore, list[MeasurementRequest], list[str]]:
+    ) -> tuple[SQLSampleStore, list[MeasurementRequest], list[str]]:
         operation_id = operation_id if operation_id else random_identifier()
         sample_store = ml_multi_cloud_sample_store
 

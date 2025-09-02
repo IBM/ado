@@ -57,7 +57,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     experimentReference: ExperimentReference = pydantic.Field(
         description="An reference detailing the experiment to perform"
     )
-    entities: typing.List[Entity] = pydantic.Field(
+    entities: list[Entity] = pydantic.Field(
         description="An Entity instance representing the entity being measured"
     )
     requestid: str = pydantic.Field(
@@ -74,7 +74,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
         description="The results of the measurement",
     )
 
-    metadata: typing.Dict = pydantic.Field(
+    metadata: dict = pydantic.Field(
         default={}, description="Metadata about the measurement request"
     )
 
@@ -299,7 +299,7 @@ class ReplayedMeasurement(MeasurementRequest):
     experimentReference: ExperimentReference = pydantic.Field(
         description="A reference detailing the experiment that was performed"
     )
-    entities: typing.List[Entity] = pydantic.Field(
+    entities: list[Entity] = pydantic.Field(
         description="The Entity instances which are being forwarded"
     )
     status: MeasurementRequestStateEnum = pydantic.Field(

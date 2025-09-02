@@ -3,8 +3,6 @@
 
 from __future__ import print_function
 
-import typing
-
 import pytest
 import yaml
 
@@ -90,7 +88,7 @@ def measurement_space(
 @pytest.fixture(scope="module")
 def parameterized_selectors(
     parameterized_experiments, global_registry
-) -> typing.List[ExperimentReference]:
+) -> list[ExperimentReference]:
 
     return [
         orchestrator.schema.measurementspace.ExperimentReference(
@@ -105,7 +103,7 @@ def parameterized_selectors(
 @pytest.fixture
 def measurement_space_configuration(
     measurement_space_configuration_smiles_yaml,
-) -> typing.List[ExperimentReference]:
+) -> list[ExperimentReference]:
     return [
         ExperimentReference(**e) for e in measurement_space_configuration_smiles_yaml
     ]

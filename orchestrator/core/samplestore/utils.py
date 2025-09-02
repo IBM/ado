@@ -115,7 +115,7 @@ def create_sample_store(
 def create_sample_store_resource(
     conf: SampleStoreConfiguration,
     resourceStore: orchestrator.metastore.sqlstore.SQLStore,
-) -> typing.Tuple[
+) -> tuple[
     SampleStoreResource,
     orchestrator.core.samplestore.base.ActiveSampleStore,
 ]:

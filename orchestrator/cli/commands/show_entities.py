@@ -94,7 +94,7 @@ def show_entities_for_resources(
         typer.Option(help="The format in which to output the entities."),
     ] = AdoShowEntitiesSupportedOutputFormats.CONSOLE.value,
     properties: Annotated[
-        Optional[typing.List[str]],
+        Optional[list[str]],
         typer.Option(
             "--property",
             show_default=False,

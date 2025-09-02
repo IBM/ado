@@ -20,7 +20,7 @@ class ObservedProperty(pydantic.BaseModel):
     experimentReference: ExperimentReference = pydantic.Field(
         description=" A reference to the experiment that produces measurements of this observed property"
     )
-    metadata: typing.Optional[typing.Dict] = pydantic.Field(
+    metadata: typing.Optional[dict] = pydantic.Field(
         default={},
         description="Metadata on the instance of the measurement that observed this property",
     )

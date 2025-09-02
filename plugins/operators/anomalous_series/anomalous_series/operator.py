@@ -48,15 +48,15 @@ class DetectAnomalousSeries(pydantic.BaseModel):
         description="If target then test_properties must use target property identifiers. "
         "If observed then they must be observed property identifiers ",
     )
-    groupby_properties: typing.List[str] = pydantic.Field(
+    groupby_properties: list[str] = pydantic.Field(
         description="A list of identifiers of constitutive properties to group by"
     )
-    independent_properties: typing.List[str] = pydantic.Field(
+    independent_properties: list[str] = pydantic.Field(
         description="Constitutive property to treat as independent variable of each group. "
         "If there are more than one, then for each property, "
         "the others are added to group_properties to form the groups"
     )
-    test_properties: typing.List[ExpectedSeriesBehaviour] = pydantic.Field(
+    test_properties: list[ExpectedSeriesBehaviour] = pydantic.Field(
         description="A list of observed properties and behaviours. "
         "For each group and each independent variable, the behaviour of the property for the group will be checked"
     )

@@ -22,22 +22,20 @@ moduleLog = logging.getLogger("operation_collections")
 
 class OperationCollections(pydantic.BaseModel):
     type: DiscoveryOperationEnum
-    function_operations: typing.Dict[typing.AnyStr, typing.Callable] = pydantic.Field(
+    function_operations: dict[typing.AnyStr, typing.Callable] = pydantic.Field(
         default={}
     )
-    object_operations: typing.Dict[typing.AnyStr, DiscoveryOperationBase] = (
+    object_operations: dict[typing.AnyStr, DiscoveryOperationBase] = pydantic.Field(
+        default={}
+    )
+    function_operation_models: dict[typing.AnyStr, type[pydantic.BaseModel]] = (
         pydantic.Field(default={})
     )
-    function_operation_models: typing.Dict[
-        typing.AnyStr, typing.Type[pydantic.BaseModel]
-    ] = pydantic.Field(default={})
-    function_operation_model_defaults: typing.Dict[
-        typing.AnyStr, pydantic.BaseModel
-    ] = pydantic.Field(default={})
-    function_operation_versions: typing.Dict[typing.AnyStr, str] = pydantic.Field(
-        default={}
+    function_operation_model_defaults: dict[typing.AnyStr, pydantic.BaseModel] = (
+        pydantic.Field(default={})
     )
-    function_operation_descriptions: typing.Dict[typing.AnyStr, str] = pydantic.Field(
+    function_operation_versions: dict[typing.AnyStr, str] = pydantic.Field(default={})
+    function_operation_descriptions: dict[typing.AnyStr, str] = pydantic.Field(
         default={}
     )
 
@@ -53,7 +51,7 @@ class OperationCollections(pydantic.BaseModel):
         self.function_operation_descriptions[name] = version
 
     def add_operation_configuration_model(
-        self, name: str, model: typing.Type[pydantic.BaseModel]
+        self, name: str, model: type[pydantic.BaseModel]
     ):
         self.function_operation_models[name] = model
 
@@ -65,14 +63,12 @@ class OperationCollections(pydantic.BaseModel):
     def add_operation_object(self, name: str, object: DiscoveryOperationBase):
         self.object_operations[name] = object
 
-    def list_operations(self) -> typing.List:
+    def list_operations(self) -> list:
         return list(self.function_operations.keys()) + list(
             self.object_operations.keys()
         )
 
-    def configuration_model_for_operation(
-        self, name: str
-    ) -> typing.Type[pydantic.BaseModel]:
+    def configuration_model_for_operation(self, name: str) -> type[pydantic.BaseModel]:
         if name not in self.function_operation_models:
             raise ValueError(f"Unknown operator {name}")
 
@@ -177,7 +173,7 @@ def characterize_operation(
     name: str,
     description: typing.Optional[str] = None,
     version: typing.Optional[str] = "v0.1",
-    configuration_model: typing.Optional[typing.Type[pydantic.BaseModel]] = None,
+    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
     configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
 ):
     characterize.add_operation_configuration_model(name, configuration_model)
@@ -204,7 +200,7 @@ def register_explore_operation(func):
 def explore_operation(
     name: str,
     description: typing.Optional[str] = None,
-    configuration_model: typing.Optional[typing.Type[pydantic.BaseModel]] = None,
+    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
     version: typing.Optional[str] = "v0.1",
     configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
 ):
@@ -246,7 +242,7 @@ def modify_operation(
     name: str,
     description: typing.Optional[str] = None,
     version: typing.Optional[str] = "v0.1",
-    configuration_model: typing.Optional[typing.Type[pydantic.BaseModel]] = None,
+    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
     configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
 ):
     modify.add_operation_configuration_model(name, configuration_model)
@@ -264,7 +260,7 @@ def register_export_operation(func):
     def export_operation_wrapper(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
-        **kwargs: typing.Dict,
+        **kwargs: dict,
     ) -> OperationOutput:
         return orchestrate_general_operation(
             operator_function=func,
@@ -285,7 +281,7 @@ def register_export_operation(func):
 def export_operation(
     name: str,
     description: typing.Optional[str] = None,
-    configuration_model: typing.Optional[typing.Type[pydantic.BaseModel]] = None,
+    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
     version: typing.Optional[str] = "v0.1",
     configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
 ):

@@ -1,11 +1,11 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import List, Optional
+from typing import Optional
 
 
 def parse_key_value_pairs(
-    pairs: Optional[List[str]],
+    pairs: Optional[list[str]],
     separator: str = "=",
     allow_only_key: bool = False,
     invert_key_value: bool = False,

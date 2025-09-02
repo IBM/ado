@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pytest
 
@@ -181,7 +180,7 @@ def test_entity_space_representation(
 
 
 def test_entity_in_space(
-    constitutive_property_configuration_general: typing.List[ConstitutiveProperty],
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
 ):
 
     es = EntitySpaceRepresentation(
@@ -246,7 +245,7 @@ def test_entity_in_space(
 
 
 def test_entity_space_pretty(
-    constitutive_property_configuration_general: typing.List[ConstitutiveProperty],
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
 ):
 
     ## Add an Unknown property

@@ -117,9 +117,7 @@ class ResourceStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def getResources(
-        self, identifiers: typing.List[str]
-    ) -> typing.Dict[str, ADOResource]:
+    def getResources(self, identifiers: list[str]) -> dict[str, ADOResource]:
         """Returns a list of resource objects with the given identifiers
 
         Parameters:
@@ -165,7 +163,7 @@ class ResourceStore(abc.ABC):
         kind: str,
         version: str | None = None,
         field_selectors: typing.Optional[list[dict[str, str]]] = None,
-    ) -> typing.Dict[str, ADOResource]:
+    ) -> dict[str, ADOResource]:
         """Returns all resource objects of a given kind
 
         Parameter:
@@ -217,7 +215,7 @@ class ResourceStore(abc.ABC):
     @abc.abstractmethod
     def getRelatedResources(
         self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> typing.Dict[str, ADOResource]:
+    ) -> dict[str, ADOResource]:
         """
         Returns all resource object associated with identifier.
         Optionally returns only resources of the provided kind.
@@ -258,7 +256,7 @@ class ResourceStore(abc.ABC):
     def addResourceWithRelationships(
         self,
         resource: ADOResource,
-        relatedIdentifiers: typing.List,
+        relatedIdentifiers: list,
     ):
         """For the relationship, the resource id is stored as object and the other ids as subjects
 
@@ -332,7 +330,7 @@ def sample_store_dump(
 
 
 def sample_store_load(
-    sample_store_resource_dict: typing.Dict,
+    sample_store_resource_dict: dict,
     storage_location: typing.Union[SQLiteStoreConfiguration, SQLStoreConfiguration],
 ):
     """Adds storage location information to SQL sample stores"""

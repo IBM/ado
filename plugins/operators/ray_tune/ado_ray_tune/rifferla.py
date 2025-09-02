@@ -57,7 +57,7 @@ class RifferlaParameters(pydantic.BaseModel):
     find_valid_intersection: bool = pydantic.Field(
         default=False, description="If True tries to find a valid intersection"
     )
-    ignore_columns: typing.List = pydantic.Field(
+    ignore_columns: list = pydantic.Field(
         default=["identifier", "generatorid"],
         description="List of constitutive properties not to consider",
     )

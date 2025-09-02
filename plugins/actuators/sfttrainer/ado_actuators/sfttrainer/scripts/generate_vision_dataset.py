@@ -49,7 +49,6 @@ import logging
 import os.path
 import pathlib
 import sys
-import typing
 
 import pandas.io.parquet
 import typer
@@ -92,9 +91,7 @@ def generate_image(width: int = 384, height: int = 384) -> bytes:
     return buffer.getvalue()
 
 
-def generate_sequence(
-    words: typing.List[str], start: int, length: int
-) -> typing.Tuple[str, int]:
+def generate_sequence(words: list[str], start: int, length: int) -> tuple[str, int]:
     ret = []
     idx = 0
     while idx < length:

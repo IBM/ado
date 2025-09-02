@@ -81,11 +81,11 @@ class RoboticLab(ActuatorBase):
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ) -> typing.List[str]:
+    ) -> list[str]:
         """Runs experimentReference on entities
 
         The result of running the experiment is expected to be returned asynchronously via the MeasurementQueue (self._stateUpdateQueue)

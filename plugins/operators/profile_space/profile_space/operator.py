@@ -23,7 +23,7 @@ from orchestrator.modules.operators.collections import characterize_operation
 def profile(
     discoverySpace: DiscoverySpace,
     operationInfo: typing.Optional[FunctionOperationInfo] = None,
-    **kwargs: typing.Dict,
+    **kwargs: dict,
 ) -> OperationOutput:
     import ydata_profiling
 

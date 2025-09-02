@@ -45,17 +45,17 @@ class Experiment(pydantic.BaseModel):
         description="""The name of the experiment.
             Must be unique in the scope of the catalog of this experiments actuator."""
     )
-    metadata: typing.Dict = pydantic.Field(
+    metadata: dict = pydantic.Field(
         default={},
         description=""" Metadata about the experiment. Sufficient to track its source. Can be custom format per actuator""",
     )
-    targetProperties: typing.List[typing.Union[AbstractProperty, ConcreteProperty]] = (
+    targetProperties: list[typing.Union[AbstractProperty, ConcreteProperty]] = (
         pydantic.Field(
             description="""The target properties this experiment aims to measure
             (can be ConcreteProperty or AbstractProperty instances)"""
         )
     )
-    requiredProperties: typing.Tuple[
+    requiredProperties: tuple[
         typing.Union[ObservedProperty, ConstitutiveProperty], ...
     ] = pydantic.Field(
         default=(),
@@ -74,12 +74,12 @@ class Experiment(pydantic.BaseModel):
             "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
-    optionalProperties: typing.Tuple[ConstitutiveProperty, ...] = pydantic.Field(
+    optionalProperties: tuple[ConstitutiveProperty, ...] = pydantic.Field(
         default=(),
         frozen=True,
         description="""The optional properties this experiment can take as input. Must have default values specified in parameterization""",
     )
-    defaultParameterization: typing.Tuple[PropertyValue, ...] = pydantic.Field(
+    defaultParameterization: tuple[PropertyValue, ...] = pydantic.Field(
         validate_default=True,
         default=(),
         frozen=True,
@@ -94,7 +94,7 @@ class Experiment(pydantic.BaseModel):
         targetProperties: [str],
         propertyType: MeasuredPropertyTypeEnum = MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE,
         requiredConstitutiveProperties: [str] = None,
-        metadata: typing.Union[typing.Dict, None] = None,
+        metadata: typing.Union[dict, None] = None,
         deprecated: bool = False,
     ):
         """Factory method for creating an Experiment instance when you have a list of abstract property ids
@@ -138,7 +138,7 @@ class Experiment(pydantic.BaseModel):
     @pydantic.field_validator("optionalProperties")
     def validate_optional_properties(
         cls,
-        optionalProperties: typing.List[ConstitutiveProperty],
+        optionalProperties: list[ConstitutiveProperty],
         values: "pydantic.FieldValidationInfo",
     ):
 
@@ -174,7 +174,7 @@ class Experiment(pydantic.BaseModel):
 
     @pydantic.field_validator("defaultParameterization")
     def validate_default_parameterization(
-        cls, value: typing.List[PropertyValue], values: "pydantic.FieldValidationInfo"
+        cls, value: list[PropertyValue], values: "pydantic.FieldValidationInfo"
     ):
 
         if not value:
@@ -287,7 +287,7 @@ class Experiment(pydantic.BaseModel):
             p.breakable()
             p.breakable()
 
-    def isValidParameterization(self, parameterization: typing.List[PropertyValue]):
+    def isValidParameterization(self, parameterization: list[PropertyValue]):
         """Returns True if the list of values given by parameterization is valid, otherwise False"""
 
         try:
@@ -310,7 +310,7 @@ class Experiment(pydantic.BaseModel):
         )
 
     @property
-    def observedProperties(self) -> typing.List[ObservedProperty]:
+    def observedProperties(self) -> list[ObservedProperty]:
         """Returns a list of ObservedProperty instances representing the properties measured by the receiver
 
         Note: New ObservedProperty objects are returned on each call"""
@@ -476,7 +476,7 @@ class Experiment(pydantic.BaseModel):
         return retval
 
     @property
-    def requiredConstitutiveProperties(self) -> typing.List[ConstitutiveProperty]:
+    def requiredConstitutiveProperties(self) -> list[ConstitutiveProperty]:
         """The constitutive properties an entity must have for the experiment to operate on it
 
         An empty list will be returned if the experiment did not define these.
@@ -488,7 +488,7 @@ class Experiment(pydantic.BaseModel):
         ]
 
     @property
-    def requiredObservedProperties(self) -> typing.List[ObservedProperty]:
+    def requiredObservedProperties(self) -> list[ObservedProperty]:
         """The observed properties an entity must have measured values for, for the experiment to operate on it
 
         An empty list will be returned if the experiment does not require any other measured property values.
@@ -499,7 +499,7 @@ class Experiment(pydantic.BaseModel):
     @property
     def references_of_required_input_experiments(
         self,
-    ) -> typing.Set[ExperimentReference]:
+    ) -> set[ExperimentReference]:
         """Returns references to the Experiments, this experiment requires to have been measured on an Entity before it can run"""
 
         return {op.experimentReference for op in self.requiredObservedProperties}
@@ -538,7 +538,7 @@ class Experiment(pydantic.BaseModel):
 
         return values[0]
 
-    def propertyValuesFromEntity(self, entity: "Entity", target=False) -> typing.Dict:
+    def propertyValuesFromEntity(self, entity: "Entity", target=False) -> dict:
         """Given an entity returns the values for the required and optional properties of the Experiment instance
 
         If a required property is an ObservedProperty it may have multiple values.
@@ -614,12 +614,12 @@ class ParameterizedExperiment(Experiment):
     Note: The parameterization cannot be empty or have any values which are the same as default values
     """
 
-    parameterization: typing.List[PropertyValue] = pydantic.Field(
+    parameterization: list[PropertyValue] = pydantic.Field(
         default=[],
         description="Values for optional properties",
     )
     model_config = ConfigDict(extra="forbid", frozen=True)
-    mapping: typing.Dict = pydantic.Field(
+    mapping: dict = pydantic.Field(
         description="Private attribute", default={}, exclude=True
     )
 
@@ -685,7 +685,7 @@ class ParameterizedExperiment(Experiment):
 
     @pydantic.field_validator("parameterization")
     def validate_not_empty_parameterization(
-        cls, parameterization: typing.List[PropertyValue], values
+        cls, parameterization: list[PropertyValue], values
     ):
 
         # Check it's not empty - it is raise error as should use ParameterizedExperiment

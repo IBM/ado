@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import orchestrator.core
 import orchestrator.modules.module
@@ -25,7 +24,7 @@ from orchestrator.modules.operators.orchestrate import (
 def ray_tune(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
-    **kwargs: typing.Dict,
+    **kwargs: dict,
 ) -> OperationOutput:
     """
     Performs a random_walk operation on a given discoverySpace

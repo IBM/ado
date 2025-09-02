@@ -14,7 +14,7 @@ moduleLog = logging.getLogger()
 
 
 def artificial_function(
-    entity: Entity, experiment: Experiment, parameters: typing.Optional[typing.Dict]
+    entity: Entity, experiment: Experiment, parameters: typing.Optional[dict]
 ):
 
     import numpy as np

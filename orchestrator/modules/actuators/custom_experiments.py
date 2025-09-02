@@ -74,7 +74,7 @@ class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments
     """
 
-    def __init__(self, queue, params: typing.Optional[typing.Dict] = None):
+    def __init__(self, queue, params: typing.Optional[dict] = None):
         """
 
         :param queue: The StateUpdates queue instance
@@ -144,7 +144,7 @@ class CustomExperiments(ActuatorBase):
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,

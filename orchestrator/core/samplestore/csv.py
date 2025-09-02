@@ -31,7 +31,7 @@ class CSVSampleStoreDescription(SampleStoreDescription):
         validate_default=True,
         description="The id of the entity generator",
     )
-    constitutivePropertyColumns: typing.List[str] = pydantic.Field(
+    constitutivePropertyColumns: list[str] = pydantic.Field(
         description="List of headers of columns containing constitutive properties",
     )
 
@@ -40,7 +40,7 @@ class CSVSampleStoreDescription(SampleStoreDescription):
         return value.lower()
 
     @property
-    def constitutiveProperties(self) -> typing.List[ConstitutiveProperty]:
+    def constitutiveProperties(self) -> list[ConstitutiveProperty]:
 
         # sourceDescription.constitutivePropertyColumns may be mixed-case - convert to  lowercase
         return [
@@ -110,8 +110,8 @@ class CSVSampleStore(PassiveSampleStore):
         idColumn: str,
         generatorIdentifier: str | None = None,
         experimentIdentifier: typing.Optional[str] = None,
-        observedPropertyColumns: typing.Optional[typing.List[str]] = None,
-        constitutivePropertyColumns: typing.Optional[typing.List[str]] = None,
+        observedPropertyColumns: typing.Optional[list[str]] = None,
+        constitutivePropertyColumns: typing.Optional[list[str]] = None,
     ):
 
         # Create a schema of the contents of the CSV file
@@ -178,7 +178,7 @@ class CSVSampleStore(PassiveSampleStore):
 
         # TODO: necessary to merge entities...
         self._entities = []
-        self._ent_by_id: typing.Dict[str, Entity] = {}
+        self._ent_by_id: dict[str, Entity] = {}
         for i, row in self._data.T.items():
             entity_id = row[self.sourceDescription.identifierColumn]
             try:
@@ -224,9 +224,7 @@ class CSVSampleStore(PassiveSampleStore):
 
         return self.storageLocation.model_copy()
 
-    def _observed_property_values_from_row(
-        self, row: pd.Series
-    ) -> typing.Tuple[typing.List, typing.List]:
+    def _observed_property_values_from_row(self, row: pd.Series) -> tuple[list, list]:
 
         observedCalcValue = []
         experimentDescriptionMap = self.sourceDescription.experimentDescriptionMap

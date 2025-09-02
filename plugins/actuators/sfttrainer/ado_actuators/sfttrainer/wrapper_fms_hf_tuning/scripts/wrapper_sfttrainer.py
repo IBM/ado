@@ -18,7 +18,7 @@ import sys
 import typing
 
 # Standard
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import aim
@@ -28,7 +28,7 @@ from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
 
 
-def get_cuda_uuid_to_index() -> typing.Dict[str, int]:
+def get_cuda_uuid_to_index() -> dict[str, int]:
     """Returns a dictionary mapping GPU device UUIDs to their index numbers"""
     try:
         import aim.ext.pynvml as nvml
@@ -53,7 +53,7 @@ def get_cuda_uuid_to_index() -> typing.Dict[str, int]:
     return ret
 
 
-def get_cuda_device_indices(cuda_visible_devices: str) -> typing.List[int]:
+def get_cuda_device_indices(cuda_visible_devices: str) -> list[int]:
     """Returns the indices of cuda devices
 
     Args:
@@ -79,9 +79,7 @@ def get_cuda_device_indices(cuda_visible_devices: str) -> typing.List[int]:
 
 
 def calculate_gpu_power_percent(
-    run_metrics: typing.List[
-        typing.Tuple[str, typing.Dict[str, int], typing.List[float]]
-    ],
+    run_metrics: list[tuple[str, dict[str, int], list[float]]],
 ):
     """Calculates __system__gpu_power_percent using __system__gpu_power_watts and inserts it into existing run metrics
 
@@ -143,10 +141,10 @@ class CustomAimCallback(AimCallback):
         system_tracking_interval: Optional[int] = 10,
         log_system_params: Optional[bool] = True,
         capture_terminal_logs: Optional[bool] = True,
-        additional_metrics: Optional[Dict[str, Any]] = None,
+        additional_metrics: Optional[dict[str, Any]] = None,
         aim_info_path: Optional[str] = None,
         aim_info_aggregate_metrics: bool = False,
-        aim_metadata: Optional[typing.Dict[str, Any]] = None,
+        aim_metadata: Optional[dict[str, Any]] = None,
         stop_after_seconds: float = -1.0,
     ):
 

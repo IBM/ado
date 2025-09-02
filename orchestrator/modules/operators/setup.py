@@ -55,7 +55,7 @@ def setup_actuators(
     actuator_configurations: list[ActuatorConfiguration],
     discovery_space: DiscoverySpace,
     queue: MeasurementQueue,
-) -> typing.Dict[str, "ActuatorActor"]:
+) -> dict[str, "ActuatorActor"]:
     """
     Params:
         namespace: The namespace to set up in
@@ -116,7 +116,7 @@ def setup_operator(
     discovery_space: DiscoverySpace,
     namespace: str,
     state,
-    actuators: typing.Dict,
+    actuators: dict,
 ) -> "OperatorActor":
     """
     Params:

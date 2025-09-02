@@ -5,7 +5,7 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional
 
 import pydantic
 import ray
@@ -73,7 +73,7 @@ def run_dependent_experiments(
     requestIndex: int,
     singleMeasurement: bool,
     log,
-) -> List[str]:
+) -> list[str]:
     """Checks what dependent experiments can run based on a completed MeasureRequest and executes them
 
     Parameters:
@@ -114,7 +114,7 @@ def run_dependent_experiments(
     return request_ids
 
 
-def retrieve_results(entity, experimentReference) -> Dict[str, Any]:
+def retrieve_results(entity, experimentReference) -> dict[str, Any]:
     property_values = entity.propertyValuesFromExperimentReference(
         experimentReference=experimentReference
     )  # type: List[PropertyValue]
@@ -141,7 +141,7 @@ class OrchTrainableParameters(pydantic.BaseModel):
     orchestrator_config: RayTuneOrchestratorConfiguration
 
 
-def tune_trainable(config: Dict, parameters: Dict) -> Dict[str, Any]:
+def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     """
     Applies the experiments in the measurement space to a single entity
 

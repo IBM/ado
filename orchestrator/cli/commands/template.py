@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
 
 import typer
 
@@ -66,7 +66,7 @@ def template_resource(
         ),
     ] = None,
     from_experiments: Annotated[
-        Optional[List[str]],
+        Optional[list[str]],
         typer.Option(
             "--from-experiment",
             "-e",

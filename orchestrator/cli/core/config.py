@@ -3,7 +3,7 @@
 
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import pydantic
 import typer
@@ -161,7 +161,7 @@ class AdoConfiguration(pydantic.BaseModel):
         return self._project_context
 
     @property
-    def available_contexts(self) -> List[str]:
+    def available_contexts(self) -> list[str]:
         """Get a list of available contexts.
 
         Returns:

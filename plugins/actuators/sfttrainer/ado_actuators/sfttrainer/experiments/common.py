@@ -128,7 +128,7 @@ def packages_requiring_nvidia_development_binaries():
     ]
 
 
-def parse_semver(what: str) -> typing.Optional[typing.List]:
+def parse_semver(what: str) -> typing.Optional[list]:
     import re
 
     p = re.compile(r"(\d+)\.(\d+)\.(\d+)")
@@ -162,13 +162,13 @@ class ExperimentPurpose(str, enum.Enum):
 
 
 @functools.cache
-def load_model_map() -> typing.Dict[str, typing.Dict[WeightsFormat, str]]:
+def load_model_map() -> dict[str, dict[WeightsFormat, str]]:
     from importlib.resources import read_text
 
     return yaml.safe_load(read_text("ado_actuators.sfttrainer.config", "models.yaml"))
 
 
-def get_default_measured_properties() -> typing.List[str]:
+def get_default_measured_properties() -> list[str]:
     return [
         "gpu_compute_utilization_min",
         "gpu_compute_utilization_avg",
@@ -241,8 +241,8 @@ def get_fms_hf_tuning_package(commit: str) -> str:
 
 
 def apply_exclude_package_rules(
-    exclude_packages: typing.List[str], packages: typing.List[str]
-) -> typing.List[str]:
+    exclude_packages: list[str], packages: list[str]
+) -> list[str]:
     """Filters out packages based on a list of exclusion rules.
 
     Args:
@@ -278,8 +278,8 @@ def get_pinned_packages(
     path_requirements: str,
     override_fms_hf_tuning: typing.Optional[str] = None,
     ensure_aim: bool = True,
-    exclude_packages: typing.Optional[typing.List[str]] = None,
-) -> typing.List[str]:
+    exclude_packages: typing.Optional[list[str]] = None,
+) -> list[str]:
     """Extracts the pinned packages from a path_requirements file
 
     Args:
@@ -298,9 +298,7 @@ def get_pinned_packages(
     with open(path_requirements, "r", encoding="utf-8") as f:
         packages = [x.strip() for x in f if x.strip() and not x.startswith("#")]
 
-    def find_matching_packages(
-        package_name: str, packages: typing.List[str]
-    ) -> typing.List[str]:
+    def find_matching_packages(package_name: str, packages: list[str]) -> list[str]:
         return [
             x
             for x in packages
@@ -326,9 +324,9 @@ def get_ray_environment(
     path_requirements: typing.Optional[str],
     override_fms_hf_tuning: typing.Optional[str],
     ensure_aim: bool = True,
-    exclude_packages: typing.Optional[typing.List[str]] = None,
+    exclude_packages: typing.Optional[list[str]] = None,
     backend: typing.Literal["uv", "pip"] = "pip",
-) -> typing.Dict[str, typing.Any]:
+) -> dict[str, typing.Any]:
     """Builds a ray-environment
 
     Args:
@@ -380,8 +378,8 @@ def get_fms_hf_tuning_src(fms_hf_tuning_version: str) -> str:
 
 
 def get_versioning_metadata(
-    fms_hf_tuning_version: typing.Union[str, typing.List[str]],
-) -> typing.Dict[str, str]:
+    fms_hf_tuning_version: typing.Union[str, list[str]],
+) -> dict[str, str]:
     ret = {
         "actuator": ACTUATOR_VERSION,
     }
@@ -420,11 +418,11 @@ def generate_parameterisable_finetune_experiment(
     version: str,
     actuator_identifier: str,
     override_propertydomains: dict[str, orchestrator.schema.domain],
-    required_property_names: typing.List[str],
-    default_params: typing.Dict[str, typing.Union[str, float, bool, int]],
-    hardcoded_parameters: typing.Dict[str, typing.Any],
-    fms_hf_tuning_versions: typing.Union[typing.List[str], str],
-    properties: typing.List[str] = ...,
+    required_property_names: list[str],
+    default_params: dict[str, typing.Union[str, float, bool, int]],
+    hardcoded_parameters: dict[str, typing.Any],
+    fms_hf_tuning_versions: typing.Union[list[str], str],
+    properties: list[str] = ...,
 ) -> "Experiment":
     """Generates a finetune experiment
 
@@ -723,14 +721,14 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
         16, examples=[16], description="LORA Alpha scales the learning weights"
     )
 
-    fast_moe: typing.Optional[typing.List[int]] = pydantic.Field(
+    fast_moe: typing.Optional[list[int]] = pydantic.Field(
         # VV: Here "0" is a stand in for "disabled" -> we translate this into a None via pydantic
         default=0,
         examples=[0, 1, 2, 4, 8],
         description="Configures the amount of expert parallel sharding. number_gpus must be divisible by it",
     )
 
-    fast_kernels: typing.Optional[typing.List[str]] = pydantic.Field(
+    fast_kernels: typing.Optional[list[str]] = pydantic.Field(
         default=None,
         description="Switches on fast kernels, the value is a list with strings of boolean values for "
         "[fast_loss, fast_rms_layernorm, fast_rope_embeddings]",
@@ -811,8 +809,8 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
 
     @pydantic.field_validator("fast_moe", mode="before")
     def upgrade_fast_moe(
-        cls, value: typing.Optional[typing.Union[int, typing.List[int]]]
-    ) -> typing.Optional[typing.List[int]]:
+        cls, value: typing.Optional[typing.Union[int, list[int]]]
+    ) -> typing.Optional[list[int]]:
         # VV: Currently, fast_moe has a single argument in it (ep_degree). It's easier to describe the property
         # domain of discrete values so we're going to assume that this is a single integer for now
         if isinstance(value, (int, float)):
@@ -1058,7 +1056,7 @@ class EntitySpace(SFTTrainerCLIArgs):
     @classmethod
     def orch_experiment_required_properties(
         cls,
-    ) -> "typing.List[ConstitutiveProperty]":
+    ) -> "list[ConstitutiveProperty]":
 
         return [
             ConstitutiveProperty(
@@ -1187,8 +1185,8 @@ class ExperimentParameters(pydantic.BaseModel):
     )
 
     def args_for_entity_space(
-        self, entity_space: EntitySpace, model_map: typing.Dict[WeightsFormat, str]
-    ) -> typing.Dict[str, typing.Any]:
+        self, entity_space: EntitySpace, model_map: dict[WeightsFormat, str]
+    ) -> dict[str, typing.Any]:
 
         args = self.model_dump()
         try:
@@ -1228,14 +1226,14 @@ class LoraExperimentParameters(ExperimentParameters):
     #
     # lora_alpha: int
 
-    target_modules_map: typing.Dict[str, typing.List[str]] = pydantic.Field(
+    target_modules_map: dict[str, list[str]] = pydantic.Field(
         description="A map of model_name to list of target_modules for LORA",
         exclude=True,
     )
 
     def args_for_entity_space(
-        self, entity_space: EntitySpace, model_map: typing.Dict[WeightsFormat, str]
-    ) -> typing.Dict[str, typing.Any]:
+        self, entity_space: EntitySpace, model_map: dict[WeightsFormat, str]
+    ) -> dict[str, typing.Any]:
         args = super().args_for_entity_space(
             entity_space=entity_space, model_map=model_map
         )
@@ -1255,9 +1253,9 @@ class GPTQLoraExperimentParameters(LoraExperimentParameters):
 
     fp16: str
 
-    fast_kernels: typing.List[str]
+    fast_kernels: list[str]
 
-    fused_lora: typing.List[str]
+    fused_lora: list[str]
 
     torch_dtype: typing.Literal["float16"]
 
@@ -1266,8 +1264,8 @@ class GPTQLoraExperimentParameters(LoraExperimentParameters):
     # padding_free: typing.List[str]
 
     def args_for_entity_space(
-        self, entity_space: EntitySpace, model_map: typing.Dict[WeightsFormat, str]
-    ) -> typing.Dict[str, typing.Any]:
+        self, entity_space: EntitySpace, model_map: dict[WeightsFormat, str]
+    ) -> dict[str, typing.Any]:
 
         if entity_space.torch_dtype != "float16" and self.auto_gptq == "triton_v2":
             raise InvalidEntityError("triton_v2 only supports torch_dtype=float16")
@@ -1279,7 +1277,7 @@ class GPTQLoraExperimentParameters(LoraExperimentParameters):
 
 def experiment_parameters_from_experiment(
     exp: "Experiment",
-    entity_values: typing.Dict[str, typing.Any],
+    entity_values: dict[str, typing.Any],
 ) -> ExperimentParameters:
     import json
 
@@ -1288,7 +1286,7 @@ def experiment_parameters_from_experiment(
     parameters = exp.metadata.get("parameters") or {}
 
     try:
-        model_class: typing.Type[pydantic.BaseModel] = {
+        model_class: type[pydantic.BaseModel] = {
             "pt": PromptTuningExperimentParameters,
             "lora": LoraExperimentParameters,
             "full": FullFinetuningExperimentsParameters,

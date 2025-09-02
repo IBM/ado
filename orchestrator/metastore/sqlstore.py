@@ -117,7 +117,7 @@ class SQLResourceStore(ResourceStore):
 
         return engine_for_sql_store(configuration=self.configuration)
 
-    def getResourceRaw(self, identifier) -> typing.Optional[typing.Dict]:
+    def getResourceRaw(self, identifier) -> typing.Optional[dict]:
 
         query = sqlalchemy.text(
             "SELECT * FROM resources WHERE identifier=:identifier"
@@ -175,8 +175,8 @@ class SQLResourceStore(ResourceStore):
         return resource
 
     def getResources(
-        self, identifiers: typing.List[str]
-    ) -> typing.Dict[str, orchestrator.core.resources.ADOResource]:
+        self, identifiers: list[str]
+    ) -> dict[str, orchestrator.core.resources.ADOResource]:
 
         retval = {}
         if len(identifiers) != 0:
@@ -349,7 +349,7 @@ class SQLResourceStore(ResourceStore):
         kind: str,
         version: str | None = None,
         field_selectors: typing.Optional[list[dict[str, str]]] = None,
-    ) -> typing.Dict[str, orchestrator.core.resources.ADOResource]:
+    ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Returns all resources of a given kind
 
         A kind is a version+type"""
@@ -442,7 +442,7 @@ class SQLResourceStore(ResourceStore):
 
     def getRelatedResources(
         self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> typing.Dict[str, orchestrator.core.resources.ADOResource]:
+    ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """
         Returns all resource object associated with identifier.
         Optionally returns only resources of the provided kind.
@@ -537,7 +537,7 @@ class SQLResourceStore(ResourceStore):
     def addResourceWithRelationships(
         self,
         resource: orchestrator.core.resources.ADOResource,
-        relatedIdentifiers: typing.List,
+        relatedIdentifiers: list,
     ):
         """For the relationship, the resource id is stored as object and the other ids as subjects
 

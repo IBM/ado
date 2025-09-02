@@ -387,7 +387,7 @@ class SQLSampleStore(ActiveSampleStore):
             exe = connectable.execute(query)
             row_count = exe.scalar()
 
-        return False if row_count == 0 else True
+        return row_count != 0
 
     @property
     def identifier(self):

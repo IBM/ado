@@ -69,6 +69,7 @@ select = [
     "SIM118",
     "SIM201",
     "SIM210",
+    "SIM211",
     "SIM910",
     "SLOT",
     "TID",

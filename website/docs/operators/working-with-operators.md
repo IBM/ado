@@ -48,11 +48,17 @@ Example output:
 
 ## Using operators
 
-Using an operators involves the following steps:
+Using an operator involves the following steps:
 
-1. Find the input parameters for an operator
-2. Write an operation YAML for applying the operator. This involves setting specific values for its input parameters.
-3. Create the operation
+1. Find the input parameters for the operator
+    * `ado template operation --operator-name $OPERATION_NAME`
+2. Write an operation YAML for applying the operator. 
+    * This involves setting specific values for its input parameters.
+3. Create the operation 
+    * `ado create operation -f $YAML`
+4. Obtaining the results of the operation 
+    * `ado show related $OPERATION_ID` 
+    * in addition `ado show entities $OPERATION_ID` for explore operations
 
 These steps are covered in detail in [operations](../resources/operation.md).
 

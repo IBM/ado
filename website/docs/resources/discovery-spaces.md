@@ -110,7 +110,7 @@ ado show entities space
 By default, this will output the entities as a table. 
 There are various option flags that control this behaviour e.g. output to a CSV file. 
 
-Following the [above section](#discovery-spaces-and-shared-sample-stores) there are two lists of entities this could show.
+Following the [above section](#discoveryspaces-and-shared-samplestores) there are two lists of entities this could show.
 The command above will use filter (1) - `entities` that were placed in the `samplestore` via an operation the `discoveryspace`.
 
 If you want to use filter (2) - `entities` in the `samplestore` that match the `discoveryspace` - use. 

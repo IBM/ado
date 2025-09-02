@@ -3,7 +3,7 @@ status: published #Status can be draft, reviewed or published.
 ---
 
 An **actuator** is a code module that provides experiment protocols that can measure properties of entities. 
-See [core-concepts:actuators](../core-concepts/actuators.md) for more details on what an actuator is and see [discoveryspaces](../resources/discovery-spaces.md)
+See [actuators](../core-concepts/actuators.md) for more details on what an actuator is and see [discoveryspaces](../resources/discovery-spaces.md)
 shows how they are used to create `discoveryspaces`.
 
 This section covers how you install and configure actuators, [create new actuators to extend `ado`](creating-actuator-classes.md) as well as specific documentation
@@ -30,16 +30,11 @@ to see the experiments each provides
 ado get actuators --details
 ```
 
-## Builtin Actuators
+## Special actuators: replay and custom_experiments
 
-`ado` comes with a set of builtin actuators related to materials discovery: `molecule-embeddings`, `mordred`, `st4sd` and `molformer-toxicity`. 
-These are available automatically,
+ `ado`'s has two special builtin actuators: `custom_experiments` and `replay`. 
 
-### Special actuators: replay and custom_experiments
-
-Two of `ado`'s builtin actuators are special: `custom_experiments` and `replay`. 
-
-`custom_experiments` creating experiments from python functions without having to write a full Actuator. 
+`custom_experiments` allows users to create experiments from python functions without having to write a full Actuator. 
 The [creating custom experiments](creating-custom-experiments.md) page describes this in detail.
 
 The `replay` actuator allows you to use property values from experiments that were performed outside of `ado` i.e. no Actuator exists to measure them. 
@@ -48,49 +43,24 @@ See the [replay actuator](replay.md) page to learn more about how to do this.
 
 ## Actuator Plugins
 
-In addition to the builtin actuators, anyone can extend `ado` with **actuator plugins**.
+Anyone can extend `ado` with **actuator plugins**.
 All actuator plugins are python packages (see [creating actuator classes](creating-actuator-classes.md)) and can be
 installed in the usual ways with `pip`.
 
 ### Actuator plugins distributed with `ado` 
 
-A number of actuators are included in the `ado` source repository. These include
+The following actuators are distributed with `ado`:
 
-- caikit-config-explorer: An actuator for foundation model inference tests
-- SFTTrainer: An actuator for foundation model fine-tuning tests
+- [SFTTrainer](sft-trainer.md): An actuator for testing foundation model fine-tuning performance
+- [vllm_performance](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance): An actuator for testing foundation model inference performance 
 
-### Installing an actuator plugin locally from source
+## Installing actuator plugins 
 
-A typical pattern to install from source is:
-```commandline
-git clone $ACTUATOR_REPO
-cd $ACTUATOR_REPO
-pip install .
-```
-
-However, always check the installation instructions from the plugin repository for deviations from this pattern. 
-
-!!! info end
-
-    A source code repository may include multiple actuator plugins. In this case installing will usually install all the actuator plugins.
-
-To install these see [installing plugins](../getting-started/install.md#installing-plugins) in our install documentation.
-
-### Installing an actuator plugin from a pypi instance or wheel
-
-An actuator plugin can be uploaded to a pypi package index. If it is called $ACTUATORMAME it can be installed with
-
-```commandline
-pip install $ACTUATORNAME --extra-index-url=$PRIVATE_PYPI_INDEX
-```
-here we show using `--extra-index-url` to install from a private pypi index. Omit this if the plugin is not hosted privately. 
-
-Note: multiple plugins can be bundled together in one pypi package.
+See our [installing plugins](../getting-started/install.md#installing-plugins) documentation. 
 
 ### Dynamic installation of actuators on a remote Ray cluster
 
 If you are running `ado` operations on a remote ray cluster, as ray job, you may want, or need, to dynamically install an actuator plugin or its latest version.
-The recommended way of doing this is to build a wheel and install it when submitting the ray job. 
 This is described in the [running ado on a remote ray cluster](../getting-started/remote_run.md#installing-ado-and-required-plugins-on-a-remote-ray-cluster-from-source).
 
 Some additional notes about this process when you are developing an actuator:

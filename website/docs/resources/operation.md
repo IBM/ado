@@ -73,41 +73,19 @@ actuatorConfigurationIdentifiers:
 
 ### Specifying the `operator`
 
-The `operation.module` field sets the `operator` to use. For example above it was
-
-```yaml
-operation: #The operators
-  module: # The operator will be RandomWalk
-    moduleClass: RandomWalk
-    moduleName: orchestrator.modules.operators.randomwalk
+The command `ado get operators` will list the names and types of the known operators e.g. 
+```commandline
+      OPERATOR     TYPE
+0  random_walk  explore
+1     ray_tune  explore
 ```
+You use this information to specify the operator to use in the  operation YAML, for example
 
-`operators` can be implemented in two ways - function or class - and how to specify them depends on which was used.
-The documentation for the given operator (see [operators](../operators/working-with-operators.md)) should describe what to use. 
-Here we just give a general overview.
-
-For function operators the module field will look like
 ```yaml
 module: 
-  operationName: detect_anomalous_series # The name of the operation/operator
+  operatorName: random_walk # The name of the operator
   operationType: characterize #The type of the operation/operator
 ```
-
-The function operators fields are identical to the fields output by `ado describe operators`. 
-`operationName` is given by the "OPERATOR" filed and "operationType" by the "Type" field. 
-So to use any of these operators just fill in these fields appropriately. 
-
-For class `operators` the module field will look like
-```yaml
-module:
-    moduleClass: RandomWalk # The name of the class providing the operation
-    moduleName: orchestrator.modules.operators.randomwalk # The module containing this class
-```
-
-!!! info  end
-
-    Note im most cases the class method of specifying operators can be replaced by the function method,
-    because most of the class operators have associated functions. 
 
 ### Passing actuator parameters
 

@@ -70,7 +70,7 @@ You can install these actuators as follows:
     The following plugin packages are available: `ado-sfttrainer`, `ado-vllm-performance` and `ado-ray-tune` 
 
     ```shell
-    pip install $PLUGIN_NAME"
+    pip install $PLUGIN_NAME
     ```
 
 === "From GitHub"
@@ -102,11 +102,6 @@ You can install these actuators as follows:
     pip install plugins/operators/$OPERATOR_NAME
     ```
 
-
-
-
-
-    
 
 ## What's next
 

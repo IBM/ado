@@ -64,6 +64,7 @@ select = [
     "RET",
 #    "SIM",
     "SIM108",
+    "SIM110",
     "SIM113",
     "SIM118",
     "SIM201",

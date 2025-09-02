@@ -201,6 +201,8 @@ class Metrics:
             "array of GPU indices that the host used"
         },
     )
+    post_warmup_index_for_stable_properties: int | None = None
+    warmup_seconds: float | None = None
 
     def to_scalar_observations(
         self,
@@ -260,9 +262,12 @@ class Metrics:
             }
         )
 
+        duration = self.training.train_runtime.avg
+        duration -= self.warmup_seconds or 0
+
         if self.training.dataset_tokens.avg is not None:
             scalar_observations["dataset_tokens_per_second"] = (
-                self.training.dataset_tokens.avg / self.training.train_runtime.avg
+                self.training.dataset_tokens.avg / duration
             )
             scalar_observations["dataset_tokens_per_second_per_gpu"] = (
                 scalar_observations["dataset_tokens_per_second"] / number_gpus
@@ -290,9 +295,18 @@ class Metrics:
             scalar_observations["train_time_stop"] = self.train_time_stop
 
         if self.train_time_start is not None:
+            # VV: This includes the warmup phase
             scalar_observations["train_time_start"] = self.train_time_start
 
         scalar_observations["training_steps"] = self.training_steps
+
+        # VV: Account for the steps we spent for the warmup phase
+        scalar_observations["training_steps"] -= (
+            self.post_warmup_index_for_stable_properties or 0
+        )
+
+        # VV: train_runtime includes the warmup phase so we're reporting the duration of the useful phase
+        scalar_observations["train_runtime"] = duration
 
         return scalar_observations
 
@@ -383,6 +397,10 @@ class Metrics:
             train_time_start=train_time_start,
             train_time_stop=train_time_stop,
             training_steps=aim_info["training_steps"],
+            post_warmup_index_for_stable_properties=aim_info.get(
+                "post_warmup_index_for_stable_properties"
+            ),
+            warmup_seconds=aim_info.get("warmup_seconds"),
         )
 
     def filter_unused_gpus(self):

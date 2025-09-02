@@ -28,6 +28,60 @@ from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
 
 
+def has_gathered_enough_samples(
+    duration_of_optimization_steps: list[float],
+    warmup_seconds: float,
+    meaningful_samples_seconds: float,
+    meaningful_samples_amount: int,
+) -> tuple[bool, int]:
+    """Determines if the current process should stop based on accumulated steps and time.
+
+    Args:
+        duration_of_optimization_steps:
+            A list of durations of each optimization step.
+        warmup_seconds:
+            The duration of the warmup period.
+        meaningful_samples_seconds:
+            The minimum duration required for meaningful samples.
+        meaningful_samples_amount:
+            The minimum number of meaningful samples required.
+
+    Returns:
+        A tuple containing a boolean indicating if the process should stop and the index of the first step after the warmup period.
+        - The boolean value is True if the process should stop, False otherwise.
+        - The index indicates the position of the first step after the warmup period in the original 'steps' list. -1 if the stopping criteria are not met.
+    """
+    if not duration_of_optimization_steps:
+        return False, -1
+
+    import numpy as np
+
+    cs = np.cumsum(duration_of_optimization_steps)
+    running_for = cs[-1]
+
+    if running_for <= warmup_seconds + meaningful_samples_seconds:
+        return False, -1
+
+    first_after_warmup = int(np.searchsorted(cs, warmup_seconds, side="right")) + 1
+
+    if first_after_warmup >= len(duration_of_optimization_steps):
+        # VV: we need at least 1 more step
+        return False, -1
+
+    steps_after_warmup = duration_of_optimization_steps[first_after_warmup:]
+    duration_of_meaningful_samples = cs[-1] - cs[first_after_warmup - 1]
+
+    # Stop when there are at least @meaningful_samples_amount samples post AND
+    # we've spent at least @meaningful_samples_seconds seconds drawing these meaningful samples
+    return (
+        (
+            (len(steps_after_warmup) >= meaningful_samples_amount)
+            and duration_of_meaningful_samples >= meaningful_samples_seconds
+        ),
+        first_after_warmup,
+    )
+
+
 def get_cuda_uuid_to_index() -> dict[str, int]:
     """Returns a dictionary mapping GPU device UUIDs to their index numbers"""
     try:
@@ -146,6 +200,7 @@ class CustomAimCallback(AimCallback):
         aim_info_aggregate_metrics: bool = False,
         aim_metadata: dict[str, Any] | None = None,
         stop_after_seconds: float = -1.0,
+        auto_stop_method: int | None = None,
     ):
 
         self._additional_metrics = additional_metrics or {}
@@ -157,6 +212,14 @@ class CustomAimCallback(AimCallback):
         self._time_started: datetime.datetime | None = None
 
         self._optimization_step_started: datetime.datetime | None = None
+
+        # VV: When auto_stop_method is not None, we will also maintain a list of the durations of each
+        # optimization step. At the end of each optimization step we'll invoke the auto stop method.
+        # If the auto stop method signals that training should stop we will also drop the system metrics we extracted
+        # during the warmup phase.
+        self._post_warmup_optimization_step_index: int | None = None
+        self._optimization_step_durations = []
+        self._auto_stop_method = auto_stop_method
 
         super().__init__(
             repo,
@@ -213,18 +276,48 @@ class CustomAimCallback(AimCallback):
 
             self.experiment.track(value=dt, name="optimization_step_duration")
 
-        if self._stop_after_seconds < 0.0:
-            return
+        if state.is_local_process_zero and self._auto_stop_method is not None:
+            # VV: In multi-node runs the local process zero dumps a JSON file with information we collected.
+            # When auto_stop_method is on, all local zero processes smust get rid of the system metrics of the warmup
+            # phase. This means that all local zero processes must keep track of the durations for optimization steps
+            # so that they can compute the duration of the warmup phase.
+            self._optimization_step_durations.append(dt)
 
         running_for = (datetime.datetime.now() - self._time_started).total_seconds()
 
-        if running_for >= self._stop_after_seconds:
-            print(
-                "Triggering experiment to stop after running for",
-                running_for,
-                f"seconds due to stop_after_seconds={self._stop_after_seconds}",
-            )
-            control.should_training_stop = True
+        if self._stop_after_seconds >= 0.0 and state.is_local_process_zero:
+            if running_for >= self._stop_after_seconds:
+                print(
+                    "Triggering experiment to stop after running for",
+                    running_for,
+                    f"seconds due to stop_after_seconds={self._stop_after_seconds}",
+                )
+                control.should_training_stop = True
+
+        if self._auto_stop_method is not None:
+            if self._auto_stop_method == 1:
+                gathered_enough, post_warmup_step_idx = has_gathered_enough_samples(
+                    duration_of_optimization_steps=self._optimization_step_durations,
+                    warmup_seconds=60,
+                    meaningful_samples_seconds=120,
+                    meaningful_samples_amount=10,
+                )
+            else:
+                raise NotImplementedError(
+                    "Unknown auto_stop_method", self._auto_stop_method
+                )
+
+            if gathered_enough:
+                self._post_warmup_optimization_step_index = post_warmup_step_idx
+                if state.is_local_process_zero:
+                    print(
+                        "Triggering experiment to stop after running for",
+                        running_for,
+                        f"seconds due to auto_stop_method={self._auto_stop_method}.",
+                        "Post warmup step index is",
+                        post_warmup_step_idx,
+                    )
+                    control.should_training_stop = True
 
     def on_train_end(self, args, state, control, **kwargs):
         try:
@@ -250,28 +343,40 @@ class CustomAimCallback(AimCallback):
 
                 run_metrics.extend(calculate_gpu_power_percent(run_metrics=run_metrics))
 
+                skip_first_system_metrics, warmup_seconds = None, None
+
+                if self._post_warmup_optimization_step_index:
+                    warmup_seconds = sum(
+                        self._optimization_step_durations[
+                            : self._post_warmup_optimization_step_index
+                        ]
+                    )
+
+                    skip_first_system_metrics = int(
+                        warmup_seconds / self._system_tracking_interval
+                    )
+
                 for name, context, values in run_metrics:
                     if self._aim_info_aggregate_metrics:
                         try:
-                            len_values = 0
-                            _sum = 0
-                            avg = None
-                            _min = None
-                            _max = None
+                            values = list(values)
 
-                            for x in values:
-                                if x is None:
-                                    continue
-                                len_values += 1
-                                _sum += x
+                            if (
+                                name.startswith("__system")
+                                and skip_first_system_metrics is not None
+                            ):
+                                values = values[skip_first_system_metrics:]
 
-                                if _min is None or _min > x:
-                                    _min = x
-                                if _max is None or _max < x:
-                                    _max = x
+                            values = [x for x in values if x is not None]
+                            len_values = len(values)
 
                             if len_values > 0:
+                                _sum = sum(values)
                                 avg = _sum / len_values
+                                _max = max(values)
+                                _min = min(values)
+                            else:
+                                avg, _max, _min = None, None, None
 
                             values = {
                                 "avg": avg,
@@ -310,6 +415,8 @@ class CustomAimCallback(AimCallback):
                             "world_rank": os.environ.get("RANK", "0"),
                             "world_size": os.environ.get("WORLD_SIZE", "1"),
                             "training_steps": CustomAimCallback.training_steps,
+                            "post_warmup_index_for_stable_properties": self._post_warmup_optimization_step_index,
+                            "warmup_seconds": warmup_seconds,
                         },
                         f,
                     )
@@ -365,6 +472,16 @@ class CustomArgs:
         metadata={
             "help": "If set, the optimizer will be asked to stop after the specified time elapses. "
             "The check is performed after the end of each training step."
+        },
+    )
+
+    auto_stop_method: int | None = dataclasses.field(
+        default=None,
+        metadata={
+            "help": "The method to use for automatically stopping the finetuning job. "
+            "1: Stops after the job has performed 60+max(120 seconds, duration of 10 optimization steps). "
+            "This method will ignore the first 60 seconds of the training for both the throughput and the "
+            "recorded system metrics."
         },
     )
 
@@ -478,6 +595,7 @@ def main():
                 aim_info_aggregate_metrics=custom_args.aim_info_aggregate_metrics,
                 aim_metadata=aim_metadata,
                 stop_after_seconds=custom_args.stop_after_seconds,
+                auto_stop_method=custom_args.auto_stop_method,
             )
         ]
         module = tuning_versions.import_tuning_version(

@@ -1226,10 +1226,12 @@ class SFTTrainer(ActuatorBase):
             await self._stateUpdateQueue.put_async(request, block=False)
             return request.requestid
 
-        if context is not None and context.args.stop_after_seconds > 0.0:
-            # VV: When we switch on stop_after_seconds we are effectively dynamically terminating the training job
-            # in turn this confuses transformers causing it to report the wrong number of train tokens
-            # as a result we should just omit train_tokens_per_second and train_tokens_per_second_per_gpu entirely
+        if context is not None and (
+            (context.args.stop_after_seconds > 0.0)
+            or (context.args.auto_stop_method is not None)
+        ):
+            # VV: Dynamically terminating the training job confuses transformers and causes it to report the wrong
+            # throughput. So here we're getting rid of these values.
             scalar_observations = {
                 k: v
                 for k, v in scalar_observations.items()
@@ -1237,6 +1239,8 @@ class SFTTrainer(ActuatorBase):
                 not in [
                     "train_tokens_per_second",
                     "train_tokens_per_gpu_per_second",
+                    "train_samples_per_second",
+                    "train_steps_per_second",
                 ]
             }
 

@@ -8,7 +8,7 @@ import typing
 import uuid
 from builtins import anext
 from queue import Empty, Queue
-from typing import AsyncGenerator, Literal, Optional
+from typing import AsyncGenerator, Literal
 
 import pydantic
 import ray
@@ -195,7 +195,7 @@ class RequestRetry(pydantic.BaseModel):
     retries: int = pydantic.Field(
         default=0, description="Number of times it has been retried"
     )
-    finalStatus: Optional[MeasurementRequestStateEnum] = pydantic.Field(
+    finalStatus: MeasurementRequestStateEnum | None = pydantic.Field(
         default=None, description="The final status"
     )
 
@@ -370,7 +370,7 @@ class RandomWalk(Characterize):
         ds = await self.state.discoverySpace.remote()  # type: DiscoverySpace
 
         measurement_space = ds.measurementSpace
-        entity_space: Optional[None, "EntitySpaceRepresentation"] = ds.entitySpace
+        entity_space: "EntitySpaceRepresentation | None" = ds.entitySpace
 
         #
         # Check and/or Determine numberOfEntities to sample

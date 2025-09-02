@@ -19,6 +19,7 @@ This is a living document that will be updated regularly as the project evolves.
 ### **Q3 2025**
 
 **Version 1.0.0 (Initial Release)**
+
    - Complete core feature set
    - Production actuator for fine-tuning performance measurement
    - Reference actuators for inference performance measurement and model evaluation

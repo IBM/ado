@@ -77,11 +77,11 @@ See [specifying actuator parameters](operation.md#passing-actuator-parameters) i
 ### Other ado commands that work with actuatorconfiguration
 
 - `ado get actuatorconfigurations`
-  - list stored `actuatorconfiguration`s or retrieve their representations
+    - list stored `actuatorconfiguration`s or retrieve their representations
 - `ado show related actuatorconfiguration ID`
-  - show operations using an `actuatorconfiguration`
+    - show operations using an `actuatorconfiguration`
 - `ado edit actuatorconfiguration ID`
-  - set the name, description, and labels for an `actuatorconfiguration`
+    - set the name, description, and labels for an `actuatorconfiguration`
 - `ado delete actuatorconfiguration ID` 
-  - delete an `actuatorconfiguration`
+    - delete an `actuatorconfiguration`
 

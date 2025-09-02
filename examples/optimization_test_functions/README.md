@@ -266,20 +266,77 @@ The target property to optimize against is set by the `metric` field, under the 
             optimizer: "CMA"
 ```
 
-## See the operation results
+## See the optimization results
 
-Run 
+### Best configuration found
+
+The `ray_tune` operation will create a `datacontainer` resource containing information on the best configuration found. 
+
+To get the id of the `datacontainer` related to the `operation` use:
+```commandline
+ado show related operation $OPERATION_ID
+```
+This will output something like:
+```commandline
+datacontainer
+  - datacontainer-d6a6501b
+discoveryspace
+  - space-047b6a-f60613
+```
+
+To see the best point found (and in general the contents of the datacontainer) use the `describe` CLI command:
+```commandline
+ado describe datacontainer $DATACONTAINER_ID
+```
+In this case the output will be something like:
+```commandline
+Identifier: datacontainer-d6a6501b
+Basic Data:
+  
+  Label: best_result
+  
+  {'config': {'x2': -1.1192905253425014,
+    'x1': 2.081208150586974,
+    'x0': 0.5621591414422049},
+   'metrics': {'function_value': 20.788056393697595,
+    'timestamp': 1756804287,
+    'checkpoint_dir_name': None,
+    'done': True,
+    'training_iteration': 1,
+    'trial_id': '7a7153ed',
+    'date': '2025-09-02_10-11-27',
+    'time_this_iter_s': 1.0576610565185547,
+    'time_total_s': 1.0576610565185547,
+    'pid': 52036,
+    'hostname': 'Michaels-MacBook-Pro-2.local',
+    'node_ip': '127.0.0.1',
+    'config': {'x2': -1.1192905253425014,
+     'x1': 2.081208150586974,
+     'x0': 0.5621591414422049},
+    'time_since_restore': 1.0576610565185547,
+    'iterations_since_restore': 1,
+    'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
+   'error': None}
+```
+We can see here that the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where `function_value` was ~20.8.
+
+
+### Configurations visited
+
+To see the configurations visited during the optimization, execute:
 ```
 ado show entities operation $OPERATION_IDENTIFIER
 ```
 where `$OPERATION_IDENTIFIER` is the identifier of the operation you just ran.
 This will output a dataframe containing the results of that operation.
 
-Also try
+### Operation resource YAML
+
+If at any point you want to see the details for an operation, for example the options used, execute:
 ```
 ado get operation $OPERATION_IDENTIFIER -o yaml
 ```
-will output the details of this operation in YAML format - this will be same YAML as shown in the previous section.
+This will output the details of this operation in YAML format - this will be the same YAML as shown in the previous section.
 
 ## Parameterizable experiments
 

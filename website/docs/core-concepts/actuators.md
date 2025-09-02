@@ -8,14 +8,14 @@ To find the values of certain properties of Entities we need to perform measurem
 We use the term "experiment" to describe a particular type of measurement. 
 This could also be called an "experiment protocol".
 
-An experiment will define the set of constitutive and observed properties it requires entities to have.
+An experiment will define its inputs - the set of constitutive and observed properties it requires entities to have.
 It will also define the properties it measures.
 
 ## Actuators
 
 Experiments are provided by Actuators.
 An Actuator usually provides sets of experiments that work on the same types of entities i.e. have the same or similar input requirements.
-As such Actuators usually are related to a particular domain e.g. computation chemistry, foundation model inference,
+As such Actuators usually are related to a particular domain e.g. computational chemistry, foundation model inference,
 robotic biology lab. 
 
 `ado get actuators --details` lists the available actuators and experiments. Here is a truncated example of the output:

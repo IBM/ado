@@ -4,6 +4,7 @@
 """Defines the interfaces to the operations that can be performed on DiscoverySpaces"""
 
 import abc
+import contextlib
 import logging
 import typing
 
@@ -398,14 +399,12 @@ def add_operation_and_output_to_metastore(
         status=[output.exitStatus],
     )
 
-    try:
+    # ValueError means the resource has already been added
+    with contextlib.suppress(ValueError):
         metastore.addResourceWithRelationships(
             resource=operation,
             relatedIdentifiers=[operation_resource_configuration.spaces[0]],
         )
-    except ValueError:
-        # Already added
-        pass
 
     add_operation_output_to_metastore(operation, output, metastore)
 
@@ -441,14 +440,13 @@ def add_operation_from_base_config_to_metastore(
         operation_resource_configuration.spaces[0],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
-    try:
+
+    # ValueError means the resource has already been added
+    with contextlib.suppress(ValueError):
         metastore.addResourceWithRelationships(
             resource=operation,
             relatedIdentifiers=related_identifiers,
         )
-    except ValueError:
-        # Already added
-        pass
 
     return operation
 

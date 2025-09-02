@@ -61,10 +61,7 @@ class ComponentsManager:
         except ApiException as e:
             logger.error(f"error getting pvc list {e}")
             return False
-        for pvc in pvcs.items:
-            if pvc.metadata.name == pvc_name:
-                return True
-        return False
+        return any(pvc.metadata.name == pvc_name for pvc in pvcs.items)
 
     def delete_pvc(self, pvc_name: str) -> None:
         """
@@ -127,10 +124,7 @@ class ComponentsManager:
         except ApiException as e:
             logger.error(f"error getting service list {e}")
             return False
-        for svc in svcs.items:
-            if svc.metadata.name == k8_name:
-                return True
-        return False
+        return any(svc.metadata.name == k8_name for svc in svcs.items)
 
     def delete_service(self, k8_name: str) -> None:
         """

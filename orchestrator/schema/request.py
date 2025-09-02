@@ -266,10 +266,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
         for idx, s in enumerate(result_series):
 
             # Update occurrences counter
-            if s["identifier"] in occurrences:
-                result_index = s["identifier"]
-            else:
-                result_index = 0
+            result_index = s["identifier"] if s["identifier"] in occurrences else 0
 
             occurrences[s["identifier"]] = result_index + 1
 

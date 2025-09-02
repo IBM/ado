@@ -134,12 +134,8 @@ class CustomExperiments(ActuatorBase):
     ):
 
         return (
-            True
-            if self._functionImplementations.get(
-                experimentReference.experimentIdentifier
-            )
+            self._functionImplementations.get(experimentReference.experimentIdentifier)
             is not None
-            else False
         )
 
     async def submit(

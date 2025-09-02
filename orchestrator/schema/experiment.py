@@ -141,7 +141,7 @@ class Experiment(pydantic.BaseModel):
     ):
 
         # Check all optional properties have unique identifiers
-        if not len({p.identifier for p in optionalProperties}) == len(
+        if len({p.identifier for p in optionalProperties}) != len(
             [p.identifier for p in optionalProperties]
         ):
             count = {}
@@ -336,7 +336,7 @@ class Experiment(pydantic.BaseModel):
 
         v = [p for p in self.targetProperties if p.identifier == identifier]
 
-        return False if len(v) == 0 else True
+        return len(v) != 0
 
     def hasTargetProperty(self, prop: Property):
         """Returns True if  prop is one of the receivers target properties"""
@@ -348,7 +348,7 @@ class Experiment(pydantic.BaseModel):
 
         v = [p for p in self.observedProperties if p.identifier == identifier]
 
-        return False if len(v) == 0 else True
+        return len(v) != 0
 
     def hasObservedProperty(self, prop: ObservedProperty):
         """Returns True if  prop is one of the receivers observed properties"""

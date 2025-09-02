@@ -111,12 +111,7 @@ class ExperimentCatalog(BaseCatalog):
             for e in experiments
             if e.reference.compareWithoutParameterization(reference)
         ]
-        if len(match) == 0:
-            retval = None
-        else:
-            retval = match[0]
-
-        return retval
+        return None if len(match) == 0 else match[0]
 
     def addExperiment(self, experiment: Experiment):
 

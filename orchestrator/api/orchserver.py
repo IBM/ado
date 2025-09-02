@@ -100,8 +100,8 @@ class ActuatorIngress:
                 # Thus extremely quick calculations may complete before the request id is returned to the
                 # submission co-routine
                 # Instead we have to periodically clean the submitted queue
-                for key in self._completedRequests.keys():
-                    if key in self._submittedRequests.keys():
+                for key in self._completedRequests:
+                    if key in self._submittedRequests:
                         self._submittedRequests.pop(key)
             except Exception as error:
                 self.log.warning(f"Unexpected exception in monitor loop: {error}")

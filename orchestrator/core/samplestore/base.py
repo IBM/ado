@@ -88,9 +88,8 @@ class SampleStore(abc.ABC):
                     for val in searchValues
                     if entity.valueForProperty(val.property).value != val.value
                 ]
-                if len(unmatchedValues) == 0:
-                    return True
-                return False
+
+                return len(unmatchedValues) == 0
             return False
 
         all_entities = self.entities

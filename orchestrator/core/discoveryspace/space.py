@@ -68,7 +68,7 @@ def _perform_preflight_checks_for_sample_store_methods(f):
                 "requires the use of an SQLSampleStore"
             )
 
-        operation_id = kwargs.get("operation_id", None) or args[0]
+        operation_id = kwargs.get("operation_id") or args[0]
         space_for_operation = self._metadataStore.getResource(
             identifier=operation_id,
             kind=CoreResourceKinds.OPERATION,

@@ -26,7 +26,7 @@ def describe_experiment(parameters: AdoDescribeCommandParameters):
 
     if (
         parameters.actuator_id
-        and parameters.actuator_id not in registry.actuatorIdentifierMap.keys()
+        and parameters.actuator_id not in registry.actuatorIdentifierMap
     ):
         console_print(
             f"{ERROR}Actuator {parameters.actuator_id} does not exist.\n"

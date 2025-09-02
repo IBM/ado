@@ -205,10 +205,8 @@ class MeasurementSpace:
                         "optional",
                         e.valueForOptionalProperty(p.identifier).value,
                         (
-                            True
-                            if e.valueForOptionalProperty(p.identifier)
+                            e.valueForOptionalProperty(p.identifier)
                             not in e.defaultParameterization
-                            else False
                         ),
                     ]
                     for p in e.optionalProperties
@@ -506,15 +504,16 @@ class MeasurementSpace:
                             )
 
                         # Check that this property does not also have a custom parameterization
-                        if isinstance(e, ParameterizedExperiment):
-                            if entitySpaceCP.identifier in [
-                                v.property.identifier for v in e.parameterization
-                            ]:
-                                raise ValueError(
-                                    f"Identified an entity space dimension, {entitySpaceCP}, that also has a custom parameterization in the measurement space. "
-                                    f"It is inconsistent for a property to have a custom parameterization in the measurement space and also be a dimension of the entityspace.\n"
-                                    f"The experiment with the custom parameterization is:\n{pretty(e)} "
-                                )
+                        if isinstance(
+                            e, ParameterizedExperiment
+                        ) and entitySpaceCP.identifier in [
+                            v.property.identifier for v in e.parameterization
+                        ]:
+                            raise ValueError(
+                                f"Identified an entity space dimension, {entitySpaceCP}, that also has a custom parameterization in the measurement space. "
+                                f"It is inconsistent for a property to have a custom parameterization in the measurement space and also be a dimension of the entityspace.\n"
+                                f"The experiment with the custom parameterization is:\n{pretty(e)} "
+                            )
 
         if strict:
             required_input_properties = [

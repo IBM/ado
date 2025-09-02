@@ -44,8 +44,8 @@ def test_property_values_from_entity_missing_required_constitutive():
 def experiment_equality_non_experiment(experiment):
     "Utility function for use in tests"
 
-    assert not experiment == "string"
-    assert not experiment == experiment.model_dump()
+    assert experiment != "string"
+    assert experiment != experiment.model_dump()
 
 
 def experiment_is_hashable(experiment):
@@ -562,7 +562,7 @@ def test_experiment_property_values_from_entity(
     )
 
     assert set(expectedValues.keys()) == set(params.keys())
-    for k in expectedValues.keys():
+    for k in expectedValues:
         assert (
             expectedValues[k] == params[k]
         ), f"Expected value for {k}: {expectedValues[k]} does not match returned value {params[k]}"

@@ -453,9 +453,6 @@ def test_operator_default_and_validate(optimizer_operator):
 
     assert optimizer_operator
     default = optimizer_operator.defaultOperationParameters()
-    if not isinstance(default, dict):
-        parameters = default.model_dump()
-    else:
-        parameters = default
+    parameters = default.model_dump() if not isinstance(default, dict) else default
 
     assert optimizer_operator.validateOperationParameters(parameters=parameters)

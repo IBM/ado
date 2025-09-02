@@ -44,15 +44,17 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
     @pydantic.model_validator(mode="after")
     def map_nevergrad_optimizer_name_to_type(self):
 
-        if self.name == "nevergrad":
-            # nevergrad wrapper requires passing the class of the optimizer in the "optimizer" param
-            # here we have to switch from string to class
-            # Note: The NevergradSearch interface types optimizer as optional but it's not
-            # We let Nevergrad handle this
-            if optimizer := self.params.get("optimizer"):
-                import nevergrad
+        if self.name != "nevergrad":
+            return self
 
-                self.params["optimizer"] = nevergrad.optimizers.registry[optimizer]
+        # nevergrad wrapper requires passing the class of the optimizer in the "optimizer" param
+        # here we have to switch from string to class
+        # Note: The NevergradSearch interface types optimizer as optional, but it's not
+        # We let Nevergrad handle this
+        if optimizer := self.params.get("optimizer"):
+            import nevergrad
+
+            self.params["optimizer"] = nevergrad.optimizers.registry[optimizer]
 
         return self
 

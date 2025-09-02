@@ -285,15 +285,10 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
     @classmethod
     def samplerCompatibleWithEntitySpace(cls, entitySpace: EntitySpaceRepresentation):
 
-        return (
-            True
-            if entitySpace is not None
-            and isinstance(
-                entitySpace,
-                EntitySpaceRepresentation,
-            )
+        return bool(
+            entitySpace is not None
+            and isinstance(entitySpace, EntitySpaceRepresentation)
             and entitySpace.isDiscreteSpace
-            else False
         )
 
     @classmethod

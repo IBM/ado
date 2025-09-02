@@ -473,16 +473,15 @@ class Entity(pydantic.BaseModel):
 
             """
 
-            retval = False
             if isinstance(value.property, ConstitutiveProperty):
-                retval = True
-            elif not restrictConstitutive:
-                if not references:
-                    retval = True
-                elif value.property.experimentReference in references:
-                    retval = True
+                return True
 
-            return retval
+            if restrictConstitutive:
+                return False
+
+            return bool(
+                not references or value.property.experimentReference in references
+            )
 
         d = {}
         observed_property_map = {op.identifier: op for op in self.observedProperties}
@@ -507,7 +506,7 @@ class Entity(pydantic.BaseModel):
         # This is so the dict can be modified in the loop
         props = list(d.keys())
         for o in props:
-            if observed_property_map.get(o, None):
+            if observed_property_map.get(o):
                 if aggregationMethod:
                     vop = VirtualObservedProperty(
                         baseObservedProperty=observed_property_map[o],

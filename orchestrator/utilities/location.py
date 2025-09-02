@@ -80,11 +80,7 @@ class ResourceLocation(pydantic.BaseModel):
 
         https://github.com/pydantic/pydantic/issues/7186"""
 
-        if self.scheme == "file":
-            urlClass = pydantic.FileUrl
-
-        else:
-            urlClass = pydantic.AnyUrl
+        urlClass = pydantic.FileUrl if self.scheme == "file" else pydantic.AnyUrl
 
         if hide_pw:
             return urlClass.build(
@@ -107,11 +103,7 @@ class ResourceLocation(pydantic.BaseModel):
     def baseUrl(self):
         """Returns URL without password or user components"""
 
-        if self.scheme == "file":
-            urlClass = pydantic.FileUrl
-
-        else:
-            urlClass = pydantic.AnyUrl
+        urlClass = pydantic.FileUrl if self.scheme == "file" else pydantic.AnyUrl
 
         return urlClass.build(
             scheme=self.scheme,
@@ -239,9 +231,8 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
         _AdoSupportedDsn = pydantic.RootModel[pydantic.MySQLDsn]
         m = _AdoSupportedDsn.model_validate(self.url(), strict=True).root
 
-        if isinstance(m, pydantic.MySQLDsn):
-            if not self.user:
-                raise ValueError("You must specify the user when using MySQL")
+        if isinstance(m, pydantic.MySQLDsn) and not self.user:
+            raise ValueError("You must specify the user when using MySQL")
             # if not self.password:
             #     raise ValueError("You must specify the password when using MySQL")
 

@@ -40,9 +40,8 @@ FMS_HF_TUNING_REPOSITORY = "https://github.com/foundation-model-stack/fms-hf-tun
 PACKAGES_DIR = f"{os.path.dirname(__file__)}/../packages"
 CONFIG_DIR = f"{os.path.dirname(__file__)}/../config"
 
-FMS_HF_TUNING_COMMIT = yaml.safe_load(
-    open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml"))
-)
+with open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml")) as f:
+    FMS_HF_TUNING_COMMIT = yaml.safe_load(f)
 
 FMS_HF_TUNING_VERSION = {
     version: f"{FMS_HF_TUNING_REPOSITORY}/tree/{commit}"
@@ -1088,11 +1087,12 @@ class EntitySpace(SFTTrainerCLIArgs):
                 f"batch_size is {self.batch_size} but number_gpus is {self.number_gpus}"
             )
 
-        if exp_params.multi_node is not None:
-            if self.number_nodes > 1 and not exp_params.multi_node:
-                raise InvalidEntityError(
-                    f"number_nodes is {self.number_nodes} but experiment is single node"
-                )
+        if exp_params.multi_node is not None and (
+            self.number_nodes > 1 and not exp_params.multi_node
+        ):
+            raise InvalidEntityError(
+                f"number_nodes is {self.number_nodes} but experiment is single node"
+            )
 
         if self.distributed_backend is not None and self.number_gpus < 2:
             logger.info(

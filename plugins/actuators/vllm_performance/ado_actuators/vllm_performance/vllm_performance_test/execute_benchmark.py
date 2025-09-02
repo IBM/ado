@@ -50,10 +50,7 @@ def execute_benchmark(
     code = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
     )
-    if hf_token is not None:
-        request = f"export HF_TOKEN={hf_token} && "
-    else:
-        request = ""
+    request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
     request += (
         f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "

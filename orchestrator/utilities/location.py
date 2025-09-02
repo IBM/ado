@@ -236,7 +236,9 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
         - user
 
         """
-        _AdoSupportedDsn = pydantic.RootModel[typing.Union[pydantic.MySQLDsn]]
+        # AP 02/09/2025:
+        # We use a RootModel in case down the line we want to support more DSNs
+        _AdoSupportedDsn = pydantic.RootModel[pydantic.MySQLDsn]
         m = _AdoSupportedDsn.model_validate(self.url(), strict=True).root
 
         if isinstance(m, pydantic.MySQLDsn):

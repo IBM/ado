@@ -3,8 +3,8 @@ status: published #Status can be draft, reviewed or published.
 ---
 
 An **actuator** is a code module that provides experiment protocols that can measure properties of entities. 
-See [actuators](../core-concepts/actuators.md) for more details on what an actuator is and see [discoveryspaces](../resources/discovery-spaces.md)
-shows how they are used to create `discoveryspaces`.
+See [actuators](../core-concepts/actuators.md) for more details on what an actuator is and read [discoveryspaces](../resources/discovery-spaces.md)
+to learn how they are used to create `discoveryspaces`.
 
 This section covers how you install and configure actuators, [create new actuators to extend `ado`](creating-actuator-classes.md) as well as specific documentation
 for various actuators available.

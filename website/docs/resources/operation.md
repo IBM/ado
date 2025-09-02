@@ -124,7 +124,7 @@ If they are not valid e.g. a required argument is missing, the `create` operatio
 
 ### `operation` resource specific fields
 
-`operation` resources has two additional top-level fields in addition to common ones described [resources](resources.md#common-features-of-resources)
+`operation` resources have two additional top-level fields in addition to common ones described in [resources](resources.md#common-features-of-resources)
 These are (with example values):
 
 ```yaml
@@ -139,7 +139,7 @@ To see the resources created by an operation with identifier $OPERATION_ID use:
 ```commandline
 ado show related operation $OPERATION_ID
 ```
-Output that is text, tables or locations will be contained in  a `datacontainer` resource. 
+Output that is text, tables or locations will be contained in a `datacontainer` resource. 
 It can be output with:
 ```commandline
 ado describe datacontainer $DATACONTAINER_IDENTIFIER

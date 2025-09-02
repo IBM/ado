@@ -50,7 +50,7 @@ Example output:
 
 Using an operator involves the following steps:
 
-1. Find the input parameters for the operator
+1. Find the input parameters for the operator:
     * `ado template operation --operator-name $OPERATION_NAME`
 2. Write an operation YAML for applying the operator. 
     * This involves setting specific values for its input parameters.

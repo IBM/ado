@@ -507,7 +507,7 @@ class Entity(pydantic.BaseModel):
         # This is so the dict can be modified in the loop
         props = list(d.keys())
         for o in props:
-            if observed_property_map.get(o, None):
+            if observed_property_map.get(o):
                 if aggregationMethod:
                     vop = VirtualObservedProperty(
                         baseObservedProperty=observed_property_map[o],

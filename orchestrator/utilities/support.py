@@ -37,7 +37,7 @@ def dict_to_measurements(
         # for every observed property
         target = op.targetProperty.identifier
         # get measured value
-        value = results.get(target, None)
+        value = results.get(target)
         if value is None:
             # default non-measured property
             value = -1

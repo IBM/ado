@@ -142,7 +142,7 @@ The `tuneConfig` section supports many of the [parameters of the `ray.tune.TuneC
 - `metric` (required)
     - The [target property identifier](../core-concepts/actuators.md#target-and-observed-properties) to optimize.
 - `mode` (required)
-  - `min` or `max`: Whether to search for min or max of the target property
+    - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
     - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in RayTune it would be an optimizer instance
 - `num_samples` (defaults to 1)
@@ -334,7 +334,7 @@ For example, in `ado`s current model the actuator can implement and/or expose ea
 
 ### Example operation YAML
 
-Here is an example  ray_tune `operation` YAML for finding the workload configuration with the fastest throughout for fine-tuning performance using the sfttrainer actuator:
+Here is an example ray_tune `operation` YAML for finding the workload configuration with the fastest throughput for fine-tuning performance using the sfttrainer actuator:
 
 - using the Ax optimizer with its `parameter_constraint` optimizer specific parameter
 - the  [GrowthStopper](#growthstopper) to stop if no improvement found after 10 steps, where improvement means a configuration that is faster by more than 20 tokens per second
@@ -379,7 +379,7 @@ tuneConfig:
 
 A successful `ray_tune` operation will create a `datacontainer` resource, containing information from RayTune on the best configuration found. 
 
-To get the id of the `datacontainer` related to an ray_tune `operation` resource with id $OPERATION_ID use
+To get the id of the `datacontainer` related to a ray_tune `operation` resource with id $OPERATION_ID use
 ```commandline
 ado show related operation $OPERATION_ID
 ```
@@ -395,7 +395,7 @@ To see the best point found (and in general the contents of the datacontainer) u
 ```commandline
 ado describe datacontainer $DATACONTAINER_ID
 ```
-For a `datacontainer` created by a `ray_tune` operation an example output is: 
+For a `datacontainer` created by a `ray_tune` operation, an example output is: 
 ```commandline
 Identifier: datacontainer-d6a6501b
 Basic Data:
@@ -425,7 +425,7 @@ Basic Data:
     'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
    'error': None}
 ```
-we can see the here the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where the metric `function_value` was 20.788056393697595.
+Here we can see the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where the metric `function_value` was 20.788056393697595.
 
 ### Optimization path
 
@@ -456,15 +456,15 @@ For the `lhu_sampler`, there is only one optional parameter, [points_to_evaluate
 ```yaml
 name: 'lhu_sampler'
 params:
-    points_to_evaluate:
-    - model_name: granite-3b
-      number_gpus: 4
-      tokens_per_sample: 2048
-      gpu_model: A100-SXM4-80GB
-    - model_name: granite-3b
-      number_gpus: 2
-      tokens_per_sample: 2048
-      gpu_model: A100-SXM4-80GB
+  points_to_evaluate:
+  - model_name: granite-3b
+    number_gpus: 4
+    tokens_per_sample: 2048
+    gpu_model: A100-SXM4-80GB
+  - model_name: granite-3b
+    number_gpus: 2
+    tokens_per_sample: 2048
+    gpu_model: A100-SXM4-80GB
 ```
 
 ### MaxSampleStopper

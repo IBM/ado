@@ -15,7 +15,7 @@ To see existing `samplestores` run
 ```commandline
 ado get samplestores
 ```
-Alternatively if there is no existing stire then when creating the space you can use the `---new-sample-store` flag.
+Alternatively, if there is no existing store, when creating the space you can use the `---new-sample-store` flag.
 See the [samplestores](sample-stores.md) documentation for more details.
 
 ### Discovery Space configuration YAML
@@ -73,7 +73,7 @@ More in-depth documentation about this feature can be found in the section about
 
 ### Differences between input configuration YAML and stored configuration YAML
 
-After creating a `discoveryspace` if you `ado get` its YAML you will notice there is different information output than you input.
+After creating a `discoveryspace`, if you `ado get` its YAML you will notice that the information output is different from the one you provided in input.
 This is because the list of experiment references set in the YAML is expanded into the full experiment definitions and stored
 with the `discoveryspace`.
 

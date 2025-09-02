@@ -4,8 +4,8 @@ status: published #Status can be draft, reviewed or published.
 
 ## Entities
 
-Entities represent objects you can measure. 
-Examples are molecules or points in a parameter space.
+Entities represent things that can be measured. 
+Examples are molecules or points in a an application configuration space.
 
 Entities all have a set of constitutive properties which define them. 
 A molecule's constitutive properties might be a SMILES or INCHI string. 
@@ -62,7 +62,8 @@ For more about the meaning of `observed properties` see [target & observed prope
 
 ## Entity Spaces
     
-An entity space describes a set of entities. The set could be discrete or continuous, bounded or unbounded. 
+An Entity Space describes a set of entities. 
+The set could be discrete or continuous, bounded or unbounded. 
 In `ado` you normally define Entity Spaces and then sample Entities from them. 
 
 ### Example: Molecules
@@ -107,7 +108,7 @@ The domain is the range of values the property can take and also the probability
 In the `Fine-tuning Deployment Configuration` example we can see the domains for each property.
 The categorical properties have a set of values and the discrete properties a range and also a set of values.
 
-In the 'Molecules' example we see there is no domain, which means any value of `smiles` is allowed.
+In the `Molecules` example we see there is no domain, which means any value of `smiles` is allowed.
 When there is no domain it also means the Entity Space alone does not contain sufficient information by itself on how to sample the entities.
 
 By default, the probability is uniform, every value is equally likely, but it could also be more complex. 

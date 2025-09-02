@@ -117,11 +117,7 @@ def resource_filter_by_arbitrary_selection(
     return (
         f"{statement_preamble} {simulate_json_contains_on_sqlite(path, candidate)}"
         if dialect == "sqlite"
-        else "{statement_preamble} JSON_CONTAINS(data, '{candidate}', '{path}')".format(
-            statement_preamble=statement_preamble,
-            candidate=candidate,
-            path=path,
-        )
+        else f"{statement_preamble} JSON_CONTAINS(data, '{candidate}', '{path}')"
     )
 
 

@@ -121,7 +121,7 @@ def load_module(conf: ModuleConf):
             # Load and add the module to active modules
             sys.modules[conf.moduleName] = module
             spec.loader.exec_module(module)
-            moduleLog.debug("Module loading: {} has been imported".format(module))
+            moduleLog.debug(f"Module loading: {module} has been imported")
 
             # Now we need to connect the parent package (module) to the actuator module
             # If we don't do this, doing "import $conf.moduleName" and then accessing $conf.moduleName will

@@ -76,9 +76,7 @@ def replay(
             )
 
             moduleLog.debug(
-                "Replaying measurement: id: {}, index: {}, expt: {} from requester {}".format(
-                    request.requestid, requestIndex, experiment_reference, requesterid
-                )
+                f"Replaying measurement: id: {request.requestid}, index: {requestIndex}, expt: {experiment_reference} from requester {requesterid}"
             )
 
             measurement_queue.put_nowait(request)

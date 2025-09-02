@@ -430,7 +430,7 @@ class ResourceTracker:
             return round10e5(max(items) - min(items))
         if mode == cls.AGG_NOTHING:
             return items
-        raise ValueError("unknown aggregation mode: '{}'".format(mode))
+        raise ValueError(f"unknown aggregation mode: '{mode}'")
 
     def __init__(self, period: float = 30.0):
         """Takes a snapshot of system metrics every @period seconds

@@ -24,7 +24,7 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 
 def try_instantiate_experiment(
     exp: "orchestrator.schema.entity.Experiment",
-    entity_values: typing.Dict[str, typing.Any],
+    entity_values: dict[str, typing.Any],
 ) -> "ado_actuators.sfttrainer.actuators.FinetuneContext":
 
     print("test", json.dumps(entity_values), "for", exp.identifier)

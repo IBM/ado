@@ -90,7 +90,7 @@ def test_string_representation(
 
     assert str(
         request
-    ) == "request-%s-experiment-%s-entities-%s-requester-%s-time-%s" % (
+    ) == "request-{}-experiment-{}-entities-{}-requester-{}-time-{}".format(  # noqa: UP032
         request.requestid,
         request.experimentReference.experimentIdentifier,
         entity,
@@ -121,7 +121,7 @@ def test_string_representation(
 
     assert str(
         request
-    ) == "request-%s-experiment-%s-entities-multi-%s-requester-%s-time-%s" % (
+    ) == "request-{}-experiment-{}-entities-multi-{}-requester-{}-time-{}".format(  # noqa: UP032
         request.requestid,
         request.experimentReference.experimentIdentifier,
         2,
@@ -146,7 +146,7 @@ def test_string_representation_replayed(
         measurements=(valid_measurement_result,),
     )
 
-    assert str(request) == "%s-experiment-%s-entities-%s-time-%s" % (
+    assert str(request) == "{}-experiment-{}-entities-{}-time-{}".format(  # noqa: UP032
         request.requestid,
         request.experimentReference.experimentIdentifier,
         entity,
@@ -174,7 +174,9 @@ def test_string_representation_replayed(
         measurement_result_for_other_entity,
     ]
 
-    assert str(request) == "%s-experiment-%s-entities-multi-%s-time-%s" % (
+    assert str(
+        request
+    ) == "{}-experiment-{}-entities-multi-{}-time-{}".format(  # noqa: UP032
         request.requestid,
         request.experimentReference.experimentIdentifier,
         2,

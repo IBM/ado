@@ -34,7 +34,7 @@ class SampleStoreSpecification(pydantic.BaseModel):
 
     # Note: type is Any as using ResourceLocation causes the serialisation
     # to use ResourceLocation for some reason (pydantic 2.8)
-    storageLocation: typing.Optional[typing.Any] = pydantic.Field(
+    storageLocation: typing.Any | None = pydantic.Field(
         default=None,
         description="Defines where the SampleStore is stored. Must be compatible with module and "
         "be and an instance of ResourceLocation or a subclass "
@@ -55,7 +55,7 @@ class SampleStoreSpecification(pydantic.BaseModel):
     @pydantic.field_validator("parameters", mode="after")
     @classmethod
     def check_parameters_valid_for_sample_store_module(
-        cls, parameters: typing.Dict, context: pydantic.ValidationInfo
+        cls, parameters: dict, context: pydantic.ValidationInfo
     ):
         module = load_module_class_or_function(context.data["module"])
         return module.validate_parameters(parameters=parameters)
@@ -63,7 +63,7 @@ class SampleStoreSpecification(pydantic.BaseModel):
     @pydantic.field_validator("storageLocation", mode="before")
     @classmethod
     def set_correct_resource_location_class_for_sample_store_module(
-        cls, storageLocation: typing.Dict, context: pydantic.ValidationInfo
+        cls, storageLocation: dict, context: pydantic.ValidationInfo
     ):
         # Only do this if storageLocation is not None
         # Note: The default is None, in which case if storageLocation is not explicitly give
@@ -86,7 +86,7 @@ class SampleStoreReference(SampleStoreSpecification):
 
     model_config = ConfigDict(extra="forbid")
 
-    identifier: typing.Optional[str] = pydantic.Field(
+    identifier: str | None = pydantic.Field(
         default=None,
         description="The identifier of the sample store. "
         "Required if this information is not specified in the storageLocation",
@@ -101,7 +101,7 @@ class SampleStoreConfiguration(pydantic.BaseModel):
     specification: SampleStoreSpecification = pydantic.Field(
         description="The specification of the sample store",
     )
-    copyFrom: typing.List[SampleStoreReference] = pydantic.Field(
+    copyFrom: list[SampleStoreReference] = pydantic.Field(
         default=[],
         description="List of additional sample stores whose data is used to initialise the main sample store",
     )

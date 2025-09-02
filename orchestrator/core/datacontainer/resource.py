@@ -16,9 +16,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 
 class TabularData(pydantic.BaseModel):
 
-    data: typing.Dict = pydantic.Field(
-        description="A valid string description of a table"
-    )
+    data: dict = pydantic.Field(description="A valid string description of a table")
 
     @classmethod
     def from_dataframe(cls, dataframe: "pd.DataFrame"):
@@ -52,27 +50,24 @@ class TabularData(pydantic.BaseModel):
 
 class DataContainer(pydantic.BaseModel):
 
-    tabularData: typing.Optional[typing.Dict[str, TabularData]] = pydantic.Field(
+    tabularData: dict[str, TabularData] | None = pydantic.Field(
         default=None,
         description="Contains a dictionary whose values are string representations of dataframes",
     )
-    locationData: typing.Optional[
-        typing.Dict[
+    locationData: (
+        dict[
             str,
-            typing.Union[
-                orchestrator.utilities.location.SQLStoreConfiguration,
-                orchestrator.utilities.location.StorageDatabaseConfiguration,
-                orchestrator.utilities.location.FilePathLocation,
-                orchestrator.utilities.location.ResourceLocation,
-            ],
+            orchestrator.utilities.location.SQLStoreConfiguration
+            | orchestrator.utilities.location.StorageDatabaseConfiguration
+            | orchestrator.utilities.location.FilePathLocation
+            | orchestrator.utilities.location.ResourceLocation,
         ]
-    ] = pydantic.Field(
+        | None
+    ) = pydantic.Field(
         default=None,
         description="A dictionary whose values are references to data i.e. data locations",
     )
-    data: typing.Optional[
-        typing.Dict[str, typing.Union[typing.Dict, typing.List, typing.AnyStr]]
-    ] = pydantic.Field(
+    data: dict[str, dict | list | typing.AnyStr] | None = pydantic.Field(
         default=None,
         description="A dictionary of other pydantic objects e.g. lists, dicts, strings,",
     )

@@ -5,7 +5,7 @@
 import itertools
 import logging
 import sys
-from typing import Any, Dict, NamedTuple
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -79,7 +79,7 @@ def get_clusters(
 
 class MutualInformationOutput(NamedTuple):
 
-    mutual_information: Dict[str, float]
+    mutual_information: dict[str, float]
     entropy: float
     cluster_labels: Any
 
@@ -454,15 +454,8 @@ def get_valid_value_ranges(
 
         if verbose:
             print(
-                "decision node {node} : (X[{sample}, {feature}] = {value}) "
-                "{inequality} {threshold})".format(
-                    node=node_id,
-                    sample=sample_id,
-                    feature=feature[node_id],
-                    value=X[sample_id, feature[node_id]],
-                    inequality=threshold_sign,
-                    threshold=threshold[node_id],
-                )
+                f"decision node {node_id} : (X[{sample_id}, {feature[node_id]}] = {X[sample_id, feature[node_id]]}) "
+                f"{threshold_sign} {threshold[node_id]})"
             )
 
     # TODO

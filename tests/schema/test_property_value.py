@@ -14,9 +14,7 @@ from orchestrator.schema.property_value import (
 
 
 @pytest.fixture
-def python_type_value_examples() -> (
-    typing.Dict[typing.Type, typing.Tuple[ValueTypeEnum, typing.Any]]
-):
+def python_type_value_examples() -> dict[type, tuple[ValueTypeEnum, typing.Any]]:
 
     return {
         float: (ValueTypeEnum.NUMERIC_VALUE_TYPE, 3.0),
@@ -31,7 +29,7 @@ def python_type_value_examples() -> (
 @pytest.fixture(params=[int, float, str, bytes, list, type(None)])
 def value_example(
     python_type_value_examples, request
-) -> typing.Tuple[ValueTypeEnum, typing.Any]:
+) -> tuple[ValueTypeEnum, typing.Any]:
 
     return python_type_value_examples[request.param]
 
@@ -39,13 +37,13 @@ def value_example(
 @pytest.fixture(params=[int, float, str, bytes, list, type(None)])
 def test_value_example(
     python_type_value_examples, request
-) -> typing.Tuple[ValueTypeEnum, typing.Any]:
+) -> tuple[ValueTypeEnum, typing.Any]:
 
     return python_type_value_examples[request.param]
 
 
 @pytest.fixture(params=[int, float, str, bytes, list, type(None)])
-def property_value(request) -> typing.Tuple[PropertyValue, typing.Type]:
+def property_value(request) -> tuple[PropertyValue, type]:
     """Returns PropertyValue instance of different types.
 
     Note: Does not set the valueType field explicitly in order to test that it is detected correctly
@@ -74,7 +72,7 @@ def property_value(request) -> typing.Tuple[PropertyValue, typing.Type]:
 
 
 def test_property_value_preserves_value_type(
-    property_value: typing.Tuple[PropertyValue, typing.Type],
+    property_value: tuple[PropertyValue, type],
 ):
     """Test that PropertyValue preserved the type of the value added to it
 
@@ -88,7 +86,7 @@ def test_property_value_preserves_value_type(
 
 
 def test_property_value_preserves_value_type_after_json_serialization(
-    property_value: typing.Tuple[PropertyValue, typing.Type],
+    property_value: tuple[PropertyValue, type],
 ):
     """Test that PropertyValue preserved the type of the value added to it after it is dumped as json and re-read
 
@@ -107,7 +105,7 @@ def test_property_value_preserves_value_type_after_json_serialization(
 
 
 def test_property_value_preserves_value_type_after_serialization(
-    property_value: typing.Tuple[PropertyValue, typing.Type],
+    property_value: tuple[PropertyValue, type],
 ):
     """Test that PropertyValue preserved the type of the value added to it after it is dumped and re-read
 
@@ -179,7 +177,7 @@ def test_string_with_bytes_type_converted_to_blob():
     ), "String value with type BLOB_VALUE_TYPE was not converted to bytes as expected"
 
 
-def test_type_detection(property_value: typing.Tuple[PropertyValue, typing.Type]):
+def test_type_detection(property_value: tuple[PropertyValue, type]):
     """Test the value has type correct seto"""
 
     val, value_type = property_value

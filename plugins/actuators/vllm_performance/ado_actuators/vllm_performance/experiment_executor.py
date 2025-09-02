@@ -7,7 +7,6 @@ import math
 import subprocess
 import sys
 import time
-from typing import Union
 
 import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
@@ -189,7 +188,7 @@ def _create_environment(
 @ray.remote
 def run_resource_and_workload_experiment(
     request: MeasurementRequest,
-    experiment: Union[Experiment, ParameterizedExperiment],
+    experiment: Experiment | ParameterizedExperiment,
     state_update_queue: MeasurementQueue,
     actuator: VLLMPerformanceTestParameters,
     node_selector: dict[str, str],
@@ -334,7 +333,7 @@ def run_resource_and_workload_experiment(
 @ray.remote
 def run_workload_experiment(
     request: MeasurementRequest,
-    experiment: Union[Experiment, ParameterizedExperiment],
+    experiment: Experiment | ParameterizedExperiment,
     state_update_queue: MeasurementQueue,
     actuator: VLLMPerformanceTestParameters,
 ):

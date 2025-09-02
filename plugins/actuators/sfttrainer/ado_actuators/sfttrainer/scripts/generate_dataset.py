@@ -46,16 +46,13 @@ import logging
 import os.path
 import pathlib
 import sys
-import typing
 
 import typer
 
 app = typer.Typer(rich_markup_mode="markdown")
 
 
-def generate_sequence(
-    words: typing.List[str], start: int, length: int
-) -> typing.Tuple[str, int]:
+def generate_sequence(words: list[str], start: int, length: int) -> tuple[str, int]:
     ret = []
     idx = 0
     while idx < length:
@@ -84,7 +81,7 @@ def generate_dataset(
     prompt: str = "### Input:\n",
     response_delimiter: str = "\n### Response:",
 ):
-    with open(seed_file, "r", encoding="utf-8") as f:
+    with open(seed_file, encoding="utf-8") as f:
         words = [x for x in f.read().split() if len(x) > 0]
 
     dataset = []

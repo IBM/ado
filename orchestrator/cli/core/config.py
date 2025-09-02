@@ -3,7 +3,6 @@
 
 import os
 from pathlib import Path
-from typing import List, Optional
 
 import pydantic
 import typer
@@ -30,15 +29,15 @@ ADO_CONFIG_FILE_NAME = "ado_cli_config.json"
 
 class AdoConfiguration(pydantic.BaseModel):
     _app_dir: Path = Path(typer.get_app_dir(ADO_APP_NAME))
-    _project_context: Optional[ProjectContext] = None
-    active_context: Optional[str] = None
+    _project_context: ProjectContext | None = None
+    active_context: str | None = None
 
     @classmethod
     def load(
         cls,
-        from_project_context: Optional[Path] = None,
+        from_project_context: Path | None = None,
         do_not_fail_on_available_contexts: bool = False,
-        _override_config_dir: Optional[Path] = None,
+        _override_config_dir: Path | None = None,
     ) -> "AdoConfiguration":
         """
         Loads the AdoConfiguration from the default file or returns
@@ -161,7 +160,7 @@ class AdoConfiguration(pydantic.BaseModel):
         return self._project_context
 
     @property
-    def available_contexts(self) -> List[str]:
+    def available_contexts(self) -> list[str]:
         """Get a list of available contexts.
 
         Returns:
@@ -251,7 +250,7 @@ class AdoConfiguration(pydantic.BaseModel):
             )
         )
 
-    def project_context_path_from_active_context(self) -> Optional[Path]:
+    def project_context_path_from_active_context(self) -> Path | None:
         """
         Get the path to the project context file for the active context.
 

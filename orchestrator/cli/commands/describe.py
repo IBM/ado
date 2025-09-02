@@ -3,7 +3,7 @@
 
 import pathlib
 import typing
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -48,7 +48,7 @@ def describe_resource(
         ),
     ],
     resource_id: Annotated[
-        Optional[str],
+        str | None,
         typer.Argument(
             ...,
             help="The id of the resource to describe.",
@@ -56,7 +56,7 @@ def describe_resource(
         ),
     ] = None,
     resource_configuration: Annotated[
-        Optional[pathlib.Path],
+        pathlib.Path | None,
         typer.Option(
             "--file",
             "-f",
@@ -69,7 +69,7 @@ def describe_resource(
         ),
     ] = None,
     actuator_id: Annotated[
-        typing.Optional[str],
+        str | None,
         typer.Option(
             help="""
             The id of the actuator that provides the experiment. Auto-determined if not provided.
@@ -109,7 +109,7 @@ def describe_resource(
 
     ado describe experiment <experiment-id> --actuator-id <actuator-id>
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     if not (resource_id or resource_configuration) or (
         resource_id and resource_configuration

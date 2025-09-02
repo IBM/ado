@@ -67,11 +67,11 @@ class ActuatorBase(abc.ABC):
     @abc.abstractmethod
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ) -> typing.List[str]:
+    ) -> list[str]:
         """Submits the entities for measurement by experiment via the receiver
 
         :param entities: A list of Entity representing the entities to be measured
@@ -92,7 +92,7 @@ class ActuatorBase(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         """Returns the Actuators ExperimentCatalog
 
@@ -165,4 +165,4 @@ class ActuatorModuleConf(ModuleConf):
 
 
 if typing.TYPE_CHECKING:
-    ActuatorActor = typing.Type[ActorHandle[ActuatorBase]]
+    ActuatorActor = type[ActorHandle[ActuatorBase]]

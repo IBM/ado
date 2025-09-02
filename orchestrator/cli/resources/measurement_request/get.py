@@ -68,7 +68,7 @@ def get_measurement_request(parameters: AdoGetCommandParameters):
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:
-        sample_store: "SQLSampleStore"
+        sample_store: SQLSampleStore
 
         if parameters.from_sample_store:
             from orchestrator.core.samplestore.utils import (

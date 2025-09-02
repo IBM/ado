@@ -1,15 +1,13 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import List, Optional
-
 
 def parse_key_value_pairs(
-    pairs: Optional[List[str]],
+    pairs: list[str] | None,
     separator: str = "=",
     allow_only_key: bool = False,
     invert_key_value: bool = False,
-) -> list[dict[str, Optional[str]]]:
+) -> list[dict[str, str | None]]:
     """
     Converts a list of key-value pairs into a list of dictionaries.
 

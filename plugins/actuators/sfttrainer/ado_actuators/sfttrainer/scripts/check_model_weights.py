@@ -59,7 +59,7 @@ def get_model_hash(path_model: str):
 def main():
     ray.init()
 
-    model_information: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
+    model_information: dict[str, dict[str, typing.Any]] = {}
 
     # VV: if you just added a model to `ModelMap` just copy/paste that entire dictionary here
     # ModelMap = { ..... }

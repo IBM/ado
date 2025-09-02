@@ -17,10 +17,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 def reference_string_from_fields(actuator_identifier, experiment_identifier):
     """This method defines the identifier string used by ExperimentReference and Experiment"""
 
-    return "%s.%s" % (
-        actuator_identifier,
-        experiment_identifier,
-    )
+    return f"{actuator_identifier}.{experiment_identifier}"
 
 
 class ExperimentReference(pydantic.BaseModel):
@@ -30,7 +27,7 @@ class ExperimentReference(pydantic.BaseModel):
     actuatorIdentifier: str = pydantic.Field(
         description="The identifier of the actuator that supplies the experiment"
     )
-    parameterization: typing.Optional[typing.List["PropertyValue"]] = pydantic.Field(
+    parameterization: list["PropertyValue"] | None = pydantic.Field(
         default=None,
         description="A list of values for optional properties of the experiment",
     )
@@ -163,9 +160,9 @@ def identifier_for_parameterized_experiment(identifier, parameterization):
 
 
 def check_parameterization_validity(
-    parameterizableProperties: typing.List[ConstitutiveProperty],
+    parameterizableProperties: list[ConstitutiveProperty],
     customParameterization: typing.Iterable["PropertyValue"],
-    defaultParameterization: typing.Optional[typing.List["PropertyValue"]] = None,
+    defaultParameterization: list["PropertyValue"] | None = None,
 ) -> None:
     """Checks if values are a valid parameterization of properties"""
 

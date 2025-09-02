@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pydantic
 from pydantic import ConfigDict
@@ -14,13 +13,13 @@ from orchestrator.schema.reference import ExperimentReference
 
 
 class ObservedProperty(pydantic.BaseModel):
-    targetProperty: typing.Union[AbstractProperty, ConcreteProperty] = pydantic.Field(
+    targetProperty: AbstractProperty | ConcreteProperty = pydantic.Field(
         description="The TargetProperty the receiver is an (attempted) observation of"
     )
     experimentReference: ExperimentReference = pydantic.Field(
         description=" A reference to the experiment that produces measurements of this observed property"
     )
-    metadata: typing.Optional[typing.Dict] = pydantic.Field(
+    metadata: dict | None = pydantic.Field(
         default={},
         description="Metadata on the instance of the measurement that observed this property",
     )
@@ -36,16 +35,13 @@ class ObservedProperty(pydantic.BaseModel):
 
     @property
     def identifier(self):
-        return "%s-%s" % (
-            self.experimentReference.parameterizedExperimentIdentifier,
-            self.targetProperty.identifier,
-        )
+        return f"{self.experimentReference.parameterizedExperimentIdentifier}-{self.targetProperty.identifier}"
 
     def __str__(self):
-        return "op-%s" % self.identifier
+        return f"op-{self.identifier}"
 
     def __repr__(self):
-        return "op-%s" % self.identifier
+        return f"op-{self.identifier}"
 
     @property
     def propertyType(self):

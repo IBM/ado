@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 
 from nevergrad.functions import ArtificialFunction
 
@@ -14,7 +13,7 @@ moduleLog = logging.getLogger()
 
 
 def artificial_function(
-    entity: Entity, experiment: Experiment, parameters: typing.Optional[typing.Dict]
+    entity: Entity, experiment: Experiment, parameters: dict | None
 ):
 
     import numpy as np

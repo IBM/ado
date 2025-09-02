@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import os
-import typing
 import uuid
 
 import pydantic
@@ -52,7 +51,7 @@ class RoboticLab(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> ExperimentCatalog:
         """Returns the Experiments your actuator provides"""
 
@@ -81,11 +80,11 @@ class RoboticLab(ActuatorBase):
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ) -> typing.List[str]:
+    ) -> list[str]:
         """Runs experimentReference on entities
 
         The result of running the experiment is expected to be returned asynchronously via the MeasurementQueue (self._stateUpdateQueue)

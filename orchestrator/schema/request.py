@@ -57,7 +57,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     experimentReference: ExperimentReference = pydantic.Field(
         description="An reference detailing the experiment to perform"
     )
-    entities: typing.List[Entity] = pydantic.Field(
+    entities: list[Entity] = pydantic.Field(
         description="An Entity instance representing the entity being measured"
     )
     requestid: str = pydantic.Field(
@@ -69,12 +69,12 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     )
     timestamp: datetime.datetime = pydantic.Field(default_factory=timestamp)
 
-    measurements: typing.Optional[tuple[MeasurementResult, ...]] = pydantic.Field(
+    measurements: tuple[MeasurementResult, ...] | None = pydantic.Field(
         default=None,
         description="The results of the measurement",
     )
 
-    metadata: typing.Dict = pydantic.Field(
+    metadata: dict = pydantic.Field(
         default={}, description="Metadata about the measurement request"
     )
 
@@ -145,9 +145,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     @classmethod
     def validate_measurements(
         cls,
-        value: typing.Optional[
-            list[typing.Union[ValidMeasurementResult, InvalidMeasurementResult]]
-        ],
+        value: list[ValidMeasurementResult | InvalidMeasurementResult] | None,
         values: pydantic.ValidationInfo,
     ):
 
@@ -195,14 +193,14 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     def __str__(self):
 
         if len(self.entities) == 1:
-            return "request-%s-experiment-%s-entities-%s-requester-%s-time-%s" % (
+            return "request-{}-experiment-{}-entities-{}-requester-{}-time-{}".format(  # noqa: UP032
                 self.requestid,
                 self.experimentReference.experimentIdentifier,
                 self.entities[0],
                 self.operation_id,
                 self.timestamp,
             )
-        return "request-%s-experiment-%s-entities-multi-%s-requester-%s-time-%s" % (
+        return "request-{}-experiment-{}-entities-multi-{}-requester-{}-time-{}".format(  # noqa: UP032
             self.requestid,
             self.experimentReference.experimentIdentifier,
             len(self.entities),
@@ -212,7 +210,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
 
     def measurement_for_entity(
         self, entity_identifier: str
-    ) -> typing.Optional[ValidMeasurementResult | InvalidMeasurementResult]:
+    ) -> ValidMeasurementResult | InvalidMeasurementResult | None:
         """Returns the measurement for the requested entity identifier.
 
         If no measurements have been set returns None
@@ -242,7 +240,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     def series_representation(
         self,
         output_format: typing.Literal["target", "observed"],
-        virtual_target_property_identifiers: typing.Optional[list[str]] = None,
+        virtual_target_property_identifiers: list[str] | None = None,
     ) -> list["pd.Series"]:
 
         import pandas as pd
@@ -299,7 +297,7 @@ class ReplayedMeasurement(MeasurementRequest):
     experimentReference: ExperimentReference = pydantic.Field(
         description="A reference detailing the experiment that was performed"
     )
-    entities: typing.List[Entity] = pydantic.Field(
+    entities: list[Entity] = pydantic.Field(
         description="The Entity instances which are being forwarded"
     )
     status: MeasurementRequestStateEnum = pydantic.Field(
@@ -312,13 +310,13 @@ class ReplayedMeasurement(MeasurementRequest):
     def __str__(self):
 
         if len(self.entities) == 1:
-            return "%s-experiment-%s-entities-%s-time-%s" % (
+            return "{}-experiment-{}-entities-{}-time-{}".format(  # noqa: UP032
                 self.requestid,
                 self.experimentReference.experimentIdentifier,
                 self.entities[0],
                 self.timestamp,
             )
-        return "%s-experiment-%s-entities-multi-%s-time-%s" % (
+        return "{}-experiment-{}-entities-multi-{}-time-{}".format(  # noqa: UP032
             self.requestid,
             self.experimentReference.experimentIdentifier,
             len(self.entities),

@@ -278,8 +278,8 @@ class SpaceSummary:
 
     @staticmethod
     def _get_dataframe_columns(
-        candidate_columns: typing.List[str],
-        columns_to_hide: typing.Optional[typing.List[str]] = None,
+        candidate_columns: list[str],
+        columns_to_hide: list[str] | None = None,
     ):
         common_column_mappings = {
             "id": "Space ID",
@@ -358,8 +358,8 @@ class SpaceSummary:
 
     def to_dataframe(
         self,
-        include_properties: typing.Optional[typing.List[str]] = None,
-        columns_to_hide: typing.Optional[typing.List[str]] = None,
+        include_properties: list[str] | None = None,
+        columns_to_hide: list[str] | None = None,
     ):
 
         import pandas as pd

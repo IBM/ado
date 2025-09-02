@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-import typing
 
 import numpy as np
 import pydantic
@@ -111,20 +110,14 @@ class VirtualObservedProperty(pydantic.BaseModel):
     @property
     def identifier(self):
 
-        return "%s-%s" % (
-            self.baseObservedProperty.identifier,
-            self.aggregationMethod.identifier.value,
-        )
+        return f"{self.baseObservedProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
     @property
     def virtualTargetPropertyIdentifier(self):
 
-        return "%s-%s" % (
-            self.baseObservedProperty.targetProperty.identifier,
-            self.aggregationMethod.identifier.value,
-        )
+        return f"{self.baseObservedProperty.targetProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
-    def aggregate(self, values: typing.List) -> PropertyValue:
+    def aggregate(self, values: list) -> PropertyValue:
         """
         Aggregate a list of values and return a PropertyValue object.
 
@@ -167,7 +160,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
     @classmethod
     def from_observed_properties_matching_identifier(
         cls, observed_properties: list[ObservedProperty], identifier: str
-    ) -> typing.Optional[list[Self]]:
+    ) -> list[Self] | None:
 
         if not VirtualObservedProperty.isVirtualPropertyIdentifier(identifier):
             raise ValueError(f"{identifier} is not a valid virtual property identifier")

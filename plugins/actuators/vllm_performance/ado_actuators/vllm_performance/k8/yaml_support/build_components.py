@@ -4,7 +4,6 @@
 import logging
 import os
 import sys
-import typing
 import uuid
 from enum import Enum
 from typing import Any
@@ -72,8 +71,8 @@ class ComponentsYaml:
         cpu_offload: int = 0,
         max_num_seq: int = 256,
         template: str = "deployment.yaml",
-        claim_name: typing.Optional[str] = None,
-        hf_token: typing.Optional[str] = None,
+        claim_name: str | None = None,
+        hf_token: str | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -99,7 +98,7 @@ class ComponentsYaml:
         # read template
         ComponentsYaml._adjust_file_name(template)
         try:
-            with open(ComponentsYaml._adjust_file_name(template), "r") as file:
+            with open(ComponentsYaml._adjust_file_name(template)) as file:
                 deployment_yaml = yaml.safe_load(file)
         except Exception as exception:
             logger.error(f"Exception reading deployment yaml template {exception}")
@@ -190,7 +189,7 @@ class ComponentsYaml:
         """
         # read template
         try:
-            with open(ComponentsYaml._adjust_file_name(template), "r") as file:
+            with open(ComponentsYaml._adjust_file_name(template)) as file:
                 service_yaml = yaml.safe_load(file)
         except Exception as exception:
             logger.error(f"Exception reading service yaml template {exception}")
@@ -217,7 +216,7 @@ class ComponentsYaml:
         """
         # read template
         try:
-            with open(ComponentsYaml._adjust_file_name(template), "r") as file:
+            with open(ComponentsYaml._adjust_file_name(template)) as file:
                 pvc_yaml = yaml.safe_load(file)
         except Exception as exception:
             logger.error(f"Exception reading pvc yaml template {exception}")

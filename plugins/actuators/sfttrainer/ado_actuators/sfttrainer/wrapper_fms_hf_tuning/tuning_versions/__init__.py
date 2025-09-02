@@ -6,10 +6,9 @@ import importlib.util
 import os
 import sys
 import types
-import typing
 
 
-def semver_cmp(v1: typing.Tuple[int, ...], v2: typing.Tuple[int, ...]) -> int:
+def semver_cmp(v1: tuple[int, ...], v2: tuple[int, ...]) -> int:
     """Compares 2 semver versions.
 
     They must consist of the same number of integers
@@ -39,7 +38,7 @@ def semver_cmp(v1: typing.Tuple[int, ...], v2: typing.Tuple[int, ...]) -> int:
     return 0
 
 
-def semver_parse(version: str) -> typing.Tuple[int, ...]:
+def semver_parse(version: str) -> tuple[int, ...]:
     return tuple(int(x) for x in version.split("."))
 
 
@@ -53,8 +52,8 @@ def import_from_path(module_name: str, file_path: str):
 
 
 def _select_compatible_version(
-    candidates: typing.List[typing.Tuple[int, ...]], version: typing.Tuple[int, ...]
-) -> typing.Tuple[int, ...]:
+    candidates: list[tuple[int, ...]], version: tuple[int, ...]
+) -> tuple[int, ...]:
     """Picks the thin wrapper which is compatible with the desired version
 
     The idea is to select the most recent @candidate which supports the desired version - works similar to
@@ -92,7 +91,7 @@ def _select_compatible_version(
 
 
 def import_tuning_version(
-    version: str, path_to_thin_wrappers_directory: typing.Optional[str] = None
+    version: str, path_to_thin_wrappers_directory: str | None = None
 ) -> types.ModuleType:
     """Loads the appropriate thin wrapper to fms-hf-tuning based on the desired version
 
@@ -112,7 +111,7 @@ def import_tuning_version(
     if path_to_thin_wrappers_directory is None:
         path_to_thin_wrappers_directory = os.path.dirname(__file__)
 
-    candidates: typing.List[typing.Tuple[int, ...]] = []
+    candidates: list[tuple[int, ...]] = []
 
     for name in os.listdir(path_to_thin_wrappers_directory):
         path = os.path.join(path_to_thin_wrappers_directory, name)

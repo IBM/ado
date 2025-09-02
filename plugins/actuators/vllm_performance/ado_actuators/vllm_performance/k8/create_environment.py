@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 
 from ado_actuators.vllm_performance.k8.manage_components import (
     ComponentsManager,
@@ -35,7 +34,7 @@ def create_test_environment(
     dtype: VLLMDtype = VLLMDtype.AUTO,
     cpu_offload: int = 0,
     max_num_seq: int = 256,
-    hf_token: typing.Optional[str] = None,
+    hf_token: str | None = None,
     reuse_service: bool = True,
     reuse_deployment: bool = True,
     reuse_pvc: bool = True,

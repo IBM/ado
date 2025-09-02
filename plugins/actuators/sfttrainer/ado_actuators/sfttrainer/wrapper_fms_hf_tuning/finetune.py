@@ -1033,20 +1033,16 @@ def tokenize_text(
     if full_epochs > 0:
         sum_tokens = (
             sum(
-                (
-                    min(entry, max_seq_length, tokenizer_model_max_length)
-                    for entry in num_tokens
-                )
+                min(entry, max_seq_length, tokenizer_model_max_length)
+                for entry in num_tokens
             )
             * full_epochs
         )
 
     if num_entries % len(num_tokens) != 0:
         sum_tokens += sum(
-            (
-                min(entry, max_seq_length, tokenizer_model_max_length)
-                for entry in num_tokens[: (num_entries % len(num_tokens))]
-            )
+            min(entry, max_seq_length, tokenizer_model_max_length)
+            for entry in num_tokens[: (num_entries % len(num_tokens))]
         )
 
     return sum_tokens

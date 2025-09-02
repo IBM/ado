@@ -397,7 +397,7 @@ class Metrics:
             cuda_devices = [int(x) for x in cuda_devices.split(",")]
             total_gpus = len(self.gpus)
 
-            if len(cuda_devices) and all((x < total_gpus for x in cuda_devices)):
+            if len(cuda_devices) and all(x < total_gpus for x in cuda_devices):
                 self.gpus = [self.gpus[idx] for idx in sorted(cuda_devices)]
         except (KeyError, ValueError):
             pass

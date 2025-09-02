@@ -52,7 +52,7 @@ def get_model_hash(path_model: str):
 
     hash_info = sorted(hash_info, key=lambda i: i[0])
     architectures = model.config.to_dict().get("architectures")
-    num_parameters = sum((m[1] for m in hash_info))
+    num_parameters = sum(m[1] for m in hash_info)
     hash_info.append(["architectures", architectures])
 
     the_hash = hashlib.md5(str(hash_info).encode("utf-8")).hexdigest()

@@ -276,7 +276,7 @@ def get_resource(
 
     ado get actuators --details
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE_PLURAL and (
         matching_point or matching_space or matching_space_id

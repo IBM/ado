@@ -109,7 +109,7 @@ def describe_resource(
 
     ado describe experiment <experiment-id> --actuator-id <actuator-id>
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     if not (resource_id or resource_configuration) or (
         resource_id and resource_configuration

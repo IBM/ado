@@ -150,7 +150,7 @@ def show_summary_for_resources(
 
     ado show summary space <space-id> -o md
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     try:
         query = prepare_query_filters_for_db(parse_key_value_pairs(query))

@@ -110,7 +110,7 @@ def delete_resource(
     ado delete context <context-name> --delete-local-db
     """
 
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     parameters = AdoDeleteCommandParameters(
         ado_configuration=ado_configuration,

@@ -74,7 +74,7 @@ def show_results_for_resources(
 
     ado show results operation <operation-id> --hide uid
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoShowResultsCommandParameters(
         ado_configuration=ado_configuration,
         hide_fields=hide_fields,

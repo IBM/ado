@@ -475,7 +475,7 @@ def _finetune_launch_kernel(
     multi_node: MultiNodeSettings,
     distributed_settings: DistributedSettings,
     working_directory: str,
-) -> "metrics_tracker.Metrics":
+) -> metrics_tracker.Metrics:
     log = logging.getLogger("launch")
 
     if args.fast_moe and isinstance(args.fast_moe[0], int) and args.fast_moe[0] > 0:
@@ -1057,7 +1057,7 @@ def launch_finetune(
     model_id: str | None = None,
     num_tokens_cache_dir: str | None = None,
     log_level: int | None = None,
-) -> "metrics_tracker.Metrics":
+) -> metrics_tracker.Metrics:
     from .callbacks import metrics_tracker
 
     if log_level is None:

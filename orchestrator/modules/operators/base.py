@@ -368,7 +368,7 @@ class Learn(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMe
 def add_operation_output_to_metastore(operation, output, metastore):
 
     if output:
-        resource: "ADOResource"
+        resource: ADOResource
         for resource in output.resources:
             try:
                 metastore.addResourceWithRelationships(

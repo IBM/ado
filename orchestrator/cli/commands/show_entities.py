@@ -135,7 +135,7 @@ def show_entities_for_resources(
 
     ado show entities operation <operation-id> --property-format target
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     if not (resource_id or resource_configuration) or (
         resource_id and resource_configuration

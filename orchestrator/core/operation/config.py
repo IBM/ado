@@ -43,14 +43,14 @@ class OperatorModuleConf(ModuleConf):
 
     @property
     def operationType(self):
-        c: type["orchestrator.modules.operators.base.DiscoveryOperationBase"] = (
+        c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
         return c.operationType()
 
     @property
     def operatorIdentifier(self) -> str:
-        c: type["orchestrator.modules.operators.base.DiscoveryOperationBase"] = (
+        c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
 

@@ -371,7 +371,7 @@ class RandomWalk(Characterize):
         ds = await self.state.discoverySpace.remote()  # type: DiscoverySpace
 
         measurement_space = ds.measurementSpace
-        entity_space: "EntitySpaceRepresentation | None" = ds.entitySpace
+        entity_space: EntitySpaceRepresentation | None = ds.entitySpace
 
         #
         # Check and/or Determine numberOfEntities to sample

@@ -1051,7 +1051,7 @@ class SFTTrainer(ActuatorBase):
                     multi_node=None,
                 )
             else:
-                metrics: "metrics_tracker.Metrics" = await self._multi_node_run(
+                metrics: metrics_tracker.Metrics = await self._multi_node_run(
                     context=context, entity=entity
                 )
         except InvalidEntityError:

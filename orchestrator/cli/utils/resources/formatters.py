@@ -53,7 +53,7 @@ from orchestrator.utilities.output import (
 
 def format_default_ado_get_single_resource(
     resource: ADOResource, show_details: bool
-) -> "pd.DataFrame":
+) -> pd.DataFrame:
     import json
 
     import pandas as pd
@@ -103,8 +103,8 @@ def format_default_ado_get_single_resource(
 
 
 def format_default_ado_get_multiple_resources(
-    resources: "pd.DataFrame", resource_kind: CoreResourceKinds
-) -> "pd.DataFrame":
+    resources: pd.DataFrame, resource_kind: CoreResourceKinds
+) -> pd.DataFrame:
     if resources.empty:
         return resources
 

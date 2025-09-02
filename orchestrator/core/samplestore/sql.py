@@ -723,7 +723,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         results: list[MeasurementResult],
         skip_relationship_to_request: bool,
-        request_db_id: uuid.uuid4 | None = None,
+        request_db_id: uuid.UUID | None = None,
     ):
         if len(results) == 0:
             return

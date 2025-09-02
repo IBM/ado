@@ -6,9 +6,9 @@ status: published #Status can be draft, reviewed or published.
 
 **ado** can be installed in one of three ways:
 
-1. By **cloning the GitHub repository** locally 
-2. Via **GitHub** .
-
+1. From **pypi**
+2. From **GitHub**
+3. By **cloning the GitHub repository** locally 
 
 ???+ warning
 
@@ -29,12 +29,21 @@ status: published #Status can be draft, reviewed or published.
     source ado-venv/bin/activate
     ```
 
-=== "Cloning the repo"
+=== "From pypi"
 
-    This, method **requires having set up an SSH key** for the repository to be cloned. In case
-    you haven't already, you can do so [here](https://github.com/settings/keys)
-    by following GitHub's
-    [documentation](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
+    This method installs the ado-core package from pypi
+
+    ```shell
+    pip install ado-core
+    ```
+
+=== "From GitHub"
+
+    ```shell
+    pip install git+https://github.com/IBM/ado.git
+    ```
+
+=== "Cloning the repo locally"
 
     ```shell
     git clone https://github.com/IBM/ado.git
@@ -42,27 +51,41 @@ status: published #Status can be draft, reviewed or published.
     pip install .
     ```
 
-=== "Via GitHub"
 
-    This, method **requires having set up an SSH key** for the repository to be cloned. In case
-    you haven't already, you can do so [here](https://github.com/settings/keys)
-    by following GitHub's
-    [documentation](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
-
-    ```shell
-    pip install git+https://github.com/IBM/ado"
-    ```
 
 ## Installing plugins
 
 ado uses a plugin system to provide **additional actuators** and **operators**. 
 We maintain a set of actuators and operators in the ado main repo which you can see [here](https://github.com/ibm/ado/tree/main/plugins/).
+Some plugins may also have packages on pypi.
 You can install these actuators as follows:
 
 !!! info 
 
     Some plugins may have dependencies that may require credentials to access. 
     Check the plugins's docs if you encounter issues installing a specific actuator. 
+
+=== "From pypi"
+
+    The following plugin packages are available: `ado-sfttrainer`, `ado-vllm-performance` and `ado-ray-tune` 
+
+    ```shell
+    pip install $PLUGIN_NAME"
+    ```
+
+=== "From GitHub"
+
+    For actuators
+
+    ```shell
+    pip install "git+https://github.com/IBM/ado.git#subdirectory=plugins/actuators/$ACTUATOR_NAME"
+    ```
+
+    For operators
+
+    ```shell
+    pip install "git+https://github.com/IBM/ado.git#subdirectory=plugins/operators/$OPERATOR_NAME"
+    ```
 
 === "Cloning the repo"
 
@@ -80,14 +103,7 @@ You can install these actuators as follows:
     ```
 
 
-=== "Via GitHub"
 
-    We assume you have an SSH key configured on your GitHub account.
-    If you don't, look at the previous section for additional pointers.
-
-    ```shell
-    pip install "git+https://github.com/IBM/ado.git#subdirectory=plugins/actuators/$ACTUATOR_NAME"
-    ```
 
 
     

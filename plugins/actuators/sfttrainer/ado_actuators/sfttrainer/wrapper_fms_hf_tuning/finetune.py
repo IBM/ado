@@ -552,13 +552,6 @@ def _finetune_launch_kernel(
             ) as s:
                 s.bind(("0.0.0.0", multi_node.port))
 
-        config_file = tempfile.NamedTemporaryFile(
-            mode="w",
-            suffix=".yaml",
-            prefix="accelerate_config_",
-            delete=False,
-            dir=working_directory,
-        )
         # VV: Accelerate refers to DDP with the name "MULTI_GPU"
         backend_name_map = {"FSDP": "FSDP", "DDP": "MULTI_GPU"}[
             distributed_settings.backend
@@ -613,10 +606,14 @@ def _finetune_launch_kernel(
 
         log.info(f"Using the accelerate config {json.dumps(accelerate_config)}")
 
-        with config_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".yaml",
+            prefix="accelerate_config_",
+            delete=False,
+            dir=working_directory,
+        ) as config_file:
             config_file.write(json.dumps(accelerate_config))
-
-        config_file.close()
 
         command = [
             "accelerate",

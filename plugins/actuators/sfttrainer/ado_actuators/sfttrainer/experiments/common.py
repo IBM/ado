@@ -40,9 +40,8 @@ FMS_HF_TUNING_REPOSITORY = "https://github.com/foundation-model-stack/fms-hf-tun
 PACKAGES_DIR = f"{os.path.dirname(__file__)}/../packages"
 CONFIG_DIR = f"{os.path.dirname(__file__)}/../config"
 
-FMS_HF_TUNING_COMMIT = yaml.safe_load(
-    open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml"))
-)
+with open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml")) as f:
+    FMS_HF_TUNING_COMMIT = yaml.safe_load(f)
 
 FMS_HF_TUNING_VERSION = {
     version: f"{FMS_HF_TUNING_REPOSITORY}/tree/{commit}"

@@ -141,7 +141,7 @@ class Experiment(pydantic.BaseModel):
     ):
 
         # Check all optional properties have unique identifiers
-        if not len({p.identifier for p in optionalProperties}) == len(
+        if len({p.identifier for p in optionalProperties}) != len(
             [p.identifier for p in optionalProperties]
         ):
             count = {}

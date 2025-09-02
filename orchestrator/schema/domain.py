@@ -392,7 +392,7 @@ class PropertyDomain(pydantic.BaseModel):
         if self is otherDomain:
             return True
 
-        if not self.variableType == otherDomain.variableType:
+        if self.variableType != otherDomain.variableType:
             # Unless
             # A_ this domain is discrete and the other is continuous OR
             # B_ the other domain is unknown variable type

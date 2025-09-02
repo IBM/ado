@@ -205,10 +205,8 @@ class MeasurementSpace:
                         "optional",
                         e.valueForOptionalProperty(p.identifier).value,
                         (
-                            True
-                            if e.valueForOptionalProperty(p.identifier)
+                            e.valueForOptionalProperty(p.identifier)
                             not in e.defaultParameterization
-                            else False
                         ),
                     ]
                     for p in e.optionalProperties

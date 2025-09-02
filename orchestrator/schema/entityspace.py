@@ -51,7 +51,7 @@ class EntitySpaceRepresentation:
             or (d.propertyDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
         ]
 
-        return True if len(non_discrete_dims) == 0 else False
+        return len(non_discrete_dims) == 0
 
     @property
     def size(self) -> int:

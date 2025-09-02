@@ -140,7 +140,7 @@ class PropertyValue(pydantic.BaseModel):
 
     def isUncertain(self):
 
-        return True if self.uncertainty is not None else False
+        return self.uncertainty is not None
 
 
 def constitutive_property_values_from_point(

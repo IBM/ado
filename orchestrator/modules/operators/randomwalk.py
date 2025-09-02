@@ -110,20 +110,12 @@ class EntityFilter(pydantic.BaseModel):
             measurement_count = measurementSpace.numberExperimentsApplied(entity)
             if self.filterMode == FilterModeEnum.measured:
                 # Check if all experiments in measurement space have values for entity
-                retval = (
-                    True
-                    if measurement_count == len(measurementSpace.experiments)
-                    else False
-                )
+                retval = measurement_count == len(measurementSpace.experiments)
             elif self.filterMode == FilterModeEnum.partial:
                 # Check if more than one but less than all measurements
-                retval = (
-                    True
-                    if (0 < measurement_count < len(measurementSpace.experiments))
-                    else False
-                )
+                retval = 0 < measurement_count < len(measurementSpace.experiments)
             elif self.filterMode == FilterModeEnum.unmeasured:
-                retval = True if measurement_count == 0 else False
+                retval = measurement_count == 0
 
         return retval
 
@@ -518,7 +510,7 @@ class RandomWalk(Characterize):
         # The number of requests that have finished - it may take more than one request
         # to complete an experiment depending on retries
         finished_requests = 0
-        waiting_on_requests = True if self._experimentsRequested > 0 else False
+        waiting_on_requests = self._experimentsRequested > 0
         continuous_batching_queue = Queue()
         while waiting_on_requests is True and not self.criticalError:
             print(

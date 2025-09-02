@@ -276,7 +276,7 @@ class PropertyDomain(pydantic.BaseModel):
                 case VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
                     # We can remove the variableType for continuous variables
                     # if the domain range is defined
-                    can_delete_variable_type = True if self.domainRange else False
+                    can_delete_variable_type = bool(self.domainRange)
                 case VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
                     # We can remove the variableType for discrete variables if:
                     # - values are defined
@@ -286,9 +286,7 @@ class PropertyDomain(pydantic.BaseModel):
                     if self.values:
                         can_delete_variable_type = True
                     elif self.domainRange:
-                        can_delete_variable_type = (
-                            True if self.interval is not None else False
-                        )
+                        can_delete_variable_type = self.interval is not None
                     elif self.interval is not None:
                         can_delete_variable_type = True
                 case VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
@@ -354,7 +352,7 @@ class PropertyDomain(pydantic.BaseModel):
                 import numbers
 
                 # The domain has no range which means we just accept the value if it is a number
-                retval = True if isinstance(value, numbers.Number) else False
+                retval = bool(isinstance(value, numbers.Number))
         elif self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             if self.values:
                 retval = value in self.values
@@ -373,7 +371,7 @@ class PropertyDomain(pydantic.BaseModel):
             # And then if we ask is smiles = (CO2) in the domain it should return True.
             retval = True
         elif self.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
-            retval = True if value in [True, False, 0, 1] else False
+            retval = value in [True, False, 0, 1]
         else:  # pragma: nocover
             raise ValueError(
                 f"Internal error: Unknown variable type {self.variableType}"
@@ -412,7 +410,7 @@ class PropertyDomain(pydantic.BaseModel):
 
             # The receiver is a subdomain if all its values are in otherDomain values
             # i.e. we can check this by computing the set different
-            retval = True if len(s.difference(o)) == 0 else False
+            retval = len(s.difference(o)) == 0
         elif self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             # If the other domain has no range then the receiver is a subdomain
             if not otherDomain.domainRange:
@@ -423,13 +421,9 @@ class PropertyDomain(pydantic.BaseModel):
                     for x in otherDomain.values
                 )
             else:
-                retval = (
-                    True
-                    if (
-                        min(self.domainRange) >= min(otherDomain.domainRange)
-                        and max(self.domainRange) <= max(otherDomain.domainRange)
-                    )
-                    else False
+                retval = bool(
+                    min(self.domainRange) >= min(otherDomain.domainRange)
+                    and max(self.domainRange) <= max(otherDomain.domainRange)
                 )
         elif (
             self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
@@ -450,7 +444,7 @@ class PropertyDomain(pydantic.BaseModel):
                             # Both have ranges - values must be subsets of each other
                             s = set(self.domain_values)
                             o = set(otherDomain.domain_values)
-                            retval = True if len(s.difference(o)) == 0 else False
+                            retval = len(s.difference(o)) == 0
                         elif self.domainRange and not otherDomain.domainRange:
                             # We have a range and the other doesn't
                             retval = True
@@ -467,19 +461,19 @@ class PropertyDomain(pydantic.BaseModel):
                     # convert their domain range to values
                     s = set(self.values)
                     o = set(otherDomain.domain_values)
-                    retval = True if len(s.difference(o)) == 0 else False
+                    retval = len(s.difference(o)) == 0
             else:
                 if self.values:
                     # we both have values
                     s = set(self.values)
                     o = set(otherDomain.values)
-                    retval = True if len(s.difference(o)) == 0 else False
+                    retval = len(s.difference(o)) == 0
                 else:
                     # we have a domain range and interval, and they have values
                     # convert the domain range to values
                     s = set(self.domain_values)
                     o = set(otherDomain.values)
-                    retval = True if len(s.difference(o)) == 0 else False
+                    retval = len(s.difference(o)) == 0
         elif (
             self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
             and otherDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
@@ -493,13 +487,9 @@ class PropertyDomain(pydantic.BaseModel):
                     for x in self.values
                 )
             else:
-                retval = (
-                    True
-                    if (
-                        min(self.domainRange) >= min(otherDomain.domainRange)
-                        and max(self.domainRange) <= max(otherDomain.domainRange)
-                    )
-                    else False
+                retval = bool(
+                    min(self.domainRange) >= min(otherDomain.domainRange)
+                    and max(self.domainRange) <= max(otherDomain.domainRange)
                 )
 
         return retval

@@ -334,14 +334,13 @@ For example, in `ado`s current model the actuator can implement and/or expose ea
 
 ### Example operation YAML
 
-Here is an example  ray_tune `operation` YAML for finding the workload configuration with the fastest throughout for fine-tuning performance using the sfttrainer actuator.
+Here is an example  ray_tune `operation` YAML for finding the workload configuration with the fastest throughout for fine-tuning performance using the sfttrainer actuator:
+
 - using the Ax optimizer with its `parameter_constraint` optimizer specific parameter
 - the  [GrowthStopper](#growthstopper) to stop if no improvement found after 10 steps, where improvement means a configuration that is faster by more than 20 tokens per second
 - the  [MaxSamplesStopper](#maxsamplestopper) to stop once 50 configurations have been searched
 - a time budget of 2 hours
 - specifying [initial point to sample](#common-parameters)
-
-Note: the discovery space 
 
 ```yaml
 orchestratorConfig:
@@ -368,7 +367,7 @@ tuneConfig:
       points_to_evaluate:
       - model_name: granite-3b
         number_gpus: 4
-        tokens_per_sample: 2048
+        model_max_length: 2048
         gpu_model: A100-SXM4-80GB
       parameter_constraints:
       - "batch_size >= number_gpus" # Don't sample points where batch_size < number_gpus as these are invalid
@@ -376,7 +375,67 @@ tuneConfig:
 
 ## `ray_tune` operation output
 
-TBA
+### Seeing the optimal configuration found
+
+A successful `ray_tune` operation will create a `datacontainer` resource, containing information from RayTune on the best configuration found. 
+
+To get the id of the `datacontainer` related to an ray_tune `operation` resource with id $OPERATION_ID use
+```commandline
+ado show related operation $OPERATION_ID
+```
+this will output something like,
+```commandline
+datacontainer
+  - datacontainer-d6a6501b
+discoveryspace
+  - space-047b6a-f60613
+```
+
+To see the best point found (and in general the contents of the datacontainer) use the `describe` CLI command:
+```commandline
+ado describe datacontainer $DATACONTAINER_ID
+```
+For a `datacontainer` created by a `ray_tune` operation an example output is: 
+```commandline
+Identifier: datacontainer-d6a6501b
+Basic Data:
+  
+  Label: best_result
+  
+  {'config': {'x2': -1.1192905253425014,
+    'x1': 2.081208150586974,
+    'x0': 0.5621591414422049},
+   'metrics': {'function_value': 20.788056393697595,
+    'timestamp': 1756804287,
+    'checkpoint_dir_name': None,
+    'done': True,
+    'training_iteration': 1,
+    'trial_id': '7a7153ed',
+    'date': '2025-09-02_10-11-27',
+    'time_this_iter_s': 1.0576610565185547,
+    'time_total_s': 1.0576610565185547,
+    'pid': 52036,
+    'hostname': 'Michaels-MacBook-Pro-2.local',
+    'node_ip': '127.0.0.1',
+    'config': {'x2': -1.1192905253425014,
+     'x1': 2.081208150586974,
+     'x0': 0.5621591414422049},
+    'time_since_restore': 1.0576610565185547,
+    'iterations_since_restore': 1,
+    'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
+   'error': None}
+```
+we can see the here the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where the metric `function_value` was 20.788056393697595.
+
+### Optimization path
+
+To see all the configurations (entities) visited during an optimization operation $OPERATION_ID run
+```commandline
+ado show entities operation $OPERATION_ID
+```
+
+> [!NOTE]
+> This command also works during an operation. It shows up to the most recent measured entity.
 
 ## ado additions to RayTune
 

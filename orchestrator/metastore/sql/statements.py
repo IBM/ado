@@ -109,10 +109,7 @@ def resource_filter_by_arbitrary_selection(
     dialect: Literal["mysql", "sqlite"] = "mysql",
 ) -> str:
 
-    if needs_where:
-        statement_preamble = " WHERE "
-    else:
-        statement_preamble = " AND "
+    statement_preamble = " WHERE " if needs_where else " AND "
 
     return (
         f"{statement_preamble} {simulate_json_contains_on_sqlite(path, candidate)}"
@@ -128,10 +125,7 @@ def resource_select_data_field(
 ) -> str:
 
     #
-    if needs_select:
-        statement_preamble = "SELECT"
-    else:
-        statement_preamble = ","
+    statement_preamble = "SELECT" if needs_select else ","
 
     #
     data_path = f"$.{field_name}"
@@ -155,10 +149,7 @@ def resource_select_metadata_field(
 ) -> str:
 
     #
-    if needs_select:
-        statement_preamble = "SELECT"
-    else:
-        statement_preamble = ","
+    statement_preamble = "SELECT" if needs_select else ","
 
     data_path = f"$.config.metadata.{field_name}"
     statement = (
@@ -179,10 +170,7 @@ def resource_select_created_field(
 ) -> str:
 
     #
-    if needs_select:
-        statement_preamble = "SELECT"
-    else:
-        statement_preamble = ","
+    statement_preamble = "SELECT" if needs_select else ","
 
     if dialect == "sqlite":
         if as_age:

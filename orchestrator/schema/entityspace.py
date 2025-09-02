@@ -299,10 +299,7 @@ class EntitySpaceRepresentation:
         retval = False
         for c in self.constitutiveProperties:
             v = point.get(c.identifier)
-            if v:
-                retval = c.propertyDomain.valueInDomain(v)
-            else:
-                retval = False
+            retval = c.propertyDomain.valueInDomain(v) if v else False
 
             # Once we find a property that the entity does not have or does not have a valid value for
             # we can stop

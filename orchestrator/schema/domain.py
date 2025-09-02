@@ -96,10 +96,7 @@ class ProbabilityFunction(pydantic.BaseModel):
                     ), f"The value of parameter {k} differs: {self.parameters[k], other.parameters[k]}"
                 retval = True
             else:
-                if other.parameters:
-                    retval = False
-                else:
-                    retval = True
+                retval = False if other.parameters else True
 
         except (AttributeError, AssertionError) as error:
             print(error)

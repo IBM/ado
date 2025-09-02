@@ -79,7 +79,7 @@ def edit_resource(
 
     ado edit space --editor vim
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoEditCommandParameters(
         ado_configuration=ado_configuration, editor=editor, resource_id=resource_id
     )

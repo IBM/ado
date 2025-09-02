@@ -3,7 +3,7 @@
 
 import pathlib
 import typing
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -55,7 +55,7 @@ def show_entities_for_resources(
         ),
     ],
     resource_id: Annotated[
-        Optional[str],
+        str | None,
         typer.Argument(
             ...,
             help="The id of the resource to show entities for.",
@@ -63,7 +63,7 @@ def show_entities_for_resources(
         ),
     ] = None,
     resource_configuration: Annotated[
-        Optional[pathlib.Path],
+        pathlib.Path | None,
         typer.Option(
             "--file",
             "-f",
@@ -76,7 +76,7 @@ def show_entities_for_resources(
         ),
     ] = None,
     entity_type: Annotated[
-        Optional[AdoShowEntitiesSupportedEntityTypes],
+        AdoShowEntitiesSupportedEntityTypes | None,
         typer.Option(
             "--include",
             help="The type of entities to include. Ignored for operations.",
@@ -94,7 +94,7 @@ def show_entities_for_resources(
         typer.Option(help="The format in which to output the entities."),
     ] = AdoShowEntitiesSupportedOutputFormats.CONSOLE.value,
     properties: Annotated[
-        Optional[typing.List[str]],
+        list[str] | None,
         typer.Option(
             "--property",
             show_default=False,
@@ -102,7 +102,7 @@ def show_entities_for_resources(
         ),
     ] = None,
     aggregation_method: Annotated[
-        Optional[PropertyAggregationMethodEnum],
+        PropertyAggregationMethodEnum | None,
         typer.Option(
             "--aggregate",
             help="Aggregate the results in case of multiple values. "
@@ -135,7 +135,7 @@ def show_entities_for_resources(
 
     ado show entities operation <operation-id> --property-format target
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     if not (resource_id or resource_configuration) or (
         resource_id and resource_configuration

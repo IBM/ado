@@ -4,7 +4,6 @@
 import json
 import logging
 import os
-import typing
 
 import pandas as pd
 import pydantic
@@ -117,7 +116,7 @@ class SQLResourceStore(ResourceStore):
 
         return engine_for_sql_store(configuration=self.configuration)
 
-    def getResourceRaw(self, identifier) -> typing.Optional[typing.Dict]:
+    def getResourceRaw(self, identifier) -> dict | None:
 
         query = sqlalchemy.text(
             "SELECT * FROM resources WHERE identifier=:identifier"
@@ -139,7 +138,7 @@ class SQLResourceStore(ResourceStore):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
-    ) -> typing.Optional[orchestrator.core.resources.ADOResource]:
+    ) -> orchestrator.core.resources.ADOResource | None:
 
         query = sqlalchemy.text(
             """
@@ -175,8 +174,8 @@ class SQLResourceStore(ResourceStore):
         return resource
 
     def getResources(
-        self, identifiers: typing.List[str]
-    ) -> typing.Dict[str, orchestrator.core.resources.ADOResource]:
+        self, identifiers: list[str]
+    ) -> dict[str, orchestrator.core.resources.ADOResource]:
 
         retval = {}
         if len(identifiers) != 0:
@@ -219,7 +218,7 @@ class SQLResourceStore(ResourceStore):
         self,
         kind: str,
         version: str | None = None,
-        field_selectors: typing.Optional[list[dict[str, str]]] = None,
+        field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
     ) -> pd.DataFrame:
 
@@ -348,8 +347,8 @@ class SQLResourceStore(ResourceStore):
         self,
         kind: str,
         version: str | None = None,
-        field_selectors: typing.Optional[list[dict[str, str]]] = None,
-    ) -> typing.Dict[str, orchestrator.core.resources.ADOResource]:
+        field_selectors: list[dict[str, str]] | None = None,
+    ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Returns all resources of a given kind
 
         A kind is a version+type"""
@@ -442,7 +441,7 @@ class SQLResourceStore(ResourceStore):
 
     def getRelatedResources(
         self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> typing.Dict[str, orchestrator.core.resources.ADOResource]:
+    ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """
         Returns all resource object associated with identifier.
         Optionally returns only resources of the provided kind.
@@ -537,7 +536,7 @@ class SQLResourceStore(ResourceStore):
     def addResourceWithRelationships(
         self,
         resource: orchestrator.core.resources.ADOResource,
-        relatedIdentifiers: typing.List,
+        relatedIdentifiers: list,
     ):
         """For the relationship, the resource id is stored as object and the other ids as subjects
 
@@ -1002,5 +1001,5 @@ class SQLResourceStore(ResourceStore):
         self.log.warning(
             "SQLResourceStore does not support recording time-series metrics yet. Will write to file."
         )
-        name = "%s-ts.csv" % observedPropertyName
+        name = f"{observedPropertyName}-ts.csv"
         df.to_csv(name, mode="a", header=not os.path.exists(name))

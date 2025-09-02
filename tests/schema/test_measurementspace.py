@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import re
-import typing
 
 import pytest
 
@@ -30,14 +29,14 @@ from orchestrator.schema.virtual_property import (
 
 def test_measurement_space_config(
     measurement_space: MeasurementSpace,
-    measurement_space_configuration: typing.List[ExperimentReference],
+    measurement_space_configuration: list[ExperimentReference],
 ):
     assert measurement_space.experimentReferences == measurement_space_configuration
 
 
 def test_measurement_space_from_parameterized_selectors(
-    parameterizable_experiments: typing.List[Experiment],
-    parameterized_selectors: typing.List[ExperimentReference],
+    parameterizable_experiments: list[Experiment],
+    parameterized_selectors: list[ExperimentReference],
     global_registry,
 ):
 
@@ -101,7 +100,7 @@ def test_measurement_space_from_parameterized_selectors(
 
 
 def test_measurement_space_with_parameterized_experiments_ser_dser(
-    parameterized_selectors: typing.List[ExperimentReference],
+    parameterized_selectors: list[ExperimentReference],
     global_registry,
 ):
 
@@ -133,8 +132,8 @@ def test_measurement_space_with_parameterized_experiments_ser_dser(
 
 
 def test_measurement_space_from_parameterized_references(
-    parameterizable_experiments: typing.List[Experiment],
-    parameterized_references: typing.List[ExperimentReference],
+    parameterizable_experiments: list[Experiment],
+    parameterized_references: list[ExperimentReference],
     global_registry,
 ):
     # Test does not allow duplicate parameterized experiments
@@ -459,7 +458,7 @@ def test_check_entity_space_compatibility_single(
 
 def test_check_entity_space_compatibility_optional_in_entity_space(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-    optionalProperties: typing.List[ConstitutiveProperty],
+    optionalProperties: list[ConstitutiveProperty],
 ):
     """Test checkEntitySpaceCompatible works when some optional parameters have been moved to entityspace"""
 

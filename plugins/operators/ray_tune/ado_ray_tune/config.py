@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import Optional
 
 import pydantic
 import ray
@@ -140,7 +139,7 @@ class OrchRunConfig(pydantic.BaseModel):
     """
 
     # Here are the special fields that are used to create the inputs for RayConfig
-    stop: Optional[list[OrchStopperAlgorithm]] = pydantic.Field(
+    stop: list[OrchStopperAlgorithm] | None = pydantic.Field(
         default=None,
         description="A list of stopper(s) to use. If more than one will be combined with CombinedStopper",
     )
@@ -215,7 +214,7 @@ class RayTuneConfiguration(pydantic.BaseModel):
     # not yet prepared so type is still a ForwardRef, you might need to call RunConfig.update_forward_refs()." error
     # When it is explicitly typed.
     # To get around this were are using Any and then converting any dicts to RunConfig in a validator
-    runtimeConfig: Optional[OrchRunConfig] = pydantic.Field(
+    runtimeConfig: OrchRunConfig | None = pydantic.Field(
         default=OrchRunConfig(), description="ray tune runtime options"
     )
     orchestratorConfig: RayTuneOrchestratorConfiguration = pydantic.Field(

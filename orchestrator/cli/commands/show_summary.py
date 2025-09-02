@@ -43,7 +43,7 @@ def show_summary_for_resources(
         ),
     ],
     ids: Annotated[
-        typing.Optional[typing.List[str]],
+        list[str] | None,
         typer.Argument(
             ...,
             help="The ids of the resources to show a summary for.",
@@ -51,7 +51,7 @@ def show_summary_for_resources(
         ),
     ] = None,
     query: Annotated[
-        typing.Optional[typing.List[str]],
+        list[str] | None,
         typer.Option(
             "--query",
             "-q",
@@ -69,7 +69,7 @@ def show_summary_for_resources(
         ),
     ] = None,
     labels: Annotated[
-        typing.Optional[typing.List[str]],
+        list[str] | None,
         typer.Option(
             "--label",
             "-l",
@@ -83,7 +83,7 @@ def show_summary_for_resources(
         ),
     ] = None,
     include_properties: Annotated[
-        typing.Optional[typing.List[str]],
+        list[str] | None,
         typer.Option(
             "--with-property",
             "-p",
@@ -92,7 +92,7 @@ def show_summary_for_resources(
         ),
     ] = None,
     columns_to_hide: Annotated[
-        typing.Optional[typing.List[str]],
+        list[str] | None,
         typer.Option(
             "--hide",
             help="Hide certain columns from the output. The following values can be used to hide default columns:"
@@ -150,7 +150,7 @@ def show_summary_for_resources(
 
     ado show summary space <space-id> -o md
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     try:
         query = prepare_query_filters_for_db(parse_key_value_pairs(query))

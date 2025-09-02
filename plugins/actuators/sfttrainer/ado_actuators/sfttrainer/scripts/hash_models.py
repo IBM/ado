@@ -52,7 +52,7 @@ def get_model_hash(path_model: str):
 
     hash_info = sorted(hash_info, key=lambda i: i[0])
     architectures = model.config.to_dict().get("architectures")
-    num_parameters = sum((m[1] for m in hash_info))
+    num_parameters = sum(m[1] for m in hash_info)
     hash_info.append(["architectures", architectures])
 
     the_hash = hashlib.md5(str(hash_info).encode("utf-8")).hexdigest()
@@ -78,7 +78,7 @@ def get_model_hash(path_model: str):
 def main():
     ray.init()
 
-    model_information: typing.Dict[str, typing.Dict[str, typing.Any]] = {}
+    model_information: dict[str, dict[str, typing.Any]] = {}
 
     all_models = {
         "llama-7b": "/hf-models-pvc/LLaMa/models/hf/7B",
@@ -111,7 +111,7 @@ def main():
         print("All so far")
         print(json.dumps(model_information, indent=2))
 
-    unique_hashes: typing.Dict[str, typing.List[str]] = {}
+    unique_hashes: dict[str, list[str]] = {}
 
     for model_name, info in model_information.items():
         if info["hash"] not in unique_hashes:

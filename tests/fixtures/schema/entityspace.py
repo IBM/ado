@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pytest
 
@@ -47,7 +46,7 @@ def constitutive_property_configuration_general_yaml(request):
 @pytest.fixture
 def constitutive_property_configuration_general(
     constitutive_property_configuration_general_yaml,
-) -> typing.List[ConstitutiveProperty]:
+) -> list[ConstitutiveProperty]:
 
     return [
         ConstitutiveProperty(**p)

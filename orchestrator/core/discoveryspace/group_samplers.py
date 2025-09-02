@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
-from typing import Any, AsyncGenerator, Dict, Generator, List, Tuple
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 
 import numpy as np
 import ray
@@ -21,8 +21,8 @@ moduleLog = logging.getLogger("groupsamplers")
 
 
 def _build_entity_group_values(
-    entity: Entity, group: List[str]
-) -> typing.FrozenSet[typing.Tuple[str, Any]]:
+    entity: Entity, group: list[str]
+) -> frozenset[tuple[str, Any]]:
     """
     :return: A frozen set of (key,value) paris
     """
@@ -37,8 +37,8 @@ def _build_entity_group_values(
 
 
 def _build_groups_dict(
-    entities: List[Entity], group: List[str]
-) -> Dict[frozenset[Tuple[str, Any]], List[Entity]]:
+    entities: list[Entity], group: list[str]
+) -> dict[frozenset[tuple[str, Any]], list[Entity]]:
     """
     builds a dict of lists of entities, combining entities based on group definitions
     :param entities: list of entities
@@ -55,7 +55,7 @@ def _build_groups_dict(
     return groups
 
 
-def _build_groups_list(entities: List[Entity], group: List[str]) -> List[List[Entity]]:
+def _build_groups_list(entities: list[Entity], group: list[str]) -> list[list[Entity]]:
     """
     builds a list of lists of entities, combining entities based on group definitions
     :param entities: list of entities
@@ -68,7 +68,7 @@ def _build_groups_list(entities: List[Entity], group: List[str]) -> List[List[En
 
 async def _get_grouped_sample_async(
     generator: AsyncGenerator[list[Entity], None],
-) -> typing.Optional[list[Entity]]:
+) -> list[Entity] | None:
     try:
         return await anext(generator)
     except (StopAsyncIteration, StopIteration):
@@ -77,7 +77,7 @@ async def _get_grouped_sample_async(
 
 def _get_grouped_sample(
     generator: Generator[list[Entity], None, None],
-) -> typing.Optional[list[Entity]]:
+) -> list[Entity] | None:
     try:
         return next(generator)
     except (StopAsyncIteration, StopIteration):

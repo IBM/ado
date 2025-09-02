@@ -77,7 +77,7 @@ def show_details_for_resources(
 
     ado show details operation <operation-id>
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoShowDetailsCommandParameters(
         ado_configuration=ado_configuration, resource_id=resource_id
     )

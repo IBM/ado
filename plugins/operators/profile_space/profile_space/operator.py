@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pandas as pd
 
@@ -22,8 +21,8 @@ from orchestrator.modules.operators.collections import characterize_operation
 # operator function can have any name but have similar parameters - see https://ibm.github.io/ado/operators/creating-operators/#operator-function-parameters
 def profile(
     discoverySpace: DiscoverySpace,
-    operationInfo: typing.Optional[FunctionOperationInfo] = None,
-    **kwargs: typing.Dict,
+    operationInfo: FunctionOperationInfo | None = None,
+    **kwargs: dict,
 ) -> OperationOutput:
     import ydata_profiling
 

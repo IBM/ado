@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
@@ -22,7 +21,7 @@ cost_map = {0.0: 10, 1.0: 20}
 # NOTE: The parameter names must match the required and optional properties defined in custom_experiments.yaml
 def objective_function(
     cpu_family: int, nodes: int, wallClockRuntime: float
-) -> typing.Dict[str, float]:
+) -> dict[str, float]:
 
     # You can calculate multiple property values
     return {

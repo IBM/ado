@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import re
-import typing
 
 import numpy.random
 import pytest
@@ -36,7 +35,7 @@ def test_reference_of_parameterizable_experiment_has_no_parameters(
 def test_create_parameterizable_experiment_reference_with_parameters(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: typing.List[PropertyValue],
+    customParameterization: list[PropertyValue],
 ):
 
     import copy
@@ -100,7 +99,7 @@ def test_create_parameterizable_experiment_reference_with_parameters(
 def test_parameterized_experiment_reference_equality(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: typing.List[PropertyValue],
+    customParameterization: list[PropertyValue],
 ):
 
     ref = ExperimentReference(
@@ -134,7 +133,7 @@ def test_parameterized_experiment_reference_equality(
 def test_parameterized_experiment_retrieval_from_registry(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: typing.List[PropertyValue],
+    customParameterization: list[PropertyValue],
 ):
 
     # Test we can retrieve the experiment from the registry using its own reference
@@ -156,7 +155,7 @@ def test_parameterized_experiment_retrieval_from_registry(
 def test_entity_property_values_from_experiment_reference_parameterized(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: typing.List[PropertyValue],
+    customParameterization: list[PropertyValue],
 ):
     """Tests that Entity.propertyValuesFromExperimentReference works for parameterized experiments"""
 

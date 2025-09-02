@@ -48,7 +48,7 @@ class MeasurementResult(pydantic.BaseModel):
     def series_representation(
         self,
         output_format: typing.Literal["target", "observed"],
-        virtual_target_property_identifiers: typing.Optional[list[str]] = None,
+        virtual_target_property_identifiers: list[str] | None = None,
     ) -> "pd.Series": ...
 
 
@@ -60,7 +60,7 @@ class ValidMeasurementResult(MeasurementResult):
     ValidMeasurementResult.measurements[0].property.experimentReference
     """
 
-    measurements: typing.List[PropertyValue] = pydantic.Field(
+    measurements: list[PropertyValue] = pydantic.Field(
         description="A list of the values measured. Cannot be empty"
     )
 
@@ -93,7 +93,7 @@ class ValidMeasurementResult(MeasurementResult):
     def series_representation(
         self,
         output_format: typing.Literal["target", "observed"],
-        virtual_target_property_identifiers: typing.Optional[list[str]] = None,
+        virtual_target_property_identifiers: list[str] | None = None,
     ) -> "pd.Series":
 
         import pandas as pd
@@ -170,7 +170,7 @@ class InvalidMeasurementResult(MeasurementResult):
     def series_representation(
         self,
         output_format: typing.Literal["target", "observed"],
-        virtual_target_property_identifiers: typing.Optional[list[str]] = None,
+        virtual_target_property_identifiers: list[str] | None = None,
     ) -> "pd.Series":
 
         import pandas as pd

@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import json
-from typing import Union
 
 
-def prepare_query_filters_for_db(query_filters: Union[dict, list[dict]]) -> list[dict]:
+def prepare_query_filters_for_db(query_filters: dict | list[dict]) -> list[dict]:
     """
     Converts query filters to the JSON representation expected by MySQL.
 

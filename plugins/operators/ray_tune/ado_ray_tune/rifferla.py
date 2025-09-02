@@ -40,12 +40,12 @@ class RifferlaParameters(pydantic.BaseModel):
     metric: str = pydantic.Field(
         description="The target property that we are refining on"
     )
-    experiment_identifier: typing.Optional[str] = pydantic.Field(
+    experiment_identifier: str | None = pydantic.Field(
         default=None,
         description="The name of the experiment measuring the target property. "
         "If None the first experiment found measuring the property is used ",
     )
-    actuator_identifier: typing.Optional[str] = pydantic.Field(
+    actuator_identifier: str | None = pydantic.Field(
         default=None,
         description="The name of the actuator that implements experiment_identifier "
         "If experiment_identifier is not given this field is not used",
@@ -57,7 +57,7 @@ class RifferlaParameters(pydantic.BaseModel):
     find_valid_intersection: bool = pydantic.Field(
         default=False, description="If True tries to find a valid intersection"
     )
-    ignore_columns: typing.List = pydantic.Field(
+    ignore_columns: list = pydantic.Field(
         default=["identifier", "generatorid"],
         description="List of constitutive properties not to consider",
     )
@@ -91,7 +91,7 @@ class RifferlaParameters(pydantic.BaseModel):
 )
 def rifferla(
     discoverySpace: DiscoverySpace,
-    operationInfo: typing.Optional[FunctionOperationInfo] = None,
+    operationInfo: FunctionOperationInfo | None = None,
     **parameters,
 ) -> OperationOutput:
     """

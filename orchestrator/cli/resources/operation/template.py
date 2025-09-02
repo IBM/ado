@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
-import typing
 
 import typer
 
@@ -158,7 +157,7 @@ def template_operation(parameters: AdoTemplateCommandParameters):
 
 def find_operator_type_by_name(
     operator_name: str,
-) -> typing.Optional[DiscoveryOperationEnum]:
+) -> DiscoveryOperationEnum | None:
     import orchestrator.modules.operators.collections
 
     supported_operator_types = (

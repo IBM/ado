@@ -20,6 +20,6 @@ class MeasurementQueue(ray.util.queue.Queue):
         Solution: Pass the queue to any remote objects that need it"""
 
         log = logging.getLogger()
-        log.debug("Getting measurement queue via %s" % cls)
+        log.debug(f"Getting measurement queue via {cls}")
 
         return cls(maxsize=maxsize)

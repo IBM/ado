@@ -62,7 +62,7 @@ class BaseSampler(abc.ABC):
     @abc.abstractmethod
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize=1
-    ) -> typing.Generator[typing.List[Entity], None, None]:  # pragma: nocover
+    ) -> typing.Generator[list[Entity], None, None]:  # pragma: nocover
         """Returns an iterator that samples entities from the discovery space in batchsize groups
 
         Parameters:
@@ -74,7 +74,7 @@ class BaseSampler(abc.ABC):
     @abc.abstractmethod
     async def remoteEntityIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize=1
-    ) -> typing.AsyncGenerator[typing.List[Entity], None]:  # pragma: nocover
+    ) -> typing.AsyncGenerator[list[Entity], None]:  # pragma: nocover
         """Returns an async iterator that samples entities from an InternalState actor in batchsize groups
 
         Parameters:
@@ -91,7 +91,7 @@ class GroupSampler(BaseSampler):
     def entityGroupIterator(
         self,
         discoverySpace: DiscoverySpace,
-    ) -> typing.Generator[typing.List[Entity], None, None]:  # pragma: nocover
+    ) -> typing.Generator[list[Entity], None, None]:  # pragma: nocover
         """Returns an iterator  that samples groups of entities from a discoveryspace
 
         The group definition should be specified on initializing an instance of a subclass of this class
@@ -107,7 +107,7 @@ class GroupSampler(BaseSampler):
     async def remoteEntityGroupIterator(
         self,
         remoteDiscoverySpace: DiscoverySpaceManager,
-    ) -> typing.AsyncGenerator[typing.List[Entity], None]:  # pragma: nocover
+    ) -> typing.AsyncGenerator[list[Entity], None]:  # pragma: nocover
         """Returns an async iterator  that samples groups of entities from an InternalState actor.
 
         The group definition should be specified on initializing an instance of a subclass of this class
@@ -131,19 +131,19 @@ class RandomSampleSelector(BaseSampler):
 
     async def remoteEntityIterator(
         self, remoteDiscoverySpace, batchsize=1
-    ) -> typing.AsyncGenerator[typing.List[Entity], None]:
+    ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an iterator that returns entities in a random order"""
 
         async def iterator_closure(
             stateHandle: DiscoverySpaceManager,
-        ) -> typing.Callable[[], typing.AsyncGenerator[typing.List[Entity], None]]:
+        ) -> typing.Callable[[], typing.AsyncGenerator[list[Entity], None]]:
             # noinspection PyUnresolvedReferences
             numberEntities = await stateHandle.numberOfMatchingEntitiesInSource.remote()
             walk = np.random.choice(
                 range(numberEntities), numberEntities, replace=False
             )
 
-            async def iterator() -> typing.AsyncGenerator[typing.List[Entity], None]:
+            async def iterator() -> typing.AsyncGenerator[list[Entity], None]:
                 # waiting_for_debugger_if_local_mode()
                 # Note: This does not suffer the same problem as the SequentialSampler when numberEntities may
                 # not be equal to the actuator number of entities return by "entities"
@@ -164,19 +164,19 @@ class RandomSampleSelector(BaseSampler):
 
     def entityIterator(
         self, discoverySpace, batchsize=1
-    ) -> typing.Generator[typing.List[Entity], None, None]:
+    ) -> typing.Generator[list[Entity], None, None]:
         """Returns an iterator that returns entities in a random order"""
 
         def iterator_closure(
             space: DiscoverySpace,
-        ) -> typing.Callable[[], typing.Generator[typing.List[Entity], None, None]]:
+        ) -> typing.Callable[[], typing.Generator[list[Entity], None, None]]:
             entities = space.matchingEntities()
             numberEntities = len(space.matchingEntities())
             walk = np.random.choice(
                 range(numberEntities), numberEntities, replace=False
             )
 
-            def iterator() -> typing.Generator[typing.List[Entity], None, None]:
+            def iterator() -> typing.Generator[list[Entity], None, None]:
                 # see note in remote iterator
                 for walkIndex in range(0, numberEntities, batchsize):
                     selection = walk[walkIndex : walkIndex + batchsize]
@@ -202,7 +202,7 @@ class SequentialSampleSelector(BaseSampler):
 
     async def remoteEntityIterator(
         self, remoteDiscoverySpace, batchsize=1
-    ) -> typing.AsyncGenerator[typing.List[Entity], None]:
+    ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
         async def iterator_closure(
@@ -215,7 +215,7 @@ class SequentialSampleSelector(BaseSampler):
             # noinspection PyUnresolvedReferences
             numberEntities = await stateHandle.numberOfMatchingEntitiesInSource.remote()
 
-            async def iterator() -> typing.AsyncGenerator[typing.List[Entity], None]:
+            async def iterator() -> typing.AsyncGenerator[list[Entity], None]:
                 for i in range(0, numberEntities, batchsize):
                     # noinspection PyUnresolvedReferences
                     entities = await stateHandle.entitiesSlice.remote(
@@ -241,12 +241,12 @@ class SequentialSampleSelector(BaseSampler):
 
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize=1
-    ) -> typing.Generator[typing.List[Entity], None, None]:
+    ) -> typing.Generator[list[Entity], None, None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
         def iterator_closure(
             space: DiscoverySpace,
-        ) -> typing.Callable[[], typing.Generator[typing.List[Entity], None, None]]:
+        ) -> typing.Callable[[], typing.Generator[list[Entity], None, None]]:
 
             # Note: We rely on the return value of numberOfMatchingEntitiesInSource is the size of `matchingEntities`
             # However this may not be the case if, for example, some entities could not be retrieved from a
@@ -254,7 +254,7 @@ class SequentialSampleSelector(BaseSampler):
             numberEntities = len(space.matchingEntities())
             entities = space.matchingEntities()
 
-            def iterator() -> typing.Generator[typing.List[Entity], None, None]:
+            def iterator() -> typing.Generator[list[Entity], None, None]:
                 for i in range(0, numberEntities, batchsize):
                     batch = entities[i : i + batchsize]
                     if len(batch) == 0:  # pragma: nocover
@@ -317,7 +317,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize=1
-    ) -> typing.Generator[typing.List[Entity], None, None]:
+    ) -> typing.Generator[list[Entity], None, None]:
         """Returns an iterator over the entity space of the discovery space
 
         If Entities exist in the sample store of the discovery space they are returned.
@@ -327,7 +327,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
         def iterator_closure(
             discoverySpace: DiscoverySpace,
-        ) -> typing.Callable[[], typing.Generator[typing.List[Entity], None, None]]:
+        ) -> typing.Callable[[], typing.Generator[list[Entity], None, None]]:
 
             entitySpace = discoverySpace.entitySpace
 
@@ -338,9 +338,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                     f"Cannot use ExplicitEntitySpaceGridSampleGenerator with {entitySpace}"
                 )
 
-            def sequential_iterator() -> (
-                typing.Generator[typing.List[Entity], None, None]
-            ):
+            def sequential_iterator() -> typing.Generator[list[Entity], None, None]:
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
                 for point in entitySpace.sequential_point_iterator():
@@ -353,7 +351,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 if len(batch) != 0:
                     yield batch
 
-            def random_iterator() -> typing.Generator[typing.List[Entity], None, None]:
+            def random_iterator() -> typing.Generator[list[Entity], None, None]:
 
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
@@ -395,11 +393,9 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
         def iterator_closure(
             entitySpace: EntitySpaceRepresentation,
-        ) -> typing.Callable[[], typing.Generator[typing.List[Entity], None, None]]:
+        ) -> typing.Callable[[], typing.Generator[list[Entity], None, None]]:
 
-            def sequential_iterator() -> (
-                typing.Generator[typing.List[Entity], None, None]
-            ):
+            def sequential_iterator() -> typing.Generator[list[Entity], None, None]:
 
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
@@ -414,7 +410,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 if len(batch) != 0:
                     yield batch
 
-            def random_iterator() -> typing.Generator[typing.List[Entity], None, None]:
+            def random_iterator() -> typing.Generator[list[Entity], None, None]:
 
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
@@ -439,12 +435,12 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
     async def remoteEntityIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize=1
-    ) -> typing.AsyncGenerator[typing.List[Entity], None]:
+    ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
         async def iterator_closure(
             discoverySpaceActor: DiscoverySpaceManager,
-        ) -> typing.Callable[[], typing.AsyncGenerator[typing.List[Entity], None]]:
+        ) -> typing.Callable[[], typing.AsyncGenerator[list[Entity], None]]:
 
             # noinspection PyUnresolvedReferences
             entitySpace = await discoverySpaceActor.entitySpace.remote()
@@ -457,7 +453,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 )
 
             async def sequential_iterator() -> (
-                typing.AsyncGenerator[typing.List[Entity], None]
+                typing.AsyncGenerator[list[Entity], None]
             ):
 
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
@@ -474,9 +470,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 if len(batch) != 0:
                     yield batch
 
-            async def random_iterator() -> (
-                typing.AsyncGenerator[typing.List[Entity], None]
-            ):
+            async def random_iterator() -> typing.AsyncGenerator[list[Entity], None]:
 
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
@@ -504,7 +498,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
 def sample_random_entity_from_space(
     es: EntitySpaceRepresentation,
-) -> typing.Optional[Entity]:
+) -> Entity | None:
 
     # Sample an entity from the entity space
     s = ExplicitEntitySpaceGridSampleGenerator(mode=WalkModeEnum.RANDOM)

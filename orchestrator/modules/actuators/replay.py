@@ -3,7 +3,6 @@
 
 import asyncio
 import logging
-import typing
 import uuid
 
 import ray
@@ -30,10 +29,10 @@ moduleLog = logging.getLogger("replay")
 def replay(
     requestIndex: int,
     requesterid: str,
-    entities: typing.List[Entity],
+    entities: list[Entity],
     experiment_reference: ExperimentReference,
     measurement_queue: MeasurementQueue,
-) -> typing.List[ReplayedMeasurement]:
+) -> list[ReplayedMeasurement]:
     """Reuses (memoizes) pre-existing results for executing experiment_reference on entities if possible.
 
     Memoization involves creating a ReplayedMeasurementRequest for each existing MeasurementResult for experiment_reference on an entity.
@@ -77,9 +76,7 @@ def replay(
             )
 
             moduleLog.debug(
-                "Replaying measurement: id: {}, index: {}, expt: {} from requester {}".format(
-                    request.requestid, requestIndex, experiment_reference, requesterid
-                )
+                f"Replaying measurement: id: {request.requestid}, index: {requestIndex}, expt: {experiment_reference} from requester {requesterid}"
             )
 
             measurement_queue.put_nowait(request)
@@ -118,7 +115,7 @@ class Replay(ActuatorBase):
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
@@ -153,6 +150,6 @@ class Replay(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return orchestrator.modules.actuators.catalog.ExperimentCatalog()

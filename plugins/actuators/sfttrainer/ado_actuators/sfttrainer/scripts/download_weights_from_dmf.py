@@ -51,7 +51,7 @@ def download_from_dmf(
 
 
 # VV: Your lakehouse token in here
-with open("token.txt", "r") as f:
+with open("token.txt") as f:
     token = f.read().rstrip()
 
 ray.get(

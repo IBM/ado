@@ -3,7 +3,6 @@
 
 import datetime
 import re
-import typing
 
 import pytest
 import yaml
@@ -51,7 +50,7 @@ def test_space_describe(pfas_space):
 
 
 def test_discovery_space_with_parameterized_experiments(
-    parameterized_references: typing.List[ExperimentReference],
+    parameterized_references: list[ExperimentReference],
     valid_ado_project_context: ProjectContext,
     global_registry: ActuatorRegistry,
     create_sample_store,

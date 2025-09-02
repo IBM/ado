@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import uuid
-from typing import Optional
 
 import ray
 import yaml
@@ -47,7 +46,7 @@ class VLLMPerformanceTest(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> ExperimentCatalog:
         """Returns the Experiments your actuator provides"""
 

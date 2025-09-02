@@ -27,7 +27,7 @@ class ActuatorConfiguration(pydantic.BaseModel):
     actuatorIdentifier: str
     # SerializeAsAny to serialise the correct class
     # https://github.com/pydantic/pydantic/discussions/9879#discussioncomment-10102592
-    parameters: pydantic.SerializeAsAny[typing.Optional[GenericActuatorParameters]] = (
+    parameters: pydantic.SerializeAsAny[GenericActuatorParameters | None] = (
         pydantic.Field(default=None)
     )
     metadata: ConfigurationMetadata = pydantic.Field(

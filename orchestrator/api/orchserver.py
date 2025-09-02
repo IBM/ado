@@ -5,7 +5,6 @@
 
 import asyncio
 import logging
-import typing
 import uuid
 
 import fastapi
@@ -32,7 +31,7 @@ app = fastapi.FastAPI()
 
 class ExecutionInfo(pydantic.BaseModel):
     status: str
-    output: typing.Optional[str] = None
+    output: str | None = None
 
 
 # GET /actuators -> return list of actuator names
@@ -105,18 +104,18 @@ class ActuatorIngress:
                     if key in self._submittedRequests.keys():
                         self._submittedRequests.pop(key)
             except Exception as error:
-                self.log.warning("Unexpected exception in monitor loop: %s" % error)
+                self.log.warning(f"Unexpected exception in monitor loop: {error}")
                 self.log.warning("Assuming transient - will continue")
                 await asyncio.sleep(1)
 
     @app.get("/actuators")
-    async def getActuators(self) -> typing.List:
+    async def getActuators(self) -> list:
 
         r = orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
         return list(r.actuatorIdentifierMap.keys())
 
     async def getActuator(
-        self, actuator: str, params: typing.Dict
+        self, actuator: str, params: dict
     ) -> orchestrator.modules.actuators.base.ActuatorBase:
 
         r = orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
@@ -135,7 +134,7 @@ class ActuatorIngress:
     @app.get("/actuators/{actuator}")
     async def getActuatorRequest(
         self, actuator: str, request: fastapi.Request
-    ) -> typing.List[str]:
+    ) -> list[str]:
 
         actuator = await self.getActuator(actuator, params=dict(request.query_params))
         catalog = await actuator.catalog()
@@ -148,7 +147,7 @@ class ActuatorIngress:
     )
     async def getActuatorExperiments(
         self, actuator: str, request: fastapi.Request
-    ) -> typing.List[orchestrator.schema.entity.Experiment]:
+    ) -> list[orchestrator.schema.entity.Experiment]:
 
         r = orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
         experiments = []
@@ -209,7 +208,7 @@ class ActuatorIngress:
     @app.get("/measurementrequests")
     async def getRequests(
         self, submitted: bool = True, completed: bool = True
-    ) -> typing.List[str]:
+    ) -> list[str]:
 
         requestids = []
         self.log.debug(f"Submitted ids {self._submittedRequests.keys()}")

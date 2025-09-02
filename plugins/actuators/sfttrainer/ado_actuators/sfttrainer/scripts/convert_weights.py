@@ -26,7 +26,7 @@ def convert_weights(path_model: str, destination: str, model_type="llama"):
     import json
     import os
 
-    with open(os.path.join(path_model, "config.json"), "r") as f:
+    with open(os.path.join(path_model, "config.json")) as f:
         config = json.load(f)
 
     print("Model type", config["model_type"])

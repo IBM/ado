@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 from transformers import (
     TrainerCallback,
@@ -14,7 +13,7 @@ from . import metrics_tracker
 
 
 class ResourceMetricsCallbacks(TrainerCallback):
-    def __init__(self, period: typing.Optional[float] = None):
+    def __init__(self, period: float | None = None):
         if period is None:
             period = 30.0
 

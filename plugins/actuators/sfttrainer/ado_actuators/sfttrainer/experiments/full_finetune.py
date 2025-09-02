@@ -25,7 +25,7 @@ def add_full_experiments(
         "(GPU model, number GPUS, batch_size, model_max_length, number nodes) combination."
     )
 
-    hardcoded_parameters: typing.Dict[str, typing.Any] = {
+    hardcoded_parameters: dict[str, typing.Any] = {
         "peft_method": method,
         "weights_format": common.WeightsFormat.Vanilla,
         "purpose": common.ExperimentPurpose.Performance,
@@ -65,7 +65,7 @@ def add_full_stability_experiments(catalog: "ExperimentCatalog"):
         "or No Error for a given (GPU model, number GPUS, batch_size, model_max_length) combination."
     )
 
-    hardcoded_parameters: typing.Dict[str, typing.Any] = {
+    hardcoded_parameters: dict[str, typing.Any] = {
         "max_steps": 5,
         "weights_format": common.WeightsFormat.Vanilla,
         "peft_method": None,

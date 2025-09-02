@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, Dict, List, NamedTuple, Union
+from typing import Any, NamedTuple
 
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 
 # convert a dictionary of measurements to AD measurements
 def dict_to_measurements(
-    results: Dict[str, Any],
-    experiment: Union[Experiment, ParameterizedExperiment],
-) -> List[PropertyValue]:
+    results: dict[str, Any],
+    experiment: Experiment | ParameterizedExperiment,
+) -> list[PropertyValue]:
     """
     Extracts the results for experiment from a dictionary of  measurements (property id:value pairs) and returns as PropertyValues
     :param results: dictionary of observation results
@@ -63,7 +63,7 @@ def dict_to_measurements(
 # Create measurement result
 def create_measurement_result(
     identifier: str,
-    measurements: List[PropertyValue],
+    measurements: list[PropertyValue],
     reference: ExperimentReference,
     error: str | None = None,
 ) -> MeasurementResult:
@@ -112,7 +112,7 @@ def compute_measurement_status(
 # Get values from entity
 def get_experiment_input_values(
     experiment: Experiment, entity: Entity
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get values from entity
     :param experiment: experiment
@@ -124,13 +124,13 @@ def get_experiment_input_values(
 
 class DependentExperimentInput(NamedTuple):
     experimentReference: ExperimentReference  # The dependent experiment to run
-    entities: List[Entity]  # The entities to run on
+    entities: list[Entity]  # The entities to run on
     requestIndex: int  # The request index to use for the dependnent experiment request
 
 
 def prepare_dependent_experiment_input(
     measurement_request: MeasurementRequest, measurement_space: MeasurementSpace
-) -> List[DependentExperimentInput]:
+) -> list[DependentExperimentInput]:
     """Given a request and a measurementspace prepares the inputs for any dependent experiments that can be run
 
     In particular this function ensures that the Entities being passed to a dependent experiment only
@@ -145,8 +145,7 @@ def prepare_dependent_experiment_input(
     """
 
     logging.getLogger("prepare_dependent_experiment_input").debug(
-        "Checking if dependent experiments can be calculated based on result of %s"
-        % measurement_request
+        f"Checking if dependent experiments can be calculated based on result of {measurement_request}"
     )
 
     experiment_entity_map = (

@@ -99,14 +99,14 @@ The credentials are in the `SFTTrainer` vault on 1Password, if you don't have ac
 ask Vassilis Vassiliadis or Alessandro Pomponio to grant you access"""
 
     try:
-        with open("fm-openshift_credentials.yaml", "r") as f:
+        with open("fm-openshift_credentials.yaml") as f:
             fm_openshift_credentials = yaml.safe_load(f)
     except Exception:
         print(warning.format(path="fm-openshift_credentials.yaml"))
         raise
 
     try:
-        with open("fmas-integration-tests-credentials.yaml", "r") as f:
+        with open("fmas-integration-tests-credentials.yaml") as f:
             fmas_integration_tests_credentials = yaml.safe_load(f)
     except Exception:
         print(warning.format(path="fmas-integration-tests-credentials.yaml"))

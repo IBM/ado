@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
-import typing
 
 import pydantic
 
@@ -17,7 +16,7 @@ def template_actuator(parameters: AdoTemplateCommandParameters):
     )
 
     ActuatorFileModel = pydantic.RootModel[
-        typing.List[orchestrator.modules.actuators.base.ActuatorModuleConf]
+        list[orchestrator.modules.actuators.base.ActuatorModuleConf]
     ]
 
     model_instance = ActuatorFileModel(

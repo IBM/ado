@@ -23,7 +23,7 @@ default_target_modules = {
 }
 
 
-hardcoded_parameters: typing.Dict[str, typing.Any] = {
+hardcoded_parameters: dict[str, typing.Any] = {
     "peft_method": "lora",
     "target_modules_map": default_target_modules,
     "purpose": common.ExperimentPurpose.Performance,

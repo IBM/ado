@@ -4,7 +4,6 @@
 import json
 import pathlib
 import uuid
-from typing import Optional
 
 import pytest
 import yaml
@@ -21,8 +20,8 @@ from orchestrator.core.operation.config import (
 def random_operation_resource_from_file(random_identifier):
 
     def _random_operation_resource_from_file(
-        sample_store_id: Optional[str] = None,
-        space_id: Optional[str] = None,
+        sample_store_id: str | None = None,
+        space_id: str | None = None,
     ) -> orchestrator.core.operation.resource.OperationResource:
         file = pathlib.Path("tests/resources/operation/operation_resource.json")
         random_resource_id = str(uuid.uuid4())
@@ -51,8 +50,8 @@ def random_operation_resource_from_db(
     random_operation_resource_from_file, create_resources
 ):
     def _random_operation_resource_from_db(
-        sample_store_id: Optional[str] = None,
-        space_id: Optional[str] = None,
+        sample_store_id: str | None = None,
+        space_id: str | None = None,
     ) -> orchestrator.core.operation.resource.OperationResource:
         operation = random_operation_resource_from_file(
             sample_store_id=sample_store_id, space_id=space_id

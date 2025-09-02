@@ -38,14 +38,11 @@ def ms_config_type_discriminator(ms_config):
 
 
 MeasurementSpaceConfigurationType = typing.Annotated[
-    typing.Union[
-        typing.Annotated[
-            MeasurementSpaceConfiguration,
-            pydantic.Tag("MeasurementSpaceConfiguration"),
-        ],
-        typing.Annotated[
-            typing.List[ExperimentReference], pydantic.Tag("ExperimentReferenceList")
-        ],
+    typing.Annotated[
+        MeasurementSpaceConfiguration, pydantic.Tag("MeasurementSpaceConfiguration")
+    ]
+    | typing.Annotated[
+        list[ExperimentReference], pydantic.Tag("ExperimentReferenceList")
     ],
     pydantic.Discriminator(ms_config_type_discriminator),
 ]
@@ -67,11 +64,11 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             description="The id of the sample store to use.", coerce_numbers_to_str=True
         ),
     ]
-    entitySpace: typing.Optional[typing.List[ConstitutiveProperty]] = pydantic.Field(
+    entitySpace: list[ConstitutiveProperty] | None = pydantic.Field(
         default=None,
         description="Describes how entities can be generated in this space",
     )
-    experiments: typing.Optional[MeasurementSpaceConfigurationType] = pydantic.Field(
+    experiments: MeasurementSpaceConfigurationType | None = pydantic.Field(
         default=None, description="Defines the measurement space"
     )
     metadata: ConfigurationMetadata = pydantic.Field(

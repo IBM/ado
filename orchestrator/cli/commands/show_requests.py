@@ -44,7 +44,7 @@ def show_requests_for_resources(
         ),
     ] = AdoShowRequestsSupportedOutputFormats.CONSOLE.value,
     hide_fields: Annotated[
-        typing.Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--hide",
             show_default=False,
@@ -78,7 +78,7 @@ def show_requests_for_resources(
 
     ado show requests operation <operation-id> --hide id --hide metadata
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoShowRequestsCommandParameters(
         ado_configuration=ado_configuration,
         hide_fields=hide_fields,

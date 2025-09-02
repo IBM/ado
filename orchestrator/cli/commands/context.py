@@ -55,7 +55,7 @@ def manage_contexts(
 
     ado context local
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     if context_name:
         activate_context(context_name, ado_configuration)
@@ -102,7 +102,7 @@ def list_contexts(
 
     ado contexts --simple
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     parameters = AdoGetCommandParameters(
         ado_configuration=ado_configuration,

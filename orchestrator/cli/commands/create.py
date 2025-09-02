@@ -184,7 +184,7 @@ def create_resource(
         )
         raise typer.Exit(1)
 
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
     override_values = parse_key_value_pairs(set_values)
 
     parameters = AdoCreateCommandParameters(

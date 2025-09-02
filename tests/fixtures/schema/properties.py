@@ -10,29 +10,29 @@ from orchestrator.schema.property import AbstractProperty, ConstitutiveProperty
 
 
 @pytest.fixture
-def target_property_list() -> typing.List[typing.AnyStr]:
+def target_property_list() -> list[typing.AnyStr]:
     return ["pka", "wall_time", "ld50"]
 
 
 @pytest.fixture
-def abstract_properties(target_property_list: typing.List[typing.AnyStr]):
+def abstract_properties(target_property_list: list[typing.AnyStr]):
     return [AbstractProperty(identifier=t) for t in target_property_list]
 
 
 @pytest.fixture
-def constitutive_property_list() -> typing.List[typing.AnyStr]:
+def constitutive_property_list() -> list[typing.AnyStr]:
     return ["number-carbons", "is-ionic", "total-electrons"]
 
 
 @pytest.fixture
 def constitutive_properties(
-    constitutive_property_list: typing.List,
-) -> typing.List[ConstitutiveProperty]:
+    constitutive_property_list: list,
+) -> list[ConstitutiveProperty]:
     return [ConstitutiveProperty(identifier=t) for t in constitutive_property_list]
 
 
 @pytest.fixture(scope="module")
-def requiredProperties() -> typing.List[ConstitutiveProperty]:
+def requiredProperties() -> list[ConstitutiveProperty]:
 
     return [
         ConstitutiveProperty(

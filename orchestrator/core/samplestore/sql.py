@@ -667,7 +667,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     @staticmethod
     def storage_location_class():
-        return typing.Union[SQLiteStoreConfiguration, SQLStoreConfiguration]
+        return SQLiteStoreConfiguration | SQLStoreConfiguration
 
     def add_measurement_request(self, request: MeasurementRequest) -> uuid.uuid4:
 

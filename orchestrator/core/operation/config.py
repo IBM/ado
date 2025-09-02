@@ -64,9 +64,7 @@ class OperatorFunctionConf(pydantic.BaseModel):
     operationType: DiscoveryOperationEnum = pydantic.Field(
         description="The type of the operation"
     )
-    operatorName: str = pydantic.Field(
-        description="The name of the operation registered with the operations module"
-    )
+    operatorName: str = pydantic.Field(description="The name of the operator")
 
     def validateOperatorExists(self):
 

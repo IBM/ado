@@ -6,7 +6,7 @@ status: published #Status can be draft, reviewed or published.
 A Discovery Space is made up of an [`Entity Space`](entity-spaces.md) and a [`Measurement Space`](actuators.md#measurement-space). 
 The `Entity Space` defines the things you want to measure and the `Measurement Space` how you want to measure them.
 
-A Discovery Space is also associated with some storage where the measured entities are placed.  
+A Discovery Space is also associated with a [Sample Store](data-sharing.md) where measurement results and entities are recorded.  
 
 ## Example: Fine-Tuning Deployment Configuration Discovery Space
 

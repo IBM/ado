@@ -6,10 +6,9 @@ status: published #Status can be draft, reviewed or published.
 
     We recommend to first familiarise yourself with the [core-concepts](../core-concepts/concepts.md) before reading about resources. 
 
-`ado` manages resources related to discovery. 
+`ado` manages resources related to discovery, for example descriptions of spaces to explore, exploration and analysis operations, and actuator configurations.
 It allows you to create resources, which it stores in a database (the [metastore](metastore.md)) along with their relationships to other resources. 
 You can then describe, list or delete those resources.
-Note, some resources take other resources as input, for example `operations` take `discoveryspaces` as input. 
 
 The resources are (use side panel to fine out more about each type):
 
@@ -19,9 +18,12 @@ The resources are (use side panel to fine out more about each type):
 * **datacontainer**: A collection of string, tabular or location data. Used to store arbitrary output from `operation`'s.
 * **actuatorconfigurations**: A configuration for an actuator. 
 
+> [!NOTE] 
+> Some resources take other resources as input, for example `operations` take `discoveryspaces` as input. 
+
 ## Naming Conventions: Concepts versus Resources
 
-`ado` resources are directly related to core `ado` [concepts](../core-concepts/concepts.md) and usually have the same name. 
+`ado` resources are directly related to `ado` [concepts](../core-concepts/concepts.md) and usually have the same name. 
 To differentiate a concept and the associated resource in the documentation we adopt the following conventions. 
 
 When we refer to concepts, upper case nouns like "Sample Store", "Actuator" are used.
@@ -41,7 +43,7 @@ However, they are not true resources and are not stored in the metastore.
 
 ## Common CLI commands for interacting with resources
 
-Here is a list of common `ado` CLI commands for interacting with resources. See [ado CLI guide](../getting-started/ado.md) for more details
+Here is a list of common `ado` CLI commands for interacting with resources. See the [ado CLI guide](../getting-started/ado.md) for more details
 
 * `ado get [resource type]` 
     * Lists all resource of the requested type

@@ -19,7 +19,7 @@ uv sync
 source .venv/bin/activate
 ```
 
-> [!INFO]
+> [!NOTE]
 > This installs `ado` in editable mode.
 
 > [!NOTE]

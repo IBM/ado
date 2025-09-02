@@ -58,7 +58,7 @@ In addition `ado` plugins may have additional requirements for executing **_real
 
     ---
 
-    Assuming you have configured ssh access to IBM GitHub you can install **ado** by:
+    You can install **ado** by:
     
     ```shell
     pip install git+https://github.com/IBM/ado.git

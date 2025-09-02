@@ -4,23 +4,23 @@ status: published #Status can be draft, reviewed or published.
 
 ## Discovery Space
 
-The core concept in `ado` is called a `Discovery Space`. 
+The core concept in `ado` is called a *Discovery Space*. 
 In `ado` you are often creating and performing operations on Discovery Spaces. 
 
-For users familiar with `pandas` and `dataframes`, a `Discovery Space` combines:
+For users familiar with `pandas` and `dataframes`, a Discovery Space combines:
 
 * the schema of a `dataframe` i.e. the columns and what they mean
 * instructions on how to fill the `dataframe` rows
 * the current data in the `dataframe` (and what's missing!)
 
-So a `Discovery Space` allows expressing the hidden metadata and contextual information necessary to understand and extend a dataframe.
+So a Discovery Space allows expressing the hidden metadata and contextual information necessary to understand and extend a dataframe.
 See [Discovery Space](discovery-spaces.md) for more details. 
 
-A `Discovery Space` is built from:
+A Discovery Space is built from:
 
 - [Entities and Entity Spaces](entity-spaces.md): The set of things in a Discovery Space
 - [Measurement Spaces](actuators.md#measurement-space):  The set of experiments in a Discovery Space
-- [Experiments and Actuators](actuators.md): The available experiments in `ado` and the tools that execute them
+- [Experiments and Actuators](actuators.md): The available experiments and the tools that execute them
 
 ## Sample Store
 

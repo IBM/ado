@@ -1,10 +1,9 @@
----
 status: published #Status can be draft, reviewed or published.
 ---
 
 !!! info end
 
-    A reposistory providing a complete template actuator [here](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator).
+    A complete template actuator can be found [here](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator).
     This example actuator is functional out-of-the-box and can be used as the basis to create new actuators.
 
 Developers can write their own [actuator](../core-concepts/actuators.md) plugins to add new experiments (a.k.a. tests, experiment protocols) in new domains to `ado`.
@@ -15,7 +14,7 @@ The main part of writing an actuator plugin is writing a python class that imple
 
 This page gives an overview of how to get started creating your own actuator. 
 It's not intended to be comprehensive. 
-After reading this page the best resource is to [our example actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) or to check an existing actuator plugin.
+After reading this page the best resource is to check [our example actuator](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) or to check an existing actuator plugin.
 
 ## Knowledge required
 
@@ -107,13 +106,14 @@ A sketch example:
 import orchestrator.modules.actuators.base
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
+from orchestrator.modules.actuators.catalog import ExperimentCatalog
 
 class MyActuator(orchestrator.modules.actuators.base):
 
-  async def submit(self, entities: [Entity], experiment: Experiment):
+  async def submit(self, entities: [Entity], experiment: Experiment) -> list[str]: #Returns a list of identifiers for the created experiments
     ...
 
-  def catalog(self, **kwargs):
+  def catalog(self, **kwargs) -> ExperimentCatalog: 
     pass
 ```
 
@@ -135,18 +135,18 @@ An example:
 The key method of an `actuator` is the `submit` method as this is what runs an experiment. 
 On a call to this method three things are expected to happen in the Actuator:
 
-- Create one or more `MeasurementRequest` instance representing the experiment execution that was requested
+- One or more `MeasurementRequest` instances are created representing an execution of the experiment that was requested
     - `One or more` as the actuator can launch a separate experiment for each entity or one for them all. Which method is used depends on developer choice 
 - Launch the experiment asynchronously and return the `MeasurementRequest` identifier(s)
     - i.e. Its expected the `submit` method will return almost immediately and the requested experiments will be executed asynchronously
 - When an experiment has finished 
-    - Add the results to the `MeasurementRequest`
-    - Put the `MeasurementRequest` on the `StateUpdateQueue` that was provided to the actuator on `__init__`
+    - Add the results to the relevant `MeasurementRequest` instance
+    - Put the `MeasurementRequest` on the `MeasurementQueue` that was provided to the actuator on `__init__`
 
 From the `submit` callers point of view this means:
 
 1. It expects to immediately get back a set of strings that are MeasurementRequest ids
-2. At some later time it will find MeasurementRequests with these ids on the `StateUpdateQueue` containing the experiment results. 
+2. At some later time it will find MeasurementRequests with these ids on the `MeasurementQueue` containing the experiment results. 
 
 For everything else the actuator developer is free to implement as they want. 
 
@@ -187,7 +187,10 @@ class Actuator(ActuatorBase):
 
 ### Example custom configurations
 
-Users can obtain an example configuration for your actuator using `ado template actuatorconfiguration --actuator-identifier $YOUR_ACTUATOR_ID`
+Users can obtain an example configuration for your actuator using:
+```commandline
+ado template actuatorconfiguration --actuator-identifier $YOUR_ACTUATOR_ID`
+```
 
 This example will be obtained by calling `model_construct()` on your actuator parameter class. This means
 
@@ -224,7 +227,7 @@ ado create actuatorconfiguration -f $FILLED_IN_TEMPLATE
 ```
 
 The [actuatorconfiguration resource documentation](../resources/actuatorconfig.md) contains for more information on how users will create and supply
-actuator parameters to you actuator. 
+actuator parameters to your actuator. 
 
 ### How the custom configuration is stored and output
 

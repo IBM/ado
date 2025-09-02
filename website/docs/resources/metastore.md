@@ -55,7 +55,7 @@ metadataStore:
 
 ## Creating a context 
 
-To create a local or remote context in `ado` creates a file with the corresponding YAML definition (see above) and run:
+To create a local or remote context in `ado`, create a file with the corresponding YAML definition (see above) and run:
 
 ```commandline
 ado create context -f $YAML_FILE

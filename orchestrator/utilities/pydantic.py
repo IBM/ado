@@ -26,11 +26,15 @@ def model_dict_representation_with_field_exclusions_for_custom_model_serializer(
             continue
 
         # Enforce exclude_unset
-        if info.exclude_unset and field_name not in model.model_fields_set:
+        if (  # noqa: SIM114
+            info.exclude_unset and field_name not in model.model_fields_set
+        ):
             del dict_representation[field_name]
 
         # Enforce exclude_none
-        elif info.exclude_none and dict_representation[field_name] is None:
+        elif (  # noqa: SIM114
+            info.exclude_none and dict_representation[field_name] is None
+        ):
             del dict_representation[field_name]
 
         # Enforce exclude_defaults

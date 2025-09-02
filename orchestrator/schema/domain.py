@@ -504,7 +504,9 @@ class PropertyDomain(pydantic.BaseModel):
 
         import math
 
-        if self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+        if (
+            self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ):  # noqa: SIM114
             size = math.inf
         elif self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE and (
             self.domainRange is None and self.values is None

@@ -379,11 +379,11 @@ tuneConfig:
 
 A successful `ray_tune` operation will create a `datacontainer` resource, containing information from RayTune on the best configuration found. 
 
-To get the id of the `datacontainer` related to a ray_tune `operation` resource with id $OPERATION_ID use
+To get the id of the `datacontainer` related to a ray_tune `operation` resource with id $OPERATION_ID use:
 ```commandline
 ado show related operation $OPERATION_ID
 ```
-this will output something like,
+This will output something like:
 ```commandline
 datacontainer
   - datacontainer-d6a6501b
@@ -425,7 +425,7 @@ Basic Data:
     'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
    'error': None}
 ```
-Here we can see the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where the metric `function_value` was 20.788056393697595.
+We can see here that the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where `function_value` was ~20.8.
 
 ### Optimization path
 

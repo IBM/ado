@@ -79,7 +79,7 @@ The command `ado get operators` will list the names and types of the known opera
 0  random_walk  explore
 1     ray_tune  explore
 ```
-You use this information to specify the operator to use in the  operation YAML, for example
+You use this information to specify the operator to use in the  operation YAML, for example:
 
 ```yaml
 module: 
@@ -135,12 +135,12 @@ operatorIdentifier: profile-1.1 # The identifier of the operator including its v
 ## Getting `operation` output
 
 An operation can create any type of ado resource.
-To see the resources created by an operation with identifier $OPERATION_ID use
+To see the resources created by an operation with identifier $OPERATION_ID use:
 ```commandline
-ado show related operation $OPERATION_ID`
+ado show related operation $OPERATION_ID
 ```
 Output that is text, tables or locations will be contained in  a `datacontainer` resource. 
-It can be output with,
+It can be output with:
 ```commandline
 ado describe datacontainer $DATACONTAINER_IDENTIFIER
 ```
@@ -184,7 +184,7 @@ version: v1
 
 > [!NOTE]
 > The first updated status reflects an update to the stored operation resource which added the `started` event.
-> The second updated status reflects an update to the storedx operation resource which added the `finished` event.
+> The second updated status reflects an update to the stored operation resource which added the `finished` event.
 
 ## Deleting operations
 

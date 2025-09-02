@@ -32,7 +32,7 @@ ado get actuators --details
 
 ## Special actuators: replay and custom_experiments
 
- `ado`'s has two special builtin actuators: `custom_experiments` and `replay`. 
+ `ado` has two special builtin actuators: `custom_experiments` and `replay`. 
 
 `custom_experiments` allows users to create experiments from python functions without having to write a full Actuator. 
 The [creating custom experiments](creating-custom-experiments.md) page describes this in detail.

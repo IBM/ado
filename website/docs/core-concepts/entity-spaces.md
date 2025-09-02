@@ -5,7 +5,7 @@ status: published #Status can be draft, reviewed or published.
 ## Entities
 
 Entities represent things that can be measured. 
-Examples are molecules or points in a an application configuration space.
+Examples are molecules or points in an application configuration space.
 
 Entities all have a set of constitutive properties which define them. 
 A molecule's constitutive properties might be a SMILES or INCHI string. 

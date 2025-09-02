@@ -11,7 +11,7 @@ status: published #Status can be draft, reviewed or published.
 ### Pre-requisites
 
 In order to create a `discoveryspace` you must provide a `samplestore` that the `discoveryspace` will use for storage.
-To see existing `samplestores` run
+To see existing `samplestores` run:
 ```commandline
 ado get samplestores
 ```
@@ -92,7 +92,7 @@ To understand the difference in these two methods imagine two overlapping `disco
 If someone uses method one on `discoveryspace` A, they will only see the `entities` placed there by operations on `discoveryspace` A.
 However if someone uses method two on `discoveryspace` A, they will see `entities` placed there via operations on both `discoveryspace` A and space B.
 
-Shared samples stores also allow data to be reused between `discoveryspaces` potentially accelerating exploration operations. 
+Shared samples stores also allow data to be reused across `discoveryspaces`, potentially accelerating exploration operations. 
 See the [shared sample store](../core-concepts/data-sharing.md) documentation for further details. 
 
 ## Accessing Entities
@@ -162,7 +162,7 @@ In this format the columns are constitutive property names and target property n
 
 !!! info  end
     
-    With `property-format=target` if the measurement space contains multiple experiments measuring *different* target properties this will result in many empty fields
+    With `property-format=target` if the measurement space contains multiple experiments measuring *different* target properties, this will result in many empty fields
     in the table. This is because the column for a given target of one experiment will not have values in the rows corresponding to other experiments.
 
 ## Defining the domains of constitutive properties in the entityspace
@@ -193,7 +193,7 @@ Experiments take entities as inputs and those entities must have values for vari
 This means the domains of the properties in the `entityspace` must be compatible with the experiments - if not entities could be sampled that
 experiments in the `measurementspace` cannot measure. 
 
-For example to see the input requirements of the experiment `finetune_full_benchmark-v1.0.0` you can run
+For example, to see the input requirements of the experiment `finetune_full_benchmark-v1.0.0` you can run:
 
 ```shell
 ado describe experiment finetune-full-fsdp-v1.6.0 --actuator-id SFTTrainer
@@ -443,7 +443,7 @@ Outputs:
   finetune_full_benchmark-v1.0.0-is_valid
 
 ```
-You can see the required inputs under the section `Required Inputs` and the optional inputs under `Optional Inputs and Default Values'.
+You can see the required inputs under the section `Required Inputs` and the optional inputs under `Optional Inputs and Default Values`.
 The next section explains how to use optional properties. 
 
 > [!NOTE]

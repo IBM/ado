@@ -272,11 +272,11 @@ The target property to optimize against is set by the `metric` field, under the 
 
 The `ray_tune` operation will create a `datacontainer` resource containing information on the best configuration found. 
 
-To get the id of the `datacontainer` related to the `operation` use
+To get the id of the `datacontainer` related to the `operation` use:
 ```commandline
 ado show related operation $OPERATION_ID
 ```
-this will output something like,
+This will output something like:
 ```commandline
 datacontainer
   - datacontainer-d6a6501b
@@ -318,12 +318,12 @@ Basic Data:
     'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
    'error': None}
 ```
-we can see the here the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where `function_value` was ~20.8.
+We can see here that the point found is `{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}` where `function_value` was ~20.8.
 
 
 ### Configurations visited
 
-To see the configurations visited during the optimization execute,
+To see the configurations visited during the optimization, execute:
 ```
 ado show entities operation $OPERATION_IDENTIFIER
 ```
@@ -336,7 +336,7 @@ If at any point you want to see the details for an operation, for example the op
 ```
 ado get operation $OPERATION_IDENTIFIER -o yaml
 ```
-This will output the details of this operation in YAML format - this will be same YAML as shown in the previous section.
+This will output the details of this operation in YAML format - this will be the same YAML as shown in the previous section.
 
 ## Parameterizable experiments
 

@@ -6,7 +6,7 @@ status: published #Status can be draft, reviewed or published.
 
 **ado** can be installed in one of three ways:
 
-1. From **pypi**
+1. From **PyPi**
 2. From **GitHub**
 3. By **cloning the GitHub repository** locally 
 
@@ -29,9 +29,9 @@ status: published #Status can be draft, reviewed or published.
     source ado-venv/bin/activate
     ```
 
-=== "From pypi"
+=== "From PyPi"
 
-    This method installs the ado-core package from pypi
+    This method installs the `ado-core` package from PyPi
 
     ```shell
     pip install ado-core
@@ -57,7 +57,7 @@ status: published #Status can be draft, reviewed or published.
 
 ado uses a plugin system to provide **additional actuators** and **operators**. 
 We maintain a set of actuators and operators in the ado main repo which you can see [here](https://github.com/ibm/ado/tree/main/plugins/).
-Some plugins may also have packages on pypi.
+Some plugins may also have packages on PyPi.
 You can install these actuators as follows:
 
 !!! info 
@@ -65,7 +65,7 @@ You can install these actuators as follows:
     Some plugins may have dependencies that may require credentials to access. 
     Check the plugins's docs if you encounter issues installing a specific actuator. 
 
-=== "From pypi"
+=== "From PyPi"
 
     The following plugin packages are available: `ado-sfttrainer`, `ado-vllm-performance` and `ado-ray-tune` 
 

@@ -1,4 +1,3 @@
-from orchestrator.modules.actuators.catalog import ExperimentCatalog---
 status: published #Status can be draft, reviewed or published.
 ---
 
@@ -188,7 +187,7 @@ class Actuator(ActuatorBase):
 
 ### Example custom configurations
 
-Users can obtain an example configuration for your actuator using 
+Users can obtain an example configuration for your actuator using:
 ```commandline
 ado template actuatorconfiguration --actuator-identifier $YOUR_ACTUATOR_ID`
 ```

@@ -2,7 +2,7 @@
 status: published #Status can be draft, reviewed or published. 
 ---
 
-A `samplestore` resource is a database containing [`entities`](../core-concepts/entity-spaces.md#entities) along with result of experiments that have been applied to it.
+A `samplestore` resource is a database containing [`entities`](../core-concepts/entity-spaces.md#entities) along with result of experiments that have been applied to them.
 
 ## `samplestore`s and `discoveryspace`s
 
@@ -37,7 +37,7 @@ ado show related samplestore $SAMPLE_STORE_IDENTIFIER
  
 ## active and passive Sample Stores
 
-`ado` distinguishes two types of Sample Store: **active** Sample Stores which allow read and write; and **passive** Sample Stores that only have read capabilities 
+`ado` distinguishes two types of Sample Stores: **active** Sample Stores which allow read and write; and **passive** Sample Stores that only have read capabilities 
 (for example a CSV file containing measurement data).
 
 All `samplestore` resources created with `ado` will be `**active**. However, they can copy data in from **passive** Sample Stores.

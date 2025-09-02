@@ -2,13 +2,12 @@
 status: published #Status can be draft, reviewed or published. 
 ---
 
-A `samplestore` resource is a key:value store for [`entities`](../core-concepts/entity-spaces.md#entities), where the key is an entity's identifier and the value is the entity description along with the result of experiments that 
-have been applied to it.
+A `samplestore` resource is a database containing [`entities`](../core-concepts/entity-spaces.md#entities) along with result of experiments that have been applied to it.
 
 ## `samplestore`s and `discoveryspace`s
 
 When you create a [discovery space](discovery-spaces.md) you associate a `samplestore` with it.
-This is where the `discoveryspace` will read and write its data i.e. entities and the results of experiments on them.
+This is where the `discoveryspace` will read and write data i.e. entities and the results of experiments on them.
 You primarily access the entities in a `samplestore` via a `discoveryspace` that is attached to it.  
 
 You can think of a `discoveryspace` as a view or filter on a sample store - when you access data in a `samplestore` through a discovery space
@@ -21,7 +20,7 @@ you only see data that matches the `discoveryspace`.
 ## `samplestore`s and data-sharing
 
 When multiple `discoveryspace`s use the same `samplestore` this enables transparent data-sharing between the different `discoveryspace`s.
-When and how data is shared is covered in detail in [Shared sample stores](../core-concepts/data-sharing.md)
+When and how data is shared is covered in detail in [shared sample stores](../core-concepts/data-sharing.md).
 
 To see the `discoveryspaces` using a given `samplestore` run 
 
@@ -38,7 +37,8 @@ ado show related samplestore $SAMPLE_STORE_IDENTIFIER
  
 ## active and passive Sample Stores
 
-`ado` distinguishes two types of Sample Store: **active** Sample Stores which allow read and write; and **passive** Sample Stores that only have read capabilities.
+`ado` distinguishes two types of Sample Store: **active** Sample Stores which allow read and write; and **passive** Sample Stores that only have read capabilities 
+(for example a CSV file containing measurement data).
 
 All `samplestore` resources created with `ado` will be `**active**. However, they can copy data in from **passive** Sample Stores.
 
@@ -72,7 +72,7 @@ copyFrom: # An array of Sample Stores data will be copied from
 ```
 
 The [Sample Store types](#sample-store-types) section details how to fill the above fields for the different available Sample Store.
-For illustration purposes, this is an example of copying data from a CSV file using `CSVSampleStore`
+Here is an example of copying data from a CSV file using `CSVSampleStore`:
 
 ```yaml
 specification:
@@ -103,12 +103,12 @@ For an existing `discoveryspace` to retrieve all entities that match it run
 ado show entities space $SPACEID --include matching
 ```
 
-You can also define a `discoveryspace` in a YAML and run 
+You can also define a `discoveryspace` in a YAML and run:
 
 ```commandline
 ado show entities space --file $FILE 
 ```
-this allows you to see what entities match a space without having to create it
+This allows you to see what entities match a space without having to create it.
 
 
 ## Sample Store types
@@ -116,9 +116,9 @@ this allows you to see what entities match a space without having to create it
 ### SQLSampleStore
 
 This is an active Sample Store that stores entity data in SQL tables. 
-In `ado` a SQLSampleStore is always associated with a particular project
+In `ado` a SQLSampleStore is always associated with a particular project.
 
-When you want to copy from another SQLSampleStore you need to identifier and the metastore URL to the the project it is in
+When you want to copy from another SQLSampleStore you need the identifier and the metastore URL to the the project it is in
 
 ```yaml
 copyFrom:

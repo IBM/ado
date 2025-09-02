@@ -17,10 +17,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 def reference_string_from_fields(actuator_identifier, experiment_identifier):
     """This method defines the identifier string used by ExperimentReference and Experiment"""
 
-    return "{}.{}".format(
-        actuator_identifier,
-        experiment_identifier,
-    )
+    return f"{actuator_identifier}.{experiment_identifier}"
 
 
 class ExperimentReference(pydantic.BaseModel):

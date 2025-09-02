@@ -384,9 +384,7 @@ class MeasurementSpace:
         """
 
         inputExperimentReference = measurementRequest.experimentReference
-        self.log.debug(
-            "Input Experiment Reference {}.".format(inputExperimentReference)
-        )
+        self.log.debug(f"Input Experiment Reference {inputExperimentReference}.")
 
         inputExperiment = self.experimentForReference(inputExperimentReference)
 

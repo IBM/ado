@@ -272,20 +272,15 @@ class RandomWalk(Characterize):
             self.mode = CombinedWalkModeEnum(self.params.mode)
         except ValueError:
             raise ValueError(
-                "Unknown walk mode {}. Known modes {}".format(
-                    self.params.mode, [item.value for item in CombinedWalkModeEnum]
-                )
+                f"Unknown walk mode {self.params.mode}. Known modes {[item.value for item in CombinedWalkModeEnum]}"
             )
 
         try:
             self.sampler = SamplerTypeEnum(self.params.samplerType)
         except ValueError:
             raise ValueError(
-                "Unknown sampler type  {}. "
-                "Known sampler types {}".format(
-                    self.params.samplerType,
-                    [item.value for item in SamplerTypeEnum],
-                )
+                f"Unknown sampler type  {self.params.samplerType}. "
+                f"Known sampler types {[item.value for item in SamplerTypeEnum]}"
             )
 
         # Sets state, actorName ivars and subscribes to the state
@@ -507,13 +502,9 @@ class RandomWalk(Characterize):
 
             print(
                 "Initial batch. "
-                "Total entities sampled {}. "
-                "Experiments available per entity {}. "
-                "Total experiment requests generated {}. ".format(
-                    self._entitiesSampled,
-                    len(independent_experiments),
-                    self._experimentsRequested,
-                )
+                f"Total entities sampled {self._entitiesSampled}. "
+                f"Experiments available per entity {len(independent_experiments)}. "
+                f"Total experiment requests generated {self._experimentsRequested}. "
             )
 
         # STEP TWO: Continuous batching
@@ -544,9 +535,7 @@ class RandomWalk(Characterize):
             if isinstance(measurement_request, Exception):
                 self.criticalError = True
                 self.log.critical(
-                    "Received information on critical error will exit: {}".format(
-                        measurement_request
-                    )
+                    f"Received information on critical error will exit: {measurement_request}"
                 )
                 continue  # break back to while condition so it will exit
 
@@ -629,7 +618,7 @@ class RandomWalk(Characterize):
                 self.log.debug(
                     "%s"
                     % [
-                        "{}".format(v)
+                        f"{v}"
                         for v in entity.propertyValuesFromExperimentReference(
                             measurementRequest.experimentReference
                         )
@@ -796,7 +785,7 @@ class RandomWalk(Characterize):
 
     def operationIdentifier(self):
 
-        return "{}-{}".format(self.__class__.operatorIdentifier(), self.runid)
+        return f"{self.__class__.operatorIdentifier()}-{self.runid}"
 
     @classmethod
     def operatorIdentifier(cls):
@@ -805,7 +794,7 @@ class RandomWalk(Characterize):
 
         version = version("ado-core")
 
-        return "randomwalk-{}".format(version)
+        return f"randomwalk-{version}"
 
     @classmethod
     def operationType(cls) -> DiscoveryOperationEnum:

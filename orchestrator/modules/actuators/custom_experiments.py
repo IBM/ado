@@ -86,8 +86,8 @@ class CustomExperiments(ActuatorBase):
         super().__init__(queue=queue, params=params)
 
         params = params if params else {}
-        self.log.debug("Queue is {}".format(self._stateUpdateQueue))
-        self.log.debug("Params are {}".format(params))
+        self.log.debug(f"Queue is {self._stateUpdateQueue}")
+        self.log.debug(f"Params are {params}")
 
         import orchestrator.modules.actuators.registry
 
@@ -176,9 +176,8 @@ class CustomExperiments(ActuatorBase):
                 entity, targetExperiment, exactMatch=False
             ):
                 raise ValueError(
-                    "Entity {} does not have values for properties required as inputs for experiment {}".format(
-                        entity.identifier, experimentReference.experimentIdentifier
-                    )
+                    f"Entity {entity.identifier} does not have values for properties required "
+                    f"as inputs for experiment {experimentReference.experimentIdentifier}"
                 )
 
         # Create Measurement Request
@@ -191,11 +190,11 @@ class CustomExperiments(ActuatorBase):
             requestid=requestid,
         )
 
-        self.log.debug("Create measurement request {}".format(request))
+        self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
         experiment = self._catalog.experimentForReference(request.experimentReference)
         function = experiment.metadata.get("function", experiment.identifier)
-        self.log.debug("Calling custom experiment {}".format(function))
+        self.log.debug(f"Calling custom experiment {function}")
 
         await custom_experiment_wrapper(
             self._functionImplementations[

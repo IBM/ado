@@ -110,18 +110,12 @@ class VirtualObservedProperty(pydantic.BaseModel):
     @property
     def identifier(self):
 
-        return "{}-{}".format(
-            self.baseObservedProperty.identifier,
-            self.aggregationMethod.identifier.value,
-        )
+        return f"{self.baseObservedProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
     @property
     def virtualTargetPropertyIdentifier(self):
 
-        return "{}-{}".format(
-            self.baseObservedProperty.targetProperty.identifier,
-            self.aggregationMethod.identifier.value,
-        )
+        return f"{self.baseObservedProperty.targetProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
     def aggregate(self, values: list) -> PropertyValue:
         """

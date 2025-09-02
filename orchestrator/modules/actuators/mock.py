@@ -62,7 +62,7 @@ class MockActuator(ActuatorBase):
         enable_ray_actor_coverage("mock")
         super().__init__(queue=queue, params=params)
         self.log = logging.getLogger("mock-actuator")
-        self.log.info("Queue is {}".format(self._stateUpdateQueue))
+        self.log.info(f"Queue is {self._stateUpdateQueue}")
         self._catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog()
         self.running_tasks = set()
 
@@ -75,9 +75,7 @@ class MockActuator(ActuatorBase):
     ):
 
         self.log.info(
-            "Remote actuator submitting measurement of {} by {}".format(
-                [e.identifier for e in entities], experimentReference
-            )
+            f"Remote actuator submitting measurement of {[e.identifier for e in entities]} by {experimentReference}"
         )
 
         # Create a measurement request
@@ -89,7 +87,7 @@ class MockActuator(ActuatorBase):
             requestid=str(uuid.uuid4())[:6],
         )
 
-        self.log.debug("Created request {}".format(request))
+        self.log.debug(f"Created request {request}")
         if self._measurementSpace is None:
             raise AttributeError(
                 "MockActuator requires a MeasurementSpace to execute experiment"
@@ -118,9 +116,7 @@ class MockActuator(ActuatorBase):
             else:
                 measurements = []
                 for op in experiment.observedProperties:
-                    self.log.debug(
-                        "Creating mock measured value of {} for {}".format(op, entity)
-                    )
+                    self.log.debug(f"Creating mock measured value of {op} for {entity}")
                     # Create fake values for each property in the experiment
                     value = orchestrator.schema.property_value.PropertyValue(
                         value=random.randint(0, 1000),

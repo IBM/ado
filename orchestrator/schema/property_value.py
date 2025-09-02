@@ -123,10 +123,10 @@ class PropertyValue(pydantic.BaseModel):
         return self
 
     def __str__(self):
-        return "value-{}:{}".format(self.property, self.value)
+        return f"value-{self.property}:{self.value}"
 
     def __repr__(self):
-        return "value-{}:{}".format(self.property, self.value)
+        return f"value-{self.property}:{self.value}"
 
     def __eq__(self, other):
 

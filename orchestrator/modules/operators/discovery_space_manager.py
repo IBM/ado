@@ -254,16 +254,14 @@ class DiscoverySpaceManager:
                 )
                 subscriber_copy = self._subscribers.copy()
                 for subscriberName, subscriber in subscriber_copy.items():
-                    self.log.info("Notifying subscriber {}".format(subscriber))
+                    self.log.info(f"Notifying subscriber {subscriber}")
                     subscriber.onError.remote(error)
                     self.log.info("Unsubscribing subscriber due to error")
                     self.unsubscribeFromUpdates(subscriberName)
                     self.log.info("Complete")
             else:
                 self.log.debug(
-                    "Received new measurement: {} notifying subscribers".format(
-                        measurement_request
-                    )
+                    f"Received new measurement: {measurement_request} notifying subscribers"
                 )
                 subscriber_copy = self._subscribers.copy()
                 for subscriberName, subscriber in subscriber_copy.items():
@@ -272,9 +270,7 @@ class DiscoverySpaceManager:
                         promises.append(promise)
                     except Exception as error:
                         self.log.info(
-                            "Exception {} while notifying subscriber of update {}".format(
-                                error, subscriber
-                            )
+                            f"Exception {error} while notifying subscriber of update {subscriber}"
                         )
                         self.log.info("Notifying subscriber")
                         subscriber.onError.remote(error)
@@ -283,7 +279,7 @@ class DiscoverySpaceManager:
 
         # Don't send iscomplete until subscribers are finished.
         # The subscribers may have outstanding updates to process and not know about it
-        self.log.info("Awaiting {} sent updates".format(len(promises)))
+        self.log.info(f"Awaiting {len(promises)} sent updates")
         await asyncio.gather(*promises)
         self.log.info("All updates processed")
 
@@ -297,9 +293,7 @@ class DiscoverySpaceManager:
                     await subscriber.onCompleted.remote()
                 except Exception as error:
                     self.log.info(
-                        "Exception error {} while notifying subscriber of completion {}".format(
-                            error, subscriber
-                        )
+                        f"Exception error {error} while notifying subscriber of completion {subscriber}"
                     )
         else:
             self.log.critical("Measurement queue observation exited due to error")
@@ -308,7 +302,7 @@ class DiscoverySpaceManager:
 
     def subscribeToUpdates(self, subscriberName: str):
 
-        self.log.debug("Subscription request {}".format(subscriberName))
+        self.log.debug(f"Subscription request {subscriberName}")
         self._subscribers[subscriberName] = ray.get_actor(
             subscriberName, namespace=self._namespace
         )

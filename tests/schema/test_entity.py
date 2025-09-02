@@ -300,10 +300,7 @@ def test_identifier_from_property_values(
         ident := Entity.identifier_from_property_values(constitutive_property_values)
     ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
     assert ident == "-".join(
-        [
-            "{}.{}".format(pv.property.identifier, pv.value)
-            for pv in constitutive_property_values
-        ]
+        [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values]
     ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ..."
 
     constitutive_property_values = [
@@ -338,10 +335,7 @@ def test_value_error_duplicate_constitutive_properties(
         ident := Entity.identifier_from_property_values(constitutive_property_values)
     ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
     assert ident == "-".join(
-        [
-            "{}.{}".format(pv.property.identifier, pv.value)
-            for pv in constitutive_property_values
-        ]
+        [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values]
     ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ..."
 
     with pytest.raises(ValueError, match="Constitutive properties must be unique"):

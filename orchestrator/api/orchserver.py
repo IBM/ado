@@ -104,9 +104,7 @@ class ActuatorIngress:
                     if key in self._submittedRequests.keys():
                         self._submittedRequests.pop(key)
             except Exception as error:
-                self.log.warning(
-                    "Unexpected exception in monitor loop: {}".format(error)
-                )
+                self.log.warning(f"Unexpected exception in monitor loop: {error}")
                 self.log.warning("Assuming transient - will continue")
                 await asyncio.sleep(1)
 

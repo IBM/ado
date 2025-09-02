@@ -25,7 +25,7 @@ class LhuSampler(ray.tune.search.Searcher):
         if mode:
             assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
 
-        super(LhuSampler, self).__init__(
+        super().__init__(
             metric=metric,
             mode=mode,
         )

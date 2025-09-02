@@ -26,7 +26,7 @@ class OperationException(Exception):
         *args,
     ):
         self.operation = operation
-        super(OperationException, self).__init__(message, operation, *args)
+        super().__init__(message, operation, *args)
 
 
 class OperationOutput(pydantic.BaseModel):

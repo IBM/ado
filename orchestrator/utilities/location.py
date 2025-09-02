@@ -31,21 +31,19 @@ class ResourceLocation(pydantic.BaseModel):
         )
 
     scheme: str = pydantic.Field(description="The resource access scheme")
-    host: typing.Optional[str] = pydantic.Field(
+    host: str | None = pydantic.Field(
         default=None,
         description="The host name for the resource. Should not contain port",
     )
     # validating default of None to allow detecting if the port was placed in the host field
-    port: typing.Optional[int] = pydantic.Field(
+    port: int | None = pydantic.Field(
         default=None, description="Port number", validate_default=True
     )
-    path: typing.Optional[str] = pydantic.Field(
+    path: str | None = pydantic.Field(
         default=None, description="The path of the resource"
     )
-    user: typing.Optional[str] = pydantic.Field(default=None, description="The user")
-    password: typing.Optional[str] = pydantic.Field(
-        default=None, description="The password"
-    )
+    user: str | None = pydantic.Field(default=None, description="The user")
+    password: str | None = pydantic.Field(default=None, description="The password")
 
     model_config = ConfigDict(extra="forbid")
 

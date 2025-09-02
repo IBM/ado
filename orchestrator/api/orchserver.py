@@ -5,7 +5,6 @@
 
 import asyncio
 import logging
-import typing
 import uuid
 
 import fastapi
@@ -32,7 +31,7 @@ app = fastapi.FastAPI()
 
 class ExecutionInfo(pydantic.BaseModel):
     status: str
-    output: typing.Optional[str] = None
+    output: str | None = None
 
 
 # GET /actuators -> return list of actuator names

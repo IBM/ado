@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import typer
 
@@ -62,9 +61,7 @@ def get_actuators_from_experiment_id(
     return actuators_with_target_experiment
 
 
-def get_actuator_from_experiment_id(
-    experiment_id: str, actuator_id: typing.Optional[str] = None
-):
+def get_actuator_from_experiment_id(experiment_id: str, actuator_id: str | None = None):
     """
     Retrieves the ID of the actuator that implements an experiment ID.
     If an actuator ID is also provided, the method will validate that the
@@ -104,7 +101,7 @@ def get_actuator_from_experiment_id(
 
 
 def _ado_get_actuator_from_experiment_id(
-    experiment_id: str, actuator_id: typing.Optional[str] = None
+    experiment_id: str, actuator_id: str | None = None
 ):
     try:
         return get_actuator_from_experiment_id(experiment_id, actuator_id)

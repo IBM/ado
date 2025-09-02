@@ -280,16 +280,14 @@ class DiscoverySpace:
     def __init__(
         self,
         project_context: ProjectContext,
-        identifier: typing.Optional[str] = None,
-        sample_store: typing.Optional[
-            orchestrator.core.samplestore.base.ActiveSampleStore
-        ] = None,
-        entitySpace: typing.Optional[EntitySpaceRepresentation] = None,
-        measurementSpace: typing.Optional[MeasurementSpace] = None,
+        identifier: str | None = None,
+        sample_store: (
+            orchestrator.core.samplestore.base.ActiveSampleStore | None
+        ) = None,
+        entitySpace: EntitySpaceRepresentation | None = None,
+        measurementSpace: MeasurementSpace | None = None,
         properties: orchestrator.core.discoveryspace.config.DiscoverySpaceProperties = orchestrator.core.discoveryspace.config.DiscoverySpaceProperties(),
-        metadata: typing.Optional[
-            orchestrator.core.metadata.ConfigurationMetadata
-        ] = None,
+        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
     ):
         """
 
@@ -533,9 +531,9 @@ class DiscoverySpace:
         self,
         property_type: PropertyFormatType = "observed",
         virtualPropertyIdentifiers=None,
-        aggregationMethod: typing.Optional[
-            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum
-        ] = None,
+        aggregationMethod: (
+            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+        ) = None,
     ) -> "DataFrame":
         """Returns a dataframe contain entities with at least one measured property"""
 
@@ -576,9 +574,9 @@ class DiscoverySpace:
         self,
         property_type: PropertyFormatType = "observed",
         virtualPropertyIdentifiers=None,
-        aggregationMethod: typing.Optional[
-            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum
-        ] = None,
+        aggregationMethod: (
+            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+        ) = None,
     ) -> "DataFrame":
         """Returns a dataframe containing entities in the sample store with at least one measured property
 
@@ -755,7 +753,7 @@ class DiscoverySpace:
         self,
         operation_id: str,
         output_format: typing.Literal["target", "observed"],
-        limit_to_properties: typing.Optional[list[str]] = None,
+        limit_to_properties: list[str] | None = None,
     ) -> "DataFrame":
         return self.sample_store.complete_measurement_request_with_results_timeseries(
             operation_id=operation_id,

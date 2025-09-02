@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -41,7 +41,7 @@ def template_resource(
         ),
     ],
     operator_name: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             help="""
             Name of the operator to use in the operation. If unset, a generic operation will be output.
@@ -53,7 +53,7 @@ def template_resource(
         ),
     ] = None,
     actuator_identifier: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             help="""
             Identifier of the actuator to template a configuration for.
@@ -66,7 +66,7 @@ def template_resource(
         ),
     ] = None,
     from_experiments: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--from-experiment",
             "-e",
@@ -85,7 +85,7 @@ def template_resource(
         ),
     ] = None,
     operator_type: Annotated[
-        Optional[orchestrator.core.operation.config.DiscoveryOperationEnum],
+        orchestrator.core.operation.config.DiscoveryOperationEnum | None,
         typer.Option(
             help="""
             Type of the operator to use in the operation.
@@ -106,7 +106,7 @@ def template_resource(
         ),
     ] = False,
     output: Annotated[
-        Optional[pathlib.Path],
+        pathlib.Path | None,
         typer.Option(
             "--output",
             "-o",

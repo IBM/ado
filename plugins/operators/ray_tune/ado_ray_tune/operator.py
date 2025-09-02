@@ -5,7 +5,7 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import pydantic
 import ray
@@ -129,7 +129,7 @@ class OrchTrainableParameters(pydantic.BaseModel):
 
     operation_id: str
     ray_tune_actor_name: str
-    ray_tune_actor_namespace: Optional[str]
+    ray_tune_actor_namespace: str | None
     measurement_space: MeasurementSpace
     entity_space: EntitySpaceRepresentation
     actuators: dict
@@ -361,7 +361,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     # The following code either returns the last available value or if the metric is virtual aggregates it
     # It also handles the case where no value of target metric is available
     final_results = {}
-    virtual_property: Optional[VirtualObservedProperty] = None
+    virtual_property: VirtualObservedProperty | None = None
     # Check if we have a result for the target trainable metric.
     # It will be None if target_metric is a virtual metric or somehow it's not a valid identifier
     if not allResults.get(trainable_params.target_metric):
@@ -655,7 +655,7 @@ class RayTune(Search):
         namespace: str,
         state: DiscoverySpaceManager,
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
-        params: Optional[dict] = None,
+        params: dict | None = None,
     ):
         import os
 

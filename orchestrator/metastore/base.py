@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import abc
-import typing
 
 import pandas as pd
 import pydantic
@@ -99,7 +98,7 @@ class ResourceStore(abc.ABC):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
-    ) -> typing.Optional[ADOResource]:
+    ) -> ADOResource | None:
         """Returns the resource object with the given identifier
 
         NOTE:
@@ -138,7 +137,7 @@ class ResourceStore(abc.ABC):
         self,
         kind: str,
         version: str | None = None,
-        field_selectors: typing.Optional[list[dict[str, str]]] = None,
+        field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
     ) -> pd.DataFrame:
         """Returns a Pandas dataframe containing identifiers of the given resource type
@@ -162,7 +161,7 @@ class ResourceStore(abc.ABC):
         self,
         kind: str,
         version: str | None = None,
-        field_selectors: typing.Optional[list[dict[str, str]]] = None,
+        field_selectors: list[dict[str, str]] | None = None,
     ) -> dict[str, ADOResource]:
         """Returns all resource objects of a given kind
 

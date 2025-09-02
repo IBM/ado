@@ -44,7 +44,7 @@ def show_requests_for_resources(
         ),
     ] = AdoShowRequestsSupportedOutputFormats.CONSOLE.value,
     hide_fields: Annotated[
-        typing.Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--hide",
             show_default=False,

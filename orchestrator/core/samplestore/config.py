@@ -34,7 +34,7 @@ class SampleStoreSpecification(pydantic.BaseModel):
 
     # Note: type is Any as using ResourceLocation causes the serialisation
     # to use ResourceLocation for some reason (pydantic 2.8)
-    storageLocation: typing.Optional[typing.Any] = pydantic.Field(
+    storageLocation: typing.Any | None = pydantic.Field(
         default=None,
         description="Defines where the SampleStore is stored. Must be compatible with module and "
         "be and an instance of ResourceLocation or a subclass "
@@ -86,7 +86,7 @@ class SampleStoreReference(SampleStoreSpecification):
 
     model_config = ConfigDict(extra="forbid")
 
-    identifier: typing.Optional[str] = pydantic.Field(
+    identifier: str | None = pydantic.Field(
         default=None,
         description="The identifier of the sample store. "
         "Required if this information is not specified in the storageLocation",

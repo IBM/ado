@@ -92,7 +92,7 @@ class ActuatorBase(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         """Returns the Actuators ExperimentCatalog
 

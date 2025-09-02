@@ -209,9 +209,7 @@ class EntitySpaceRepresentation:
                 p.breakable()
                 p.breakable()
 
-    def propertyWithIdentifier(
-        self, identifier: str
-    ) -> typing.Optional[ConstitutiveProperty]:
+    def propertyWithIdentifier(self, identifier: str) -> ConstitutiveProperty | None:
         """Returns the constitutive property with identifier or None if there is None"""
 
         return self._propertyLookup.get(identifier)
@@ -333,7 +331,7 @@ class EntitySpaceRepresentation:
     def entity_for_point(
         self,
         point: dict[str, tuple[typing.Any]],
-        results: typing.Optional[list[MeasurementResult]] = None,
+        results: list[MeasurementResult] | None = None,
     ) -> Entity:
         """
         Parameters:

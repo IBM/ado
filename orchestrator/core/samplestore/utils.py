@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 
 import orchestrator.core
 import orchestrator.metastore.sqlstore
@@ -19,7 +18,7 @@ moduleLogger = logging.getLogger("sample-store-utils")
 
 
 def initialize_sample_store_from_specification(
-    identifier: typing.Optional[str],
+    identifier: str | None,
     spec: SampleStoreSpecification,
 ) -> SampleStore:
     """Load an existing SampleStore called identifier, or creates a new one if no identifier given

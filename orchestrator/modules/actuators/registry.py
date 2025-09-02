@@ -67,9 +67,7 @@ class ActuatorRegistry:
 
     def __init__(
         self,
-        actuator_configurations: typing.Optional[
-            dict[str, GenericActuatorParameters]
-        ] = None,
+        actuator_configurations: dict[str, GenericActuatorParameters] | None = None,
     ):
         """Detects and loads Actuator plugins"""
 

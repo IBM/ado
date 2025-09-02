@@ -27,7 +27,7 @@ def pydantic_model_as_yaml(
     exclude_defaults: bool = False,
     exclude_none: bool = False,
     indent: int = 2,
-    context: typing.Optional[typing.Any] = None,
+    context: typing.Any | None = None,
 ) -> str:
 
     model = printable_pydantic_model(model)

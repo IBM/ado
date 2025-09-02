@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 from typing import Any, AsyncGenerator, Generator
 
 import numpy as np
@@ -68,7 +67,7 @@ def _build_groups_list(entities: list[Entity], group: list[str]) -> list[list[En
 
 async def _get_grouped_sample_async(
     generator: AsyncGenerator[list[Entity], None],
-) -> typing.Optional[list[Entity]]:
+) -> list[Entity] | None:
     try:
         return await anext(generator)
     except (StopAsyncIteration, StopIteration):
@@ -77,7 +76,7 @@ async def _get_grouped_sample_async(
 
 def _get_grouped_sample(
     generator: Generator[list[Entity], None, None],
-) -> typing.Optional[list[Entity]]:
+) -> list[Entity] | None:
     try:
         return next(generator)
     except (StopAsyncIteration, StopIteration):

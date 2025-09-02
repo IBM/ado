@@ -28,13 +28,13 @@ def was_gpu_in_use(
 
 @dataclasses.dataclass
 class AggregatedValues:
-    avg: typing.Optional[float] = dataclasses.field(default=-1.0)
-    min: typing.Optional[float] = dataclasses.field(default=-1.0)
-    max: typing.Optional[float] = dataclasses.field(default=-1.0)
+    avg: float | None = dataclasses.field(default=-1.0)
+    min: float | None = dataclasses.field(default=-1.0)
+    max: float | None = dataclasses.field(default=-1.0)
 
 
 def aggregate_values(
-    values: list[float] | dict[str, typing.Optional[float]],
+    values: list[float] | dict[str, float | None],
 ) -> float | AggregatedValues:
     if isinstance(values, list):
         len_values = 0
@@ -191,9 +191,9 @@ class Metrics:
     training_steps: int = dataclasses.field(
         metadata={"help": "The number of training steps"},
     )
-    aim_run_hash: typing.Optional[str] = None
-    train_time_start: typing.Optional[datetime.datetime] = None
-    train_time_stop: typing.Optional[datetime.datetime] = None
+    aim_run_hash: str | None = None
+    train_time_start: datetime.datetime | None = None
+    train_time_stop: datetime.datetime | None = None
     hostname_gpus: dict[str, list[int]] = dataclasses.field(
         default_factory=dict,
         metadata={
@@ -204,7 +204,7 @@ class Metrics:
 
     def to_scalar_observations(
         self,
-        distributed_backend: typing.Optional[typing.Literal["FSDP", "DDP"]],
+        distributed_backend: typing.Literal["FSDP", "DDP"] | None,
     ) -> dict[str, float]:
         scalar_observations = {}
         import dataclasses
@@ -450,7 +450,7 @@ class ResourceTracker:
         self._end_requested = Event()
         self._stopped = Event()
 
-        self._thread: typing.Optional[Thread] = None
+        self._thread: Thread | None = None
         self._stopped.set()
         self._period = period
 
@@ -550,9 +550,7 @@ class ResourceTracker:
 
         return aggregated_stat
 
-    def to_metrics(
-        self, train_output: "typing.Optional[EnhancedTrainOutput]"
-    ) -> Metrics:
+    def to_metrics(self, train_output: "EnhancedTrainOutput | None") -> Metrics:
         self._log.debug("Waiting for stat tracker thread to finish")
         self._stopped.wait()
 

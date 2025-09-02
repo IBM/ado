@@ -4,7 +4,6 @@
 
 import os
 import pathlib
-import typing
 
 import pytest
 import sqlalchemy
@@ -175,7 +174,7 @@ def create_active_ado_context():
 
 
 @pytest.fixture(scope="module", params=["mysql", "sqlite"])
-def ado_test_file_project_context(request) -> typing.Optional[ProjectContext]:
+def ado_test_file_project_context(request) -> ProjectContext | None:
 
     import yaml
 

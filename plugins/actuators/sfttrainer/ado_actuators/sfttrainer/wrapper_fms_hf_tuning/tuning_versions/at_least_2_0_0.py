@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 
 
 def parse_arguments_and_execute_wrapper(
-    callbacks: typing.Optional[list["transformers.trainer_callback.TrainerCallback"]],
+    callbacks: list["transformers.trainer_callback.TrainerCallback"] | None,
     job_config: dict[str, typing.Any],
 ):
 

@@ -69,7 +69,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     )
     timestamp: datetime.datetime = pydantic.Field(default_factory=timestamp)
 
-    measurements: typing.Optional[tuple[MeasurementResult, ...]] = pydantic.Field(
+    measurements: tuple[MeasurementResult, ...] | None = pydantic.Field(
         default=None,
         description="The results of the measurement",
     )
@@ -145,7 +145,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     @classmethod
     def validate_measurements(
         cls,
-        value: typing.Optional[list[ValidMeasurementResult | InvalidMeasurementResult]],
+        value: list[ValidMeasurementResult | InvalidMeasurementResult] | None,
         values: pydantic.ValidationInfo,
     ):
 
@@ -210,7 +210,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
 
     def measurement_for_entity(
         self, entity_identifier: str
-    ) -> typing.Optional[ValidMeasurementResult | InvalidMeasurementResult]:
+    ) -> ValidMeasurementResult | InvalidMeasurementResult | None:
         """Returns the measurement for the requested entity identifier.
 
         If no measurements have been set returns None
@@ -240,7 +240,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     def series_representation(
         self,
         output_format: typing.Literal["target", "observed"],
-        virtual_target_property_identifiers: typing.Optional[list[str]] = None,
+        virtual_target_property_identifiers: list[str] | None = None,
     ) -> list["pd.Series"]:
 
         import pandas as pd

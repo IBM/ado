@@ -46,7 +46,7 @@ class Entity(pydantic.BaseModel):
 
     """
 
-    identifier: typing.Optional[str] = pydantic.Field(
+    identifier: str | None = pydantic.Field(
         default=None,
         description="An id that uniquely defines this entity w.r.t others."
         "If one is not supplied it is generated from the constitutive properties",
@@ -63,7 +63,7 @@ class Entity(pydantic.BaseModel):
         description="A list of ValidMeasurementResult objects giving values for observed properties. "
         "InvalidMeasurementResults are not supported.",
     )
-    metadata: typing.Optional[dict] = pydantic.Field(
+    metadata: dict | None = pydantic.Field(
         default=None, description="Additional metadata on this entity"
     )
     model_config = ConfigDict(
@@ -317,7 +317,7 @@ class Entity(pydantic.BaseModel):
 
     def virtualObservedPropertiesFromIdentifier(
         self, identifier
-    ) -> typing.Optional[list[VirtualObservedProperty]]:
+    ) -> list[VirtualObservedProperty] | None:
         """Returns a list of VirtualObservedProperty instances given a virtual property identifier
 
         A virtual property identifier has two parts - the base property identifier and the aggregation method identifier
@@ -437,10 +437,10 @@ class Entity(pydantic.BaseModel):
 
     def seriesRepresentation(
         self,
-        experimentReferences: typing.Optional[list[ExperimentReference]] = None,
+        experimentReferences: list[ExperimentReference] | None = None,
         constitutiveOnly: bool = False,
-        virtualTargetPropertyIdentifiers: typing.Optional[list[str]] = None,
-        aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
+        virtualTargetPropertyIdentifiers: list[str] | None = None,
+        aggregationMethod: PropertyAggregationMethodEnum | None = None,
     ) -> "pd.Series":
         """Returns a pandas series containing the receivers constitutive and optional observed property values
 
@@ -546,9 +546,9 @@ class Entity(pydantic.BaseModel):
 
     def experimentSeries(
         self,
-        experimentReferences: typing.Optional[list[ExperimentReference]] = None,
-        virtualTargetPropertyIdentifiers: typing.Optional[list[str]] = None,
-        aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
+        experimentReferences: list[ExperimentReference] | None = None,
+        virtualTargetPropertyIdentifiers: list[str] | None = None,
+        aggregationMethod: PropertyAggregationMethodEnum | None = None,
     ):
         """Returns a tuple of series' where each series contains the observed property values for a specific experiment (protocol).
 

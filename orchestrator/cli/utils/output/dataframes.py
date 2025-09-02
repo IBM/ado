@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import typing
-from typing import Literal, Optional
+from typing import Literal
 
 import typer
 
@@ -25,7 +25,7 @@ DATAFRAME_COLS_THRESHOLD = 20
 def df_to_output(
     df: "pd.DataFrame",
     output_format: Literal["console", "json", "csv"],
-    file_name: Optional[str] = None,
+    file_name: str | None = None,
 ):
     if output_format != "console" and not file_name:
         console_print(

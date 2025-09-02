@@ -33,7 +33,7 @@ valueTypesDisplayNames = {
 class PropertyValue(pydantic.BaseModel):
     """Represents the value of a property"""
 
-    valueType: typing.Optional[ValueTypeEnum] = pydantic.Field(
+    valueType: ValueTypeEnum | None = pydantic.Field(
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
@@ -45,7 +45,7 @@ class PropertyValue(pydantic.BaseModel):
     ] = pydantic.Field(
         description="The ObservedProperty or ConstitutiveProperty instance that this is a measurement of"
     )
-    uncertainty: typing.Optional[float] = pydantic.Field(
+    uncertainty: float | None = pydantic.Field(
         default=None, description="The uncertainty in the measured value. Can be None"
     )
 

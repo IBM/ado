@@ -3,7 +3,6 @@
 
 import copy
 import logging
-from typing import Optional
 
 import numpy as np
 import ray
@@ -16,11 +15,11 @@ from orchestrator.schema.entityspace import EntitySpaceRepresentation
 class LhuSampler(ray.tune.search.Searcher):
     def __init__(
         self,
-        space: Optional[dict | list[dict]] = None,
-        metric: Optional[str] = None,
-        mode: Optional[str] = None,
-        points_to_evaluate: Optional[list[dict]] = None,
-        entity_space: Optional[EntitySpaceRepresentation] = None,
+        space: dict | list[dict] | None = None,
+        metric: str | None = None,
+        mode: str | None = None,
+        points_to_evaluate: list[dict] | None = None,
+        entity_space: EntitySpaceRepresentation | None = None,
     ):
 
         if mode:
@@ -86,8 +85,8 @@ class LhuSampler(ray.tune.search.Searcher):
 
     def set_search_properties(
         self,
-        metric: Optional[str],
-        mode: Optional[str],
+        metric: str | None,
+        mode: str | None,
         config: dict,
         **spec,
     ):
@@ -101,7 +100,7 @@ class LhuSampler(ray.tune.search.Searcher):
         self._setup_experiment()
         return True
 
-    def suggest(self, trial_id: str) -> Optional[dict]:
+    def suggest(self, trial_id: str) -> dict | None:
         if not self._space:
             raise RuntimeError(
                 ray.tune.search.UNDEFINED_SEARCH_SPACE.format(
@@ -160,7 +159,7 @@ class LhuSampler(ray.tune.search.Searcher):
         return space
 
     def on_trial_complete(
-        self, trial_id: str, result: Optional[dict] = None, error: bool = False
+        self, trial_id: str, result: dict | None = None, error: bool = False
     ) -> None:
         # we don't care??
         return None

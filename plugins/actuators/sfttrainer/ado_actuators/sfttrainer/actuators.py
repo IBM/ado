@@ -184,14 +184,14 @@ class ActuatorParameters(
         description="The directory that contains the data files",
     )
 
-    aim_dashboard_url: typing.Optional[str] = pydantic.Field(
+    aim_dashboard_url: str | None = pydantic.Field(
         # VV: This points to the AIM Instance on AD Morrigan
         default="https://aim-discovery-dev.apps.morrigan.accelerated-discovery.res.ibm.com",
         description="The AIM Dashboard endpoint. When set, the actuator inserts the aim_url field "
         "in the MeasurementResult.metadata object that is associated with the measurement",
     )
 
-    aim_db: typing.Optional[str] = pydantic.Field(
+    aim_db: str | None = pydantic.Field(
         # VV: on the AD-Morrigan cluster you can also use "aim://aim.aim.svc.cluster.local:53800"
         default="aim://api.morrigan.accelerated-discovery.res.ibm.com:30617",
         description="The AIM server endpoint",
@@ -209,7 +209,7 @@ class ActuatorParameters(
         "The contents of this dictionary will override the defaults that ship with the Actuator.",
     )
 
-    num_tokens_cache_directory: typing.Optional[str] = pydantic.Field(
+    num_tokens_cache_directory: str | None = pydantic.Field(
         default="cache",
         description="Use this to cache the number of tokens in the dataset so that we don't compute it over and over. "
         "It can take a few minutes to compute how many tokens are in a dataset, and that number depends on "
@@ -311,8 +311,8 @@ class FinetuneContext:
 
     def generate_method_call(
         self,
-        scheduling_strategy: typing.Optional[PlacementGroupSchedulingStrategy] = None,
-        multi_node: typing.Optional[finetune.MultiNodeSettings] = None,
+        scheduling_strategy: PlacementGroupSchedulingStrategy | None = None,
+        multi_node: finetune.MultiNodeSettings | None = None,
     ) -> "ray.Actor":
         # VV: FIXME this is not a ray.Actor, what is it ?
         extra = self.extra.copy()
@@ -557,8 +557,8 @@ class SFTTrainer(ActuatorBase):
         aim_metadata: dict[str, typing.Any],
         method: "ray.actor.ActorMethod",
         distributed_settings: finetune.DistributedSettings,
-        multi_node: typing.Optional[finetune.MultiNodeSettings] = None,
-        log_level: typing.Optional[int] = None,
+        multi_node: finetune.MultiNodeSettings | None = None,
+        log_level: int | None = None,
     ) -> dict[str, float]:
         metrics = {
             "f_gpu_oom": 0,
@@ -977,7 +977,7 @@ class SFTTrainer(ActuatorBase):
         context: FinetuneContext,
         entity: "Entity",
         method: "ray.Actor",
-        multi_node: typing.Optional[finetune.MultiNodeSettings],
+        multi_node: finetune.MultiNodeSettings | None,
     ) -> typing.Coroutine:
         distributed_settings = context.generate_distributed_settings()
 
@@ -1088,7 +1088,7 @@ class SFTTrainer(ActuatorBase):
         metrics: "metrics_tracker.Metrics",
         entity: "Entity",
         exp: "Experiment",
-        distributed_backend: typing.Optional[typing.Literal["FSDP", "DDP"]],
+        distributed_backend: typing.Literal["FSDP", "DDP"] | None,
     ) -> dict[str, typing.Any]:
         try:
             return metrics.to_scalar_observations(
@@ -1127,7 +1127,7 @@ class SFTTrainer(ActuatorBase):
 
         # VV: This is just to make the linter happy
         exp = None
-        context: typing.Optional[FinetuneContext] = None
+        context: FinetuneContext | None = None
         scalar_observations: dict[str, typing.Any] = {}
 
         try:
@@ -1375,6 +1375,6 @@ class SFTTrainer(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return catalog

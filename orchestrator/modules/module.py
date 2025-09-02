@@ -3,7 +3,6 @@
 
 import enum
 import logging
-import typing
 
 import pydantic
 from pydantic import ConfigDict
@@ -26,7 +25,7 @@ class ModuleConf(pydantic.BaseModel):
     moduleType: ModuleTypeEnum = pydantic.Field(
         description="The type of resource the module contains"
     )
-    moduleName: typing.Optional[str] = pydantic.Field(
+    moduleName: str | None = pydantic.Field(
         default=None,
         validate_default=True,
         description="The name or module path of the python module "
@@ -36,14 +35,14 @@ class ModuleConf(pydantic.BaseModel):
         default=".",
         description="The location of the module on filesystem. Required if its not in sys.path",
     )
-    moduleClass: typing.Optional[str] = pydantic.Field(
+    moduleClass: str | None = pydantic.Field(
         default=None,
         validate_default=True,
         description="A class in the module that provides the resource. "
         "Some module may not supply resources in a class. "
         "If None a guess will be made based on moduleType",
     )
-    moduleFunction: typing.Optional[str] = pydantic.Field(
+    moduleFunction: str | None = pydantic.Field(
         default=None,
         validate_default=True,
         description="The function for the function actuators.",

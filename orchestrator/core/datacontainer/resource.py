@@ -50,11 +50,11 @@ class TabularData(pydantic.BaseModel):
 
 class DataContainer(pydantic.BaseModel):
 
-    tabularData: typing.Optional[dict[str, TabularData]] = pydantic.Field(
+    tabularData: dict[str, TabularData] | None = pydantic.Field(
         default=None,
         description="Contains a dictionary whose values are string representations of dataframes",
     )
-    locationData: typing.Optional[
+    locationData: (
         dict[
             str,
             orchestrator.utilities.location.SQLStoreConfiguration
@@ -62,11 +62,12 @@ class DataContainer(pydantic.BaseModel):
             | orchestrator.utilities.location.FilePathLocation
             | orchestrator.utilities.location.ResourceLocation,
         ]
-    ] = pydantic.Field(
+        | None
+    ) = pydantic.Field(
         default=None,
         description="A dictionary whose values are references to data i.e. data locations",
     )
-    data: typing.Optional[dict[str, dict | list | typing.AnyStr]] = pydantic.Field(
+    data: dict[str, dict | list | typing.AnyStr] | None = pydantic.Field(
         default=None,
         description="A dictionary of other pydantic objects e.g. lists, dicts, strings,",
     )

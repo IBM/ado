@@ -25,9 +25,7 @@ class SampleStore(abc.ABC):
     @abc.abstractmethod
     def experimentCatalogFromReference(
         cls,
-        reference: typing.Optional[
-            orchestrator.core.samplestore.config.SampleStoreReference
-        ],
+        reference: orchestrator.core.samplestore.config.SampleStoreReference | None,
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:  # pragma: nocover
         """ "
         Returns a catalog of the external experiments defined by a SampleStore
@@ -40,9 +38,9 @@ class SampleStore(abc.ABC):
     @abc.abstractmethod
     def experimentCatalog(
         self,
-    ) -> typing.Optional[
-        orchestrator.modules.actuators.catalog.ExperimentCatalog
-    ]:  # pragma: nocover
+    ) -> (
+        orchestrator.modules.actuators.catalog.ExperimentCatalog | None
+    ):  # pragma: nocover
 
         pass
 
@@ -181,7 +179,7 @@ class ActiveSampleStore(SampleStore, ABC):
     @abc.abstractmethod
     def entityWithIdentifier(
         self, entityIdentifier
-    ) -> typing.Optional[Entity]:  # pragma: nocover
+    ) -> Entity | None:  # pragma: nocover
         # TODO: Probably this should also be supported by PassiveSampleStore
         pass
 
@@ -213,7 +211,7 @@ class SampleStoreDescription(pydantic.BaseModel):
     experiments: list[ExperimentDescription] = pydantic.Field(
         default=[], description="A list describing the experiments in the source"
     )
-    generatorIdentifier: typing.Optional[str] = pydantic.Field(
+    generatorIdentifier: str | None = pydantic.Field(
         default=None, description="The id of the entity generator"
     )
 

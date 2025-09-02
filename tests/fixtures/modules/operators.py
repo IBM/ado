@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pytest
 from ado_ray_tune.operator import RayTune
@@ -41,7 +40,7 @@ def operator_module_conf(request):
 @pytest.fixture(params=["all", "value"])
 def randomWalkConf(
     request,
-) -> typing.Optional[DiscoveryOperationResourceConfiguration]:
+) -> DiscoveryOperationResourceConfiguration | None:
 
     import yaml
 
@@ -58,7 +57,7 @@ def randomWalkConf(
 @pytest.fixture(params=["valueGreaterThanSize", "extraField"])
 def invalidRandomWalkConf(
     request,
-) -> typing.Optional[DiscoveryOperationResourceConfiguration]:
+) -> DiscoveryOperationResourceConfiguration | None:
 
     import yaml
 
@@ -78,7 +77,7 @@ def invalidRandomWalkConf(
 
 
 @pytest.fixture
-def raytuneConf() -> typing.Optional[DiscoveryOperationResourceConfiguration]:
+def raytuneConf() -> DiscoveryOperationResourceConfiguration | None:
 
     import yaml
 

@@ -71,7 +71,7 @@ class ProbabilityFunction(pydantic.BaseModel):
     )
     # Whatever parameters the probability function takes.
     # Should take range, interval, and categories
-    parameters: typing.Optional[dict] = pydantic.Field(default=None)
+    parameters: dict | None = pydantic.Field(default=None)
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -111,14 +111,14 @@ class ProbabilityFunction(pydantic.BaseModel):
 class PropertyDomain(pydantic.BaseModel):
     """Describes the domain of a property"""
 
-    values: typing.Optional[list[typing.Any]] = pydantic.Field(
+    values: list[typing.Any] | None = pydantic.Field(
         default=None, description="The values for a discrete or categorical domain"
     )
-    interval: typing.Optional[int | float] = pydantic.Field(
+    interval: int | float | None = pydantic.Field(
         default=None,
         description="The interval between discrete values variables. Do not set if values is set",
     )  # Only makes sense for discrete variables.
-    domainRange: typing.Optional[list[int | float]] = pydantic.Field(
+    domainRange: list[int | float] | None = pydantic.Field(
         description="The range of the domain for discrete or continuous variables. Inclusive of lower bound exclusive of upper bound. Calculated automatically if values is given.",
         default=None,
         validate_default=True,
@@ -171,7 +171,7 @@ class PropertyDomain(pydantic.BaseModel):
     @pydantic.field_validator("domainRange")
     def range_requirements(
         cls,
-        passed_range: typing.Optional[list[int | float]],
+        passed_range: list[int | float] | None,
         otherFields: "pydantic.FieldValidationInfo",
     ):
 

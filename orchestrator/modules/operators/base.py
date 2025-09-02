@@ -89,7 +89,7 @@ class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):
     # async def run(self, discoveryState):
     #     pass
 
-    async def run(self) -> typing.Optional[OperationOutput]:
+    async def run(self) -> OperationOutput | None:
         pass
 
 
@@ -99,7 +99,7 @@ class MultivariateDiscoveryOperation(metaclass=abc.ABCMeta):
     # async def run(self, *discoveryStates):
     #     pass
 
-    async def run(self) -> typing.Optional[OperationOutput]:
+    async def run(self) -> OperationOutput | None:
         pass
 
 
@@ -308,14 +308,12 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
     def __init__(
         self,
         operationActorName: str,
-        namespace: typing.Optional[str],
+        namespace: str | None,
         state: DiscoverySpaceManager,
         # Will actually be ray.actor.ActorHandle accessing InternalState
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: typing.Any = None,
-        metadata: typing.Optional[
-            orchestrator.core.metadata.ConfigurationMetadata
-        ] = None,
+        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
     ):
         # Common code for StateSubscribingDiscoveryOperations
         self.state = state

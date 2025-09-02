@@ -74,7 +74,7 @@ class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments
     """
 
-    def __init__(self, queue, params: typing.Optional[dict] = None):
+    def __init__(self, queue, params: dict | None = None):
         """
 
         :param queue: The StateUpdates queue instance
@@ -213,7 +213,7 @@ class CustomExperiments(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return orchestrator.modules.actuators.catalog.ExperimentCatalog(
             catalogIdentifier="CustomExperiments"

@@ -128,7 +128,7 @@ def packages_requiring_nvidia_development_binaries():
     ]
 
 
-def parse_semver(what: str) -> typing.Optional[list]:
+def parse_semver(what: str) -> list | None:
     import re
 
     p = re.compile(r"(\d+)\.(\d+)\.(\d+)")
@@ -276,9 +276,9 @@ def apply_exclude_package_rules(
 
 def get_pinned_packages(
     path_requirements: str,
-    override_fms_hf_tuning: typing.Optional[str] = None,
+    override_fms_hf_tuning: str | None = None,
     ensure_aim: bool = True,
-    exclude_packages: typing.Optional[list[str]] = None,
+    exclude_packages: list[str] | None = None,
 ) -> list[str]:
     """Extracts the pinned packages from a path_requirements file
 
@@ -321,10 +321,10 @@ def get_pinned_packages(
 
 
 def get_ray_environment(
-    path_requirements: typing.Optional[str],
-    override_fms_hf_tuning: typing.Optional[str],
+    path_requirements: str | None,
+    override_fms_hf_tuning: str | None,
     ensure_aim: bool = True,
-    exclude_packages: typing.Optional[list[str]] = None,
+    exclude_packages: list[str] | None = None,
     backend: typing.Literal["uv", "pip"] = "pip",
 ) -> dict[str, typing.Any]:
     """Builds a ray-environment
@@ -671,7 +671,7 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
     )
 
     # VV: These represent optional properties
-    peft_method: typing.Optional[typing.Literal["pt", "lora"]] = pydantic.Field(
+    peft_method: typing.Literal["pt", "lora"] | None = pydantic.Field(
         # VV: We auto convert `"full"` into `None`
         examples=["full", "lora", "pt"],
         description='The tuning method. Set to "full" to perform full finetuning',
@@ -721,14 +721,14 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
         16, examples=[16], description="LORA Alpha scales the learning weights"
     )
 
-    fast_moe: typing.Optional[list[int]] = pydantic.Field(
+    fast_moe: list[int] | None = pydantic.Field(
         # VV: Here "0" is a stand in for "disabled" -> we translate this into a None via pydantic
         default=0,
         examples=[0, 1, 2, 4, 8],
         description="Configures the amount of expert parallel sharding. number_gpus must be divisible by it",
     )
 
-    fast_kernels: typing.Optional[list[str]] = pydantic.Field(
+    fast_kernels: list[str] | None = pydantic.Field(
         default=None,
         description="Switches on fast kernels, the value is a list with strings of boolean values for "
         "[fast_loss, fast_rms_layernorm, fast_rope_embeddings]",
@@ -767,7 +767,7 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
     )
 
     # VV: for image-to-text (vision) models
-    dataset_text_field: typing.Optional[str] = pydantic.Field(
+    dataset_text_field: str | None = pydantic.Field(
         default="output",
         examples=["output", "messages"],
         description="Training dataset text field containing single sequence. "
@@ -776,20 +776,20 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
         "For running vision language model tuning pass the column name for text data.",
     )
 
-    dataset_image_field: typing.Optional[str] = pydantic.Field(
+    dataset_image_field: str | None = pydantic.Field(
         default=None,
         examples=[None, "images"],
         description="For running vision language model tuning pass "
         "the column name of the image data in the dataset.",
     )
 
-    remove_unused_columns: typing.Optional[bool] = pydantic.Field(
+    remove_unused_columns: bool | None = pydantic.Field(
         default=True,
         examples=[True, False],
         description="Remove columns not required by the model when using an nlp.Dataset.",
     )
 
-    dataset_kwargs_skip_prepare_dataset: typing.Optional[bool] = pydantic.Field(
+    dataset_kwargs_skip_prepare_dataset: bool | None = pydantic.Field(
         default=False,
         examples=[True, False],
         description="When True, configures trl to skip preparing the dataset.",
@@ -802,15 +802,13 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
     )
 
     @pydantic.field_validator("peft_method", mode="before")
-    def upgrade_peft_method(cls, value: str) -> typing.Optional[str]:
+    def upgrade_peft_method(cls, value: str) -> str | None:
         if isinstance(value, str) and value == "full":
             return None
         return value
 
     @pydantic.field_validator("fast_moe", mode="before")
-    def upgrade_fast_moe(
-        cls, value: typing.Optional[int | list[int]]
-    ) -> typing.Optional[list[int]]:
+    def upgrade_fast_moe(cls, value: int | list[int] | None) -> list[int] | None:
         # VV: Currently, fast_moe has a single argument in it (ep_degree). It's easier to describe the property
         # domain of discrete values so we're going to assume that this is a single integer for now
         if isinstance(value, (int, float)):
@@ -860,7 +858,7 @@ class EntitySpace(SFTTrainerCLIArgs):
         exclude=True,
     )
 
-    gpu_model: typing.Optional[str] = pydantic.Field(
+    gpu_model: str | None = pydantic.Field(
         default=None,
         examples=[
             None,
@@ -876,13 +874,11 @@ class EntitySpace(SFTTrainerCLIArgs):
         exclude=True,
     )
 
-    distributed_backend: typing.Optional[typing.Literal["DDP", "FSDP"]] = (
-        pydantic.Field(
-            default="FSDP",
-            examples=["DDP", "FSDP", "None"],
-            description="Which pytorch backend to use when training with multiple GPU devices",
-            exclude=True,
-        )
+    distributed_backend: typing.Literal["DDP", "FSDP"] | None = pydantic.Field(
+        default="FSDP",
+        examples=["DDP", "FSDP", "None"],
+        description="Which pytorch backend to use when training with multiple GPU devices",
+        exclude=True,
     )
 
     number_nodes: int = pydantic.Field(
@@ -894,7 +890,7 @@ class EntitySpace(SFTTrainerCLIArgs):
         exclude=True,
     )
 
-    fms_hf_tuning_version: typing.Optional[str] = pydantic.Field(
+    fms_hf_tuning_version: str | None = pydantic.Field(
         # VV: In #1175 we decided that we're not going to update the default value of this experiment
         default="2.1.2",
         examples=list(FMS_HF_TUNING_VERSION),
@@ -961,23 +957,21 @@ class EntitySpace(SFTTrainerCLIArgs):
         )
     )
 
-    accelerate_config_fsdp_transformer_layer_cls_to_wrap: typing.Optional[str] = (
-        pydantic.Field(
-            default=None,
-            examples=[
-                None,
-                "GraniteDecoderLayer",
-                "LlamaDecoderLayer",
-                "MistralDecoderLayer",
-                "GPTJBlock",
-                "T5Block",
-            ],
-            description=(
-                "List of transformer layer class names (case-sensitive) to wrap, e.g, BertLayer, "
-                "GraniteDecoderLayer, GPTJBlock, T5Block ... (useful only when using FSDP)"
-            ),
-            exclude=True,
-        )
+    accelerate_config_fsdp_transformer_layer_cls_to_wrap: str | None = pydantic.Field(
+        default=None,
+        examples=[
+            None,
+            "GraniteDecoderLayer",
+            "LlamaDecoderLayer",
+            "MistralDecoderLayer",
+            "GPTJBlock",
+            "T5Block",
+        ],
+        description=(
+            "List of transformer layer class names (case-sensitive) to wrap, e.g, BertLayer, "
+            "GraniteDecoderLayer, GPTJBlock, T5Block ... (useful only when using FSDP)"
+        ),
+        exclude=True,
     )
 
     @pydantic.field_validator("dataset_id")
@@ -992,7 +986,7 @@ class EntitySpace(SFTTrainerCLIArgs):
         cls,
         property: str,
         field_info: pydantic.fields.FieldInfo,
-    ) -> "typing.Optional[PropertyDomain]":
+    ) -> "PropertyDomain | None":
         # VV: number_gpus need to be divisible by fast_moe so we can assume that they have the same range
         # also, both fast_moe and number_gpus can be set to 0
         gpus_range = [0, 32 + 1]
@@ -1035,7 +1029,7 @@ class EntitySpace(SFTTrainerCLIArgs):
         )
 
     @pydantic.field_validator("peft_method", mode="before")
-    def upgrade_peft_method(cls, value: typing.Optional[str]) -> typing.Optional[str]:
+    def upgrade_peft_method(cls, value: str | None) -> str | None:
         if isinstance(value, str) and value == "full":
             return None
 
@@ -1045,9 +1039,7 @@ class EntitySpace(SFTTrainerCLIArgs):
         "distributed_backend",
         mode="before",
     )
-    def set_none_string_to_none_literal(
-        cls, value: typing.Optional[str]
-    ) -> typing.Optional[str]:
+    def set_none_string_to_none_literal(cls, value: str | None) -> str | None:
         if isinstance(value, str) and value == "None":
             return None
 
@@ -1160,7 +1152,7 @@ class ExperimentParameters(pydantic.BaseModel):
         extra="forbid", protected_namespaces=(), use_enum_values=True
     )
 
-    multi_node: typing.Optional[bool] = pydantic.Field(
+    multi_node: bool | None = pydantic.Field(
         None,
         description="Set for experiments which can only do one of multi-node or single-gpu measurements",
         exclude=True,
@@ -1211,7 +1203,7 @@ class FullFinetuningExperimentsParameters(ExperimentParameters):
     )
 
     @pydantic.field_validator("peft_method", mode="before")
-    def upgrade_peft_method(cls, value: str) -> typing.Optional[str]:
+    def upgrade_peft_method(cls, value: str) -> str | None:
         if isinstance(value, str) and value == "full":
             return None
         return value

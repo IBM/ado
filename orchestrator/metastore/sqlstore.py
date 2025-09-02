@@ -4,7 +4,6 @@
 import json
 import logging
 import os
-import typing
 
 import pandas as pd
 import pydantic
@@ -117,7 +116,7 @@ class SQLResourceStore(ResourceStore):
 
         return engine_for_sql_store(configuration=self.configuration)
 
-    def getResourceRaw(self, identifier) -> typing.Optional[dict]:
+    def getResourceRaw(self, identifier) -> dict | None:
 
         query = sqlalchemy.text(
             "SELECT * FROM resources WHERE identifier=:identifier"
@@ -139,7 +138,7 @@ class SQLResourceStore(ResourceStore):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
-    ) -> typing.Optional[orchestrator.core.resources.ADOResource]:
+    ) -> orchestrator.core.resources.ADOResource | None:
 
         query = sqlalchemy.text(
             """
@@ -219,7 +218,7 @@ class SQLResourceStore(ResourceStore):
         self,
         kind: str,
         version: str | None = None,
-        field_selectors: typing.Optional[list[dict[str, str]]] = None,
+        field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
     ) -> pd.DataFrame:
 
@@ -348,7 +347,7 @@ class SQLResourceStore(ResourceStore):
         self,
         kind: str,
         version: str | None = None,
-        field_selectors: typing.Optional[list[dict[str, str]]] = None,
+        field_selectors: list[dict[str, str]] | None = None,
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Returns all resources of a given kind
 

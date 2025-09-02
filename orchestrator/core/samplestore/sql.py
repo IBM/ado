@@ -46,10 +46,8 @@ from orchestrator.utilities.pandas import (
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
-    identifier: typing.Optional[str] = pydantic.Field(
-        description="id for this sample store"
-    )
-    configuration: typing.Optional[SQLStoreConfiguration] = pydantic.Field(
+    identifier: str | None = pydantic.Field(description="id for this sample store")
+    configuration: SQLStoreConfiguration | None = pydantic.Field(
         None, description="connection information for database"
     )
 
@@ -68,10 +66,10 @@ class SQLSampleStore(ActiveSampleStore):
         csvPath: str,
         idColumn: str,
         storeConfiguration: SQLStoreConfiguration,
-        generatorIdentifier: typing.Optional[str] = None,
-        experimentIdentifier: typing.Optional[str] = None,
-        observedPropertyColumns: typing.Optional[list[str]] = None,
-        constitutivePropertyColumns: typing.Optional[list[str]] = None,
+        generatorIdentifier: str | None = None,
+        experimentIdentifier: str | None = None,
+        observedPropertyColumns: list[str] | None = None,
+        constitutivePropertyColumns: list[str] | None = None,
     ):
 
         csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
@@ -154,7 +152,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     def experimentCatalog(
         self,
-    ) -> typing.Optional[ExperimentCatalog]:
+    ) -> ExperimentCatalog | None:
 
         try:
             entity = self.entities[0]
@@ -259,9 +257,9 @@ class SQLSampleStore(ActiveSampleStore):
 
     def __init__(
         self,
-        identifier: typing.Optional[str],
+        identifier: str | None,
         storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
-        parameters: typing.Optional[dict],
+        parameters: dict | None,
     ):
 
         import uuid
@@ -725,7 +723,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         results: list[MeasurementResult],
         skip_relationship_to_request: bool,
-        request_db_id: typing.Optional[uuid.uuid4] = None,
+        request_db_id: uuid.uuid4 | None = None,
     ):
         if len(results) == 0:
             return
@@ -804,8 +802,8 @@ class SQLSampleStore(ActiveSampleStore):
     def measurement_requests_count_for_operation(
         self,
         operation_id: str,
-        experiment_filter: typing.Optional[str] = None,
-        status_filter: typing.Optional[MeasurementRequestStateEnum] = None,
+        experiment_filter: str | None = None,
+        status_filter: MeasurementRequestStateEnum | None = None,
     ):
 
         query_text = f"""
@@ -835,8 +833,8 @@ class SQLSampleStore(ActiveSampleStore):
     def measurement_results_count_for_operation(
         self,
         operation_id: str,
-        experiment_filter: typing.Optional[str] = None,
-        status_filter: typing.Optional[MeasurementResultStateEnum] = None,
+        experiment_filter: str | None = None,
+        status_filter: MeasurementResultStateEnum | None = None,
     ):
         result_state_map = {
             MeasurementResultStateEnum.VALID: "measurements",
@@ -1104,7 +1102,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         operation_id: str,
         output_format: typing.Literal["target", "observed"],
-        limit_to_properties: typing.Optional[list[str]] = None,
+        limit_to_properties: list[str] | None = None,
     ) -> pd.DataFrame:
         """
         Returns the complete timeseries of measurement requests and measurement results.

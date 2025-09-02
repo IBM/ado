@@ -498,7 +498,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
 def sample_random_entity_from_space(
     es: EntitySpaceRepresentation,
-) -> typing.Optional[Entity]:
+) -> Entity | None:
 
     # Sample an entity from the entity space
     s = ExplicitEntitySpaceGridSampleGenerator(mode=WalkModeEnum.RANDOM)

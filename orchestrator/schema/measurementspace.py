@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 
 import pydantic
 
@@ -53,7 +52,7 @@ class MeasurementSpace:
     def measurementSpaceFromSelection(
         cls,
         selectedExperiments: list[ExperimentReference],
-        experimentCatalogs: typing.Optional[list[ExperimentCatalog]] = None,
+        experimentCatalogs: list[ExperimentCatalog] | None = None,
     ):
         """
         A class method to create a MeasurementSpace that uses the actuator registry to find the selected experiments.

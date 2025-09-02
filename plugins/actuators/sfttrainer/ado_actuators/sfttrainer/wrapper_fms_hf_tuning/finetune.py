@@ -56,7 +56,7 @@ class AccelerateError(ExperimentError):
 
 
 class OutOfGPUMemoryError(ExperimentError):
-    def __init__(self, underlying_error: typing.Optional[Exception | str] = None):
+    def __init__(self, underlying_error: Exception | str | None = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -64,7 +64,7 @@ class OutOfGPUMemoryError(ExperimentError):
 
 
 class NCCLError(ExperimentError):
-    def __init__(self, underlying_error: typing.Optional[Exception | str] = None):
+    def __init__(self, underlying_error: Exception | str | None = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -72,7 +72,7 @@ class NCCLError(ExperimentError):
 
 
 class UnhandledError(NotImplementedError):
-    def __init__(self, underlying_error: typing.Optional[Exception | str] = None):
+    def __init__(self, underlying_error: Exception | str | None = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -86,14 +86,14 @@ class MultiNodeSettings:
     port_is_local: bool = False
     num_machines: int = 1
     machine_rank: int = 0
-    ip: typing.Optional[str] = None
-    port: typing.Optional[int] = None
+    ip: str | None = None
+    port: int | None = None
     nccl_ib_disable: int = 0
 
 
 @dataclasses.dataclass
 class DistributedSettings:
-    backend: typing.Optional[typing.Literal["FSDP", "DDP"]] = dataclasses.field(
+    backend: typing.Literal["FSDP", "DDP"] | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Which backend to use. FSDP or DDP for multi-process experiments and "
@@ -116,9 +116,10 @@ class DistributedSettings:
         },
     )
 
-    fsdp_state_dict_type: typing.Optional[
+    fsdp_state_dict_type: (
         typing.Literal["FULL_STATE_DICT", "LOCAL_STATE_DICT", "SHARDED_STATE_DICT"]
-    ] = dataclasses.field(
+        | None
+    ) = dataclasses.field(
         default="FULL_STATE_DICT",
         metadata={
             "help": "[1] FULL_STATE_DICT, [2] LOCAL_STATE_DICT, [3] SHARDED_STATE_DICT"
@@ -143,7 +144,7 @@ class DistributedSettings:
         )
     )
 
-    accelerate_config_fsdp_transformer_layer_cls_to_wrap: typing.Optional[str] = (
+    accelerate_config_fsdp_transformer_layer_cls_to_wrap: str | None = (
         dataclasses.field(
             default=None,
             metadata={
@@ -168,7 +169,7 @@ class FineTuneArgs:
         },
     )
 
-    aim_db: typing.Optional[str] = dataclasses.field(
+    aim_db: str | None = dataclasses.field(
         default=None,
         metadata={"help": "The AIM endpoint"},
     )
@@ -199,7 +200,7 @@ class FineTuneArgs:
         },
     )
 
-    gradient_checkpointing: typing.Optional[bool] = dataclasses.field(
+    gradient_checkpointing: bool | None = dataclasses.field(
         default=None,
         metadata={
             "help": "If True, use gradient checkpointing to save memory at the expense of "
@@ -216,14 +217,14 @@ class FineTuneArgs:
     num_train_epochs: float = dataclasses.field(
         default=1.0, metadata={"help": "Total number of training epochs to perform."}
     )
-    stop_after_seconds: typing.Optional[float] = dataclasses.field(
+    stop_after_seconds: float | None = dataclasses.field(
         default=None,
         metadata={
             "help": "If set, the optimizer will be asked to stop after the specified time elapses. "
             "The check is performed after the end of each training step."
         },
     )
-    peft_method: typing.Optional[str] = dataclasses.field(
+    peft_method: str | None = dataclasses.field(
         default="pt",
         metadata={
             "help": "The method to use, either pt, lora, or None (full fine tune)"
@@ -260,7 +261,7 @@ class FineTuneArgs:
         },
     )
 
-    fp16: typing.Optional[bool] = dataclasses.field(
+    fp16: bool | None = dataclasses.field(
         default=None,
         metadata={"help": "Whether to use fp16 (mixed) precision instead of 32-bit"},
     )
@@ -285,17 +286,17 @@ class FineTuneArgs:
     lora_dropout: float = 0.05
 
     # VV: Options for fused_ops_and_kernels
-    fast_kernels: typing.Optional[list[str]] = dataclasses.field(default=None)
-    fused_lora: typing.Optional[list[str]] = dataclasses.field(default=None)
+    fast_kernels: list[str] | None = dataclasses.field(default=None)
+    fused_lora: list[str] | None = dataclasses.field(default=None)
 
     # VV: options for AttentionAndDistributedPackingConfig
-    padding_free: typing.Optional[list[str]] = None
+    padding_free: list[str] | None = None
 
     # VV: This is a [str, bool] for the parameters (kernel, from_quantized)
-    auto_gptq: typing.Optional[list[str | bool]] = None
+    auto_gptq: list[str | bool] | None = None
 
     # VV: This is a [int] for the parameters (ep_degree)
-    fast_moe: typing.Optional[list[int]] = dataclasses.field(
+    fast_moe: list[int] | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Configures the amount of expert parallel sharding. "
@@ -305,12 +306,12 @@ class FineTuneArgs:
 
     # VV: TAG: @HF_RAM_Efficient_Training
     # VV: These are arguments we added to replicate huggingface blogpost
-    optim: typing.Optional[str] = dataclasses.field(
+    optim: str | None = dataclasses.field(
         default="adamw_torch",
         metadata={"help": "The optimizer to use."},
     )
 
-    bf16: typing.Optional[bool] = dataclasses.field(
+    bf16: bool | None = dataclasses.field(
         default=False,
         metadata={
             "help": (
@@ -320,7 +321,7 @@ class FineTuneArgs:
         },
     )
 
-    gradient_checkpointing_use_reentrant: typing.Optional[bool] = dataclasses.field(
+    gradient_checkpointing_use_reentrant: bool | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Specify whether to use the activation checkpoint variant that requires reentrant autograd. "
@@ -333,7 +334,7 @@ class FineTuneArgs:
     )
 
     # VV: For image-to-text (vision) models
-    dataset_text_field: typing.Optional[str] = dataclasses.field(
+    dataset_text_field: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Training dataset text field containing single sequence. \
@@ -343,7 +344,7 @@ class FineTuneArgs:
         },
     )
 
-    dataset_image_field: typing.Optional[str] = dataclasses.field(
+    dataset_image_field: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "For running vision language model tuning pass \
@@ -351,20 +352,20 @@ class FineTuneArgs:
         },
     )
 
-    remove_unused_columns: typing.Optional[bool] = dataclasses.field(
+    remove_unused_columns: bool | None = dataclasses.field(
         default=True,
         metadata={
             "help": "Remove columns not required by the model when using an nlp.Dataset."
         },
     )
 
-    dataset_kwargs_skip_prepare_dataset: typing.Optional[bool] = dataclasses.field(
+    dataset_kwargs_skip_prepare_dataset: bool | None = dataclasses.field(
         default=False,
         metadata={"help": "When True, configures trl to skip preparing the dataset"},
     )
 
     # VV: Data args
-    response_template: typing.Optional[str] = dataclasses.field(
+    response_template: str | None = dataclasses.field(
         default=None,
         metadata={"help": "Response template, separator to train on completions only"},
     )
@@ -377,7 +378,7 @@ class HardcodedArgs:
     """
 
     # VV: Training args
-    log_level: typing.Optional[str] = dataclasses.field(
+    log_level: str | None = dataclasses.field(
         default="info",
         metadata={
             "help": (
@@ -419,7 +420,7 @@ class HardcodedArgs:
             )
         },
     )
-    include_tokens_per_second: typing.Optional[bool] = dataclasses.field(
+    include_tokens_per_second: bool | None = dataclasses.field(
         default=True,
         metadata={
             "help": "If set to `True`, the speed metrics will include `tgs` (tokens per second per device)."
@@ -470,7 +471,7 @@ def extract_metrics(aim_info_path: str, number_gpus: int):
 
 def _finetune_launch_kernel(
     args: FineTuneArgs,
-    aim_metadata: typing.Optional[dict[str, typing.Any]],
+    aim_metadata: dict[str, typing.Any] | None,
     multi_node: MultiNodeSettings,
     distributed_settings: DistributedSettings,
     working_directory: str,
@@ -772,9 +773,9 @@ def _update_num_tokens_cache_for_model_and_dataset(
 
 def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
-) -> tuple[typing.Optional[str], list[int]]:
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
+) -> tuple[str | None, list[int]]:
     import json
 
     num_tokens = []
@@ -920,8 +921,8 @@ def tokenize_text(
     path_model: str,
     path_data: str,
     max_seq_length: int,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
     num_entries: int,
     dataset_text_field: str,
 ):
@@ -1053,13 +1054,13 @@ def tokenize_text(
 
 def launch_finetune(
     args: FineTuneArgs,
-    aim_metadata: typing.Optional[dict[str, typing.Any]],
+    aim_metadata: dict[str, typing.Any] | None,
     count_dataset_tokens: bool,
     distributed_settings: DistributedSettings,
-    multi_node: typing.Optional[MultiNodeSettings],
-    model_id: typing.Optional[str] = None,
-    num_tokens_cache_dir: typing.Optional[str] = None,
-    log_level: typing.Optional[int] = None,
+    multi_node: MultiNodeSettings | None,
+    model_id: str | None = None,
+    num_tokens_cache_dir: str | None = None,
+    log_level: int | None = None,
 ) -> "metrics_tracker.Metrics":
     from .callbacks import metrics_tracker
 

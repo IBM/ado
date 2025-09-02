@@ -4,7 +4,6 @@
 
 import json
 import pathlib
-from typing import Optional
 
 import pytest
 import yaml
@@ -19,7 +18,7 @@ from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
 def random_space_resource_from_file(random_identifier):
 
     def _random_space_resource_from_file(
-        sample_store_id: Optional[str] = None,
+        sample_store_id: str | None = None,
     ) -> DiscoverySpaceResource:
         file = pathlib.Path("tests/resources/space/discoveryspace_resource.json")
         random_resource_id = random_identifier()
@@ -40,7 +39,7 @@ def random_space_resource_from_file(random_identifier):
 @pytest.fixture
 def random_space_resource_from_db(random_space_resource_from_file, create_resources):
     def _random_space_resource_from_db(
-        sample_store_id: Optional[str] = None,
+        sample_store_id: str | None = None,
     ) -> DiscoverySpaceResource:
         space = random_space_resource_from_file(sample_store_id=sample_store_id)
         create_resources(resources=[space])

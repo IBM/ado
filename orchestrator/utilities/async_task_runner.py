@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import asyncio
 import atexit
 from threading import Lock, Thread
-from typing import Any, Coroutine, Optional
+from typing import Any, Coroutine
 
 
 class AsyncTaskRunner:
@@ -65,8 +65,8 @@ class AsyncTaskRunner:
             raise Exception("This class is a singleton!")
         AsyncTaskRunner.__instance = self
         # initialize variables
-        self.__io_loop: Optional[asyncio.AbstractEventLoop] = None
-        self.__runner_thread: Optional[Thread] = None
+        self.__io_loop: asyncio.AbstractEventLoop | None = None
+        self.__runner_thread: Thread | None = None
         self.__lock = Lock()
         # register exit handler
         atexit.register(self._close)

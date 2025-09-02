@@ -320,7 +320,7 @@ class Experiment(pydantic.BaseModel):
 
     def observedPropertyForTargetIdentifier(
         self, targetIdentifier: str
-    ) -> typing.Optional[ObservedProperty]:
+    ) -> ObservedProperty | None:
         """Returns an ObservedProperty instance for the given targetIdentifier or None if none exists"""
 
         v = [
@@ -403,7 +403,7 @@ class Experiment(pydantic.BaseModel):
 
     def virtualObservedPropertyFromIdentifier(
         self, identifier
-    ) -> typing.Optional[VirtualObservedProperty]:
+    ) -> VirtualObservedProperty | None:
         """Returns a list of VirtualObservedProperty instances that could be calculated by the receiver given a virtual property identifier
 
         A virtual property identifier has two parts - the base property identifier and the aggregation method identifier

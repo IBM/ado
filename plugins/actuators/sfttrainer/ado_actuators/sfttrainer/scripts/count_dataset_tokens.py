@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import time
-import typing
 
 import ray
 
@@ -93,9 +92,9 @@ def _update_num_tokens_cache_for_model_and_dataset(
 
 def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
-) -> tuple[typing.Optional[str], list[int]]:
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
+) -> tuple[str | None, list[int]]:
     import json
 
     num_tokens = []
@@ -159,8 +158,8 @@ def _load_num_tokens_cache_for_model_and_dataset(
 def _get_tokens_of_dataset_entries(
     path_model: str,
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
 ) -> list[int]:
     from transformers import AutoTokenizer
 
@@ -266,8 +265,8 @@ def _get_tokens_of_dataset_entries(
 def tokenize_text(
     path_model: str,
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
 ):
     num_tokens = _get_tokens_of_dataset_entries(
         path_model=path_model,

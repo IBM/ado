@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pydantic
 from pydantic import ConfigDict
@@ -20,7 +19,7 @@ class ObservedProperty(pydantic.BaseModel):
     experimentReference: ExperimentReference = pydantic.Field(
         description=" A reference to the experiment that produces measurements of this observed property"
     )
-    metadata: typing.Optional[dict] = pydantic.Field(
+    metadata: dict | None = pydantic.Field(
         default={},
         description="Metadata on the instance of the measurement that observed this property",
     )

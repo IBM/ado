@@ -4,7 +4,6 @@
 import asyncio
 import logging
 import random
-import typing
 import uuid
 
 import ray
@@ -160,7 +159,7 @@ class MockActuator(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return orchestrator.modules.actuators.catalog.ExperimentCatalog(
             catalogIdentifier=cls.identifier,

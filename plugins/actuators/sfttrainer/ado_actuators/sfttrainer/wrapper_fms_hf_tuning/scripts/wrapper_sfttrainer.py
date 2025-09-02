@@ -18,7 +18,7 @@ import sys
 import typing
 
 # Standard
-from typing import Any, Optional
+from typing import Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import aim
@@ -131,20 +131,20 @@ def calculate_gpu_power_percent(
 class CustomAimCallback(AimCallback):
     # VV: Set this after training starts and never delete it
     the_run_hash = None
-    the_experiment: "typing.Optional[aim.Run]" = None
+    the_experiment: "aim.Run | None" = None
     training_steps = 0
 
     def __init__(
         self,
-        repo: Optional[str] = None,
-        experiment: Optional[str] = None,
-        system_tracking_interval: Optional[int] = 10,
-        log_system_params: Optional[bool] = True,
-        capture_terminal_logs: Optional[bool] = True,
-        additional_metrics: Optional[dict[str, Any]] = None,
-        aim_info_path: Optional[str] = None,
+        repo: str | None = None,
+        experiment: str | None = None,
+        system_tracking_interval: int | None = 10,
+        log_system_params: bool | None = True,
+        capture_terminal_logs: bool | None = True,
+        additional_metrics: dict[str, Any] | None = None,
+        aim_info_path: str | None = None,
         aim_info_aggregate_metrics: bool = False,
-        aim_metadata: Optional[dict[str, Any]] = None,
+        aim_metadata: dict[str, Any] | None = None,
         stop_after_seconds: float = -1.0,
     ):
 
@@ -154,9 +154,9 @@ class CustomAimCallback(AimCallback):
         self._aim_metadata = aim_metadata or {}
 
         self._stop_after_seconds = stop_after_seconds
-        self._time_started: typing.Optional[datetime.datetime] = None
+        self._time_started: datetime.datetime | None = None
 
-        self._optimization_step_started: typing.Optional[datetime.datetime] = None
+        self._optimization_step_started: datetime.datetime | None = None
 
         super().__init__(
             repo,
@@ -321,14 +321,14 @@ class CustomAimCallback(AimCallback):
 
 @dataclasses.dataclass
 class CustomArgs:
-    aim_metadata_path: typing.Optional[str] = dataclasses.field(
+    aim_metadata_path: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Path to JSON file containing metadata that sft_trainer.py will store in AIM"
         },
     )
 
-    aim_info_path: typing.Optional[str] = dataclasses.field(
+    aim_info_path: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "The path to a JSON file that sft_trainer.py will use to store the metrics that AIM captures. "
@@ -343,7 +343,7 @@ class CustomArgs:
         },
     )
 
-    aim_db: typing.Optional[str] = dataclasses.field(
+    aim_db: str | None = dataclasses.field(
         default=None,
         metadata={"help": "The AIM endpoint"},
     )

@@ -4,7 +4,6 @@
 import logging
 import math
 import time
-import typing
 
 from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
     ComponentsYaml,
@@ -235,8 +234,8 @@ class ComponentsManager:
         cpu_offload: int = 0,
         max_num_seq: int = 256,
         template: str = "deployment.yaml",
-        claim_name: typing.Optional[str] = None,
-        hf_token: typing.Optional[str] = None,
+        claim_name: str | None = None,
+        hf_token: str | None = None,
         reuse: bool = False,
     ) -> None:
         """

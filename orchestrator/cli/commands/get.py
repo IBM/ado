@@ -3,7 +3,7 @@
 
 import pathlib
 import typing
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
@@ -63,7 +63,7 @@ def get_resource(
         ),
     ],
     resource_id: Annotated[
-        Optional[str],
+        str | None,
         typer.Argument(
             help=(
                 "The id of the resource to get. "
@@ -73,7 +73,7 @@ def get_resource(
         ),
     ] = None,
     query: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--query",
             "-q",
@@ -91,7 +91,7 @@ def get_resource(
         ),
     ] = None,
     labels: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--label",
             "-l",
@@ -181,7 +181,7 @@ def get_resource(
         ),
     ] = False,
     from_sample_store: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             help="Specify the samplestore this measurement belongs to.",
             show_default=False,
@@ -189,7 +189,7 @@ def get_resource(
         ),
     ] = None,
     from_space: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             help="Specify the space this measurement belongs to.",
             show_default=False,
@@ -197,7 +197,7 @@ def get_resource(
         ),
     ] = None,
     from_operation: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(
             help="Specify the operation this measurement belongs to.",
             show_default=False,

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-import typing
 
 import pydantic
 from pydantic import ConfigDict
@@ -34,7 +33,7 @@ class Property(pydantic.BaseModel):
     """A named property with a domain"""
 
     identifier: str
-    metadata: typing.Optional[dict] = pydantic.Field(
+    metadata: dict | None = pydantic.Field(
         default=None, description="Metadata on the property"
     )
     propertyDomain: PropertyDomain = pydantic.Field(
@@ -82,7 +81,7 @@ class AbstractProperty(Property):
     propertyType: MeasuredPropertyTypeEnum = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
-    concretePropertyIdentifiers: typing.Optional[list[str]] = None
+    concretePropertyIdentifiers: list[str] | None = None
     model_config = ConfigDict(frozen=True)
 
     def __str__(self):
@@ -114,7 +113,7 @@ class ConcreteProperty(Property):
     propertyType: MeasuredPropertyTypeEnum = pydantic.Field(
         default=MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
-    abstractProperty: typing.Optional[AbstractProperty] = None
+    abstractProperty: AbstractProperty | None = None
     model_config = ConfigDict(frozen=True)
 
     def __str__(self):

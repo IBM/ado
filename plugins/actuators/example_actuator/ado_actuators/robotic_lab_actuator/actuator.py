@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import os
-import typing
 import uuid
 
 import pydantic
@@ -52,7 +51,7 @@ class RoboticLab(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> ExperimentCatalog:
         """Returns the Experiments your actuator provides"""
 

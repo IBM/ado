@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import Optional
 
 import pandas as pd
 import pytest
@@ -71,7 +70,7 @@ def upsert_entities_to_sample_store():
 def get_single_resource_by_identifier(sql_store):
     def _get_single_resource_by_identifier(
         identifier: str, kind: CoreResourceKinds
-    ) -> Optional[ADOResource]:
+    ) -> ADOResource | None:
 
         return sql_store.getResource(identifier=identifier, kind=kind)
 
@@ -131,7 +130,7 @@ def update_resource(sql_store):
 def delete_resource(sql_store):
     def _delete_resource(
         identifier: str,
-    ) -> Optional[ADOResource]:
+    ) -> ADOResource | None:
         return sql_store.deleteResource(identifier=identifier)
 
     return _delete_resource

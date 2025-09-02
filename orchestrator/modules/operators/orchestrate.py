@@ -147,7 +147,7 @@ def graceful_operation_shutdown():
 
 
 def graceful_operation_shutdown_handler() -> (
-    typing.Callable[[int, typing.Optional[typing.Any]], None]
+    typing.Callable[[int, typing.Any | None], None]
 ):
 
     def handler(sig, frame):
@@ -240,7 +240,7 @@ def graceful_explore_operation_shutdown(
 
 def graceful_explore_operation_shutdown_handler(
     operation, state, actuators, timeout=60
-) -> typing.Callable[[int, typing.Optional[typing.Any]], None]:
+) -> typing.Callable[[int, typing.Any | None], None]:
     """Return a signal handler that sh."""
 
     def handler(sig, frame):
@@ -296,10 +296,8 @@ def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
     base_operation_configuration: BaseOperationRunConfiguration,
     discovery_space: DiscoverySpace,
-    operation_identifier: typing.Optional[str] = None,
-    finalize_callback: typing.Optional[
-        typing.Callable[[OperationResource], None]
-    ] = None,
+    operation_identifier: str | None = None,
+    finalize_callback: typing.Callable[[OperationResource], None] | None = None,
 ) -> OperationOutput:
     """Performs common orchestration for general and explore operations
 
@@ -441,7 +439,7 @@ def orchestrate_general_operation(
         OperationOutput,
     ],
     operation_parameters: dict,
-    parameters_model: typing.Optional[type[pydantic.BaseModel]],
+    parameters_model: type[pydantic.BaseModel] | None,
     discovery_space: DiscoverySpace,
     operation_info: FunctionOperationInfo,
     operation_type: orchestrator.core.operation.config.DiscoveryOperationEnum,
@@ -743,11 +741,11 @@ def orchestrate_operation_function(
 def orchestrate(
     base_operation_configuration: BaseOperationRunConfiguration,
     project_context: ProjectContext,
-    discovery_space_configuration: typing.Optional[
-        orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration
-    ],
-    discovery_space_identifier: typing.Optional[str],
-    entities_output_file: typing.Optional[str | pathlib.Path] = None,
+    discovery_space_configuration: (
+        orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration | None
+    ),
+    discovery_space_identifier: str | None,
+    entities_output_file: str | pathlib.Path | None = None,
     queue: "ray.util.queue.Queue" = None,
     execid: str | None = None,
 ) -> OperationOutput:

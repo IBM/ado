@@ -30,7 +30,7 @@ class ExperimentReference(pydantic.BaseModel):
     actuatorIdentifier: str = pydantic.Field(
         description="The identifier of the actuator that supplies the experiment"
     )
-    parameterization: typing.Optional[list["PropertyValue"]] = pydantic.Field(
+    parameterization: list["PropertyValue"] | None = pydantic.Field(
         default=None,
         description="A list of values for optional properties of the experiment",
     )
@@ -165,7 +165,7 @@ def identifier_for_parameterized_experiment(identifier, parameterization):
 def check_parameterization_validity(
     parameterizableProperties: list[ConstitutiveProperty],
     customParameterization: typing.Iterable["PropertyValue"],
-    defaultParameterization: typing.Optional[list["PropertyValue"]] = None,
+    defaultParameterization: list["PropertyValue"] | None = None,
 ) -> None:
     """Checks if values are a valid parameterization of properties"""
 

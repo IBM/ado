@@ -44,7 +44,7 @@ def show_results_for_resources(
         ),
     ] = AdoShowResultsSupportedOutputFormats.CONSOLE.value,
     hide_fields: Annotated[
-        typing.Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--hide",
             help="Fields to hide from the output. "

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 
 import pandas as pd
 import pydantic
@@ -26,7 +25,7 @@ class CSVSampleStoreDescription(SampleStoreDescription):
         description="The header of the column that contains the entity ids"
     )
 
-    generatorIdentifier: typing.Optional[str] = pydantic.Field(
+    generatorIdentifier: str | None = pydantic.Field(
         default=None,
         validate_default=True,
         description="The id of the entity generator",
@@ -109,9 +108,9 @@ class CSVSampleStore(PassiveSampleStore):
         csvPath: str,
         idColumn: str,
         generatorIdentifier: str | None = None,
-        experimentIdentifier: typing.Optional[str] = None,
-        observedPropertyColumns: typing.Optional[list[str]] = None,
-        constitutivePropertyColumns: typing.Optional[list[str]] = None,
+        experimentIdentifier: str | None = None,
+        observedPropertyColumns: list[str] | None = None,
+        constitutivePropertyColumns: list[str] | None = None,
     ):
 
         # Create a schema of the contents of the CSV file

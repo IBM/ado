@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-import typing
 import uuid
 
 import pydantic
@@ -41,7 +40,7 @@ class OperationResourceStatus(ADOResourceStatus):
         default=None,
         description="An event that happened to an operation resource: created, added, started, finished, updated",
     )
-    exit_state: typing.Optional[OperationExitStateEnum] = pydantic.Field(
+    exit_state: OperationExitStateEnum | None = pydantic.Field(
         default=None,
         description="The exit state of the operation: success, failed, error. Only can be set if on a FINISHED event",
     )

@@ -3,7 +3,6 @@
 
 import pathlib
 import random
-from typing import Optional
 
 import pytest
 import yaml
@@ -174,7 +173,7 @@ def random_ml_multi_cloud_benchmark_performance_measurement_results(
     def _random_ml_multi_cloud_benchmark_performance_measurement_results(
         entity: Entity,
         measurements_per_result: int,
-        status: Optional[MeasurementResultStateEnum] = None,
+        status: MeasurementResultStateEnum | None = None,
     ) -> MeasurementResult:
         assert (
             measurements_per_result > 0
@@ -221,8 +220,8 @@ def random_ml_multi_cloud_benchmark_performance_measurement_requests(
     def _random_ml_multi_cloud_benchmark_performance_measurement_requests(
         number_entities: int,
         measurements_per_result: int,
-        status: Optional[MeasurementRequestStateEnum] = None,
-        operation_id: Optional[str] = None,
+        status: MeasurementRequestStateEnum | None = None,
+        operation_id: str | None = None,
     ) -> ReplayedMeasurement:
         assert number_entities > 0, "There need to be at least 1 entity"
         entities = random_ml_multi_cloud_benchmark_performance_entities(number_entities)
@@ -263,7 +262,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         number_entities: int = 3,
         number_requests: int = 3,
         measurements_per_result: int = 2,
-        operation_id: Optional[str] = None,
+        operation_id: str | None = None,
     ) -> tuple[SQLSampleStore, list[MeasurementRequest], list[str]]:
         operation_id = operation_id if operation_id else random_identifier()
         sample_store = ml_multi_cloud_sample_store

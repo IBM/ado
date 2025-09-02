@@ -171,10 +171,10 @@ def register_characterize_operation(func):
 
 def characterize_operation(
     name: str,
-    description: typing.Optional[str] = None,
-    version: typing.Optional[str] = "v0.1",
-    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
-    configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
+    description: str | None = None,
+    version: str | None = "v0.1",
+    configuration_model: type[pydantic.BaseModel] | None = None,
+    configuration_model_default: pydantic.BaseModel | None = None,
 ):
     characterize.add_operation_configuration_model(name, configuration_model)
     characterize.add_operation_configuration_model_default(
@@ -199,10 +199,10 @@ def register_explore_operation(func):
 
 def explore_operation(
     name: str,
-    description: typing.Optional[str] = None,
-    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
-    version: typing.Optional[str] = "v0.1",
-    configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
+    description: str | None = None,
+    configuration_model: type[pydantic.BaseModel] | None = None,
+    version: str | None = "v0.1",
+    configuration_model_default: pydantic.BaseModel | None = None,
 ):
     explore.add_operation_configuration_model(name, configuration_model)
     explore.add_operation_configuration_model_default(name, configuration_model_default)
@@ -240,10 +240,10 @@ def register_modify_operation(func):
 
 def modify_operation(
     name: str,
-    description: typing.Optional[str] = None,
-    version: typing.Optional[str] = "v0.1",
-    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
-    configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
+    description: str | None = None,
+    version: str | None = "v0.1",
+    configuration_model: type[pydantic.BaseModel] | None = None,
+    configuration_model_default: pydantic.BaseModel | None = None,
 ):
     modify.add_operation_configuration_model(name, configuration_model)
     modify.add_operation_configuration_model_default(name, configuration_model_default)
@@ -280,10 +280,10 @@ def register_export_operation(func):
 
 def export_operation(
     name: str,
-    description: typing.Optional[str] = None,
-    configuration_model: typing.Optional[type[pydantic.BaseModel]] = None,
-    version: typing.Optional[str] = "v0.1",
-    configuration_model_default: typing.Optional[pydantic.BaseModel] = None,
+    description: str | None = None,
+    configuration_model: type[pydantic.BaseModel] | None = None,
+    version: str | None = "v0.1",
+    configuration_model_default: pydantic.BaseModel | None = None,
 ):
     export.add_operation_configuration_model(name, configuration_model)
     export.add_operation_configuration_model_default(name, configuration_model_default)

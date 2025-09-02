@@ -287,11 +287,10 @@ class ActuatorRegistry:
             if (
                 actuator.catalog_requires_actuator_configuration()
                 == CatalogConfigurationRequirementEnum.REQUIRED
-            ):
-                if not cfg:
-                    raise MissingActuatorConfigurationForCatalogError(
-                        f"Actuator {actuatorid} requires configuration information to create catalog."
-                    )
+            ) and not cfg:
+                raise MissingActuatorConfigurationForCatalogError(
+                    f"Actuator {actuatorid} requires configuration information to create catalog."
+                )
 
             # If the catalog config is not required we can continue if cfg is None or a configuration instance
             if (

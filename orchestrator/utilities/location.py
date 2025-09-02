@@ -231,9 +231,8 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
         _AdoSupportedDsn = pydantic.RootModel[pydantic.MySQLDsn]
         m = _AdoSupportedDsn.model_validate(self.url(), strict=True).root
 
-        if isinstance(m, pydantic.MySQLDsn):
-            if not self.user:
-                raise ValueError("You must specify the user when using MySQL")
+        if isinstance(m, pydantic.MySQLDsn) and not self.user:
+            raise ValueError("You must specify the user when using MySQL")
             # if not self.password:
             #     raise ValueError("You must specify the password when using MySQL")
 

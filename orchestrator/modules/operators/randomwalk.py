@@ -411,12 +411,13 @@ class RandomWalk(Characterize):
                         f"Requested number of entities to sample, {number_entities}, "
                         f"is greater than the space size {size} "
                     )
-        elif entity_space is None:
-            if ds.sample_store.numberOfEntities < number_entities:
-                raise ValueError(
-                    f"Requested number of entities to sample, {number_entities}, "
-                    f"is greater than the number of entities in the sample store {ds.sample_store.numberOfEntities} "
-                )
+        elif (
+            entity_space is None and ds.sample_store.numberOfEntities < number_entities
+        ):
+            raise ValueError(
+                f"Requested number of entities to sample, {number_entities}, "
+                f"is greater than the number of entities in the sample store {ds.sample_store.numberOfEntities} "
+            )
 
         print(
             f"Running random walk with sampler {self.sampler}, sample selector {self.mode} "

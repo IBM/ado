@@ -1087,11 +1087,12 @@ class EntitySpace(SFTTrainerCLIArgs):
                 f"batch_size is {self.batch_size} but number_gpus is {self.number_gpus}"
             )
 
-        if exp_params.multi_node is not None:
-            if self.number_nodes > 1 and not exp_params.multi_node:
-                raise InvalidEntityError(
-                    f"number_nodes is {self.number_nodes} but experiment is single node"
-                )
+        if exp_params.multi_node is not None and (
+            self.number_nodes > 1 and not exp_params.multi_node
+        ):
+            raise InvalidEntityError(
+                f"number_nodes is {self.number_nodes} but experiment is single node"
+            )
 
         if self.distributed_backend is not None and self.number_gpus < 2:
             logger.info(

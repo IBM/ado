@@ -145,13 +145,12 @@ class PropertyDomain(pydantic.BaseModel):
             if self.interval:
                 p.text(f"Interval: {self.interval}")
                 p.breakable()
-            if self.domainRange:
-                if self.variableType in [
-                    VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
-                    VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-                ]:
-                    p.text(f"Range: {self.domainRange}")
-                    p.breakable()
+            if self.domainRange and self.variableType in [
+                VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+                VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+            ]:
+                p.text(f"Range: {self.domainRange}")
+                p.breakable()
 
     @pydantic.field_validator("interval")
     def interval_requires_no_values(

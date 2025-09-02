@@ -304,7 +304,7 @@ def mi_diff_over_time(
                 ranks_over_time[k].append(ranks[vid])
 
     pareto_selection = mi_pareto_selection(new_mi)
-    if len(pareto_over_time) > 0 and consider_pareto_instead_ranks:
+    if len(pareto_over_time) > 0 and consider_pareto_instead_ranks:  # noqa: SIM102
         # >= to allow also the shrinkage of pareto sets
         if set(pareto_over_time[-1]) >= set(pareto_selection):
             change_in_ranks = False

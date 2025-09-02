@@ -142,7 +142,7 @@ The `tuneConfig` section supports many of the [parameters of the `ray.tune.TuneC
 - `metric` (required)
     - The [target property identifier](../core-concepts/actuators.md#target-and-observed-properties) to optimize.
 - `mode` (required)
-  - `min` or `max`: Whether to search for min or max of the target property
+    - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
     - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in RayTune it would be an optimizer instance
 - `num_samples` (defaults to 1)
@@ -456,15 +456,15 @@ For the `lhu_sampler`, there is only one optional parameter, [points_to_evaluate
 ```yaml
 name: 'lhu_sampler'
 params:
-    points_to_evaluate:
-    - model_name: granite-3b
-      number_gpus: 4
-      tokens_per_sample: 2048
-      gpu_model: A100-SXM4-80GB
-    - model_name: granite-3b
-      number_gpus: 2
-      tokens_per_sample: 2048
-      gpu_model: A100-SXM4-80GB
+  points_to_evaluate:
+  - model_name: granite-3b
+    number_gpus: 4
+    tokens_per_sample: 2048
+    gpu_model: A100-SXM4-80GB
+  - model_name: granite-3b
+    number_gpus: 2
+    tokens_per_sample: 2048
+    gpu_model: A100-SXM4-80GB
 ```
 
 ### MaxSampleStopper

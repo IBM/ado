@@ -10,7 +10,12 @@ status: published #Status can be draft, reviewed or published.
 
 ### Pre-requisites
 
-In order to create a `discoveryspace` you must provide an existing `samplestore` that the `discoveryspace` will use for storage.
+In order to create a `discoveryspace` you must provide a `samplestore` that the `discoveryspace` will use for storage.
+To see existing `samplestores` run
+```commandline
+ado get samplestores
+```
+Alternatively if there is no existing stire then when creating the space you can use the `---new-sample-store` flag.
 See the [samplestores](sample-stores.md) documentation for more details.
 
 ### Discovery Space configuration YAML
@@ -50,7 +55,7 @@ ado create space -f FILE.yaml
 If there are errors or inconsistencies in the space definition the create command will output an error. 
 A common reason for inconsistency is that the properties defined in the entity-space do not match the properties
 required for the experiments in the measurement space. 
-The next section show a way around this issue. 
+The next section shows a way to handle this issue. 
 
 ### Generating an initial YAML from an Experiment list
 
@@ -68,22 +73,17 @@ More in-depth documentation about this feature can be found in the section about
 
 ### Differences between input configuration YAML and stored configuration YAML
 
-After creating a `discoveryspace` if you `ado get` its YAML you will notice there is far more information output then you input.
-This is because currently the list of experiment references set in the config is expanded into the full experiment definitions and stored
-with the `discoveryspace`. 
+After creating a `discoveryspace` if you `ado get` its YAML you will notice there is different information output than you input.
+This is because the list of experiment references set in the YAML is expanded into the full experiment definitions and stored
+with the `discoveryspace`.
 
-!!! warning end
+## `discoveryspaces` and shared `samplestores`
 
-    This is done to avoid having a dependency on actuator availability to read the `discoveryspace` internally in `ado`. 
-    It is likely this will change in future versions. 
-
-## Discovery Spaces and shared Sample Stores
-
-Multiple `discoveryspace` resources can use the same `samplestore` resource - giving them a *common context*.
-In this case you can think of the `discoveryspace` as a "View" on the `samplestore` contents, filtering just the
+Multiple `discoveryspace` resources can use the same `samplestore` resource.
+In this case you can think of the `discoveryspace` as a "view" on the `samplestore` contents, filtering just the
 `entities` that match its description. 
 
-To be more rigorous, give a `discoveryspace` you can apply this filter in two ways:
+To be more rigorous, given a `discoveryspace` you can apply this filter in two ways:
 
 1. Filter `entities` that were placed in the `samplestore` via an operation the `discoveryspace`
 2. Filter `entities` in the `samplestore` that match the `discoveryspace` 
@@ -91,6 +91,9 @@ To be more rigorous, give a `discoveryspace` you can apply this filter in two wa
 To understand the difference in these two methods imagine two overlapping `discoveryspaces`, A and B, that use the same `samplestore`.
 If someone uses method one on `discoveryspace` A, they will only see the `entities` placed there by operations on `discoveryspace` A.
 However if someone uses method two on `discoveryspace` A, they will see `entities` placed there via operations on both `discoveryspace` A and space B.
+
+Shared samples stores also allow data to be reused between `discoveryspaces` potentially accelerating exploration operations. 
+See the [shared sample store](../core-concepts/data-sharing.md) documentation for further details. 
 
 ## Accessing Entities
 
@@ -159,7 +162,7 @@ In this format the columns are constitutive property names and target property n
 
 !!! info  end
     
-    With `property-format=target` if there multiple experiments measure *different* target properties this will result in many empty fields
+    With `property-format=target` if the measurement space contains multiple experiments measuring *different* target properties this will result in many empty fields
     in the table. This is because the column for a given target of one experiment will not have values in the rows corresponding to other experiments.
 
 ## Defining the domains of constitutive properties in the entityspace
@@ -190,11 +193,7 @@ Experiments take entities as inputs and those entities must have values for vari
 This means the domains of the properties in the `entityspace` must be compatible with the experiments - if not entities could be sampled that
 experiments in the `measurementspace` cannot measure. 
 
-Assuming that:
-- The experiment you are interested in is `finetune-full-fsdp-v1.6.0`
-- It's part of the actuator `SFTTrainer`
-
-To see the input requirements of an experiment you can run
+For example to see the input requirements of the experiment `finetune_full_benchmark-v1.0.0` you can run
 
 ```shell
 ado describe experiment finetune-full-fsdp-v1.6.0 --actuator-id SFTTrainer
@@ -203,80 +202,259 @@ ado describe experiment finetune-full-fsdp-v1.6.0 --actuator-id SFTTrainer
 
 you will get output like 
 ```commandline
-Identifier: SFTTrainer.finetune-full-fsdp-v1.6.0
-Measures the performance of full-fine tuning a model with FSDP+flash-attention for a given (GPU model, number GPUS, batch_size, model_max_length) combination.
-Inputs:
-  Constitutive Properties:
-      dataset_id
-      Domain:
-        Type: CATEGORICAL_VARIABLE_TYPE
-        Values: ['news-chars-1024-entries-1024', 'news-chars-1024-entries-256', 'news-chars-1024-entries-4096', 'news-chars-2048-entries-1024', 'news-chars-2048-entries-256', 'news-chars-2048-entries-4096', 'news-chars-512-entries-1024', 'news-chars-512-entries-256', 'news-chars-512-entries-4096', 'news-tokens-128kplus-entries-320', 'news-tokens-128kplus-entries-4096', 'news-tokens-16384plus-entries-4096']
-        
-      
-      model_name
-      Domain:
-        Type: CATEGORICAL_VARIABLE_TYPE
-        Values: ['granite-13b-v2', 'granite-20b-v2', 'granite-34b-code-base', 'granite-3b-1.5', 'granite-3b-code-base-128k', 'granite-7b-base', 'granite-8b-code-base', 'granite-8b-code-base-128k', 'granite-8b-japanese', 'hf-tiny-model-private/tiny-random-BloomForCausalLM', 'llama-13b', 'llama-7b', 'llama2-70b', 'llama3-70b', 'llama3-8b', 'llama3.1-405b', 'llama3.1-70b', 'llama3.1-8b', 'mistral-7b-v0.1', 'mixtral-8x7b-instruct-v0.1']
-        
-      
-      model_max_length
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [1, 131073] 
-      
-      torch_dtype
-      Domain:
-        Type: CATEGORICAL_VARIABLE_TYPE Values: ['bfloat16'] 
-      
-      number_gpus
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [2, 9] 
-      
-      gpu_model
-      Domain:
-        Type: CATEGORICAL_VARIABLE_TYPE
-        Values: ['NVIDIA-A100-SXM4-80GB', 'NVIDIA-A100-80GB-PCIe', 'Tesla-T4', 'L40S', 'Tesla-V100-PCIE-16GB']
-        
-      
-      batch_size
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [1, 129] 
-      
-      
-Outputs:
-  finetune-full-fsdp-v1.6.0-gpu_compute_utilization_min
-  finetune-full-fsdp-v1.6.0-gpu_compute_utilization_avg
-  finetune-full-fsdp-v1.6.0-gpu_compute_utilization_max
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_min
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_avg
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_max
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_peak
-  finetune-full-fsdp-v1.6.0-gpu_power_watts_min
-  finetune-full-fsdp-v1.6.0-gpu_power_watts_avg
-  finetune-full-fsdp-v1.6.0-gpu_power_watts_max
-  finetune-full-fsdp-v1.6.0-gpu_power_percent_min
-  finetune-full-fsdp-v1.6.0-gpu_power_percent_avg
-  finetune-full-fsdp-v1.6.0-gpu_power_percent_max
-  finetune-full-fsdp-v1.6.0-cpu_compute_utilization
-  finetune-full-fsdp-v1.6.0-cpu_memory_utilization
-  finetune-full-fsdp-v1.6.0-train_runtime
-  finetune-full-fsdp-v1.6.0-train_samples_per_second
-  finetune-full-fsdp-v1.6.0-train_steps_per_second
-  finetune-full-fsdp-v1.6.0-train_tokens_per_second
-  finetune-full-fsdp-v1.6.0-train_tokens_per_gpu_per_second
-  finetune-full-fsdp-v1.6.0-model_load_time
-  finetune-full-fsdp-v1.6.0-dataset_tokens_per_second
-  finetune-full-fsdp-v1.6.0-dataset_tokens_per_second_per_gpu
-  finetune-full-fsdp-v1.6.0-is_valid
-```
+Identifier: SFTTrainer.finetune_full_benchmark-v1.0.0
 
-Note the experiment gives the full domains it supports for each constitutive property. 
-However, when constructing the `entityspace` you usually only want to use a sub-domain.
+Measures the performance of full-finetuning a model for a given (GPU model, number GPUS, batch_size, model_max_length, number nodes) combination.
+
+Required Inputs:
+  Constitutive Properties:
+      model_name: The huggingface name or path to the model
+      Domain:
+        Type: CATEGORICAL_VARIABLE_TYPE
+        Values: ['allam-1-13b', 'granite-13b-v2', 'granite-20b-v2', 'granite-3-8b', 'granite-3.1-2b', 'granite-3.1-3b-a800m-instruct', 'granite-3.1-8b-instruct', 'granite-34b-code-base', 'granite-3b-1.5', 'granite-3b-code-base-128k', 'granite-7b-base', 'granite-8b-code-base', 'granite-8b-code-base-128k', 'granite-8b-code-instruct', 'granite-8b-japanese', 'granite-vision-3.2-2b', 'hf-tiny-model-private/tiny-random-BloomForCausalLM', 'llama-13b', 'llama-7b', 'llama2-70b', 'llama3-70b', 'llama3-8b', 'llama3.1-405b', 'llama3.1-70b', 'llama3.1-8b', 'mistral-123b-v2', 'mistral-7b-v0.1', 'mixtral-8x7b-instruct-v0.1', 'smollm2-135m']
+        
+      
+      model_max_length: The maximum context size. Dataset entries with more tokens they are truncated. Entries with fewer are padded
+      Domain:
+        Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [1, 131073] 
+      
+      batch_size: The total batch size to use
+      Domain:
+        Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [1, 4097] 
+      
+      number_gpus: The total number of GPUs to use
+      Domain:
+        Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [0, 33] 
+      
+      
+Optional Inputs and Default Values:
+  max_steps: The number of optimization steps to perform. Set to -1 to respect num_train_epochs instead
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [-1, 10001] 
+  
+  Default value: -1
+  
+  num_train_epochs: How many epochs to run. Ignored if max_steps is greater than 0
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [1.0, 10001.0] 
+  
+  Default value: 1.0
+  
+  stop_after_seconds: If set, the optimizer will be asked to stop after the specified time elapses. The check is performed after the end of each training step.
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [-1.0, 1000001.0] 
+  
+  Default value: -1.0
+  
+  dataset_id: The identifier of the dataset to use for training
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE
+    Values: ['news-chars-1024-entries-1024', 'news-chars-1024-entries-256', 'news-chars-1024-entries-4096', 'news-chars-2048-entries-1024', 'news-chars-2048-entries-256', 'news-chars-2048-entries-4096', 'news-chars-512-entries-1024', 'news-chars-512-entries-256', 'news-chars-512-entries-4096', 'news-tokens-128kplus-entries-320', 'news-tokens-128kplus-entries-4096', 'news-tokens-16384plus-entries-4096', 'vision-384x384-16384plus-entries-4096', 'vision-384x768-16384plus-entries-4096']
+    
+  
+  Default value: news-tokens-16384plus-entries-4096
+  
+  gradient_checkpointing: If True, use gradient checkpointing to save memory (i.e. higher batchsizes) at the expense of slower backward pass
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [True, False] 
+  
+  Default value: 1
+  
+  torch_dtype: The torch datatype to use
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE Values: ['bfloat16', 'float16', 'float32'] 
+  
+  Default value: bfloat16
+  
+  gradient_accumulation_steps: Number of update steps to accumulate before performing a backward/update pass.
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [1, 33] 
+  
+  Default value: 4
+  
+  r: The LORA rank
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [1, 33] 
+  
+  Default value: 4
+  
+  lora_alpha: LORA Alpha scales the learning weights
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [1, 33] 
+  
+  Default value: 16
+  
+  fast_moe: Configures the amount of expert parallel sharding. number_gpus must be divisible by it
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [0, 33] 
+  
+  Default value: 0
+  
+  fast_kernels: Switches on fast kernels, the value is a list with strings of boolean values for [fast_loss, fast_rms_layernorm, fast_rope_embeddings]
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE Values: [None, ['True', 'True', 'True']] 
+  
+  Default value: None
+  
+  optim: The optimizer to use.
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE
+    Values: ['adamw_hf', 'adamw_torch', 'adamw_torch_fused', 'adamw_torch_xla', 'adamw_torch_npu_fused', 'adamw_apex_fused', 'adafactor', 'adamw_anyprecision', 'adamw_torch_4bit', 'ademamix', 'sgd', 'adagrad', 'adamw_bnb_8bit', 'adamw_8bit', 'ademamix_8bit', 'lion_8bit', 'lion_32bit', 'paged_adamw_32bit', 'paged_adamw_8bit', 'paged_ademamix_32bit', 'paged_ademamix_8bit', 'paged_lion_32bit', 'paged_lion_8bit', 'rmsprop', 'rmsprop_bnb', 'rmsprop_bnb_8bit', 'rmsprop_bnb_32bit', 'galore_adamw', 'galore_adamw_8bit', 'galore_adafactor', 'galore_adamw_layerwise', 'galore_adamw_8bit_layerwise', 'galore_adafactor_layerwise', 'lomo', 'adalomo', 'grokadamw', 'schedule_free_adamw', 'schedule_free_sgd']
+    
+  
+  Default value: adamw_torch
+  
+  bf16: Whether to use bf16 (mixed) precision instead of 32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support for NPU architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental API and it may change.
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [False, True] 
+  
+  Default value: 0
+  
+  gradient_checkpointing_use_reentrant: Specify whether to use the activation checkpoint variant that requires reentrant autograd. This parameter should be passed explicitly. Torch version 2.5 will raise an exception if use_reentrant is not passed. If use_reentrant=False, checkpoint will use an implementation that does not require reentrant autograd. This allows checkpoint to support additional functionality, such as working as expected with torch.autograd.grad and support for keyword arguments input into the checkpointed function.
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [False, True] 
+  
+  Default value: 0
+  
+  dataset_text_field: Training dataset text field containing single sequence. Either the dataset_text_field or data_formatter_template need to be supplied. For running vision language model tuning pass the column name for text data.
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE Values: ['output', 'messages'] 
+  
+  Default value: output
+  
+  dataset_image_field: For running vision language model tuning pass the column name of the image data in the dataset.
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE Values: [None, 'images'] 
+  
+  Default value: None
+  
+  remove_unused_columns: Remove columns not required by the model when using an nlp.Dataset.
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [True, False] 
+  
+  Default value: 1
+  
+  dataset_kwargs_skip_prepare_dataset: When True, configures trl to skip preparing the dataset.
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [True, False] 
+  
+  Default value: 0
+  
+  flash_attn: Use Flash attention v2 from transformers
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [True, False] 
+  
+  Default value: 1
+  
+  gpu_model: The GPU model to use
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE
+    Values: [None, 'NVIDIA-A100-SXM4-80GB', 'NVIDIA-A100-80GB-PCIe', 'Tesla-T4', 'L40S', 'Tesla-V100-PCIE-16GB', 'NVIDIA-H100-PCIe', 'NVIDIA-H100-80GB-HBM3']
+    
+  
+  Default value: None
+  
+  distributed_backend: Which pytorch backend to use when training with multiple GPU devices
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE Values: ['DDP', 'FSDP', 'None'] 
+  
+  Default value: FSDP
+  
+  number_nodes: If set, actuator distributes tasks on multiple nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1 process for each GPU it uses
+  Domain:
+    Type: DISCRETE_VARIABLE_TYPE Interval: 1 Range: [1, 9] 
+  
+  Default value: 1
+  
+  fms_hf_tuning_version: The version of fms-hf-tuning to use - controls which wrapper to use as well as python dependencies
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE
+    Values: ['2.0.1', '2.1.0', '2.1.1', '2.1.2', '2.2.1', '2.3.1', '2.4.0', '2.5.0', '2.6.0', '2.7.1', '2.8.2']
+    
+  
+  Default value: 2.1.2
+  
+  enable_roce: This setting is only in effect for multi-node runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on or not
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [False, True] 
+  
+  Default value: 0
+  
+  fsdp_sharding_strategy: [1] FULL_SHARD (shards optimizer states, gradients and parameters), [2] SHARD_GRAD_OP (shards optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards optimizer states, gradients and parameters within each node while each node has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients within each node while each node has full copy). For more information, please refer the official PyTorch docs.
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE
+    Values: ['FULL_SHARD', 'SHARD_GRAD_OP', 'NO_SHARD', 'HYBRID_SHARD', 'HYBRID_SHARD_ZERO2']
+    
+  
+  Default value: FULL_SHARD
+  
+  fsdp_state_dict_type: [1] FULL_STATE_DICT, [2] LOCAL_STATE_DICT, [3] SHARDED_STATE_DICT
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE
+    Values: ['FULL_STATE_DICT', 'LOCAL_STATE_DICT', 'SHARDED_STATE_DICT']
+    
+  
+  Default value: FULL_STATE_DICT
+  
+  fsdp_use_orig_params: If True, allows non-uniform `requires_grad` during init, which means support for interspersed frozen and trainable parameters. (useful only when `use_fsdp` flag is passed).
+  Domain:
+    Type: BINARY_VARIABLE_TYPE Values: [False, True] 
+  
+  Default value: 1
+  
+  accelerate_config_mixed_precision: Whether or not to use mixed precision training. Choose from 'no', 'fp16', 'bf16' or 'fp8'. 'fp8' requires the installation of transformers-engine.
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE Values: ['no', 'fp16', 'bf16', 'fp8'] 
+  
+  Default value: no
+  
+  accelerate_config_fsdp_transformer_layer_cls_to_wrap: List of transformer layer class names (case-sensitive) to wrap, e.g, BertLayer, GraniteDecoderLayer, GPTJBlock, T5Block ... (useful only when using FSDP)
+  Domain:
+    Type: CATEGORICAL_VARIABLE_TYPE
+    Values: [None, 'GraniteDecoderLayer', 'LlamaDecoderLayer', 'MistralDecoderLayer', 'GPTJBlock', 'T5Block']
+    
+  
+  Default value: None
+  
+  
+Outputs:
+  finetune_full_benchmark-v1.0.0-gpu_compute_utilization_min
+  finetune_full_benchmark-v1.0.0-gpu_compute_utilization_avg
+  finetune_full_benchmark-v1.0.0-gpu_compute_utilization_max
+  finetune_full_benchmark-v1.0.0-gpu_memory_utilization_min
+  finetune_full_benchmark-v1.0.0-gpu_memory_utilization_avg
+  finetune_full_benchmark-v1.0.0-gpu_memory_utilization_max
+  finetune_full_benchmark-v1.0.0-gpu_memory_utilization_peak
+  finetune_full_benchmark-v1.0.0-gpu_power_watts_min
+  finetune_full_benchmark-v1.0.0-gpu_power_watts_avg
+  finetune_full_benchmark-v1.0.0-gpu_power_watts_max
+  finetune_full_benchmark-v1.0.0-gpu_power_percent_min
+  finetune_full_benchmark-v1.0.0-gpu_power_percent_avg
+  finetune_full_benchmark-v1.0.0-gpu_power_percent_max
+  finetune_full_benchmark-v1.0.0-cpu_compute_utilization
+  finetune_full_benchmark-v1.0.0-cpu_memory_utilization
+  finetune_full_benchmark-v1.0.0-train_runtime
+  finetune_full_benchmark-v1.0.0-train_samples_per_second
+  finetune_full_benchmark-v1.0.0-train_steps_per_second
+  finetune_full_benchmark-v1.0.0-train_tokens_per_second
+  finetune_full_benchmark-v1.0.0-train_tokens_per_gpu_per_second
+  finetune_full_benchmark-v1.0.0-dataset_tokens_per_second
+  finetune_full_benchmark-v1.0.0-dataset_tokens_per_second_per_gpu
+  finetune_full_benchmark-v1.0.0-is_valid
+
+```
+You can see the required inputs under the section `Required Inputs` and the optional inputs under `Optional Inputs and Default Values'.
+The next section explains how to use optional properties. 
+
+> [!NOTE]
+> The experiment gives the full domains it supports for each required and optional constitutive property. 
+> However, when constructing the `entityspace` you usually only want to use a sub-domain.
 
 
 ## Parameterizing Experiments
 
 If an experiment has [optional properties](../core-concepts/actuators.md#optional-properties) you can define equivalent
-properties in the entity space. If you don't the default value for the property will be used.
+properties in the entity space. If you don't, the default value for the property will be used.
 
 In addition, you can define your own custom parameterization of the experiment. For example, take the following experiment:
 

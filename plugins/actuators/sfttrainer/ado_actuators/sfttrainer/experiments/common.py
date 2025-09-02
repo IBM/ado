@@ -378,7 +378,7 @@ def get_fms_hf_tuning_src(fms_hf_tuning_version: str) -> str:
 
 
 def get_versioning_metadata(
-    fms_hf_tuning_version: typing.Union[str, list[str]],
+    fms_hf_tuning_version: str | list[str],
 ) -> dict[str, str]:
     ret = {
         "actuator": ACTUATOR_VERSION,
@@ -419,9 +419,9 @@ def generate_parameterisable_finetune_experiment(
     actuator_identifier: str,
     override_propertydomains: dict[str, orchestrator.schema.domain],
     required_property_names: list[str],
-    default_params: dict[str, typing.Union[str, float, bool, int]],
+    default_params: dict[str, str | float | bool | int],
     hardcoded_parameters: dict[str, typing.Any],
-    fms_hf_tuning_versions: typing.Union[list[str], str],
+    fms_hf_tuning_versions: list[str] | str,
     properties: list[str] = ...,
 ) -> "Experiment":
     """Generates a finetune experiment
@@ -809,7 +809,7 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
 
     @pydantic.field_validator("fast_moe", mode="before")
     def upgrade_fast_moe(
-        cls, value: typing.Optional[typing.Union[int, list[int]]]
+        cls, value: typing.Optional[int | list[int]]
     ) -> typing.Optional[list[int]]:
         # VV: Currently, fast_moe has a single argument in it (ep_degree). It's easier to describe the property
         # domain of discrete values so we're going to assume that this is a single integer for now
@@ -1206,7 +1206,7 @@ class PromptTuningExperimentParameters(ExperimentParameters):
 
 
 class FullFinetuningExperimentsParameters(ExperimentParameters):
-    peft_method: typing.Union[None] = pydantic.Field(
+    peft_method: None = pydantic.Field(
         description="This is a full fine-tuning experiment"
     )
 

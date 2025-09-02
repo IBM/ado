@@ -152,7 +152,7 @@ def setup_operator(
 
 
 def write_entities(
-    entities_output_file: typing.Optional[typing.Union[str, pathlib.Path]],
+    entities_output_file: typing.Optional[str | pathlib.Path],
     discovery_space: DiscoverySpace,
 ):
 

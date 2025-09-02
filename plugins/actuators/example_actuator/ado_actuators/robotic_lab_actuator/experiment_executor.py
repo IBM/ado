@@ -31,7 +31,7 @@ def my_experiment(**kwargs) -> dict[str, typing.Any]:
 @ray.remote
 def run_experiment(
     request: MeasurementRequest,
-    experiment: typing.Union[Experiment, ParameterizedExperiment],
+    experiment: Experiment | ParameterizedExperiment,
     measurement_queue: MeasurementQueue,
 ):
 

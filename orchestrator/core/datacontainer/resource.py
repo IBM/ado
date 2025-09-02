@@ -57,22 +57,18 @@ class DataContainer(pydantic.BaseModel):
     locationData: typing.Optional[
         dict[
             str,
-            typing.Union[
-                orchestrator.utilities.location.SQLStoreConfiguration,
-                orchestrator.utilities.location.StorageDatabaseConfiguration,
-                orchestrator.utilities.location.FilePathLocation,
-                orchestrator.utilities.location.ResourceLocation,
-            ],
+            orchestrator.utilities.location.SQLStoreConfiguration
+            | orchestrator.utilities.location.StorageDatabaseConfiguration
+            | orchestrator.utilities.location.FilePathLocation
+            | orchestrator.utilities.location.ResourceLocation,
         ]
     ] = pydantic.Field(
         default=None,
         description="A dictionary whose values are references to data i.e. data locations",
     )
-    data: typing.Optional[dict[str, typing.Union[dict, list, typing.AnyStr]]] = (
-        pydantic.Field(
-            default=None,
-            description="A dictionary of other pydantic objects e.g. lists, dicts, strings,",
-        )
+    data: typing.Optional[dict[str, dict | list | typing.AnyStr]] = pydantic.Field(
+        default=None,
+        description="A dictionary of other pydantic objects e.g. lists, dicts, strings,",
     )
     metadata: ConfigurationMetadata = pydantic.Field(
         default=ConfigurationMetadata(),

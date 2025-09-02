@@ -145,9 +145,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     @classmethod
     def validate_measurements(
         cls,
-        value: typing.Optional[
-            list[typing.Union[ValidMeasurementResult, InvalidMeasurementResult]]
-        ],
+        value: typing.Optional[list[ValidMeasurementResult | InvalidMeasurementResult]],
         values: pydantic.ValidationInfo,
     ):
 

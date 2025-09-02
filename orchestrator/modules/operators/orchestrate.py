@@ -747,7 +747,7 @@ def orchestrate(
         orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration
     ],
     discovery_space_identifier: typing.Optional[str],
-    entities_output_file: typing.Optional[typing.Union[str, pathlib.Path]] = None,
+    entities_output_file: typing.Optional[str | pathlib.Path] = None,
     queue: "ray.util.queue.Queue" = None,
     execid: str | None = None,
 ) -> OperationOutput:

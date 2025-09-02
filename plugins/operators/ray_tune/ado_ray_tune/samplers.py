@@ -3,7 +3,7 @@
 
 import copy
 import logging
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 import ray
@@ -16,7 +16,7 @@ from orchestrator.schema.entityspace import EntitySpaceRepresentation
 class LhuSampler(ray.tune.search.Searcher):
     def __init__(
         self,
-        space: Optional[Union[dict, list[dict]]] = None,
+        space: Optional[dict | list[dict]] = None,
         metric: Optional[str] = None,
         mode: Optional[str] = None,
         points_to_evaluate: Optional[list[dict]] = None,

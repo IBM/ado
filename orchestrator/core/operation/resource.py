@@ -37,11 +37,9 @@ class OperationExitStateEnum(enum.Enum):
 class OperationResourceStatus(ADOResourceStatus):
     """Records information on the status of an operation resource - a life-cycle event that occurred or an exit status"""
 
-    event: typing.Union[ADOResourceEventEnum, OperationResourceEventEnum] = (
-        pydantic.Field(
-            default=None,
-            description="An event that happened to an operation resource: created, added, started, finished, updated",
-        )
+    event: ADOResourceEventEnum | OperationResourceEventEnum = pydantic.Field(
+        default=None,
+        description="An event that happened to an operation resource: created, added, started, finished, updated",
     )
     exit_state: typing.Optional[OperationExitStateEnum] = pydantic.Field(
         default=None,

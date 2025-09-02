@@ -619,7 +619,7 @@ class DiscoverySpace:
         self,
         values: list[orchestrator.schema.property_value.PropertyValue],
         mode="strict",
-    ) -> list[typing.Union[None, orchestrator.schema.entity.Entity]]:
+    ) -> list[None | orchestrator.schema.entity.Entity]:
         """Returns entities in the discoveryspace that have the given values for their constitutive properties and that are stored in the sample-store
 
         All entities returned will be strict members of this receivers entity space i.e. they will not have constitutive

@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pytest
 
@@ -57,12 +56,12 @@ def values_for_properties(
     value_for_value_type,
 ):
     def _values_for_properties(
-        properties: typing.Union[
-            ConstitutiveProperty,
-            ObservedProperty,
-            list[ConstitutiveProperty],
-            list[ObservedProperty],
-        ],
+        properties: (
+            ConstitutiveProperty
+            | ObservedProperty
+            | list[ConstitutiveProperty]
+            | list[ObservedProperty]
+        ),
         value_type: ValueTypeEnum = ValueTypeEnum.NUMERIC_VALUE_TYPE,
     ) -> list[PropertyValue]:
         if not isinstance(properties, list):

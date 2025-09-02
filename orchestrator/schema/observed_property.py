@@ -14,7 +14,7 @@ from orchestrator.schema.reference import ExperimentReference
 
 
 class ObservedProperty(pydantic.BaseModel):
-    targetProperty: typing.Union[AbstractProperty, ConcreteProperty] = pydantic.Field(
+    targetProperty: AbstractProperty | ConcreteProperty = pydantic.Field(
         description="The TargetProperty the receiver is an (attempted) observation of"
     )
     experimentReference: ExperimentReference = pydantic.Field(

@@ -331,7 +331,7 @@ def sample_store_dump(
 
 def sample_store_load(
     sample_store_resource_dict: dict,
-    storage_location: typing.Union[SQLiteStoreConfiguration, SQLStoreConfiguration],
+    storage_location: SQLiteStoreConfiguration | SQLStoreConfiguration,
 ):
     """Adds storage location information to SQL sample stores"""
     if (

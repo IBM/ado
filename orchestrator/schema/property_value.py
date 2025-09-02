@@ -37,7 +37,7 @@ class PropertyValue(pydantic.BaseModel):
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
-    value: typing.Union[int, float, list, str, bytes, None] = pydantic.Field(
+    value: int | float | list | str | bytes | None = pydantic.Field(
         description="The measured value."
     )
     property: typing.Union[

@@ -133,7 +133,7 @@ class MeasurementSpace:
     @classmethod
     def measurementSpaceFromExperimentReferences(
         cls,
-        experimentReferences: list[typing.Union[str, ExperimentReference]],
+        experimentReferences: list[str | ExperimentReference],
     ):
         """
         Class method for creating a MeasurementSpace from a list of experiment references.

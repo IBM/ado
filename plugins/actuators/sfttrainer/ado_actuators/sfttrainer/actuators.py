@@ -223,7 +223,7 @@ class ActuatorParameters(
     @classmethod
     def upgrade_simple_model_map(
         cls,
-        values: dict[str, typing.Union[str, dict[WeightsFormat, str]]],
+        values: dict[str, str | dict[WeightsFormat, str]],
     ) -> dict[str, dict[WeightsFormat, str]]:
         """Auto converts model_map entries whose values are strings to {"Vanilla": <the str>}"""
         if not isinstance(values, dict):
@@ -603,7 +603,7 @@ class SFTTrainer(ActuatorBase):
 
     def prepare_finetune_context(
         self,
-        exp: "typing.Union[Experiment, ParameterizedExperiment]",
+        exp: "Experiment | ParameterizedExperiment",
         entity: "Entity",
         task_uid: str,
         request_id: str,

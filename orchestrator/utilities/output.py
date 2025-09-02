@@ -8,7 +8,7 @@ import yaml
 
 
 def printable_pydantic_model(
-    model: typing.Union[pydantic.BaseModel, list[pydantic.BaseModel]],
+    model: pydantic.BaseModel | list[pydantic.BaseModel],
 ) -> pydantic.BaseModel:
     # We use a RootModel to create on-the-fly a model for a list of the resources of the
     # required type, to mimic the output of kubectl/oc, a list of the resources
@@ -22,7 +22,7 @@ def printable_pydantic_model(
 
 
 def pydantic_model_as_yaml(
-    model: typing.Union[pydantic.BaseModel, list[pydantic.BaseModel]],
+    model: pydantic.BaseModel | list[pydantic.BaseModel],
     exclude_unset: bool = False,
     exclude_defaults: bool = False,
     exclude_none: bool = False,

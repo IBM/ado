@@ -56,9 +56,7 @@ class AccelerateError(ExperimentError):
 
 
 class OutOfGPUMemoryError(ExperimentError):
-    def __init__(
-        self, underlying_error: typing.Optional[typing.Union[Exception, str]] = None
-    ):
+    def __init__(self, underlying_error: typing.Optional[Exception | str] = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -66,9 +64,7 @@ class OutOfGPUMemoryError(ExperimentError):
 
 
 class NCCLError(ExperimentError):
-    def __init__(
-        self, underlying_error: typing.Optional[typing.Union[Exception, str]] = None
-    ):
+    def __init__(self, underlying_error: typing.Optional[Exception | str] = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -76,9 +72,7 @@ class NCCLError(ExperimentError):
 
 
 class UnhandledError(NotImplementedError):
-    def __init__(
-        self, underlying_error: typing.Optional[typing.Union[Exception, str]] = None
-    ):
+    def __init__(self, underlying_error: typing.Optional[Exception | str] = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -298,7 +292,7 @@ class FineTuneArgs:
     padding_free: typing.Optional[list[str]] = None
 
     # VV: This is a [str, bool] for the parameters (kernel, from_quantized)
-    auto_gptq: typing.Optional[list[typing.Union[str, bool]]] = None
+    auto_gptq: typing.Optional[list[str | bool]] = None
 
     # VV: This is a [int] for the parameters (ep_degree)
     fast_moe: typing.Optional[list[int]] = dataclasses.field(
@@ -394,11 +388,11 @@ class HardcodedArgs:
         },
     )
 
-    eval_strategy: typing.Union[transformers.IntervalStrategy, str] = dataclasses.field(
+    eval_strategy: transformers.IntervalStrategy | str = dataclasses.field(
         default="no",
         metadata={"help": "The evaluation strategy to use."},
     )
-    save_strategy: typing.Union[transformers.IntervalStrategy, str] = dataclasses.field(
+    save_strategy: transformers.IntervalStrategy | str = dataclasses.field(
         default="no",
         metadata={"help": "The checkpoint save strategy to use."},
     )
@@ -412,11 +406,9 @@ class HardcodedArgs:
         default=0.03,
         metadata={"help": "Linear warmup over warmup_ratio fraction of total steps."},
     )
-    lr_scheduler_type: typing.Union[transformers.SchedulerType, str] = (
-        dataclasses.field(
-            default="cosine",
-            metadata={"help": "The scheduler type to use."},
-        )
+    lr_scheduler_type: transformers.SchedulerType | str = dataclasses.field(
+        default="cosine",
+        metadata={"help": "The scheduler type to use."},
     )
     logging_steps: float = dataclasses.field(
         default=1,

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, NamedTuple, Union
+from typing import Any, NamedTuple
 
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # convert a dictionary of measurements to AD measurements
 def dict_to_measurements(
     results: dict[str, Any],
-    experiment: Union[Experiment, ParameterizedExperiment],
+    experiment: Experiment | ParameterizedExperiment,
 ) -> list[PropertyValue]:
     """
     Extracts the results for experiment from a dictionary of  measurements (property id:value pairs) and returns as PropertyValues

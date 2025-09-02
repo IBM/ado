@@ -49,19 +49,17 @@ class Experiment(pydantic.BaseModel):
         default={},
         description=""" Metadata about the experiment. Sufficient to track its source. Can be custom format per actuator""",
     )
-    targetProperties: list[typing.Union[AbstractProperty, ConcreteProperty]] = (
-        pydantic.Field(
-            description="""The target properties this experiment aims to measure
+    targetProperties: list[AbstractProperty | ConcreteProperty] = pydantic.Field(
+        description="""The target properties this experiment aims to measure
             (can be ConcreteProperty or AbstractProperty instances)"""
-        )
     )
-    requiredProperties: tuple[
-        typing.Union[ObservedProperty, ConstitutiveProperty], ...
-    ] = pydantic.Field(
-        default=(),
-        frozen=True,
-        description="""The properties this experiment needs values of as inputs
+    requiredProperties: tuple[ObservedProperty | ConstitutiveProperty, ...] = (
+        pydantic.Field(
+            default=(),
+            frozen=True,
+            description="""The properties this experiment needs values of as inputs
             (ObservedProperty or ConstitutiveProperty)""",
+        )
     )
     deprecated: bool = pydantic.Field(
         default=False,
@@ -94,7 +92,7 @@ class Experiment(pydantic.BaseModel):
         targetProperties: [str],
         propertyType: MeasuredPropertyTypeEnum = MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE,
         requiredConstitutiveProperties: [str] = None,
-        metadata: typing.Union[dict, None] = None,
+        metadata: dict | None = None,
         deprecated: bool = False,
     ):
         """Factory method for creating an Experiment instance when you have a list of abstract property ids
@@ -779,12 +777,7 @@ def experiment_type_discriminator(experiment):
 
 
 ExperimentType = Annotated[
-    typing.Union[
-        Annotated[Experiment, pydantic.Tag("Base")],
-        Annotated[
-            ParameterizedExperiment,
-            pydantic.Tag("Parameterized"),
-        ],
-    ],
+    Annotated[Experiment, pydantic.Tag("Base")]
+    | Annotated[ParameterizedExperiment, pydantic.Tag("Parameterized")],
     pydantic.Discriminator(experiment_type_discriminator),
 ]

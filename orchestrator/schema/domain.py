@@ -34,7 +34,7 @@ class ProbabilityFunctionsEnum(str, enum.Enum):
 
 def is_float_range(
     interval: float,
-    domain_range: list[typing.Union[int, float]],
+    domain_range: list[int | float],
 ) -> bool:
     "Returns True if an on interval or domain range is a float"
 
@@ -114,11 +114,11 @@ class PropertyDomain(pydantic.BaseModel):
     values: typing.Optional[list[typing.Any]] = pydantic.Field(
         default=None, description="The values for a discrete or categorical domain"
     )
-    interval: typing.Optional[typing.Union[int, float]] = pydantic.Field(
+    interval: typing.Optional[int | float] = pydantic.Field(
         default=None,
         description="The interval between discrete values variables. Do not set if values is set",
     )  # Only makes sense for discrete variables.
-    domainRange: typing.Optional[list[typing.Union[int, float]]] = pydantic.Field(
+    domainRange: typing.Optional[list[int | float]] = pydantic.Field(
         description="The range of the domain for discrete or continuous variables. Inclusive of lower bound exclusive of upper bound. Calculated automatically if values is given.",
         default=None,
         validate_default=True,
@@ -171,7 +171,7 @@ class PropertyDomain(pydantic.BaseModel):
     @pydantic.field_validator("domainRange")
     def range_requirements(
         cls,
-        passed_range: typing.Optional[list[typing.Union[int, float]]],
+        passed_range: typing.Optional[list[int | float]],
         otherFields: "pydantic.FieldValidationInfo",
     ):
 

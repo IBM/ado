@@ -153,13 +153,13 @@ def format_default_ado_get_multiple_resources(
 
 
 def format_resource_for_ado_get_custom_format(
-    to_print: typing.Union[
-        ADOResource,
-        list[ADOResource],
-        pydantic.BaseModel,
-        list[pydantic.BaseModel],
-        dict,
-    ],
+    to_print: (
+        ADOResource
+        | list[ADOResource]
+        | pydantic.BaseModel
+        | list[pydantic.BaseModel]
+        | dict
+    ),
     parameters: AdoGetCommandParameters,
 ):
     match parameters.output_format:
@@ -186,13 +186,13 @@ def format_resource_for_ado_get_custom_format(
 
 
 def _config_formatter_for_ado_resource(
-    to_print: typing.Union[
-        ADOResource,
-        list[ADOResource],
-        pydantic.BaseModel,
-        list[pydantic.BaseModel],
-        dict,
-    ],
+    to_print: (
+        ADOResource
+        | list[ADOResource]
+        | pydantic.BaseModel
+        | list[pydantic.BaseModel]
+        | dict
+    ),
     parameters: AdoGetCommandParameters,
 ):
 
@@ -242,13 +242,13 @@ def _config_formatter_for_ado_resource(
 
 
 def _yaml_formatter_for_ado_resource(
-    to_print: typing.Union[
-        ADOResource,
-        list[ADOResource],
-        pydantic.BaseModel,
-        list[pydantic.BaseModel],
-        dict,
-    ],
+    to_print: (
+        ADOResource
+        | list[ADOResource]
+        | pydantic.BaseModel
+        | list[pydantic.BaseModel]
+        | dict
+    ),
     parameters: AdoGetCommandParameters,
 ):
 
@@ -287,13 +287,13 @@ def _yaml_formatter_for_ado_resource(
 
 
 def _json_formatter_for_ado_resource(
-    to_print: typing.Union[
-        ADOResource,
-        list[ADOResource],
-        pydantic.BaseModel,
-        list[pydantic.BaseModel],
-        dict,
-    ],
+    to_print: (
+        ADOResource
+        | list[ADOResource]
+        | pydantic.BaseModel
+        | list[pydantic.BaseModel]
+        | dict
+    ),
     parameters: AdoGetCommandParameters,
 ):
 
@@ -343,13 +343,13 @@ def _json_formatter_for_ado_resource(
 
 
 def _raw_formatter_for_ado_resource(
-    to_print: typing.Union[
-        ADOResource,
-        list[ADOResource],
-        pydantic.BaseModel,
-        list[pydantic.BaseModel],
-        dict,
-    ],
+    to_print: (
+        ADOResource
+        | list[ADOResource]
+        | pydantic.BaseModel
+        | list[pydantic.BaseModel]
+        | dict
+    ),
     parameters: AdoGetCommandParameters,
 ):
     import pprint
@@ -364,13 +364,13 @@ def _raw_formatter_for_ado_resource(
 
 
 def _minimize_ado_resource_representation(
-    to_print: typing.Union[
-        ADOResource,
-        list[ADOResource],
-        pydantic.BaseModel,
-        list[pydantic.BaseModel],
-        dict,
-    ],
+    to_print: (
+        ADOResource
+        | list[ADOResource]
+        | pydantic.BaseModel
+        | list[pydantic.BaseModel]
+        | dict
+    ),
 ):
     if isinstance(to_print, list):
         console_print(

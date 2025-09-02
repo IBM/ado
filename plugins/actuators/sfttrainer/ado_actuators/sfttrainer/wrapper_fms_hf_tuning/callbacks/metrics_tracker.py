@@ -34,8 +34,8 @@ class AggregatedValues:
 
 
 def aggregate_values(
-    values: typing.Union[list[float], dict[str, typing.Optional[float]]],
-) -> typing.Union[float, AggregatedValues]:
+    values: list[float] | dict[str, typing.Optional[float]],
+) -> float | AggregatedValues:
     if isinstance(values, list):
         len_values = 0
         _sum = 0

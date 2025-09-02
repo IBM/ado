@@ -38,14 +38,11 @@ def ms_config_type_discriminator(ms_config):
 
 
 MeasurementSpaceConfigurationType = typing.Annotated[
-    typing.Union[
-        typing.Annotated[
-            MeasurementSpaceConfiguration,
-            pydantic.Tag("MeasurementSpaceConfiguration"),
-        ],
-        typing.Annotated[
-            list[ExperimentReference], pydantic.Tag("ExperimentReferenceList")
-        ],
+    typing.Annotated[
+        MeasurementSpaceConfiguration, pydantic.Tag("MeasurementSpaceConfiguration")
+    ]
+    | typing.Annotated[
+        list[ExperimentReference], pydantic.Tag("ExperimentReferenceList")
     ],
     pydantic.Discriminator(ms_config_type_discriminator),
 ]

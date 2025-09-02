@@ -120,7 +120,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    module: typing.Union[OperatorModuleConf, OperatorFunctionConf] = pydantic.Field(
+    module: OperatorModuleConf | OperatorFunctionConf = pydantic.Field(
         default=OperatorModuleConf(),
         description="The module or function providing the discovery operation",
     )

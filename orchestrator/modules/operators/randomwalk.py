@@ -8,7 +8,7 @@ import typing
 import uuid
 from builtins import anext
 from queue import Empty, Queue
-from typing import AsyncGenerator, Literal, Optional, Union
+from typing import AsyncGenerator, Literal, Optional
 
 import pydantic
 import ray
@@ -142,7 +142,7 @@ class RandomWalkParameters(pydantic.BaseModel):
         default=[],
         description="List of variable names that need to be grouped together",
     )
-    numberEntities: Union[int, Literal["all"]] = pydantic.Field(
+    numberEntities: int | Literal["all"] = pydantic.Field(
         default=1,
         description="Number of entities to sample or 'all' if you want to sample all and discoveryspace is finite. "
         "Note if discoveryspace is not-finite then specifying 'all' will raise an error at runtime",

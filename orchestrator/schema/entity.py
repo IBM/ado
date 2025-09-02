@@ -82,7 +82,7 @@ class Entity(pydantic.BaseModel):
         return v
 
     @property
-    def properties(self) -> list[typing.Union[ObservedProperty, ConstitutiveProperty]]:
+    def properties(self) -> list[ObservedProperty | ConstitutiveProperty]:
         """
         Return a list of unique properties from the entity's measurement results.
 
@@ -348,9 +348,7 @@ class Entity(pydantic.BaseModel):
 
     def valuesForProperty(
         self,
-        property: typing.Union[
-            ObservedProperty, ConstitutiveProperty, VirtualObservedProperty
-        ],
+        property: ObservedProperty | ConstitutiveProperty | VirtualObservedProperty,
     ) -> list[PropertyValue]:
         """Returns all values for given observed property. If none exit returns an empty list"""
 
@@ -372,9 +370,7 @@ class Entity(pydantic.BaseModel):
 
     def valueForProperty(
         self,
-        property: typing.Union[
-            ObservedProperty, ConstitutiveProperty, VirtualObservedProperty
-        ],
+        property: ObservedProperty | ConstitutiveProperty | VirtualObservedProperty,
     ) -> PropertyValue:
         """Returns an PropertyValue for Property if one exists otherwise None
 

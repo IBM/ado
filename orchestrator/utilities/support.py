@@ -154,7 +154,7 @@ def prepare_dependent_experiment_input(
         )
     )
     prepared_inputs = []
-    for experiment in experiment_entity_map.keys():
+    for experiment in experiment_entity_map:
         # Important: All measurements for same entity must have same request index
 
         # TODO: The following should be done in the custom experiments actuator

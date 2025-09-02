@@ -85,7 +85,7 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
     # The use of % in the path is because json_tree will add list items in the path.
     # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
     # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
-    for key in entries.keys():
+    for key in entries:
         if isinstance(entries[key], dict):
             fragments.extend(
                 check_field_in_sqlite_json_document(entries[key], f"{path}%.{key}")

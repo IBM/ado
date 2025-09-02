@@ -36,7 +36,7 @@ def get_actuator(parameters: AdoGetCommandParameters):
 
     if (
         parameters.resource_id
-        and parameters.resource_id not in registry.actuatorIdentifierMap.keys()
+        and parameters.resource_id not in registry.actuatorIdentifierMap
     ):
         console_print(
             f"{ERROR}Actuator {parameters.resource_id} does not exist.\n"

@@ -92,7 +92,7 @@ def setup_actuators(
     actuator_ids = [
         e.actuatorIdentifier for e in discovery_space.measurementSpace.experiments
     ]
-    filtered_actuator_ids = [aid for aid in actuator_ids if aid not in actuators.keys()]
+    filtered_actuator_ids = [aid for aid in actuator_ids if aid not in actuators]
     filtered_actuator_ids = list(set(filtered_actuator_ids))
 
     for actuatorIdentifier in filtered_actuator_ids:

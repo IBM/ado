@@ -437,7 +437,7 @@ class ActuatorRegistry:
 
         # Since catalogs may be loaded on demand we cannot go to "catalogIdentifierMap" directly
         catalogs = []
-        for actuatorid in self.actuatorIdentifierMap.keys():
+        for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
             except (
@@ -457,7 +457,7 @@ class ActuatorRegistry:
         import pandas as pd
 
         data = []
-        for actuatorid in self.actuatorIdentifierMap.keys():
+        for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
             except MissingActuatorConfigurationForCatalogError:

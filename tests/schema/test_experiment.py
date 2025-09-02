@@ -562,7 +562,7 @@ def test_experiment_property_values_from_entity(
     )
 
     assert set(expectedValues.keys()) == set(params.keys())
-    for k in expectedValues.keys():
+    for k in expectedValues:
         assert (
             expectedValues[k] == params[k]
         ), f"Expected value for {k}: {expectedValues[k]} does not match returned value {params[k]}"

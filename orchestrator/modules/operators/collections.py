@@ -89,9 +89,9 @@ class OperationCollections(pydantic.BaseModel):
         return self.function_operation_descriptions.get(name)
 
     def __getattr__(self, item):
-        if item in self.function_operations.keys():
+        if item in self.function_operations:
             retval = self.function_operations[item]
-        elif item in self.object_operations.keys():
+        elif item in self.object_operations:
             retval = self.object_operations[item]
         else:
             raise AttributeError(f"Unknown attribute {item}")

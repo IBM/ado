@@ -3,10 +3,10 @@
 
 import importlib.metadata
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
-from typing_extensions import Annotated
 
 from orchestrator.schema.observed_property import (
     ObservedProperty,

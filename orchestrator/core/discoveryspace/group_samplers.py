@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import Any, AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 
 import numpy as np
 import ray

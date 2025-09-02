@@ -32,8 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import asyncio
 import atexit
+from collections.abc import Coroutine
 from threading import Lock, Thread
-from typing import Any, Coroutine
+from typing import Any
 
 
 class AsyncTaskRunner:

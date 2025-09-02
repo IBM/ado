@@ -7,8 +7,9 @@ import logging
 import typing
 import uuid
 from builtins import anext
+from collections.abc import AsyncGenerator
 from queue import Empty, Queue
-from typing import AsyncGenerator, Literal
+from typing import Literal
 
 import pydantic
 import ray

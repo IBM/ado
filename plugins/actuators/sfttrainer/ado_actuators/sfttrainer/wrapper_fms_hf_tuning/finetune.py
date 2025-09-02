@@ -673,10 +673,8 @@ def _finetune_launch_kernel(
     # VV: When this is 1, RDMA over Converged Ethernet (RoCE) is Disabled
     env["NCCL_IB_DISABLE"] = str(multi_node.nccl_ib_disable)
 
-    try:
+    if "LOGLEVEL" in env:
         env["LOGLEVEL"] = env["LOGLEVEL"].upper()
-    except KeyError:
-        pass
 
     log.info(f"Environment variables {env}")
     proc = subprocess.Popen(

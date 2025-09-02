@@ -831,7 +831,7 @@ class RayTune(Search):
         return self._requestIndex
 
     def operationIdentifier(self):
-        return "%s-%s-%s" % (
+        return "{}-{}-{}".format(
             self.__class__.operatorIdentifier(),
             self.params.tuneConfig.search_alg.name,
             self.runid,
@@ -843,7 +843,7 @@ class RayTune(Search):
 
         version = version("ado-core")
 
-        return "raytune-%s" % version
+        return "raytune-{}".format(version)
 
     @classmethod
     def operationType(cls) -> DiscoveryOperationEnum:

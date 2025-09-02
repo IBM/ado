@@ -35,16 +35,16 @@ class ObservedProperty(pydantic.BaseModel):
 
     @property
     def identifier(self):
-        return "%s-%s" % (
+        return "{}-{}".format(
             self.experimentReference.parameterizedExperimentIdentifier,
             self.targetProperty.identifier,
         )
 
     def __str__(self):
-        return "op-%s" % self.identifier
+        return "op-{}".format(self.identifier)
 
     def __repr__(self):
-        return "op-%s" % self.identifier
+        return "op-{}".format(self.identifier)
 
     @property
     def propertyType(self):

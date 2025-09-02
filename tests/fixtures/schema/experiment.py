@@ -54,7 +54,7 @@ def expected_observed_property_identifiers(
     target_property_list: list[typing.AnyStr],
     experiment_identifier: typing.AnyStr,
 ) -> list[typing.AnyStr]:
-    return ["%s-%s" % (experiment_identifier, t) for t in target_property_list]
+    return ["{}-{}".format(experiment_identifier, t) for t in target_property_list]
 
 
 @pytest.fixture(scope="module")

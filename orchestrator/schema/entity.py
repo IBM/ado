@@ -116,7 +116,9 @@ class Entity(pydantic.BaseModel):
         ):
             raise ValueError("All values must be for ConstitutiveProperties")
 
-        cp_id = ["%s.%s" % (pv.property.identifier, pv.value) for pv in property_values]
+        cp_id = [
+            "{}.{}".format(pv.property.identifier, pv.value) for pv in property_values
+        ]
         return "-".join(cp_id)
 
     @pydantic.field_validator("constitutive_property_values", mode="after")
@@ -180,7 +182,7 @@ class Entity(pydantic.BaseModel):
         return self
 
     def __str__(self):
-        return "%s (%s)" % (self.identifier, self.generatorid)
+        return "{} ({})".format(self.identifier, self.generatorid)
 
     def _repr_pretty_(self, p, cycle=False):
 

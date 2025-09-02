@@ -20,12 +20,12 @@ class HOPV(CSVSampleStore):
 
         insilico = ExperimentDescription(
             experimentIdentifier="insilico-pv-property-exp",
-            propertyMap={p: "%s_calc" % p for p in properties},
+            propertyMap={p: "{}_calc".format(p) for p in properties},
         )
 
         exp = ExperimentDescription(
             experimentIdentifier="real-pv-property-exp",
-            propertyMap={p: "%s_exp" % p for p in properties},
+            propertyMap={p: "{}_exp".format(p) for p in properties},
         )
 
         parameters["experiments"] = [insilico, exp]

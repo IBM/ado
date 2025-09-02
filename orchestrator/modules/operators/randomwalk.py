@@ -272,17 +272,17 @@ class RandomWalk(Characterize):
             self.mode = CombinedWalkModeEnum(self.params.mode)
         except ValueError:
             raise ValueError(
-                "Unknown walk mode %s. Known modes %s"
-                % (self.params.mode, [item.value for item in CombinedWalkModeEnum])
+                "Unknown walk mode {}. Known modes {}".format(
+                    self.params.mode, [item.value for item in CombinedWalkModeEnum]
+                )
             )
 
         try:
             self.sampler = SamplerTypeEnum(self.params.samplerType)
         except ValueError:
             raise ValueError(
-                "Unknown sampler type  %s. "
-                "Known sampler types %s"
-                % (
+                "Unknown sampler type  {}. "
+                "Known sampler types {}".format(
                     self.params.samplerType,
                     [item.value for item in SamplerTypeEnum],
                 )
@@ -507,10 +507,9 @@ class RandomWalk(Characterize):
 
             print(
                 "Initial batch. "
-                "Total entities sampled %d. "
-                "Experiments available per entity %d. "
-                "Total experiment requests generated %d. "
-                % (
+                "Total entities sampled {}. "
+                "Experiments available per entity {}. "
+                "Total experiment requests generated {}. ".format(
                     self._entitiesSampled,
                     len(independent_experiments),
                     self._experimentsRequested,
@@ -545,8 +544,9 @@ class RandomWalk(Characterize):
             if isinstance(measurement_request, Exception):
                 self.criticalError = True
                 self.log.critical(
-                    "Received information on critical error will exit: %s"
-                    % measurement_request
+                    "Received information on critical error will exit: {}".format(
+                        measurement_request
+                    )
                 )
                 continue  # break back to while condition so it will exit
 
@@ -629,7 +629,7 @@ class RandomWalk(Characterize):
                 self.log.debug(
                     "%s"
                     % [
-                        "%s" % v
+                        "{}".format(v)
                         for v in entity.propertyValuesFromExperimentReference(
                             measurementRequest.experimentReference
                         )
@@ -796,7 +796,7 @@ class RandomWalk(Characterize):
 
     def operationIdentifier(self):
 
-        return "%s-%s" % (self.__class__.operatorIdentifier(), self.runid)
+        return "{}-{}".format(self.__class__.operatorIdentifier(), self.runid)
 
     @classmethod
     def operatorIdentifier(cls):
@@ -805,7 +805,7 @@ class RandomWalk(Characterize):
 
         version = version("ado-core")
 
-        return "randomwalk-%s" % version
+        return "randomwalk-{}".format(version)
 
     @classmethod
     def operationType(cls) -> DiscoveryOperationEnum:

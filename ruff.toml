@@ -75,18 +75,7 @@ select = [
     "W",
     "F",
     "PGH",
-#    "UP",
-    "UP006",
-    "UP007",
-    "UP008",
-    "UP010",
-    "UP015",
-    "UP024",
-    "UP032",
-    "UP034",
-    "UP035",
-    "UP037",
-    "UP045",
+    "UP",
     "FURB",
     "RUF",
 #    "TRY",
@@ -96,7 +85,7 @@ select = [
 # E501 - line too long (https://docs.astral.sh/ruff/rules/line-too-long/)
 # RUF100 - unused-noqa (https://docs.astral.sh/ruff/rules/unused-noqa/)
 # UP038 - deprecated rule: https://docs.astral.sh/ruff/rules/non-pep604-isinstance/
-ignore = ["E501", "RUF100", "UP038"]
+ignore = ["E501", "RUF100", "UP038", "UP032"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]

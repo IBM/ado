@@ -85,7 +85,7 @@ class AbstractProperty(Property):
     model_config = ConfigDict(frozen=True)
 
     def __str__(self):
-        return "ap-%s" % self.identifier
+        return "ap-{}".format(self.identifier)
 
     def __eq__(self, other):
 
@@ -104,7 +104,7 @@ class ConstitutiveProperty(Property):
     )
 
     def __str__(self):
-        return "cp-%s" % self.identifier
+        return "cp-{}".format(self.identifier)
 
     model_config = ConfigDict(frozen=True)
 
@@ -117,4 +117,4 @@ class ConcreteProperty(Property):
     model_config = ConfigDict(frozen=True)
 
     def __str__(self):
-        return "cp-%s" % self.identifier
+        return "cp-{}".format(self.identifier)

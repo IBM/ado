@@ -659,7 +659,7 @@ def _finetune_launch_kernel(
     installed_packages = importlib.metadata.distributions()
     installed_packages = sorted(
         [
-            "%s==%s" % (pkg.metadata["Name"], pkg.metadata["Version"])
+            "{}=={}".format(pkg.metadata["Name"], pkg.metadata["Version"])
             for pkg in installed_packages
         ]
     )

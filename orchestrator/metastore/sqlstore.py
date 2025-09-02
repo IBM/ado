@@ -1001,5 +1001,5 @@ class SQLResourceStore(ResourceStore):
         self.log.warning(
             "SQLResourceStore does not support recording time-series metrics yet. Will write to file."
         )
-        name = "%s-ts.csv" % observedPropertyName
+        name = "{}-ts.csv".format(observedPropertyName)
         df.to_csv(name, mode="a", header=not os.path.exists(name))

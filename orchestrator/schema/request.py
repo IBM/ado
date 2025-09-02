@@ -193,14 +193,14 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     def __str__(self):
 
         if len(self.entities) == 1:
-            return "request-%s-experiment-%s-entities-%s-requester-%s-time-%s" % (
+            return "request-{}-experiment-{}-entities-{}-requester-{}-time-{}".format(
                 self.requestid,
                 self.experimentReference.experimentIdentifier,
                 self.entities[0],
                 self.operation_id,
                 self.timestamp,
             )
-        return "request-%s-experiment-%s-entities-multi-%s-requester-%s-time-%s" % (
+        return "request-{}-experiment-{}-entities-multi-{}-requester-{}-time-{}".format(
             self.requestid,
             self.experimentReference.experimentIdentifier,
             len(self.entities),
@@ -310,13 +310,13 @@ class ReplayedMeasurement(MeasurementRequest):
     def __str__(self):
 
         if len(self.entities) == 1:
-            return "%s-experiment-%s-entities-%s-time-%s" % (
+            return "{}-experiment-{}-entities-{}-time-{}".format(
                 self.requestid,
                 self.experimentReference.experimentIdentifier,
                 self.entities[0],
                 self.timestamp,
             )
-        return "%s-experiment-%s-entities-multi-%s-time-%s" % (
+        return "{}-experiment-{}-entities-multi-{}-time-{}".format(
             self.requestid,
             self.experimentReference.experimentIdentifier,
             len(self.entities),

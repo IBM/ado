@@ -301,7 +301,7 @@ def test_identifier_from_property_values(
     ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
     assert ident == "-".join(
         [
-            "%s.%s" % (pv.property.identifier, pv.value)
+            "{}.{}".format(pv.property.identifier, pv.value)
             for pv in constitutive_property_values
         ]
     ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ..."
@@ -339,7 +339,7 @@ def test_value_error_duplicate_constitutive_properties(
     ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
     assert ident == "-".join(
         [
-            "%s.%s" % (pv.property.identifier, pv.value)
+            "{}.{}".format(pv.property.identifier, pv.value)
             for pv in constitutive_property_values
         ]
     ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ..."

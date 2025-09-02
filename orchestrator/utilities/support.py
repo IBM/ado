@@ -145,8 +145,9 @@ def prepare_dependent_experiment_input(
     """
 
     logging.getLogger("prepare_dependent_experiment_input").debug(
-        "Checking if dependent experiments can be calculated based on result of %s"
-        % measurement_request
+        "Checking if dependent experiments can be calculated based on result of {}".format(
+            measurement_request
+        )
     )
 
     experiment_entity_map = (

@@ -701,7 +701,7 @@ class RayTune(Search):
         return self.received_critical_error_notification
 
     def isRequestCompleted(self, requestid) -> bool:
-        return True if self._finishedMeasurements.get(requestid) is not None else False
+        return self._finishedMeasurements.get(requestid) is not None
 
     def getRequest(self, requestid) -> MeasurementRequest:
         return self._finishedMeasurements.get(requestid)

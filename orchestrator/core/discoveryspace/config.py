@@ -28,9 +28,8 @@ def ms_config_type_discriminator(ms_config):
         return "ExperimentReferenceList"
     if isinstance(ms_config, MeasurementSpaceConfiguration):
         return "MeasurementSpaceConfiguration"
-    if isinstance(ms_config, dict):
-        if ms_config.get("experiments"):
-            return "MeasurementSpaceConfiguration"
+    if isinstance(ms_config, dict) and ms_config.get("experiments"):
+        return "MeasurementSpaceConfiguration"
 
     raise ValueError(
         f"Unable to determine type measurement space configuration type of data, {ms_config}"

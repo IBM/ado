@@ -521,7 +521,7 @@ class ResourceTracker:
         gpu_stats = []
         for s in items:
             # Collect system stats
-            for k in s.system.keys():
+            for k in s.system:
                 aggregated_stat.system.setdefault(k, [])
                 aggregated_stat.system[k].append(s.system[k])
 
@@ -530,20 +530,20 @@ class ResourceTracker:
                 stat_item_gpu_stat = s.gpus[stat_item_gpu_idx]
                 if len(gpu_stats) == stat_item_gpu_idx:
                     gpu_stats.append({})
-                for gpu_stat_key in stat_item_gpu_stat.keys():
+                for gpu_stat_key in stat_item_gpu_stat:
                     gpu_stat = stat_item_gpu_stat[gpu_stat_key]
                     gpu_stats[stat_item_gpu_idx].setdefault(gpu_stat_key, [])
                     gpu_stats[stat_item_gpu_idx][gpu_stat_key].append(gpu_stat)
 
         # Aggregate system stats
-        for k in aggregated_stat.system.keys():
+        for k in aggregated_stat.system:
             aggregated_stat.system[k] = cls.aggregate(
                 aggregated_stat.system[k], agg_mode
             )
 
         # Aggregate GPU device stats
         for g in range(len(gpu_stats)):
-            for k in gpu_stats[g].keys():
+            for k in gpu_stats[g]:
                 gpu_stats[g][k] = cls.aggregate(gpu_stats[g][k], agg_mode)
 
         aggregated_stat.gpus = gpu_stats

@@ -130,17 +130,15 @@ class PropertyValue(pydantic.BaseModel):
 
     def __eq__(self, other):
 
-        retval = False
-        if isinstance(other, PropertyValue):
-            if self.property == other.property:
-                if self.value == other.value:
-                    retval = True
-
-        return retval
+        return bool(
+            isinstance(other, PropertyValue)
+            and self.property == other.property
+            and self.value == other.value
+        )
 
     def isUncertain(self):
 
-        return True if self.uncertainty is not None else False
+        return self.uncertainty is not None
 
 
 def constitutive_property_values_from_point(

@@ -6,7 +6,6 @@ import importlib.util
 import os
 import sys
 import types
-import typing
 
 
 def semver_cmp(v1: tuple[int, ...], v2: tuple[int, ...]) -> int:
@@ -92,7 +91,7 @@ def _select_compatible_version(
 
 
 def import_tuning_version(
-    version: str, path_to_thin_wrappers_directory: typing.Optional[str] = None
+    version: str, path_to_thin_wrappers_directory: str | None = None
 ) -> types.ModuleType:
     """Loads the appropriate thin wrapper to fms-hf-tuning based on the desired version
 

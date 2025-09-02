@@ -41,7 +41,7 @@ PACKAGES_DIR = f"{os.path.dirname(__file__)}/../packages"
 CONFIG_DIR = f"{os.path.dirname(__file__)}/../config"
 
 FMS_HF_TUNING_COMMIT = yaml.safe_load(
-    open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml"), "r")
+    open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml"))
 )
 
 FMS_HF_TUNING_VERSION = {
@@ -295,7 +295,7 @@ def get_pinned_packages(
         An array consisting of pinned packages a-la pip
     """
 
-    with open(path_requirements, "r", encoding="utf-8") as f:
+    with open(path_requirements, encoding="utf-8") as f:
         packages = [x.strip() for x in f if x.strip() and not x.startswith("#")]
 
     def find_matching_packages(package_name: str, packages: list[str]) -> list[str]:

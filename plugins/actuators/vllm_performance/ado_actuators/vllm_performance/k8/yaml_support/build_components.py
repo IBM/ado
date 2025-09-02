@@ -98,7 +98,7 @@ class ComponentsYaml:
         # read template
         ComponentsYaml._adjust_file_name(template)
         try:
-            with open(ComponentsYaml._adjust_file_name(template), "r") as file:
+            with open(ComponentsYaml._adjust_file_name(template)) as file:
                 deployment_yaml = yaml.safe_load(file)
         except Exception as exception:
             logger.error(f"Exception reading deployment yaml template {exception}")
@@ -189,7 +189,7 @@ class ComponentsYaml:
         """
         # read template
         try:
-            with open(ComponentsYaml._adjust_file_name(template), "r") as file:
+            with open(ComponentsYaml._adjust_file_name(template)) as file:
                 service_yaml = yaml.safe_load(file)
         except Exception as exception:
             logger.error(f"Exception reading service yaml template {exception}")
@@ -216,7 +216,7 @@ class ComponentsYaml:
         """
         # read template
         try:
-            with open(ComponentsYaml._adjust_file_name(template), "r") as file:
+            with open(ComponentsYaml._adjust_file_name(template)) as file:
                 pvc_yaml = yaml.safe_load(file)
         except Exception as exception:
             logger.error(f"Exception reading pvc yaml template {exception}")

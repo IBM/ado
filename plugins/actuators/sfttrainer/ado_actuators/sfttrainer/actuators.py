@@ -358,7 +358,6 @@ class FinetuneContext:
 def get_host(pod_ip: str) -> str:
     with open(
         "/var/run/secrets/kubernetes.io/serviceaccount/namespace",
-        "r",
         encoding="utf-8",
     ) as f:
         namespace = f.read().strip()
@@ -418,7 +417,7 @@ class SFTTrainer(ActuatorBase):
                 path = os.environ["SFTTRAINER_PARAMETERS_FILE"]
 
                 self.log.info(f"Loading actuator parameters from {path}")
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     params = yaml.safe_load(f)
                 params = self.parameters_class.model_validate(params)
 

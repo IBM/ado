@@ -119,7 +119,7 @@ def generate_dataset(
     words_per_token: float = 0.75,
     population: int = 4096,
 ) -> pandas.DataFrame:
-    with open(seed_file, "r", encoding="utf-8") as f:
+    with open(seed_file, encoding="utf-8") as f:
         words = [x for x in f.read().split() if len(x) > 0]
 
     prompts = []

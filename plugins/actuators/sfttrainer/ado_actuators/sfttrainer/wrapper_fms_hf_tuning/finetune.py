@@ -446,7 +446,7 @@ def get_available_open_port() -> int:
 def extract_metrics(aim_info_path: str, number_gpus: int):
     import json
 
-    with open(aim_info_path, "r", encoding="utf-8") as f:
+    with open(aim_info_path, encoding="utf-8") as f:
         aim_info: dict[str, typing.Any] = json.load(f)
 
     if "error" in aim_info:
@@ -753,7 +753,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
                 json.dump(num_tokens, f)
             # VV: Verify that we actually stored what we think we stored (there could be multiple
             # tasks populating the cache and them corrupting each other's results)
-            with open(cache_file, "r") as f:
+            with open(cache_file) as f:
                 fresh = json.load(f)
 
             if fresh == num_tokens:
@@ -902,7 +902,7 @@ def calculate_tokens_in_text_dataset(
 
     num_tokens = []
 
-    with open(path_data, "r") as f:
+    with open(path_data) as f:
         for line in tqdm.tqdm(
             f,
             desc="Counting tokens in samples of dataset",

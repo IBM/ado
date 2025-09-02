@@ -73,7 +73,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
                 json.dump(num_tokens, f)
             # VV: Verify that we actually stored what we think we stored (there could be multiple
             # tasks populating the cache and them corrupting each other's results)
-            with open(cache_file, "r") as f:
+            with open(cache_file) as f:
                 fresh = json.load(f)
 
             if fresh == num_tokens:
@@ -221,7 +221,7 @@ def _get_tokens_of_dataset_entries(
 
         # VV: Either the cache was empty, not found, or contained invalid data
         start = time.time()
-        with open(path_data, "r") as f:
+        with open(path_data) as f:
             for line in f:
                 data = json.loads(line)
                 decoded = tokenizer.encode(data["output"], padding=True)

@@ -66,7 +66,7 @@ def main(
         Vanilla: HuggingFaceTB/SmolLM2-135M
     """
 
-    with open(path_to_models, "r") as f:
+    with open(path_to_models) as f:
         model_map: dict[str, dict[str, str]] = yaml.safe_load(f)
 
     for model_name, items in model_map.items():

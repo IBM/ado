@@ -395,7 +395,7 @@ def main():
         raise ValueError("must set --fms_hf_tuning_version")
 
     if custom_args.aim_metadata_path:
-        with open(custom_args.aim_metadata_path, "r") as f:
+        with open(custom_args.aim_metadata_path) as f:
             aim_metadata = json.load(f)
     else:
         aim_metadata = {}

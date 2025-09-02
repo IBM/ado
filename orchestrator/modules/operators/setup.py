@@ -34,7 +34,7 @@ def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict):
         if not os.path.exists(p):
             raise Exception(f"Secret {p} does not exist")
 
-        with open(p, "r") as f:
+        with open(p) as f:
             env_var_dict[os.path.basename(p)] = f.readlines()[0].strip()
 
 

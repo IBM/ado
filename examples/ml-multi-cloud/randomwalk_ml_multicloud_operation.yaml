@@ -12,6 +12,7 @@ operation:
   parameters:
     numberEntities: 48
     batchSize: 1
-    mode: 'random'
-    samplerType: 'generator'
     singleMeasurement: True
+    samplerConfig:
+      samplerType: generator
+      mode: random

@@ -987,8 +987,6 @@ parameters:
   match_exact_dependencies: true
   output_dir: "output"
   data_directory: "/data/fms-hf-tuning/artificial-dataset/"
-  aim_dashboard_url: https://aim-discovery-dev.apps.morrigan.accelerated-discovery.res.ibm.com
-  aim_db: "aim://api.morrigan.accelerated-discovery.res.ibm.com:30617"
   hf_home: "/hf-models-pvc/huggingface_home"
   model_map:
     granite-3.1-2b:
@@ -1008,12 +1006,12 @@ parameters:
 #### `data_directory` (str, default: `"/data/fms-hf-tuning/artificial-dataset/"`)
 - **Description**: Path to the directory containing the dataset files used for fine-tuning.
 
+#### `aim_db` (str, default: None)
+- **Description**: Endpoint of the AIM server used to log training metrics. When set to None the measurement will use a temporary AIM repository that will be garbage collected after the termination of the measurement.
+
 #### `aim_dashboard_url` (str or null, optional)
 - **Description**: URL of the AIM dashboard. If set, this will be included in the metadata of the measurement results.
 - **Example**: `"http://aim-dashboard.example.com"`
-
-#### `aim_db` (str, default: `"aim://api.morrigan.accelerated-discovery.res.ibm.com:30617"`)
-- **Description**: Endpoint of the AIM server used to log training metrics.
 
 #### `hf_home` (str, default: `"/hf-models-pvc/huggingface_home"`)
 - **Description**: Directory where Hugging Face stores authentication tokens and model cache.

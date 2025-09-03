@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import sys
 import time
@@ -503,6 +504,14 @@ def _finetune_launch_kernel(
 
     # VV: Convert args to a dictionary which we'll then use to put together the commandline of
     # `accelerate launch` or python
+
+    if args.aim_db is None:
+        args = copy.deepcopy(args)
+        args.aim_db = os.path.join(working_directory, "ephemeral_aim")
+        log.info(
+            f"aim_db is unset, will use an ephemeral aim repository at {args.aim_db}"
+        )
+
     cmdline_args = generate_arguments_sft_trainer(args)
     log.info(
         f"Evaluate {dataclasses.asdict(args)} and multi_node {dataclasses.asdict(multi_node)}"

@@ -187,7 +187,7 @@ def _create_environment(
 
 
 vllm_test_runtime_env = RuntimeEnv(
-        pip=["vllm"],
+        pip=["vllm==0.10.1.1"],
 )
 
 @ray.remote(runtime_env=vllm_test_runtime_env)

@@ -187,15 +187,16 @@ def _create_environment(
 
 
 vllm_test_runtime_env = RuntimeEnv(
-        pip=["vllm==0.10.1.1"],
+    pip=["vllm==0.10.1.1"],
 )
+
 
 @ray.remote(runtime_env=vllm_test_runtime_env)
 def run_resource_and_workload_experiment(
     request: MeasurementRequest,
     experiment: Experiment | ParameterizedExperiment,
     state_update_queue: MeasurementQueue,
-    actuator: VLLMPerformanceTestParameters,
+    actuator_parameters: VLLMPerformanceTestParameters,
     node_selector: dict[str, str],
     env_manager: ActorHandle,
     local_port: int,
@@ -208,7 +209,7 @@ def run_resource_and_workload_experiment(
     :param request: measurement request
     :param experiment: definition of experiment
     :param state_update_queue: update queue
-    :param actuator: actuator parameters
+    :param actuator_parameters: actuator parameters
     :param node_selector: node selector
     :param env_manager: environment manager
     :param local_port: local port to use
@@ -221,7 +222,7 @@ def run_resource_and_workload_experiment(
     # 3. Puts it in the stateUpdateQueue
 
     print(
-        f"number of entities {len(request.entities)}, actuator parameters {actuator}, node selector {node_selector}"
+        f"number of entities {len(request.entities)}, actuator parameters {actuator_parameters}, node selector {node_selector}"
     )
 
     # placeholder for measurements
@@ -241,7 +242,7 @@ def run_resource_and_workload_experiment(
         )
         current_port += 1
         # create environment
-        if not actuator.in_cluster:
+        if not actuator_parameters.in_cluster:
             print("We are running locally connecting to remote cluster")
             print("please make sure that you have executed `oc login`")
             print(
@@ -251,7 +252,7 @@ def run_resource_and_workload_experiment(
         measured_values = []
         k8_name, error, definition = _create_environment(
             values=values,
-            actuator=actuator,
+            actuator=actuator_parameters,
             node_selector=node_selector,
             env_manager=env_manager,
         )
@@ -259,12 +260,12 @@ def run_resource_and_workload_experiment(
             print("test environment is created")
             pf = None
             # compute base url
-            if actuator.in_cluster:
+            if actuator_parameters.in_cluster:
                 # we are running in cluster, connect to service directly
-                base_url = f"http://{k8_name}.{actuator.namespace}.svc.cluster.local:80"
+                base_url = f"http://{k8_name}.{actuator_parameters.namespace}.svc.cluster.local:80"
             else:
                 # we are running locally. need to do port-forward and connect to the local one
-                pf_command = f"kubectl port-forward svc/{k8_name} -n {actuator.namespace} {current_port}:80"
+                pf_command = f"kubectl port-forward svc/{k8_name} -n {actuator_parameters.namespace} {current_port}:80"
                 try:
                     pf = subprocess.Popen(pf_command, shell=True)
                     print("port forwarding set")
@@ -288,13 +289,13 @@ def run_resource_and_workload_experiment(
                         base_url=base_url,
                         model=values.get("model"),
                         data_set=values.get("dataset"),
-                        interpreter=actuator.interpreter,
+                        interpreter=actuator_parameters.interpreter,
                         num_prompts=int(values.get("num_prompts")),
                         request_rate=request_rate,
                         max_concurrency=max_concurrency,
-                        hf_token=actuator.hf_token,
-                        benchmark_retries=actuator.benchmark_retries,
-                        retries_timeout=actuator.retries_timeout,
+                        hf_token=actuator_parameters.hf_token,
+                        benchmark_retries=actuator_parameters.benchmark_retries,
+                        retries_timeout=actuator_parameters.retries_timeout,
                     )
                     print(f"benchmark executed in {time.time() - start} sec")
                 except Exception as e:
@@ -335,12 +336,12 @@ def run_resource_and_workload_experiment(
     state_update_queue.put(request, block=False)
 
 
-@ray.remote
+@ray.remote(runtime_env=vllm_test_runtime_env)
 def run_workload_experiment(
     request: MeasurementRequest,
     experiment: Experiment | ParameterizedExperiment,
     state_update_queue: MeasurementQueue,
-    actuator: VLLMPerformanceTestParameters,
+    actuator_parameters: VLLMPerformanceTestParameters,
 ):
     """
     Runs an experiment with a specific inference workload configuration on a given endpoint.
@@ -350,7 +351,7 @@ def run_workload_experiment(
     :param request: measurement request
     :param experiment: definition of experiment
     :param state_update_queue: update queue
-    :param actuator: actuator parameters
+    :param actuator_parameters: actuator parameters
     :return:
     """
 
@@ -389,13 +390,13 @@ def run_workload_experiment(
                 base_url=values.get("endpoint"),
                 model=values.get("model"),
                 data_set=values.get("dataset"),
-                interpreter=actuator.interpreter,
+                interpreter=actuator_parameters.interpreter,
                 num_prompts=int(values.get("num_prompts")),
                 request_rate=request_rate,
                 max_concurrency=max_concurrency,
-                hf_token=actuator.hf_token,
-                benchmark_retries=actuator.benchmark_retries,
-                retries_timeout=actuator.retries_timeout,
+                hf_token=actuator_parameters.hf_token,
+                benchmark_retries=actuator_parameters.benchmark_retries,
+                retries_timeout=actuator_parameters.retries_timeout,
             )
             print(f"benchmark executed in {time.time() - start} sec")
         except Exception as e:

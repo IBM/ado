@@ -12,8 +12,9 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 # in the parameters_class class variable of our actuator.
 # This class inherits from pydantic.BaseModel.
 class VLLMPerformanceTestParameters(GenericActuatorParameters):
-    namespace: str = pydantic.Field(
-        default="discovery-dev", description="k8 namespace for running VLLM pod"
+    namespace: str | None = pydantic.Field(
+        default=None,
+        description="k8 namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
     )
     in_cluster: bool = pydantic.Field(
         default=True,

@@ -2,4 +2,3 @@
 {%
    include-markdown "./contributing_readme.md"
 %}
-

@@ -1191,12 +1191,12 @@ To create the dataset files use the same `ray_runtime_env.yaml` file as above bu
 
 ```
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
-  python generate_vision_dataset.py --image-width 384  --image-height 384 \
+  sfttrainer_generate_dataset_vision --image-width 384  --image-height 384 \
   -o /data/fms-hf-tuning/artificial-dataset/vision-384x384-16384plus-entries-4096.parquet
 
 
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
-  python generate_vision_dataset.py --image-width 384  --image-height 768 \
+  sfttrainer_generate_dataset_vision --image-width 384  --image-height 768 \
   -o /data/fms-hf-tuning/artificial-dataset/vision-384x768-16384plus-entries-4096.parquet
 ```
 

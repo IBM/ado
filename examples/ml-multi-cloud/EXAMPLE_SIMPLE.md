@@ -1,42 +1,52 @@
-> [!NOTE] 
-> 
-> This example illustrates: 
-> 
-> 1. Describing a set of points and how to measure them using a `discoveryspace` 
+# Taking a random walk
+
+> [!NOTE]
 >
-> 2. Exploring the `discoveryspace` by creating an operation that samples and measures the points 
+> This example illustrates:
+>
+> 1. Describing a set of points and how to measure them using a `discoveryspace`
+>
+> 2. Exploring the `discoveryspace` by creating an operation that samples and
+>    measures the points
 >
 > 3. Getting the results of an operation
->
 
 ## The scenario
 
-When you deploy a workload you have to choose values for workload parameters like the number of CPUs or the node type.
-To choose a combination of parameters that, for example, maximizes performance, a common strategy is to measure changes in performance by **exploring the workload parameter space**.
-This pattern applies to many domains where there is a parameter space to explore.
+When you deploy a workload you have to choose values for workload parameters
+like the number of CPUs or the node type. To choose a combination of parameters
+that, for example, maximizes performance, a common strategy is to measure
+changes in performance by **exploring the workload parameter space**. This
+pattern applies to many domains where there is a parameter space to explore.
 
-**In this example `ado` is used to explore the workload parameter space for a cloud application.** 
-To explore a workload parameter space you have to:
+**In this example `ado` is used to explore the workload parameter space for a
+cloud application.** To explore a workload parameter space you have to:
 
 - define the values of the parameters to test - the parameter space
 - define what to test them with - the experiment
-- select points from the parameter space and perform the test - the sampling method
+- select points from the parameter space and perform the test - the sampling
+  method
 
-Here, we will use the simplest sampling method, random walk, where some number of points are randomly selected without replacement.
+Here, we will use the simplest sampling method, random walk, where some number
+of points are randomly selected without replacement.
 
 > [!CAUTION]
-> 
-> The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
-> See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
+>
+> The commands below assume you are in the directory `examples/ml-multi-cloud`
+> in **the ado source repository**. See
+> [the instructions for cloning the repository](/ado/getting-started/install/#__tabbed_1_3).
 
 ## Using pre-existing data with `ado`
 
-For this example we will use some **pre-existing data**.
-This makes the example simpler and quicker to execute but can also be useful in other situations. 
-The data is in the file `ml_export.csv` and is consists of results of running a benchmark on different cloud hardware configurations from different providers.
+For this example we will use some **pre-existing data**. This makes the example
+simpler and quicker to execute but can also be useful in other situations. The
+data is in the file `ml_export.csv` and is consists of results of running a
+benchmark on different cloud hardware configurations from different providers.
 
-In `ado` such configurations are called `entities`, and are stored, along with the results of measurements executed on them, in a [`samplestore`](/ado/resources/sample-stores). 
-Let's start by copying the data in `ml_export.csv` into a new `samplestore`. 
+In `ado` such configurations are called `entities`, and are stored, along with
+the results of measurements executed on them, in a
+[`samplestore`](/ado/resources/sample-stores). Let's start by copying the data
+in `ml_export.csv` into a new `samplestore`.
 
 To do this execute,
 
@@ -44,116 +54,143 @@ To do this execute,
 ado create samplestore -f ml_multicloud_sample_store.yaml --set "copyFrom[0].storageLocation.path"=ml_export.csv
 ```
 
-and it will report that a `samplestore` has been created: 
+and it will report that a `samplestore` has been created:
+
 ```commandline
 Success! Created sample store with identifier $SAMPLE_STORE_IDENTIFIER
 ```
-Note the `samplestore` resource identifier printed by this command for the next section.
 
-Also try `ado get samplestores` and you will see an entry for the one you just created
+Note the `samplestore` resource identifier printed by this command for the next
+section.
+
+Also try `ado get samplestores` and you will see an entry for the one you just
+created
 
 !!! info end
-    
-    You only need to create this `samplestore` once. It can be reused in multiple `discoveryspaces` or examples that require the `ml_export.csv` data.
+    <!-- markdownlint-disable-next-line code-block-style -->
+    You only need to create this `samplestore` once.
+    It can be reused in multiple `discoveryspaces`
+    or examples that require the `ml_export.csv` data.
 
 ## Creating a `discoveryspace` for the `ml-multi-cloud` data
 
-A `discoveryspace` describes a set of points and how to measure them. 
-Here we will create a `discoveryspace` to describe the space explored in `ml_export.csv`. 
+A `discoveryspace` describes a set of points and how to measure them. Here we
+will create a `discoveryspace` to describe the space explored in
+`ml_export.csv`.
 
-Execute: 
-```
+Execute:
+
+```commandline
 ado create space -f ml_multicloud_space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
 ```
+
 where `$SAMPLE_STORE_IDENTIFIER` is the identifier you copied in last step.
 
-This will confirm the creation of the `discoveryspace` with: 
+This will confirm the creation of the `discoveryspace` with:
+
 ```commandline
 Success! Created space with identifier: $DISCOVERY_SPACE_IDENTIFIER
 ```
 
 You can now describe the `discoveryspace` with:
-```
+
+```commandline
 ado describe space $DISCOVERY_SPACE_IDENTIFIER
 ```
-where $DISCOVERY\_SPACE\_IDENTIFIER is the identifier of the `discoveryspace` resource that was just created. 
-This will output:
+
+where $DISCOVERY_SPACE_IDENTIFIER is the identifier of the `discoveryspace`
+resource that was just created. This will output:
 
 ```commandline
 Identifier: space-65cf33-a8df39
 
-Entity Space: 
-  
+Entity Space:
+
   Number entities: 48
-  
+
   Categorical properties:
            name     values
     0  provider  [A, B, C]
-  
+
   Discrete properties:
              name   range interval        values
     0  cpu_family  [0, 2]     None        [0, 1]
     1   vcpu_size  [0, 2]     None        [0, 1]
     2       nodes  [2, 6]     None  [2, 3, 4, 5]
-  
-   
+
+
 Measurement Space:
                         experiment  supported
-  0  replay.benchmark_performance       True 
-  
-  'replay.benchmark_performance' 
-  
+  0  replay.benchmark_performance       True
+
+  'replay.benchmark_performance'
+
   Inputs:
       parameter      type value parameterized
   0  cpu_family  required  None            na
   1   vcpu_size  required  None            na
   2       nodes  required  None            na
-  3    provider  required  None            na 
-  
+  3    provider  required  None            na
+
   Outputs:
        target property
   0  wallClockRuntime
-  1            status  
-  
+  1            status
+
 Sample Store identifier: 'a8df39'
 ```
->[!NOTE]
-> 
->The set of points is defined by the properties in the `Entity Space` - here '_cpu_family_', '_provider_', '_vcpu_size_' and '_nodes_' - and the values those properties can take.
 
->[!TIP]
-> Consider why the size of the entityspace is 48. Compare this to the number of rows in `ml_export.csv`.
+> [!NOTE]
+>
+> The set of points is defined by the properties in the `Entity Space` - here
+> '_cpu_family_', '_provider_', '_vcpu_size_' and '_nodes_' - and the values
+> those properties can take.
+<!-- markdownlint-disable-next-line no-blanks-blockquote -->
+> [!TIP]
+> Consider why the size of the entityspace is 48. Compare this to the
+> number of rows in `ml_export.csv`.
 
 ## Exploring the `discoveryspace`
 
-Next we will run an operation that will "explore" the `discoveryspace` we just created.
-Since we already have the data, `ado` will transparently identify and reuse it. 
-An example operation file is given in `randomwalk_ml_multicloud_operation.yaml`. The contents are:
+Next we will run an operation that will "explore" the `discoveryspace` we just
+created. Since we already have the data, `ado` will transparently identify and
+reuse it. An example operation file is given in
+`randomwalk_ml_multicloud_operation.yaml`. The contents are:
+
 ```yaml
-{%
-   include "./randomwalk_ml_multicloud_operation.yaml"
-%}
+{% include "./randomwalk_ml_multicloud_operation.yaml" %}
 ```
 
-To run the operation execute (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the identifier of the space you created): 
+To run the operation execute (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the
+identifier of the space you created):
 
 ```commandline
 ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
 ```
-This will output a lot of information as it samples all the entities. 
-Typically, you will see the following lines for each entity (point in the entity space) sampled and measured:
+
+This will output a lot of information as it samples all the entities. Typically,
+you will see the following lines for each entity (point in the entity space)
+sampled and measured:
+
+<!-- markdownlint-disable line-length -->
 ```commandline
 (RandomWalk pid=14797) Continuous batching: SUBMIT EXPERIMENT. Submitting experiment replay.benchmark_performance for provider.B-cpu_family.1-vcpu_size.1-nodes.4
-(RandomWalk pid=14797) 
+(RandomWalk pid=14797)
 (RandomWalk pid=14797) Continuous batching: SUMMARY. Entities sampled and submitted: 2. Experiments completed: 1 Waiting on 1 active requests. There are 0 dependent experiments
 (RandomWalk pid=14797) Continuous Batching: EXPERIMENT COMPLETION. Received finished notification for experiment in measurement request in group 1: request-randomwalk-0.9.6.dev91+884f713b.dirty-c5ed4b-579021-experiment-benchmark_performance-entities-provider.B-cpu_family.1-vcpu_size.1-nodes.4 (explicit_grid_sample_generator)-requester-randomwalk-0.9.6.dev91+884f713b.dirty-c5ed4b-time-2025-07-29 20:03:00.976809+01:00
 ```
-The first line, "SUBMIT EXPERIMENT", indicates the entity - `provider.B-cpu_family.1-vcpu_size.1-nodes.4` - and experiment - `replay.benchmark_performance` submitted.
-The next line gives a summary of what has happened so far: 
-this is the second entity sampled and submitted; one experiment has completed; and the sampler is waiting on one active experiment before submitting a new one. 
-Finally, the "EXPERIMENT COMPLETION" line indicates the experiment has finished. 
+<!-- markdownlint-enable line-length -->
+
+The first line, "SUBMIT EXPERIMENT", indicates the entity -
+`provider.B-cpu_family.1-vcpu_size.1-nodes.4` - and experiment -
+`replay.benchmark_performance` submitted. The next line gives a summary of what
+has happened so far: this is the second entity sampled and submitted; one
+experiment has completed; and the sampler is waiting on one active experiment
+before submitting a new one. Finally, the "EXPERIMENT COMPLETION" line indicates
+the experiment has finished.
 
 The operation will end with information like:
+
 ```yaml
 config:
   operation:
@@ -168,8 +205,8 @@ config:
       numberEntities: 48
       samplerType: generator
   spaces:
-  - space-65cf33-a8df39
-created: '2025-06-20T13:03:46.763154Z'
+    - space-65cf33-a8df39
+created: "2025-06-20T13:03:46.763154Z"
 identifier: randomwalk-0.9.4.dev30+564196d4.dirty-b8a233
 kind: operation
 metadata:
@@ -178,47 +215,59 @@ metadata:
 operationType: search
 operatorIdentifier: randomwalk-0.9.4.dev30+564196d4.dirty
 status:
-- event: created
-  recorded_at: '2025-06-20T13:03:40.267005Z'
-- event: added
-  recorded_at: '2025-06-20T13:03:46.764750Z'
-- event: started
-  recorded_at: '2025-06-20T13:03:46.769169Z'
-- event: finished
-  exit_state: success
-  recorded_at: '2025-06-20T13:03:48.369516Z'
-- event: updated
-  recorded_at: '2025-06-20T13:03:48.374765Z'
+  - event: created
+    recorded_at: "2025-06-20T13:03:40.267005Z"
+  - event: added
+    recorded_at: "2025-06-20T13:03:46.764750Z"
+  - event: started
+    recorded_at: "2025-06-20T13:03:46.769169Z"
+  - event: finished
+    exit_state: success
+    recorded_at: "2025-06-20T13:03:48.369516Z"
+  - event: updated
+    recorded_at: "2025-06-20T13:03:48.374765Z"
 version: v1
 ```
 
-Note the value of the `identifier` field: in above it is `randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`
+Note the value of the `identifier` field: in above it is
+`randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`
 
->[!NOTE] 
-> 
-> The operation "reuses" existing measurements: this is an `ado` feature called **memoization**.
+> [!NOTE]
 >
-> `ado` transparently executes experiments or memoizes data as appropriate - so the operator does not need to know if a measurement needs to be performed at the time it requests it, or if previous data can be reused.
-
->[!TIP]
-> Operations are **domain agnostic**. If you look in `randomwalk_ml_multicloud_operation.yaml` you will see there is no reference to characteristics of the discoveryspace we created.
-> Indeed, this operation file could work on any discoveryspace.
-> 
-> This shows that operators, like randomwalk, don't have to know domain specific details. 
-> All information about what to explore and how to measure is captured in the `discoveryspace`.
-
+> The operation "reuses" existing measurements: this is an `ado` feature called
+> **memoization**.
+>
+> `ado` transparently executes experiments or memoizes data as appropriate - so
+> the operator does not need to know if a measurement needs to be performed at
+> the time it requests it, or if previous data can be reused.
+<!-- markdownlint-disable-next-line no-blanks-blockquote -->
+> [!TIP]
+>
+> Operations are **domain agnostic**. If you look in
+> `randomwalk_ml_multicloud_operation.yaml` you will see there is no reference
+> to characteristics of the discoveryspace we created. Indeed, this operation
+> file could work on any discoveryspace.
+>
+> This shows that operators, like randomwalk, don't have to know domain specific
+> details. All information about what to explore and how to measure is captured
+> in the `discoveryspace`.
 
 ## Looking at the `operation` output
 
 The command
+
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER 
+ado show entities operation $OPERATION_IDENTIFIER
 ```
-displays the results of the operation i.e. the entities sampled and the measurement results. 
-You will see something like the following (the sampling is random so the order can be different): 
-```
+
+displays the results of the operation i.e. the entities sampled and the
+measurement results. You will see something like the following (the sampling is
+random so the order can be different):
+
+<!-- markdownlint-disable line-length -->
+```text
                result_index                                   identifier                        benchmark_performance-wallClockRuntime benchmark_performance-status                                                                                        reason  valid
-request_index                                                                                                                                               
+request_index
 0                         0                               C_f1.0-c1.0-n4                                                    114.014369                           ok                                                                                                 True
 1                         0                               A_f0.0-c0.0-n2                                                    335.208518                           ok                                                                                                 True
 2                         0  provider.B-cpu_family.0-vcpu_size.1-nodes.5                                                                                             Externally defined experiments cannot be applied to entities: replay.benchmark_performance.   False
@@ -268,37 +317,43 @@ request_index
 46                        0                               A_f1.0-c0.0-n5                      [117.94136571884157, 135.91092538833618]                     [ok, ok]                                                                                                 True
 47                        0                               C_f0.0-c1.0-n5                        [95.86326050758362, 85.67946743965149]                     [ok, ok]                                                                                                 True
 ```
+<!-- markdownlint-enable line-length -->
 
->[!TIP]
-> Some things to note and consider:
-> 
-> * The table is in the order the points were measured
-> * Some points have multiple measurements c.f. size of entityspace versus the number of rows in `ml_export.csv`.
-> * Some points were not measured - these are points in the discoveryspace for which no data was present to replay.
+> [!TIP] Some things to note and consider:
+>
+> - The table is in the order the points were measured
+> - Some points have multiple measurements c.f. size of entityspace versus the
+>   number of rows in `ml_export.csv`.
+> - Some points were not measured - these are points in the discoveryspace for
+>   which no data was present to replay.
 
-
-## Exploring Further    
+## Exploring Further
 
 Here are a variety of commands you can try after executing the example above:
 
 ### Viewing entities
 
 There are multiple ways to few the entities related to a `discoveryspace`. Try:
+
 ```commandline
 ado show entities space $DISCOVERY_SPACE_IDENTIFIER
 ado show entities space $DISCOVERY_SPACE_IDENTIFIER --aggregate mean
 ado show entities space $DISCOVERY_SPACE_IDENTIFIER --include unmeasured
 ado show entities space $DISCOVERY_SPACE_IDENTIFIER --property-format target
 ```
+
 Also,
+
 ```commandline
-ado show details space $DISCOVERY_SPACE_IDENTIFIER 
+ado show details space $DISCOVERY_SPACE_IDENTIFIER
 ```
-will give you a summary of what has been measured. 
+
+will give you a summary of what has been measured.
 
 ### Resource provenance
 
 The `related` sub-command shows resource provenance e.g.
+
 ```commandline
 ado show related operation $OPERATION_IDENTIFIER
 ```
@@ -306,35 +361,43 @@ ado show related operation $OPERATION_IDENTIFIER
 ### Operation timeseries
 
 The following commands give more details of the operation timeseries
-```
-ado show results operation $OPERATION_IDENTIFIER 
-ado show requests operation $OPERATION_IDENTIFIER 
+
+```commandline
+ado show results operation $OPERATION_IDENTIFIER
+ado show requests operation $OPERATION_IDENTIFIER
 ```
 
 ### Resource templates
 
-Another helpful command is `template` which will output a default example of a resource YAML along with an (optional) description of its fields.
-Try:
+Another helpful command is `template` which will output a default example of a
+resource YAML along with an (optional) description of its fields. Try:
+
 ```commandline
-ado template operation --include-schema --operator-name random_walk 
+ado template operation --include-schema --operator-name random_walk
 ```
 
 ### Rerun
 
-An interesting thing to try is to run the operation again and compare the output of `show entities operation` for the two operations, and `show entities space`.
+An interesting thing to try is to run the operation again and compare the output
+of `show entities operation` for the two operations, and `show entities space`.
 
 ## Takeaways
 
-* **create-explore-view pattern**: A common pattern in `ado` is to create a `discoveryspace` to describe a set of points to measure, create `operations` on it to explore or analyse it, and then view the results
-* **entity space and measurement space**: A `discoveryspace` consists of an `entityspace` - the set of points to measure - and a `measurementspace` - the set of experiments to apply to them.
-* **operations are domain agnostic**: `ado` enables operations to run on multiple different domains without modification
-* **memoization**: By default `ado` will identify if a measurement has already been completed on an entity and reuse it
-* **provenance**: `ado` stores the relationship between the resources it creates
-* **results viewing**: `ado show entities` outputs the data in a `discoveryspace` or measured in an `operation`
-* **measurement timeseries**: The sequence (timeseries) of measurements, successful or not, of each `operation` is preserved
-* **`discoveryspace` views**: By default `ado show entities space` only shows successfully measured entities , but you can see what has not been measured if you want
-
-
-
-
-
+- **create-explore-view pattern**: A common pattern in `ado` is to create a
+  `discoveryspace` to describe a set of points to measure, create `operations`
+  on it to explore or analyse it, and then view the results
+- **entity space and measurement space**: A `discoveryspace` consists of an
+  `entityspace` - the set of points to measure - and a `measurementspace` - the
+  set of experiments to apply to them.
+- **operations are domain agnostic**: `ado` enables operations to run on
+  multiple different domains without modification
+- **memoization**: By default `ado` will identify if a measurement has already
+  been completed on an entity and reuse it
+- **provenance**: `ado` stores the relationship between the resources it creates
+- **results viewing**: `ado show entities` outputs the data in a
+  `discoveryspace` or measured in an `operation`
+- **measurement timeseries**: The sequence (timeseries) of measurements,
+  successful or not, of each `operation` is preserved
+- **`discoveryspace` views**: By default `ado show entities space` only shows
+  successfully measured entities , but you can see what has not been measured if
+  you want

@@ -28,7 +28,7 @@ A context for a local metastore looks like:
 ```yaml
 project: local-test
 metadataStore:
-  path: $USERNAME/Library/Application Support/ado/databases/local-test.db
+  path: $HOME/Library/Application Support/ado/databases/local-test.db
   sslVerify: false
 ```
 
@@ -55,7 +55,7 @@ metadataStore:
 
 ## Creating a context 
 
-To create a local or remote context in `ado` creates a file with the corresponding YAML definition (see above) and run:
+To create a local or remote context in `ado`, create a file with the corresponding YAML definition (see above) and run:
 
 ```commandline
 ado create context -f $YAML_FILE

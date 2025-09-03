@@ -5,7 +5,7 @@
 import itertools
 import logging
 import sys
-from typing import Any, Dict, NamedTuple
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -79,7 +79,7 @@ def get_clusters(
 
 class MutualInformationOutput(NamedTuple):
 
-    mutual_information: Dict[str, float]
+    mutual_information: dict[str, float]
     entropy: float
     cluster_labels: Any
 
@@ -292,22 +292,19 @@ def mi_diff_over_time(
         if diffs_over_time is None:
             diffs_over_time = {}
             ranks_over_time = {}
-            vid = 0
-            for k, v in diff_d.items():
+            for vid, (k, v) in enumerate(diff_d.items()):
                 diffs_over_time[k] = [v]
                 ranks_over_time[k] = [ranks[vid]]
-                vid += 1
         else:
-            vid = 0
             change_in_ranks = False
-            for k, v in diff_d.items():
+            for vid, (k, v) in enumerate(diff_d.items()):
                 diffs_over_time[k].append(v)
                 if ranks_over_time[k][-1] != ranks[vid]:
                     change_in_ranks = True
                 ranks_over_time[k].append(ranks[vid])
-                vid += 1
+
     pareto_selection = mi_pareto_selection(new_mi)
-    if len(pareto_over_time) > 0 and consider_pareto_instead_ranks:
+    if len(pareto_over_time) > 0 and consider_pareto_instead_ranks:  # noqa: SIM102
         # >= to allow also the shrinkage of pareto sets
         if set(pareto_over_time[-1]) >= set(pareto_selection):
             change_in_ranks = False
@@ -454,15 +451,8 @@ def get_valid_value_ranges(
 
         if verbose:
             print(
-                "decision node {node} : (X[{sample}, {feature}] = {value}) "
-                "{inequality} {threshold})".format(
-                    node=node_id,
-                    sample=sample_id,
-                    feature=feature[node_id],
-                    value=X[sample_id, feature[node_id]],
-                    inequality=threshold_sign,
-                    threshold=threshold[node_id],
-                )
+                f"decision node {node_id} : (X[{sample_id}, {feature[node_id]}] = {X[sample_id, feature[node_id]]}) "
+                f"{threshold_sign} {threshold[node_id]})"
             )
 
     # TODO

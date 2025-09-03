@@ -151,7 +151,7 @@ def handle_ado_get_default_format(
 def print_related_resources(
     resource_id: str,
     resource_type: CoreResourceKinds,
-    sql: "SQLStore",
+    sql: SQLStore,
     hide_banner: bool = False,
 ):
     with Status(ADO_SPINNER_QUERYING_DB) as status:

@@ -85,7 +85,7 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
     # The use of % in the path is because json_tree will add list items in the path.
     # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
     # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
-    for key in entries.keys():
+    for key in entries:
         if isinstance(entries[key], dict):
             fragments.extend(
                 check_field_in_sqlite_json_document(entries[key], f"{path}%.{key}")
@@ -109,19 +109,12 @@ def resource_filter_by_arbitrary_selection(
     dialect: Literal["mysql", "sqlite"] = "mysql",
 ) -> str:
 
-    if needs_where:
-        statement_preamble = " WHERE "
-    else:
-        statement_preamble = " AND "
+    statement_preamble = " WHERE " if needs_where else " AND "
 
     return (
         f"{statement_preamble} {simulate_json_contains_on_sqlite(path, candidate)}"
         if dialect == "sqlite"
-        else "{statement_preamble} JSON_CONTAINS(data, '{candidate}', '{path}')".format(
-            statement_preamble=statement_preamble,
-            candidate=candidate,
-            path=path,
-        )
+        else f"{statement_preamble} JSON_CONTAINS(data, '{candidate}', '{path}')"
     )
 
 
@@ -132,10 +125,7 @@ def resource_select_data_field(
 ) -> str:
 
     #
-    if needs_select:
-        statement_preamble = "SELECT"
-    else:
-        statement_preamble = ","
+    statement_preamble = "SELECT" if needs_select else ","
 
     #
     data_path = f"$.{field_name}"
@@ -159,10 +149,7 @@ def resource_select_metadata_field(
 ) -> str:
 
     #
-    if needs_select:
-        statement_preamble = "SELECT"
-    else:
-        statement_preamble = ","
+    statement_preamble = "SELECT" if needs_select else ","
 
     data_path = f"$.config.metadata.{field_name}"
     statement = (
@@ -183,10 +170,7 @@ def resource_select_created_field(
 ) -> str:
 
     #
-    if needs_select:
-        statement_preamble = "SELECT"
-    else:
-        statement_preamble = ","
+    statement_preamble = "SELECT" if needs_select else ","
 
     if dialect == "sqlite":
         if as_age:

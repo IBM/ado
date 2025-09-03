@@ -34,7 +34,7 @@ def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict):
         if not os.path.exists(p):
             raise Exception(f"Secret {p} does not exist")
 
-        with open(p, "r") as f:
+        with open(p) as f:
             env_var_dict[os.path.basename(p)] = f.readlines()[0].strip()
 
 
@@ -55,7 +55,7 @@ def setup_actuators(
     actuator_configurations: list[ActuatorConfiguration],
     discovery_space: DiscoverySpace,
     queue: MeasurementQueue,
-) -> typing.Dict[str, "ActuatorActor"]:
+) -> dict[str, "ActuatorActor"]:
     """
     Params:
         namespace: The namespace to set up in
@@ -92,7 +92,7 @@ def setup_actuators(
     actuator_ids = [
         e.actuatorIdentifier for e in discovery_space.measurementSpace.experiments
     ]
-    filtered_actuator_ids = [aid for aid in actuator_ids if aid not in actuators.keys()]
+    filtered_actuator_ids = [aid for aid in actuator_ids if aid not in actuators]
     filtered_actuator_ids = list(set(filtered_actuator_ids))
 
     for actuatorIdentifier in filtered_actuator_ids:
@@ -116,7 +116,7 @@ def setup_operator(
     discovery_space: DiscoverySpace,
     namespace: str,
     state,
-    actuators: typing.Dict,
+    actuators: dict,
 ) -> "OperatorActor":
     """
     Params:
@@ -152,7 +152,7 @@ def setup_operator(
 
 
 def write_entities(
-    entities_output_file: typing.Optional[typing.Union[str, pathlib.Path]],
+    entities_output_file: str | pathlib.Path | None,
     discovery_space: DiscoverySpace,
 ):
 

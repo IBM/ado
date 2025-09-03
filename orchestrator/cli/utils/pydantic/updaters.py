@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import contextlib
 import json
 
 import pydantic
@@ -31,10 +32,8 @@ def override_values_in_pydantic_model(
             raise typer.Exit(1)
 
         # We can either have a JSON document or a string
-        try:
+        with contextlib.suppress(ValueError):
             value = json.loads(value)
-        except ValueError:
-            pass
 
         # AP 12/06/2025:
         # path.update will not raise any errors or anything when the field

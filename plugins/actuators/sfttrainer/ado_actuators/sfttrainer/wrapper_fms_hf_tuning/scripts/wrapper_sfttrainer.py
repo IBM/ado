@@ -18,7 +18,7 @@ import sys
 import typing
 
 # Standard
-from typing import Any, Dict, Optional
+from typing import Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import aim
@@ -28,7 +28,7 @@ from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
 
 
-def get_cuda_uuid_to_index() -> typing.Dict[str, int]:
+def get_cuda_uuid_to_index() -> dict[str, int]:
     """Returns a dictionary mapping GPU device UUIDs to their index numbers"""
     try:
         import aim.ext.pynvml as nvml
@@ -53,7 +53,7 @@ def get_cuda_uuid_to_index() -> typing.Dict[str, int]:
     return ret
 
 
-def get_cuda_device_indices(cuda_visible_devices: str) -> typing.List[int]:
+def get_cuda_device_indices(cuda_visible_devices: str) -> list[int]:
     """Returns the indices of cuda devices
 
     Args:
@@ -79,9 +79,7 @@ def get_cuda_device_indices(cuda_visible_devices: str) -> typing.List[int]:
 
 
 def calculate_gpu_power_percent(
-    run_metrics: typing.List[
-        typing.Tuple[str, typing.Dict[str, int], typing.List[float]]
-    ],
+    run_metrics: list[tuple[str, dict[str, int], list[float]]],
 ):
     """Calculates __system__gpu_power_percent using __system__gpu_power_watts and inserts it into existing run metrics
 
@@ -133,20 +131,20 @@ def calculate_gpu_power_percent(
 class CustomAimCallback(AimCallback):
     # VV: Set this after training starts and never delete it
     the_run_hash = None
-    the_experiment: "typing.Optional[aim.Run]" = None
+    the_experiment: "aim.Run | None" = None
     training_steps = 0
 
     def __init__(
         self,
-        repo: Optional[str] = None,
-        experiment: Optional[str] = None,
-        system_tracking_interval: Optional[int] = 10,
-        log_system_params: Optional[bool] = True,
-        capture_terminal_logs: Optional[bool] = True,
-        additional_metrics: Optional[Dict[str, Any]] = None,
-        aim_info_path: Optional[str] = None,
+        repo: str | None = None,
+        experiment: str | None = None,
+        system_tracking_interval: int | None = 10,
+        log_system_params: bool | None = True,
+        capture_terminal_logs: bool | None = True,
+        additional_metrics: dict[str, Any] | None = None,
+        aim_info_path: str | None = None,
         aim_info_aggregate_metrics: bool = False,
-        aim_metadata: Optional[typing.Dict[str, Any]] = None,
+        aim_metadata: dict[str, Any] | None = None,
         stop_after_seconds: float = -1.0,
     ):
 
@@ -156,9 +154,9 @@ class CustomAimCallback(AimCallback):
         self._aim_metadata = aim_metadata or {}
 
         self._stop_after_seconds = stop_after_seconds
-        self._time_started: typing.Optional[datetime.datetime] = None
+        self._time_started: datetime.datetime | None = None
 
-        self._optimization_step_started: typing.Optional[datetime.datetime] = None
+        self._optimization_step_started: datetime.datetime | None = None
 
         super().__init__(
             repo,
@@ -323,14 +321,14 @@ class CustomAimCallback(AimCallback):
 
 @dataclasses.dataclass
 class CustomArgs:
-    aim_metadata_path: typing.Optional[str] = dataclasses.field(
+    aim_metadata_path: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Path to JSON file containing metadata that sft_trainer.py will store in AIM"
         },
     )
 
-    aim_info_path: typing.Optional[str] = dataclasses.field(
+    aim_info_path: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "The path to a JSON file that sft_trainer.py will use to store the metrics that AIM captures. "
@@ -345,7 +343,7 @@ class CustomArgs:
         },
     )
 
-    aim_db: typing.Optional[str] = dataclasses.field(
+    aim_db: str | None = dataclasses.field(
         default=None,
         metadata={"help": "The AIM endpoint"},
     )
@@ -397,7 +395,7 @@ def main():
         raise ValueError("must set --fms_hf_tuning_version")
 
     if custom_args.aim_metadata_path:
-        with open(custom_args.aim_metadata_path, "r") as f:
+        with open(custom_args.aim_metadata_path) as f:
             aim_metadata = json.load(f)
     else:
         aim_metadata = {}

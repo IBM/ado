@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from __future__ import print_function
 
 import typing
 
@@ -38,7 +37,7 @@ def experiment_reference(
 def experiment(
     experiment_identifier: typing.AnyStr,
     actuator_identifier: typing.AnyStr,
-    abstract_properties: typing.List[AbstractProperty],
+    abstract_properties: list[AbstractProperty],
     requiredProperties,
 ) -> Experiment:
     return Experiment(
@@ -52,14 +51,14 @@ def experiment(
 
 @pytest.fixture
 def expected_observed_property_identifiers(
-    target_property_list: typing.List[typing.AnyStr],
+    target_property_list: list[typing.AnyStr],
     experiment_identifier: typing.AnyStr,
-) -> typing.List[typing.AnyStr]:
-    return ["%s-%s" % (experiment_identifier, t) for t in target_property_list]
+) -> list[typing.AnyStr]:
+    return [f"{experiment_identifier}-{t}" for t in target_property_list]
 
 
 @pytest.fixture(scope="module")
-def optionalProperties() -> typing.List[ConstitutiveProperty]:
+def optionalProperties() -> list[ConstitutiveProperty]:
 
     return [
         ConstitutiveProperty(
@@ -88,7 +87,7 @@ def optionalProperties() -> typing.List[ConstitutiveProperty]:
 
 
 @pytest.fixture(scope="module")
-def defaultParameterization(optionalProperties) -> typing.List[PropertyValue]:
+def defaultParameterization(optionalProperties) -> list[PropertyValue]:
     return [
         PropertyValue(value="B", property=ConstitutiveProperty(identifier="test_opt1")),
         PropertyValue(value=-3, property=ConstitutiveProperty(identifier="test_opt2")),
@@ -99,7 +98,7 @@ def defaultParameterization(optionalProperties) -> typing.List[PropertyValue]:
 
 
 @pytest.fixture
-def experimentRawNoOptional(experiment) -> typing.Dict:
+def experimentRawNoOptional(experiment) -> dict:
     """Returns an experiment model as dict without optionalProperties or defaultParameterization"""
 
     d = experiment.model_dump()
@@ -110,7 +109,7 @@ def experimentRawNoOptional(experiment) -> typing.Dict:
 
 
 @pytest.fixture(scope="module")
-def customParameterization(optionalProperties) -> typing.List[PropertyValue]:
+def customParameterization(optionalProperties) -> list[PropertyValue]:
     return [
         PropertyValue(value="C", property=ConstitutiveProperty(identifier="test_opt1")),
         PropertyValue(value=-1, property=ConstitutiveProperty(identifier="test_opt2")),
@@ -220,7 +219,7 @@ def parameterized_experiments(
 @pytest.fixture(scope="module")
 def parameterized_references(
     parameterized_experiments, global_registry
-) -> typing.List[ExperimentReference]:
+) -> list[ExperimentReference]:
     return [e.reference for e in parameterized_experiments]
 
 

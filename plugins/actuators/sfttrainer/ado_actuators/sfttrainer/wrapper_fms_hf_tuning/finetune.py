@@ -56,9 +56,7 @@ class AccelerateError(ExperimentError):
 
 
 class OutOfGPUMemoryError(ExperimentError):
-    def __init__(
-        self, underlying_error: typing.Optional[typing.Union[Exception, str]] = None
-    ):
+    def __init__(self, underlying_error: Exception | str | None = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -66,9 +64,7 @@ class OutOfGPUMemoryError(ExperimentError):
 
 
 class NCCLError(ExperimentError):
-    def __init__(
-        self, underlying_error: typing.Optional[typing.Union[Exception, str]] = None
-    ):
+    def __init__(self, underlying_error: Exception | str | None = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -76,9 +72,7 @@ class NCCLError(ExperimentError):
 
 
 class UnhandledError(NotImplementedError):
-    def __init__(
-        self, underlying_error: typing.Optional[typing.Union[Exception, str]] = None
-    ):
+    def __init__(self, underlying_error: Exception | str | None = None):
         self.underlying_error = underlying_error
 
     def __str__(self):
@@ -92,14 +86,14 @@ class MultiNodeSettings:
     port_is_local: bool = False
     num_machines: int = 1
     machine_rank: int = 0
-    ip: typing.Optional[str] = None
-    port: typing.Optional[int] = None
+    ip: str | None = None
+    port: int | None = None
     nccl_ib_disable: int = 0
 
 
 @dataclasses.dataclass
 class DistributedSettings:
-    backend: typing.Optional[typing.Literal["FSDP", "DDP"]] = dataclasses.field(
+    backend: typing.Literal["FSDP", "DDP"] | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Which backend to use. FSDP or DDP for multi-process experiments and "
@@ -122,9 +116,10 @@ class DistributedSettings:
         },
     )
 
-    fsdp_state_dict_type: typing.Optional[
+    fsdp_state_dict_type: (
         typing.Literal["FULL_STATE_DICT", "LOCAL_STATE_DICT", "SHARDED_STATE_DICT"]
-    ] = dataclasses.field(
+        | None
+    ) = dataclasses.field(
         default="FULL_STATE_DICT",
         metadata={
             "help": "[1] FULL_STATE_DICT, [2] LOCAL_STATE_DICT, [3] SHARDED_STATE_DICT"
@@ -149,7 +144,7 @@ class DistributedSettings:
         )
     )
 
-    accelerate_config_fsdp_transformer_layer_cls_to_wrap: typing.Optional[str] = (
+    accelerate_config_fsdp_transformer_layer_cls_to_wrap: str | None = (
         dataclasses.field(
             default=None,
             metadata={
@@ -174,7 +169,7 @@ class FineTuneArgs:
         },
     )
 
-    aim_db: typing.Optional[str] = dataclasses.field(
+    aim_db: str | None = dataclasses.field(
         default=None,
         metadata={"help": "The AIM endpoint"},
     )
@@ -205,7 +200,7 @@ class FineTuneArgs:
         },
     )
 
-    gradient_checkpointing: typing.Optional[bool] = dataclasses.field(
+    gradient_checkpointing: bool | None = dataclasses.field(
         default=None,
         metadata={
             "help": "If True, use gradient checkpointing to save memory at the expense of "
@@ -222,14 +217,14 @@ class FineTuneArgs:
     num_train_epochs: float = dataclasses.field(
         default=1.0, metadata={"help": "Total number of training epochs to perform."}
     )
-    stop_after_seconds: typing.Optional[float] = dataclasses.field(
+    stop_after_seconds: float | None = dataclasses.field(
         default=None,
         metadata={
             "help": "If set, the optimizer will be asked to stop after the specified time elapses. "
             "The check is performed after the end of each training step."
         },
     )
-    peft_method: typing.Optional[str] = dataclasses.field(
+    peft_method: str | None = dataclasses.field(
         default="pt",
         metadata={
             "help": "The method to use, either pt, lora, or None (full fine tune)"
@@ -266,7 +261,7 @@ class FineTuneArgs:
         },
     )
 
-    fp16: typing.Optional[bool] = dataclasses.field(
+    fp16: bool | None = dataclasses.field(
         default=None,
         metadata={"help": "Whether to use fp16 (mixed) precision instead of 32-bit"},
     )
@@ -279,7 +274,7 @@ class FineTuneArgs:
     # VV: Options for lora
     r: int = 8
     lora_alpha: int = 32
-    target_modules: typing.List[str] = dataclasses.field(
+    target_modules: list[str] = dataclasses.field(
         default_factory=lambda: ["q_proj", "v_proj"],
         metadata={
             "help": "The names of the modules to apply LORA to. LORA selects modules which either completely match or "
@@ -291,17 +286,17 @@ class FineTuneArgs:
     lora_dropout: float = 0.05
 
     # VV: Options for fused_ops_and_kernels
-    fast_kernels: typing.Optional[typing.List[str]] = dataclasses.field(default=None)
-    fused_lora: typing.Optional[typing.List[str]] = dataclasses.field(default=None)
+    fast_kernels: list[str] | None = dataclasses.field(default=None)
+    fused_lora: list[str] | None = dataclasses.field(default=None)
 
     # VV: options for AttentionAndDistributedPackingConfig
-    padding_free: typing.Optional[typing.List[str]] = None
+    padding_free: list[str] | None = None
 
     # VV: This is a [str, bool] for the parameters (kernel, from_quantized)
-    auto_gptq: typing.Optional[typing.List[typing.Union[str, bool]]] = None
+    auto_gptq: list[str | bool] | None = None
 
     # VV: This is a [int] for the parameters (ep_degree)
-    fast_moe: typing.Optional[typing.List[int]] = dataclasses.field(
+    fast_moe: list[int] | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Configures the amount of expert parallel sharding. "
@@ -311,12 +306,12 @@ class FineTuneArgs:
 
     # VV: TAG: @HF_RAM_Efficient_Training
     # VV: These are arguments we added to replicate huggingface blogpost
-    optim: typing.Optional[str] = dataclasses.field(
+    optim: str | None = dataclasses.field(
         default="adamw_torch",
         metadata={"help": "The optimizer to use."},
     )
 
-    bf16: typing.Optional[bool] = dataclasses.field(
+    bf16: bool | None = dataclasses.field(
         default=False,
         metadata={
             "help": (
@@ -326,7 +321,7 @@ class FineTuneArgs:
         },
     )
 
-    gradient_checkpointing_use_reentrant: typing.Optional[bool] = dataclasses.field(
+    gradient_checkpointing_use_reentrant: bool | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Specify whether to use the activation checkpoint variant that requires reentrant autograd. "
@@ -339,7 +334,7 @@ class FineTuneArgs:
     )
 
     # VV: For image-to-text (vision) models
-    dataset_text_field: typing.Optional[str] = dataclasses.field(
+    dataset_text_field: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "Training dataset text field containing single sequence. \
@@ -349,7 +344,7 @@ class FineTuneArgs:
         },
     )
 
-    dataset_image_field: typing.Optional[str] = dataclasses.field(
+    dataset_image_field: str | None = dataclasses.field(
         default=None,
         metadata={
             "help": "For running vision language model tuning pass \
@@ -357,20 +352,20 @@ class FineTuneArgs:
         },
     )
 
-    remove_unused_columns: typing.Optional[bool] = dataclasses.field(
+    remove_unused_columns: bool | None = dataclasses.field(
         default=True,
         metadata={
             "help": "Remove columns not required by the model when using an nlp.Dataset."
         },
     )
 
-    dataset_kwargs_skip_prepare_dataset: typing.Optional[bool] = dataclasses.field(
+    dataset_kwargs_skip_prepare_dataset: bool | None = dataclasses.field(
         default=False,
         metadata={"help": "When True, configures trl to skip preparing the dataset"},
     )
 
     # VV: Data args
-    response_template: typing.Optional[str] = dataclasses.field(
+    response_template: str | None = dataclasses.field(
         default=None,
         metadata={"help": "Response template, separator to train on completions only"},
     )
@@ -383,7 +378,7 @@ class HardcodedArgs:
     """
 
     # VV: Training args
-    log_level: typing.Optional[str] = dataclasses.field(
+    log_level: str | None = dataclasses.field(
         default="info",
         metadata={
             "help": (
@@ -394,11 +389,11 @@ class HardcodedArgs:
         },
     )
 
-    eval_strategy: typing.Union[transformers.IntervalStrategy, str] = dataclasses.field(
+    eval_strategy: transformers.IntervalStrategy | str = dataclasses.field(
         default="no",
         metadata={"help": "The evaluation strategy to use."},
     )
-    save_strategy: typing.Union[transformers.IntervalStrategy, str] = dataclasses.field(
+    save_strategy: transformers.IntervalStrategy | str = dataclasses.field(
         default="no",
         metadata={"help": "The checkpoint save strategy to use."},
     )
@@ -412,11 +407,9 @@ class HardcodedArgs:
         default=0.03,
         metadata={"help": "Linear warmup over warmup_ratio fraction of total steps."},
     )
-    lr_scheduler_type: typing.Union[transformers.SchedulerType, str] = (
-        dataclasses.field(
-            default="cosine",
-            metadata={"help": "The scheduler type to use."},
-        )
+    lr_scheduler_type: transformers.SchedulerType | str = dataclasses.field(
+        default="cosine",
+        metadata={"help": "The scheduler type to use."},
     )
     logging_steps: float = dataclasses.field(
         default=1,
@@ -427,7 +420,7 @@ class HardcodedArgs:
             )
         },
     )
-    include_tokens_per_second: typing.Optional[bool] = dataclasses.field(
+    include_tokens_per_second: bool | None = dataclasses.field(
         default=True,
         metadata={
             "help": "If set to `True`, the speed metrics will include `tgs` (tokens per second per device)."
@@ -453,8 +446,8 @@ def get_available_open_port() -> int:
 def extract_metrics(aim_info_path: str, number_gpus: int):
     import json
 
-    with open(aim_info_path, "r", encoding="utf-8") as f:
-        aim_info: typing.Dict[str, typing.Any] = json.load(f)
+    with open(aim_info_path, encoding="utf-8") as f:
+        aim_info: dict[str, typing.Any] = json.load(f)
 
     if "error" in aim_info:
         exc = aim_info.get("exception")
@@ -478,11 +471,11 @@ def extract_metrics(aim_info_path: str, number_gpus: int):
 
 def _finetune_launch_kernel(
     args: FineTuneArgs,
-    aim_metadata: typing.Optional[typing.Dict[str, typing.Any]],
+    aim_metadata: dict[str, typing.Any] | None,
     multi_node: MultiNodeSettings,
     distributed_settings: DistributedSettings,
     working_directory: str,
-) -> "metrics_tracker.Metrics":
+) -> metrics_tracker.Metrics:
     log = logging.getLogger("launch")
 
     if args.fast_moe and isinstance(args.fast_moe[0], int) and args.fast_moe[0] > 0:
@@ -559,13 +552,6 @@ def _finetune_launch_kernel(
             ) as s:
                 s.bind(("0.0.0.0", multi_node.port))
 
-        config_file = tempfile.NamedTemporaryFile(
-            mode="w",
-            suffix=".yaml",
-            prefix="accelerate_config_",
-            delete=False,
-            dir=working_directory,
-        )
         # VV: Accelerate refers to DDP with the name "MULTI_GPU"
         backend_name_map = {"FSDP": "FSDP", "DDP": "MULTI_GPU"}[
             distributed_settings.backend
@@ -620,10 +606,14 @@ def _finetune_launch_kernel(
 
         log.info(f"Using the accelerate config {json.dumps(accelerate_config)}")
 
-        with config_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".yaml",
+            prefix="accelerate_config_",
+            delete=False,
+            dir=working_directory,
+        ) as config_file:
             config_file.write(json.dumps(accelerate_config))
-
-        config_file.close()
 
         command = [
             "accelerate",
@@ -666,7 +656,7 @@ def _finetune_launch_kernel(
     installed_packages = importlib.metadata.distributions()
     installed_packages = sorted(
         [
-            "%s==%s" % (pkg.metadata["Name"], pkg.metadata["Version"])
+            "{}=={}".format(pkg.metadata["Name"], pkg.metadata["Version"])
             for pkg in installed_packages
         ]
     )
@@ -680,10 +670,8 @@ def _finetune_launch_kernel(
     # VV: When this is 1, RDMA over Converged Ethernet (RoCE) is Disabled
     env["NCCL_IB_DISABLE"] = str(multi_node.nccl_ib_disable)
 
-    try:
+    if "LOGLEVEL" in env:
         env["LOGLEVEL"] = env["LOGLEVEL"].upper()
-    except KeyError:
-        pass
 
     log.info(f"Environment variables {env}")
     proc = subprocess.Popen(
@@ -745,7 +733,7 @@ def _finetune_launch_kernel(
 
 def _update_num_tokens_cache_for_model_and_dataset(
     cache_file: str,
-    num_tokens: typing.List[int],
+    num_tokens: list[int],
     model_id: str,
     path_data: str,
 ):
@@ -760,7 +748,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
                 json.dump(num_tokens, f)
             # VV: Verify that we actually stored what we think we stored (there could be multiple
             # tasks populating the cache and them corrupting each other's results)
-            with open(cache_file, "r") as f:
+            with open(cache_file) as f:
                 fresh = json.load(f)
 
             if fresh == num_tokens:
@@ -780,9 +768,9 @@ def _update_num_tokens_cache_for_model_and_dataset(
 
 def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
-) -> typing.Tuple[typing.Optional[str], typing.List[int]]:
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
+) -> tuple[str | None, list[int]]:
     import json
 
     num_tokens = []
@@ -877,7 +865,7 @@ def calculate_tokens_in_image_text_dataset(
 def calculate_tokens_in_text_dataset(
     path_model: str,
     path_data: str,
-) -> typing.List[int]:
+) -> list[int]:
     from transformers import AutoTokenizer
 
     log = logging.getLogger("sft_trainer")
@@ -909,7 +897,7 @@ def calculate_tokens_in_text_dataset(
 
     num_tokens = []
 
-    with open(path_data, "r") as f:
+    with open(path_data) as f:
         for line in tqdm.tqdm(
             f,
             desc="Counting tokens in samples of dataset",
@@ -928,8 +916,8 @@ def tokenize_text(
     path_model: str,
     path_data: str,
     max_seq_length: int,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
     num_entries: int,
     dataset_text_field: str,
 ):
@@ -1040,20 +1028,16 @@ def tokenize_text(
     if full_epochs > 0:
         sum_tokens = (
             sum(
-                (
-                    min(entry, max_seq_length, tokenizer_model_max_length)
-                    for entry in num_tokens
-                )
+                min(entry, max_seq_length, tokenizer_model_max_length)
+                for entry in num_tokens
             )
             * full_epochs
         )
 
     if num_entries % len(num_tokens) != 0:
         sum_tokens += sum(
-            (
-                min(entry, max_seq_length, tokenizer_model_max_length)
-                for entry in num_tokens[: (num_entries % len(num_tokens))]
-            )
+            min(entry, max_seq_length, tokenizer_model_max_length)
+            for entry in num_tokens[: (num_entries % len(num_tokens))]
         )
 
     return sum_tokens
@@ -1061,14 +1045,14 @@ def tokenize_text(
 
 def launch_finetune(
     args: FineTuneArgs,
-    aim_metadata: typing.Optional[typing.Dict[str, typing.Any]],
+    aim_metadata: dict[str, typing.Any] | None,
     count_dataset_tokens: bool,
     distributed_settings: DistributedSettings,
-    multi_node: typing.Optional[MultiNodeSettings],
-    model_id: typing.Optional[str] = None,
-    num_tokens_cache_dir: typing.Optional[str] = None,
-    log_level: typing.Optional[int] = None,
-) -> "metrics_tracker.Metrics":
+    multi_node: MultiNodeSettings | None,
+    model_id: str | None = None,
+    num_tokens_cache_dir: str | None = None,
+    log_level: int | None = None,
+) -> metrics_tracker.Metrics:
     from .callbacks import metrics_tracker
 
     if log_level is None:
@@ -1118,7 +1102,7 @@ def launch_finetune(
     return metrics
 
 
-def generate_arguments_sft_trainer(args: FineTuneArgs) -> typing.Dict[str, typing.Any]:
+def generate_arguments_sft_trainer(args: FineTuneArgs) -> dict[str, typing.Any]:
     """Generate arguments for tuning.sft_trainer.train_wrapper() from FineTuneArgs plus some HardcodedArgs"""
     excluded = {
         "gradient_checkpointing_use_reentrant",

@@ -67,9 +67,7 @@ class ActuatorRegistry:
 
     def __init__(
         self,
-        actuator_configurations: typing.Optional[
-            dict[str, GenericActuatorParameters]
-        ] = None,
+        actuator_configurations: dict[str, GenericActuatorParameters] | None = None,
     ):
         """Detects and loads Actuator plugins"""
 
@@ -129,7 +127,7 @@ class ActuatorRegistry:
 
         import pydantic
 
-        ActuatorFileModel = pydantic.RootModel[typing.List[ActuatorModuleConf]]
+        ActuatorFileModel = pydantic.RootModel[list[ActuatorModuleConf]]
 
         self.log.debug(f"{plugins.__path__}, {plugins.__name__}")
 
@@ -244,7 +242,7 @@ class ActuatorRegistry:
     def registerActuator(
         self,
         actuatorid: str,
-        actuatorClass: "typing.Type[ActuatorBase]",
+        actuatorClass: "type[ActuatorBase]",
     ):
         """Adds an actuator and a catalog of experiments it can execute to the registry
 
@@ -289,11 +287,10 @@ class ActuatorRegistry:
             if (
                 actuator.catalog_requires_actuator_configuration()
                 == CatalogConfigurationRequirementEnum.REQUIRED
-            ):
-                if not cfg:
-                    raise MissingActuatorConfigurationForCatalogError(
-                        f"Actuator {actuatorid} requires configuration information to create catalog."
-                    )
+            ) and not cfg:
+                raise MissingActuatorConfigurationForCatalogError(
+                    f"Actuator {actuatorid} requires configuration information to create catalog."
+                )
 
             # If the catalog config is not required we can continue if cfg is None or a configuration instance
             if (
@@ -356,7 +353,7 @@ class ActuatorRegistry:
     def experimentForReference(
         self,
         reference: ExperimentReference,
-        additionalCatalogs: typing.List[ExperimentCatalog] | None = None,
+        additionalCatalogs: list[ExperimentCatalog] | None = None,
     ):
         """
         Returns the Experiment object corresponding to reference
@@ -439,7 +436,7 @@ class ActuatorRegistry:
 
         # Since catalogs may be loaded on demand we cannot go to "catalogIdentifierMap" directly
         catalogs = []
-        for actuatorid in self.actuatorIdentifierMap.keys():
+        for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
             except (
@@ -459,7 +456,7 @@ class ActuatorRegistry:
         import pandas as pd
 
         data = []
-        for actuatorid in self.actuatorIdentifierMap.keys():
+        for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
             except MissingActuatorConfigurationForCatalogError:
@@ -503,7 +500,7 @@ class ActuatorRegistry:
 
     def checkMeasurementSpaceSupported(
         self, measurement_space: MeasurementSpace
-    ) -> typing.List:
+    ) -> list:
         """Checks that all the actuators and experiments in measurement_space are in/available via the registry
 
         Returns:

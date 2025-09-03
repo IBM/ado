@@ -20,7 +20,7 @@ def add_experiments(catalog: "ExperimentCatalog"):
         "(GPU model, number GPUS, batch_size, model_max_length, number nodes) combination."
     )
 
-    hardcoded_parameters: typing.Dict[str, typing.Any] = {
+    hardcoded_parameters: dict[str, typing.Any] = {
         "peft_method": method,
         "weights_format": common.WeightsFormat.Vanilla,
         "purpose": common.ExperimentPurpose.Performance,

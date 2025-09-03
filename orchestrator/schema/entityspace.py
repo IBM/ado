@@ -14,27 +14,27 @@ class EntitySpaceRepresentation:
     """Provides explicit details of the dimensions of the space"""
 
     @classmethod
-    def representationFromConfiguration(cls, conf: typing.List[ConstitutiveProperty]):
+    def representationFromConfiguration(cls, conf: list[ConstitutiveProperty]):
 
         return cls(constitutiveProperties=conf)
 
     def __init__(
         self,
-        constitutiveProperties: typing.List[ConstitutiveProperty],
+        constitutiveProperties: list[ConstitutiveProperty],
     ):
 
         self._constitutiveProperties = constitutiveProperties
         self._propertyLookup = {c.identifier: c for c in self._constitutiveProperties}
 
     @property
-    def config(self) -> typing.List[ConstitutiveProperty]:
+    def config(self) -> list[ConstitutiveProperty]:
 
         return self.constitutiveProperties
 
     @property
     def constitutiveProperties(
         self,
-    ) -> typing.List[ConstitutiveProperty]:
+    ) -> list[ConstitutiveProperty]:
 
         return self._constitutiveProperties.copy()
 
@@ -51,7 +51,7 @@ class EntitySpaceRepresentation:
             or (d.propertyDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
         ]
 
-        return True if len(non_discrete_dims) == 0 else False
+        return len(non_discrete_dims) == 0
 
     @property
     def size(self) -> int:
@@ -209,9 +209,7 @@ class EntitySpaceRepresentation:
                 p.breakable()
                 p.breakable()
 
-    def propertyWithIdentifier(
-        self, identifier: str
-    ) -> typing.Optional[ConstitutiveProperty]:
+    def propertyWithIdentifier(self, identifier: str) -> ConstitutiveProperty | None:
         """Returns the constitutive property with identifier or None if there is None"""
 
         return self._propertyLookup.get(identifier)
@@ -301,10 +299,7 @@ class EntitySpaceRepresentation:
         retval = False
         for c in self.constitutiveProperties:
             v = point.get(c.identifier)
-            if v:
-                retval = c.propertyDomain.valueInDomain(v)
-            else:
-                retval = False
+            retval = c.propertyDomain.valueInDomain(v) if v else False
 
             # Once we find a property that the entity does not have or does not have a valid value for
             # we can stop
@@ -333,7 +328,7 @@ class EntitySpaceRepresentation:
     def entity_for_point(
         self,
         point: dict[str, tuple[typing.Any]],
-        results: typing.Optional[list[MeasurementResult]] = None,
+        results: list[MeasurementResult] | None = None,
     ) -> Entity:
         """
         Parameters:
@@ -375,7 +370,7 @@ class EntitySpaceRepresentation:
             for cp in self._constitutiveProperties
         }
 
-    def sequential_point_iterator(self) -> typing.Iterator[typing.List[typing.Any]]:
+    def sequential_point_iterator(self) -> typing.Iterator[list[typing.Any]]:
         """Returns an iterator over all the points defined by an entity space with discrete constitutive properties.
 
         Each point is a list of values, the value of the nth element is the value for the nth ConstitutiveProperty
@@ -392,7 +387,7 @@ class EntitySpaceRepresentation:
             *[dimensionValues[cp.identifier] for cp in self._constitutiveProperties]
         )
 
-    def random_point_iterator(self) -> typing.Iterator[typing.List[typing.Any]]:
+    def random_point_iterator(self) -> typing.Iterator[list[typing.Any]]:
         """Returns an iterator over all the points defined by an entity space with discrete constitutive properties.
 
         Each point is a list of values, the value of the nth element is the value for the nth ConstitutiveProperty

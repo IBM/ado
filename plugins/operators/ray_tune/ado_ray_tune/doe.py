@@ -61,10 +61,8 @@ class LatinHypercubeSampler:
         ret_list = []
         for sample in sample_ints:
             ret = {}
-            cur_i = 0
-            for dim_e in list(sample):
+            for cur_i, dim_e in enumerate(list(sample)):
                 label = self.index_to_label[cur_i]
-                cur_i += 1
                 # ret[label] = []
                 # ret[label].append(self.ts_int_to_orig[label][dim_e])
                 ret[label] = self.ts_int_to_orig[label][dim_e]

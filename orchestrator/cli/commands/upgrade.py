@@ -54,7 +54,7 @@ def upgrade_resource(
     ado upgrade operations
     """
 
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
 
     parameters = AdoUpgradeCommandParameters(
         ado_configuration=ado_configuration,

@@ -71,43 +71,21 @@ actuatorConfigurationIdentifiers:
   - actuatorconfiguration-st4sd-3cb3bb82
 ```
 
-## Specifying the `operator`
+### Specifying the `operator`
 
-The `operation.module` field sets the `operator` to use. For example above it was
-
-```yaml
-operation: #The operators
-  module: # The operator will be RandomWalk
-    moduleClass: RandomWalk
-    moduleName: orchestrator.modules.operators.randomwalk
+The command `ado get operators` will list the names and types of the known operators e.g. 
+```commandline
+      OPERATOR     TYPE
+0  random_walk  explore
+1     ray_tune  explore
 ```
+You use this information to specify the operator to use in the  operation YAML, for example:
 
-`operators` can be implemented in two ways - function or class - and how to specify them depends on which was used.
-The documentation for the given operator (see [operators](../operators/working-with-operators.md)) should describe what to use. 
-Here we just give a general overview.
-
-For function operators the module field will look like
 ```yaml
 module: 
-  operationName: detect_anomalous_series # The name of the operation/operator
+  operatorName: random_walk # The name of the operator
   operationType: characterize #The type of the operation/operator
 ```
-
-The function operators fields are identical to the fields output by `ado describe operators`. 
-`operationName` is given by the "OPERATOR" filed and "operationType" by the "Type" field. 
-So to use any of these operators just fill in these fields appropriately. 
-
-For class `operators` the module field will look like
-```yaml
-module:
-    moduleClass: RandomWalk # The name of the class providing the operation
-    moduleName: orchestrator.modules.operators.randomwalk # The module containing this class
-```
-
-!!! info  end
-
-    Note im most cases the class method of specifying operators can be replaced by the function method,
-    because most of the class operators have associated functions. 
 
 ### Passing actuator parameters
 
@@ -134,37 +112,39 @@ Executing
 ado create operation -f OPERATION.YAML
 ```
 will create the `operation` resource in the active context and start performing whatever that operation does. 
-Currently, the operation happens synchronously with this command i.e. it will not return until the operation is complete.
+The operation executes synchronously with this command i.e. it will not return until the operation is complete.
 
 Before creating, and hence starting, the `operation`, the `parameters` will be validated with the `operator`. 
 If they are not valid e.g. a required argument is missing, the `create` operation will fail with a relevant error. 
 
 !!! info  end
 
-    Although the `create` command does not execute until the operation is finished distributed users querying the
+    Although the `create` command does not exit until the operation is finished distributed users querying the
     same context will be able to see the created operation, from the moment it is created.
 
 ### `operation` resource specific fields
 
-`operation` resources have some top-level fields in addition to common ones described [resources](resources.md#common-features-of-resources)
-
+`operation` resources have two additional top-level fields in addition to common ones described in [resources](resources.md#common-features-of-resources)
 These are (with example values):
 
 ```yaml
 operationType: characterize # The type of the operation: characterize, modify etc.
 operatorIdentifier: profile-1.1 # The identifier of the operator including its version
-result: ... # The result of the operation if any
 ```
-
-For more on the result field see [getting operation output](#getting-operation-output).
-
-
 
 ## Getting `operation` output
 
 An operation can create any type of ado resource.
-To see the resources created by an operation use `ado show related operation`.
-Note output that is text, tables or locations will be contained in `datacontainer` resource.
+To see the resources created by an operation with identifier $OPERATION_ID use:
+```commandline
+ado show related operation $OPERATION_ID
+```
+Output that is text, tables or locations will be contained in a `datacontainer` resource. 
+It can be output with:
+```commandline
+ado describe datacontainer $DATACONTAINER_IDENTIFIER
+```
+See [datacontainers](datacontainer.md) for more details. 
 
 ## `operation` status update events
 
@@ -186,18 +166,25 @@ operationType: search
 operatorIdentifier: raytune-0.7.5.dev10+g731d1e21.d20241218
 status:
 - event: created
-  recorded_at: '2024-12-19T10:53:58.411745Z'
+  recorded_at: '2025-09-02T09:09:02.187149Z'
 - event: added
-  recorded_at: '2024-12-19T10:54:45.841908Z'
+  recorded_at: '2025-09-02T09:09:15.187747Z'
 - event: started
-  recorded_at: '2024-12-19T10:54:55.995781Z'
+  recorded_at: '2025-09-02T09:09:15.190337Z'
+- event: updated
+  recorded_at: '2025-09-02T09:09:15.190383Z'
 - event: finished
   exit_state: success
-  recorded_at: '2024-12-19T10:55:21.429855Z'
+  message: Ray Tune operation completed successfully
+  recorded_at: '2025-09-02T09:11:28.047676Z'
 - event: updated
-  recorded_at: '2024-12-19T10:55:21.431450Z'
+  recorded_at: '2025-09-02T09:11:29.096685Z'
 version: v1
 ```
+
+> [!NOTE]
+> The first updated status reflects an update to the stored operation resource which added the `started` event.
+> The second updated status reflects an update to the stored operation resource which added the `finished` event.
 
 ## Deleting operations
 

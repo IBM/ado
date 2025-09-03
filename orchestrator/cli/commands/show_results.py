@@ -44,7 +44,7 @@ def show_results_for_resources(
         ),
     ] = AdoShowResultsSupportedOutputFormats.CONSOLE.value,
     hide_fields: Annotated[
-        typing.Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--hide",
             help="Fields to hide from the output. "
@@ -74,7 +74,7 @@ def show_results_for_resources(
 
     ado show results operation <operation-id> --hide uid
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoShowResultsCommandParameters(
         ado_configuration=ado_configuration,
         hide_fields=hide_fields,

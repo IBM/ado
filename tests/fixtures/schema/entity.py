@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pytest
 
@@ -57,12 +56,12 @@ def values_for_properties(
     value_for_value_type,
 ):
     def _values_for_properties(
-        properties: typing.Union[
-            ConstitutiveProperty,
-            ObservedProperty,
-            list[ConstitutiveProperty],
-            list[ObservedProperty],
-        ],
+        properties: (
+            ConstitutiveProperty
+            | ObservedProperty
+            | list[ConstitutiveProperty]
+            | list[ObservedProperty]
+        ),
         value_type: ValueTypeEnum = ValueTypeEnum.NUMERIC_VALUE_TYPE,
     ) -> list[PropertyValue]:
         if not isinstance(properties, list):
@@ -84,7 +83,7 @@ def values_for_properties(
 def property_values(
     values_for_properties,
     experiment: Experiment,
-) -> typing.List[PropertyValue]:
+) -> list[PropertyValue]:
 
     return values_for_properties(
         properties=experiment.observedProperties,
@@ -124,7 +123,7 @@ def entity(
 @pytest.fixture(params=["required_only_in_es", "optional_in_es"])
 def entity_for_parameterized_experiment(
     parameterized_experiment: ParameterizedExperiment, global_registry, request
-) -> typing.Tuple[Entity, ParameterizedExperiment]:
+) -> tuple[Entity, ParameterizedExperiment]:
     """Returns various entities that are compatible with parameterized experiments
 
     For required-only, the entity constitutive properties are == experiments

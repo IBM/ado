@@ -74,7 +74,7 @@ class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments
     """
 
-    def __init__(self, queue, params: typing.Optional[typing.Dict] = None):
+    def __init__(self, queue, params: dict | None = None):
         """
 
         :param queue: The StateUpdates queue instance
@@ -86,8 +86,8 @@ class CustomExperiments(ActuatorBase):
         super().__init__(queue=queue, params=params)
 
         params = params if params else {}
-        self.log.debug("Queue is %s" % self._stateUpdateQueue)
-        self.log.debug("Params are %s" % params)
+        self.log.debug(f"Queue is {self._stateUpdateQueue}")
+        self.log.debug(f"Params are {params}")
 
         import orchestrator.modules.actuators.registry
 
@@ -134,17 +134,13 @@ class CustomExperiments(ActuatorBase):
     ):
 
         return (
-            True
-            if self._functionImplementations.get(
-                experimentReference.experimentIdentifier
-            )
+            self._functionImplementations.get(experimentReference.experimentIdentifier)
             is not None
-            else False
         )
 
     async def submit(
         self,
-        entities: typing.List[Entity],
+        entities: list[Entity],
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
@@ -176,8 +172,8 @@ class CustomExperiments(ActuatorBase):
                 entity, targetExperiment, exactMatch=False
             ):
                 raise ValueError(
-                    "Entity %s does not have values for properties required as inputs for experiment %s"
-                    % (entity.identifier, experimentReference.experimentIdentifier)
+                    f"Entity {entity.identifier} does not have values for properties required "
+                    f"as inputs for experiment {experimentReference.experimentIdentifier}"
                 )
 
         # Create Measurement Request
@@ -190,11 +186,11 @@ class CustomExperiments(ActuatorBase):
             requestid=requestid,
         )
 
-        self.log.debug("Create measurement request %s" % request)
+        self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
         experiment = self._catalog.experimentForReference(request.experimentReference)
         function = experiment.metadata.get("function", experiment.identifier)
-        self.log.debug("Calling custom experiment %s" % function)
+        self.log.debug(f"Calling custom experiment {function}")
 
         await custom_experiment_wrapper(
             self._functionImplementations[
@@ -213,7 +209,7 @@ class CustomExperiments(ActuatorBase):
 
     @classmethod
     def catalog(
-        cls, actuator_configuration: typing.Optional[GenericActuatorParameters] = None
+        cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return orchestrator.modules.actuators.catalog.ExperimentCatalog(
             catalogIdentifier="CustomExperiments"

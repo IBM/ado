@@ -3,7 +3,6 @@
 
 import enum
 import itertools
-import typing
 
 import pandas as pd
 import pydantic
@@ -48,19 +47,19 @@ class DetectAnomalousSeries(pydantic.BaseModel):
         description="If target then test_properties must use target property identifiers. "
         "If observed then they must be observed property identifiers ",
     )
-    groupby_properties: typing.List[str] = pydantic.Field(
+    groupby_properties: list[str] = pydantic.Field(
         description="A list of identifiers of constitutive properties to group by"
     )
-    independent_properties: typing.List[str] = pydantic.Field(
+    independent_properties: list[str] = pydantic.Field(
         description="Constitutive property to treat as independent variable of each group. "
         "If there are more than one, then for each property, "
         "the others are added to group_properties to form the groups"
     )
-    test_properties: typing.List[ExpectedSeriesBehaviour] = pydantic.Field(
+    test_properties: list[ExpectedSeriesBehaviour] = pydantic.Field(
         description="A list of observed properties and behaviours. "
         "For each group and each independent variable, the behaviour of the property for the group will be checked"
     )
-    failed_metric: typing.Optional[str] = pydantic.Field(
+    failed_metric: str | None = pydantic.Field(
         default=None,
         description="The target property that indicates measurement validity. Assumed to be a bool",
     )
@@ -108,7 +107,7 @@ class DetectAnomalousSeries(pydantic.BaseModel):
 )
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
-    operationInfo: typing.Optional[FunctionOperationInfo] = None,
+    operationInfo: FunctionOperationInfo | None = None,
     **parameters,
 ) -> OperationOutput:
     """

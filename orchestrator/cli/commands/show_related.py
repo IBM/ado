@@ -73,7 +73,7 @@ def show_related_for_resources(
 
     ado show related space <space-id>
     """
-    ado_configuration: "AdoConfiguration" = ctx.obj
+    ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoShowRelatedCommandParameters(
         ado_configuration=ado_configuration, resource_id=resource_id
     )

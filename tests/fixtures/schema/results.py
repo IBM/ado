@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pytest
 
@@ -34,7 +33,7 @@ def invalid_measurement_result(property_values, entity) -> InvalidMeasurementRes
 
 @pytest.fixture
 def valid_measurement_result_and_entity(
-    entity_for_parameterized_experiment: typing.Tuple[Entity, Experiment],
+    entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ) -> [Entity, ValidMeasurementResult]:
 
     import numpy as np

@@ -4,7 +4,6 @@
 import logging
 import math
 import time
-import typing
 
 from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
     ComponentsYaml,
@@ -62,10 +61,7 @@ class ComponentsManager:
         except ApiException as e:
             logger.error(f"error getting pvc list {e}")
             return False
-        for pvc in pvcs.items:
-            if pvc.metadata.name == pvc_name:
-                return True
-        return False
+        return any(pvc.metadata.name == pvc_name for pvc in pvcs.items)
 
     def delete_pvc(self, pvc_name: str) -> None:
         """
@@ -128,10 +124,7 @@ class ComponentsManager:
         except ApiException as e:
             logger.error(f"error getting service list {e}")
             return False
-        for svc in svcs.items:
-            if svc.metadata.name == k8_name:
-                return True
-        return False
+        return any(svc.metadata.name == k8_name for svc in svcs.items)
 
     def delete_service(self, k8_name: str) -> None:
         """
@@ -235,8 +228,8 @@ class ComponentsManager:
         cpu_offload: int = 0,
         max_num_seq: int = 256,
         template: str = "deployment.yaml",
-        claim_name: typing.Optional[str] = None,
-        hf_token: typing.Optional[str] = None,
+        claim_name: str | None = None,
+        hf_token: str | None = None,
         reuse: bool = False,
     ) -> None:
         """

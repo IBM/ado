@@ -33,11 +33,11 @@ valueTypesDisplayNames = {
 class PropertyValue(pydantic.BaseModel):
     """Represents the value of a property"""
 
-    valueType: typing.Optional[ValueTypeEnum] = pydantic.Field(
+    valueType: ValueTypeEnum | None = pydantic.Field(
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
-    value: typing.Union[int, float, list, str, bytes, None] = pydantic.Field(
+    value: int | float | list | str | bytes | None = pydantic.Field(
         description="The measured value."
     )
     property: typing.Union[
@@ -45,7 +45,7 @@ class PropertyValue(pydantic.BaseModel):
     ] = pydantic.Field(
         description="The ObservedProperty or ConstitutiveProperty instance that this is a measurement of"
     )
-    uncertainty: typing.Optional[float] = pydantic.Field(
+    uncertainty: float | None = pydantic.Field(
         default=None, description="The uncertainty in the measured value. Can be None"
     )
 
@@ -123,28 +123,26 @@ class PropertyValue(pydantic.BaseModel):
         return self
 
     def __str__(self):
-        return "value-%s:%s" % (self.property, self.value)
+        return f"value-{self.property}:{self.value}"
 
     def __repr__(self):
-        return "value-%s:%s" % (self.property, self.value)
+        return f"value-{self.property}:{self.value}"
 
     def __eq__(self, other):
 
-        retval = False
-        if isinstance(other, PropertyValue):
-            if self.property == other.property:
-                if self.value == other.value:
-                    retval = True
-
-        return retval
+        return bool(
+            isinstance(other, PropertyValue)
+            and self.property == other.property
+            and self.value == other.value
+        )
 
     def isUncertain(self):
 
-        return True if self.uncertainty is not None else False
+        return self.uncertainty is not None
 
 
 def constitutive_property_values_from_point(
-    point: typing.Dict, properties: typing.List[ConstitutiveProperty]
+    point: dict, properties: list[ConstitutiveProperty]
 ) -> list[PropertyValue]:
     """Given a dict of {property id:property value}, and the Property instances, returns the PropertyValue instances"""
 

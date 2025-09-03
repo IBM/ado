@@ -4,6 +4,7 @@
 """Defines the interfaces to the operations that can be performed on DiscoverySpaces"""
 
 import abc
+import contextlib
 import logging
 import typing
 
@@ -76,7 +77,7 @@ class DiscoveryOperationBase(metaclass=abc.ABCMeta):
     @classmethod
     def validateOperationParameters(
         cls,
-        parameters: typing.Dict,
+        parameters: dict,
     ) -> pydantic.BaseModel:
         """If the parameters are valid returns a model for them.
 
@@ -89,7 +90,7 @@ class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):
     # async def run(self, discoveryState):
     #     pass
 
-    async def run(self) -> typing.Optional[OperationOutput]:
+    async def run(self) -> OperationOutput | None:
         pass
 
 
@@ -99,7 +100,7 @@ class MultivariateDiscoveryOperation(metaclass=abc.ABCMeta):
     # async def run(self, *discoveryStates):
     #     pass
 
-    async def run(self) -> typing.Optional[OperationOutput]:
+    async def run(self) -> OperationOutput | None:
         pass
 
 
@@ -107,9 +108,9 @@ class MultivariateDiscoveryOperation(metaclass=abc.ABCMeta):
 def measure_or_replay(
     requestIndex: int,
     requesterid: str,
-    entities: typing.List[Entity],
+    entities: list[Entity],
     experimentReference: ExperimentReference,
-    actuators: typing.Dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+    actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
     measurement_queue: MeasurementQueue,
     memoize: bool,
 ):
@@ -201,9 +202,9 @@ def measure_or_replay(
 async def measure_or_replay_async(
     requestIndex: int,
     requesterid: str,
-    entities: typing.List[Entity],
+    entities: list[Entity],
     experimentReference: ExperimentReference,
-    actuators: typing.Dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+    actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
     measurement_queue: MeasurementQueue,
     memoize: bool,
 ):
@@ -308,14 +309,12 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
     def __init__(
         self,
         operationActorName: str,
-        namespace: typing.Optional[str],
+        namespace: str | None,
         state: DiscoverySpaceManager,
         # Will actually be ray.actor.ActorHandle accessing InternalState
-        actuators: typing.Dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: typing.Any = None,
-        metadata: typing.Optional[
-            orchestrator.core.metadata.ConfigurationMetadata
-        ] = None,
+        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
     ):
         # Common code for StateSubscribingDiscoveryOperations
         self.state = state
@@ -370,7 +369,7 @@ class Learn(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMe
 def add_operation_output_to_metastore(operation, output, metastore):
 
     if output:
-        resource: "ADOResource"
+        resource: ADOResource
         for resource in output.resources:
             try:
                 metastore.addResourceWithRelationships(
@@ -400,14 +399,12 @@ def add_operation_and_output_to_metastore(
         status=[output.exitStatus],
     )
 
-    try:
+    # ValueError means the resource has already been added
+    with contextlib.suppress(ValueError):
         metastore.addResourceWithRelationships(
             resource=operation,
             relatedIdentifiers=[operation_resource_configuration.spaces[0]],
         )
-    except ValueError:
-        # Already added
-        pass
 
     add_operation_output_to_metastore(operation, output, metastore)
 
@@ -443,14 +440,13 @@ def add_operation_from_base_config_to_metastore(
         operation_resource_configuration.spaces[0],
         *operation_resource_configuration.actuatorConfigurationIdentifiers,
     ]
-    try:
+
+    # ValueError means the resource has already been added
+    with contextlib.suppress(ValueError):
         metastore.addResourceWithRelationships(
             resource=operation,
             relatedIdentifiers=related_identifiers,
         )
-    except ValueError:
-        # Already added
-        pass
 
     return operation
 
@@ -512,6 +508,4 @@ def warn_deprecated_operator_parameters_model_in_use(
 
 
 if typing.TYPE_CHECKING:
-    OperatorActor = typing.Type[
-        ActorHandle[DiscoverySpaceSubscribingDiscoveryOperation]
-    ]
+    OperatorActor = type[ActorHandle[DiscoverySpaceSubscribingDiscoveryOperation]]

@@ -39,6 +39,7 @@ default_target_modules = {
     "granite-3.1-8b-instruct": ["q_proj", "v_proj"],
     "granite-3.1-3b-a800m-instruct": ["q_proj", "v_proj"],
     "granite-vision-3.2-2b": ["q_proj", "v_proj"],
+    "llava-v1.6-mistral-7b": ["q_proj", "v_proj"],
 }
 
 
@@ -53,7 +54,7 @@ def add_experiments(catalog: "ExperimentCatalog"):
         "(GPU model, number GPUS, batch_size, model_max_length, number nodes) combination."
     )
 
-    hardcoded_parameters: typing.Dict[str, typing.Any] = {
+    hardcoded_parameters: dict[str, typing.Any] = {
         "peft_method": method,
         "weights_format": common.WeightsFormat.Vanilla,
         "target_modules_map": default_target_modules,

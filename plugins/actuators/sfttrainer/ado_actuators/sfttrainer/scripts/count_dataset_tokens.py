@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import time
-import typing
 
 import ray
 
@@ -58,7 +57,7 @@ example output:
 
 def _update_num_tokens_cache_for_model_and_dataset(
     cache_file: str,
-    num_tokens: typing.List[int],
+    num_tokens: list[int],
     model_id: str,
     path_data: str,
 ):
@@ -74,7 +73,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
                 json.dump(num_tokens, f)
             # VV: Verify that we actually stored what we think we stored (there could be multiple
             # tasks populating the cache and them corrupting each other's results)
-            with open(cache_file, "r") as f:
+            with open(cache_file) as f:
                 fresh = json.load(f)
 
             if fresh == num_tokens:
@@ -93,9 +92,9 @@ def _update_num_tokens_cache_for_model_and_dataset(
 
 def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
-) -> typing.Tuple[typing.Optional[str], typing.List[int]]:
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
+) -> tuple[str | None, list[int]]:
     import json
 
     num_tokens = []
@@ -159,9 +158,9 @@ def _load_num_tokens_cache_for_model_and_dataset(
 def _get_tokens_of_dataset_entries(
     path_model: str,
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
-) -> typing.List[int]:
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
+) -> list[int]:
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(path_model)
@@ -222,7 +221,7 @@ def _get_tokens_of_dataset_entries(
 
         # VV: Either the cache was empty, not found, or contained invalid data
         start = time.time()
-        with open(path_data, "r") as f:
+        with open(path_data) as f:
             for line in f:
                 data = json.loads(line)
                 decoded = tokenizer.encode(data["output"], padding=True)
@@ -266,8 +265,8 @@ def _get_tokens_of_dataset_entries(
 def tokenize_text(
     path_model: str,
     path_data: str,
-    model_id: typing.Optional[str],
-    num_tokens_cache_dir: typing.Optional[str],
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
 ):
     num_tokens = _get_tokens_of_dataset_entries(
         path_model=path_model,

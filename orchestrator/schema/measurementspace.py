@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import typing
 
 import pydantic
 
@@ -37,10 +36,10 @@ class MeasurementSpaceConfiguration(pydantic.BaseModel):
     This configuration does not require external actuators to provide experiment details
     """
 
-    experiments: typing.List[ExperimentType]
+    experiments: list[ExperimentType]
 
     @property
-    def observedProperties(self) -> typing.List[ObservedProperty]:
+    def observedProperties(self) -> list[ObservedProperty]:
 
         import itertools
 
@@ -52,8 +51,8 @@ class MeasurementSpace:
     @classmethod
     def measurementSpaceFromSelection(
         cls,
-        selectedExperiments: typing.List[ExperimentReference],
-        experimentCatalogs: typing.Optional[typing.List[ExperimentCatalog]] = None,
+        selectedExperiments: list[ExperimentReference],
+        experimentCatalogs: list[ExperimentCatalog] | None = None,
     ):
         """
         A class method to create a MeasurementSpace that uses the actuator registry to find the selected experiments.
@@ -133,7 +132,7 @@ class MeasurementSpace:
     @classmethod
     def measurementSpaceFromExperimentReferences(
         cls,
-        experimentReferences: typing.List[typing.Union[str, ExperimentReference]],
+        experimentReferences: list[str | ExperimentReference],
     ):
         """
         Class method for creating a MeasurementSpace from a list of experiment references.
@@ -206,10 +205,8 @@ class MeasurementSpace:
                         "optional",
                         e.valueForOptionalProperty(p.identifier).value,
                         (
-                            True
-                            if e.valueForOptionalProperty(p.identifier)
+                            e.valueForOptionalProperty(p.identifier)
                             not in e.defaultParameterization
-                            else False
                         ),
                     ]
                     for p in e.optionalProperties
@@ -241,21 +238,21 @@ class MeasurementSpace:
     @property
     def experimentReferences(
         self,
-    ) -> typing.List[ExperimentReference]:
+    ) -> list[ExperimentReference]:
 
         return self._experimentReferences.copy()
 
     @property
-    def experiments(self) -> typing.List[Experiment | ParameterizedExperiment]:
+    def experiments(self) -> list[Experiment | ParameterizedExperiment]:
 
         return self._experiments.copy()
 
     @property
-    def supported_experiments(self) -> typing.List[Experiment]:
+    def supported_experiments(self) -> list[Experiment]:
         return [e for e in self._experiments if not e.deprecated]
 
     @property
-    def deprecated_experiments(self) -> typing.List[Experiment]:
+    def deprecated_experiments(self) -> list[Experiment]:
         return [e for e in self._experiments if e.deprecated]
 
     @property
@@ -263,13 +260,13 @@ class MeasurementSpace:
         return any(e.deprecated for e in self._experiments)
 
     @property
-    def independentExperiments(self) -> typing.List[Experiment]:
+    def independentExperiments(self) -> list[Experiment]:
         """Returns experiments in the measurement space that do not depend on others"""
 
         return [e for e in self._experiments if len(e.requiredObservedProperties) == 0]
 
     @property
-    def dependentExperiments(self) -> typing.List[Experiment]:
+    def dependentExperiments(self) -> list[Experiment]:
         """Returns experiments in the measurement space that depend on others"""
 
         return [e for e in self._experiments if len(e.requiredObservedProperties) > 0]
@@ -370,7 +367,7 @@ class MeasurementSpace:
 
     def dependentExperimentsThatCanBeAppliedAfterMeasurementRequest(
         self, measurementRequest: MeasurementRequest
-    ) -> typing.Dict[Experiment, typing.List[Entity]]:
+    ) -> dict[Experiment, list[Entity]]:
         """
         Returns information about which experiments can be applied to which entities based on the results of a
         measurementRequest
@@ -385,7 +382,7 @@ class MeasurementSpace:
         """
 
         inputExperimentReference = measurementRequest.experimentReference
-        self.log.debug("Input Experiment Reference %s." % inputExperimentReference)
+        self.log.debug(f"Input Experiment Reference {inputExperimentReference}.")
 
         inputExperiment = self.experimentForReference(inputExperimentReference)
 
@@ -507,15 +504,16 @@ class MeasurementSpace:
                             )
 
                         # Check that this property does not also have a custom parameterization
-                        if isinstance(e, ParameterizedExperiment):
-                            if entitySpaceCP.identifier in [
-                                v.property.identifier for v in e.parameterization
-                            ]:
-                                raise ValueError(
-                                    f"Identified an entity space dimension, {entitySpaceCP}, that also has a custom parameterization in the measurement space. "
-                                    f"It is inconsistent for a property to have a custom parameterization in the measurement space and also be a dimension of the entityspace.\n"
-                                    f"The experiment with the custom parameterization is:\n{pretty(e)} "
-                                )
+                        if isinstance(
+                            e, ParameterizedExperiment
+                        ) and entitySpaceCP.identifier in [
+                            v.property.identifier for v in e.parameterization
+                        ]:
+                            raise ValueError(
+                                f"Identified an entity space dimension, {entitySpaceCP}, that also has a custom parameterization in the measurement space. "
+                                f"It is inconsistent for a property to have a custom parameterization in the measurement space and also be a dimension of the entityspace.\n"
+                                f"The experiment with the custom parameterization is:\n{pretty(e)} "
+                            )
 
         if strict:
             required_input_properties = [
@@ -540,7 +538,7 @@ class MeasurementSpace:
     def observedPropertiesForExperimentReference(
         self,
         experimentReference: ExperimentReference,
-    ) -> typing.List[ObservedProperty]:
+    ) -> list[ObservedProperty]:
         """Returns a list of observed properties in the receiver associated with the reference"""
 
         retval = []
@@ -552,7 +550,7 @@ class MeasurementSpace:
 
     def observedPropertiesForExperiment(
         self, experiment: Experiment
-    ) -> typing.List[ObservedProperty]:
+    ) -> list[ObservedProperty]:
         """Returns a list of observed properties in the receiver measured by the experiment
 
         IMPORTANT: This may be a subset of the properties of experiment"""
@@ -562,7 +560,7 @@ class MeasurementSpace:
     @property
     def targetProperties(
         self,
-    ) -> typing.List[AbstractProperty]:
+    ) -> list[AbstractProperty]:
         """Returns a list of AbstractProperties in the measurement space"""
 
         # If more that one observed property measures same target we just need to
@@ -575,7 +573,7 @@ class MeasurementSpace:
     @property
     def observedProperties(
         self,
-    ) -> typing.List[ObservedProperty]:
+    ) -> list[ObservedProperty]:
         """Returns a list of ObservedProperties in the measurement space"""
 
         return self._observedProperties.copy()

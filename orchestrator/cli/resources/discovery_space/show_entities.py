@@ -82,7 +82,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters):
                 stderr=True,
             )
             raise typer.Exit(1)
-        except IOError as e:
+        except OSError as e:
             console_print(
                 f"{ERROR}There was a problem while reading the space configuration provided:\n\t{e}",
                 stderr=True,

@@ -43,14 +43,14 @@ class OperatorModuleConf(ModuleConf):
 
     @property
     def operationType(self):
-        c: typing.Type["orchestrator.modules.operators.base.DiscoveryOperationBase"] = (
+        c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
         return c.operationType()
 
     @property
     def operatorIdentifier(self) -> str:
-        c: typing.Type["orchestrator.modules.operators.base.DiscoveryOperationBase"] = (
+        c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
 
@@ -64,9 +64,7 @@ class OperatorFunctionConf(pydantic.BaseModel):
     operationType: DiscoveryOperationEnum = pydantic.Field(
         description="The type of the operation"
     )
-    operatorName: str = pydantic.Field(
-        description="The name of the operation registered with the operations module"
-    )
+    operatorName: str = pydantic.Field(description="The name of the operator")
 
     def validateOperatorExists(self):
 
@@ -120,7 +118,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    module: typing.Union[OperatorModuleConf, OperatorFunctionConf] = pydantic.Field(
+    module: OperatorModuleConf | OperatorFunctionConf = pydantic.Field(
         default=OperatorModuleConf(),
         description="The module or function providing the discovery operation",
     )
@@ -141,7 +139,7 @@ class BaseOperationRunConfiguration(pydantic.BaseModel):
         description="User defined metadata about the configuration. A set of keys and values. "
         "Two optional keys that are used by convention are name and description",
     )
-    actuatorConfigurationIdentifiers: typing.List[str] = pydantic.Field(default=[])
+    actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={
@@ -227,7 +225,7 @@ class BaseOperationRunConfiguration(pydantic.BaseModel):
 
 class DiscoveryOperationResourceConfiguration(BaseOperationRunConfiguration):
 
-    spaces: typing.List[str] = pydantic.Field(
+    spaces: list[str] = pydantic.Field(
         description="The spaces the operation will be applied to"
     )
 
@@ -276,4 +274,4 @@ class FunctionOperationInfo(pydantic.BaseModel):
         description="User defined metadata about the configuration. A set of keys and values. "
         "Two optional keys that are used by convention are name and description",
     )
-    actuatorConfigurationIdentifiers: typing.List[str] = pydantic.Field(default=[])
+    actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])

@@ -67,3 +67,5 @@ mixtral-8x7b-instruct-v0.1:
   Vanilla: /hf-models-pvc/Mixtral-8x7B-Instruct-v0.1/
 smollm2-135m:
   Vanilla: HuggingFaceTB/SmolLM2-135M
+llava-v1.6-mistral-7b:
+  Vanilla: llava-hf/llava-v1.6-mistral-7b-hf

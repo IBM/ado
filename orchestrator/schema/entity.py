@@ -46,7 +46,7 @@ class Entity(pydantic.BaseModel):
 
     """
 
-    identifier: typing.Optional[str] = pydantic.Field(
+    identifier: str | None = pydantic.Field(
         default=None,
         description="An id that uniquely defines this entity w.r.t others."
         "If one is not supplied it is generated from the constitutive properties",
@@ -63,7 +63,7 @@ class Entity(pydantic.BaseModel):
         description="A list of ValidMeasurementResult objects giving values for observed properties. "
         "InvalidMeasurementResults are not supported.",
     )
-    metadata: typing.Optional[typing.Dict] = pydantic.Field(
+    metadata: dict | None = pydantic.Field(
         default=None, description="Additional metadata on this entity"
     )
     model_config = ConfigDict(
@@ -82,7 +82,7 @@ class Entity(pydantic.BaseModel):
         return v
 
     @property
-    def properties(self) -> list[typing.Union[ObservedProperty, ConstitutiveProperty]]:
+    def properties(self) -> list[ObservedProperty | ConstitutiveProperty]:
         """
         Return a list of unique properties from the entity's measurement results.
 
@@ -116,7 +116,7 @@ class Entity(pydantic.BaseModel):
         ):
             raise ValueError("All values must be for ConstitutiveProperties")
 
-        cp_id = ["%s.%s" % (pv.property.identifier, pv.value) for pv in property_values]
+        cp_id = [f"{pv.property.identifier}.{pv.value}" for pv in property_values]
         return "-".join(cp_id)
 
     @pydantic.field_validator("constitutive_property_values", mode="after")
@@ -180,7 +180,7 @@ class Entity(pydantic.BaseModel):
         return self
 
     def __str__(self):
-        return "%s (%s)" % (self.identifier, self.generatorid)
+        return f"{self.identifier} ({self.generatorid})"
 
     def _repr_pretty_(self, p, cycle=False):
 
@@ -228,7 +228,7 @@ class Entity(pydantic.BaseModel):
                     p.text(str(e))
 
     @property
-    def observedProperties(self) -> typing.List[ObservedProperty]:
+    def observedProperties(self) -> list[ObservedProperty]:
         """Returns the measured properties"""
 
         return [
@@ -236,7 +236,7 @@ class Entity(pydantic.BaseModel):
         ]
 
     @property
-    def observedPropertyValues(self) -> typing.List[PropertyValue]:
+    def observedPropertyValues(self) -> list[PropertyValue]:
 
         return [
             p for p in self.propertyValues if isinstance(p.property, ObservedProperty)
@@ -265,7 +265,7 @@ class Entity(pydantic.BaseModel):
 
     def observedPropertiesFromExperimentReference(
         self, experimentReference: ExperimentReference
-    ) -> typing.List[ObservedProperty]:
+    ) -> list[ObservedProperty]:
         """Returns all the properties of the entity that are measured by experimentReference
 
         If there are no observed properties for the experiment this method returns an empty list
@@ -317,7 +317,7 @@ class Entity(pydantic.BaseModel):
 
     def virtualObservedPropertiesFromIdentifier(
         self, identifier
-    ) -> typing.Optional[typing.List[VirtualObservedProperty]]:
+    ) -> list[VirtualObservedProperty] | None:
         """Returns a list of VirtualObservedProperty instances given a virtual property identifier
 
         A virtual property identifier has two parts - the base property identifier and the aggregation method identifier
@@ -348,10 +348,8 @@ class Entity(pydantic.BaseModel):
 
     def valuesForProperty(
         self,
-        property: typing.Union[
-            ObservedProperty, ConstitutiveProperty, VirtualObservedProperty
-        ],
-    ) -> typing.List[PropertyValue]:
+        property: ObservedProperty | ConstitutiveProperty | VirtualObservedProperty,
+    ) -> list[PropertyValue]:
         """Returns all values for given observed property. If none exit returns an empty list"""
 
         if isinstance(property, VirtualObservedProperty):
@@ -372,9 +370,7 @@ class Entity(pydantic.BaseModel):
 
     def valueForProperty(
         self,
-        property: typing.Union[
-            ObservedProperty, ConstitutiveProperty, VirtualObservedProperty
-        ],
+        property: ObservedProperty | ConstitutiveProperty | VirtualObservedProperty,
     ) -> PropertyValue:
         """Returns an PropertyValue for Property if one exists otherwise None
 
@@ -384,9 +380,7 @@ class Entity(pydantic.BaseModel):
         check = self.valuesForProperty(property)
         return check[0] if len(check) != 0 else None
 
-    def valuesForTargetProperty(
-        self, targetProperty: Property
-    ) -> typing.List[PropertyValue]:
+    def valuesForTargetProperty(self, targetProperty: Property) -> list[PropertyValue]:
         """Returns all PropertyValue instances for targetProperty if one exists otherwise empty list"""
 
         return list(
@@ -436,17 +430,17 @@ class Entity(pydantic.BaseModel):
         self.measurement_results.append(result)
 
     @property
-    def experimentReferences(self) -> typing.List[ExperimentReference]:
+    def experimentReferences(self) -> list[ExperimentReference]:
         """Returns a list of the Experiments that measure the observed properties"""
 
         return list({op.experimentReference for op in self.observedProperties})
 
     def seriesRepresentation(
         self,
-        experimentReferences: typing.Optional[typing.List[ExperimentReference]] = None,
+        experimentReferences: list[ExperimentReference] | None = None,
         constitutiveOnly: bool = False,
-        virtualTargetPropertyIdentifiers: typing.Optional[typing.List[str]] = None,
-        aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
+        virtualTargetPropertyIdentifiers: list[str] | None = None,
+        aggregationMethod: PropertyAggregationMethodEnum | None = None,
     ) -> "pd.Series":
         """Returns a pandas series containing the receivers constitutive and optional observed property values
 
@@ -466,7 +460,7 @@ class Entity(pydantic.BaseModel):
 
         def add_value(
             value: PropertyValue,
-            references: typing.List[ExperimentReference],
+            references: list[ExperimentReference],
             restrictConstitutive=False,
         ):
             """Checks if a property value should be added to the series
@@ -479,16 +473,15 @@ class Entity(pydantic.BaseModel):
 
             """
 
-            retval = False
             if isinstance(value.property, ConstitutiveProperty):
-                retval = True
-            elif not restrictConstitutive:
-                if not references:
-                    retval = True
-                elif value.property.experimentReference in references:
-                    retval = True
+                return True
 
-            return retval
+            if restrictConstitutive:
+                return False
+
+            return bool(
+                not references or value.property.experimentReference in references
+            )
 
         d = {}
         observed_property_map = {op.identifier: op for op in self.observedProperties}
@@ -513,7 +506,7 @@ class Entity(pydantic.BaseModel):
         # This is so the dict can be modified in the loop
         props = list(d.keys())
         for o in props:
-            if observed_property_map.get(o, None):
+            if observed_property_map.get(o):
                 if aggregationMethod:
                     vop = VirtualObservedProperty(
                         baseObservedProperty=observed_property_map[o],
@@ -552,9 +545,9 @@ class Entity(pydantic.BaseModel):
 
     def experimentSeries(
         self,
-        experimentReferences: typing.Optional[typing.List[ExperimentReference]] = None,
-        virtualTargetPropertyIdentifiers: typing.Optional[typing.List[str]] = None,
-        aggregationMethod: typing.Optional[PropertyAggregationMethodEnum] = None,
+        experimentReferences: list[ExperimentReference] | None = None,
+        virtualTargetPropertyIdentifiers: list[str] | None = None,
+        aggregationMethod: PropertyAggregationMethodEnum | None = None,
     ):
         """Returns a tuple of series' where each series contains the observed property values for a specific experiment (protocol).
 

@@ -4,7 +4,6 @@
 import os
 import subprocess
 import time
-import typing
 import uuid
 from typing import Any
 
@@ -19,9 +18,9 @@ def execute_benchmark(
     data_set: str,
     interpreter: str = "python",
     num_prompts: int = 500,
-    request_rate: typing.Optional[int] = None,
-    max_concurrency: typing.Optional[int] = None,
-    hf_token: typing.Optional[str] = None,
+    request_rate: int | None = None,
+    max_concurrency: int | None = None,
+    hf_token: str | None = None,
     benchmark_retries: int = 3,
     retries_timeout: int = 5,
 ) -> dict[str, Any]:
@@ -51,10 +50,7 @@ def execute_benchmark(
     code = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
     )
-    if hf_token is not None:
-        request = f"export HF_TOKEN={hf_token} && "
-    else:
-        request = ""
+    request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
     request += (
         #f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "

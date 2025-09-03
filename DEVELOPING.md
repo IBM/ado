@@ -24,6 +24,7 @@ source .venv/bin/activate
 > [!NOTE]
 >
 > This installs `ado` in editable mode.
+
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
 > [!NOTE]
 >
@@ -31,6 +32,7 @@ source .venv/bin/activate
 > top-level of the project's repository. Note that environments created by
 > `uv sync` are intended only to be used when developing a specific project and
 > should not be shared across projects.
+
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
 > [!CAUTION]
 >
@@ -91,6 +93,40 @@ run linting checks, execute:
 
 ```commandline
 ruff check --exclude website
+```
+
+## Linting markdown with markdownlint-cli2
+
+> [!NOTE]
+>
+> See the
+> [Automating checks with pre-commit](#automating-checks-with-pre-commit)
+> section to automate this.
+
+This repository uses `markdownlint-cli2` to enforce linting rules on markdown
+files. Install it using one of the methods described in the
+[official documentation](https://github.com/DavidAnson/markdownlint-cli2?tab=readme-ov-file#install).
+To run linting checks, execute:
+
+```commandline
+markdownlint-cli2 "**/*.md" "#.venv" --fix
+```
+
+### Prettier for lines too long
+
+> [!NOTE]
+>
+> Prettier might undo some changes that markdownlint-cli2 has done. A common
+> error is adding a line after the `markdownlint-disable-next-line` comments
+
+Note that line-too-long errors won't be automatically fixed. We recommend using
+`prettier` to autoformat markdown in that case. Installation instructions can be
+found on the [official website](https://prettier.io/docs/install)
+
+Prettier can then be run with:
+
+```commandline
+prettier -w "**/*.md"
 ```
 
 ## Secret scanning
@@ -196,6 +232,7 @@ dependencies. This means that all changes to dependencies **must** be done via
 `uv`, and not by manually editing `pyproject.toml`.
 
 The relevant documentation on `uv`'s website is available
+
 <!-- markdownlint-disable-next-line descriptive-link-text -->
 [here](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies),
 but at a glance:

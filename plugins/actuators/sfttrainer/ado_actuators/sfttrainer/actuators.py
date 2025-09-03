@@ -185,16 +185,16 @@ class ActuatorParameters(
     )
 
     aim_dashboard_url: str | None = pydantic.Field(
-        # VV: This points to the AIM Instance on AD Morrigan
-        default="https://aim-discovery-dev.apps.morrigan.accelerated-discovery.res.ibm.com",
+        default=None,
         description="The AIM Dashboard endpoint. When set, the actuator inserts the aim_url field "
-        "in the MeasurementResult.metadata object that is associated with the measurement",
+        "in the MeasurementResult.metadata object that is associated with the measurement.",
     )
 
     aim_db: str | None = pydantic.Field(
-        # VV: on the AD-Morrigan cluster you can also use "aim://aim.aim.svc.cluster.local:53800"
-        default="aim://api.morrigan.accelerated-discovery.res.ibm.com:30617",
-        description="The AIM server endpoint",
+        default=None,
+        description="The AIM server endpoint. When set to None the "
+        "measurement will use a temporary AIM repository that will be garbage collected after the termination "
+        "of the measurement.",
     )
 
     hf_home: str = pydantic.Field(

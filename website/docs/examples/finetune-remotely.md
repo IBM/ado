@@ -94,7 +94,6 @@ In this section you will configure the actuator for experiments on your remote R
      ```yaml
      actuatorIdentifier: SFTTrainer
      parameters:
-       aim_db: /tmp/throwaway_aim_repository
        hf_home: /hf-models-pvc/huggingface_home
        data_directory: /data/fms-hf-tuning/artificial-dataset/
      ```

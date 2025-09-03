@@ -301,7 +301,6 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
     def sampler(self) -> BaseSampler | GroupSampler:
 
         cls = load_module_class_or_function(self.module)
-        print(cls)
         if self.parameters:
             sampler: BaseSampler | GroupSampler = cls(self.parameters)
         else:
@@ -367,10 +366,8 @@ class RandomWalkParameters(pydantic.BaseModel):
     @pydantic.model_validator(mode="before")
     def upgrade_model(cls, parameters: typing.Any):
 
-        print(f"IN BEFORE VALIDATOR: {parameters}")
         if isinstance(parameters, dict) and parameters.get("mode"):
 
-            print(f"UPGRADING PARAMETERS {parameters}")
             from orchestrator.modules.operators.base import (
                 warn_deprecated_operator_parameters_model_in_use,
             )
@@ -383,8 +380,6 @@ class RandomWalkParameters(pydantic.BaseModel):
             )
 
             defaultSamplerConfig = BaseSamplerConfiguration()
-            print(defaultSamplerConfig)
-            print(parameters)
             samplerConfig = BaseSamplerConfiguration(
                 mode=parameters.get("mode", defaultSamplerConfig.mode),
                 grouping=parameters.get("grouping", defaultSamplerConfig.grouping),
@@ -392,14 +387,12 @@ class RandomWalkParameters(pydantic.BaseModel):
                     "samplerType", defaultSamplerConfig.samplerType
                 ),
             )
-            print(samplerConfig)
             parameters = parameters.copy()
             parameters.pop("mode", None)
             parameters.pop("grouping", None)
             parameters.pop("samplerType", None)
             parameters["samplerConfig"] = samplerConfig
 
-        print(f"Returning {parameters}")
         return parameters
 
     @pydantic.field_validator("batchSize")

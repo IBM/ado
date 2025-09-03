@@ -113,6 +113,7 @@ ado context
 The active context is also denoted by a "*" in the output of `ado get contexts` (see output above).
 
 > [!NOTE] 
+> 
 > Although `context` appears *like* resource in `ado` e.g. you can `get` contexts, the definition is not stored in the 
 > metastore, so it is purely local. 
 

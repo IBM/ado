@@ -17,6 +17,7 @@ This guide has two parts:
 After running the exercise, please feel free to [explore further](#exploring-further) and [try a larger experiment](#a-few-ideas-for-further-exploration).
 
 >[!NOTE]
+> 
 >These pre-requisites must be fulfilled before you start with this actuator
 >1. Access to an OpenShift cluster with at least 1 node with 1 available NVIDIA GPU. You will need access to a namespace with permissions for GPU-based deployments
 >2. You will need to have downloaded and installed `ado` according to [this guide](https://ibm.github.io/ado/getting-started/install/).
@@ -153,6 +154,7 @@ This defines a simple discovery space with a **single** entity.
 Our sample space will benchmark vLLM serving the LLM specified by `model_name`, on a node (determined through `node_selector`) with a specific GPU (`NVIDIA-A100-80GB-PCIe`) specified in `gpu_type`.
 
 >[!NOTE]
+> 
 >Ensure that the GPU specified in `gpu_type` is present on the node. To find out the gpu model of your selected node, try the following command:
 >```commandline
 >oc describe node <node name> | grep "nvidia.com/gpu.product"

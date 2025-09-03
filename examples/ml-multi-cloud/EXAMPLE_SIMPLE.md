@@ -1,4 +1,5 @@
 > [!NOTE] 
+> 
 > This example illustrates: 
 > 
 > 1. Describing a set of points and how to measure them using a `discoveryspace` 
@@ -24,6 +25,7 @@ To explore a workload parameter space you have to:
 Here, we will use the simplest sampling method, random walk, where some number of points are randomly selected without replacement.
 
 > [!CAUTION]
+> 
 > The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
 > See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 
@@ -116,6 +118,7 @@ Measurement Space:
 Sample Store identifier: 'a8df39'
 ```
 >[!NOTE]
+> 
 >The set of points is defined by the properties in the `Entity Space` - here '_cpu_family_', '_provider_', '_vcpu_size_' and '_nodes_' - and the values those properties can take.
 
 >[!TIP]
@@ -192,6 +195,7 @@ version: v1
 Note the value of the `identifier` field: in above it is `randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`
 
 >[!NOTE] 
+> 
 > The operation "reuses" existing measurements: this is an `ado` feature called **memoization**.
 >
 > `ado` transparently executes experiments or memoizes data as appropriate - so the operator does not need to know if a measurement needs to be performed at the time it requests it, or if previous data can be reused.

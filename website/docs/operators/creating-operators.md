@@ -151,6 +151,7 @@ packaging requirements which are discussed in [explore operators](#creating-expl
 ### Returning data from your operation
 
 >[!NOTE] 
+> 
 > Any `ado` resources created will be stored in the context the operation was created in.  
 
 The operator function must return data using the `orchestrators.core.operation.operation.OperationOutput` pydantic model.
@@ -477,6 +478,7 @@ ado-ray-tune = "ado_ray_tune.operator_function" # The key is the distribution na
 This references the python module (file) that contains your operator function
 
 >[!NOTE]
+> 
 >You can define multiple operator functions in the referenced module.
 
 

@@ -20,13 +20,16 @@ source .venv/bin/activate
 ```
 
 > [!NOTE]
+> 
 > This installs `ado` in editable mode.
 
 > [!NOTE]
+> 
 > In line with uv's defaults, the `uv sync` command creates a `.venv` in the top-level of the project's repository.
 > Note that environments created by `uv sync` are intended only to be used when developing a specific project and should not be shared across projects.
 
 > [!CAUTION]
+> 
 > `uv sync` ensures a reproducible development environment is created by using a lock-file, `uv.lock`.
 >  Only packages in the lockfile are installed, and other packages found in the virtual environment will be deleted.
 >  See [Making changes to dependencies](#making-changes-to-dependencies) for how to add packages to the lockfile.
@@ -38,6 +41,7 @@ source $PATH/bin/activate
 uv sync --active
 ```
 > [!CAUTION]
+> 
 > If you create a development in a different location you must direct `uv sync` explicitly to use it with `--active`
 > If you do not it will default to using `.venv` in the project top-level directory. 
 
@@ -45,6 +49,7 @@ uv sync --active
 ## Code style
 
 > [!NOTE]  
+> 
 > See the [Automating checks with pre-commit](#automating-checks-with-pre-commit) section to automate this.
 
 This repository follows the [`black`](https://black.readthedocs.io/en/stable/) style for formatting. 
@@ -61,6 +66,7 @@ You can format your code by:
 ## Linting with ruff
 
 > [!NOTE]  
+> 
 > See the [Automating checks with pre-commit](#automating-checks-with-pre-commit) section to automate this.
 
 This repository uses `ruff` to enforce linting rules. Install it using one of the methods described in the [official
@@ -74,6 +80,7 @@ ruff check --exclude website
 ## Secret scanning
 
 > [!NOTE]  
+> 
 > See the [Automating checks with pre-commit](#automating-checks-with-pre-commit) section to automate this.
 
 This repository uses IBM's [detect-secrets](https://github.com/ibm/detect-secrets) to scan for secrets before the code
@@ -164,6 +171,7 @@ If you are adding (or updating) base dependencies for `ado`, you should use the 
 `uv add` command](https://docs.astral.sh/uv/concepts/projects/dependencies/#adding-dependencies):
 
 > [!NOTE]  
+> 
 > You can optionally add specific version selectors. By default, `uv` will add `>=CURRENT_VERSION`.
 
 ```commandline
@@ -196,6 +204,7 @@ Users are highly encouraged to read the documentation available both on uv's and
 With `uv` you can add dependencies to groups using `uv add --group NAME`:
 
 > [!NOTE]  
+> 
 > For the `dev` group there is the shorthand `--dev` that replaces `--group dev`.
 
 ```commandline

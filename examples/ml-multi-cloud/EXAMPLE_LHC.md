@@ -1,5 +1,6 @@
 
 > [!NOTE] 
+> 
 > This example shows
 >  
 > 1. Using the Latin Hyper-Cube Sampler from the `ray_tune` operator to explore the space
@@ -17,6 +18,7 @@ The workloads in the `ml_multi_cloud` data set are defined by four parameters, `
 Here we will try to find **which dimensions have most influence over the `wallClockRuntime` property.**
 
 > [!CAUTION]
+> 
 > The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
 > See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 
@@ -89,7 +91,8 @@ This is chosen as follows:
 - This gives one set for each possible dimensions set size: 1,2,3 and 4 in this case - the pareto optimal sets
 - Then the smallest of these sets which exceeds the threshold value is selected.
 
-> [!Note]
+> [!NOTE]
+> 
 > Since latin hypercube sampling is random the pareto set can change slightly from run to run as different entities are used.
 > In this example over multiple runs you should see the pareto set being 2 or 3 and always including `nodes`.
 

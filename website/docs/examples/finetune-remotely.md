@@ -1,6 +1,7 @@
 # Measure throughput of finetuning on a Remote RayCluster
 
-> [!NOTE] 
+> [!NOTE]
+> 
 > This example illustrates: 
 > 
 > 1. Set a remote RayCluster environment for running finetuning performance benchmarks with SFTTrainer

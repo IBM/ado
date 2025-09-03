@@ -33,6 +33,7 @@ ado show related samplestore $SAMPLE_STORE_IDENTIFIER
 > So it is usually beneficial to ensure that such `discoveryspace`s use the same `samplestore`. 
 
 >[!WARNING]
+> 
 > If you use two different `samplestore`s for similar `discoveryspace`s there is no way to share results between them. 
  
 ## active and passive Sample Stores

@@ -183,6 +183,7 @@ version: v1
 ```
 
 > [!NOTE]
+> 
 > The first updated status reflects an update to the stored operation resource which added the `started` event.
 > The second updated status reflects an update to the stored operation resource which added the `finished` event.
 

@@ -435,6 +435,7 @@ ado show entities operation $OPERATION_ID
 ```
 
 > [!NOTE]
+> 
 > This command also works during an operation. It shows up to the most recent measured entity.
 
 ## ado additions to RayTune

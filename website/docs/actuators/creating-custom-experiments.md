@@ -3,6 +3,7 @@ status: published #Status can be draft, reviewed or published.
 ---
 
 > [!NOTE]
+> 
 > The [search a space with an optimizer](../examples/best-configuration-search.md) example contains the code described here
 
 Often you might want to use an experiment that is a simple python function. 

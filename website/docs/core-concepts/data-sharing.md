@@ -1,4 +1,5 @@
 > [!NOTE]
+> 
 > We recommend to read about [Discovery Spaces](discovery-spaces.md) before reading this document. 
 
 
@@ -13,6 +14,7 @@ From the point-of-view of understanding data reuse in `ado`, the following point
 * **Entities are always shared**. There is only one entry in a Sample Store for an Entity 
 
 > [!NOTE] 
+> 
 > To maximise the chance of data-reuse, similar Discovery Spaces should use the same Sample Store. 
 > However, Discovery Spaces do not have to be similar to use the same Sample Store.
 

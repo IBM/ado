@@ -34,6 +34,7 @@ Refer to the official OpenShift-specific guide here:
 ## Onboarding projects
 
 > [!WARNING]
+> 
 > Before proceeding make sure you have followed the steps in 
 > [Deployment Instructions](#deployment-instructions).
 
@@ -50,6 +51,7 @@ installed:
 ### PXC-related variables
 
 > [!NOTE]
+> 
 > We assume that your active namespace is the one in which you installed
 > your Percona XtraDB Cluster.
 

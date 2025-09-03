@@ -19,6 +19,7 @@ The resources are (use side panel to fine out more about each type):
 * **actuatorconfigurations**: A configuration for an actuator. 
 
 > [!NOTE] 
+> 
 > Some resources take other resources as input, for example `operations` take `discoveryspaces` as input. 
 
 ## Naming Conventions: Concepts versus Resources

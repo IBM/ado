@@ -1,5 +1,6 @@
 
 > [!NOTE] 
+> 
 > This example demonstrates: 
 > 
 > 1. Creating and installing custom experiments
@@ -9,6 +10,7 @@
 > 3. Parameterizable and parameterized experiments
 
 > [!NOTE]
+> 
 > We recommend trying the [talking a random walk example](https://ibm.github.io/ado/examples/random-walk/) first to get familiar with some basic concepts and commands.
 
 ## The scenario
@@ -21,6 +23,7 @@ which provides access to the RayTune framework.
 **This example demonstrates running optimizations in `ado`** using the problem of finding the minimum of standard optimization test functions.
 
 > [!CAUTION]
+> 
 > The commands below assume you are in the directory `examples/optimization_test_functions` in **the ado source repository**. 
 > See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 
@@ -122,7 +125,8 @@ ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTI
 
 where `$SAMPLE_STORE_IDENTIFIER` is the identifier of the [samplestore](/ado/resources/sample-stores/#creating-a-samplestore) you want to use to store the results.
 
->[!Note]
+>[!NOTE]
+> 
 > This can be the same `samplestore` used in another example. 
 > 
 >`samplestores` can store samples and measurement from multiple different experiments and `discoveryspaces`. 
@@ -357,7 +361,8 @@ For example to set the function to `cigar` you would write (snippet from full `d
 ```
 
 When you set an optional property of a parameterizable experiment we call the result a parameterized experiment. 
-> [!Note]
+> [!NOTE]
+> 
 > You can't change the parameterization of an experiment in an existing `discoveryspace` as this changes the measurement and hence the entire space. 
 > Using an experiment with a new parameterization requires creating a new `discoveryspace`. 
 

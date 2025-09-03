@@ -6,6 +6,7 @@ Depending on cluster permissions users may need someone with administrator privi
 ## Installing KubeRay
 
 > [!WARNING]
+> 
 > KubeRay is included in OpenShift AI and OpenDataHub. Skip this step
 > if they are already installed in your cluster.
 
@@ -16,6 +17,7 @@ the
 ## Deploying a RayCluster
 
 > [!WARNING]
+> 
 > The `ray` versions must be compatible. For a more in depth guide refer to the
 > [RayCluster configuration](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html)
 > page.

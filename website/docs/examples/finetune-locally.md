@@ -1,6 +1,7 @@
 # Measure throughput of finetuning locally
 
 > [!NOTE] 
+> 
 > This example illustrates: 
 > 
 > 1. Set up a local environment for running finetuning performance benchmarks with SFTTrainer

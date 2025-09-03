@@ -1,5 +1,6 @@
 
 > [!NOTE] 
+> 
 > This example shows how to create and use a custom objective function, an experiment which requires the output of another experiment, with `ado`. 
 
 ## The scenario
@@ -13,6 +14,7 @@ In this example we will install **a custom objective function that calculates a 
 When the workload configuration space is explored using a random walk, both the `wallClockRuntime` and the `cost`, as defined by the custom function, will be measured.
 
 > [!CAUTION]
+> 
 > The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
 > See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
 

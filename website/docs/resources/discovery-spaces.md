@@ -447,6 +447,7 @@ You can see the required inputs under the section `Required Inputs` and the opti
 The next section explains how to use optional properties. 
 
 > [!NOTE]
+> 
 > The experiment gives the full domains it supports for each required and optional constitutive property. 
 > However, when constructing the `entityspace` you usually only want to use a sub-domain.
 

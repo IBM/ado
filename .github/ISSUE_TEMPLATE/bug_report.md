@@ -32,7 +32,7 @@ If applicable, add screenshots and logs (e.g., Ray Logs) to help explain your pr
 
 Please include the output of:
 
-```
+```terminaloutput
 python --version
 ado version
 Your OS

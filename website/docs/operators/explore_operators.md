@@ -110,13 +110,13 @@ config:
   operation:
     module:
       moduleClass: RandomWalk
-      moduleName: orchestrator.modules.operators.randomwalk
     parameters:
-      batchSize: 999
-      mode: sequential
-      numberIterations: 10
-      samplerType: generator
+      batchSize: 4
       singleMeasurement: false
+      numberEntities: all
+      samplerConfig:
+        mode: sequential
+        samplerType: generator
   spaces:
   - space-8f1cfb-91ecfb
 created: '2024-10-07T06:46:08.176924Z'

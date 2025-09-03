@@ -161,9 +161,10 @@ config:
       moduleType: operation
     parameters:
       batchSize: 1
-      mode: sequential
       numberEntities: 48
-      samplerType: generator
+      samplerConfig:
+        mode: sequential
+        samplerType: generator
   spaces:
   - space-65cf33-a8df39
 created: '2025-06-20T13:03:46.763154Z'

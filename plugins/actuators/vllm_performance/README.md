@@ -6,12 +6,24 @@ The actuator is called `vllm_performance` and features two experiments: `perform
 # Getting Started
 
 This guide has two parts:
-1. [Installing and configuring the actuator](#installing-and-configuring-the-vllm-actuator)
-    - [Installing the actuator](#installation)
+- [Getting Started](#getting-started)
+  - [Installing and configuring the vLLM actuator](#installing-and-configuring-the-vllm-actuator)
+    - [Installation](#installation)
     - [Configuring the actuator](#configuring-the-actuator)
-2. [A Simple Benchmarking Exercise](#a-simple-benchmarking-exercise)
+  - [A Simple Benchmarking Exercise](#a-simple-benchmarking-exercise)
     - [Creating a Discovery Space to describe the vLLM configurations to test](#creating-a-discovery-space-to-describe-the-vllm-configurations-to-test)
+      - [Checking the context](#checking-the-context)
+      - [Creating an sample store, if needed](#creating-an-sample-store-if-needed)
+      - [Defining a Discovery Space of vLLM configurations](#defining-a-discovery-space-of-vllm-configurations)
+      - [Querying the Discovery Space](#querying-the-discovery-space)
     - [Exploring the vLLM workload configuration space](#exploring-the-vllm-workload-configuration-space)
+- [Exploring Further](#exploring-further)
+  - [vLLM testing approach](#vllm-testing-approach)
+  - [The Actuator Package: Key Files](#the-actuator-package-key-files)
+    - [Customising Actuator Configurations](#customising-actuator-configurations)
+    - [Customising Experiment Protocol](#customising-experiment-protocol)
+    - [Notes on the Random walk operation](#notes-on-the-random-walk-operation)
+  - [A few ideas for further exploration](#a-few-ideas-for-further-exploration)
 
 
 After running the exercise, please feel free to [explore further](#exploring-further) and [try a larger experiment](#a-few-ideas-for-further-exploration).
@@ -24,6 +36,7 @@ After running the exercise, please feel free to [explore further](#exploring-fur
 
 ## Installing and configuring the vLLM actuator
 
+<!--
 ### Download the vLLM benchmark
 
 This actuator wraps the official `benchmark_serving` benchmark from vLLM, which you will download in this step from the vLLM repository on GitHub.
@@ -34,7 +47,7 @@ Run the following commands from within the `vllm_performance` directory:
 wget https://github.com/vllm-project/vllm/raw/refs/tags/v0.10.1.1/benchmarks/benchmark_serving.py -O ./ado_actuators/vllm_performance/vllm_performance_test/benchmark_serving.py
 wget https://github.com/vllm-project/vllm/raw/refs/tags/v0.10.1.1/benchmarks/backend_request_func.py -O ./ado_actuators/vllm_performance/vllm_performance_test/backend_request_func.py
 ```
-
+-->
 ### Installation
 Ensure the virtual environment you installed `ado` into is active. Then, in the top-level directory of this actuator (i.e. the directory with this README), run:
    ```commandline

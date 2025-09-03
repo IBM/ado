@@ -57,7 +57,8 @@ def execute_benchmark(
         request = ""
     f_name = f"{uuid.uuid4().hex}.json"
     request += (
-        f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "
+        #f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "
+        f"vllm bench serve --backend openai --base-url {base_url} --dataset-name {data_set} "
         f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
     )

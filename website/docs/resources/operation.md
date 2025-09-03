@@ -223,13 +223,17 @@ version: v1
 
 ## Deleting operations
 
-!!!info Please note that
-[standard deletion constraints](resources.md#deleting-resources) apply alongside
-the considerations discussed in this section.
+!!!info
 
-!!!warning Deleting an operation that uses the replay actuator **will also
-remove the original measurements from the database**, making it impossible for
-it to be run again on the same sample store.
+    Please note that
+    [standard deletion constraints](resources.md#deleting-resources) apply alongside
+    the considerations discussed in this section.
+
+!!!warning
+
+    Deleting an operation that uses the replay actuator **will also
+    remove the original measurements from the database**, making it impossible for
+    it to be run again on the same sample store.
 
 Deleting an operation is a destructive action that also removes associated data.
 The deletion process follows this logic:

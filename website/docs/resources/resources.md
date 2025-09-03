@@ -82,11 +82,13 @@ the [ado CLI guide](../getting-started/ado.md) for more details
 
 ### Deleting resources
 
-!!!info Refer to the following documentation for detailed information on
-specific use cases:
+!!!info
 
-    - [Deleting sample stores](sample-stores.md#deleting-sample-stores)
-    - [Deleting operations](operation.md#deleting-operations)
+    Refer to the following documentation for detailed information on
+    specific use cases:
+
+        - [Deleting sample stores](sample-stores.md#deleting-sample-stores)
+        - [Deleting operations](operation.md#deleting-operations)
 
 In **ado** you can delete resources, but there is an important constraint: a
 resource cannot be deleted if it has dependent (child) resources.

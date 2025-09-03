@@ -15,6 +15,7 @@ class ModuleTypeEnum(enum.Enum):
     ACTUATOR = "actuator"
     SAMPLE_STORE = "sample_store"
     GENERIC = "generic"
+    SAMPLER = "sampler"
 
 
 class ModuleConf(pydantic.BaseModel):

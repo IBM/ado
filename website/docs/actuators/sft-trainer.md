@@ -1485,7 +1485,10 @@ parameters:
   fine-tuning.
 
 #### `aim_db` (str, default: None)
-- **Description**: Endpoint of the AIM server used to log training metrics. When set to None the measurement will use a temporary AIM repository that will be garbage collected after the termination of the measurement.
+
+- **Description**: Endpoint of the AIM server used to log training metrics. When
+  set to None the measurement will use a temporary AIM repository that will be
+  garbage collected after the termination of the measurement.
 
 #### `aim_dashboard_url` (str or null, optional)
 

@@ -36,18 +36,6 @@ After running the exercise, please feel free to [explore further](#exploring-fur
 
 ## Installing and configuring the vLLM actuator
 
-<!--
-### Download the vLLM benchmark
-
-This actuator wraps the official `benchmark_serving` benchmark from vLLM, which you will download in this step from the vLLM repository on GitHub.
-
-Run the following commands from within the `vllm_performance` directory:
-
-```bash
-wget https://github.com/vllm-project/vllm/raw/refs/tags/v0.10.1.1/benchmarks/benchmark_serving.py -O ./ado_actuators/vllm_performance/vllm_performance_test/benchmark_serving.py
-wget https://github.com/vllm-project/vllm/raw/refs/tags/v0.10.1.1/benchmarks/backend_request_func.py -O ./ado_actuators/vllm_performance/vllm_performance_test/backend_request_func.py
-```
--->
 ### Installation
 Ensure the virtual environment you installed `ado` into is active. Then, in the top-level directory of this actuator (i.e. the directory with this README), run:
    ```commandline

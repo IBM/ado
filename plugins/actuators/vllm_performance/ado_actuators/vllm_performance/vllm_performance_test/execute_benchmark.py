@@ -47,9 +47,9 @@ def execute_benchmark(
     )
 
     # parameters
-    code = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
-    )
+    #code = os.path.abspath(
+    #    os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
+    #)
     request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
     request += (

@@ -24,7 +24,7 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
     del results["tokenizer_id"]
     del results["label"]
     #---- uncomment if directly invoking script
-    #del results["backend"] 
+    #del results["backend"]
     #del results["best_of"]
     #del results["request_goodput:"]
     #del results["input_lens"]

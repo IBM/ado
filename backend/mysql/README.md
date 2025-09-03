@@ -34,8 +34,8 @@ Refer to the official OpenShift-specific guide here:
 ## Onboarding projects
 
 > [!WARNING]
-> 
-> Before proceeding make sure you have followed the steps in 
+>
+> Before proceeding make sure you have followed the steps in
 > [Deployment Instructions](#deployment-instructions).
 
 ### Pre-requisites
@@ -45,15 +45,15 @@ Refer to the official OpenShift-specific guide here:
 To run the scripts in this guide you will need to have the following tools
 installed:
 
-- `kubectl`: https://kubernetes.io/docs/tasks/tools/#kubectl
-- `mysql` client version 8: https://formulae.brew.sh/formula/mysql-client@8.4
+- `kubectl`: <https://kubernetes.io/docs/tasks/tools/#kubectl>
+- `mysql` client version 8: <https://formulae.brew.sh/formula/mysql-client@8.4>
 
 ### PXC-related variables
 
 > [!NOTE]
-> 
-> We assume that your active namespace is the one in which you installed
-> your Percona XtraDB Cluster.
+>
+> We assume that your active namespace is the one in which you installed your
+> Percona XtraDB Cluster.
 
 #### PXC Cluster name
 
@@ -73,7 +73,7 @@ use the default `root` account.
 
 You can retrieve its password with:
 
-```
+```commandline
 kubectl get secret $PXC_NAME-secrets --template='{{.data.root}}' | base64 -d
 ```
 
@@ -82,10 +82,11 @@ kubectl get secret $PXC_NAME-secrets --template='{{.data.root}}' | base64 -d
 ### Onboarding new projects
 
 The simplest way to onboard a new project called `$PROJECT_NAME` is to use the
-`forward_mysql_and_onboard_new_project.sh`.
-This script creates a new project in the MySQL DB and outputs an ado context YAML that can be used to connect to it. 
+`forward_mysql_and_onboard_new_project.sh`. This script creates a new project in
+the MySQL DB and outputs an ado context YAML that can be used to connect to it.
 
 For example:
+
 ```shell
 ./forward_mysql_and_onboard_new_project.sh --admin-user root \
                       --admin-pass $MYSQL_ADMIN_PASSWORD \
@@ -103,4 +104,5 @@ Cloud), you can use the other script: `onboard_new_project.sh`:
                       --project-name $PROJECT_NAME
 ```
 
-Once the project is created the context YAML can be shared with whoever needs access to the project. 
+Once the project is created the context YAML can be shared with whoever needs
+access to the project.

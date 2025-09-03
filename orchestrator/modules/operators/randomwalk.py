@@ -9,7 +9,7 @@ import uuid
 from builtins import anext
 from collections.abc import AsyncGenerator
 from queue import Empty, Queue
-from typing import Literal
+from typing import Annotated, Literal
 
 import pydantic
 import ray
@@ -20,7 +20,9 @@ from orchestrator.core.discoveryspace.group_samplers import (
     SequentialGroupSampleSelector,
 )
 from orchestrator.core.discoveryspace.samplers import (
+    BaseSampler,
     ExplicitEntitySpaceGridSampleGenerator,
+    GroupSampler,
     RandomSampleSelector,
     SamplerTypeEnum,
     SequentialSampleSelector,
@@ -33,6 +35,11 @@ from orchestrator.core.operation.config import (
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.base import ActuatorBase
+from orchestrator.modules.module import (
+    ModuleConf,
+    ModuleTypeEnum,
+    load_module_class_or_function,
+)
 from orchestrator.modules.operators.base import Characterize, measure_or_replay_async
 from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
@@ -120,20 +127,217 @@ class EntityFilter(pydantic.BaseModel):
         return retval
 
 
-class RandomWalkParameters(pydantic.BaseModel):
+class BaseSamplerConfiguration(pydantic.BaseModel):
+    """Allows specifying basic sampling options for a RandomWalk"""
 
-    mode: Literal["random", "sequential", "randomgrouped", "sequentialgrouped"] = (
-        pydantic.Field(
-            default="random",
-            description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
-        )
-    )
     samplerType: Literal["selector", "generator"] = pydantic.Field(
-        default="selector", description="The sampler to use"
+        default="selector",
+        description="The type of sampler to use. A generator generates entities based on the entityspace, "
+        "selectors select from existing entities",
+    )
+    mode: Literal[
+        "random", "sequential", "randomgrouped", "sequentialgrouped", "custom"
+    ] = pydantic.Field(
+        default="random",
+        description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
     )
     grouping: list[str] = pydantic.Field(
         default=[],
         description="List of variable names that need to be grouped together",
+    )
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    @pydantic.field_validator("grouping")
+    def validate_mode_and_grouping(
+        cls, grouping, values: "pydantic.FieldValidationInfo"
+    ):
+
+        if (
+            values.data.get("mode") == CombinedWalkModeEnum.RANDOMGROUPED
+            or values.data.get("mode") == CombinedWalkModeEnum.SEQUENTIALGROUPED
+        ):
+            assert len(grouping) > 0, (
+                f"grouping {grouping} has to contain some names for the grouping "
+                f'mode {values.data.get("mode")}'
+            )
+
+        return grouping
+
+    @pydantic.field_validator("samplerType")
+    def validate_sample_type(cls, samplerType: str):
+
+        try:
+            SamplerTypeEnum(samplerType)
+        except ValueError:
+            raise ValueError(
+                f"Unknown sampler type  {samplerType}. "
+                f"Known sampler types {[item.value for item in SamplerTypeEnum]}"
+            )
+
+        return samplerType
+
+    @pydantic.field_validator("mode")
+    def validate_mode(cls, mode: str):
+
+        try:
+            CombinedWalkModeEnum(mode)
+        except ValueError:
+            raise ValueError(
+                f"Unknown walk mode {mode}. Known modes {[item.value for item in CombinedWalkModeEnum]}"
+            )
+
+        return mode
+
+    def sampler_type_to_enum(self) -> SamplerTypeEnum:
+
+        return SamplerTypeEnum(self.samplerType)
+
+    def mode_to_enum(self) -> CombinedWalkModeEnum:
+
+        return CombinedWalkModeEnum(self.mode)
+
+    def sampler(self) -> BaseSampler | GroupSampler:
+
+        match self.sampler_type_to_enum():
+            case SamplerTypeEnum.SELECTOR:
+                match self.mode_to_enum():
+                    case CombinedWalkModeEnum.RANDOM:
+                        sampler = RandomSampleSelector()
+                    case CombinedWalkModeEnum.SEQUENTIAL:
+                        sampler = SequentialSampleSelector()
+                    case CombinedWalkModeEnum.RANDOMGROUPED:
+                        sampler = RandomGroupSampleSelector(group=self.params.grouping)
+                    case CombinedWalkModeEnum.SEQUENTIALGROUPED:
+                        sampler = SequentialGroupSampleSelector(
+                            group=self.params.grouping
+                        )
+                    case _:
+                        # this can never happen, as we are validating this above
+                        pass
+
+            case SamplerTypeEnum.GENERATOR:
+                match self.mode_to_enum():
+                    case CombinedWalkModeEnum.RANDOMGROUPED:
+                        sampler = ExplicitEntitySpaceGroupedGridSampleGenerator(
+                            mode=WalkModeEnum.RANDOM, group=self.params.grouping
+                        )
+                    case CombinedWalkModeEnum.SEQUENTIALGROUPED:
+                        sampler = ExplicitEntitySpaceGroupedGridSampleGenerator(
+                            mode=WalkModeEnum.SEQUENTIAL, group=self.params.grouping
+                        )
+                    case CombinedWalkModeEnum.RANDOM:
+                        sampler = ExplicitEntitySpaceGridSampleGenerator(
+                            mode=WalkModeEnum.RANDOM
+                        )
+                    case CombinedWalkModeEnum.SEQUENTIAL:
+                        sampler = ExplicitEntitySpaceGridSampleGenerator(
+                            mode=WalkModeEnum.SEQUENTIAL
+                        )
+                    case _:
+                        # this can never happen, as we are validating this above
+                        pass
+            case _:
+                # this can never happen, as we are validating this above
+                pass
+
+        if not sampler:
+            raise ValueError(
+                f"Could not identify sampler matching {self.sampler} and mode, {self.mode}"
+            )
+
+        return sampler
+
+    def __str__(self):
+
+        s = f"sampler: {self.samplerType} walk mode: {self.mode}."
+        if self.grouping:
+            s += f" grouping: {self.grouping}"
+
+        return s
+
+
+class SamplerModuleConf(ModuleConf):
+
+    moduleType: ModuleTypeEnum = ModuleTypeEnum.SAMPLER
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+
+class CustomSamplerConfiguration(pydantic.BaseModel):
+    """Allows using arbitrary samplers"""
+
+    module: SamplerModuleConf = pydantic.Field(
+        description="Describes the sampling class to use"
+    )
+    parameters: pydantic.SerializeAsAny[typing.Any | None] = pydantic.Field(
+        default=None, description="Parameters for the sampler if any"
+    )
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    def __str__(self):
+
+        return f"custom sampler class: {self.module}. parameters: {self.parameters}"
+
+    @pydantic.field_validator("module")
+    def validate_sampler_exists(cls, module: ModuleConf):
+
+        if not load_module_class_or_function(module):
+            raise ValueError(f"Unable to find custom sampler {module}")
+
+        return module
+
+    @pydantic.model_validator(mode="after")
+    def validate_parameters(self):
+
+        cls = load_module_class_or_function(self.module)
+        if cls.parameters_model():
+            self.parameters = cls.parameters_model().model_validate(self.parameters)
+        else:
+            raise ValueError(
+                f"Parameters specified for {self.module} but this sampler does not have a parameter model"
+            )
+
+        return self
+
+    def sampler(self) -> BaseSampler | GroupSampler:
+
+        cls = load_module_class_or_function(self.module)
+        print(cls)
+        if self.parameters:
+            sampler: BaseSampler | GroupSampler = cls(self.parameters)
+        else:
+            sampler: BaseSampler | GroupSampler = cls()
+
+        return sampler
+
+
+def sampler_type_discriminator(sampler_config):
+
+    if isinstance(sampler_config, CustomSamplerConfiguration):
+        return "Custom"
+    if isinstance(sampler_config, BaseSamplerConfiguration):
+        return "Base"
+    if isinstance(sampler_config, dict):
+        if sampler_config.get("module", None):
+            return "Custom"
+        return "Base"
+
+    raise ValueError(
+        f"Unable to determine sampler type for sampler config: {sampler_config}"
+    )
+
+
+SamplerConfig = Annotated[
+    Annotated[BaseSamplerConfiguration, pydantic.Tag("Base")]
+    | Annotated[CustomSamplerConfiguration, pydantic.Tag("Custom")],
+    pydantic.Discriminator(sampler_type_discriminator),
+]
+
+
+class RandomWalkParameters(pydantic.BaseModel):
+
+    samplerConfig: SamplerConfig = pydantic.Field(
+        default_factory=BaseSamplerConfiguration,
+        description="Defines the sampler to use",
     )
     numberEntities: int | Literal["all"] = pydantic.Field(
         default=1,
@@ -160,6 +364,44 @@ class RandomWalkParameters(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
+    @pydantic.model_validator(mode="before")
+    def upgrade_model(cls, parameters: typing.Any):
+
+        print(f"IN BEFORE VALIDATOR: {parameters}")
+        if isinstance(parameters, dict) and parameters.get("mode"):
+
+            print(f"UPGRADING PARAMETERS {parameters}")
+            from orchestrator.modules.operators.base import (
+                warn_deprecated_operator_parameters_model_in_use,
+            )
+
+            warn_deprecated_operator_parameters_model_in_use(
+                affected_operator="random_walk",
+                deprecated_from_operator_version="v1.0.1",
+                removed_from_operator_version="v1.2",
+                latest_format_documentation_url="https://ibm.github.io/ado/operators/random-walk/#configuring-a-randomwalk",
+            )
+
+            defaultSamplerConfig = BaseSamplerConfiguration()
+            print(defaultSamplerConfig)
+            print(parameters)
+            samplerConfig = BaseSamplerConfiguration(
+                mode=parameters.get("mode", defaultSamplerConfig.mode),
+                grouping=parameters.get("grouping", defaultSamplerConfig.grouping),
+                samplerType=parameters.get(
+                    "samplerType", defaultSamplerConfig.samplerType
+                ),
+            )
+            print(samplerConfig)
+            parameters = parameters.copy()
+            parameters.pop("mode", None)
+            parameters.pop("grouping", None)
+            parameters.pop("samplerType", None)
+            parameters["samplerConfig"] = samplerConfig
+
+        print(f"Returning {parameters}")
+        return parameters
+
     @pydantic.field_validator("batchSize")
     def validate_runtime_config(cls, value, values: "pydantic.FieldValidationInfo"):
 
@@ -167,14 +409,6 @@ class RandomWalkParameters(pydantic.BaseModel):
             assert values.data.get("numberEntities") >= value, (
                 f'Number of entities to sample {values.data.get("numberEntities")} '
                 f"cannot be less than batch size {value}"
-            )
-        if (
-            values.data.get("mode") == CombinedWalkModeEnum.RANDOMGROUPED
-            or values.data.get("mode") == CombinedWalkModeEnum.SEQUENTIALGROUPED
-        ):
-            assert len(values.data.get("grouping")) > 0, (
-                f'grouping {values.data.get("grouping")} has to contain some names for the grouping '
-                f'mode {values.data.get("mode")}'
             )
 
         return value
@@ -260,21 +494,6 @@ class RandomWalk(Characterize):
         # If this was not true we would need to use the entity id+requestIndex
         self._retriedExperimentRequests = {}  # type: dict[int, RequestRetry]
 
-        try:
-            self.mode = CombinedWalkModeEnum(self.params.mode)
-        except ValueError:
-            raise ValueError(
-                f"Unknown walk mode {self.params.mode}. Known modes {[item.value for item in CombinedWalkModeEnum]}"
-            )
-
-        try:
-            self.sampler = SamplerTypeEnum(self.params.samplerType)
-        except ValueError:
-            raise ValueError(
-                f"Unknown sampler type  {self.params.samplerType}. "
-                f"Known sampler types {[item.value for item in SamplerTypeEnum]}"
-            )
-
         # Sets state, actorName ivars and subscribes to the state
         super().__init__(
             operationActorName=operationActorName,
@@ -298,57 +517,12 @@ class RandomWalk(Characterize):
     async def run(self):
 
         self.log.debug(
-            f"Starting random walk. Using sampler {self.sampler} with walk mode {self.mode}"
+            f"Starting random walk. Sampler config is: {self.params.samplerConfig}"
         )
         # noinspection PyUnresolvedReferences
         measurement_queue = await self.state.measurement_queue.remote()
-        sampler = None
-        match self.sampler:
-            case SamplerTypeEnum.SELECTOR:
-                match self.mode:
-                    case CombinedWalkModeEnum.RANDOM:
-                        sampler = RandomSampleSelector()
-                    case CombinedWalkModeEnum.SEQUENTIAL:
-                        sampler = SequentialSampleSelector()
-                    case CombinedWalkModeEnum.RANDOMGROUPED:
-                        sampler = RandomGroupSampleSelector(group=self.params.grouping)
-                    case CombinedWalkModeEnum.SEQUENTIALGROUPED:
-                        sampler = SequentialGroupSampleSelector(
-                            group=self.params.grouping
-                        )
-                    case _:
-                        # this can never happen, as we are validating this above
-                        pass
-
-            case SamplerTypeEnum.GENERATOR:
-                match self.mode:
-                    case CombinedWalkModeEnum.RANDOMGROUPED:
-                        sampler = ExplicitEntitySpaceGroupedGridSampleGenerator(
-                            mode=WalkModeEnum.RANDOM, group=self.params.grouping
-                        )
-                    case CombinedWalkModeEnum.SEQUENTIALGROUPED:
-                        sampler = ExplicitEntitySpaceGroupedGridSampleGenerator(
-                            mode=WalkModeEnum.SEQUENTIAL, group=self.params.grouping
-                        )
-                    case CombinedWalkModeEnum.RANDOM:
-                        sampler = ExplicitEntitySpaceGridSampleGenerator(
-                            mode=WalkModeEnum.RANDOM
-                        )
-                    case CombinedWalkModeEnum.SEQUENTIAL:
-                        sampler = ExplicitEntitySpaceGridSampleGenerator(
-                            mode=WalkModeEnum.SEQUENTIAL
-                        )
-                    case _:
-                        # this can never happen, as we are validating this above
-                        pass
-            case _:
-                # this can never happen, as we are validating this above
-                pass
-
-        if not sampler:
-            raise ValueError(
-                f"Could not identify sampler matching {self.sampler} and mode, {self.mode}"
-            )
+        sampler = self.params.samplerConfig.sampler()
+        self.log.debug(sampler)
 
         iterator = await sampler.remoteEntityIterator(
             remoteDiscoverySpace=self.state, batchsize=1
@@ -420,8 +594,7 @@ class RandomWalk(Characterize):
             )
 
         print(
-            f"Running random walk with sampler {self.sampler}, sample selector {self.mode} "
-            f"for {number_entities} iterations"
+            f"Running random walk for {number_entities} iterations. Sampler is {self.params.samplerConfig}"
         )
 
         #

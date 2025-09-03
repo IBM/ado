@@ -6,6 +6,8 @@ import os
 import pathlib
 import typing
 
+import pydantic
+
 from orchestrator.core.actuatorconfiguration.config import (
     ActuatorConfiguration,
     GenericActuatorParameters,
@@ -96,14 +98,22 @@ def setup_actuators(
     filtered_actuator_ids = list(set(filtered_actuator_ids))
 
     for actuatorIdentifier in filtered_actuator_ids:
-        moduleLog.debug(f"Instantiating actuator: {actuatorIdentifier}")
-        actuator: ActuatorActor = (
-            registry.actuatorForIdentifier(actuatorIdentifier)
-            .options(name=actuatorIdentifier, namespace=namespace)
-            .remote(
-                queue=queue,
-                params=GenericActuatorParameters(),
+        cls = registry.actuatorForIdentifier(actuatorIdentifier)
+        try:
+            default_actuator_parameters = cls.default_parameters()
+        except pydantic.ValidationError as error:
+            moduleLog.warning(
+                f"The default parameters for {actuatorIdentifier} cannot be used. Reason: \n {error} \nThey may need to be customised"
             )
+            default_actuator_parameters = GenericActuatorParameters()
+
+        moduleLog.debug(f"Instantiating actuator: {actuatorIdentifier}")
+
+        actuator: ActuatorActor = cls.options(
+            name=actuatorIdentifier, namespace=namespace
+        ).remote(
+            queue=queue,
+            params=default_actuator_parameters,
         )
 
         actuators[actuatorIdentifier] = actuator

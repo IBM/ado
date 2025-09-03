@@ -87,7 +87,6 @@ Create a file called `actuator_configuration.yaml` with the following contents:
 actuatorIdentifier: SFTTrainer
 parameters:
   match_exact_dependencies: False
-  aim_db: /tmp/ado-sft-trainer-hello-world/aim
   data_directory: /tmp/ado-sft-trainer-hello-world/data-files
   cache: /tmp/ado-sft-trainer-hello-world/cache
   hf_home: ~/.cache/huggingface

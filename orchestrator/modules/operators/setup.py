@@ -10,7 +10,6 @@ import pydantic
 
 from orchestrator.core.actuatorconfiguration.config import (
     ActuatorConfiguration,
-    GenericActuatorParameters,
 )
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import BaseOperationRunConfiguration
@@ -102,10 +101,10 @@ def setup_actuators(
         try:
             default_actuator_parameters = cls.default_parameters()
         except pydantic.ValidationError as error:
-            moduleLog.warning(
+            moduleLog.critical(
                 f"The default parameters for {actuatorIdentifier} cannot be used. Reason: \n {error} \nThey may need to be customised"
             )
-            default_actuator_parameters = GenericActuatorParameters()
+            raise
 
         moduleLog.debug(f"Instantiating actuator: {actuatorIdentifier}")
 

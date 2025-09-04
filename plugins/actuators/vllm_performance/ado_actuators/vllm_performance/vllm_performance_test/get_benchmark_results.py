@@ -23,8 +23,10 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
     del results["endpoint_type"]
     del results["tokenizer_id"]
     del results["label"]
+    #The CLI invocation does not return the same dict as the script invocation
+    #so the following lines had to be commented
     #---- uncomment if directly invoking script
-    #del results["backend"] 
+    #del results["backend"]
     #del results["best_of"]
     #del results["request_goodput:"]
     #del results["input_lens"]

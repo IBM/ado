@@ -1,34 +1,50 @@
+# Search based on a custom objective function
 
-> [!NOTE] 
-> This example shows how to create and use a custom objective function, an experiment which requires the output of another experiment, with `ado`. 
+> [!NOTE]
+>
+> This example shows how to create and use a custom objective function, an
+> experiment which requires the output of another experiment, with `ado`.
 
 ## The scenario
 
-Often experiments will not directly produce the value that you are interested in. 
-For example, an experiment might measure the run time of an application, while **the meaningful metric is the associated cost, which requires knowing information like
-the cost per hour of the GPUs used**. 
-Another common scenario involves aggregating data points from one or more experiments into a single value. 
+Often experiments will not directly produce the value that you are interested
+in. For example, an experiment might measure the run time of an application,
+while **the meaningful metric is the associated cost, which requires knowing
+information like the cost per hour of the GPUs used**. Another common scenario
+involves aggregating data points from one or more experiments into a single
+value.
 
-In this example we will install **a custom objective function that calculates a cost** for the application workload configurations used in the [talking a random walk example](/ado/examples/random-walk/).
-When the workload configuration space is explored using a random walk, both the `wallClockRuntime` and the `cost`, as defined by the custom function, will be measured.
+In this example we will install **a custom objective function that calculates a
+cost** for the application workload configurations used in the
+[talking a random walk example](/ado/examples/random-walk/). When the workload
+configuration space is explored using a random walk, both the `wallClockRuntime`
+and the `cost`, as defined by the custom function, will be measured.
 
 > [!CAUTION]
-> The commands below assume you are in the directory `examples/ml-multi-cloud` in **the ado source repository**. 
-> See [here](/ado/getting-started/install/#__tabbed_1_1) for how to get the source repository. 
+>
+> The commands below assume you are in the directory `examples/ml-multi-cloud`
+> in **the ado source repository**. See
+> [the instructions for cloning the repository](/ado/getting-started/install/#__tabbed_1_3).
 
 ## Pre-requisites
 
 ### Install the ray_tune ado operator
 
-If you haven't already installed the ray_tune operator, run (assumes you are in `examples/ml-multi-cloud/` ):
+If you haven't already installed the ray_tune operator, run (assumes you are in
+`examples/ml-multi-cloud/` ):
+
 ```commandline
 pip install ../../plugins/operators/ray_tune
 ```
+
 then executing
+
 ```commandline
 ado get operators
 ```
+
 should show an entry for `ray_tune` like below
+
 ```commandline
 Available operators by type:
       OPERATOR     TYPE
@@ -36,17 +52,16 @@ Available operators by type:
 1     ray_tune  explore
 ```
 
-
 ## Installing the custom experiment
 
-The custom experiment is defined in a python package under `custom_actuator_function/`.
-To install it run:
+The custom experiment is defined in a python package under
+`custom_actuator_function/`. To install it run:
 
 ```commandline
 pip install custom_experiment/
 ```
 
-then 
+then
 
 ```commandline
 ado get actuators --details
@@ -54,6 +69,7 @@ ado get actuators --details
 
 will output something like
 
+<!-- markdownlint-disable line-length -->
 ```commandline
 2          custom_experiments          CustomExperiments                        ml-multicloud-cost-v1.0       True
 3         molecule-embeddings                 Embeddings                   calculate-morgan-fingerprint       True
@@ -61,11 +77,14 @@ will output something like
 5                     mordred         Mordred Descriptor                  mordred-descriptor-calculator       True
 6                       st4sd                      ST4SD                      toxicity-prediction-opera       True
 ```
+<!-- markdownlint-enable line-length -->
 
-You can see the custom experiment provided by the package, **ml-multicloud-cost-v1.0** on the first line.
-Executing `ado describe experiment ml-multicloud-cost-v1.0`
+You can see the custom experiment provided by the package,
+**ml-multicloud-cost-v1.0** on the first line. Executing
+`ado describe experiment ml-multicloud-cost-v1.0`
 
 outputs:
+
 ```commandline
 Identifier: custom_experiments.ml-multicloud-cost-v1.0
 
@@ -73,131 +92,150 @@ Required Inputs:
   Constitutive Properties:
       nodes
       Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [0, 1000] 
-      
+        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [0, 1000]
+
       cpu_family
       Domain:
-        Type: DISCRETE_VARIABLE_TYPE Values: [0, 1] Range: [0, 2] 
-      
-      
+        Type: DISCRETE_VARIABLE_TYPE Values: [0, 1] Range: [0, 2]
+
+
   Observed Properties:
       op-benchmark_performance-wallClockRuntime
-      
 
-Outputs: ml-multicloud-cost-v1.0-total_cost 
+
+Outputs: ml-multicloud-cost-v1.0-total_cost
 ```
 
-From this you can see the `ml-multicloud-cost-v1.0` requires an observed property, i.e. a property measured by another experiment, as input. 
-From the observed property identifier,  the experiment is called `benchmark_performance` and the property is `wallClockRuntime`.
+From this you can see the `ml-multicloud-cost-v1.0` requires an observed
+property, i.e. a property measured by another experiment, as input. From the
+observed property identifier, the experiment is called `benchmark_performance`
+and the property is `wallClockRuntime`.
 
 ## Create a discoveryspace that uses the custom experiment
 
-First create a `samplestore` with the `ml-multi-cloud` example data following [these instructions](/ado/examples/random-walk/#using-pre-existing-data-with-ado).
-If you have already completed the [talking a random walk example](/ado/examples/random-walk/), reuse the `samplestore` you created there (use `ado get samplestores` if you cannot recall the identifier).
+First create a `samplestore` with the `ml-multi-cloud` example data following
+[these instructions](/ado/examples/random-walk/#using-pre-existing-data-with-ado).
+If you have already completed the
+[talking a random walk example](/ado/examples/random-walk/), reuse the
+`samplestore` you created there (use `ado get samplestores` if you cannot recall
+the identifier).
 
-To use the custom experiment you must add it in the `experiments` list of a `discoveryspace`.
-The `acutauatorIdentifer` will be `custom_experiments` and the `experimentIdentifier` will be the name of your experiment.
-For this case the relevant section looks like:
+To use the custom experiment you must add it in the `experiments` list of a
+`discoveryspace`. The `acutauatorIdentifer` will be `custom_experiments` and the
+`experimentIdentifier` will be the name of your experiment. For this case the
+relevant section looks like:
 
 ```yaml
 experiments:
-  - experimentIdentifier: 'benchmark_performance'
-    actuatorIdentifier: 'replay'
-  - experimentIdentifier: 'ml-multicloud-cost-v1.0'
-    actuatorIdentifier: 'custom_experiments'
+  - experimentIdentifier: "benchmark_performance"
+    actuatorIdentifier: "replay"
+  - experimentIdentifier: "ml-multicloud-cost-v1.0"
+    actuatorIdentifier: "custom_experiments"
 ```
 
-The complete `discoveryspace` for this example is given in `ml_multicloud_space_with_custom.yaml`
-To create it execute:
-```
+The complete `discoveryspace` for this example is given in
+`ml_multicloud_space_with_custom.yaml` To create it execute:
+
+```commandline
 ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
 ```
 
->[!IMPORTANT]
-> If an experiment takes the output of another experiment as input both experiments must be in the `discoveryspace`.
-> In the above example if the entry `benchmark_performance` was omitted the `ado create space` command would fail with:
-> 
-> **SpaceInconsistencyError**: MeasurementSpace does not contain an experiment measuring an observed property required by another experiment in the space 
+> [!IMPORTANT] If an experiment takes the output of another experiment as input
+> both experiments must be in the `discoveryspace`. In the above example if the
+> entry `benchmark_performance` was omitted the `ado create space` command would
+> fail with:
+>
+> **SpaceInconsistencyError**: MeasurementSpace does not contain an experiment
+> measuring an observed property required by another experiment in the space
 
+Note the created `discoveryspace` resource identifier printed by this command
+for the next section. You can use this identifier in the following command to
+see a description of the space (replacing `$DISCOVERY_SPACE_IDENTIFIER`):
 
-Note the created `discoveryspace` resource identifier printed by this command for the next section. 
-You can use this identifier in the following command to see a description of the space (replacing `$DISCOVERY_SPACE_IDENTIFIER`):
 ```commandline
-ado describe space $DISCOVERY_SPACE_IDENTIFIER 
+ado describe space $DISCOVERY_SPACE_IDENTIFIER
 ```
 
 This will output:
+
 ```commandline
 Identifier: space-d5c150-0b762f
 
-Entity Space: 
-  
+Entity Space:
+
   Number entities: 48
-  
+
   Categorical properties:
            name     values
     0  provider  [A, B, C]
-  
+
   Discrete properties:
              name   range interval        values
     0  cpu_family  [0, 2]     None        [0, 1]
     1   vcpu_size  [0, 2]     None        [0, 1]
     2       nodes  [2, 6]     None  [2, 3, 4, 5]
-  
-   
+
+
 Measurement Space:
                                        experiment  supported
   0                 replay.benchmark_performance       True
-  1   custom_experiments.ml-multicloud-cost-v1.0       True 
-  
-  'replay.benchmark_performance' 
-  
+  1   custom_experiments.ml-multicloud-cost-v1.0       True
+
+  'replay.benchmark_performance'
+
   Inputs:
       parameter      type value parameterized
   0  cpu_family  required  None            na
   1   vcpu_size  required  None            na
   2       nodes  required  None            na
-  3    provider  required  None            na 
-  
+  3    provider  required  None            na
+
   Outputs:
        target property
   0  wallClockRuntime
-  1            status  'custom_experiments.ml-multicloud-cost-v1.0' 
-  
+  1            status  'custom_experiments.ml-multicloud-cost-v1.0'
+
   Inputs:
                                   parameter      type value parameterized
   0                                   nodes  required  None            na
   1                              cpu_family  required  None            na
-  2  benchmark_performance-wallClockRuntime  required  None            na 
-  
+  2  benchmark_performance-wallClockRuntime  required  None            na
+
   Outputs:
      target property
-  0      total_cost  
-  
+  0      total_cost
+
 Sample store identifier: '0b762f'
 ```
 
 ## Exploring the `discoveryspace`
 
-To run a `randomwalk` operation on the new space, execute ((replacing `$DISCOVERY_SPACE_IDENTIFIER` with the identifier of the space you created):
+To run a `randomwalk` operation on the new space, execute ((replacing
+`$DISCOVERY_SPACE_IDENTIFIER` with the identifier of the space you created):
 
 ```commandline
 ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
 ```
 
-This produces an output similar to that described in the [talking a random walk example](/ado/examples/random-walk/#exploring-the-discoveryspace) and will exit printing the operation identifier.
-However, in this case there is additional information related to the dependent experiment.
+This produces an output similar to that described in the
+[talking a random walk example](/ado/examples/random-walk/#exploring-the-discoveryspace)
+and will exit printing the operation identifier. However, in this case there is
+additional information related to the dependent experiment.
 
+When it completes, execute the `ado show entities operation` command to see the
+results produced:
 
-When it completes, execute the `ado show entities operation` command to see the results produced:
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER 
+ado show entities operation $OPERATION_IDENTIFIER
 ```
 
-You will see a table similar to the following - note the extra column for the new cost function:
+You will see a table similar to the following - note the extra column for the
+new cost function:
+
+<!-- markdownlint-disable line-length -->
 ```commandline
                result_index                                   identifier                        benchmark_performance-wallClockRuntime benchmark_performance-status                           ml-multicloud-cost-v1.0-total_cost                                                                                        reason  valid
-request_index                                                                                                                                               
+request_index
 0                         0                               A_f0.0-c0.0-n3                         [221.5101969242096, 216.394127368927]                     [ok, ok]                     [1.8459183077017467, 1.8032843947410584]                                                                                                 True
 1                         0                               C_f0.0-c0.0-n5                        [150.9471504688263, 138.0605161190033]                     [ok, ok]                     [2.0964882009559207, 1.9175071683194902]                                                                                                 True
 2                         0                               A_f0.0-c0.0-n5                       [106.0709307193756, 130.30512285232544]                     [ok, ok]                      [1.473207371102439, 1.8097933729489646]                                                                                                 True
@@ -247,26 +285,30 @@ request_index
 46                        0                               A_f0.0-c1.0-n5                        [86.23016095161438, 84.45346999168396]                     [ok, ok]                     [1.1976411243279776, 1.1729648609956105]                                                                                                 True
 47                        0                               A_f1.0-c0.0-n5                      [117.94136571884157, 135.91092538833618]                     [ok, ok]                       [3.276149047745599, 3.775303483009338]                                                                                                 True
 ```
+<!-- markdownlint-enable line-length -->
 
 ## Explore Further
 
-- *perform an optimization instead of a random walk*: See the [search a space with an optimizer example](/ado/examples/best-configuration-search).
-- *modify the objective function*: Try modifying the cost function and creating a new space - be careful to change the name of the experiment!
-- *create a custom experiment*: Explore [the documentation for writing your own custom experiment](/ado/actuators/creating-custom-experiments/)
-- *break the discoveryspace*: See what happens if you try to create the `discoveryspace` without the experiment that provides input to the cost function. 
-- *examine the requests*: Run `ado show requests operation` to see what is replayed (`benchmark_performance`) and what is calculated (`ml_multicloud_cost-v1.0`)
+- _perform an optimization instead of a random walk_: See the
+  [search a space with an optimizer example](/ado/examples/best-configuration-search).
+- _modify the objective function_: Try modifying the cost function and creating
+  a new space - be careful to change the name of the experiment!
+- _create a custom experiment_: Explore
+  [the documentation for writing your own custom experiment](/ado/actuators/creating-custom-experiments/)
+- _break the discoveryspace_: See what happens if you try to create the
+  `discoveryspace` without the experiment that provides input to the cost
+  function.
+- _examine the requests_: Run `ado show requests operation` to see what is
+  replayed (`benchmark_performance`) and what is calculated
+  (`ml_multicloud_cost-v1.0`)
 
 ## Takeaways
 
-- **dependent experiments**: `ado` allows you to define experiments which consume the output of other experiments. 
-    * There is no limit to the depth of the chain of dependent experiments 
-    * Dependent experiments are executed when the required inputs are available. 
-- **custom experiments**: You can add your own python functions as experiments using `ado`'s custom experiments feature.
-- **uniform usage pattern**: How you use `ado` to define spaces or perform operations does not change if you use custom or dependent experiments
-
-
-
-
-
-
-
+- **dependent experiments**: `ado` allows you to define experiments which
+  consume the output of other experiments.
+  - There is no limit to the depth of the chain of dependent experiments
+  - Dependent experiments are executed when the required inputs are available.
+- **custom experiments**: You can add your own python functions as experiments
+  using `ado`'s custom experiments feature.
+- **uniform usage pattern**: How you use `ado` to define spaces or perform
+  operations does not change if you use custom or dependent experiments

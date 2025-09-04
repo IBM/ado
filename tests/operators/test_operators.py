@@ -37,7 +37,7 @@ from orchestrator.modules.operators.randomwalk import (
 )
 
 
-def test_randomwalk_class_methods(mode, samplerType):
+def test_randomwalk_class_methods():
 
     import orchestrator.metastore.project
 

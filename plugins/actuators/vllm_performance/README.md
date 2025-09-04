@@ -521,9 +521,10 @@ grouping:
   - max_num_seq
 ```
 
+<!-- markdownlint-disable descriptive-link-text -->
 For the complete example of configuring random walk operation for the group
-<!-- markdownlint-disable-next-line descriptive-link-text -->
 samplers, look [here](yamls/random_walk_operation_grouped.yaml)
+<!-- markdownlint-enable descriptive-link-text -->
 
 ## A few ideas for further exploration
 

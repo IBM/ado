@@ -364,9 +364,10 @@ stopper, cannot currently be used with `ado`.
   additional information on how the constitutive properties of the entity space
   are related to the target property.
 
+<!-- markdownlint-disable descriptive-link-text -->
 Each of these are described in more detail, along with their parameters,
-<!-- markdownlint-disable-next-line descriptive-link-text -->
 [here](#ado-additions-to-raytune).
+<!-- markdownlint-enable descriptive-link-text -->
 
 #### Example
 

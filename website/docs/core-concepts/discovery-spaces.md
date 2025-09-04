@@ -9,11 +9,12 @@ where measurement results and entities are recorded.
 
 ## Example: Fine-Tuning Deployment Configuration Discovery Space
 
+<!-- markdownlint-disable descriptive-link-text -->
 We can combine the fine-tuning deployment configuration Entity Space example
-<!-- markdownlint-disable-next-line descriptive-link-text -->
 [here](entity-spaces.md#example-fine-tuning-deployment-configuration) with one
 of the experiments from the `SFTTrainer` actuator to create the following
 Discovery Space:
+<!-- markdownlint-enable descriptive-link-text -->
 
 <!-- markdownlint-disable line-length -->
 ```terminaloutput

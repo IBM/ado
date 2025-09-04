@@ -86,14 +86,15 @@ Looking at the example in
 `ado` can use it, if it does not have an actuator that provides the experiment
 `benchmark_performance`!
 
+<!-- markdownlint-disable descriptive-link-text -->
 What happens is that when a measurement of an experiment associated with the
 `replay` actuator is requested to be performed on an entity, if the data is
 present (because it was copied in) it is reused as normal by `ado`'s memoization
 mechanism. If there is no data, it can't be measured as no real experiment
 exists, and the `replay` actuator handles this case correctly - it creates the
 `No value to replay` messages seen
-<!-- markdownlint-disable-next-line descriptive-link-text -->
 [here](../examples/random-walk.md#looking-at-the-operation-output).
+<!-- markdownlint-enable descriptive-link-text -->
 
 > [!IMPORTANT]
 >

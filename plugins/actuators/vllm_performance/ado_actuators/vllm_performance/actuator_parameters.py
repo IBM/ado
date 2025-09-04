@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import pydantic
-from pydantic_core.core_schema import FieldValidationInfo
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 
@@ -48,14 +47,10 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         default=5, description="initial timeout between retries"
     )
     hf_token: str = pydantic.Field(
-        default="", validate_default=True, description="Huggingface token"
+        default="",
+        validate_default=True,
+        description="Huggingface token - can be empty if you are accessing fully open models",
     )
     max_environments: int = pydantic.Field(
         default=1, description="Maximum amount of concurrent environments"
     )
-
-    @pydantic.field_validator("hf_token", mode="after")
-    def val_hf_token(cls, hf_token: str, info: FieldValidationInfo):
-        if hf_token == "" or hf_token == "Your hf token":
-            raise ValueError("hf secret is not defined")
-        return hf_token

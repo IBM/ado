@@ -233,7 +233,7 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
 !!! note
 
     Notice that the only variant with a **full-worker** custom resource 
-    is the one with 8 GPUs. Some actuators, like SFTTrainer,use this 
+    is the one with 8 GPUs. Some actuators, like SFTTrainer, use this 
     custom resource for measurements that involve reserving an entire GPU node.
 
 We provide [an example set of values](vanilla-ray.yaml) for deploying a

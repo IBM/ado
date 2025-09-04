@@ -63,8 +63,8 @@ Using an operator involves the following steps:
 3. Create the operation:
    - `ado create operation -f $YAML`
 4. Retrieve the results of the operation:
-   - `ado show related $OPERATION_ID`
-   - in addition `ado show entities $OPERATION_ID` for explore operations
+   - `ado show related $OPERATION_IDENTIFIER`
+   - in addition `ado show entities $OPERATION_IDENTIFIER` for explore operations
 
 These steps are covered in detail in [operations](../resources/operation.md).
 

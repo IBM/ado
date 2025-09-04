@@ -325,7 +325,7 @@ information on the best configuration found.
 To get the id of the `datacontainer` related to the `operation` use:
 
 ```commandline
-ado show related operation $OPERATION_ID
+ado show related operation $OPERATION_IDENTIFIER
 ```
 
 This will output something like:

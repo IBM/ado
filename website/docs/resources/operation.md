@@ -161,10 +161,10 @@ operatorIdentifier: profile-1.1 # The identifier of the operator including its v
 ## Getting `operation` output
 
 An operation can create any type of ado resource. To see the resources created
-by an operation with identifier $OPERATION_ID use:
+by an operation with identifier $OPERATION_IDENTIFIER use:
 
 ```commandline
-ado show related operation $OPERATION_ID
+ado show related operation $OPERATION_IDENTIFIER
 ```
 
 Output that is text, tables or locations will be contained in a `datacontainer`

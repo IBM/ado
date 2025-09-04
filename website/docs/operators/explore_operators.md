@@ -16,7 +16,7 @@ sequence, hence there is an associated timeseries. This timeseries is recorded
 for every `explore` operation. To see it via `ado` CLI use
 
 ```commandline
-ado show entities operation $OPERATIONID
+ado show entities operation $OPERATION_IDENTIFIER
 ```
 
 this will output a table of the entities in the order they were sampled during
@@ -167,9 +167,9 @@ Commands that reflect changing state during an `operation`:
 
 Commands that do not reflect changing state during an `operation`:
 
-- `ado get operation $OPERATIONID`
-- `ado show details operation $OPERATIONID`
+- `ado get operation $OPERATION_IDENTIFIER`
+- `ado show details operation $OPERATION_IDENTIFIER`
 
 The `operation` resource itself will be updated with metadata when the operation
-finishes but not during it. `ado show details operation $OPERATIONID` uses this
-metadata so hence it will be correct until the operation is finished.
+finishes but not during it. `ado show details operation $OPERATION_IDENTIFIER`
+uses this metadata so hence it will be correct until the operation is finished.

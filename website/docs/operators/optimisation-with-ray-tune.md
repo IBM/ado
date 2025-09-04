@@ -461,10 +461,10 @@ A successful `ray_tune` operation will create a `datacontainer` resource,
 containing information from RayTune on the best configuration found.
 
 To get the id of the `datacontainer` related to a ray_tune `operation` resource
-with id $OPERATION_ID use:
+with id $OPERATION_IDENTIFIER use:
 
 ```commandline
-ado show related operation $OPERATION_ID
+ado show related operation $OPERATION_IDENTIFIER
 ```
 
 This will output something like:
@@ -522,10 +522,10 @@ where `function_value` was ~20.8.
 ### Optimization path
 
 To see all the configurations (entities) visited during an optimization
-operation $OPERATION_ID run
+operation $OPERATION_IDENTIFIER run
 
 ```commandline
-ado show entities operation $OPERATION_ID
+ado show entities operation $OPERATION_IDENTIFIER
 ```
 
 > [!NOTE]

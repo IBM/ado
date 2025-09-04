@@ -40,16 +40,13 @@ For a list of the maintainers, see the [MAINTAINERS.md](MAINTAINERS.md) page.
 
 ## Legal
 
-Each source file must include a license header for the Apache
-Software License 2.0. Using the SPDX format is the simplest approach.
+Each source file must include a license header for the MIT License. Using
+the SPDX format is the simplest approach.
 e.g.
 
 ```text
-/*
-Copyright <holder> All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
 ```
 
 We have tried to make it as easy as possible to make contributions. This
@@ -80,19 +77,16 @@ git commit -s
 
 ## Communication
 
-**FIXME** Please feel free to connect with us on our [Slack channel].
+TBD
 
 ## Setup
 
-**FIXME** Please add any special setup instructions for your project
-to help the developer become productive quickly.
+TBD
 
 ## Testing
 
-**FIXME** Please provide information that helps the developer
-test any changes they make before submitting.
+TBD
 
 ## Coding style guidelines
 
-**FIXME** Optional, but recommended: please share any specific
-style guidelines you might have for your project.
+TBD

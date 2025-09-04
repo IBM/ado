@@ -89,7 +89,7 @@ In addition `ado` plugins may have additional requirements for executing
     You can install **ado** by:
 
     ```shell
-    pip install git+https://github.com/IBM/ado.git
+    pip install ado-core
     ```
 
     Now try:

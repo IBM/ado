@@ -1,7 +1,4 @@
----
-status: published #Status can be draft, reviewed or published.
----
-
+<!-- markdownlint-disable-next-line first-line-h1 -->
 {%
 
 include-markdown "../../../examples/ml-multi-cloud/EXAMPLE_SIMPLE.md"
@@ -10,9 +7,11 @@ include-markdown "../../../examples/ml-multi-cloud/EXAMPLE_SIMPLE.md"
 
 ## What's next
 
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
 
--   :octicons-rocket-24:{ .lg .middle } __Search using an optimizer__
+- :octicons-rocket-24:{ .lg .middle } __Search using an optimizer__
 
     ---
 
@@ -20,7 +19,7 @@ include-markdown "../../../examples/ml-multi-cloud/EXAMPLE_SIMPLE.md"
 
     [Search a space with an optimizer :octicons-arrow-right-24:](best-configuration-search.md)
 
-  -   :octicons-workflow-24:{ .lg .middle } __Discovering important entity space dimensions__
+- :octicons-workflow-24:{ .lg .middle } __Discovering important entity space dimensions__
 
       ---
 
@@ -29,3 +28,4 @@ include-markdown "../../../examples/ml-multi-cloud/EXAMPLE_SIMPLE.md"
       [Identify the important dimensions of a space :octicons-arrow-right-24:](lhu.md)
 
 </div>
+<!-- markdownlint-enable line-length -->

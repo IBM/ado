@@ -1,47 +1,56 @@
----
-classification: confidential #Remove this line if it's not IBM Confidential.
-status: draft #Status can be draft, reviewed or published. 
-owner: Alessandro Pomponio
----
-
+<!-- markdownlint-disable-next-line first-line-h1 -->
 ## Tutorial
 
-Our short tutorial, [Taking a random walk](random-walk.md),  introduces core `ado` concepts and is the recommend place to start.
+Our short tutorial, [Taking a random walk](random-walk.md), introduces core
+`ado` concepts and is the recommend place to start.
 
 ## General Examples
 
-The following examples illustrate general features of `ado`. 
-They build on the concepts learned in the tutorial and leverage pre-existing data and/or toy measurements so they run quickly.  
+The following examples illustrate general features of `ado`. They build on the
+concepts learned in the tutorial and leverage pre-existing data and/or toy
+measurements so they run quickly.
 
 - [Search a space with an optimizer](best-configuration-search.md)
 - [Search a space based on a custom objective function](search-custom-objective.md)
 - [Identify the important dimensions of a space](lhu.md)
 
-After following these examples you can also try applying capabilities learned in one example to another. 
+After following these examples you can also try applying capabilities learned in
+one example to another.
 
 ## Foundation Models Characterization
 
-The following examples illustrate using the vllm_performance and SFTTrainer actuators which provide benchmarking experiments for
-foundation model inference and fine-tuning respectively. 
+The following examples illustrate using the vllm_performance and SFTTrainer
+actuators which provide benchmarking experiments for foundation model inference
+and fine-tuning respectively.
 
 - [Measure throughput of fine-tuning locally](finetune-locally.md)
 
 ## Adding experiments or analysis tools to `ado`
 
-The [search a space based on a custom objective function](search-custom-objective.md) example, combines with the [creating a custom experiment](../actuators/creating-custom-experiments.md)
-documentation to illustrate a simple method for adding your own experiments to `ado`.
+The
+[search a space based on a custom objective function](search-custom-objective.md)
+example, combines with the
+[creating a custom experiment](../actuators/creating-custom-experiments.md)
+documentation to illustrate a simple method for adding your own experiments to
+`ado`.
 
-For adding actuators, we provide an [example template actuator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) that can be used with our
+For adding actuators, we provide an
+[example template actuator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
+that can be used with our
 [documentation on writing actuators](../actuators/creating-actuator-classes.md).
 
-For adding operators, we have an [example template operator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator) that can be used with our
-[documentation on writing operators](../operators/creating-operators.md). 
+For adding operators, we have an
+[example template operator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
+that can be used with our
+[documentation on writing operators](../operators/creating-operators.md).
 
 ## What's next
 
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
 
-  -   :octicons-workflow-24:{ .lg .middle } __Learn about Core Concepts__
+- :octicons-workflow-24:{ .lg .middle } __Learn about Core Concepts__
 
       ---
 
@@ -49,7 +58,7 @@ For adding operators, we have an [example template operator repository](https://
 
       [Core concepts :octicons-arrow-right-24:](../core-concepts/concepts.md)
 
--   :octicons-rocket-24:{ .lg .middle } __Extend ado with new Actuators__
+- :octicons-rocket-24:{ .lg .middle } __Extend ado with new Actuators__
 
     ---
 
@@ -57,5 +66,5 @@ For adding operators, we have an [example template operator repository](https://
 
     [Creating new Actuators :octicons-arrow-right-24:](../actuators/working-with-actuators.md)
 
-
 </div>
+<!-- markdownlint-enable line-length -->

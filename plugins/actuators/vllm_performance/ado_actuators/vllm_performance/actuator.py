@@ -85,22 +85,28 @@ class VLLMPerformanceTest(ActuatorBase):
         # çreate environment manager actor
         self.env_manager = None
 
-        if "namespace" in params.model_fields:
-            self.env_manager = EnvironmentManager.remote(
-                namespace=params.namespace,
-                max_concurrent=params.max_environments,
-                in_cluster=params.in_cluster,
-                verify_ssl=params.verify_ssl,
-            )
-
-            # add to clean up
+        if self.actuator_parameters.namespace:
             try:
-                cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
-                cleaner_handle.add_to_cleanup.remote(handle=self.env_manager)
-            except Exception as e:
-                print(
-                    f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
+                self.env_manager = EnvironmentManager.remote(
+                    namespace=params.namespace,
+                    max_concurrent=params.max_environments,
+                    in_cluster=params.in_cluster,
+                    verify_ssl=params.verify_ssl,
                 )
+            except Exception as error:
+                self.log.warning(
+                    f"Unable to create kubernetes environment manager due to {error}. "
+                    f"Will not be able to execute experiments requiring deploying on k8s"
+                )
+            else:
+                # add to clean up
+                try:
+                    cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+                    cleaner_handle.add_to_cleanup.remote(handle=self.env_manager)
+                except Exception as e:
+                    print(
+                        f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
+                    )
 
         # initialize local port
         self.local_port = 10000
@@ -171,9 +177,10 @@ class VLLMPerformanceTest(ActuatorBase):
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
         if experiment.identifier == "performance-testing-full":
-            if "node_selector" not in self.actuator_parameters.model_fields:
+            if not self.env_manager:
                 raise MissingConfigurationForExperimentError(
-                    f"Experiment {experiment} requires a complete actuator configuration to be provided."
+                    f"Actuator configuration did not contain sufficient information for a kubernetes environment manager to be created. "
+                    f"Experiment {experiment} requires a kubernetes environment manager to be executable."
                 )
 
             if self.actuator_parameters.node_selector == "":

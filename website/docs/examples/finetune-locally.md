@@ -252,7 +252,6 @@ To create the Discovery Space:
 
 1. Create the file `operation.yaml` with the following content:
 
-
    ```yaml
    spaces:
      - The identifier of the DiscoverySpace resource

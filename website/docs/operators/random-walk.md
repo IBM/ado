@@ -144,8 +144,10 @@ this many concurrent experiment requests during the operation.
 
 ### Base Sampling Types and Modes
 
-The `samplerConfig` field controls how Entities are sampled during the operation.
-The base `samplerConfig` is shown in the examples above and has following fields and defaults
+The `samplerConfig` field controls how Entities are sampled during the
+operation. The base `samplerConfig` is shown in the examples above and has the
+following fields and defaults:
+
 ```yaml
  mode: random 
  samplerType: selector 
@@ -268,12 +270,15 @@ spaces:
 
 ### Custom Samplers
 
-It is also possible to specify that `random_walk` uses a custom sampler. 
-This is a class that inherits from `orchestrator.core.discovery.samplers.BaseSampler`.
-This is useful for implementing more complex sampling schemes.
-For example, for developers who want to use random_walk to drive an exploration but have custom logic to execute before choosing each sample/entity. 
+It is also possible to specify that `random_walk` uses a custom sampler. This is
+a class that inherits from `orchestrator.core.discovery.samplers.BaseSampler`.
+This is useful for implementing more complex sampling schemes. For example, for
+developers who want to use random_walk to drive an exploration but have custom
+logic to execute before choosing each sample/entity.
 
 For custom samplers the `samplerConfig` field has the following structure:
+
+<!-- markdownlint-disable line-length -->
 ```yaml
 module:
   moduleClass: #The name of the custom sampler class
@@ -281,20 +286,21 @@ module:
 parameters: # A dictionary of key value pairs with the values for the custom samplers input parameters 
   ...
 ```
+<!-- markdownlint-enable line-length -->
 
 #### Implementing a Custom Sampler
 
-To implement a custom sampler create a sub-class of `orchestrator.core.discovery.samplers.BaseSampler` 
+To implement a custom sampler create a sub-class of `orchestrator.core.discovery.samplers.BaseSampler`
 and implement all required methods
 
 The `BaseSampler` class does not specify any `__init__` parameters.
-If your custom class requires initialization parameters then 
+If your custom class requires initialization parameters then
 
 - define a pydantic model for them
 - override the `parameters_model` class method to return this model
-- add a non key-word parameter to your custom classes `__init__` that is this type. 
+- add a non key-word parameter to your custom classes `__init__` that is this type.
 
-For example: 
+For example:
 
 ```python
 # Class for the custom samplers parameters

@@ -103,8 +103,12 @@ module:
   operatorName: rifferla # The name of the operator
   operationType: modify #The type of the operation/operator
 ```
+
 > [!WARNING]
-> To use operators listed with type _explore_ by `ado get operators`, currently you must set operationType to **search** e.g.
+>
+> To use operators listed with type _explore_ by `ado get operators`, currently
+> you must set operationType to **search** e.g.
+>
 > ```yaml
 > module: 
 >  operatorName: random_walk 

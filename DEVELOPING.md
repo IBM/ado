@@ -193,7 +193,8 @@ the provided pre-commit hooks.
 
 After
 [having synced the dependencies](#creating-a-development-virtual-environment),
-install the hooks with:
+and installed a recent and stable version of [node](https://nodejs.org/en/download/),
+for example `22.x`, install the hooks with:
 
 ```commandline
 pre-commit install
@@ -224,6 +225,9 @@ highlighting any issues and preventing the commit if problems are found.
    [add an inline ignore comment](https://github.com/codespell-project/codespell?tab=readme-ov-file#inline-ignore).
 6. **uv export failures**: commit the updated `requirements.txt` file. It has
    been updated following changes to the lock file.
+7. **markdown linter failures**: `markdownlint-cli2` usually fixes most issues
+   automatically. If you review its error message and still don’t see a clear
+   explanation or solution, try recommitting your changes and let the tool re-run.
 
 ## Making changes to dependencies
 
@@ -231,11 +235,11 @@ As mentioned in [Project Setup](#project-setup), we use `uv` to manage
 dependencies. This means that all changes to dependencies **must** be done via
 `uv`, and not by manually editing `pyproject.toml`.
 
+<!-- markdownlint-disable descriptive-link-text -->
 The relevant documentation on `uv`'s website is available
-
-<!-- markdownlint-disable-next-line descriptive-link-text -->
-[here](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies),
-but at a glance:
+[here](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies)
+, but at a glance:
+<!-- markdownlint-enable descriptive-link-text -->
 
 ### Adding base dependencies
 

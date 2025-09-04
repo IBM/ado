@@ -1761,7 +1761,7 @@ Supported model weight types include:
 - `QPTQ-Quantized`
 
 Here’s a simple example that caches the `HuggingFaceTB/SmolLM2-135M` model
-weights from HuggingFace`:
+weights from HuggingFace:
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```yaml

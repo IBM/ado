@@ -1,59 +1,59 @@
----
-status: published #Status can be draft, reviewed or published. 
----
-
-A `datacontainer` resource is one that contains data like tables, string and locations. 
-It's main purpose is to store output of `operations` that aren't `samplestores` or `discoveryspaces`.
-For example, results of analysing the distribution of values in a space. 
+<!-- markdownlint-disable code-block-style -->
+<!-- markdownlint-disable-next-line first-line-h1 -->
+A `datacontainer` resource is one that contains data like tables, string and
+locations. It's main purpose is to store output of `operations` that aren't
+`samplestores` or `discoveryspaces`. For example, results of analysing the
+distribution of values in a space.
 
 ## creating a `datacontainer`
 
-You currently can't create a `datacontainer` via the `ado` cli. 
-They are only created as the result of applying certain operators. 
+You currently can't create a `datacontainer` via the `ado` cli. They are only
+created as the result of applying certain operators.
 
 ## `datacontainer` contents
 
 A `datacontainer` can contain the following types of data:
 
-* lists, dicts, strings, numbers
-* tabular data (DataFrames)
-* location data (URLs)
+- lists, dicts, strings, numbers
+- tabular data (DataFrames)
+- location data (URLs)
 
-A `datacontainer` resource has upto three top-level fields: `data`, `locationData` and `tabularData`
-Each of these is a dictionary whose values are data objects and keys are the names of the data. 
-The `tabularData` field contains items that are DataFrames.
-The `locationData` field contains items that are URLs.
-The `data` field contains items that are JSON serializable types: lists, dicts, string and numbers.
-Note, in the `data` field all data in containers must also be lists, dicts, strings or numbers. 
+A `datacontainer` resource has upto three top-level fields: `data`,
+`locationData` and `tabularData` Each of these is a dictionary whose values are
+data objects and keys are the names of the data. The `tabularData` field
+contains items that are DataFrames. The `locationData` field contains items that
+are URLs. The `data` field contains items that are JSON serializable types:
+lists, dicts, string and numbers. Note, in the `data` field all data in
+containers must also be lists, dicts, strings or numbers.
 
 ## Accessing the contents of a `datacontainer`
 
 ### via `ado` cli
 
-The data in a `datacontainer` is stored directly in the resource description. 
-Hence `ado get datacontainer $ID` will output it. 
-However, depending on what is stored this may not be the best way to view it. 
-Instead, you can try `ado describe datacontainer` which will format the contents e.g.
+The data in a `datacontainer` is stored directly in the resource description.
+Hence `ado get datacontainer $ID` will output it. However, depending on what is
+stored this may not be the best way to view it. Instead, you can try
+`ado describe datacontainer` which will format the contents e.g.
 
 ```commandline
 Identifier: datacontainer-532d8b6d
 Basic Data:
-  
+
   Label: person
-  
+
   {'age': 2, 'name': 'mj'}
-  
-  
+
+
   Label: important_info
-  
+
   ['t1',
    1,
    't2']
-  
+
 Tabular Data:
-  
+
   Label: important_entities
-  
+
       nodes          config      status provider  vcpu_size  cpu_family  wallClockRuntime
   0       5  A_f0.0-c1.0-n5          ok        A        1.0         0.0         84.453470
   1       3  A_f1.0-c1.0-n3          ok        A        1.0         1.0        151.585624
@@ -123,21 +123,22 @@ Tabular Data:
   65      5  C_f1.0-c1.0-n5          ok        C        1.0         1.0         92.171414
   66      5  C_f1.0-c1.0-n5          ok        C        1.0         1.0        100.979775
   67      2  C_f0.0-c1.0-n2          ok        C        1.0         0.0        309.842324
-  
-  
+
+
 Location Data:
-  
+
   Label: entity_location
-  
+
   mysql+pymysql://admin:somepass@localhost:3306/sql_sample_store_aaa123
 ```
 
-###  programmatically 
+### programmatically
 
-For certain data, like large tables, it may be more convenient to access the data programmatically. 
+For certain data, like large tables, it may be more convenient to access the
+data programmatically.
 
-If you do `ado get datacontainer $RESOURCEID -o yaml > data.yaml`. 
-Then the following snippet shows how to access the data in python
+If you do `ado get datacontainer $RESOURCEID -o yaml > data.yaml`. Then the
+following snippet shows how to access the data in python
 
 ```python
 
@@ -157,4 +158,3 @@ for location in d.locationData.values():
     # Each value in the locationData is a subclass of orchestrator.utilities.location.ResourceLocation
     print(location.url().unicode_string())
 ```
-

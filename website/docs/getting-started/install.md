@@ -1,14 +1,11 @@
----
-status: published #Status can be draft, reviewed or published. 
----
-
-## Installing `ado`
+<!-- markdownlint-disable-next-line first-line-h1 -->
+# Installing `ado`
 
 **ado** can be installed in one of three ways:
 
 1. From **PyPi**
 2. From **GitHub**
-3. By **cloning the GitHub repository** locally 
+3. By **cloning the GitHub repository** locally
 
 ???+ warning
 
@@ -51,23 +48,23 @@ status: published #Status can be draft, reviewed or published.
     pip install .
     ```
 
-
-
 ## Installing plugins
 
-ado uses a plugin system to provide **additional actuators** and **operators**. 
-We maintain a set of actuators and operators in the ado main repo which you can see [here](https://github.com/ibm/ado/tree/main/plugins/).
+ado uses a plugin system to provide **additional actuators** and **operators**.
+We maintain a set of actuators and operators
+[in the ado main repo](https://github.com/ibm/ado/tree/main/plugins/).
 Some plugins may also have packages on PyPi.
 You can install these actuators as follows:
 
-!!! info 
+!!! info
 
-    Some plugins may have dependencies that may require credentials to access. 
-    Check the plugins's docs if you encounter issues installing a specific actuator. 
+    Some plugins may have dependencies that may require credentials to access.
+    Check the plugins's docs if you encounter issues installing a specific actuator.
 
 === "From PyPi"
 
-    The following plugin packages are available: `ado-sfttrainer`, `ado-vllm-performance` and `ado-ray-tune` 
+    The following plugin packages are available:
+    `ado-sfttrainer`, `ado-vllm-performance`, and `ado-ray-tune`
 
     ```shell
     pip install $PLUGIN_NAME
@@ -89,25 +86,26 @@ You can install these actuators as follows:
 
 === "Cloning the repo"
 
-
-    If you've cloned the ado repository locally in the previous step, you can run **from the top-level of the cloned repository**
+    If you've cloned the ado repository locally in the previous step,
+    you can run **from the top-level of the cloned repository**
 
     ```shell
     pip install plugins/actuators/$ACTUATOR_NAME
     ```
 
-    or 
-    
+    or
+
     ```shell
     pip install plugins/operators/$OPERATOR_NAME
     ```
 
-
 ## What's next
 
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
 
--   :octicons-rocket-24:{ .lg .middle } __Let's get started!__
+- :octicons-rocket-24:{ .lg .middle } **Let's get started!**
 
     ---
 
@@ -115,7 +113,7 @@ You can install these actuators as follows:
 
     [Follow the guide :octicons-arrow-right-24:](ado.md)
 
--   :octicons-database-24:{ .lg .middle } __Collaborate with others__
+- :octicons-database-24:{ .lg .middle } **Collaborate with others**
 
     ---
 
@@ -124,3 +122,4 @@ You can install these actuators as follows:
     [Installing the Backend Services :octicons-arrow-right-24:](installing-backend-services.md)
 
 </div>
+<!-- markdownlint-enable line-length -->

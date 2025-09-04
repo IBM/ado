@@ -1,9 +1,4 @@
----
-status: published #Status can be draft, reviewed or published.
----
-
-
-
+<!-- markdownlint-disable-next-line first-line-h1 -->
 {%
    include-markdown "../../../DEVELOPING.md"
 %}

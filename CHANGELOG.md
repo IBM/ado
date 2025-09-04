@@ -11,5 +11,5 @@ Initial release of `ado`.
 - Example actuator
 - SFTTrainer actuator
 
-[Release 1.0.0]: https://github.com/ibm/ado/releases/tag/1.0.0
-[Delta]: https://github.com/ibm/ado/compare/1.0.0...HEAD
+Release 1.0.0: <https://github.com/ibm/ado/releases/tag/1.0.0>
+Delta: <https://github.com/ibm/ado/compare/1.0.0...HEAD>

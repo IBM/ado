@@ -255,6 +255,16 @@ def test_random_walk_config(
         parameters=randomWalkConf.operation.parameters
     )
 
+    parameters_model: RandomWalkParameters = RandomWalk.validateOperationParameters(
+        parameters=randomWalkConf.operation.parameters
+    )
+
+    # Test sampler
+    assert isinstance(parameters_model.samplerConfig, BaseSamplerConfiguration)
+    sampler = parameters_model.samplerConfig.sampler()
+    assert isinstance(sampler, ExplicitEntitySpaceGridSampleGenerator)
+    assert sampler.mode == WalkModeEnum.RANDOM
+
     # Test extra params not allowed
 
     parameters = randomWalkConf.operation.parameters.copy()
@@ -270,15 +280,7 @@ def test_random_walk_config(
     parameters["number-iterations"] = 6
 
     with pytest.raises(pydantic.ValidationError):
-        parameters_model: RandomWalkParameters = RandomWalk.validateOperationParameters(
-            parameters=parameters
-        )
-
-    # Test sampler
-    assert isinstance(parameters_model.samplerConfig, BaseSamplerConfiguration)
-    sampler = parameters_model.samplerConfig.sampler()
-    assert isinstance(sampler, ExplicitEntitySpaceGridSampleGenerator)
-    assert sampler.mode == WalkModeEnum.RANDOM
+        RandomWalk.validateOperationParameters(parameters=parameters)
 
 
 def test_random_walk_custom_sampler_config():

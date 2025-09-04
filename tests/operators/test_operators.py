@@ -1,6 +1,9 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+import itertools
+import typing
 
+import pydantic
 import pytest
 from ado_ray_tune.operator import RayTune
 
@@ -9,6 +12,12 @@ import orchestrator.core.operation.operation
 import orchestrator.modules.module
 import orchestrator.modules.operators.base
 import orchestrator.modules.operators.collections
+from orchestrator.core.discoveryspace.samplers import (
+    ExplicitEntitySpaceGridSampleGenerator,
+    RandomSampleSelector,
+    SequentialSampleSelector,
+    WalkModeEnum,
+)
 from orchestrator.core.operation.resource import (
     DiscoveryOperationResourceConfiguration,
     OperationExitStateEnum,
@@ -18,10 +27,17 @@ from orchestrator.core.resources import (
     ADOResourceEventEnum,
     CoreResourceKinds,
 )
-from orchestrator.modules.operators.randomwalk import RandomWalk, random_walk
+from orchestrator.modules.operators.randomwalk import (
+    BaseSamplerConfiguration,
+    CustomSamplerConfiguration,
+    RandomWalk,
+    RandomWalkParameters,
+    SamplerModuleConf,
+    random_walk,
+)
 
 
-def test_randomwalk_class_methods():
+def test_randomwalk_class_methods(mode, samplerType):
 
     import orchestrator.metastore.project
 
@@ -254,7 +270,83 @@ def test_random_walk_config(
     parameters["number-iterations"] = 6
 
     with pytest.raises(pydantic.ValidationError):
-        RandomWalk.validateOperationParameters(parameters=parameters)
+        parameters_model: RandomWalkParameters = RandomWalk.validateOperationParameters(
+            parameters=parameters
+        )
+
+    # Test sampler
+    assert isinstance(parameters_model.samplerConfig, BaseSamplerConfiguration)
+    sampler = parameters_model.samplerConfig.sampler()
+    assert isinstance(sampler, ExplicitEntitySpaceGridSampleGenerator)
+    assert sampler.mode == WalkModeEnum.RANDOM
+
+
+def test_random_walk_custom_sampler_config():
+
+    config = CustomSamplerConfiguration(
+        module=SamplerModuleConf(
+            moduleClass="ExplicitEntitySpaceGridSampleGenerator",
+            moduleName="orchestrator.core.discoveryspace.samplers",
+        ),
+        parameters=ExplicitEntitySpaceGridSampleGenerator.parameters_model()(
+            mode=WalkModeEnum.RANDOM
+        ),
+    )
+
+    sampler = config.sampler()
+    assert isinstance(
+        sampler, ExplicitEntitySpaceGridSampleGenerator
+    ), "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
+    assert (
+        sampler.mode == WalkModeEnum.RANDOM
+    ), "Expected the samplers mode to be RANDOM"
+
+    dump = config.model_dump()
+
+    # Check deserialization
+    new_config = CustomSamplerConfiguration.model_validate(dump)
+    sampler = new_config.sampler()
+    assert isinstance(
+        sampler, ExplicitEntitySpaceGridSampleGenerator
+    ), "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
+    assert (
+        sampler.mode == WalkModeEnum.RANDOM
+    ), "Expected the samplers mode to be RANDOM"
+
+    # Check validation
+    dump["module"]["moduleClass"] = "NonExistantClass"
+
+    with pytest.raises(pydantic.ValidationError):
+        CustomSamplerConfiguration.model_validate(dump)
+
+    dump = config.model_dump()
+    dump["parameters"]["fake_param"] = 10
+
+    with pytest.raises(pydantic.ValidationError):
+        CustomSamplerConfiguration.model_validate(dump)
+
+
+@pytest.mark.parametrize(
+    ("mode", "samplerType"),
+    list(itertools.product(WalkModeEnum, ["generator", "selector"])),
+)
+def test_random_walk_base_sampler_config(
+    mode, samplerType: typing.Literal["generator", "selector"]
+):
+    config = BaseSamplerConfiguration(mode=mode.value, samplerType=samplerType)
+
+    sampler = config.sampler()
+
+    if samplerType == "generator":
+        assert isinstance(
+            sampler, ExplicitEntitySpaceGridSampleGenerator
+        ), "Expected the sampler to be an instance of ExplicitEntitySpaceGridSampleGenerator"
+        assert sampler.mode == mode
+    else:
+        if mode == WalkModeEnum.RANDOM:
+            assert isinstance(sampler, RandomSampleSelector)
+        elif mode == WalkModeEnum.SEQUENTIAL:
+            assert isinstance(sampler, SequentialSampleSelector)
 
 
 def test_ray_tune_config(

@@ -118,7 +118,7 @@ orchestratorConfig:
 runtimeConfig:
   stop: None # A list of Stoppers or None. See below for stoppers
 tuneConfig:
-  metric: wallclock_time. # The target property identifier to optimize w.r.t
+  metric: wallclock_time # The target property identifier to optimize w.r.t
   mode: min # Whether to search for min or max of the target property
   num_samples: 1 # The number of samples to draw
   search_alg:

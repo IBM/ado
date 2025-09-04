@@ -63,7 +63,7 @@ operation: #The operators
     moduleClass: RandomWalk
     moduleName: orchestrator.modules.operators.randomwalk
   parameters: # The parameters for this RandomWalk operation
-    numberIterations: 60
+    numberEntities: 60
     batchSize: 1
     mode: 'sequential'
     samplerType: 'generator'

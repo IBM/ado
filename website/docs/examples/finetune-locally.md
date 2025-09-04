@@ -222,8 +222,9 @@ To create the Discovery Space:
       parameters:
         numberEntities: all
         singleMeasurement: True
-        mode: sequential
-        samplerType: generator
+        samplerConfig:
+          mode: sequential
+          samplerType: generator
     ```
 
 2. Replace the placeholders with your `discoveryspace` ID  and `actuatorconfiguration` ID and save it in a file with the name `operation.yaml`

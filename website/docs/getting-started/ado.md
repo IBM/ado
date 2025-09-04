@@ -1,10 +1,12 @@
----
-status: published #Status can be draft, reviewed or published.
----
-
+<!-- markdownlint-disable code-block-style -->
+<!-- markdownlint-disable no-duplicate-heading -->
+<!-- markdownlint-disable ul-indent -->
+<!-- markdownlint-disable-next-line first-line-h1 -->
 !!! note
 
-    This page provides documentation for the `ado` CLI tool, which needs to be installed. If this is not the case, follow the instructions provided in [Installation](install.md)
+    This page provides documentation for the `ado` CLI tool, which needs to be
+    installed. If this is not the case, follow the instructions provided in
+    [Installation](install.md)
 
 **ado** comes with a CLI utility that is designed to be familiar for users of
 `kubectl` and `oc`. It allows creating and retrieving
@@ -19,17 +21,18 @@ section you are more interested in.
 
 ### ado
 
-**ado** supports a set of generic options that are passed down to all the other commands.
+**ado** supports a set of generic options that are passed down to all the other
+commands.
 
 ```commandline
 ado [--context | -c <context-file.yaml>] \
     [--log-level | -l <value>]
 ```
 
-- `--context | -c` allows overriding the active context with one loaded from a file.
-  This feature should only be used when running on remote Ray clusters.
-- `--log-level | -l` allows configuring the level of logging to be used. This does not
-  affect child processes.
+- `--context | -c` allows overriding the active context with one loaded from a
+  file. This feature should only be used when running on remote Ray clusters.
+- `--log-level | -l` allows configuring the level of logging to be used. This
+  does not affect child processes.
 
 ### ado context
 
@@ -101,13 +104,14 @@ Where:
     - _space_
 
 - `--file` or `-f` is a path to the resource configuration file in YAML format.
-  It is mandatory in all scenarios, except when running `ado create samplestore --new-sample-store`.
-- `--new-sample-store` creates a new sample store. Only available when running 
-  `ado create` on `space` and `samplestore`. If running `ado create space --new-sample-store`,
-  the optional `sampleStoreIdentifier` contained in the `DiscoverySpaceConfiguration`
-  will be disregarded.
-- `--set` allows overriding fields in the provided resource configuration. It supports using JSONPath syntax.
-  See the examples section for more information.
+  It is mandatory in all scenarios, except when running
+  `ado create samplestore --new-sample-store`.
+- `--new-sample-store` creates a new sample store. Only available when running
+  `ado create` on `space` and `samplestore`. If running
+  `ado create space --new-sample-store`, the optional `sampleStoreIdentifier`
+  contained in the `DiscoverySpaceConfiguration` will be disregarded.
+- `--set` allows overriding fields in the provided resource configuration. It
+  supports using JSONPath syntax. See the examples section for more information.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
 
@@ -124,8 +128,8 @@ ado create -f ds.yaml
 
 ##### Validating a Sample Store definition
 
-In this example, we assume that the file `sample-store.yml` exists, but we make no further
-assumptions on whether its content is a valid
+In this example, we assume that the file `sample-store.yml` exists, but we make
+no further assumptions on whether its content is a valid
 [Sample Store](../resources/sample-stores.md) definition or not.
 
 ```shell
@@ -137,7 +141,6 @@ ado create -f sample-store.yml --dry-run
 ```shell
 ado create samplestore --new-sample-store
 ```
-
 
 ##### Creating a space with a new sample store
 
@@ -189,10 +192,10 @@ Where:
 - `--force` allows forcing deletion of resources in the following cases:
     - When attempting to delete operations while other operations are executing.
     - When attempting to delete sample stores that still contain data.
-- When deleting a local context, users can specify the flags `--delete-local-db` or
-  `--no-delete-local-db` to explicitly delete or preserve a local DB when deleting
-  its related context. If neither of these flags are specified, the user will be 
-  asked whether to delete the DB or not.
+- When deleting a local context, users can specify the flags `--delete-local-db`
+  or `--no-delete-local-db` to explicitly delete or preserve a local DB when
+  deleting its related context. If neither of these flags are specified, the
+  user will be asked whether to delete the DB or not.
 
 #### Examples
 
@@ -236,8 +239,8 @@ Where:
     - _space_
 
 - `RESOURCE_ID` is the unique identifier of the resource to describe.
-- The `--file` (or `-f`) flag is **currently only available for spaces** and allows
-  getting a description of the space, given a space configuration file.
+- The `--file` (or `-f`) flag is **currently only available for spaces** and
+  allows getting a description of the space, given a space configuration file.
 - `--actuator-id` (**optional**) can be used only when the resource type is
   experiment and is used to indicate what actuator the experiment belongs to.
 
@@ -310,6 +313,7 @@ limit the results to a single resource.
 
 The complete syntax of the `ado get` command is as follows:
 
+<!-- markdownlint-disable line-length -->
 ```shell
 ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
                                     [--exclude-default | --no-exclude-default] \
@@ -325,6 +329,7 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--from-sample-store <sample-store-id>] \
                                     [--from-space <space-id>] [--from-operation <operation-id>]
 ```
+<!-- markdownlint-enable line-length -->
 
 Where:
 
@@ -348,21 +353,28 @@ Where:
     - The `yaml` format displays the full YAML document of the matching resources.
     - The `json` format displays the full JSON document of the matching resources.
     - The `config` format displays the `config` field of the matching resources.
-    - The `raw` format displays the raw resource as stored in the database, performing no validation.
+    - The `raw` format displays the raw resource as stored in the database,
+      performing no validation.
 
-- `--exclude-default` (set by default) allows excluding fields that use default values from the output.
-  Alternatively, the `--no-exclude-default` flag can be used to show them.
-- `--exclude-unset` (set by default) allows excluding from the output fields whose values have not been set.
-  Alternatively, the `--no-exclude-unset` flag can be used to show them.
-- `--exclude-none` (set by default) allows excluding fields that have null values from the output.
-  Alternatively, the `--no-exclude-none` flag can be used to show them.
-- `--exclude-field` allows the user to exclude fields from the output using JSONPath expressions. 
-  Documentation for creating these expressions can be found here: 
-  https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax.
-  This flag is only supported when using the `yaml`, `json`, or `config` output format.
-- `--minimize` attempts to minimize the output. This might entail applying transformations on the model, 
-  changing it from the original. If set, it implies `--exclude-default`, `--exclude-unset`, and `--exclude-none`.
-  This option is ignored when the output type is `default` or `raw`.
+- `--exclude-default` (set by default) allows excluding fields that use default
+  values from the output. Alternatively, the `--no-exclude-default` flag can be
+  used to show them.
+- `--exclude-unset` (set by default) allows excluding from the output fields
+  whose values have not been set. Alternatively, the `--no-exclude-unset` flag
+  can be used to show them.
+- `--exclude-none` (set by default) allows excluding fields that have null
+  values from the output. Alternatively, the `--no-exclude-none` flag can be
+  used to show them.
+- `--exclude-field` allows the user to exclude fields from the output using
+  JSONPath expressions. Documentation for creating these expressions can be
+  found here:
+  <https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax>.
+  This flag is only supported when using the `yaml`, `json`, or `config` output
+  format.
+- `--minimize` attempts to minimize the output. This might entail applying
+  transformations on the model, changing it from the original. If set, it
+  implies `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This
+  option is ignored when the output type is `default` or `raw`.
 - By using (optionally multiple times) the `--query` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the
@@ -381,24 +393,30 @@ Where:
 - The `--show-deprecated` flag is available **only for
   `ado get actuators --details`** and allows displaying experiments that have
   been deprecated. They are otherwise hidden by default.
-- The `--matching-point` option allows the user to specify a file in the form of: 
+- The `--matching-point` option allows the user to specify a file in the form
+  of:
+
   ```yaml
-  entity: # A key-value dictionary of constitutive property identifiers and values 
+  entity: # A key-value dictionary of constitutive property identifiers and values
     batch_size: 8
     number_gpus: 4
   experiments: # A list of experiments
     - finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0
   ```
+
   To find the spaces that match that point.
-- The `--matching-space` option allows the user to specify a `DiscoverySpaceConfiguration`
-  file which will be used to find similar spaces in the database.
-  Spaces will match if:
+
+- The `--matching-space` option allows the user to specify a
+  `DiscoverySpaceConfiguration` file which will be used to find similar spaces
+  in the database. Spaces will match if:
     - They include **exactly** the same **base experiments**.
-    - Their entity space is in a hierarchical relationship with the input space. The relationship
-      will be output (i.e., a column will say whether the matching space is a subspace, a superspace,
-      or an exact match with the input space).
-- The `--matching-space-id` option works in the same way as `--matching-space` but allows the user
-  to provide a space id instead of a `DiscoverySpaceConfiguration`.
+    - Their entity space is in a hierarchical relationship with the input space.
+      The relationship will be output (i.e., a column will say whether the
+      matching space is a subspace, a superspace, or an exact match with the input
+      space).
+- The `--matching-space-id` option works in the same way as `--matching-space`
+  but allows the user to provide a space id instead of a
+  `DiscoverySpaceConfiguration`.
 - The `--from-sample-store`, `--from-space`, `--from-operation` flags are
   available **only for `ado get measurementrequests`** and allow specifying what
   samplestore/space/operation the measurement request belongs to.
@@ -438,11 +456,13 @@ As an example, to query all spaces that run the
 `finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0` experiment on the
 `NVIDIA-A100-SXM4-80GB` GPU and use the `mistral-7b-v0.1` model you can run:
 
+<!-- markdownlint-disable line-length -->
 ```commandline
 ado get space -q 'config.entitySpace={"identifier": "model_name", "propertyDomain":{"values":["mistral-7b-v0.1"]}}' \
               -q 'config.entitySpace={"identifier": "gpu_model", "propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
               -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
 ```
+<!-- markdownlint-enable line-length -->
 
 #### Examples
 
@@ -461,8 +481,10 @@ ado get spaces --details
 ##### Getting all Discovery Spaces that include granite-7b-base in the property domain
 
 !!! info
+
     More information on field-level querying is provided in the
-    [Using the field-level querying functionality](#using-the-field-level-querying-functionality) section
+    [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
+    section
 
 ```shell
 ado get space -q 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'
@@ -479,7 +501,7 @@ ado get spaces -l key1=value1 -l key2=value2
 Assuming you have the following file saved as `point.yaml`:
 
 ```yaml
-entity: # A key-value dictionary of constitutive property identifiers and values 
+entity: # A key-value dictionary of constitutive property identifiers and values
   batch_size: 8
   number_gpus: 4
 experiments: # A list of experiments
@@ -494,8 +516,8 @@ ado get spaces --matching-point point.yaml
 
 ##### Getting all DiscoverySpaces and hiding fields
 
-This example shows how to hide the `propertyDomain.variableType` and `propertyDomain.domainRange`
-fields from the Discovery Space's entity space:
+This example shows how to hide the `propertyDomain.variableType` and
+`propertyDomain.domainRange` fields from the Discovery Space's entity space:
 
 ```shell
 ado get space space-df8077-7535f9 -o yaml \
@@ -536,9 +558,11 @@ ado get actuator st4sd --details --show-deprecated
 
 ##### Getting the yaml of a MeasurementRequest from an operation
 
+<!-- markdownlint-disable line-length -->
 ```shell
 ado get measurementrequest measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
 ```
+<!-- markdownlint-enable line-length -->
 
 ### ado show
 
@@ -577,7 +601,8 @@ ado show details space space-abc123-456def
 
 #### ado show entities
 
-_show entities_ supports displaying entities that belong to a space or an operation.
+_show entities_ supports displaying entities that belong to a space or an
+operation.
 
 The complete syntax of the `ado show entities` command is as follows:
 
@@ -599,13 +624,16 @@ Where:
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
-- The `--file` (or `-f`) flag is **currently only available for spaces** and enables
-  showing entities that match the space defined in the configuration file.
-  **NOTE**: using this flag forces `--include matching`.
-- `--property-format` defines the naming format used for measured properties in the output, one of:
+- The `--file` (or `-f`) flag is **currently only available for spaces** and
+  enables showing entities that match the space defined in the configuration
+  file. **NOTE**: using this flag forces `--include matching`.
+- `--property-format` defines the naming format used for measured properties in
+  the output, one of:
 
-    - `observed`: properties are named `$experimentid.$property_id`. There will be one row per entity.
-    - `target`: properties are named `$property_id`. There will be one row per (entity, experiment) pair.
+    - `observed`: properties are named `$experimentid.$property_id`. There will be
+      one row per entity.
+    - `target`: properties are named `$property_id`. There will be one row per
+      (entity, experiment) pair.
 
 - `--output-format` is the format in which to display the entity data. One of:
 
@@ -613,22 +641,28 @@ Where:
     - `csv` (output as CSV file)
     - `json` (output as JSON file)
 
-- `--property` (can be specified multiple times) is used to filter what
-  measured properties need to be output.
+- `--property` (can be specified multiple times) is used to filter what measured
+  properties need to be output.
 - `--include` (**exclusive to spaces**) determines what type of entities to
   include. One of:
 
-    - `sampled`: Entities that have been measured by explore operations on the `discoveryspace`
-    - `unsampled`: Entities that have not been measured by an explore operation on the `discoveryspace`
-    - `matching`: Entities in the `samplestore` the `discoveryspace` uses, that match the `discoveryspace`'s description
-    - `missing`: Entities in the `discoveryspace` that are not in the `samplestore` the `discoveryspace` uses
-- `--aggregate` allows applying an aggregation to the result values in case multiple are present. One of:
-  - `mean`
-  - `median`
-  - `variance`
-  - `std`
-  - `min`
-  - `max`
+    - `sampled`: Entities that have been measured by explore operations on the
+      `discoveryspace`
+    - `unsampled`: Entities that have not been measured by an explore operation on
+      the `discoveryspace`
+    - `matching`: Entities in the `samplestore` the `discoveryspace` uses, that
+      match the `discoveryspace`'s description
+    - `missing`: Entities in the `discoveryspace` that are not in the
+      `samplestore` the `discoveryspace` uses
+
+- `--aggregate` allows applying an aggregation to the result values in case
+  multiple are present. One of:
+    - `mean`
+    - `median`
+    - `variance`
+    - `std`
+    - `min`
+    - `max`
 
 ##### Examples
 
@@ -640,6 +674,7 @@ Where:
                                              --output-format csv
 ```
 
+<!-- markdownlint-disable-next-line line-length -->
 ###### Show a subset of the properties of entities that are part of an operation and output them as JSON
 
 ```shell
@@ -655,10 +690,12 @@ an operation.
 
 The complete syntax of the `ado show requests` command is as follows:
 
+<!-- markdownlint-disable line-length -->
 ```shell
 ado show requests operation RESOURCE_ID [--output-format | -o <console | csv | json>] \
                                         [--hide <field>]
 ```
+<!-- markdownlint-enable line-length -->
 
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
@@ -675,9 +712,11 @@ ado show requests operation randomwalk-0.5.0-123abc -o csv
 
 ###### Show measurement requests for an operation and hide certain fields
 
+<!-- markdownlint-disable line-length -->
 ```shell
 ado show requests operation randomwalk-0.5.0-123abc --hide type --hide "experiment id"
 ```
+<!-- markdownlint-enable line-length -->
 
 #### ado show results
 
@@ -686,10 +725,12 @@ operation.
 
 The complete syntax of the `ado show results` command is as follows:
 
+<!-- markdownlint-disable line-length -->
 ```shell
 ado show results operation RESOURCE_ID [--output-format | -o <console | csv | json>] \
                                        [--hide <field>]
 ```
+<!-- markdownlint-enable line-length -->
 
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
@@ -789,6 +830,7 @@ Where:
 ado show summary space space-abc123-456def
 ```
 
+<!-- markdownlint-disable-next-line line-length -->
 ###### Get the summary of a space as a Markdown table and include the constitutive property MY_PROPERTY
 
 ```shell
@@ -822,8 +864,10 @@ ado show summary space -l issue=123 -o csv
 ###### Get the summary of spaces that include granite-7b-base in the property domain
 
 !!! info
+
     More information on field-level querying is provided in the
-    [Using the field-level querying functionality](#using-the-field-level-querying-functionality) section
+    [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
+    section
 
 ```shell
 ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'
@@ -837,6 +881,7 @@ files that you can edit to speed up the process.
 
 The complete syntax of the `ado template` command is as follows:
 
+<!-- markdownlint-disable line-length -->
 ```shell
 ado template RESOURCE_TYPE [--output | -o <PATH>] \
                            [--include-schema] \
@@ -847,6 +892,7 @@ ado template RESOURCE_TYPE [--output | -o <PATH>] \
                            [--local-context] \
                            [--no-parameters-only-schema]
 ```
+<!-- markdownlint-enable line-length -->
 
 Where:
 
@@ -878,15 +924,16 @@ Where:
     - `fuse`
     - `learn`
 
-- `--actuator-configuration` (**exclusive for actuatorconfigurations**) is
-  the identifier of the actuator to output. 
-  If unset, a generic actuator configuration will be output.
-- `--from-experiment` (**exclusive for spaces**) can either be the identifier of the
-  experiment you want to have in your space or, in case multiple actuators implementing
-  the same experiment identifier, the identifier of the actuator and that of the experiment
-  in the form `actuator_id:experiment_id`. 
-  If unset, a generic space will be output.
-- `--local-context` (**exclusive for contexts**) creates a template using SQLite instead of MySQL.
+- `--actuator-configuration` (**exclusive for actuatorconfigurations**) is the
+  identifier of the actuator to output. If unset, a generic actuator
+  configuration will be output.
+- `--from-experiment` (**exclusive for spaces**) can either be the identifier of
+  the experiment you want to have in your space or, in case multiple actuators
+  implementing the same experiment identifier, the identifier of the actuator
+  and that of the experiment in the form `actuator_id:experiment_id`. If unset,
+  a generic space will be output.
+- `--local-context` (**exclusive for contexts**) creates a template using SQLite
+  instead of MySQL.
 - `--no-parameters-only-schema` (**exclusive for operations**) when used with
   `--include-schema`, outputs a generic operation schema. By default (when not
   specifying this flag), the schema will be operator-specific.
@@ -905,6 +952,7 @@ ado template context
 ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
 ```
 
+<!-- markdownlint-disable-next-line line-length -->
 ##### Creating a template for a space that uses a specific experiment from a specific actuator
 
 ```shell
@@ -926,13 +974,15 @@ ado template operation --operator-name rifferla
 ### ado upgrade
 
 !!! tip
-    **`ado` will detect automatically when resources need to be upgraded**
-    and will print the exact command to run as a warning. 
-    In all other cases, there is no need to run this command.
 
-Sometimes the models that are used in ado undergo changes that require updating 
-stored representations of them in the [metastore](../resources/metastore.md). 
-When required, you can run this command to update all resources of a given kind in the database.
+    **`ado` will detect automatically when resources need to be upgraded**
+    and will print the exact command to run as a warning. In all other cases, there
+    is no need to run this command.
+
+Sometimes the models that are used in ado undergo changes that require updating
+stored representations of them in the [metastore](../resources/metastore.md).
+When required, you can run this command to update all resources of a given kind
+in the database.
 
 ```shell
 ado upgrade RESOURCE_TYPE
@@ -967,9 +1017,11 @@ ado version
 
 ## What's next
 
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
 
--   :octicons-rocket-24:{ .lg .middle } __Let's get started!__
+- :octicons-rocket-24:{ .lg .middle } **Let's get started!**
 
     ---
 
@@ -977,7 +1029,7 @@ ado version
 
     [Our how-tos :octicons-arrow-right-24:](../examples/examples.md)
 
-  -   :octicons-workflow-24:{ .lg .middle } __Learn more about the built-in Operators__
+- :octicons-workflow-24:{ .lg .middle } **Learn more about the built-in Operators**
 
       ---
 
@@ -986,3 +1038,4 @@ ado version
       [Follow the guide :octicons-arrow-right-24:](../operators/working-with-operators.md)
 
 </div>
+<!-- markdownlint-enable line-length -->

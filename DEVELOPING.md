@@ -191,10 +191,15 @@ the provided pre-commit hooks.
 
 ### Installing the hooks
 
-After
-[having synced the dependencies](#creating-a-development-virtual-environment),
-and installed a recent and stable version of [node](https://nodejs.org/en/download/),
-for example `22.x`, install the hooks with:
+> [!IMPORTANT]
+>
+> Before installing the hooks, make sure you have the following prerequisites:
+>
+> - A developer virtual environment [created with uv](#creating-a-development-virtual-environment)
+> - A recent version of [NodeJS](https://nodejs.org/en/download/)
+>   - On MacOS we suggest
+>     [installing it via brew](https://formulae.brew.sh/formula/node)
+>     for ease of use
 
 ```commandline
 pre-commit install
@@ -225,7 +230,7 @@ highlighting any issues and preventing the commit if problems are found.
    [add an inline ignore comment](https://github.com/codespell-project/codespell?tab=readme-ov-file#inline-ignore).
 6. **uv export failures**: commit the updated `requirements.txt` file. It has
    been updated following changes to the lock file.
-7. **markdown linter failures**: `markdownlint-cli2` usually fixes most issues
+7. **Markdown linter failures**: `markdownlint-cli2` usually fixes most issues
    automatically. If you review its error message and still don’t see a clear
    explanation or solution, try recommitting your changes and let the tool re-run.
 

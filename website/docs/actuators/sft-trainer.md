@@ -1679,7 +1679,7 @@ For example, build the wheel file for SFTTrainer and create the following
 <!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
 pip:
-  - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/sfttrainer-0.9.4.dev84+g1ab8f43d-py3-none-any.whl
+  - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ado_sfttrainer-1.0.2.dev84+g1ab8f43d-py3-none-any.whl
 env_vars:
   PYTHONUNBUFFERED: "x"
 ```

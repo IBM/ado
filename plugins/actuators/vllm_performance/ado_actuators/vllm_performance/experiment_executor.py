@@ -335,7 +335,7 @@ def run_resource_and_workload_experiment(
     state_update_queue.put(request, block=False)
 
 
-@ray.remote
+@ray.remote(runtime_env=vllm_test_runtime_env)
 def run_workload_experiment(
     request: MeasurementRequest,
     experiment: Experiment | ParameterizedExperiment,

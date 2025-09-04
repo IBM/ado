@@ -324,9 +324,12 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
         return BaseParameters
 
-    def __init__(self, mode: WalkModeEnum):
+    def __init__(self, mode: WalkModeEnum | BaseParameters):
 
-        self.mode = mode
+        if isinstance(mode, BaseParameters):
+            self.mode = mode.mode
+        else:
+            self.mode = mode
 
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize=1

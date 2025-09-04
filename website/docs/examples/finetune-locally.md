@@ -218,7 +218,8 @@ To create the Discovery Space:
 
     operation:
       module:
-        moduleClass: "RandomWalk"
+        operatorName: "random_walk"
+        operationType: "search"
       parameters:
         numberEntities: all
         singleMeasurement: True

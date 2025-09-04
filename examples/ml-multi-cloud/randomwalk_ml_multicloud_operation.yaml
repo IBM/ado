@@ -8,7 +8,8 @@ spaces:
 - 'space-630588-bfebfe'
 operation:
   module:
-    moduleClass: RandomWalk
+    operatorName: "random_walk"
+    operationType: "search"
   parameters:
     numberEntities: 48
     batchSize: 1

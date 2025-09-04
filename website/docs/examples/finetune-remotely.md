@@ -350,7 +350,8 @@ You can find the complete list of the entity space properties in the documentati
    
     operation:
       module:
-        moduleClass: "RandomWalk"
+        operatorName: "random_walk"
+        operationType: "search"
       parameters:
         numberEntities: all
         singleMeasurement: True

@@ -5,7 +5,8 @@ spaces:
   - 'space-91c4f8-174914' # Replace with space from applying space_transformer_simple.yaml or space_molgx_simple.yaml
 operation:
   module:
-    moduleClass: "RandomWalk"
+    operatorName: "random_walk"
+    operationType: "search"
   parameters:
     numberEntities: 100
     batchSize: 10

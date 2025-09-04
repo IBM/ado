@@ -110,6 +110,9 @@ config:
   operation:
     module:
       moduleClass: RandomWalk
+      moduleName: orchestrator.modules.operators.randomwalk
+      modulePath: .
+      moduleType: operation
     parameters:
       batchSize: 4
       singleMeasurement: false

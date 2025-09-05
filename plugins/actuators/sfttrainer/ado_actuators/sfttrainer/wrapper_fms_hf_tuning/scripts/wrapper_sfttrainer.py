@@ -285,14 +285,16 @@ class CustomAimCallback(AimCallback):
 
         running_for = (datetime.datetime.now() - self._time_started).total_seconds()
 
-        if self._stop_after_seconds >= 0.0 and state.is_local_process_zero:
-            if running_for >= self._stop_after_seconds:
-                print(
-                    "Triggering experiment to stop after running for",
-                    running_for,
-                    f"seconds due to stop_after_seconds={self._stop_after_seconds}",
-                )
-                control.should_training_stop = True
+        if (
+            state.is_local_process_zero
+            and 0.0 <= self._stop_after_seconds <= running_for
+        ):
+            print(
+                "Triggering experiment to stop after running for",
+                running_for,
+                f"seconds due to stop_after_seconds={self._stop_after_seconds}",
+            )
+            control.should_training_stop = True
 
         if self._auto_stop_method is not None:
             if self._auto_stop_method == 1:

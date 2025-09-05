@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-import functools
 import copy
+import functools
 import logging
 import sys
 import time

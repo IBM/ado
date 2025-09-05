@@ -71,11 +71,11 @@ For illustrative purposes here is a configuration for a random walk operation
 spaces: ###The spaces to operate on
   - 'space-630588-bfebfe'
 operation: #The operators
-  module: # The operator will be RandomWalk
-    moduleClass: RandomWalk
-    moduleName: orchestrator.modules.operators.randomwalk
+  module: # The operator will be random_walk
+    operatorName: random_walk
+    operationType: search
   parameters: # The parameters for this RandomWalk operation
-    numberIterations: 60
+    numberEntities: 60
     batchSize: 1
     mode: 'sequential'
     samplerType: 'generator'
@@ -92,6 +92,7 @@ operators e.g.
       OPERATOR     TYPE
 0  random_walk  explore
 1     ray_tune  explore
+2     rifferla   modify
 ```
 
 You use this information to specify the operator to use in the operation YAML,
@@ -99,9 +100,20 @@ for example:
 
 ```yaml
 module:
-  operatorName: random_walk # The name of the operator
-  operationType: characterize #The type of the operation/operator
+  operatorName: rifferla # The name of the operator
+  operationType: modify #The type of the operation/operator
 ```
+
+> [!WARNING]
+>
+> To use operators listed with type _explore_ by `ado get operators`, currently
+> you must set operationType to **search** e.g.
+>
+> ```yaml
+> module: 
+>  operatorName: random_walk 
+>  operationType: search # note: search not explore
+> ```
 
 ### Passing actuator parameters
 

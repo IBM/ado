@@ -7,6 +7,7 @@ import logging
 import typing
 
 import numpy as np
+import pydantic
 import ray
 
 from orchestrator.core.discoveryspace.space import (
@@ -40,6 +41,12 @@ class WalkModeEnum(enum.Enum):
 class SamplerTypeEnum(enum.Enum):
     SELECTOR = "selector"
     GENERATOR = "generator"
+
+
+class BaseSamplerParameters(pydantic.BaseModel):
+
+    mode: WalkModeEnum
+    model_config = pydantic.ConfigDict(extra="forbid")
 
 
 class BaseSampler(abc.ABC):
@@ -82,6 +89,12 @@ class BaseSampler(abc.ABC):
             batchsize: The iterator will return entities in batches of this size
 
         """
+
+    @classmethod
+    def parameters_model(cls) -> type[pydantic.BaseModel] | None:
+        """Returns a pydantic model for the init parameters of the class, if any"""
+
+        return None
 
 
 class GroupSampler(BaseSampler):
@@ -306,9 +319,17 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
         # noinspection PyUnresolvedReferences
         return cls.samplerCompatibleWithEntitySpace(discoverySpace.entitySpace)
 
-    def __init__(self, mode: WalkModeEnum):
+    @classmethod
+    def parameters_model(cls) -> type[pydantic.BaseModel] | None:
 
-        self.mode = mode
+        return BaseSamplerParameters
+
+    def __init__(self, mode: WalkModeEnum | BaseSamplerParameters):
+
+        if isinstance(mode, BaseSamplerParameters):
+            self.mode = mode.mode
+        else:
+            self.mode = mode
 
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize=1

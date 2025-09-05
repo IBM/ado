@@ -11,18 +11,19 @@ operation:
   parameters:
     numberEntities: all
     batchSize: 2
-    mode: sequentialgrouped
-    samplerType: generator
     singleMeasurement: false
-    grouping:
-      - model
-      - image
-      - n_gpus
-      - gpu_type
-      - n_cpus
-      - memory
-      - max_batch_tokens
-      - gpu_memory_utilization
-      - dtype
-      - cpu_offload
-      - max_num_seq
+    samplerConfig:
+      mode: 'sequentialgrouped'
+      samplerType: 'generator'
+      grouping:
+        - model
+        - image
+        - n_gpus
+        - gpu_type
+        - n_cpus
+        - memory
+        - max_batch_tokens
+        - gpu_memory_utilization
+        - dtype
+        - cpu_offload
+        - max_num_seq

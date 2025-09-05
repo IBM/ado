@@ -10,5 +10,6 @@ operation:
   parameters:
     numberEntities: 10
     batchSize: 2
-    mode: 'sequential'
-    samplerType: 'generator'
+    samplerConfig:
+      mode: 'sequential'
+      samplerType: 'generator'

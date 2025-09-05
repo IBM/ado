@@ -455,7 +455,7 @@ class Entity(pydantic.BaseModel):
         If one, more or all values are non-numeric then a list of the values is returned i.e. same as aggregate=False
         """
 
-        import numpy.core._exceptions
+        import numpy._core._exceptions
         import pandas as pd
 
         def add_value(
@@ -520,7 +520,10 @@ class Entity(pydantic.BaseModel):
                         mean = vop.aggregate(d[o])
                         d.pop(o)
                         d[vop.identifier] = mean.value
-                    except (ValueError, numpy.core._exceptions.UFuncTypeError) as error:
+                    except (
+                        ValueError,
+                        numpy._core._exceptions.UFuncTypeError,
+                    ) as error:
                         # We can't take the mean of all the values for some reason
                         # An example is that the values are arrays of different length
                         import logging
@@ -563,7 +566,7 @@ class Entity(pydantic.BaseModel):
 
         """
 
-        import numpy.core._exceptions
+        import numpy._core._exceptions
         import pandas as pd
 
         if experimentReferences is None:
@@ -642,7 +645,7 @@ class Entity(pydantic.BaseModel):
                             )
                         except (
                             ValueError,
-                            numpy.core._exceptions.UFuncTypeError,
+                            numpy._core._exceptions.UFuncTypeError,
                         ) as error:
                             # We can't take the mean of all the values for some reason
                             # An example is that the values are arrays of different length

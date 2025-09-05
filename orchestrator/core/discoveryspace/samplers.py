@@ -43,7 +43,7 @@ class SamplerTypeEnum(enum.Enum):
     GENERATOR = "generator"
 
 
-class BaseParameters(pydantic.BaseModel):
+class BaseSamplerParameters(pydantic.BaseModel):
 
     mode: WalkModeEnum
     model_config = pydantic.ConfigDict(extra="forbid")
@@ -322,11 +322,11 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
     @classmethod
     def parameters_model(cls) -> type[pydantic.BaseModel] | None:
 
-        return BaseParameters
+        return BaseSamplerParameters
 
-    def __init__(self, mode: WalkModeEnum | BaseParameters):
+    def __init__(self, mode: WalkModeEnum | BaseSamplerParameters):
 
-        if isinstance(mode, BaseParameters):
+        if isinstance(mode, BaseSamplerParameters):
             self.mode = mode.mode
         else:
             self.mode = mode

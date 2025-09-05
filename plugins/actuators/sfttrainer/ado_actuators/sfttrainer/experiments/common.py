@@ -185,6 +185,7 @@ def get_default_measured_properties() -> list[str]:
         "cpu_compute_utilization",
         "cpu_memory_utilization",
         "train_runtime",
+        # VV: the next 4 are inaccurate when terminating the job early
         "train_samples_per_second",
         "train_steps_per_second",
         "train_tokens_per_second",
@@ -711,6 +712,15 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
         examples=[-1, 60 * 10],
         description="If set, the optimizer will be asked to stop after the specified time elapses. "
         "The check is performed after the end of each training step.",
+    )
+
+    auto_stop_method: int | None = pydantic.Field(
+        default=None,
+        examples=[1, None],
+        description="This parameter defines the method used to automatically stop the fine-tuning job. "
+        "If set to 1, the job stops after running for 60 seconds plus the longer of 120 seconds "
+        "or the duration of 10 optimization steps. This method excludes the first 60 seconds of training "
+        "when calculating throughput and system metrics.",
     )
 
     # VV: lora specific parameters

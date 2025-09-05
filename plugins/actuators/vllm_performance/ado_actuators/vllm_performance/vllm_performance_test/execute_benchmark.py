@@ -45,15 +45,19 @@ def execute_benchmark(
     print(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
-
+    #The code below is commented as we are switching from a script invocation to command line
+    #invocation. If we want to bring back script execution for any reason, this code must be 
+    #uncommented
     # parameters
-    code = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
-    )
+    #code = os.path.abspath(
+    #    os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
+    #)
     request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
     request += (
-        f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "
+        #changing from script invocation to cli invocation
+        #f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "
+        f"vllm bench serve --backend openai --base-url {base_url} --dataset-name {data_set} "
         f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
     )

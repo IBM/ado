@@ -20,16 +20,21 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
         print(f"Failed to read benchmark result {e}")
         raise Exception(f"Failed to read benchmark result {e}")
     del results["date"]
-    del results["backend"]
+    del results["endpoint_type"]
     del results["tokenizer_id"]
-    del results["best_of"]
-    del results["request_goodput:"]
-    del results["input_lens"]
-    del results["output_lens"]
-    del results["ttfts"]
-    del results["itls"]
-    del results["generated_texts"]
-    del results["errors"]
+    del results["label"]
+    #The CLI invocation does not return the same dict as the script invocation
+    #so the following lines had to be commented
+    #---- uncomment if directly invoking script
+    #del results["backend"]
+    #del results["best_of"]
+    #del results["request_goodput:"]
+    #del results["input_lens"]
+    #del results["output_lens"]
+    #del results["ttfts"]
+    #del results["itls"]
+    #del results["generated_texts"]
+    #del results["errors"]
     return results
 
 

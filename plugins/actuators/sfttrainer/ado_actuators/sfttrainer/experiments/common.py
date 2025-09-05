@@ -714,9 +714,9 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
         "The check is performed after the end of each training step.",
     )
 
-    auto_stop_method: int | float = pydantic.Field(
+    auto_stop_method: int | None = pydantic.Field(
         default=None,
-        examples=[None, 1],
+        examples=[1, None],
         description="This parameter defines the method used to automatically stop the fine-tuning job. "
         "If set to 1, the job stops after running for 60 seconds plus the longer of 120 seconds "
         "or the duration of 10 optimization steps. This method excludes the first 60 seconds of training "

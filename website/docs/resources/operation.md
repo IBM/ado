@@ -99,7 +99,7 @@ You use this information to specify the operator to use in the operation YAML,
 for example:
 
 ```yaml
-module: 
+module:
   operatorName: rifferla # The name of the operator
   operationType: modify #The type of the operation/operator
 ```

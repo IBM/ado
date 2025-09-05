@@ -316,9 +316,7 @@ def sampler_type_discriminator(sampler_config):
     if isinstance(sampler_config, BaseSamplerConfiguration):
         return "Base"
     if isinstance(sampler_config, dict):
-        if sampler_config.get("module", None):
-            return "Custom"
-        return "Base"
+        return "Custom" if sampler_config.get("module") else "Base"
 
     raise ValueError(
         f"Unable to determine sampler type for sampler config: {sampler_config}"

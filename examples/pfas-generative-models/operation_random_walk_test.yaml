@@ -12,3 +12,4 @@ operation:
     batchSize: 10
     samplerConfig:
       mode: sequential
+      samplerType: selector

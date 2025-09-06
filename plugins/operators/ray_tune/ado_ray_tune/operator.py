@@ -630,7 +630,7 @@ class RayTune(Search):
 
         return RayTuneConfiguration(
             tuneConfig=OrchTuneConfig(
-                metric="wallclock_time", search_alg=OrchSearchAlgorithm(name="ax")
+                metric="wallclock_time", search_alg=OrchSearchAlgorithm(name="bayesopt")
             ),
             runtimeConfig=OrchRunConfig(),
         )
@@ -646,8 +646,11 @@ class RayTune(Search):
         return """RayTune provides capabilities for sampling points in an entity space and applying
                measurements to them via optimization algorithms.
 
-              All raytune optimizers e.g. Ax, BOHB, HyperBand are supported and accept the same
-              configuration parameters as in raytune"""
+              All Ray Tune optimizers (except Ax) e.g. Nevergrad, BOHB, HyperBand are supported
+              and accept the same configuration parameters as in raytune.
+
+              Support for Ax has been removed due to incompatibilities with newer Numpy versions.
+              """
 
     def __init__(
         self,

@@ -12,6 +12,6 @@ operation:
       metric: "function_value" # The metric that the test function measures
       mode: 'min'
       num_samples: 40
-      max_concurrent_trials: 2  # Ax can struggle a bit if too many concurrent trials
+      max_concurrent_trials: 2
       search_alg:
-        name: ax
+        name: bayesopt

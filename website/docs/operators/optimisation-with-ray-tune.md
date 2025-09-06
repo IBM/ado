@@ -56,7 +56,10 @@ more detail in the
 The optimizers available depend on the RayTune version used. At time of writing
 they are:
 
-- ax
+!!! info
+    The ax optimizer has been removed due to incompatibilities
+    with the latest numpy versions.
+
 - hyperopt
 - bayesopt
 - bohb
@@ -85,11 +88,12 @@ In addition `ado` adds a
 ### Installing an optimizer
 
 Each optimizer is its own python package and RayTune does not install them by
-default. `ado` installs `ax` but if you want to use any of the others you must
-install the corresponding python package. For example to use `nevergrad` run
+default. `ado` installs `bayesian-optimization` and `nevergrad` but if you want
+to use any of the others you must install their corresponding python package.
+For example to use `bohb` run:
 
 ```commandline
-pip install nevergrad
+pip install hpbandster ConfigSpace
 ```
 
 ## Setting the parameters of a `ray_tune` operation
@@ -408,7 +412,7 @@ it is possible.
 
 Here is an example ray_tune `operation` YAML for finding the workload
 configuration with the fastest throughput for fine-tuning performance using the
-sfttrainer actuator:
+SFTTrainer actuator:
 
 - using the Ax optimizer with its `parameter_constraint` optimizer specific
   parameter
@@ -438,10 +442,10 @@ runtimeConfig:
 tuneConfig:
   metric: dataset_tokens_per_second
   mode: min
-  num_samples: 50 # The number of samples to draw. We also use max samples stopper in case Ax has a different interpretation of max samples
+  num_samples: 50 # The number of samples to draw.
   time_budget_s: 7200
   search_alg:
-    name: ax # The name of the optimization algorithm to use
+    name: bayesopt # The name of the optimization algorithm to use
     params:
       points_to_evaluate:
         - model_name: granite-3b

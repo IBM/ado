@@ -97,10 +97,10 @@ If you attempt to delete a resource that still has children, you will encounter
 an error similar to the following:
 
 ```terminaloutput
-ERROR:  Cannot delete discoveryspace space-3bcf27-108c4c as it has children resources:
+ERROR:  Cannot delete discoveryspace space-3fbaad-c3a5f6 as it has children resources:
 
                                           IDENTIFIER       TYPE
-0  raytune-0.9.2.dev11+gff71d082.d20250520-ax-a44c7b  operation
+0  raytune-1.0.2.dev11+1c62218-bayesopt-b7f779  operation
 
 HINT:   You must delete each of them them first.
 ```

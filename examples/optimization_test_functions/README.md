@@ -227,11 +227,12 @@ space you just created above.
 
 ### Run an optimization
 
-The file `operationn_ax.yaml` is an example of running the [Ax](https://ax.dev)
-optimizer via RayTune. To run execute the following,
+The file `operation_bayesopt.yaml` is an example of running
+[Bayesian Optimization](https://bayesian-optimization.github.io/BayesianOptimization)
+via RayTune. To run execute the following:
 
 ```commandline
-ado create operation -f operation_ax.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f operation_bayesopt.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
 ```
 
 replacing `$DISCOVERY_SPACE_IDENTIFIER` with the identifier obtained in the
@@ -239,54 +240,55 @@ previous step.
 
 This will run the optimization for 40 steps. You will see a lot of information
 from RayTune on the progress of the optimization. At the end you will see output
-like the following containing the identifier of the operation, here its
-`raytune-0.9.3.dev16+b415dca6.dirty-nevergrad-af2af4`.
+like the following containing the identifier of the operation. In this case it's
+`raytune-1.0.2.dev11+1c62218-bayesopt-b7f779`:
 
 ```yaml
-Space ID: space-ccf2bf-a50274
-Sample Store ID: sqlite:////Users/michaelj/Library/Application%20Support/ado/databases/local-test.db/sqlsource_a50274
+Space ID: space-3fbaad-c3a5f6
+Sample Store ID:  c3a5f6
 Operation:
-  config:
-    actuatorConfigurationIdentifiers: []
-    metadata: {}
-    operation:
-      module:
-        moduleClass: RayTune
-        moduleName: ado_ray_tune.operator
-        modulePath: .
-        moduleType: operation
-      parameters:
-        tuneConfig:
-          max_concurrent_trials: 4
-          metric: function_value
-          mode: min
-          num_samples: 40
-          search_alg:
-            name: nevergrad
-            params:
-              optimizer: CMA
-    spaces:
-      - space-ccf2bf-a50274
-created: "2025-05-27T11:30:16.285703Z"
-identifier: raytune-0.9.3.dev16+b415dca6.dirty-nevergrad-af2af4
+ config:
+  actuatorConfigurationIdentifiers: []
+  metadata: {}
+  operation:
+    module:
+      moduleClass: RayTune
+      moduleName: ado_ray_tune.operator
+      modulePath: .
+      moduleType: operation
+    parameters:
+      tuneConfig:
+        max_concurrent_trials: 2
+        metric: function_value
+        mode: min
+        num_samples: 40
+        search_alg:
+          name: bayesopt
+  spaces:
+  - space-3fbaad-c3a5f6
+created: '2025-09-06T10:40:58.158982Z'
+identifier: raytune-1.0.2.dev11+1c62218-bayesopt-b7f779
 kind: operation
 metadata:
   entities_submitted: 40
   experiments_requested: 40
 operationType: search
-operatorIdentifier: raytune-0.9.3.dev16+b415dca6.dirty
+operatorIdentifier: raytune-1.0.2.dev11+1c62218
 status:
-  - event: created
-    recorded_at: "2025-05-27T11:30:07.576406Z"
-  - event: added
-    recorded_at: "2025-05-27T11:30:16.286967Z"
-  - event: started
-    recorded_at: "2025-05-27T11:30:16.289563Z"
-  - event: finished
-    exit_state: success
-    recorded_at: "2025-05-27T11:32:16.640484Z"
-  - event: updated
-    recorded_at: "2025-05-27T11:32:16.641605Z"
+- event: created
+  recorded_at: '2025-09-06T10:40:47.558298Z'
+- event: added
+  recorded_at: '2025-09-06T10:40:58.168519Z'
+- event: started
+  recorded_at: '2025-09-06T10:40:58.180530Z'
+- event: updated
+  recorded_at: '2025-09-06T10:40:58.180540Z'
+- event: finished
+  exit_state: success
+  message: Ray Tune operation completed successfully
+  recorded_at: '2025-09-06T10:42:42.804220Z'
+- event: updated
+  recorded_at: '2025-09-06T10:42:43.857310Z'
 version: v1
 ```
 

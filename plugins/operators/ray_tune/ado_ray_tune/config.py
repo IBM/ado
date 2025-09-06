@@ -41,6 +41,16 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
         default={}, description="The params of the search alg"
     )
 
+    @pydantic.field_validator("name", mode="before")
+    @classmethod
+    def do_not_support_ax(cls, name: str):
+        if name == "ax":
+            raise ValueError(
+                "The ax optimizer is not supported anymore "
+                "due to incompatibilities with numpy>=2."
+            )
+        return name
+
     @pydantic.model_validator(mode="after")
     def map_nevergrad_optimizer_name_to_type(self):
 

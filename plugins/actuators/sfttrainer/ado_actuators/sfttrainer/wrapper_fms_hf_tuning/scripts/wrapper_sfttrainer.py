@@ -277,10 +277,11 @@ class CustomAimCallback(AimCallback):
             self.experiment.track(value=dt, name="optimization_step_duration")
 
         if state.is_local_process_zero and self._auto_stop_method is not None:
-            # VV: In multi-node runs the local process zero dumps a JSON file with information we collected.
-            # When auto_stop_method is on, all local zero processes smust get rid of the system metrics of the warmup
-            # phase. This means that all local zero processes must keep track of the durations for optimization steps
-            # so that they can compute the duration of the warmup phase.
+            # VV: In multi-node runs, each local-rank 0 process dumps a JSON file with metrics it collects.
+            # The auto_stop_method ignores system metrics gathered during the warmup phase. To achieve this,
+            # each local-rank 0 process must know the warmup duration. Instead of synchronizing across workers,
+            # we just have all local-rank 0 processes compute it independently.
+            # To this end, local-rank 0 processes track the duration of optimization steps.
             self._optimization_step_durations.append(dt)
 
         running_for = (datetime.datetime.now() - self._time_started).total_seconds()

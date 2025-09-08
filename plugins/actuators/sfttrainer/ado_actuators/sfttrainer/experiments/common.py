@@ -723,10 +723,12 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
             constants.AutoStopMethod.WARMUP_60S_STABLE_120S_OR_10_STEPS.value,
             None,
         ],
-        description="This parameter defines the method used to automatically stop the fine-tuning job. "
-        "If set to 1, the job stops after running for 60 seconds plus the longer of 120 seconds "
-        "or the duration of 10 optimization steps. This method excludes the first 60 seconds of training "
-        "when calculating throughput and system metrics.",
+        description="The default value is `None`. This parameter defines the method used to automatically "
+        "stop the fine-tuning job. Supported values are `WARMUP_60S_STABLE_120S_OR_10_STEPS` and "
+        "`None`. If set to `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least "
+        "60 seconds in the warmup phase plus the longer of 120 seconds or the duration of 10 "
+        "optimization steps. This method excludes the first 60 seconds of training when calculating "
+        "throughput and system metrics.",
     )
 
     # VV: lora specific parameters

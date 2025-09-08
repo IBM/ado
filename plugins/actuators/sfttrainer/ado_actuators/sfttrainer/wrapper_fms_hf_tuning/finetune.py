@@ -11,6 +11,8 @@ import sys
 import time
 import typing
 
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
+
 if typing.TYPE_CHECKING:
     from .callbacks import metrics_tracker
 
@@ -32,7 +34,7 @@ class ExperimentError(Exception):
     Create more exceptions that inherit this one. Only have 1 parameter to the __init__() method and make sure
     you return a human-readable string in your `__str__()` implementation.
 
-    If you include more than 1 parameters to your __init__() method make sure you **only** raise your exception
+    If you include more than 1 parameter to your __init__() method make sure you **only** raise your exception
     by using positional parameters instead of named ones. Otherwise, ray will raise this kind of exceptions when
     pickling/unpickling your exceptions:
 
@@ -228,13 +230,15 @@ class FineTuneArgs:
         },
     )
 
-    auto_stop_method: int | None = dataclasses.field(
+    auto_stop_method: constants.AutoStopMethod | None = dataclasses.field(
         default=None,
         metadata={
-            "help": "This parameter defines the method used to automatically stop the fine-tuning job. "
-            "If set to 1, the job stops after running for 60 seconds plus the longer of 120 seconds "
-            "or the duration of 10 optimization steps. This method excludes the first 60 seconds of training "
-            "when calculating throughput and system metrics."
+            "help": "The default value is `None`. This parameter defines the method used to automatically "
+            "stop the fine-tuning job. Supported values are `WARMUP_60S_STABLE_120S_OR_10_STEPS` and "
+            "`None`. If set to `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least "
+            "60 seconds in the warmup phase plus the longer of 120 seconds or the duration of 10 "
+            "optimization steps. This method excludes the first 60 seconds of training when calculating "
+            "throughput and system metrics."
         },
     )
 

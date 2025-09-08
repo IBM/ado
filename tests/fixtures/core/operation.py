@@ -69,7 +69,7 @@ valid_operation_configs = [
     "examples/pfas-generative-models/operation_random_walk_test.yaml",
     "examples/pfas-generative-models/operation_transformer_benchmark.yaml",
     "examples/optimization_test_functions/operation_nevergrad.yaml",
-    "examples/optimization_test_functions/operation_ax.yaml",
+    "examples/optimization_test_functions/operation_bayesopt.yaml",
     "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml",
     "examples/ml-multi-cloud/raytune_ml_multicloud_operation.yaml",
     "examples/ml-multi-cloud/raytune_ml_multicloud_operation_custom_metric.yaml",

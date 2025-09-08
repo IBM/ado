@@ -229,6 +229,13 @@ Optional:
 - stop_after_seconds: Default is `-1.0`. If set, the optimizer will be asked to
   stop after the specified time elapses. The check is performed after the end of
   each training step.
+- auto_stop_method: The default value is `None`. This parameter defines the
+  method used to automatically stop the fine-tuning job. Supported values are
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least 60
+  seconds in the warmup phase plus the longer of 120 seconds or the duration of
+  10 optimization steps. This method excludes the first 60 seconds of training
+  when calculating throughput and system metrics.
 - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
   (i.e. Data Parallel (DP)) for single-gpu measurements. Which pytorch backend
   to use when training with multiple GPU devices.
@@ -839,6 +846,13 @@ Optional:
 - stop_after_seconds: Default is `-1.0`. If set, the optimizer will be asked to
   stop after the specified time elapses. The check is performed after the end of
   each training step.
+- auto_stop_method: The default value is `None`. This parameter defines the
+  method used to automatically stop the fine-tuning job. Supported values are
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least 60
+  seconds in the warmup phase plus the longer of 120 seconds or the duration of
+  10 optimization steps. This method excludes the first 60 seconds of training
+  when calculating throughput and system metrics.
 - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
   (i.e. Data Parallel (DP)) for single-gpu measurements. Which pytorch backend
   to use when training with multiple GPU devices.
@@ -1263,6 +1277,13 @@ Optional:
 - stop_after_seconds: Default is `-1.0`. If set, the optimizer will be asked to
   stop after the specified time elapses. The check is performed after the end of
   each training step.
+- auto_stop_method: The default value is `None`. This parameter defines the
+  method used to automatically stop the fine-tuning job. Supported values are
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least 60
+  seconds in the warmup phase plus the longer of 120 seconds or the duration of
+  10 optimization steps. This method excludes the first 60 seconds of training
+  when calculating throughput and system metrics.
 - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
   (i.e. Data Parallel (DP)) for single-gpu measurements. Which pytorch backend
   to use when training with multiple GPU devices.
@@ -1667,6 +1688,13 @@ Optional:
 - stop_after_seconds: Default is `-1.0`. If set, the optimizer will be asked to
   stop after the specified time elapses. The check is performed after the end of
   each training step.
+- auto_stop_method: The default value is `None`. This parameter defines the
+  method used to automatically stop the fine-tuning job. Supported values are
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS` and `None`. If set to
+  `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least 60
+  seconds in the warmup phase plus the longer of 120 seconds or the duration of
+  10 optimization steps. This method excludes the first 60 seconds of training
+  when calculating throughput and system metrics.
 - distributed_backend: Default is `FSDP` for multi-gpu measurements, `None`
   (i.e. Data Parallel (DP)) for single-gpu measurements. Which pytorch backend
   to use when training with multiple GPU devices.

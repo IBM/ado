@@ -22,6 +22,28 @@ import ray.util
 import ray.util.placement_group
 import ray.util.state
 import yaml
+from ado_actuators.sfttrainer.experiments import (
+    full_finetune,
+    gptq_lora,
+    lora,
+    prompt_tuning,
+)
+from ado_actuators.sfttrainer.experiments.common import (
+    ACTUATOR_IDENTIFIER,
+    FMS_HF_TUNING_COMMIT,
+    PATH_PINNED_PACKAGES,
+    DatasetMap,
+    EntitySpace,
+    ExperimentParameters,
+    InternalInconsistencyError,
+    InvalidEntityError,
+    ModelMap,
+    WeightsFormat,
+    experiment_parameters_from_experiment,
+    get_fms_hf_tuning_package,
+    get_ray_environment,
+    packages_requiring_nvidia_development_binaries,
+)
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 
 import orchestrator.modules.actuators.catalog
@@ -42,24 +64,6 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
-
-from .experiments import full_finetune, gptq_lora, lora, prompt_tuning
-from .experiments.common import (
-    ACTUATOR_IDENTIFIER,
-    FMS_HF_TUNING_COMMIT,
-    PATH_PINNED_PACKAGES,
-    DatasetMap,
-    EntitySpace,
-    ExperimentParameters,
-    InternalInconsistencyError,
-    InvalidEntityError,
-    ModelMap,
-    WeightsFormat,
-    experiment_parameters_from_experiment,
-    get_fms_hf_tuning_package,
-    get_ray_environment,
-    packages_requiring_nvidia_development_binaries,
-)
 
 # VV: Required module variables
 identifier = ACTUATOR_IDENTIFIER
@@ -1226,10 +1230,12 @@ class SFTTrainer(ActuatorBase):
             await self._stateUpdateQueue.put_async(request, block=False)
             return request.requestid
 
-        if context is not None and context.args.stop_after_seconds > 0.0:
-            # VV: When we switch on stop_after_seconds we are effectively dynamically terminating the training job
-            # in turn this confuses transformers causing it to report the wrong number of train tokens
-            # as a result we should just omit train_tokens_per_second and train_tokens_per_second_per_gpu entirely
+        if context is not None and (
+            (context.args.stop_after_seconds > 0.0)
+            or (context.args.auto_stop_method is not None)
+        ):
+            # VV: Dynamically terminating the training job confuses transformers and causes it to report the wrong
+            # throughput. So here we're getting rid of these values.
             scalar_observations = {
                 k: v
                 for k, v in scalar_observations.items()
@@ -1237,6 +1243,8 @@ class SFTTrainer(ActuatorBase):
                 not in [
                     "train_tokens_per_second",
                     "train_tokens_per_gpu_per_second",
+                    "train_samples_per_second",
+                    "train_steps_per_second",
                 ]
             }
 

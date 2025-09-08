@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import copy
+import enum
+import functools
 import logging
 import sys
 import time
 import typing
+
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 
 if typing.TYPE_CHECKING:
     from .callbacks import metrics_tracker
@@ -30,7 +34,7 @@ class ExperimentError(Exception):
     Create more exceptions that inherit this one. Only have 1 parameter to the __init__() method and make sure
     you return a human-readable string in your `__str__()` implementation.
 
-    If you include more than 1 parameters to your __init__() method make sure you **only** raise your exception
+    If you include more than 1 parameter to your __init__() method make sure you **only** raise your exception
     by using positional parameters instead of named ones. Otherwise, ray will raise this kind of exceptions when
     pickling/unpickling your exceptions:
 
@@ -225,6 +229,19 @@ class FineTuneArgs:
             "The check is performed after the end of each training step."
         },
     )
+
+    auto_stop_method: constants.AutoStopMethod | None = dataclasses.field(
+        default=None,
+        metadata={
+            "help": "The default value is `None`. This parameter defines the method used to automatically "
+            "stop the fine-tuning job. Supported values are `WARMUP_60S_STABLE_120S_OR_10_STEPS` and "
+            "`None`. If set to `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least "
+            "60 seconds in the warmup phase plus the longer of 120 seconds or the duration of 10 "
+            "optimization steps. This method excludes the first 60 seconds of training when calculating "
+            "throughput and system metrics."
+        },
+    )
+
     peft_method: str | None = dataclasses.field(
         default="pt",
         metadata={
@@ -639,13 +656,18 @@ def _finetune_launch_kernel(
     cmdline_args["aim_metadata_path"] = aim_metadata_path
 
     for key, value in cmdline_args.items():
-        if isinstance(value, dict):
+        if isinstance(value, enum.Enum):
+            command.extend((f"--{key}", value.value))
+        elif isinstance(value, dict):
             # VV: see https://github.com/huggingface/transformers/pull/30227/
             command.extend((f"--{key}", json.dumps(value)))
         elif isinstance(value, list) and not isinstance(value, str):
             # VV: this is to convert things like `target_modules = ["q_proj", "c_proj"]`
             # into `--target_modules q_proj c_proj`
-            command.extend([f"--{key}"] + [str(x) for x in value])
+            command.extend(
+                [f"--{key}"]
+                + [x.value if isinstance(x, enum.Enum) else str(x) for x in value]
+            )
         else:
             command.extend((f"--{key}", str(value)))
 
@@ -742,25 +764,30 @@ def _finetune_launch_kernel(
 
 def _update_num_tokens_cache_for_model_and_dataset(
     cache_file: str,
-    num_tokens: list[int],
+    tokens_per_sample: list[int],
     model_id: str,
     path_data: str,
 ):
     import json
+
+    parent_dir = os.path.dirname(cache_file)
 
     log = logging.getLogger("tokens_cache")
     # VV: We know that we'd like to use the cache and that we could not find
     # useful data in it. Therefore, we populate the relevant cache file here
     try:
         for _ in range(5):
+            if not os.path.isdir(parent_dir):
+                os.makedirs(parent_dir, exist_ok=True)
+
             with open(cache_file, "w") as f:
-                json.dump(num_tokens, f)
+                json.dump(tokens_per_sample, f)
             # VV: Verify that we actually stored what we think we stored (there could be multiple
             # tasks populating the cache and them corrupting each other's results)
             with open(cache_file) as f:
                 fresh = json.load(f)
 
-            if fresh == num_tokens:
+            if fresh == tokens_per_sample:
                 log.info(f"Populated the cache file {cache_file} successfully")
                 break
             log.warning(
@@ -777,45 +804,18 @@ def _update_num_tokens_cache_for_model_and_dataset(
 
 def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
+    cache_file: str,
     model_id: str | None,
     num_tokens_cache_dir: str | None,
-) -> tuple[str | None, list[int]]:
+) -> list[int]:
     import json
 
     num_tokens = []
-    cache_file = None
 
     log = logging.getLogger("sft_trainer:cache")
 
     try:
         os.makedirs(num_tokens_cache_dir, exist_ok=True)
-
-        # VV: since we may update the contents of a dataset
-        # we use the md5 hash of the file as part of the cache id
-        import hashlib
-
-        digest = hashlib.md5()
-
-        with open(path_data, "rb") as f:
-            b = f.read(32768)
-            while b:
-                digest.update(b)
-                b = f.read(32768)
-
-        ds_name = os.path.splitext(os.path.basename(path_data))[0]
-        cache_file = os.path.join(
-            num_tokens_cache_dir,
-            ".".join(
-                (
-                    "num-tokens",
-                    model_id,
-                    "for",
-                    ds_name,
-                    digest.hexdigest(),
-                    "json",
-                )
-            ),
-        )
 
         with open(cache_file, "rb") as f:
             num_tokens = json.load(f)
@@ -829,7 +829,7 @@ def _load_num_tokens_cache_for_model_and_dataset(
         )
     except FileNotFoundError:
         log.info(
-            f"No cached number of tokens with tokenizer {model_id} and dataset {path_data}"
+            f"No cached number of tokens with tokenizer {model_id} and dataset {path_data} in {cache_file}"
         )
     except Exception as e:
         log.info(
@@ -837,7 +837,7 @@ def _load_num_tokens_cache_for_model_and_dataset(
             f"the tokenizer of {model_id} for dataset {path_data}",
         )
 
-    return cache_file, num_tokens
+    return num_tokens
 
 
 def calculate_tokens_in_image_text_dataset(
@@ -921,6 +921,137 @@ def calculate_tokens_in_text_dataset(
     return num_tokens
 
 
+@functools.cache
+def get_cache_file_for_tokens_per_sample(
+    path_data: str,
+    num_tokens_cache_dir: str | None,
+    model_id: str,
+) -> str | None:
+    if num_tokens_cache_dir is None:
+        return None
+
+    # VV: since we may update the contents of a dataset
+    # we use the md5 hash of the file as part of the cache id
+    import hashlib
+
+    digest = hashlib.md5()
+
+    with open(path_data, "rb") as f:
+        b = f.read(32768)
+        while b:
+            digest.update(b)
+            b = f.read(32768)
+
+    ds_name = os.path.splitext(os.path.basename(path_data))[0]
+
+    return os.path.join(
+        num_tokens_cache_dir,
+        ".".join(
+            (
+                "num-tokens",
+                model_id,
+                "for",
+                ds_name,
+                digest.hexdigest(),
+                "json",
+            )
+        ),
+    )
+
+
+def get_tokens_per_sample_in_dataset(
+    path_model: str,
+    path_data: str,
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
+    dataset_text_field: str,
+):
+    """Returns the tokens per sample for each sample in a dataset
+
+    Args:
+        path_model:
+            path or name of model, the method uses the model's tokenizer
+        path_data:
+            path to the dataset
+        model_id:
+            the identifier of the model (i.e. the name that the SFTTrainer actuator uses to refer to1 his model)
+        num_tokens_cache_dir:
+            directory in which we store cached information about the number of tokens for
+            the entries of a dataset. If this is not None and there's no cache file already, then this method
+            will produce one
+        dataset_text_field:
+            Training dataset text field containing single sequence.  Either the dataset_text_field
+            or data_formatter_template need to be supplied.
+            For running vision language model tuning pass the column name for text data.
+    Returns:
+        An array containing the number of samples for each sample in a dataset
+    """
+    log = logging.getLogger("sft_trainer")
+    # VV: Calculating the tokens for every measurement can be expensive, so we use a cache of number of tokens
+    cache_file = get_cache_file_for_tokens_per_sample(
+        path_data=path_data,
+        num_tokens_cache_dir=num_tokens_cache_dir,
+        model_id=model_id,
+    )
+    tokens_per_sample = []
+
+    if cache_file and os.path.exists(cache_file):
+        start = time.time()
+        tokens_per_sample = _load_num_tokens_cache_for_model_and_dataset(
+            path_data=path_data,
+            model_id=model_id,
+            cache_file=cache_file,
+            num_tokens_cache_dir=num_tokens_cache_dir,
+        )
+        log.warning(
+            f"It took {time.time() - start} seconds to search/load the num_tokens cache"
+        )
+
+    if not tokens_per_sample:
+        start = time.time()
+        if cache_file:
+            log.info(
+                "Will tokenize the dataset and cache the results to speedup future measurements"
+            )
+        else:
+            log.info(
+                "Will tokenize the dataset but the cache is disabled, future measurements will "
+                "also tokenize the dataset"
+            )
+        if path_data.endswith(".jsonl"):
+            tokens_per_sample = calculate_tokens_in_text_dataset(
+                path_model=path_model,
+                path_data=path_data,
+            )
+        elif path_data.endswith(".parquet"):
+            tokens_per_sample = calculate_tokens_in_image_text_dataset(
+                path_model=path_model,
+                path_data=path_data,
+                dataset_text_field=dataset_text_field,
+            )
+        else:
+            raise NotImplementedError(
+                f"Unsupported file extension for dataset {path_data}"
+            )
+
+        log.debug(
+            f"It took {time.time() - start} seconds to tokenize the dataset {path_data} "
+            f"with the tokenizer of {model_id}"
+        )
+
+        if cache_file and tokens_per_sample:
+            _update_num_tokens_cache_for_model_and_dataset(
+                cache_file=cache_file,
+                tokens_per_sample=tokens_per_sample,
+                model_id=model_id,
+                path_data=path_data,
+            )
+        else:
+            log.info(f"Will not cache the tokens_per_sample in {cache_file}")
+
+    return tokens_per_sample
+
+
 def tokenize_text(
     path_model: str,
     path_data: str,
@@ -928,6 +1059,7 @@ def tokenize_text(
     model_id: str | None,
     num_tokens_cache_dir: str | None,
     num_entries: int,
+    skip_entries: int,
     dataset_text_field: str,
 ):
     """Counts the tokens in a dataset that was used to train a model
@@ -951,6 +1083,8 @@ def tokenize_text(
             How many entries of the dataset to consider during the computation of the number of tokens
             in the dataset. If this value is less than 0 then num_entries is set to the total number of entries
             in the dataset
+        skip_entries:
+            Number of first entries to skip. For example, to account for a warmup phase
         dataset_text_field:
             Training dataset text field containing single sequence.  Either the dataset_text_field
             or data_formatter_template need to be supplied.
@@ -958,7 +1092,6 @@ def tokenize_text(
     Returns:
         How many tokens were used to train a model
     """
-
     from transformers import AutoTokenizer
 
     log = logging.getLogger("sft_trainer")
@@ -966,71 +1099,62 @@ def tokenize_text(
         f"Tokenizing dataset {path_data} for model {path_model} with num_entries={num_entries}"
     )
 
-    # VV: Calculating the tokens for every measurement can be expensive, so we use a cache of number of tokens
-    cache_file = None
-    num_tokens = []
-    if num_tokens_cache_dir and model_id:
-        start = time.time()
-        cache_file, num_tokens = _load_num_tokens_cache_for_model_and_dataset(
-            path_data=path_data,
-            model_id=model_id,
-            num_tokens_cache_dir=num_tokens_cache_dir,
-        )
-        log.warning(
-            f"It took {time.time() - start} seconds to search/load the num_tokens cache"
-        )
-
-    if not num_tokens:
-        log = logging.getLogger("sft_trainer")
-        start = time.time()
-        if num_tokens_cache_dir:
-            log.info(
-                "Will tokenize the dataset and cache the results to speedup future measurements"
-            )
-        else:
-            log.info(
-                "Will tokenize the dataset but the cache is disabled, future measurements will "
-                "also tokenize the dataset"
-            )
-        if path_data.endswith(".jsonl"):
-            num_tokens = calculate_tokens_in_text_dataset(
-                path_model=path_model,
-                path_data=path_data,
-            )
-        elif path_data.endswith(".parquet"):
-            num_tokens = calculate_tokens_in_image_text_dataset(
-                path_model=path_model,
-                path_data=path_data,
-                dataset_text_field=dataset_text_field,
-            )
-        else:
-            raise NotImplementedError(
-                f"Unsupported file extension for dataset {path_data}"
-            )
-
-        log.debug(
-            f"It took {time.time() - start} seconds to tokenize the dataset {path_data} "
-            f"with the tokenizer of {model_id}"
-        )
-
-        if num_tokens_cache_dir and model_id and cache_file is not None and num_tokens:
-            _update_num_tokens_cache_for_model_and_dataset(
-                cache_file=cache_file,
-                num_tokens=num_tokens,
-                model_id=model_id,
-                path_data=path_data,
-            )
-        else:
-            log.info(f"Will not cache the tokens {cache_file} {model_id}")
+    tokens_per_sample = get_tokens_per_sample_in_dataset(
+        path_model=path_model,
+        path_data=path_data,
+        model_id=model_id,
+        num_tokens_cache_dir=num_tokens_cache_dir,
+        dataset_text_field=dataset_text_field,
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(path_model)
     # VV: When a model doesn't have an inherent model_max_length HF sets this value to `VERY_LARGE_INTEGER=1e30`
     tokenizer_model_max_length = tokenizer.model_max_length
 
     if num_entries < 0:
-        num_entries = len(num_tokens)
+        num_entries = len(tokens_per_sample)
 
-    full_epochs = num_entries // len(num_tokens)
+    all_tokens = aggregate_tokens_of_samples(
+        tokens_per_sample=tokens_per_sample,
+        samples=num_entries,
+        max_seq_length=max_seq_length,
+        tokenizer_model_max_length=tokenizer_model_max_length,
+    )
+
+    if skip_entries:
+        all_tokens -= aggregate_tokens_of_samples(
+            tokens_per_sample=tokens_per_sample,
+            samples=skip_entries,
+            max_seq_length=max_seq_length,
+            tokenizer_model_max_length=tokenizer_model_max_length,
+        )
+
+    return all_tokens
+
+
+def aggregate_tokens_of_samples(
+    tokens_per_sample: list[int],
+    samples: int,
+    max_seq_length: int,
+    tokenizer_model_max_length: int,
+) -> int:
+    """Calculate the total number of tokens for a subset of a dataset.
+
+    Args:
+        tokens_per_sample:
+            A list where each element represents the number of tokens in a sample.
+        samples:
+            The total number of samples to aggregate.
+        max_seq_length:
+            The maximum sequence length allowed.
+        tokenizer_model_max_length:
+            The maximum length supported by the tokenizer model.
+
+    Returns:
+        int: The total number of tokens for the given samples.
+    """
+
+    full_epochs = samples // len(tokens_per_sample)
 
     sum_tokens = 0
 
@@ -1038,15 +1162,15 @@ def tokenize_text(
         sum_tokens = (
             sum(
                 min(entry, max_seq_length, tokenizer_model_max_length)
-                for entry in num_tokens
+                for entry in tokens_per_sample
             )
             * full_epochs
         )
 
-    if num_entries % len(num_tokens) != 0:
+    if samples % len(tokens_per_sample) != 0:
         sum_tokens += sum(
             min(entry, max_seq_length, tokenizer_model_max_length)
-            for entry in num_tokens[: (num_entries % len(num_tokens))]
+            for entry in tokens_per_sample[: (samples % len(tokens_per_sample))]
         )
 
     return sum_tokens
@@ -1094,6 +1218,12 @@ def launch_finetune(
             entries_in_one_step_on_one_machine * multi_node.num_machines
         ) * metrics.training_steps
 
+        # VV: We want to get rid of the first X entries which correspond to optimization steps
+        # that took place during warmup
+        skip_entries = (
+            entries_in_one_step_on_one_machine * multi_node.num_machines
+        ) * (metrics.post_warmup_index_for_stable_properties or 0)
+
         ds = tokenize_text(
             path_model=args.model_name_or_path,
             path_data=args.training_data_path,
@@ -1101,6 +1231,7 @@ def launch_finetune(
             num_tokens_cache_dir=num_tokens_cache_dir,
             model_id=model_id,
             num_entries=num_entries,
+            skip_entries=skip_entries,
             dataset_text_field=args.dataset_text_field or "output",
         )
 

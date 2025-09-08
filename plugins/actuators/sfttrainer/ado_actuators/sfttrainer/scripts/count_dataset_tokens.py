@@ -4,8 +4,8 @@
 import json
 import logging
 import os
-import time
 
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.finetune as finetune
 import ray
 
 logging.basicConfig(level=10)
@@ -55,205 +55,7 @@ example output:
 """
 
 
-def _update_num_tokens_cache_for_model_and_dataset(
-    cache_file: str,
-    num_tokens: list[int],
-    model_id: str,
-    path_data: str,
-):
-    import json
-
-    logger = logging.getLogger("sft_trainer:cache")
-
-    # VV: We know that we'd like to use the cache and that we could not find
-    # useful data in it. Therefore, we populate the relevant cache file here
-    try:
-        for _ in range(5):
-            with open(cache_file, "w") as f:
-                json.dump(num_tokens, f)
-            # VV: Verify that we actually stored what we think we stored (there could be multiple
-            # tasks populating the cache and them corrupting each other's results)
-            with open(cache_file) as f:
-                fresh = json.load(f)
-
-            if fresh == num_tokens:
-                logger.info(f"Populated the cache file {cache_file} successfully")
-                break
-            logger.warning(
-                f"The cache file {cache_file} is corrupted, will try to recreate"
-            )
-            time.sleep(5)
-
-    except Exception as e:
-        logger.warning(
-            f"Could not cache the num tokens using the tokenizer of {model_id} for dataset {path_data} due to {e}"
-        )
-
-
-def _load_num_tokens_cache_for_model_and_dataset(
-    path_data: str,
-    model_id: str | None,
-    num_tokens_cache_dir: str | None,
-) -> tuple[str | None, list[int]]:
-    import json
-
-    num_tokens = []
-    cache_file = None
-
-    logger = logging.getLogger("sft_trainer:cache")
-
-    try:
-        os.makedirs(num_tokens_cache_dir, exist_ok=True)
-
-        # VV: since we may update the contents of a dataset
-        # we use the md5 hash of the file as part of the cache id
-        import hashlib
-
-        digest = hashlib.md5()
-
-        with open(path_data, "rb") as f:
-            b = f.read(32768)
-            while b:
-                digest.update(b)
-                b = f.read(32768)
-
-        ds_name = os.path.splitext(os.path.basename(path_data))[0]
-        cache_file = os.path.join(
-            num_tokens_cache_dir,
-            ".".join(
-                (
-                    "num-tokens",
-                    model_id,
-                    "for",
-                    ds_name,
-                    digest.hexdigest(),
-                    "json",
-                )
-            ),
-        )
-
-        with open(cache_file, "rb") as f:
-            num_tokens = json.load(f)
-            if isinstance(num_tokens, list) is False:
-                raise NotImplementedError(
-                    f"Unknown type of num_tokens {type(num_tokens)}"
-                )
-
-        logger.info(
-            f"Loaded cached num_tokens with tokenizer {model_id} and dataset {path_data}"
-        )
-    except FileNotFoundError:
-        logger.info(
-            f"No cached number of tokens with tokenizer {model_id} and dataset {path_data}"
-        )
-    except Exception as e:
-        logger.warning(
-            f"Could not parse the cached num tokens due to {e} - will compute number of tokens using "
-            f"the tokenizer of {model_id} for dataset {path_data}"
-        )
-
-    return cache_file, num_tokens
-
-
-def _get_tokens_of_dataset_entries(
-    path_model: str,
-    path_data: str,
-    model_id: str | None,
-    num_tokens_cache_dir: str | None,
-) -> list[int]:
-    from transformers import AutoTokenizer
-
-    tokenizer = AutoTokenizer.from_pretrained(path_model)
-    special_tokens_dict = {}
-    logger = logging.getLogger("sft_trainer")
-
-    DEFAULT_PAD_TOKEN = "<PAD>"
-    DEFAULT_EOS_TOKEN = "</s>"
-    DEFAULT_BOS_TOKEN = "<s>"
-    DEFAULT_UNK_TOKEN = "<unk>"
-
-    if tokenizer.pad_token is None:
-        logger.warning("PAD token set to default, missing in tokenizer")
-        special_tokens_dict["pad_token"] = DEFAULT_PAD_TOKEN
-    if tokenizer.eos_token is None:
-        logger.warning("EOS token set to default, missing in tokenizer")
-        special_tokens_dict["eos_token"] = DEFAULT_EOS_TOKEN
-    if tokenizer.bos_token is None:
-        logger.warning("BOS token set to default, missing in tokenizer")
-        special_tokens_dict["bos_token"] = DEFAULT_BOS_TOKEN
-    if tokenizer.unk_token is None:
-        logger.warning("UNK token set to default, missing in tokenizer")
-        special_tokens_dict["unk_token"] = DEFAULT_UNK_TOKEN
-
-    tokenizer.add_special_tokens(special_tokens_dict)
-    import json
-
-    # VV: It can be **pretty** expensive to tokenize the input dataset so we use a cache
-    # to store the number of tokens per entry of a dataset based on the tokenizer of a model
-    num_tokens = []
-    cache_file = None
-
-    import time
-
-    if num_tokens_cache_dir and model_id:
-        start = time.time()
-        cache_file, num_tokens = _load_num_tokens_cache_for_model_and_dataset(
-            path_data=path_data,
-            model_id=model_id,
-            num_tokens_cache_dir=num_tokens_cache_dir,
-        )
-        logger.info(
-            f"It took {time.time() - start} seconds to search/load the num_tokens cache"
-        )
-
-    generated_tokens = False
-
-    if not num_tokens:
-        if cache_file is not None:
-            logger.info(
-                "Will tokenize the dataset and cache the results to speedup future measurements"
-            )
-        else:
-            logger.info(
-                "Will tokenize the dataset but the cache is disabled, future measurements will "
-                "also tokenize the dataset"
-            )
-
-        # VV: Either the cache was empty, not found, or contained invalid data
-        start = time.time()
-        with open(path_data) as f:
-            for line in f:
-                data = json.loads(line)
-                decoded = tokenizer.encode(data["output"], padding=True)
-                num_tokens.append(len(decoded))
-                del decoded
-
-        logger.debug(
-            f"It took {time.time() - start} seconds to tokenize the dataset {path_data} "
-            f"with the tokenizer of {model_id}"
-        )
-        generated_tokens = True
-
-    if (
-        num_tokens_cache_dir
-        and model_id
-        and cache_file is not None
-        and generated_tokens
-    ):
-        _update_num_tokens_cache_for_model_and_dataset(
-            cache_file=cache_file,
-            num_tokens=num_tokens,
-            model_id=model_id,
-            path_data=path_data,
-        )
-    else:
-        logger.info(f"Will not cache the tokens {cache_file} {model_id}")
-
-    return num_tokens
-
-
 @ray.remote(
-    resources={"Tesla-V100-PCIE-16GB": 1},
     runtime_env={
         "env_vars": {
             "LOG_LEVEL": "debug",
@@ -268,11 +70,12 @@ def tokenize_text(
     model_id: str | None,
     num_tokens_cache_dir: str | None,
 ):
-    num_tokens = _get_tokens_of_dataset_entries(
+    num_tokens = finetune.get_tokens_per_sample_in_dataset(
         path_model=path_model,
         path_data=path_data,
         model_id=model_id,
         num_tokens_cache_dir=num_tokens_cache_dir,
+        dataset_text_field="output",
     )
 
     sum_tokens = sum(num_tokens)

@@ -15,6 +15,7 @@ class ModuleTypeEnum(enum.Enum):
     ACTUATOR = "actuator"
     SAMPLE_STORE = "sample_store"
     GENERIC = "generic"
+    SAMPLER = "sampler"
 
 
 class ModuleConf(pydantic.BaseModel):
@@ -158,7 +159,14 @@ def load_module_class_or_function(conf: ModuleConf):
     Returns:
         The module class or function
 
+    Raises: ValueError if no class/function found matching conf
+
     """
 
     attribute = conf.moduleClass if conf.moduleClass else conf.moduleFunction
-    return getattr(load_module(conf), attribute)
+    try:
+        retval = getattr(load_module(conf), attribute)
+    except AttributeError as error:
+        raise ValueError(f"Unable to load class or function from {conf}") from error
+
+    return retval

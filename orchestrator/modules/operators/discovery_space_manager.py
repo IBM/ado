@@ -232,6 +232,7 @@ class DiscoverySpaceManager:
         monitoringError = False
         self.log.debug("Beginning observation of measurement queue")
         while self.isalive:
+            measurement_request: MeasurementRequest | None = None
             try:
                 self.log.debug("Waiting for new measurement")
                 measurement_request = await self._measurement_queue.get_async(

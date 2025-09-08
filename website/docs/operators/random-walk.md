@@ -77,11 +77,12 @@ The parameters for a RandomWalk are (default values shown):
 
 <!-- markdownlint-disable line-length -->
 ```yaml
-numberEntities: 1 # The maximum number of entities to sample. Can also be the string "all" - see "Sampling all Entities".
-batchSize: 1 # The Number of entities in the initial batch. For more on this see "Batch Size and Concurrent Experiments" below
-mode: random # How to sample - can be random, sequential, sequentialgrouped or randomgrouped. sequential requires the sampling supports sequencing entities
-samplerType: selector # How to sample entities. Can be selector or generator. For more see Sampling Types and Modes below
-grouping: [] # If the mode sequentialgrouped or randomgrouped this is a list of constitutive properties identifiers to group the entities by
+numberEntities: 1 # The maximum number of entities to sample. Can also be the string "all" - see "Sampling all Entities". 
+batchSize: 1  # The Number of entities in the initial batch. For more on this see "Batch Size and Concurrent Experiments" below
+samplerConfig:
+  mode: random # How to sample - can be random, sequential, sequentialgrouped or randomgrouped. sequential requires the sampling supports sequencing entities
+  samplerType: selector # How to sample entities. Can be selector or generator. For more see Sampling Types and Modes below
+  grouping: [] # If the mode sequentialgrouped or randomgrouped this is a list of constitutive properties identifiers to group the entities by
 singleMeasurement: true # If true memoization is used. If false already measured entities will be re-measured. For more see Multiple Measurement below
 maxRetries: 0 # The number of times to retry a failed measurement on an entity. See Retrying Failed Measurements below.
 filter:
@@ -102,9 +103,10 @@ operation:
     operatorType: explore
   parameters:
     batchSize: 1
-    mode: random
+    samplerConfig:
+      mode: random
+      samplerType: selector
     numberEntities: 1
-    samplerType: selector
     singleMeasurement: true
     filter:
       filterMode: unmeasured
@@ -140,7 +142,17 @@ this many concurrent experiment requests during the operation.
     Hence continuous batching can only maintain that there are 
     N experiments requested at any time.
 
-### Sampling Types and Modes
+### Base Sampling Types and Modes
+
+The `samplerConfig` field controls how Entities are sampled during the
+operation. The base `samplerConfig` is shown in the examples above and has the
+following fields and defaults:
+
+```yaml
+ mode: random 
+ samplerType: selector 
+ grouping: [] 
+```
 
 #### Sampling Types
 
@@ -241,17 +253,72 @@ operation:
     operatorType: explore
   parameters:
     batchSize: 1
-    grouping:
-      - $CONSTITUTIVE_PROPERTY_ONE
-      - $CONSTITUTIVE_PROPERTY_TWO
-    mode: sequentialgrouped
+    samplerConfig:
+      samplerType: generator
+      grouping:
+        - $CONSTITUTIVE_PROPERTY_ONE
+        - $CONSTITUTIVE_PROPERTY_TWO
+      mode: sequentialgrouped
     numberEntities: 1
-    samplerType: generator
+
     singleMeasurement: true
     filter:
       filterMode: unmeasured
 spaces:
   - your-spaces
+```
+
+### Custom Samplers
+
+It is also possible to specify that `random_walk` uses a custom sampler. This is
+a class that inherits from `orchestrator.core.discovery.samplers.BaseSampler`.
+This is useful for implementing more complex sampling schemes. For example, for
+developers who want to use random_walk to drive an exploration but have custom
+logic to execute before choosing each sample/entity.
+
+For custom samplers the `samplerConfig` field has the following structure:
+
+<!-- markdownlint-disable line-length -->
+```yaml
+module:
+  moduleClass: #The name of the custom sampler class
+  moduleName: #The name of the python module containing the sampler
+parameters: # A dictionary of key value pairs with the values for the custom samplers input parameters 
+  ...
+```
+<!-- markdownlint-enable line-length -->
+
+#### Implementing a Custom Sampler
+
+To implement a custom sampler create a sub-class of `orchestrator.core.discovery.samplers.BaseSampler`
+and implement all required methods
+
+The `BaseSampler` class does not specify any `__init__` parameters.
+If your custom class requires initialization parameters then
+
+- define a pydantic model for them
+- override the `parameters_model` class method to return this model
+- add a non key-word parameter to your custom classes `__init__` that is this type.
+
+For example:
+
+```python
+# Class for the custom samplers parameters
+class MySamplerParams(BaseModel): 
+   ...
+
+# Subclass of BaseSampler implementing the custom sampling logic
+class MySampler(BaseSampler):
+
+    @classmethod
+    def parameters_model(cls) -> Optional[Type[BaseModel]]:
+        
+        # Return the custom samplers parameters model
+        return MySamplerParams
+    
+    # Add an init arg to take the parameters model
+    def __init__(self, parameters: MySamplerParams):
+         ...
 ```
 
 ### Sampling all Entities

@@ -429,13 +429,15 @@ experiment.
 
     operation:
       module:
-        moduleClass: "RandomWalk"
+        operatorName: "random_walk"
+        operationType: "search"
       parameters:
         numberEntities: all
         singleMeasurement: True
-        mode: sequential
-        samplerType: generator
         batchSize: 1 # you may increase this number if you have more than 1 GPU
+        samplerConfig:
+          mode: sequential
+          samplerType: generator
     ```
 
 2. Replace the placeholders with your `discoveryspace` ID and

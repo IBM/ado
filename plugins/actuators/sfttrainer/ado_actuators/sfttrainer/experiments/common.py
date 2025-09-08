@@ -13,6 +13,7 @@ import logging
 import os
 import typing
 
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import pydantic
 import pydantic.fields
 import pydantic_core
@@ -185,6 +186,7 @@ def get_default_measured_properties() -> list[str]:
         "cpu_compute_utilization",
         "cpu_memory_utilization",
         "train_runtime",
+        # VV: the next 4 are inaccurate when terminating the job early
         "train_samples_per_second",
         "train_steps_per_second",
         "train_tokens_per_second",
@@ -645,7 +647,9 @@ def generate_parameterisable_finetune_experiment(
 class SFTTrainerCLIArgs(pydantic.BaseModel):
     """These are Entity properties which map to a CLI arg"""
 
-    model_config = pydantic.ConfigDict(extra="forbid", protected_namespaces=())
+    model_config = pydantic.ConfigDict(
+        extra="forbid", protected_namespaces=(), use_enum_values=True
+    )
 
     # VV: If you're updating these, then make sure you also update domain_for_constitutive_property()
     # the code uses `examples` to populate the categorical values of the constitutive property's domain
@@ -711,6 +715,20 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
         examples=[-1, 60 * 10],
         description="If set, the optimizer will be asked to stop after the specified time elapses. "
         "The check is performed after the end of each training step.",
+    )
+
+    auto_stop_method: constants.AutoStopMethod | None = pydantic.Field(
+        default=None,
+        examples=[
+            constants.AutoStopMethod.WARMUP_60S_STABLE_120S_OR_10_STEPS.value,
+            None,
+        ],
+        description="The default value is `None`. This parameter defines the method used to automatically "
+        "stop the fine-tuning job. Supported values are `WARMUP_60S_STABLE_120S_OR_10_STEPS` and "
+        "`None`. If set to `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least "
+        "60 seconds in the warmup phase plus the longer of 120 seconds or the duration of 10 "
+        "optimization steps. This method excludes the first 60 seconds of training when calculating "
+        "throughput and system metrics.",
     )
 
     # VV: lora specific parameters

@@ -12,9 +12,10 @@ operation:
     operationType: "search"
   parameters:
     tuneConfig:
-      search_alg: 
-        name: ax
+      search_alg:
+        name: nevergrad
         params:
+          optimizer: "CMA"
           points_to_evaluate:
             - provider: A
               cpu_family: 0

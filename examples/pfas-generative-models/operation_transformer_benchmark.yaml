@@ -10,4 +10,5 @@ operation:
   parameters:
     numberEntities: 43000
     batchSize: 1000
-    mode: 'sequential'
+    samplerConfig:
+      mode: sequential

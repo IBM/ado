@@ -770,11 +770,16 @@ def _update_num_tokens_cache_for_model_and_dataset(
 ):
     import json
 
+    parent_dir = os.path.dirname(cache_file)
+
     log = logging.getLogger("tokens_cache")
     # VV: We know that we'd like to use the cache and that we could not find
     # useful data in it. Therefore, we populate the relevant cache file here
     try:
         for _ in range(5):
+            if not os.path.isdir(parent_dir):
+                os.makedirs(parent_dir, exist_ok=True)
+
             with open(cache_file, "w") as f:
                 json.dump(tokens_per_sample, f)
             # VV: Verify that we actually stored what we think we stored (there could be multiple
@@ -954,54 +959,34 @@ def get_cache_file_for_tokens_per_sample(
     )
 
 
-def tokenize_text(
+def get_tokens_per_sample_in_dataset(
     path_model: str,
     path_data: str,
-    max_seq_length: int,
     model_id: str | None,
     num_tokens_cache_dir: str | None,
-    num_entries: int,
-    skip_entries: int,
     dataset_text_field: str,
 ):
-    """Counts the tokens in a dataset that was used to train a model
-
-    This method takes into account how many entries the experiment processed
+    """Returns the tokens per sample for each sample in a dataset
 
     Args:
         path_model:
             path or name of model, the method uses the model's tokenizer
         path_data:
             path to the dataset
-        max_seq_length:
-            the size of the context (i.e. the param of --max_seq_length for sft_trainer.py)
         model_id:
             the identifier of the model (i.e. the name that the SFTTrainer actuator uses to refer to1 his model)
         num_tokens_cache_dir:
             directory in which we store cached information about the number of tokens for
             the entries of a dataset. If this is not None and there's no cache file already, then this method
             will produce one
-        num_entries:
-            How many entries of the dataset to consider during the computation of the number of tokens
-            in the dataset. If this value is less than 0 then num_entries is set to the total number of entries
-            in the dataset
-        skip_entries:
-            Number of first entries to skip. For example, to account for a warmup phase
         dataset_text_field:
             Training dataset text field containing single sequence.  Either the dataset_text_field
             or data_formatter_template need to be supplied.
             For running vision language model tuning pass the column name for text data.
     Returns:
-        How many tokens were used to train a model
+        An array containing the number of samples for each sample in a dataset
     """
-
-    from transformers import AutoTokenizer
-
     log = logging.getLogger("sft_trainer")
-    log.info(
-        f"Tokenizing dataset {path_data} for model {path_model} with num_entries={num_entries}"
-    )
-
     # VV: Calculating the tokens for every measurement can be expensive, so we use a cache of number of tokens
     cache_file = get_cache_file_for_tokens_per_sample(
         path_data=path_data,
@@ -1023,7 +1008,6 @@ def tokenize_text(
         )
 
     if not tokens_per_sample:
-        log = logging.getLogger("sft_trainer")
         start = time.time()
         if cache_file:
             log.info(
@@ -1064,6 +1048,64 @@ def tokenize_text(
             )
         else:
             log.info(f"Will not cache the tokens_per_sample in {cache_file}")
+
+    return tokens_per_sample
+
+
+def tokenize_text(
+    path_model: str,
+    path_data: str,
+    max_seq_length: int,
+    model_id: str | None,
+    num_tokens_cache_dir: str | None,
+    num_entries: int,
+    skip_entries: int,
+    dataset_text_field: str,
+):
+    """Counts the tokens in a dataset that was used to train a model
+
+    This method takes into account how many entries the experiment processed
+
+    Args:
+        path_model:
+            path or name of model, the method uses the model's tokenizer
+        path_data:
+            path to the dataset
+        max_seq_length:
+            the size of the context (i.e. the param of --max_seq_length for sft_trainer.py)
+        model_id:
+            the identifier of the model (i.e. the name that the SFTTrainer actuator uses to refer to1 his model)
+        num_tokens_cache_dir:
+            directory in which we store cached information about the number of tokens for
+            the entries of a dataset. If this is not None and there's no cache file already, then this method
+            will produce one
+        num_entries:
+            How many entries of the dataset to consider during the computation of the number of tokens
+            in the dataset. If this value is less than 0 then num_entries is set to the total number of entries
+            in the dataset
+        skip_entries:
+            Number of first entries to skip. For example, to account for a warmup phase
+        dataset_text_field:
+            Training dataset text field containing single sequence.  Either the dataset_text_field
+            or data_formatter_template need to be supplied.
+            For running vision language model tuning pass the column name for text data.
+    Returns:
+        How many tokens were used to train a model
+    """
+    from transformers import AutoTokenizer
+
+    log = logging.getLogger("sft_trainer")
+    log.info(
+        f"Tokenizing dataset {path_data} for model {path_model} with num_entries={num_entries}"
+    )
+
+    tokens_per_sample = get_tokens_per_sample_in_dataset(
+        path_model=path_model,
+        path_data=path_data,
+        model_id=model_id,
+        num_tokens_cache_dir=num_tokens_cache_dir,
+        dataset_text_field=dataset_text_field,
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(path_model)
     # VV: When a model doesn't have an inherent model_max_length HF sets this value to `VERY_LARGE_INTEGER=1e30`

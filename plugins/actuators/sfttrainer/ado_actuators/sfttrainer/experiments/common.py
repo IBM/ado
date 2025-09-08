@@ -13,6 +13,7 @@ import logging
 import os
 import typing
 
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import pydantic
 import pydantic.fields
 import pydantic_core
@@ -646,7 +647,9 @@ def generate_parameterisable_finetune_experiment(
 class SFTTrainerCLIArgs(pydantic.BaseModel):
     """These are Entity properties which map to a CLI arg"""
 
-    model_config = pydantic.ConfigDict(extra="forbid", protected_namespaces=())
+    model_config = pydantic.ConfigDict(
+        extra="forbid", protected_namespaces=(), use_enum_values=True
+    )
 
     # VV: If you're updating these, then make sure you also update domain_for_constitutive_property()
     # the code uses `examples` to populate the categorical values of the constitutive property's domain
@@ -714,9 +717,12 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
         "The check is performed after the end of each training step.",
     )
 
-    auto_stop_method: int | None = pydantic.Field(
+    auto_stop_method: constants.AutoStopMethod | None = pydantic.Field(
         default=None,
-        examples=[1, None],
+        examples=[
+            constants.AutoStopMethod.WARMUP_60S_STABLE_120S_OR_10_STEPS.value,
+            None,
+        ],
         description="This parameter defines the method used to automatically stop the fine-tuning job. "
         "If set to 1, the job stops after running for 60 seconds plus the longer of 120 seconds "
         "or the duration of 10 optimization steps. This method excludes the first 60 seconds of training "

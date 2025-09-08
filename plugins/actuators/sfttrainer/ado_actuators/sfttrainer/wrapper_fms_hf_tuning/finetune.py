@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import enum
 import functools
 import logging
 import sys
@@ -651,13 +652,18 @@ def _finetune_launch_kernel(
     cmdline_args["aim_metadata_path"] = aim_metadata_path
 
     for key, value in cmdline_args.items():
-        if isinstance(value, dict):
+        if isinstance(value, enum.Enum):
+            command.extend((f"--{key}", value.value))
+        elif isinstance(value, dict):
             # VV: see https://github.com/huggingface/transformers/pull/30227/
             command.extend((f"--{key}", json.dumps(value)))
         elif isinstance(value, list) and not isinstance(value, str):
             # VV: this is to convert things like `target_modules = ["q_proj", "c_proj"]`
             # into `--target_modules q_proj c_proj`
-            command.extend([f"--{key}"] + [str(x) for x in value])
+            command.extend(
+                [f"--{key}"]
+                + [x.value if isinstance(x, enum.Enum) else str(x) for x in value]
+            )
         else:
             command.extend((f"--{key}", str(value)))
 

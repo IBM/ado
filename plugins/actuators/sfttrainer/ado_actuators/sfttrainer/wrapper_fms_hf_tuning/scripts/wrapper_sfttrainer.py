@@ -20,6 +20,7 @@ import typing
 # Standard
 from typing import Any
 
+import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import aim
 
@@ -200,7 +201,7 @@ class CustomAimCallback(AimCallback):
         aim_info_aggregate_metrics: bool = False,
         aim_metadata: dict[str, Any] | None = None,
         stop_after_seconds: float = -1.0,
-        auto_stop_method: int | None = None,
+        auto_stop_method: constants.AutoStopMethod | None = None,
     ):
 
         self._additional_metrics = additional_metrics or {}
@@ -213,10 +214,8 @@ class CustomAimCallback(AimCallback):
 
         self._optimization_step_started: datetime.datetime | None = None
 
-        # VV: When auto_stop_method is not None, we will also maintain a list of the durations of each
-        # optimization step. At the end of each optimization step we'll invoke the auto stop method.
-        # If the auto stop method signals that training should stop we will also drop the system metrics we extracted
-        # during the warmup phase.
+        # VV: When auto_stop_method = WARMUP_60S_STABLE_120S_OR_10_STEPS, this ivar will (eventually) be the
+        # index of the first optimization step that follows the WARMUP phase.
         self._post_warmup_optimization_step_index: int | None = None
         self._optimization_step_durations = []
         self._auto_stop_method = auto_stop_method
@@ -298,7 +297,10 @@ class CustomAimCallback(AimCallback):
             control.should_training_stop = True
 
         if self._auto_stop_method is not None:
-            if self._auto_stop_method == 1:
+            if (
+                self._auto_stop_method
+                == constants.AutoStopMethod.WARMUP_60S_STABLE_120S_OR_10_STEPS
+            ):
                 gathered_enough, post_warmup_step_idx = has_gathered_enough_samples(
                     duration_of_optimization_steps=self._optimization_step_durations,
                     warmup_seconds=60,
@@ -478,14 +480,16 @@ class CustomArgs:
         },
     )
 
-    auto_stop_method: int | None = dataclasses.field(
-        default=None,
-        metadata={
-            "help": "The method to use for automatically stopping the finetuning job. "
-            "1: Stops after the job has performed 60+max(120 seconds, duration of 10 optimization steps). "
-            "This method will ignore the first 60 seconds of the training for both the throughput and the "
-            "recorded system metrics."
-        },
+    auto_stop_method: typing.Literal["WARMUP_60S_STABLE_120S_OR_10_STEPS"] | None = (
+        dataclasses.field(
+            default=None,
+            metadata={
+                "help": "The method to use for automatically stopping the finetuning job. "
+                "1: Stops after the job has performed 60+max(120 seconds, duration of 10 optimization steps). "
+                "This method will ignore the first 60 seconds of the training for both the throughput and the "
+                "recorded system metrics."
+            },
+        )
     )
 
 

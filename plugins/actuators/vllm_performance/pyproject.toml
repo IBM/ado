@@ -33,7 +33,9 @@ dependencies = [
     "kubernetes >= 31.0.0",
     "transformers >= 4.45.0",
     "huggingface_hub",
-    "datasets"
+    "datasets",
+    "numpy>=2",
+    "vllm>=0.10.1.1"
 ]
 
 

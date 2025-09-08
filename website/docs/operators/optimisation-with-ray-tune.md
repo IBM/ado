@@ -414,8 +414,7 @@ Here is an example ray_tune `operation` YAML for finding the workload
 configuration with the fastest throughput for fine-tuning performance using the
 SFTTrainer actuator:
 
-- using the Ax optimizer with its `parameter_constraint` optimizer specific
-  parameter
+- using the Nevergrad optimizer
 - the [GrowthStopper](#growthstopper) to stop if no improvement found after 10
   steps, where improvement means a configuration that is faster by more than 20
   tokens per second
@@ -426,8 +425,6 @@ SFTTrainer actuator:
 
 <!-- markdownlint-disable line-length -->
 ```yaml
-orchestratorConfig:
-  failed_metric_value: None # This will be used for the value of "metric' for any entities where it could not be measured (for any reason)
 runtimeConfig:
   stop:
     - name: GrowthStopper
@@ -445,15 +442,14 @@ tuneConfig:
   num_samples: 50 # The number of samples to draw.
   time_budget_s: 7200
   search_alg:
-    name: bayesopt # The name of the optimization algorithm to use
+    name: nevergrad # The name of the optimization algorithm to use
     params:
+      optimizer: "CMA"
       points_to_evaluate:
         - model_name: granite-3b
           number_gpus: 4
           model_max_length: 2048
           gpu_model: A100-SXM4-80GB
-      parameter_constraints:
-        - "batch_size >= number_gpus" # Don't sample points where batch_size < number_gpus as these are invalid
 ```
 <!-- markdownlint-enable line-length -->
 

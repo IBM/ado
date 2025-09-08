@@ -81,52 +81,51 @@ Measurement Space:
 
 Sample Store identifier: &#39;85161d&#39;
 </code></pre></div> <p>Here we see,</p> <ul> <li>the Entity Space is a 3-dimensional space, with continuous dimensions, spanning [-10,10] in each dimension.</li> <li>the Measurement Space, describing the measurements to apply to each point in the space, contains one experiment - in this case the <code>custom_experiments.nevergrad_opt_3d_test_func</code>.</li> <li>The <code>custom_experiments.nevergrad_opt_3d_test_func</code> experiment defines one metric, <code>function_value</code>.</li> <li>Since the default function used by <code>custom_experiments.nevergrad_opt_3d_test_func</code> is <code>rosenbrock</code>, for a given point <code>function_value</code> will be the value of the 3d <code>rosenbrock</code> function at that point.</li> </ul> <p>Also try:</p> <div class=highlight><pre><span></span><code>ado get spaces
-</code></pre></div> <p>This will output a list of the spaces created. If this is the first time you have are following this example it will contain one entry, the identifier of the space you just created above.</p> <h3 id=run-an-optimization>Run an optimization<a class=headerlink href=#run-an-optimization title="Permanent link">&para;</a></h3> <p>The file <code>operation_bayesopt.yaml</code> is an example of running <a href=https://bayesian-optimization.github.io/BayesianOptimization>Bayesian Optimization</a> via RayTune. To run execute the following:</p> <div class=highlight><pre><span></span><code>ado create operation -f operation_bayesopt.yaml --set &quot;spaces[0]=$DISCOVERY_SPACE_IDENTIFIER&quot;
-</code></pre></div> <p>replacing <code>$DISCOVERY_SPACE_IDENTIFIER</code> with the identifier obtained in the previous step.</p> <p>This will run the optimization for 40 steps. You will see a lot of information from RayTune on the progress of the optimization. At the end you will see output like the following containing the identifier of the operation. In this case it's <code>raytune-1.0.2.dev11+1c62218-bayesopt-b7f779</code>:</p> <div class=highlight><pre><span></span><code><span class=nt>Space ID</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">space-3fbaad-c3a5f6</span>
-<span class=nt>Sample Store ID</span><span class=p>:</span><span class=w>  </span><span class="l l-Scalar l-Scalar-Plain">c3a5f6</span>
+</code></pre></div> <p>This will output a list of the spaces created. If this is the first time you have are following this example it will contain one entry, the identifier of the space you just created above.</p> <h3 id=run-an-optimization>Run an optimization<a class=headerlink href=#run-an-optimization title="Permanent link">&para;</a></h3> <p>The file <code>operationn_ax.yaml</code> is an example of running the <a href=https://ax.dev>Ax</a> optimizer via RayTune. To run execute the following,</p> <div class=highlight><pre><span></span><code>ado create operation -f operation_ax.yaml --set &quot;spaces[0]=$DISCOVERY_SPACE_IDENTIFIER&quot;
+</code></pre></div> <p>replacing <code>$DISCOVERY_SPACE_IDENTIFIER</code> with the identifier obtained in the previous step.</p> <p>This will run the optimization for 40 steps. You will see a lot of information from RayTune on the progress of the optimization. At the end you will see output like the following containing the identifier of the operation, here its <code>raytune-0.9.3.dev16+b415dca6.dirty-nevergrad-af2af4</code>.</p> <div class=highlight><pre><span></span><code><span class=nt>Space ID</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">space-ccf2bf-a50274</span>
+<span class=nt>Sample Store ID</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">sqlite:////Users/michaelj/Library/Application%20Support/ado/databases/local-test.db/sqlsource_a50274</span>
 <span class=nt>Operation</span><span class=p>:</span>
-<span class=w> </span><span class=nt>config</span><span class=p>:</span>
-<span class=w>  </span><span class=nt>actuatorConfigurationIdentifiers</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[]</span>
-<span class=w>  </span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">{}</span>
-<span class=w>  </span><span class=nt>operation</span><span class=p>:</span>
-<span class=w>    </span><span class=nt>module</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">RayTune</span>
-<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado_ray_tune.operator</span>
-<span class=w>      </span><span class=nt>modulePath</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">.</span>
-<span class=w>      </span><span class=nt>moduleType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">operation</span>
-<span class=w>    </span><span class=nt>parameters</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>tuneConfig</span><span class=p>:</span>
-<span class=w>        </span><span class=nt>max_concurrent_trials</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-<span class=w>        </span><span class=nt>metric</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">function_value</span>
-<span class=w>        </span><span class=nt>mode</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">min</span>
-<span class=w>        </span><span class=nt>num_samples</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">40</span>
-<span class=w>        </span><span class=nt>search_alg</span><span class=p>:</span>
-<span class=w>          </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">bayesopt</span>
-<span class=w>  </span><span class=nt>spaces</span><span class=p>:</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">space-3fbaad-c3a5f6</span>
-<span class=nt>created</span><span class=p>:</span><span class=w> </span><span class=s>&#39;2025-09-06T10:40:58.158982Z&#39;</span>
-<span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">raytune-1.0.2.dev11+1c62218-bayesopt-b7f779</span>
+<span class=w>  </span><span class=nt>config</span><span class=p>:</span>
+<span class=w>    </span><span class=nt>actuatorConfigurationIdentifiers</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">[]</span>
+<span class=w>    </span><span class=nt>metadata</span><span class=p>:</span><span class=w> </span><span class="p p-Indicator">{}</span>
+<span class=w>    </span><span class=nt>operation</span><span class=p>:</span>
+<span class=w>      </span><span class=nt>module</span><span class=p>:</span>
+<span class=w>        </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">RayTune</span>
+<span class=w>        </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado_ray_tune.operator</span>
+<span class=w>        </span><span class=nt>modulePath</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">.</span>
+<span class=w>        </span><span class=nt>moduleType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">operation</span>
+<span class=w>      </span><span class=nt>parameters</span><span class=p>:</span>
+<span class=w>        </span><span class=nt>tuneConfig</span><span class=p>:</span>
+<span class=w>          </span><span class=nt>max_concurrent_trials</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class=w>          </span><span class=nt>metric</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">function_value</span>
+<span class=w>          </span><span class=nt>mode</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">min</span>
+<span class=w>          </span><span class=nt>num_samples</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">40</span>
+<span class=w>          </span><span class=nt>search_alg</span><span class=p>:</span>
+<span class=w>            </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">nevergrad</span>
+<span class=w>            </span><span class=nt>params</span><span class=p>:</span>
+<span class=w>              </span><span class=nt>optimizer</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">CMA</span>
+<span class=w>    </span><span class=nt>spaces</span><span class=p>:</span>
+<span class=w>      </span><span class="p p-Indicator">-</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">space-ccf2bf-a50274</span>
+<span class=nt>created</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2025-05-27T11:30:16.285703Z&quot;</span>
+<span class=nt>identifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">raytune-0.9.3.dev16+b415dca6.dirty-nevergrad-af2af4</span>
 <span class=nt>kind</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">operation</span>
 <span class=nt>metadata</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>entities_submitted</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">40</span>
 <span class=w>  </span><span class=nt>experiments_requested</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">40</span>
 <span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">search</span>
-<span class=nt>operatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">raytune-1.0.2.dev11+1c62218</span>
+<span class=nt>operatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">raytune-0.9.3.dev16+b415dca6.dirty</span>
 <span class=nt>status</span><span class=p>:</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">created</span>
-<span class=w>  </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&#39;2025-09-06T10:40:47.558298Z&#39;</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">added</span>
-<span class=w>  </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&#39;2025-09-06T10:40:58.168519Z&#39;</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">started</span>
-<span class=w>  </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&#39;2025-09-06T10:40:58.180530Z&#39;</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">updated</span>
-<span class=w>  </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&#39;2025-09-06T10:40:58.180540Z&#39;</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">finished</span>
-<span class=w>  </span><span class=nt>exit_state</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">success</span>
-<span class=w>  </span><span class=nt>message</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">Ray Tune operation completed successfully</span>
-<span class=w>  </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&#39;2025-09-06T10:42:42.804220Z&#39;</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">updated</span>
-<span class=w>  </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&#39;2025-09-06T10:42:43.857310Z&#39;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">created</span>
+<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2025-05-27T11:30:07.576406Z&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">added</span>
+<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2025-05-27T11:30:16.286967Z&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">started</span>
+<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2025-05-27T11:30:16.289563Z&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">finished</span>
+<span class=w>    </span><span class=nt>exit_state</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">success</span>
+<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2025-05-27T11:32:16.640484Z&quot;</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>event</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">updated</span>
+<span class=w>    </span><span class=nt>recorded_at</span><span class=p>:</span><span class=w> </span><span class=s>&quot;2025-05-27T11:32:16.641605Z&quot;</span>
 <span class=nt>version</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 </code></pre></div> <h3 id=specifying-the-property-to-optimize>Specifying the property to optimize<a class=headerlink href=#specifying-the-property-to-optimize title="Permanent link">&para;</a></h3> <p>In this case there is one experiment with one property in the measurement space, so there is only one choice for the property to optimize against i.e. <code>function_value</code>. However, usually an experiment will measure many properties and there may be many measurements.</p> <p>The target property to optimize against is set by the <code>metric</code> field, under the operations <code>parameters</code> field.</p> <div class=highlight><pre><span></span><code><span class=nt>parameters</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>tuneConfig</span><span class=p>:</span>

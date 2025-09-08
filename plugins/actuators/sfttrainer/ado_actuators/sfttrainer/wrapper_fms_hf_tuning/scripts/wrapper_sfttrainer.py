@@ -480,16 +480,16 @@ class CustomArgs:
         },
     )
 
-    auto_stop_method: typing.Literal["WARMUP_60S_STABLE_120S_OR_10_STEPS"] | None = (
-        dataclasses.field(
-            default=None,
-            metadata={
-                "help": "The method to use for automatically stopping the finetuning job. "
-                "1: Stops after the job has performed 60+max(120 seconds, duration of 10 optimization steps). "
-                "This method will ignore the first 60 seconds of the training for both the throughput and the "
-                "recorded system metrics."
-            },
-        )
+    auto_stop_method: constants.AutoStopMethod | None = dataclasses.field(
+        default=None,
+        metadata={
+            "help": "The default value is `None`. This parameter defines the method used to automatically "
+            "stop the fine-tuning job. Supported values are `WARMUP_60S_STABLE_120S_OR_10_STEPS` and "
+            "`None`. If set to `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least "
+            "60 seconds in the warmup phase plus the longer of 120 seconds or the duration of 10 "
+            "optimization steps. This method excludes the first 60 seconds of training when calculating "
+            "throughput and system metrics."
+        },
     )
 
 

@@ -187,7 +187,11 @@ def measure_or_replay(
         # - If it is not we raise the RayTaskError
         except ray.exceptions.RayTaskError as e:
             if isinstance(
-                e.cause, orchestrator.modules.actuators.base.DeprecatedExperimentError
+                e.cause,
+                (
+                    orchestrator.modules.actuators.base.DeprecatedExperimentError,
+                    orchestrator.modules.actuators.base.MissingConfigurationForExperimentError,
+                ),
             ):
                 raise orchestrator.modules.actuators.base.MeasurementError(
                     f"Cannot apply experiment {experimentReference}. Reason: {e.cause}"
@@ -283,7 +287,11 @@ async def measure_or_replay_async(
         # - If it is not we raise the RayTaskError
         except ray.exceptions.RayTaskError as e:
             if isinstance(
-                e.cause, orchestrator.modules.actuators.base.DeprecatedExperimentError
+                e.cause,
+                (
+                    orchestrator.modules.actuators.base.DeprecatedExperimentError,
+                    orchestrator.modules.actuators.base.MissingConfigurationForExperimentError,
+                ),
             ):
                 raise orchestrator.modules.actuators.base.MeasurementError(
                     f"Cannot apply experiment {experimentReference}. Reason: {e.cause}"

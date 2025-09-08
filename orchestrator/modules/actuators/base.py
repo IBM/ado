@@ -38,6 +38,10 @@ class DeprecatedExperimentError(Exception):
     """Raised when an actuator is attempting to run an experiment that has been deprecated."""
 
 
+class MissingConfigurationForExperimentError(Exception):
+    """Raised when an actuator is attempting to run an experiment but required configuration information is not present"""
+
+
 # The actuator will have to
 # - Take additional input files
 # - Know how to map the entity/inputs to the measurement

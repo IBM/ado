@@ -20,7 +20,11 @@ from ado_actuators.vllm_performance.experiment_executor import (
 )
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
+from orchestrator.modules.actuators.base import (
+    ActuatorBase,
+    DeprecatedExperimentError,
+    MissingConfigurationForExperimentError,
+)
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR
@@ -77,22 +81,33 @@ class VLLMPerformanceTest(ActuatorBase):
         # Set logging and the ivar self._stateUpdateQueue and self._parameters
         super().__init__(queue=queue, params=params)
         # Set parameters
-        self.actuator = params
+        self.actuator_parameters = params
         # çreate environment manager actor
-        self.env_manager = EnvironmentManager.remote(
-            namespace=params.namespace,
-            max_concurrent=params.max_environments,
-            in_cluster=params.in_cluster,
-            verify_ssl=params.verify_ssl,
-        )
-        # add to clean up
-        try:
-            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
-            cleaner_handle.add_to_cleanup.remote(handle=self.env_manager)
-        except Exception as e:
-            print(
-                f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
-            )
+        self.env_manager = None
+
+        if self.actuator_parameters.namespace:
+            try:
+                self.env_manager = EnvironmentManager.remote(
+                    namespace=params.namespace,
+                    max_concurrent=params.max_environments,
+                    in_cluster=params.in_cluster,
+                    verify_ssl=params.verify_ssl,
+                )
+            except Exception as error:
+                self.log.warning(
+                    f"Unable to create kubernetes environment manager due to {error}. "
+                    f"Will not be able to execute experiments requiring deploying on k8s"
+                )
+            else:
+                # add to clean up
+                try:
+                    cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+                    cleaner_handle.add_to_cleanup.remote(handle=self.env_manager)
+                except Exception as e:
+                    print(
+                        f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
+                    )
+
         # initialize local port
         self.local_port = 10000
 
@@ -120,6 +135,7 @@ class VLLMPerformanceTest(ActuatorBase):
 
         Raises:
             DeprecatedExperimentError: if the experimentReference points to an experiment that is deprecated.
+            MissingConfigurationForExperimentError
         """
 
         # The following steps MUST be done
@@ -159,27 +175,34 @@ class VLLMPerformanceTest(ActuatorBase):
 
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
-        if self.actuator.node_selector == "":
-            node_selector = {}
-        else:
-            try:
-                node_selector = json.loads(self.actuator.node_selector)
-            except Exception as e:
-                logger.error(
-                    f"Error loading node selector {self.actuator.node_selector} - {e}"
-                )
-                raise Exception(
-                    f"Error loading node selector {self.actuator.node_selector} - {e}"
-                )
 
         if experiment.identifier == "performance-testing-full":
+            if not self.env_manager:
+                raise MissingConfigurationForExperimentError(
+                    f"Actuator configuration did not contain sufficient information for a kubernetes environment manager to be created. "
+                    f"Experiment {experiment} requires a kubernetes environment manager to be executable."
+                )
+
+            if self.actuator_parameters.node_selector == "":
+                node_selector = {}
+            else:
+                try:
+                    node_selector = json.loads(self.actuator_parameters.node_selector)
+                except Exception as e:
+                    logger.error(
+                        f"Error loading node selector {self.actuator_parameters.node_selector} - {e}"
+                    )
+                    raise Exception(
+                        f"Error loading node selector {self.actuator_parameters.node_selector} - {e}"
+                    )
+
             # Execute experiment
             # Note: Here the experiment instance is just past for convenience since we retrieved it above
             run_resource_and_workload_experiment.remote(
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,
-                actuator=self.actuator,
+                actuator_parameters=self.actuator_parameters,
                 node_selector=node_selector,
                 env_manager=self.env_manager,
                 local_port=self.local_port,
@@ -190,7 +213,7 @@ class VLLMPerformanceTest(ActuatorBase):
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,
-                actuator=self.actuator,
+                actuator_parameters=self.actuator_parameters,
             )
 
         return [request.requestid]

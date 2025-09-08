@@ -1,0 +1,18 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+metadata:
+  name: 'randomwalk-all'
+  description: 'Perform a random walk on all points in a space'
+spaces:
+- 'space-630588-bfebfe'
+operation:
+  module:
+    operatorName: random_walk
+    operationType: search
+  parameters:
+    numberEntities: "all"
+    batchSize: 1
+    mode: 'random'
+    samplerType: 'generator'
+    singleMeasurement: False

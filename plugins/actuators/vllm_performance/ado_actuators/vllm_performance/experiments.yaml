@@ -12,7 +12,7 @@ performance_testing-full:
         description: 'model to use for testing. Must be available through the huggingface hub'
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct"]
+        values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
   optionalProperties:
     - identifier: image
       propertyDomain:
@@ -165,10 +165,10 @@ performance_testing-endpoint:
         description: 'model to use for testing. Assumed to be served by all endpoints tested'
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: ["meta-llama/Llama-3.1-8B-Instruct"]
+        values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
     - identifier: 'endpoint'
       metadata:
-        description: 'The endpoint to test'
+        description: 'The endpoint(s) to test'
       propertyDomain:
         variableType: "UNKNOWN_VARIABLE_TYPE"
   optionalProperties:

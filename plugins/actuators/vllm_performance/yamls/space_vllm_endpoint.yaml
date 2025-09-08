@@ -1,0 +1,31 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+entitySpace:
+- identifier: endpoint
+  propertyDomain:
+    values:  #You could have multiple endpoints here - or one endpoint that served multiple models
+    - "http://localhost:28015"
+    variableType: UNKNOWN_VARIABLE_TYPE
+  propertyType: CONSTITUTIVE_PROPERTY_TYPE
+- identifier: model
+  propertyDomain:
+    values:
+    - openai/gpt-oss-20b
+  propertyType: CONSTITUTIVE_PROPERTY_TYPE
+- identifier: num_prompts
+  propertyDomain:
+    values: [100, 250] 
+- identifier: request_rate
+  propertyDomain:
+    values: [50, 100] 
+- identifier: max_concurrency
+  propertyDomain:
+    values: [ 50, 100, 200]
+experiments:
+- actuatorIdentifier: vllm_performance
+  experimentIdentifier: performance-testing-endpoint
+metadata:
+  description: "Test space using a vllm endpoint"
+  name: "vllm_endpoint_performance_test_space"
+sampleStoreIdentifier: ID

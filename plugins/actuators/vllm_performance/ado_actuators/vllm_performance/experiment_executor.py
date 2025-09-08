@@ -25,7 +25,6 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark impo
     execute_benchmark,
 )
 from ray.actor import ActorHandle
-from ray.runtime_env import RuntimeEnv
 
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
@@ -186,12 +185,7 @@ def _create_environment(
     return env.k8_name, error, definition
 
 
-vllm_test_runtime_env = RuntimeEnv(
-    uv={"packages": ["vllm==0.10.1.1"]},
-)
-
-
-@ray.remote(runtime_env=vllm_test_runtime_env)
+@ray.remote
 def run_resource_and_workload_experiment(
     request: MeasurementRequest,
     experiment: Experiment | ParameterizedExperiment,
@@ -336,7 +330,7 @@ def run_resource_and_workload_experiment(
     state_update_queue.put(request, block=False)
 
 
-@ray.remote(runtime_env=vllm_test_runtime_env)
+@ray.remote
 def run_workload_experiment(
     request: MeasurementRequest,
     experiment: Experiment | ParameterizedExperiment,

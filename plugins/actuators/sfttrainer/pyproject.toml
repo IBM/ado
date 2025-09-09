@@ -31,7 +31,6 @@ dependencies=[
     "jwt",
     "aim>=3.23.0",
     "transformers>=4.44.2",
-    "psutil",
-    "torch>=2.4,<2.5.0",
+    "psutil"
 ]
 dynamic = ["version"]

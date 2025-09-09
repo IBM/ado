@@ -86,7 +86,7 @@ You can get in touch with us by starting a
 ## Setup
 
 To set up your development environment, follow the instructions in our
-[DEVELOPING.md](DEVELOPING.md) file.
+[development guide](https://ibm.github.io/ado/getting-started/developing) file.
 
 ## Testing
 
@@ -104,12 +104,14 @@ or `py312`.
 ## Coding style guidelines
 
 We require code and markup to adhere to certain rules. We enforce these rules
-though the tools we mention in [DEVELOPING.md](DEVELOPING.md), namely:
+though the tools we mention in
+[our development guide](https://ibm.github.io/ado/getting-started/developing),
+namely:
 
-- [Black](DEVELOPING.md#code-style)
-- [Ruff](DEVELOPING.md#linting-code-with-ruff)
-- [Copywrite](DEVELOPING.md#copyright-and-license-headers)
-- [Markdownlint-cli2](DEVELOPING.md#linting-markdown-with-markdownlint-cli2)
+- [Black](https://ibm.github.io/ado/getting-started/developing#code-style)
+- [Ruff](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
+- [Copywrite](https://ibm.github.io/ado/getting-started/developing#copyright-and-license-headers)
+- [Markdownlint-cli2](https://ibm.github.io/ado/getting-started/developing#linting-markdown-with-markdownlint-cli2)
 
 To verify that your code conforms to these rules you can run the following
 commands:
@@ -127,8 +129,8 @@ detect-secrets audit .secrets.baseline --fail-on-unaudited --fail-on-live --fail
 
 To minimize broken links, we use linkcheck to spot issues before things are
 merged. After you've installed it and have started serving the website
-[using the instructions provided](DEVELOPING.md#website-link-checking), you can
-check for broken links with:
+[using the instructions provided](https://ibm.github.io/ado/getting-started/developing#website-link-checking),
+you can check for broken links with:
 
 ```commandline
 linkcheck http://127.0.0.1:8000/ado/ \

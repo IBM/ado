@@ -16,6 +16,14 @@ and choose your preferred method.
 Create a development virtual environment by executing the following commands in
 the top-level of the `ado` repository:
 
+> [!CAUTION]
+>
+> If you create a development in a different location you must direct `uv sync`
+> explicitly to use it with `--active` If you do not, it will default to using
+> `.venv` in the project top-level directory. See the
+> [using a custom location for the venv](#using-a-custom-location-for-the-venv)
+> section for instructions on how to do this.
+
 ```commandline
 uv sync
 source .venv/bin/activate
@@ -30,32 +38,28 @@ source .venv/bin/activate
 >
 > In line with uv's defaults, the `uv sync` command creates a `.venv` in the
 > top-level of the project's repository. Note that environments created by
-> `uv sync` are intended only to be used when developing a specific project and
-> should not be shared across projects.
+> `uv sync` **are intended only to be used when developing a specific project
+> and should not be shared across projects.**
 
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
 > [!CAUTION]
 >
 > `uv sync` ensures a reproducible development environment is created by using a
 > lock-file, `uv.lock`. Only packages in the lockfile are installed, and other
-> packages found in the virtual environment will be deleted. See
+> packages found in the virtual environment **will be deleted**. See
 > [Making changes to dependencies](#making-changes-to-dependencies) for how to
 > add packages to the lockfile.
 
+#### Using a custom location for the venv
+
 If you want to create your development virtual environment at an alternate
-location, $PATH, then
+location, $LOCATION, then run:
 
 ```commandline
-uv venv $PATH
-source $PATH/bin/activate
+uv venv $LOCATION
+source $LOCATION/bin/activate
 uv sync --active
 ```
-
-> [!CAUTION]
->
-> If you create a development in a different location you must direct `uv sync`
-> explicitly to use it with `--active` If you do not it will default to using
-> `.venv` in the project top-level directory.
 
 ## Code style
 
@@ -70,7 +74,7 @@ style for formatting.
 
 You can format your code by:
 
-- Manually running `black <the folder containing files to format>`
+- Manually running `black tests/ orchestrator/ plugins/`
 - Setting up PyCharm to use the `black` integration:
   <https://www.jetbrains.com/help/pycharm/reformat-and-rearrange-code.html#format-python-code-with-black>
 - Using the
@@ -78,7 +82,7 @@ You can format your code by:
   and setting it as the default formatter:
   <https://code.visualstudio.com/docs/python/formatting#_set-a-default-formatter>
 
-## Linting with ruff
+## Linting code with ruff
 
 > [!NOTE]
 >
@@ -114,16 +118,19 @@ markdownlint-cli2 "**/*.md" "#.venv" --fix
 
 ### Prettier for lines too long
 
-> [!NOTE]
+> [!WARNING]
 >
-> Prettier might undo some changes that markdownlint-cli2 has done. A common
+> Prettier might undo some changes that `markdownlint-cli2` has done. A common
 > error is adding a line after the `markdownlint-disable-next-line` comments
 
-Note that line-too-long errors won't be automatically fixed. We recommend using
-`prettier` to autoformat markdown in that case. Installation instructions can be
-found on the [official website](https://prettier.io/docs/install)
+Line-too-long errors do not get automatically fixed by `markdownlint-cli2`. We
+recommend using `prettier` to autoformat markdown in that case. The official
+website provides instructions to:
 
-Prettier can then be run with:
+- [Install prettier on your machine](https://prettier.io/docs/install).
+- [Integrate prettier on your editor of choice](https://prettier.io/docs/editors).
+
+Prettier can be run as a CLI tool with:
 
 ```commandline
 prettier -w "**/*.md"
@@ -160,8 +167,8 @@ detect-secrets audit .secrets.baseline
 We require commit messages to use the
 [conventional commit style](https://www.conventionalcommits.org/en/v1.0.0/).
 
-Conventional Commit messages follow the following pattern (**NOTE**: the scope
-is optional):
+Conventional Commit messages follow the pattern (**NOTE**: the scope is
+optional):
 
 ```text
 type(scope): subject
@@ -184,6 +191,28 @@ Once installed, run
 copywrite headers
 ```
 
+## Website link checking
+
+To make it less likely for us to push commits with broken links, we use
+[linkcheck](https://github.com/filiph/linkcheck) to check if our website
+contains broken links. You can install it with your preferred method from the
+ones provided
+[in the official documentation](https://github.com/filiph/linkcheck?tab=readme-ov-file#installation).
+
+On one terminal, navigate to the website directory and start serving the website
+using mkdocs:
+
+```commandline
+cd website && mkdocs serve --clean
+```
+
+On a different terminal, run the linkchecker:
+
+```commandline
+linkcheck http://127.0.0.1:8000/ado/ \
+                --skip-file=.linkchecker_skip
+```
+
 ## Automating checks with pre-commit
 
 To automate the checks for code style, linting, and security, you can utilize
@@ -195,11 +224,12 @@ the provided pre-commit hooks.
 >
 > Before installing the hooks, make sure you have the following prerequisites:
 >
-> - A developer virtual environment [created with uv](#creating-a-development-virtual-environment)
+> - A developer virtual environment
+>   [created with uv](#creating-a-development-virtual-environment)
 > - A recent version of [NodeJS](https://nodejs.org/en/download/)
 >   - On MacOS we suggest
->     [installing it via brew](https://formulae.brew.sh/formula/node)
->     for ease of use
+>     [installing it via brew](https://formulae.brew.sh/formula/node) for ease
+>     of use
 
 ```commandline
 pre-commit install
@@ -215,8 +245,8 @@ highlighting any issues and preventing the commit if problems are found.
    - If black fails to format your code, your files have syntax errors.
      [Try manually running black](#code-style).
 2. **Ruff linter failures**: run `ruff` as specified in
-   [Linting with ruff](#linting-with-ruff) and fix the code that is causing the
-   failures.
+   [Linting code with ruff](#linting-code-with-ruff) and fix the code that is
+   causing the failures.
    - In case of false positives, you might need to add `#noqa` annotations.
    - If your local ruff installation does not detect any failure you may be
      using an old version that needs updating.
@@ -232,7 +262,8 @@ highlighting any issues and preventing the commit if problems are found.
    been updated following changes to the lock file.
 7. **Markdown linter failures**: `markdownlint-cli2` usually fixes most issues
    automatically. If you review its error message and still don’t see a clear
-   explanation or solution, try recommitting your changes and let the tool re-run.
+   explanation or solution, try recommitting your changes and let the tool
+   re-run.
 
 ## Making changes to dependencies
 

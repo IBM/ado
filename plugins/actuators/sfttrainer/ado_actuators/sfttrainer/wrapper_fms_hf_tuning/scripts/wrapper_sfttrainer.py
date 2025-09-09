@@ -323,14 +323,14 @@ class CustomAimCallback(AimCallback):
             torch.distributed.is_initialized()
             and torch.distributed.get_world_size() > 1
         ):
-            # VV: Stop all workers if all rank 0 workers decided to stop training
+            # VV: Stop all workers if all local-rank 0 workers agree to stop
             should_stop = torch.tensor(
                 [
                     # VV: We use MIN reduction to stop training when all local-rank 0 workers agree.
                     # Non local-rank-0 workers also participate in this reduction, but their value is
                     # irrelevant - and it is always False.
                     # Here, we set these values to True so that they don't influence the reduce operation at all.
-                    not state.is_local_process_zero
+                    (not state.is_local_process_zero)
                     or control.should_training_stop
                 ],
                 dtype=torch.uint8,
@@ -340,7 +340,7 @@ class CustomAimCallback(AimCallback):
             control.should_training_stop = should_stop.item() == 1
 
             if control.should_training_stop:
-                print("All rank-0 workers agree to stop early")
+                print("All local-rank 0 workers agree to stop early")
 
     def on_train_end(self, args, state, control, **kwargs):
         try:

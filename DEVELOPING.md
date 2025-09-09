@@ -191,6 +191,28 @@ Once installed, run
 copywrite headers
 ```
 
+## Website link checking
+
+To make it less likely for us to push commits with broken links, we use
+[linkcheck](https://github.com/filiph/linkcheck) to check if our website
+contains broken links. You can install it with your preferred method from the
+ones provided
+[in the official documentation](https://github.com/filiph/linkcheck?tab=readme-ov-file#installation).
+
+On one terminal, navigate to the website directory and start serving the website
+using mkdocs:
+
+```commandline
+cd website && mkdocs serve --clean
+```
+
+On a different terminal, run the linkchecker:
+
+```commandline
+linkcheck http://127.0.0.1:8000/ado/ \
+                --skip-file=.linkchecker_skip
+```
+
 ## Automating checks with pre-commit
 
 To automate the checks for code style, linting, and security, you can utilize

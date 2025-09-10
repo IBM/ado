@@ -62,7 +62,7 @@ def run_experiment(
                 value=identifier,
                 property=experiment.observedPropertyForTargetIdentifier(identifier),
             )
-            for identifier, value in measured_values
+            for identifier, value in measured_values.items()
         ]
 
         print(
@@ -73,7 +73,7 @@ def run_experiment(
             "experiment type is",
             type(experiment),
             "are",
-            json.dumps(measuredValues),
+            json.dumps(measured_values),
         )
 
         # Create a MeasurementResult to hold the results

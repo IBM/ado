@@ -146,6 +146,7 @@ models.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -407,6 +408,7 @@ configurations.
     
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -508,8 +510,8 @@ configurations.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.
@@ -691,6 +693,7 @@ adaptation.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -795,8 +798,8 @@ adaptation.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.
@@ -1004,6 +1007,7 @@ memory constrained environments.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -1108,8 +1112,8 @@ memory constrained environments.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.
@@ -1291,6 +1295,7 @@ for performance.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -1387,8 +1392,8 @@ for performance.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.

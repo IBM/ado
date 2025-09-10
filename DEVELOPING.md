@@ -162,6 +162,10 @@ To audit detected secrets, use:
 detect-secrets audit .secrets.baseline
 ```
 
+If the pre-commit hook raises an error but the audit command succeeds with just
+`Nothing to audit!` then run `detect-secrets scan --update .secrets.baseline`
+to perform a full scan and then repeat the `audit` command.
+
 ## Commit style
 
 We require commit messages to use the

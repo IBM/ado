@@ -25,6 +25,24 @@ This layered design allows users to leverage the robustness of the Hugging Face
 ecosystem while benefiting from ado’s orchestration and reproducibility
 features.
 
+## Requirements
+
+[fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
+packages like `flash-attn` and `mamba-ssm`, which import `torch` during their  
+build phase. This means that the base virtual environment of your Ray workers
+must already include the appropriate version of `torch`:
+
+<!-- markdownlint-disable line-length -->
+- **`fms-hf-tuning <= 2.8.2`**  
+  - Install `torch==2.4.1`  
+  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
+
+- **`fms-hf-tuning > 2.8.2`**  
+  - Install `torch==2.6.0`  
+    - Requires Python 3.11  
+  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+<!-- markdownlint-enable line-length -->
+
 ## Available experiments
 
 The `SFTTrainer` actuator includes a set of experiments that evaluate different
@@ -62,7 +80,7 @@ models.
     - does not save checkpoint
     - loads weights from a PVC
     - request 2 CPU cores per GPU device (with a minimum of 2 cores)
-    
+
     For FSDP runs we use the following `accelerate_config.yml` YAML file:
     
     <!-- markdownlint-disable line-length -->
@@ -146,6 +164,7 @@ models.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -407,6 +426,7 @@ configurations.
     
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -508,8 +528,8 @@ configurations.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.
@@ -691,6 +711,7 @@ adaptation.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -795,8 +816,8 @@ adaptation.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.
@@ -1004,6 +1025,7 @@ memory constrained environments.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -1108,8 +1130,8 @@ memory constrained environments.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.
@@ -1291,6 +1313,7 @@ for performance.
 
     - Actuator version: `2.1.0`
     - fms-hf-tuning versions:
+      - 3.0.0
       - 2.8.2
       - 2.7.1
       - 2.6.0
@@ -1387,8 +1410,8 @@ for performance.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-      use. Available options are: `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`,
-      `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+      use. Available options are: `3.0.0`, 2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
+       `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
       runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
       or not.
@@ -1901,6 +1924,9 @@ ENV MOFED_VER=24.10-1.1.4.0
 ENV OS_VER=ubuntu22.04
 ENV PLATFORM=x86_64
 
+# See the Requirements section at the top of this document
+RUN pip install --system torch==$VERSION_OF_TORCH_THAT_FMS_HF_TUNING_NEEDS
+
 RUN mkdir app && \
     cd app && \
     wget -q http://content.mellanox.com/ofed/MLNX_OFED-${MOFED_VER}/MLNX_OFED_LINUX-${MOFED_VER}-${OS_VER}-${PLATFORM}.tgz && \
@@ -1912,6 +1938,13 @@ RUN mkdir app && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists/*
 ```
+<!-- markdownlint-enable line-length -->
+
+!!! note
+
+    Ensure you install the appropriate version of 
+    [torch for the fms-hf-tuning versions that you are planning to use](#requirements).
+
 <!-- markdownlint-enable line-length -->
 
 !!! note

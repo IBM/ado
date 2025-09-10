@@ -43,10 +43,15 @@ To explore this space, you will:
    call it `finetuning` but it can have any name.
 
 2. A [remote RayCluster](../../actuators/sft-trainer/#configure-your-raycluster)
-   with a GPU worker that has at least one `NVIDIA-A100-SXM4-80GB` GPU. The
-   RayCluster should also contain the NVIDIA development and runtime packages.
-   We recommend deploying the RayCluster following our
-   [docs](../../actuators/sft-trainer/#configure-your-raycluster).
+   with a GPU worker with at least one `NVIDIA-A100-SXM4-80GB` GPU. The `RayCluster`
+   should also include the NVIDIA development and runtime packages. We recommend
+   deploying the RayCluster following our
+   [documentation](../../actuators/sft-trainer/#configure-your-raycluster).
+   Ensure that the base virtual environment on your Ray GPU workers meets the
+   requirements of `fms-hf-tuning==3.0.0`: a) Python 3.11 and b) `torch==2.6.0`
+   pre-installed.
+   If you are using a RayCluster on Kubernetes, we recommend using the image:
+   `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`.
 
 3. If you host your RayCluster on Kubernetes or OpenShift, make sure you're
    logged in to the Kubernetes or Openshift cluster.
@@ -76,14 +81,14 @@ To explore this space, you will:
     If you haven't already installed the `SFTTrainer` actuator, run
     (assumes you are in the root directory of ado):
 
-   <!-- markdownlint-disable-next-line code-block-style -->
+    <!-- markdownlint-disable-next-line code-block-style -->
     ```commandline
     pip install plugins/actuators/sfttrainer
     ```
 
      then executing
 
-   <!-- markdownlint-disable-next-line code-block-style -->
+    <!-- markdownlint-disable-next-line code-block-style -->
      ```commandline
      ado get actuators
      ```
@@ -372,7 +377,7 @@ experiment.
        parameterization:
          - property:
              identifier: fms_hf_tuning_version
-           value: "2.8.2"
+           value: "3.0.0"
          - property:
              identifier: stop_after_seconds
            # Set training duration to at least 30 seconds.
@@ -530,10 +535,10 @@ It should look similar to this:
 <!-- markdownlint-disable-next-line code-block-style -->
 ```csv
 ,identifier,generatorid,experiment_id,model_name,number_gpus,gpu_model,model_max_length,batch_size,gpu_compute_utilization_min,gpu_compute_utilization_avg,gpu_compute_utilization_max,gpu_memory_utilization_min,gpu_memory_utilization_avg,gpu_memory_utilization_max,gpu_memory_utilization_peak,gpu_power_watts_min,gpu_power_watts_avg,gpu_power_watts_max,gpu_power_percent_min,gpu_power_percent_avg,gpu_power_percent_max,cpu_compute_utilization,cpu_memory_utilization,train_runtime,train_samples_per_second,train_steps_per_second,dataset_tokens_per_second,dataset_tokens_per_second_per_gpu,is_valid
-0,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.512-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,512,2,40.0,40.0,40.0,25.49774175,25.49774175,25.49774175,31.498108,169.3855,169.3855,169.3855,42.346375,42.346375,42.346375,74.075,2.6414139999999997,31.3457,130.672,16.334,2744.108442306281,2744.108442306281,1
-1,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.512-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,512,1,27.25,27.25,27.25,25.71380625,25.71380625,25.71380625,31.786194,141.78924999999998,141.78924999999998,141.78924999999998,35.447312499999995,35.447312499999995,35.447312499999995,74.325,2.6420105,30.5903,133.899,33.475,1405.9358685596414,1405.9358685596414,1
-2,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.1024-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,1024,1,43.25,43.25,43.25,25.43853775,25.43853775,25.43853775,31.498108,181.79625,181.79625,181.79625,45.4490625,45.4490625,45.4490625,74.32499999999999,2.64201475,30.6802,133.506,33.377,2670.126009608803,2670.126009608803,1
-3,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.1024-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,1024,2,63.75,63.75,63.75,25.67718525,25.67718525,25.67718525,31.737366,238.53825,238.53825,238.53825,59.6345625,59.6345625,59.6345625,74.1,2.6399939999999997,30.1566,135.824,16.978,5161.324552502603,5161.324552502603,1
+0,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.512-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,512,2,40.0,40.0,40.0,25.49774175,25.49774175,25.49774175,31.498108,169.3855,169.3855,169.3855,42.346375,42.346375,42.346375,74.075,2.6414139999999997,31.3457,130.672,16.334,2744.108442306281,2744.108442306281,1
+1,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.512-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,512,1,27.25,27.25,27.25,25.71380625,25.71380625,25.71380625,31.786194,141.78924999999998,141.78924999999998,141.78924999999998,35.447312499999995,35.447312499999995,35.447312499999995,74.325,2.6420105,30.5903,133.899,33.475,1405.9358685596414,1405.9358685596414,1
+2,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.1024-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,1024,1,43.25,43.25,43.25,25.43853775,25.43853775,25.43853775,31.498108,181.79625,181.79625,181.79625,45.4490625,45.4490625,45.4490625,74.32499999999999,2.64201475,30.6802,133.506,33.377,2670.126009608803,2670.126009608803,1
+3,model_name.granite-3.1-2b-number_gpus.1-gpu_model.NVIDIA-A100-SXM4-80GB-model_max_length.1024-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30,granite-3.1-2b,1,NVIDIA-A100-SXM4-80GB,1024,2,63.75,63.75,63.75,25.67718525,25.67718525,25.67718525,31.737366,238.53825,238.53825,238.53825,59.6345625,59.6345625,59.6345625,74.1,2.6399939999999997,30.1566,135.824,16.978,5161.324552502603,5161.324552502603,1
 ```
 <!-- markdownlint-enable line-length -->
 

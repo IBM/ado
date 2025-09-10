@@ -1,0 +1,54 @@
+import itertools
+
+from fastapi import APIRouter, HTTPException, status
+
+from orchestrator.cli.exceptions.actuators import (
+    NoActuatorWithExperimentError,
+    TooManyActuatorsWithExperimentError,
+)
+from orchestrator.cli.utils.resources.experiments import get_actuator_from_experiment_id
+from orchestrator.modules.actuators.registry import ActuatorRegistry
+from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.reference import ExperimentReference
+
+router = APIRouter(
+    prefix="/experiments",
+    tags=["experiments"],
+    responses={status.HTTP_404_NOT_FOUND: {"description": "Not found"}},
+)
+
+
+@router.get("", tags=["experiments"])
+async def get_experiments() -> list[Experiment]:
+    actuator_registry = ActuatorRegistry.globalRegistry()
+    return itertools.chain.from_iterable(
+        [
+            actuator_registry.catalogForActuatorIdentifier(actuator_id).experiments
+            for actuator_id in actuator_registry.actuatorIdentifierMap
+        ]
+    )
+
+
+@router.get("/{experiment_identifier}", tags=["experiments"])
+async def get_single_experiment(experiment_identifier: str) -> Experiment:
+    actuator_registry = ActuatorRegistry.globalRegistry()
+
+    try:
+        actuator_identifier = get_actuator_from_experiment_id(experiment_identifier)
+    except NoActuatorWithExperimentError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No actuator implements {experiment_identifier}",
+        )
+    except TooManyActuatorsWithExperimentError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Experiment {experiment_identifier} is not unique",
+        )
+
+    return actuator_registry.experimentForReference(
+        ExperimentReference(
+            experimentIdentifier=experiment_identifier,
+            actuatorIdentifier=actuator_identifier,
+        )
+    )

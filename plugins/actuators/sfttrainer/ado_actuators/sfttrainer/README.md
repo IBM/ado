@@ -8,6 +8,51 @@ Table of contents
 - [GPTQ-LORA Fine-Tuning Experiments](#gptq-lora-fine-tuning-experiments)
 - [PT Fine-Tuning Experiments](#pt-fine-tuning-experiments)
 
+## Overview
+
+The `SFTTrainer` actuator provides a flexible and scalable interface for running
+supervised fine-tuning (SFT) experiments on large language and vision-language
+models. It supports a variety of fine-tuning strategies including full
+fine-tuning, LoRA, QPTQ-LoRA, and prompt-tuning across both text-to-text and
+image-to-text datasets.
+
+Designed for high-performance and distributed environments, `SFTTrainer`
+supports:
+
+- **Single-GPU**, **multi-GPU**, and **multi-node** training
+- **Distributed Data Parallel (DDP)** and **Fully Sharded Data Parallel (FSDP)**
+  strategies
+- **RDMA over Converged Ethernet (RoCE)** for optimized multi-node communication
+- **Ray-based task scheduling**, enabling execution on both Kubernetes clusters
+  and bare-metal infrastructure
+
+Under the hood, this actuator wraps the
+[fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning)
+library, which itself builds on the
+[`SFTTrainer` API from Hugging Face Transformers](https://huggingface.co/docs/trl/sft_trainer).
+This layered design allows users to leverage the robustness of the Hugging Face
+ecosystem while benefiting from ado’s orchestration and reproducibility
+features.
+
+<!-- markdownlint-disable-next-line no-duplicate-heading -->
+### Requirements
+
+[fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
+packages like `flash-attn` and `mamba-ssm`, which import `torch` during their  
+build phase. This means the base virtual environment of your Ray workers must  
+already include the appropriate version of `torch`:
+
+<!-- markdownlint-disable line-length -->
+- **`fms-hf-tuning <= 2.8.2`**  
+  - Install `torch==2.4.1`  
+  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
+
+- **`fms-hf-tuning > 2.8.2`**  
+  - Install `torch==2.6.0`  
+    - Requires Python 3.11  
+  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+<!-- markdownlint-enable line-length -->
+
 ## Full Fine-Tuning Experiments
 
 ### finetune_full_benchmark-v1.0.0
@@ -149,6 +194,7 @@ Versioning:
     - The full list of packages is at
       [packages/fms-hf-tuning_v2.0.1_9b8245e74144f7ee73b7241a1687b6c77f0eb2e4.txt](packages/fms-hf-tuning_v2.0.1_9b8245e74144f7ee73b7241a1687b6c77f0eb2e4.txt)
 
+<!-- markdownlint-disable-next-line no-duplicate-heading -->
 #### Requirements
 
 - The S3 bucket `watson.runtime.wisdom.model.us-south` mounted under

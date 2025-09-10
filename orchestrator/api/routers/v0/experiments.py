@@ -2,6 +2,10 @@ import itertools
 
 from fastapi import APIRouter, HTTPException, status
 
+from orchestrator.api.state.in_memory_requests_storage import (
+    get_all_requests_in_memory_storage,
+    get_request_in_memory_storage,
+)
 from orchestrator.cli.exceptions.actuators import (
     NoActuatorWithExperimentError,
     TooManyActuatorsWithExperimentError,
@@ -10,6 +14,7 @@ from orchestrator.cli.utils.resources.experiments import get_actuator_from_exper
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.reference import ExperimentReference
+from orchestrator.schema.request import MeasurementRequest
 
 router = APIRouter(
     prefix="/experiments",
@@ -51,4 +56,28 @@ async def get_single_experiment(experiment_identifier: str) -> Experiment:
             experimentIdentifier=experiment_identifier,
             actuatorIdentifier=actuator_identifier,
         )
+    )
+
+
+@router.get(
+    "/{experiment_identifier}/requests",
+    tags=["experiments", "requests"],
+)
+async def get_measurement_requests_for_experiment(
+    experiment_identifier: str,
+) -> list[MeasurementRequest]:
+
+    return get_all_requests_in_memory_storage(experiment_identifier)
+
+
+@router.get(
+    "/{experiment_identifier}/requests/{request_id}",
+    tags=["experiments", "requests"],
+)
+async def get_single_measurement_request_for_experiment(
+    experiment_identifier: str, request_id: str
+) -> MeasurementRequest:
+
+    return get_request_in_memory_storage(
+        experiment_id=experiment_identifier, request_id=request_id
     )

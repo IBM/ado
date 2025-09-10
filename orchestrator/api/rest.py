@@ -4,7 +4,7 @@
 from fastapi import FastAPI
 from ray import serve
 
-from orchestrator.api.routers.v1 import actuators, experiments
+from orchestrator.api.routers.v0 import actuators, experiments
 
 app = FastAPI()
 
@@ -12,9 +12,9 @@ app = FastAPI()
 app.include_router(actuators.router, prefix="/api/latest")
 app.include_router(experiments.router, prefix="/api/latest")
 
-# v1
-app.include_router(actuators.router, prefix="/api/v1")
-app.include_router(experiments.router, prefix="/api/v1")
+# v0
+app.include_router(actuators.router, prefix="/api/v0")
+app.include_router(experiments.router, prefix="/api/v0")
 
 
 @serve.deployment

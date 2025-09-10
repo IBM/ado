@@ -16,15 +16,13 @@ import datetime
 import os
 import sys
 import typing
-
-# Standard
 from typing import Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
 import aim
-
-# Third Party
+import torch
+import torch.distributed
 from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
 
@@ -251,8 +249,7 @@ class CustomAimCallback(AimCallback):
         control: TrainerControl,
         **kwargs,
     ):
-        if state.is_world_process_zero:
-            self._optimization_step_started = datetime.datetime.now()
+        self._optimization_step_started = datetime.datetime.now()
 
     def on_step_end(
         self,
@@ -265,25 +262,12 @@ class CustomAimCallback(AimCallback):
 
         CustomAimCallback.training_steps += 1
 
-        sys.stderr.flush()
-        sys.stdout.flush()
+        now = datetime.datetime.now()
+        dt = (now - self._optimization_step_started).total_seconds()
+        running_for = (now - self._time_started).total_seconds()
 
         if state.is_world_process_zero:
-            dt = (
-                datetime.datetime.now() - self._optimization_step_started
-            ).total_seconds()
-
             self.experiment.track(value=dt, name="optimization_step_duration")
-
-        if state.is_local_process_zero and self._auto_stop_method is not None:
-            # VV: In multi-node runs, each local-rank 0 process dumps a JSON file with metrics it collects.
-            # The auto_stop_method ignores system metrics gathered during the warmup phase. To achieve this,
-            # each local-rank 0 process must know the warmup duration. Instead of synchronizing across workers,
-            # we just have all local-rank 0 processes compute it independently.
-            # To this end, local-rank 0 processes track the duration of optimization steps.
-            self._optimization_step_durations.append(dt)
-
-        running_for = (datetime.datetime.now() - self._time_started).total_seconds()
 
         if (
             state.is_local_process_zero
@@ -296,25 +280,29 @@ class CustomAimCallback(AimCallback):
             )
             control.should_training_stop = True
 
-        if self._auto_stop_method is not None:
+        if state.is_local_process_zero:
             if (
                 self._auto_stop_method
                 == constants.AutoStopMethod.WARMUP_60S_STABLE_120S_OR_10_STEPS
             ):
+                # VV: In multi-node runs, each local-rank 0 process dumps a JSON file with metrics it collects.
+                # The auto_stop_method ignores system metrics gathered during the warmup phase. To achieve this,
+                # each local-rank 0 process must know the warmup duration. Instead of synchronizing across workers,
+                # we just have all local-rank 0 processes compute it independently.
+                # To this end, local-rank 0 processes track the duration of optimization steps.
+                self._optimization_step_durations.append(dt)
+
+                # VV: all processes with local rank 0 need to compute their respective warmup phase in order to
+                # be able to discard the system metrics that they collect during warmup
                 gathered_enough, post_warmup_step_idx = has_gathered_enough_samples(
                     duration_of_optimization_steps=self._optimization_step_durations,
                     warmup_seconds=60,
                     meaningful_samples_seconds=120,
                     meaningful_samples_amount=10,
                 )
-            else:
-                raise NotImplementedError(
-                    "Unknown auto_stop_method", self._auto_stop_method
-                )
 
-            if gathered_enough:
-                self._post_warmup_optimization_step_index = post_warmup_step_idx
-                if state.is_local_process_zero:
+                if gathered_enough:
+                    self._post_warmup_optimization_step_index = post_warmup_step_idx
                     print(
                         "Triggering experiment to stop after running for",
                         running_for,
@@ -323,6 +311,36 @@ class CustomAimCallback(AimCallback):
                         post_warmup_step_idx,
                     )
                     control.should_training_stop = True
+            elif self._auto_stop_method is not None:
+                raise NotImplementedError(
+                    "Unknown auto_stop_method", self._auto_stop_method
+                )
+
+        sys.stderr.flush()
+        sys.stdout.flush()
+
+        if (
+            torch.distributed.is_initialized()
+            and torch.distributed.get_world_size() > 1
+        ):
+            # VV: Stop all workers if all local-rank 0 workers agree to stop
+            should_stop = torch.tensor(
+                [
+                    # VV: We use MIN reduction to stop training when all local-rank 0 workers agree.
+                    # Non local-rank-0 workers also participate in this reduction, but their value is
+                    # irrelevant - and it is always False.
+                    # Here, we set these values to True so that they don't influence the reduce operation at all.
+                    (not state.is_local_process_zero)
+                    or control.should_training_stop
+                ],
+                dtype=torch.uint8,
+            ).cuda()
+
+            torch.distributed.all_reduce(should_stop, op=torch.distributed.ReduceOp.MIN)
+            control.should_training_stop = should_stop.item() == 1
+
+            if control.should_training_stop:
+                print("All local-rank 0 workers agree to stop early")
 
     def on_train_end(self, args, state, control, **kwargs):
         try:

@@ -565,7 +565,9 @@ class MeasurementSpace:
 
         # If more that one observed property measures same target we just need to
         # keep one of them
-        mapping = {op.targetProperty.identifier: op for op in self._observedProperties}
+        mapping = {
+            ap.identifier: ap for exp in self.experiments for ap in exp.targetProperties
+        }
         target_ids = list(set(mapping.keys()))
 
         return [mapping[i].targetProperty for i in target_ids]

@@ -18,7 +18,7 @@ from orchestrator.schema.property import (
     MeasuredPropertyTypeEnum,
     Property,
 )
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.property_value import ConstitutivePropertyValue, PropertyValue
 from orchestrator.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
@@ -77,7 +77,7 @@ class Experiment(pydantic.BaseModel):
         frozen=True,
         description="""The optional properties this experiment can take as input. Must have default values specified in parameterization""",
     )
-    defaultParameterization: tuple[PropertyValue, ...] = pydantic.Field(
+    defaultParameterization: tuple[ConstitutivePropertyValue, ...] = pydantic.Field(
         validate_default=True,
         default=(),
         frozen=True,
@@ -612,7 +612,7 @@ class ParameterizedExperiment(Experiment):
     Note: The parameterization cannot be empty or have any values which are the same as default values
     """
 
-    parameterization: list[PropertyValue] = pydantic.Field(
+    parameterization: list[ConstitutivePropertyValue] = pydantic.Field(
         default=[],
         description="Values for optional properties",
     )

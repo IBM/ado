@@ -22,6 +22,7 @@ from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import (
     DuplicateMeasurementResultError,
+    MeasurementResult,
     ValidMeasurementResult,
 )
 from orchestrator.schema.virtual_property import (
@@ -246,12 +247,12 @@ class Entity(pydantic.BaseModel):
         ]
 
     @property
-    def constitutiveProperties(self):
+    def constitutiveProperties(self) -> list[ConstitutivePropertyDescriptor]:
         """
-        Returns a list of unique constitutive properties.
+        Returns a list of unique constitutive properties descriptors
 
         Returns:
-        List[Property]: A list of unique constitutive properties.
+        List[ConstitutivePropertyDescriptor]: A list of unique constitutive properties.
         """
         known_property_identifiers = set()
         unique_properties = []
@@ -281,7 +282,9 @@ class Entity(pydantic.BaseModel):
             if v.experimentReference == experimentReference
         ]
 
-    def propertyValuesFromExperiment(self, experiment: Experiment):
+    def propertyValuesFromExperiment(
+        self, experiment: Experiment
+    ) -> list[PropertyValue]:
         """Returns all the property values of the entity measured by experiment
 
         If there are no measured properties for experiment this method returns an empty list
@@ -296,7 +299,7 @@ class Entity(pydantic.BaseModel):
 
     def measurement_results_for_experiment_reference(
         self, experiment_reference: ExperimentReference
-    ):
+    ) -> list[MeasurementResult]:
         return [
             result
             for result in self.measurement_results
@@ -305,7 +308,7 @@ class Entity(pydantic.BaseModel):
 
     def propertyValuesFromExperimentReference(
         self, experimentReference: ExperimentReference
-    ):
+    ) -> list[PropertyValue]:
         """Returns all the property values of the entity measured by experiment
 
         If there are no measured properties for experiment this method returns an empty list

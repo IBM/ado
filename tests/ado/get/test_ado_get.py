@@ -36,3 +36,19 @@ def test_space_exists(
     # Travis CI cannot capture output reliably
     if os.environ.get("CI", "false") != "true":
         assert pfas_space.uri in result.output
+
+
+def test_get_robotic_lab_actuator():
+
+    runner = CliRunner()
+
+    result = runner.invoke(ado, ["get", "actuator", "robotic_lab"])
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert "robotic_lab" in result.output
+
+    result = runner.invoke(ado, ["get", "actuator", "robotic_lab", "--details"])
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert "robotic_lab" in result.output
+        assert "peptide_mineralization" in result.output

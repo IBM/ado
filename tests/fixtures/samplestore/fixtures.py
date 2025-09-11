@@ -3,6 +3,12 @@
 
 import pytest
 
+from orchestrator.core.samplestore.config import (
+    SampleStoreConfiguration,
+    SampleStoreModuleConf,
+    SampleStoreSpecification,
+)
+from orchestrator.core.samplestore.sql import SQLSampleStore
 from orchestrator.metastore.sqlstore import SQLStore
 
 
@@ -57,3 +63,16 @@ def sql_store_with_resources_preloaded(
         )
 
     return sql
+
+
+@pytest.fixture
+def empty_sample_store(create_sample_store) -> SQLSampleStore:
+    sample_store_configuration = SampleStoreConfiguration(
+        specification=SampleStoreSpecification(
+            module=SampleStoreModuleConf(
+                moduleClass="SQLSampleStore",
+                moduleName="orchestrator.core.samplestore.sql",
+            ),
+        )
+    )
+    return create_sample_store(sample_store_configuration)

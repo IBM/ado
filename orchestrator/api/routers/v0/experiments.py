@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 import itertools
 
 from fastapi import APIRouter, HTTPException, status

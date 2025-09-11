@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 from fastapi import HTTPException, status
 
 from orchestrator.schema.request import MeasurementRequest

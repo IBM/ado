@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 from fastapi import APIRouter, HTTPException, status
 
 from orchestrator.modules.actuators.registry import ActuatorRegistry

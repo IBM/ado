@@ -13,8 +13,10 @@ from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import (
     ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     Property,
+    PropertyDescriptor,
 )
 from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.reference import ExperimentReference
@@ -82,7 +84,7 @@ class Entity(pydantic.BaseModel):
         return v
 
     @property
-    def properties(self) -> list[ObservedProperty | ConstitutiveProperty]:
+    def properties(self) -> list[ObservedProperty | ConstitutivePropertyDescriptor]:
         """
         Return a list of unique properties from the entity's measurement results.
 
@@ -112,7 +114,8 @@ class Entity(pydantic.BaseModel):
         """
 
         if not all(
-            isinstance(pv.property, ConstitutiveProperty) for pv in property_values
+            isinstance(pv.property, ConstitutivePropertyDescriptor)
+            for pv in property_values
         ):
             raise ValueError("All values must be for ConstitutiveProperties")
 
@@ -348,7 +351,9 @@ class Entity(pydantic.BaseModel):
 
     def valuesForProperty(
         self,
-        property: ObservedProperty | ConstitutiveProperty | VirtualObservedProperty,
+        property: (
+            Property | PropertyDescriptor | ObservedProperty | VirtualObservedProperty
+        ),
     ) -> list[PropertyValue]:
         """Returns all values for given observed property. If none exit returns an empty list"""
 
@@ -370,7 +375,12 @@ class Entity(pydantic.BaseModel):
 
     def valueForProperty(
         self,
-        property: ObservedProperty | ConstitutiveProperty | VirtualObservedProperty,
+        property: (
+            ObservedProperty
+            | ConstitutiveProperty
+            | ConstitutivePropertyDescriptor
+            | VirtualObservedProperty
+        ),
     ) -> PropertyValue:
         """Returns an PropertyValue for Property if one exists otherwise None
 
@@ -380,7 +390,9 @@ class Entity(pydantic.BaseModel):
         check = self.valuesForProperty(property)
         return check[0] if len(check) != 0 else None
 
-    def valuesForTargetProperty(self, targetProperty: Property) -> list[PropertyValue]:
+    def valuesForTargetProperty(
+        self, targetProperty: Property | PropertyDescriptor
+    ) -> list[PropertyValue]:
         """Returns all PropertyValue instances for targetProperty if one exists otherwise empty list"""
 
         return list(
@@ -472,7 +484,7 @@ class Entity(pydantic.BaseModel):
 
             """
 
-            if isinstance(value.property, ConstitutiveProperty):
+            if isinstance(value.property, ConstitutivePropertyDescriptor):
                 return True
 
             if restrictConstitutive:

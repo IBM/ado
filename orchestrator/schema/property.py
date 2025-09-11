@@ -29,6 +29,78 @@ class NonMeasuredPropertyTypeEnum(str, enum.Enum):
     CONSTITUTIVE_PROPERTY_TYPE = "CONSTITUTIVE_PROPERTY_TYPE"  # Properties whose values are immediately known when you define the entity
 
 
+class PropertyDescriptor(pydantic.BaseModel):
+    """A named property - no domain"""
+
+    identifier: str
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @pydantic.model_validator(mode="before")
+    def property_to_descriptor(cls, value):
+
+        if isinstance(value, Property):
+            value = value.descriptor()
+        elif isinstance(value, dict):
+            value.pop("propertyDomain", None)
+            value.pop("metadata", None)
+
+        return value
+
+    def __eq__(self, other: "Property"):
+        """Two PropertyDescriptors are considered the same if they have the same identifier
+
+        A PropertyDescriptor will be equal to a Property if it has the same identifier.
+
+        Metadata is not included"""
+
+        try:
+            retval = self.identifier == other.identifier
+        except AttributeError as error:
+            print(error)
+            retval = False
+
+        return retval
+
+    def _repr_pretty_(self, p, cycle=False):
+
+        if cycle:  # pragma: no cover
+            p.text("Cycle detected")
+        else:
+            p.text(f"{self.identifier}")
+            p.breakable()
+
+
+class AbstractPropertyDescriptor(PropertyDescriptor):
+
+    propertyType: MeasuredPropertyTypeEnum = (
+        MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
+    )
+    concretePropertyIdentifiers: list[str] | None = None
+
+
+class ConstitutivePropertyDescriptor(PropertyDescriptor):
+    propertyType: NonMeasuredPropertyTypeEnum = pydantic.Field(
+        default=NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+    )
+
+    def __str__(self):
+        return f"cp-{self.identifier}"
+
+    model_config = ConfigDict(frozen=True)
+
+
+class ConcretePropertyDescriptor(PropertyDescriptor):
+
+    propertyType: MeasuredPropertyTypeEnum = pydantic.Field(
+        default=MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
+    )
+    abstractProperty: AbstractPropertyDescriptor | None = None
+    model_config = ConfigDict(frozen=True)
+
+    def __str__(self):
+        return f"cp-{self.identifier}"
+
+
 class Property(pydantic.BaseModel):
     """A named property with a domain"""
 
@@ -41,6 +113,11 @@ class Property(pydantic.BaseModel):
         description="Provides information on the variable type and the valid values it can take",
     )
     model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @classmethod
+    def from_descriptor(cls, descriptor: PropertyDescriptor):
+
+        return cls(identifier=descriptor.identifier)
 
     def __eq__(self, other: "Property"):
         """Two properties are considered the same if they have the same identifier and domain.
@@ -74,6 +151,10 @@ class Property(pydantic.BaseModel):
 
             p.breakable()
 
+    def descriptor(self):
+
+        return PropertyDescriptor(identifier=self.identifier)
+
 
 class AbstractProperty(Property):
     """Represents an Abstract Property"""
@@ -83,6 +164,14 @@ class AbstractProperty(Property):
     )
     concretePropertyIdentifiers: list[str] | None = None
     model_config = ConfigDict(frozen=True)
+
+    @classmethod
+    def from_descriptor(cls, descriptor: AbstractPropertyDescriptor):
+
+        return cls(
+            identifier=descriptor.identifier,
+            concretePropertyIdentifiers=descriptor.concretePropertyIdentifiers,
+        )
 
     def __str__(self):
         return f"ap-{self.identifier}"
@@ -97,16 +186,34 @@ class AbstractProperty(Property):
 
         return retval
 
+    def descriptor(self):
+
+        return AbstractPropertyDescriptor(
+            identifier=self.identifier,
+            concretePropertyIdentifiers=self.concretePropertyIdentifiers,
+        )
+
 
 class ConstitutiveProperty(Property):
     propertyType: NonMeasuredPropertyTypeEnum = pydantic.Field(
         default=NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
     )
 
+    @classmethod
+    def from_descriptor(cls, descriptor: AbstractPropertyDescriptor):
+
+        return cls(
+            identifier=descriptor.identifier,
+        )
+
     def __str__(self):
         return f"cp-{self.identifier}"
 
     model_config = ConfigDict(frozen=True)
+
+    def descriptor(self):
+
+        return ConstitutivePropertyDescriptor(identifier=self.identifier)
 
 
 class ConcreteProperty(Property):
@@ -116,5 +223,25 @@ class ConcreteProperty(Property):
     abstractProperty: AbstractProperty | None = None
     model_config = ConfigDict(frozen=True)
 
+    @classmethod
+    def from_descriptor(cls, descriptor: ConcretePropertyDescriptor):
+
+        return cls(
+            identifier=descriptor.identifier,
+            abstractProperty=(
+                AbstractProperty.from_descriptor(descriptor.abstractProperty)
+                if descriptor.abstractProperty
+                else None
+            ),
+        )
+
     def __str__(self):
         return f"cp-{self.identifier}"
+
+    def descriptor(self):
+        return ConcretePropertyDescriptor(
+            identifier=self.identifier,
+            abstractProperty=(
+                self.abstractProperty.descriptor() if self.abstractProperty else None
+            ),
+        )

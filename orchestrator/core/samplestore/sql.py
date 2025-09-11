@@ -23,6 +23,12 @@ from orchestrator.metastore.sql.utils import engine_for_sql_store
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.property import (
+    AbstractProperty,
+    ConcreteProperty,
+    ConcretePropertyDescriptor,
+    ConstitutiveProperty,
+)
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import (
     MeasurementRequest,
@@ -133,10 +139,19 @@ class SQLSampleStore(ActiveSampleStore):
                 props = [
                     p for p in entity.observedProperties if p.experimentReference == r
                 ]
+                # FIXME: This is not the right way to do this.
+                targetProperties = []
+                for p in props:
+                    t = p.targetProperty
+                    if isinstance(p, ConcretePropertyDescriptor):
+                        targetProperties.append(ConcreteProperty.from_descriptor(t))
+                    else:
+                        targetProperties.append(AbstractProperty.from_descriptor(t))
+
                 experiment = Experiment(
                     identifier=r.experimentIdentifier,
                     actuatorIdentifier=r.actuatorIdentifier,
-                    targetProperties=[p.targetProperty for p in props],
+                    targetProperties=targetProperties,
                 )
                 experiments[experiment.identifier] = experiment
 
@@ -166,11 +181,25 @@ class SQLSampleStore(ActiveSampleStore):
         experiments = {}
         for r in refs:
             props = [p for p in entity.observedProperties if p.experimentReference == r]
+            # FIXME: This is not the right way to do this.
+            targetProperties = []
+            for p in props:
+                t = p.targetProperty
+                if isinstance(p, ConcretePropertyDescriptor):
+                    targetProperties.append(ConcreteProperty.from_descriptor(t))
+                else:
+                    targetProperties.append(AbstractProperty.from_descriptor(t))
+
             experiment = Experiment(
                 identifier=r.experimentIdentifier,
                 actuatorIdentifier=r.actuatorIdentifier,
-                targetProperties=[p.targetProperty for p in props],
-                requiredProperties=entity.constitutiveProperties,
+                targetProperties=targetProperties,
+                requiredProperties=tuple(
+                    [
+                        ConstitutiveProperty.from_descriptor(p)
+                        for p in entity.constitutiveProperties
+                    ]
+                ),
             )
             experiments[experiment.identifier] = experiment
 

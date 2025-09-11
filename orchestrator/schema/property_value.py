@@ -9,7 +9,11 @@ import pydantic
 from orchestrator.schema.observed_property import (
     ObservedProperty,
 )
-from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.property import (
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+    Property,
+)
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from orchestrator.schema.virtual_property import VirtualObservedProperty
@@ -37,17 +41,23 @@ class PropertyValue(pydantic.BaseModel):
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
-    value: int | float | list | str | bytes | None = pydantic.Field(
+    value: int | float | list | str | None = pydantic.Field(
         description="The measured value."
     )
     property: typing.Union[
-        "VirtualObservedProperty", ObservedProperty, ConstitutiveProperty
-    ] = pydantic.Field(
-        description="The ObservedProperty or ConstitutiveProperty instance that this is a measurement of"
-    )
+        "VirtualObservedProperty", ObservedProperty, ConstitutivePropertyDescriptor
+    ] = pydantic.Field(description="The Property with the value")
     uncertainty: float | None = pydantic.Field(
         default=None, description="The uncertainty in the measured value. Can be None"
     )
+
+    @pydantic.field_validator("property", mode="before")
+    def convert_property_to_descriptor(cls, value):
+
+        if isinstance(value, Property):
+            value = value.descriptor()
+
+        return value
 
     @pydantic.field_validator(
         "value",
@@ -141,8 +151,15 @@ class PropertyValue(pydantic.BaseModel):
         return self.uncertainty is not None
 
 
+class ConstitutivePropertyValue(PropertyValue):
+
+    property: ConstitutivePropertyDescriptor = pydantic.Field(
+        description="The Property with the value"
+    )
+
+
 def constitutive_property_values_from_point(
-    point: dict, properties: list[ConstitutiveProperty]
+    point: dict, properties: list[ConstitutiveProperty | ConstitutivePropertyDescriptor]
 ) -> list[PropertyValue]:
     """Given a dict of {property id:property value}, and the Property instances, returns the PropertyValue instances"""
 

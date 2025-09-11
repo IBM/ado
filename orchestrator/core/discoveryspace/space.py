@@ -638,7 +638,9 @@ class DiscoverySpace:
         if self.entitySpace:
             requestedProperties = [v.property for v in values]
             try:
-                definedProperties = self.entitySpace.constitutiveProperties
+                definedProperties = [
+                    c.descriptor() for c in self.entitySpace.constitutiveProperties
+                ]
             except AttributeError:
                 pass
             else:

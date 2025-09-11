@@ -19,7 +19,6 @@ from orchestrator.core.samplestore.csv import (
     CSVSampleStoreDescription,
 )
 from orchestrator.core.samplestore.utils import initialize_sample_store_from_reference
-from orchestrator.schema.domain import VariableTypeEnum
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import (
     AbstractProperty,
@@ -332,16 +331,8 @@ def test_csv_sample_store_type_parsing(ml_multi_cloud_csv_sample_store):
 
     values = entity.valuesForTargetProperty(Property(identifier="wallClockRuntime"))
     for v in values:
-        assert (
-            v.property.targetProperty.propertyDomain.variableType
-            == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
-        )
         assert v.valueType == ValueTypeEnum.NUMERIC_VALUE_TYPE
 
     values = entity.valuesForTargetProperty(Property(identifier="status"))
     for v in values:
-        assert (
-            v.property.targetProperty.propertyDomain.variableType
-            == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
-        )
         assert v.valueType == ValueTypeEnum.STRING_VALUE_TYPE

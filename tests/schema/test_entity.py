@@ -16,7 +16,7 @@ from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import (
     AbstractProperty,
     ConcreteProperty,
-    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     NonMeasuredPropertyTypeEnum,
 )
@@ -104,7 +104,9 @@ def test_number_and_type_of_property_method_return_values(entity):
     ), "Error: Duplicate observed properties"
 
     # All constitutive properties have correct type
-    assert {type(cp) for cp in entity.constitutiveProperties} == {ConstitutiveProperty}
+    assert {type(cp) for cp in entity.constitutiveProperties} == {
+        ConstitutivePropertyDescriptor
+    }
     assert len({cp.identifier for cp in entity.constitutiveProperties}) == len(
         entity.observedProperties
     ), "Error: Duplicate observed properties"

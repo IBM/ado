@@ -13,7 +13,8 @@ from orchestrator.schema.observed_property import (
 )
 from orchestrator.schema.property import (
     AbstractProperty,
-    ConcreteProperty,
+    AbstractPropertyDescriptor,
+    ConcretePropertyDescriptor,
     ConstitutiveProperty,
     MeasuredPropertyTypeEnum,
     Property,
@@ -49,9 +50,11 @@ class Experiment(pydantic.BaseModel):
         default={},
         description=""" Metadata about the experiment. Sufficient to track its source. Can be custom format per actuator""",
     )
-    targetProperties: list[AbstractProperty | ConcreteProperty] = pydantic.Field(
-        description="""The target properties this experiment aims to measure
+    targetProperties: list[AbstractPropertyDescriptor | ConcretePropertyDescriptor] = (
+        pydantic.Field(
+            description="""The target properties this experiment aims to measure
             (can be ConcreteProperty or AbstractProperty instances)"""
+        )
     )
     requiredProperties: tuple[ObservedProperty | ConstitutiveProperty, ...] = (
         pydantic.Field(
@@ -320,9 +323,7 @@ class Experiment(pydantic.BaseModel):
         Note: New ObservedProperty objects are returned on each call"""
 
         return [
-            ObservedProperty(
-                targetProperty=target.descriptor(), experimentReference=self.reference
-            )
+            ObservedProperty(targetProperty=target, experimentReference=self.reference)
             for target in self.targetProperties
         ]
 

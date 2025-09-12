@@ -19,8 +19,8 @@ The maintainers are listed in alphabetical order.
 We extend a sincere thank you to our colleagues who contributed to ado before it
 was open sourced:
 
-- [Boris Lublinsky](https://github.com/blublinsky)
-- [Burkhard Ringlein](https://github.com/bringlein)
-- [Gabriela Pinheiro Costa](https://github.com/GabrielaPC)
-- [Raphael Melo Thiago](https://github.com/raphael-melo)
-- [Renato Maia](https://github.com/renatomaia/)
+- Boris Lublinsky ([blublinsky](https://github.com/blublinsky))
+- Burkhard Ringlein ([bringlein](https://github.com/bringlein))
+- Gabriela Pinheiro Costa ([GabrielaPC](https://github.com/GabrielaPC))
+- Raphael Melo Thiago ([raphael-melo](https://github.com/raphael-melo))
+- Renato Maia ([renatomaia](https://github.com/renatomaia))

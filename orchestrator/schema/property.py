@@ -77,6 +77,9 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
     )
     concretePropertyIdentifiers: list[str] | None = None
 
+    def __str__(self):
+        return f"ap-{self.identifier}"
+
 
 class ConstitutivePropertyDescriptor(PropertyDescriptor):
     propertyType: NonMeasuredPropertyTypeEnum = pydantic.Field(

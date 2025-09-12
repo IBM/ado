@@ -10,7 +10,10 @@ import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import ObservedProperty
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
 from orchestrator.schema.property import (
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
@@ -18,7 +21,7 @@ from orchestrator.schema.property import (
     Property,
     PropertyDescriptor,
 )
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import (
     DuplicateMeasurementResultError,
@@ -29,6 +32,7 @@ from orchestrator.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
+    VirtualObservedPropertyValue,
 )
 
 if typing.TYPE_CHECKING:  # pragma: nocover
@@ -57,9 +61,11 @@ class Entity(pydantic.BaseModel):
     generatorid: str = pydantic.Field(
         "unk", description="The id of the generator that created this entity"
     )
-    constitutive_property_values: tuple[PropertyValue, ...] = pydantic.Field(
-        frozen=True,
-        description=" A list of PropertyValue objects giving values for constitutive properties",
+    constitutive_property_values: tuple[ConstitutivePropertyValue, ...] = (
+        pydantic.Field(
+            frozen=True,
+            description=" A list of PropertyValue objects giving values for constitutive properties",
+        )
     )
     measurement_results: list["ValidMeasurementResult"] = pydantic.Field(
         default_factory=list,
@@ -77,7 +83,7 @@ class Entity(pydantic.BaseModel):
     )
 
     @property
-    def propertyValues(self) -> list[PropertyValue]:
+    def propertyValues(self) -> list[ConstitutivePropertyValue | ObservedPropertyValue]:
         v = []
         for result in self.measurement_results:
             v.extend(result.measurements)
@@ -107,9 +113,9 @@ class Entity(pydantic.BaseModel):
 
     @classmethod
     def identifier_from_property_values(
-        cls, property_values: typing.Iterable[PropertyValue]
+        cls, property_values: typing.Iterable[ConstitutivePropertyValue]
     ):
-        """Returns the identifier that would be generated for an entity with the given constitutive property values is No external identifier was given
+        """Returns the identifier that would be generated for an entity with the given constitutive property values
 
         Raise ValueError if all members of property_values do not refer to ConstitutiveProperties
         """
@@ -126,8 +132,8 @@ class Entity(pydantic.BaseModel):
     @pydantic.field_validator("constitutive_property_values", mode="after")
     @classmethod
     def guarantee_constitutive_properties_are_unique(
-        cls, values: tuple[PropertyValue]
-    ) -> tuple[PropertyValue]:
+        cls, values: tuple[ConstitutivePropertyValue]
+    ) -> tuple[ConstitutivePropertyValue]:
 
         if not values:
             return values
@@ -240,7 +246,7 @@ class Entity(pydantic.BaseModel):
         ]
 
     @property
-    def observedPropertyValues(self) -> list[PropertyValue]:
+    def observedPropertyValues(self) -> list[ObservedPropertyValue]:
 
         return [
             p for p in self.propertyValues if isinstance(p.property, ObservedProperty)
@@ -284,7 +290,7 @@ class Entity(pydantic.BaseModel):
 
     def propertyValuesFromExperiment(
         self, experiment: Experiment
-    ) -> list[PropertyValue]:
+    ) -> list[ObservedPropertyValue]:
         """Returns all the property values of the entity measured by experiment
 
         If there are no measured properties for experiment this method returns an empty list
@@ -308,7 +314,7 @@ class Entity(pydantic.BaseModel):
 
     def propertyValuesFromExperimentReference(
         self, experimentReference: ExperimentReference
-    ) -> list[PropertyValue]:
+    ) -> list[ObservedPropertyValue]:
         """Returns all the property values of the entity measured by experiment
 
         If there are no measured properties for experiment this method returns an empty list
@@ -357,7 +363,9 @@ class Entity(pydantic.BaseModel):
         property: (
             Property | PropertyDescriptor | ObservedProperty | VirtualObservedProperty
         ),
-    ) -> list[PropertyValue]:
+    ) -> list[
+        ConstitutivePropertyValue | ObservedPropertyValue | VirtualObservedPropertyValue
+    ]:
         """Returns all values for given observed property. If none exit returns an empty list"""
 
         if isinstance(property, VirtualObservedProperty):
@@ -384,7 +392,9 @@ class Entity(pydantic.BaseModel):
             | ConstitutivePropertyDescriptor
             | VirtualObservedProperty
         ),
-    ) -> PropertyValue:
+    ) -> (
+        ConstitutivePropertyValue | ObservedPropertyValue | VirtualObservedPropertyValue
+    ):
         """Returns an PropertyValue for Property if one exists otherwise None
 
         If the property is an ObservedProperty and multiple values exist the first is returned.
@@ -395,7 +405,7 @@ class Entity(pydantic.BaseModel):
 
     def valuesForTargetProperty(
         self, targetProperty: Property | PropertyDescriptor
-    ) -> list[PropertyValue]:
+    ) -> list[ObservedPropertyValue]:
         """Returns all PropertyValue instances for targetProperty if one exists otherwise empty list"""
 
         return list(
@@ -406,7 +416,9 @@ class Entity(pydantic.BaseModel):
             )
         )
 
-    def valueForConstitutivePropertyIdentifier(self, identifier: str) -> PropertyValue:
+    def valueForConstitutivePropertyIdentifier(
+        self, identifier: str
+    ) -> ConstitutivePropertyValue:
         """Returns the value of the ConstitutiveProperty with the given identifier if one exists otherwise None"""
 
         check = list(
@@ -419,7 +431,7 @@ class Entity(pydantic.BaseModel):
 
     def valuesForObservedPropertyIdentifier(
         self, identifier: str
-    ) -> list[PropertyValue]:
+    ) -> list[ObservedPropertyValue]:
         """Returns the values of the ObservedProperty with the given identifier if one exists otherwise an empty list"""
 
         return list(
@@ -473,7 +485,7 @@ class Entity(pydantic.BaseModel):
         import pandas as pd
 
         def add_value(
-            value: PropertyValue,
+            value: ConstitutivePropertyValue | ObservedPropertyValue,
             references: list[ExperimentReference],
             restrictConstitutive=False,
         ):
@@ -487,7 +499,7 @@ class Entity(pydantic.BaseModel):
 
             """
 
-            if isinstance(value.property, ConstitutivePropertyDescriptor):
+            if isinstance(value, ConstitutivePropertyValue):
                 return True
 
             if restrictConstitutive:

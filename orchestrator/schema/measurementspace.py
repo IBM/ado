@@ -570,7 +570,7 @@ class MeasurementSpace:
         }
         target_ids = list(set(mapping.keys()))
 
-        return [mapping[i].targetProperty for i in target_ids]
+        return [mapping[i] for i in target_ids]
 
     @property
     def observedProperties(

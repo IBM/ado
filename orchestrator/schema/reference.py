@@ -7,11 +7,9 @@ import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.schema.property import ConstitutiveProperty
-
-if typing.TYPE_CHECKING:  # pragma: nocover
-    from orchestrator.schema.property_value import (
-        ConstitutivePropertyValue,
-    )
+from orchestrator.schema.property_value import (
+    ConstitutivePropertyValue,
+)
 
 
 def reference_string_from_fields(actuator_identifier, experiment_identifier):
@@ -27,7 +25,7 @@ class ExperimentReference(pydantic.BaseModel):
     actuatorIdentifier: str = pydantic.Field(
         description="The identifier of the actuator that supplies the experiment"
     )
-    parameterization: list["ConstitutivePropertyValue"] | None = pydantic.Field(
+    parameterization: list[ConstitutivePropertyValue] | None = pydantic.Field(
         default=None,
         description="A list of values for optional properties of the experiment",
     )
@@ -160,9 +158,9 @@ def identifier_for_parameterized_experiment(identifier, parameterization):
 
 
 def check_parameterization_validity(
-    parameterizableProperties: list["ConstitutiveProperty"],
-    customParameterization: typing.Iterable["ConstitutivePropertyValue"],
-    defaultParameterization: list["ConstitutivePropertyValue"] | None = None,
+    parameterizableProperties: list[ConstitutiveProperty],
+    customParameterization: typing.Iterable[ConstitutivePropertyValue],
+    defaultParameterization: list[ConstitutivePropertyValue] | None = None,
 ) -> None:
     """Checks if values are a valid parameterization of properties"""
 

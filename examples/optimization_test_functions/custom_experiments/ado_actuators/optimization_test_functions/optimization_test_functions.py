@@ -7,7 +7,8 @@ from nevergrad.functions import ArtificialFunction
 
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property_value import PropertyValue, ValueTypeEnum
+from orchestrator.schema.observed_property import ObservedPropertyValue
+from orchestrator.schema.property_value import ValueTypeEnum
 
 moduleLog = logging.getLogger()
 
@@ -35,7 +36,7 @@ def artificial_function(
     value = func(np.asarray([v.value for v in entity.constitutive_property_values]))
 
     # Return the function value to ado
-    pv = PropertyValue(
+    pv = ObservedPropertyValue(
         value=value,
         property=experiment.observedPropertyForTargetIdentifier("function_value"),
         valueType=ValueTypeEnum.NUMERIC_VALUE_TYPE,

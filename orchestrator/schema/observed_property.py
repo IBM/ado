@@ -10,6 +10,7 @@ from orchestrator.schema.property import (
     ConcretePropertyDescriptor,
     Property,
 )
+from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.reference import ExperimentReference
 
 
@@ -59,3 +60,9 @@ class ObservedProperty(pydantic.BaseModel):
     @property
     def propertyType(self):
         return self.targetProperty.propertyType
+
+
+class ObservedPropertyValue(PropertyValue):
+    property: ObservedProperty = pydantic.Field(
+        description="The ObservedProperty with the value"
+    )

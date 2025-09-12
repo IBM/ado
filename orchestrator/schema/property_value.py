@@ -2,21 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-import typing
 
 import pydantic
 
-from orchestrator.schema.observed_property import (
-    ObservedProperty,
-)
 from orchestrator.schema.property import (
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
     Property,
+    PropertyDescriptor,
 )
-
-if typing.TYPE_CHECKING:  # pragma: nocover
-    from orchestrator.schema.virtual_property import VirtualObservedProperty
 
 
 class ValueTypeEnum(str, enum.Enum):
@@ -41,12 +35,12 @@ class PropertyValue(pydantic.BaseModel):
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
-    value: int | float | list | str | None = pydantic.Field(
+    value: int | float | list | str | bytes | None = pydantic.Field(
         description="The measured value."
     )
-    property: typing.Union[
-        "VirtualObservedProperty", ObservedProperty, ConstitutivePropertyDescriptor
-    ] = pydantic.Field(description="The Property with the value")
+    property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(
+        description="The Property with the value"
+    )
     uncertainty: float | None = pydantic.Field(
         default=None, description="The uncertainty in the measured value. Can be None"
     )
@@ -154,13 +148,16 @@ class PropertyValue(pydantic.BaseModel):
 class ConstitutivePropertyValue(PropertyValue):
 
     property: ConstitutivePropertyDescriptor = pydantic.Field(
-        description="The Property with the value"
+        description="The ConstitutiveProperty with the value"
     )
 
 
 def constitutive_property_values_from_point(
     point: dict, properties: list[ConstitutiveProperty | ConstitutivePropertyDescriptor]
-) -> list[PropertyValue]:
+) -> list[ConstitutivePropertyValue]:
     """Given a dict of {property id:property value}, and the Property instances, returns the PropertyValue instances"""
 
-    return [PropertyValue(value=point[c.identifier], property=c) for c in properties]
+    return [
+        ConstitutivePropertyValue(value=point[c.identifier], property=c)
+        for c in properties
+    ]

@@ -9,7 +9,7 @@ import pytest
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.property import (
-    AbstractProperty,
+    AbstractPropertyDescriptor,
     ConstitutiveProperty,
     ConstitutivePropertyDescriptor,
 )
@@ -41,7 +41,7 @@ def experiment_reference(
 def experiment(
     experiment_identifier: typing.AnyStr,
     actuator_identifier: typing.AnyStr,
-    abstract_properties: list[AbstractProperty],
+    abstract_properties: list[AbstractPropertyDescriptor],
     requiredProperties,
 ) -> Experiment:
     return Experiment(
@@ -143,7 +143,7 @@ def mock_parameterizable_experiment(
         requiredProperties=tuple(requiredProperties),
         optionalProperties=tuple(optionalProperties),
         defaultParameterization=tuple(defaultParameterization),
-        targetProperties=[AbstractProperty(identifier="measurable_one")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="measurable_one")],
         metadata={"description": "A mock experiment for testing"},
     )
 
@@ -159,7 +159,7 @@ def mock_parameterizable_experiment_no_required(
         identifier="test_parameterizable_experiment_two",
         optionalProperties=tuple(optionalProperties),
         defaultParameterization=tuple(defaultParameterization),
-        targetProperties=[AbstractProperty(identifier="measurable_two")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="measurable_two")],
         metadata={"description": "A mock experiment for testing"},
     )
 
@@ -183,7 +183,7 @@ def mock_parameterizable_experiment_with_required_observed(
         requiredProperties=(*requiredProperties, op),
         optionalProperties=tuple(optionalProperties),
         defaultParameterization=tuple(defaultParameterization),
-        targetProperties=[AbstractProperty(identifier="measurable_three")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="measurable_three")],
     )
 
 

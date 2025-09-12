@@ -16,7 +16,7 @@ from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property import AbstractProperty
+from orchestrator.schema.property import AbstractPropertyDescriptor
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
@@ -165,12 +165,12 @@ class MockActuator(ActuatorBase):
                 "test-experiment": Experiment(
                     identifier="test-experiment",
                     actuatorIdentifier="mock",
-                    targetProperties=[AbstractProperty(identifier="score")],
+                    targetProperties=[AbstractPropertyDescriptor(identifier="score")],
                 ),
                 "test-experiment-two": Experiment(
                     identifier="test-experiment-two",
                     actuatorIdentifier="mock",
-                    targetProperties=[AbstractProperty(identifier="score")],
+                    targetProperties=[AbstractPropertyDescriptor(identifier="score")],
                 ),
             },
         )

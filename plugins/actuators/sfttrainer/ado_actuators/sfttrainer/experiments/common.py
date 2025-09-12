@@ -639,7 +639,7 @@ def generate_parameterisable_finetune_experiment(
             "versioning": versioning,
         },
         targetProperties=[
-            orchestrator.schema.property.AbstractProperty(identifier=prop)
+            orchestrator.schema.property.AbstractPropertyDescriptor(identifier=prop)
             for prop in properties
         ],
         optionalProperties=optional_properties,

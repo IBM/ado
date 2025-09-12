@@ -13,7 +13,10 @@ from orchestrator.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.property import AbstractProperty, ConstitutiveProperty
+from orchestrator.schema.property import (
+    AbstractPropertyDescriptor,
+    ConstitutiveProperty,
+)
 from orchestrator.schema.property_value import ConstitutivePropertyValue
 
 
@@ -55,14 +58,14 @@ def test_entity_space_compatibility_with_measurement_space():
     experiment_one = Experiment(
         identifier="experiment_one",
         actuatorIdentifier="test",
-        targetProperties=[AbstractProperty(identifier="throughput")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="throughput")],
         requiredProperties=(cp1, cp2),
     )
 
     experiment_two = Experiment(
         identifier="experiment_two",
         actuatorIdentifier="test",
-        targetProperties=[AbstractProperty(identifier="oom")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="oom")],
         requiredProperties=(cp3, cp1),
     )
 

@@ -18,7 +18,7 @@ from orchestrator.schema.observed_property import (
 )
 from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
-    ConcreteProperty,
+    ConcretePropertyDescriptor,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     NonMeasuredPropertyTypeEnum,
@@ -235,7 +235,7 @@ def test_virtual_property_request_no_values(
     )
     virtualProperty = VirtualObservedProperty(
         baseObservedProperty=ObservedProperty(
-            targetProperty=ConcreteProperty(identifier="nonexistent"),
+            targetProperty=ConcretePropertyDescriptor(identifier="nonexistent"),
             experimentReference=experiment.reference,
         ),
         aggregationMethod=aggregation_method,

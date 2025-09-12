@@ -16,7 +16,7 @@ from orchestrator.schema.property import (
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue, PropertyValue
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
@@ -230,8 +230,8 @@ def experimentWithOptions(
 ) -> Experiment:
 
     return Experiment(
-        optionalProperties=optionalProperties,
-        defaultParameterization=defaultParameterization,
+        optionalProperties=tuple(optionalProperties),
+        defaultParameterization=tuple(defaultParameterization),
         **experimentRawNoOptional,
     )
 
@@ -239,7 +239,7 @@ def experimentWithOptions(
 def test_create_experiment_with_optional_params(
     experimentRawNoOptional: dict,
     optionalProperties: list[ConstitutiveProperty],
-    defaultParameterization: list[PropertyValue],
+    defaultParameterization: list[ConstitutivePropertyValue],
 ):
     """Test we can create an experiment with optional parameters"""
 
@@ -432,7 +432,7 @@ def test_retrieve_parameterizable_experiment(
 def test_parameterized_experiment_serialize_deserialize(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: list[PropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ):
     ref = ExperimentReference(
         actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,

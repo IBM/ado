@@ -12,7 +12,6 @@ from orchestrator.schema.observed_property import (
     ObservedProperty,
 )
 from orchestrator.schema.property import (
-    AbstractProperty,
     AbstractPropertyDescriptor,
     ConcretePropertyDescriptor,
     ConstitutiveProperty,
@@ -114,7 +113,7 @@ class Experiment(pydantic.BaseModel):
         """
 
         targetProperties = [
-            AbstractProperty(identifier=t, propertyType=propertyType)
+            AbstractPropertyDescriptor(identifier=t, propertyType=propertyType)
             for t in targetProperties
         ]
         if requiredConstitutiveProperties is not None:

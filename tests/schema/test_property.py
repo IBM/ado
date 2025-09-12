@@ -3,6 +3,7 @@
 
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import (
+    AbstractProperty,
     AbstractPropertyDescriptor,
     ConcreteProperty,
 )
@@ -27,14 +28,16 @@ def test_property_equivalence_non_property(requiredProperties):
 
 
 def test_abstract_property_identifier_and_string_representation(
-    target_property_list, abstract_properties
+    target_property_list, abstract_properties: list[AbstractPropertyDescriptor]
 ):
 
     for t, p in zip(target_property_list, abstract_properties):
         assert p.identifier == t
         assert str(p) == f"ap-{t}"
 
-        concrete = ConcreteProperty(identifier="test", abstractProperty=p)
+        concrete = ConcreteProperty(
+            identifier="test", abstractProperty=AbstractProperty.from_descriptor(p)
+        )
         assert concrete.identifier == "test"
         assert str(concrete) == "cp-test"
 

@@ -24,9 +24,6 @@ from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.property import (
-    AbstractProperty,
-    ConcreteProperty,
-    ConcretePropertyDescriptor,
     ConstitutiveProperty,
 )
 from orchestrator.schema.reference import ExperimentReference
@@ -139,19 +136,10 @@ class SQLSampleStore(ActiveSampleStore):
                 props = [
                     p for p in entity.observedProperties if p.experimentReference == r
                 ]
-                # FIXME: This is not the right way to do this.
-                targetProperties = []
-                for p in props:
-                    t = p.targetProperty
-                    if isinstance(p, ConcretePropertyDescriptor):
-                        targetProperties.append(ConcreteProperty.from_descriptor(t))
-                    else:
-                        targetProperties.append(AbstractProperty.from_descriptor(t))
-
                 experiment = Experiment(
                     identifier=r.experimentIdentifier,
                     actuatorIdentifier=r.actuatorIdentifier,
-                    targetProperties=targetProperties,
+                    targetProperties=[p.targetProperty for p in props],
                 )
                 experiments[experiment.identifier] = experiment
 
@@ -182,18 +170,10 @@ class SQLSampleStore(ActiveSampleStore):
         for r in refs:
             props = [p for p in entity.observedProperties if p.experimentReference == r]
             # FIXME: This is not the right way to do this.
-            targetProperties = []
-            for p in props:
-                t = p.targetProperty
-                if isinstance(p, ConcretePropertyDescriptor):
-                    targetProperties.append(ConcreteProperty.from_descriptor(t))
-                else:
-                    targetProperties.append(AbstractProperty.from_descriptor(t))
-
             experiment = Experiment(
                 identifier=r.experimentIdentifier,
                 actuatorIdentifier=r.actuatorIdentifier,
-                targetProperties=targetProperties,
+                targetProperties=[p.targetProperty for p in props],
                 requiredProperties=tuple(
                     [
                         ConstitutiveProperty.from_descriptor(p)

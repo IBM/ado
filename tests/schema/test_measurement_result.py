@@ -4,9 +4,11 @@
 import numpy.random
 import pytest
 
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import AbstractProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
+from orchestrator.schema.property import AbstractPropertyDescriptor
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import (
     InvalidMeasurementResult,
@@ -35,14 +37,14 @@ def test_valid_measurement_result_mismatch_properties(entity, property_values):
     import pydantic
 
     # Create a fake property-value
-    ap = AbstractProperty(identifier="test_prop")
+    ap = AbstractPropertyDescriptor(identifier="test_prop")
     op = ObservedProperty(
         targetProperty=ap,
         experimentReference=ExperimentReference(
             experimentIdentifier="test_exp", actuatorIdentifier="test_act"
         ),
     )
-    pv = PropertyValue(value=numpy.random.randint(0, 50), property=op)
+    pv = ObservedPropertyValue(value=numpy.random.randint(0, 50), property=op)
 
     # Test init with incorrect properties
     property_values.append(pv)

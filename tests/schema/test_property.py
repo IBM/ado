@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import AbstractProperty, ConcreteProperty
+from orchestrator.schema.property import (
+    AbstractPropertyDescriptor,
+    ConcreteProperty,
+)
 
 
 def test_observed_property_hashable(experiment_reference):
 
-    ap = AbstractProperty(identifier="test")
+    ap = AbstractPropertyDescriptor(identifier="test")
     op = ObservedProperty(targetProperty=ap, experimentReference=experiment_reference)
     d = {op: "some_key"}
     assert d

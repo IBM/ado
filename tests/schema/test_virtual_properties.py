@@ -6,13 +6,11 @@ import typing
 import pytest
 
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property_value import (
-    PropertyValue,
-)
 from orchestrator.schema.virtual_property import (
     PropertyAggregationMethod,
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
+    VirtualObservedPropertyValue,
 )
 
 # Test aggregate_from_observed_properties -> test via MeasurementResult.seriesRepresentation
@@ -79,7 +77,7 @@ def test_property_aggregation(aggregation_test_data):
 def test_virtual_properties(virtual_properties):
     virtual_property, values, results = virtual_properties
     assert virtual_property.aggregationMethod.function(values) == results
-    assert virtual_property.aggregate(values) == PropertyValue(
+    assert virtual_property.aggregate(values) == VirtualObservedPropertyValue(
         property=virtual_property, value=results[0], uncertainty=results[1]
     )
 

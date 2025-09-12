@@ -12,15 +12,17 @@ from orchestrator.schema.entity import (
     Entity,
 )
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.observed_property import ObservedProperty
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
 from orchestrator.schema.property import (
-    AbstractProperty,
+    AbstractPropertyDescriptor,
     ConcreteProperty,
     ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
     NonMeasuredPropertyTypeEnum,
 )
-from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import ValidMeasurementResult
 from orchestrator.schema.virtual_property import (
@@ -154,7 +156,7 @@ def test_multiple_values_per_observed_property(
 
     assert isinstance(
         entity.valueForProperty(testProperty),
-        PropertyValue,
+        ObservedPropertyValue,
     )
 
     assert len(entity.valuesForTargetProperty(testProperty.targetProperty)) == 2
@@ -204,7 +206,7 @@ def test_virtual_property_request(entity: Entity, abstract_properties):
     x = [2, 4, 6, 7]
     prop = entity.observedProperties[0]
     for a in x:
-        v = PropertyValue(value=a, property=prop)
+        v = ObservedPropertyValue(value=a, property=prop)
         entity.add_measurement_result(
             ValidMeasurementResult(entityIdentifier=entity.identifier, measurements=[v])
         )
@@ -307,10 +309,10 @@ def test_identifier_from_property_values(
 
     constitutive_property_values = [
         *list(constitutive_property_values),
-        PropertyValue(
+        ObservedPropertyValue(
             value=3,
             property=ObservedProperty(
-                targetProperty=AbstractProperty(identifier="test"),
+                targetProperty=AbstractPropertyDescriptor(identifier="test"),
                 experimentReference=ExperimentReference(
                     experimentIdentifier="test", actuatorIdentifier="test"
                 ),
@@ -509,7 +511,7 @@ def test_series_representation_multiple_observed(
     for op in test_entity.observedPropertiesFromExperimentReference(
         result.experimentReference
     ):
-        values.append(PropertyValue(value=np.random.random(), property=op))
+        values.append(ObservedPropertyValue(value=np.random.random(), property=op))
 
     second_result = ValidMeasurementResult(
         entityIdentifier=test_entity.identifier,
@@ -672,7 +674,7 @@ def test_experiment_series_multiple_observed(
     for op in test_entity.observedPropertiesFromExperimentReference(
         result.experimentReference
     ):
-        values.append(PropertyValue(value=np.random.random(), property=op))
+        values.append(ObservedPropertyValue(value=np.random.random(), property=op))
 
     second_result = ValidMeasurementResult(
         entityIdentifier=test_entity.identifier,

@@ -15,12 +15,12 @@ router = APIRouter(
 
 @router.get("", tags=["actuators"])
 async def get_actuators() -> list[str]:
-    return list(ActuatorRegistry.globalRegistry().actuatorIdentifierMap.keys())
+    return list(ActuatorRegistry().actuatorIdentifierMap.keys())
 
 
 @router.get("/{actuator_identifier}/experiments", tags=["actuators", "experiments"])
 async def get_actuator_experiments(actuator_identifier: str) -> list[Experiment]:
-    actuator_registry = ActuatorRegistry.globalRegistry()
+    actuator_registry = ActuatorRegistry()
     if actuator_identifier not in actuator_registry.actuatorIdentifierMap:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -41,7 +41,7 @@ async def get_actuator_experiments(actuator_identifier: str) -> list[Experiment]
 async def get_actuator_single_experiment(
     actuator_identifier: str, experiment_identifier: str
 ) -> Experiment:
-    actuator_registry = ActuatorRegistry.globalRegistry()
+    actuator_registry = ActuatorRegistry()
     if actuator_identifier not in actuator_registry.actuatorIdentifierMap:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

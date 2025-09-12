@@ -28,7 +28,7 @@ router = APIRouter(
 
 @router.get("", tags=["experiments"])
 async def get_experiments() -> list[Experiment]:
-    actuator_registry = ActuatorRegistry.globalRegistry()
+    actuator_registry = ActuatorRegistry()
     return itertools.chain.from_iterable(
         [
             actuator_registry.catalogForActuatorIdentifier(actuator_id).experiments
@@ -39,7 +39,7 @@ async def get_experiments() -> list[Experiment]:
 
 @router.get("/{experiment_identifier}", tags=["experiments"])
 async def get_single_experiment(experiment_identifier: str) -> Experiment:
-    actuator_registry = ActuatorRegistry.globalRegistry()
+    actuator_registry = ActuatorRegistry()
 
     try:
         actuator_identifier = get_actuator_from_experiment_id(experiment_identifier)

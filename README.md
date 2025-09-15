@@ -114,4 +114,10 @@ Check [demo](https://ibm.github.io/ado/getting-started/demo) for more videos.
 ## Technical Report
 
 For more details on the Discovery Spaces concept underlying ado, please refer to
-this [technical report](https://arxiv.org/abs/2506.21467)
+this [technical report](https://arxiv.org/abs/2506.21467).
+
+## Acknowledgement
+
+This project is partially funded by the European Union through the Smart
+Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
+101192750 (Project 6G-DALI).

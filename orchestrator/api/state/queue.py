@@ -7,7 +7,7 @@ import logging
 import ray.util.queue
 
 from orchestrator.api.state.in_memory_requests_storage import (
-    requests_memory_storage,
+    set_request_in_memory_storage,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.request import MeasurementRequest
@@ -33,12 +33,7 @@ async def watch_queue():
                     "Did not get an update after 30 secs - will continue waiting"
                 )
             else:
-
-                if update.experimentReference not in requests_memory_storage:
-                    requests_memory_storage[update.experimentReference] = {}
-                requests_memory_storage[update.experimentReference][
-                    update.requestid
-                ] = update
+                set_request_in_memory_storage(measurement_request=update)
 
         except Exception as error:
             logger.warning(

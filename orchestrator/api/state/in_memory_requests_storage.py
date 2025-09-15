@@ -9,15 +9,13 @@ from orchestrator.schema.request import MeasurementRequest
 requests_memory_storage: dict[ExperimentReference, dict[str, MeasurementRequest]] = {}
 
 
-def set_request_in_memory_storage(
-    experiment_reference: ExperimentReference,
-    request_id: str,
-    measurement_request: MeasurementRequest,
-):
-    if experiment_reference not in requests_memory_storage:
-        requests_memory_storage[experiment_reference] = {}
+def set_request_in_memory_storage(measurement_request: MeasurementRequest):
+    if measurement_request.experimentReference not in requests_memory_storage:
+        requests_memory_storage[measurement_request.experimentReference] = {}
 
-    requests_memory_storage[experiment_reference][request_id] = measurement_request
+    requests_memory_storage[measurement_request.experimentReference][
+        measurement_request.requestid
+    ] = measurement_request
 
 
 def get_all_requests_in_memory_storage(
@@ -34,7 +32,7 @@ def get_request_in_memory_storage(
 ) -> MeasurementRequest:
     if (
         experiment_reference not in requests_memory_storage
-        or request_id not in requests_memory_storage
+        or request_id not in requests_memory_storage[experiment_reference]
     ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

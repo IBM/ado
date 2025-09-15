@@ -8,6 +8,7 @@ from orchestrator.api.routers.v0.experiments import experiments
 
 router = APIRouter(
     prefix="/v0",
+    tags=["v0"],
     responses={status.HTTP_404_NOT_FOUND: {"description": "Not found"}},
 )
 

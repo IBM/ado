@@ -1,18 +1,19 @@
 from ray.actor import ActorHandle
 
+from orchestrator.api.state.queue import shared_queue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 
-actuator_registry = ActuatorRegistry.globalRegistry()
 actuators_actors: dict[str, ActorHandle] = {}
 
 
-def set_actuator_actor(actuator_identifier: str, actuator_actor: ActorHandle):
-    if actuator_identifier not in actuators_actors:
-        actuators_actors[actuator_identifier] = actuator_actor
+def get_actuator_actor(actuator_id: str) -> ActorHandle:
 
+    if actuator_id not in actuators_actors:
+        actuators_actors[actuator_id] = (
+            ActuatorRegistry()
+            .actuatorForIdentifier(actuatorid=actuator_id)
+            .options(name=actuator_id, namespace="api")
+            .remote(queue=shared_queue, params=None)
+        )
 
-def get_actuator_actor(actuator_identifier: str) -> ActorHandle | None:
-    if actuator_identifier not in actuators_actors:
-        return None
-
-    return actuators_actors[actuator_identifier]
+    return actuators_actors[actuator_id]

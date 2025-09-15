@@ -7,7 +7,6 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 
 requests_memory_storage: dict[ExperimentReference, dict[str, MeasurementRequest]] = {}
-response_memory_storage: dict[ExperimentReference, dict[str, MeasurementRequest]] = {}
 
 
 def set_request_in_memory_storage(
@@ -39,7 +38,7 @@ def get_request_in_memory_storage(
     ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Request {request_id} was not found",
+            detail=f"Request {request_id} not found for {experiment_reference}",
         )
 
     return requests_memory_storage[experiment_reference][request_id]

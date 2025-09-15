@@ -4,6 +4,7 @@
 from fastapi import APIRouter, status
 
 from orchestrator.api.routers.v0.actuators import actuators
+from orchestrator.api.routers.v0.experiments import experiments
 
 router = APIRouter(
     prefix="/v0",
@@ -11,3 +12,4 @@ router = APIRouter(
 )
 
 router.include_router(actuators.router)
+router.include_router(experiments.router)

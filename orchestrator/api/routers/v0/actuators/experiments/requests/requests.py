@@ -21,7 +21,7 @@ from orchestrator.schema.request import MeasurementRequest
 router = APIRouter(
     prefix="/requests",
     dependencies=[Depends(validated_actuator_id), Depends(validated_experiment_id)],
-    tags=["requests"],
+    tags=["actuators"],
     responses={status.HTTP_404_NOT_FOUND: {"description": "Not found"}},
 )
 

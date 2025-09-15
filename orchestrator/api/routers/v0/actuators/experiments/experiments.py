@@ -11,7 +11,7 @@ from orchestrator.schema.experiment import Experiment
 router = APIRouter(
     prefix="/{actuator_id}/experiments",
     dependencies=[Depends(validated_actuator_id)],
-    tags=["experiments"],
+    tags=["actuators"],
     responses={status.HTTP_404_NOT_FOUND: {"description": "Not found"}},
 )
 

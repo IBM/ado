@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status

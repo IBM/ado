@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 from ray.actor import ActorHandle
 
 from orchestrator.api.state.queue import shared_queue

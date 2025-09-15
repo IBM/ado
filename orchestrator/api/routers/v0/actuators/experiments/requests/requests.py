@@ -37,11 +37,12 @@ async def list_requests_for_experiment(
     experiment_reference = ExperimentReference(
         experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
     )
+
+    # AP 15/09/2025: we know that the experiment reference is valid
+    # because both actuator_id and experiment_id are valid.
+    # We return an empty list for consistency instead of a 404.
     if experiment_reference not in requests_memory_storage:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No requests associated with {experiment_reference}",
-        )
+        return []
 
     return list(requests_memory_storage[experiment_reference].values())
 

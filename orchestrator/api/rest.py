@@ -6,13 +6,14 @@ from fastapi import FastAPI
 from ray import serve
 
 from orchestrator.api.routers.latest import latest
+from orchestrator.api.routers.v0 import v0
 from orchestrator.api.state.queue import watch_queue
 from orchestrator.utilities.logging import configure_logging
 
 app = FastAPI()
 
 app.include_router(latest.router, prefix="/api")
-# app.include_router(v0.router, prefix="/api")
+app.include_router(v0.router, prefix="/api")
 
 
 @serve.deployment

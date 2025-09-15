@@ -12,8 +12,8 @@ from orchestrator.utilities.logging import configure_logging
 
 app = FastAPI()
 
-app.include_router(latest.router, prefix="/api")
-app.include_router(v0.router, prefix="/api")
+app.include_router(latest.router, tags=["latest"], prefix="/api")
+app.include_router(v0.router, tags=["v0"], prefix="/api")
 
 
 @serve.deployment

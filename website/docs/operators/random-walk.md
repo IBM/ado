@@ -61,7 +61,7 @@ experiments are being executed.
 
 RandomWalk uses the concept of continuous batching to set the number of
 concurrent **requested** experiments and ensure that, as far as possible, there
-are always this number of experiments in flight.
+is always this number of experiments in flight.
 
 This approach maximises throughput compared to normal batch-wise submission. In
 the normal case the time to finish measuring batch of N entities is, at a

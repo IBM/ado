@@ -36,7 +36,8 @@ subsequent operation visits the same point.
 To concretize this, consider two RandomWalk operations that sample
 deterministically (i.e. aren't actually random). The first is configured to
 sample 50 entities, the second 200 entities.
-Suppose also that the first 50 entities are common to both RandomWalk operations. At the start no entities have been
+Suppose also that the first 50 entities are common to
+both RandomWalk operations. At the start no entities have been
 sampled and measured from a given discovery space.
 
 After the first operation:
@@ -120,7 +121,8 @@ spaces:
     You can get a default RandomWalk operation template and the schema of its
     parameters by running
     `ado template operation --operator-name random_walk --include-schema`.
-    The information output by this command should always be preferred over the information presented here if there is an inconsistency.
+    The information output by this command should always be preferred
+    over the information presented here if there is an inconsistency.
 
 ### Batch Size and Concurrent Experiments
 

@@ -59,7 +59,7 @@ When a RandomWalk operation encounters an unmeasured entity in the
 Depending on the experiments you may want to control how many concurrent
 experiments are being executed.
 
-RandomWalk uses the concept of continuous batching to set thr number of
+RandomWalk uses the concept of continuous batching to set the number of
 concurrent **requested** experiments and ensure that, as far as possible, there
 are always this number of experiments in flight.
 

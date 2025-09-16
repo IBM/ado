@@ -119,9 +119,8 @@ spaces:
 
     You can get a default RandomWalk operation template and the schema of its
     parameters by running
-    `ado template operation --operator-name random_walk --include-schema` The
-    information output by this command should always be preferred over the
-    information presented here if there is an inconsistency.
+    `ado template operation --operator-name random_walk --include-schema`.
+    The information output by this command should always be preferred over the information presented here if there is an inconsistency.
 
 ### Batch Size and Concurrent Experiments
 
@@ -173,11 +172,11 @@ Both sampling types support four modes, which can be categorised as flat or
 grouped :
 
 - flat
-  - sequential
-  - random
+    - sequential
+    - random
 - grouped
-  - sequentialgrouped
-  - randomgrouped.
+    - sequentialgrouped
+    - randomgrouped
 
 !!! info end
 

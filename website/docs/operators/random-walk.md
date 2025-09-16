@@ -170,14 +170,14 @@ The `selector` sampling type draws _existing matching entities_ from the
 
 Both sampling types support four modes, which can be categorised as flat or
 grouped:
-
+<!-- markdownlint-disable ul-indent -->
 - flat
     - sequential
     - random
 - grouped
     - sequentialgrouped
     - randomgrouped
-
+<!-- markdownlint-enable ul-indent -->
 !!! info end
 
     The flat modes sample entities directly.

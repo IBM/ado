@@ -35,7 +35,8 @@ subsequent operation visits the same point.
 
 To concretize this, consider two RandomWalk operations that sample
 deterministically (i.e. aren't actually random). The first is configured to
-sample 50 entities, the second 200 entities. At the start no entities have been
+sample 50 entities, the second 200 entities.
+Suppose also that the first 50 entities are common to both RandomWalk operations. At the start no entities have been
 sampled and measured from a given discovery space.
 
 After the first operation:

@@ -362,7 +362,7 @@ examples include
   want to start measuring unmeasured ones - for example for testing a
   cost-function
 - You might want to add additional measurements to all entities already fully
-  measured but not want to add measurements to any other measurements.
+  measured but not want to add measurements to any other entities.
 
 The `filter` field provides this capability. It has one sub-field `filterMode`
 which can take the following values:

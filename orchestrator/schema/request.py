@@ -13,7 +13,7 @@ from orchestrator.schema.entity import Entity
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import (
     InvalidMeasurementResult,
-    MeasurementResult,
+    MeasurementResultType,
     ValidMeasurementResult,
 )
 
@@ -69,7 +69,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     )
     timestamp: datetime.datetime = pydantic.Field(default_factory=timestamp)
 
-    measurements: tuple[MeasurementResult, ...] | None = pydantic.Field(
+    measurements: tuple[MeasurementResultType, ...] | None = pydantic.Field(
         default=None,
         description="The results of the measurement",
     )

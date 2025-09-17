@@ -5,6 +5,7 @@ import abc
 import enum
 import typing
 import uuid
+from typing import Annotated
 
 import pydantic
 
@@ -186,3 +187,25 @@ class InvalidMeasurementResult(MeasurementResult):
 
 
 class DuplicateMeasurementResultError(ValueError): ...
+
+
+def measurement_result_type_discriminator(result):
+
+    if isinstance(result, ValidMeasurementResult):
+        return "Valid"
+    if isinstance(result, InvalidMeasurementResult):
+        return "Invalid"
+    if isinstance(result, dict):
+        if result.get("measurements", None):
+            return "Valid"
+        if result.get("reason", None):
+            return "Invalid"
+
+    raise ValueError(f"Unable to determine experiment type for experiment: {result}")
+
+
+MeasurementResultType = Annotated[
+    Annotated[ValidMeasurementResult, pydantic.Tag("Valid")]
+    | Annotated[InvalidMeasurementResult, pydantic.Tag("Invalid")],
+    pydantic.Discriminator(measurement_result_type_discriminator),
+]

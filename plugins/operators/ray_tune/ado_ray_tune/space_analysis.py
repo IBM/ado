@@ -97,7 +97,7 @@ def calculate_mutual_information(
 ) -> MutualInformationOutput:
     "Returns a dict whose keys are data_columns and whose value is the MI for that column"
 
-    X, y, cluster_labels = get_clusters(
+    X, _y, cluster_labels = get_clusters(
         df,
         data_columns,
         columns_to_mask,
@@ -286,7 +286,7 @@ def mi_diff_over_time(
     all_below_threshold = False
     change_in_ranks = True
     if last_mi is not None:
-        diff_d, max_diff, max_diff_label = diff_of_values(last_mi, new_mi)
+        diff_d, max_diff, _max_diff_label = diff_of_values(last_mi, new_mi)
         all_below_threshold = max_diff < threshold_diff
         diff_ds.append(diff_d)
         if diffs_over_time is None:

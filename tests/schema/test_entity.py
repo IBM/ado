@@ -288,7 +288,7 @@ def test_identifier_from_property_values(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ):
 
-    test_entity, test_experiment = entity_for_parameterized_experiment
+    test_entity, _test_experiment = entity_for_parameterized_experiment
 
     constitutive_property_values = test_entity.constitutive_property_values
 
@@ -328,7 +328,7 @@ def test_identifier_from_property_values(
 def test_value_error_duplicate_constitutive_properties(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ):
-    test_entity, test_experiment = entity_for_parameterized_experiment
+    test_entity, _test_experiment = entity_for_parameterized_experiment
     constitutive_property_values = test_entity.constitutive_property_values
 
     assert (

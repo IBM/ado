@@ -34,7 +34,7 @@ class LhuSampler(ray.tune.search.Searcher):
         self._entity_space = entity_space
 
         if isinstance(space, dict) and space:
-            resolved_vars, domain_vars, grid_vars = parse_spec_vars(space)
+            _resolved_vars, domain_vars, grid_vars = parse_spec_vars(space)
             if domain_vars or grid_vars:
                 self.logger.warning(
                     ray.tune.search.UNRESOLVED_SEARCH_SPACE.format(

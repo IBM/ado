@@ -259,9 +259,7 @@ class CSVSampleStore(PassiveSampleStore):
         """
 
         entity_id = row[self.sourceDescription.identifierColumn]
-        observedCalcValue, observedPropertyAndIdentifierColumns = (
-            self._observed_property_values_from_row(row)
-        )
+        observedCalcValue, _ = self._observed_property_values_from_row(row)
 
         constitutive_property_values = []
         for cp in self.sourceDescription.constitutiveProperties:

@@ -86,7 +86,7 @@ def test_csv_sample_store_description(
     csv_sample_store_parameters,
 ):
 
-    location, params = csv_sample_store_parameters
+    _location, params = csv_sample_store_parameters
     desc = CSVSampleStoreDescription.model_validate(params)
 
     catalog = desc.catalog

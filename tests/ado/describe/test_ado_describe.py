@@ -51,3 +51,13 @@ def test_describe_valid_space(
     )
     assert result.exit_code == 0
     # AP: TODO: find something actually meaningful to test
+
+
+def test_describe_peptide_mineralization_experiment():
+    runner = CliRunner()
+    result = runner.invoke(ado, ["describe", "experiment", "peptide_mineralization"])
+    assert result.exit_code == 0
+    assert (
+        "Identifier: robotic_lab.peptide_mineralization\n\n"
+        "Measures adsorption of peptide lanthanide combinations"
+    ) in result.output

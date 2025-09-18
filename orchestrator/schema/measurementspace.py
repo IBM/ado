@@ -316,7 +316,7 @@ class MeasurementSpace:
         if identifier not in targetPropertyIdentifiers + observedPropertyIdentifiers:
             # Check if its virtual
             try:
-                prop, method = VirtualObservedProperty.parseIdentifier(identifier)
+                prop, _ = VirtualObservedProperty.parseIdentifier(identifier)
             except ValueError:
                 validMetric = False
             else:

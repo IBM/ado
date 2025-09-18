@@ -108,11 +108,13 @@ def test_measurement_results_for_operation(
     operation_id = random_identifier()
     results = []
 
-    sample_store, requests, request_ids = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=number_entities,
-        number_requests=number_requests,
-        measurements_per_result=measurements_per_result,
-        operation_id=operation_id,
+    sample_store, requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
     )
 
     # We return requests sorted by requestIndex
@@ -154,11 +156,13 @@ def test_measurement_requests_for_operation(
     operation_id = random_identifier()
     results = []
 
-    sample_store, requests, request_ids = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=number_entities,
-        number_requests=number_requests,
-        measurements_per_result=measurements_per_result,
-        operation_id=operation_id,
+    sample_store, requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
     )
 
     # We return requests sorted by requestIndex
@@ -215,11 +219,13 @@ def test_measurement_request_by_id(
     measurements_per_result = 2
     operation_id = random_identifier()
 
-    sample_store, requests, request_ids = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=number_entities,
-        number_requests=number_requests,
-        measurements_per_result=measurements_per_result,
-        operation_id=operation_id,
+    sample_store, requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
     )
 
     to_be_found: MeasurementRequest = random.choice(requests)
@@ -260,11 +266,13 @@ def test_experiments_in_operation(
     measurements_per_result = 2
     operation_id = random_identifier()
 
-    sample_store, requests, request_ids = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=number_entities,
-        number_requests=number_requests,
-        measurements_per_result=measurements_per_result,
-        operation_id=operation_id,
+    sample_store, _requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
     )
 
     retrieved_experiment_references = sample_store.experiments_in_operation(
@@ -287,11 +295,13 @@ def test_entity_identifiers_in_operation(
     measurements_per_result = 2
     operation_id = random_identifier()
 
-    sample_store, requests, request_ids = simulate_ml_multi_cloud_random_walk_operation(
-        number_entities=number_entities,
-        number_requests=number_requests,
-        measurements_per_result=measurements_per_result,
-        operation_id=operation_id,
+    sample_store, requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
     )
 
     entity_ids = set()

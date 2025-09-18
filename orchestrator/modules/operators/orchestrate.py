@@ -682,7 +682,7 @@ def explore_operation_function_wrapper(
         actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
     )
 
-    discoverySpace, operation, output = orchestrate_explore_operation(
+    _, _, output = orchestrate_explore_operation(
         base_operation_configuration=base_operation_configuration,
         project_context=discovery_space.project_context,
         discovery_space=discovery_space,
@@ -827,7 +827,7 @@ def orchestrate(
                 base_operation_configuration.operation.module.operationType
                 == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
             ):
-                discoverySpace, operation, output = orchestrate_explore_operation(
+                _, _, output = orchestrate_explore_operation(
                     base_operation_configuration=base_operation_configuration,
                     project_context=project_context,
                     discovery_space=discovery_space,
@@ -839,7 +839,7 @@ def orchestrate(
                     "Implementing operations as classes is only supported for explore operations"
                 )
         else:
-            discoverySpace, operation, output = orchestrate_operation_function(
+            _, _, output = orchestrate_operation_function(
                 base_operation_configuration=base_operation_configuration,
                 project_configuration=project_context,
                 discovery_space=discovery_space,

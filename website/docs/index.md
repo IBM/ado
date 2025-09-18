@@ -128,6 +128,12 @@ more videos.
 </video>
 <!-- markdownlint-enable no-inline-html -->
 
+## Acknowledgement
+
+This project is partially funded by the European Union through the Smart
+Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
+101192750 (Project 6G-DALI).
+
 ## What's next
 
 <!-- markdownlint-disable line-length -->

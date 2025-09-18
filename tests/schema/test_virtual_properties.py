@@ -85,7 +85,7 @@ def test_virtual_properties(virtual_properties):
 
 
 def test_virtual_property_identifiers(virtual_properties):
-    virtual_property, values, results = virtual_properties
+    virtual_property, _values, _results = virtual_properties
 
     assert (
         virtual_property.identifier

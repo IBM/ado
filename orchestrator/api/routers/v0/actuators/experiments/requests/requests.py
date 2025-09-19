@@ -4,8 +4,8 @@
 from fastapi import APIRouter, Depends, status
 
 from orchestrator.api.dependencies.validation import (
-    entity_is_valid_for_experiment,
     validated_actuator_id,
+    validated_entities_for_experiment,
     validated_experiment_id,
 )
 from orchestrator.api.state.actuator_actors import (
@@ -42,7 +42,7 @@ async def list_requests_for_experiment(
     )
 
 
-@router.post("", dependencies=[Depends(entity_is_valid_for_experiment)])
+@router.post("", dependencies=[Depends(validated_entities_for_experiment)])
 async def create_experiment_request(
     actuator_id: str, experiment_id: str, entities: list[Entity]
 ) -> list[str]:

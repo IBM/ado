@@ -50,3 +50,39 @@ INFO 2025-09-19 11:50:50,096 serve 98612 -- Application 'default' is ready at ht
 Once you see the final line, the API is running. Open the interactive OpenAPI
 documentation at <http://127.0.0.1:8000/docs> or the ReDoc version at
 <http://127.0.0.1:8000/redoc>.
+
+## Deploying on Kuberay
+
+Ray Serve applications are deployed on Kuberay via
+[`RayService`s](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/rayservice.html).
+An example RayService is provided:
+
+```yaml
+{% include-markdown "./ado-api-rayserve.yaml" %}
+```
+
+From the root of the ado project directory, you can deploy it with:
+
+```bash
+kubectl apply -f backend/api/ado-api-rayserve.yaml
+```
+
+Kuberay will automatically create a service for the Serve endpoint called
+`${RAY_SERVICE_NAME}-serve-svc`. In the case of our example, this will be
+`ado-api-serve-svc`.
+
+> [!TIP]
+>
+> For ease of use, we suggest exposing the service using either a Route (on
+> OpenShift), a LoadBalancer service or an Ingress. **Make sure you take
+> appropriate security measures to protect the endpoint**.
+
+You can access it via port-forward using:
+
+```bash
+kubectl port-forward svc/ado-api-serve-svc 8000:8000
+```
+
+You can then navigate to the interactive OpenAPI documentation at
+<http://127.0.0.1:8000/docs> or the ReDoc version at
+<http://127.0.0.1:8000/redoc>.

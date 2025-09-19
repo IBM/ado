@@ -17,4 +17,10 @@ router.include_router(experiments.router)
 
 @router.get("")
 async def list_actuators() -> list[str]:
+    """Retrieve a list of actuator identifiers registered in the system.
+
+    Returns:
+        list[str]: A list containing the identifiers of all registered
+        actuators.
+    """
     return list(ActuatorRegistry().actuatorIdentifierMap.keys())

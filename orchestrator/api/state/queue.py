@@ -12,7 +12,7 @@ timeouts and exception cases by logging and retrying after a short delay.
 import asyncio
 import logging
 
-import ray.util.queue
+from ray.util import queue
 
 from orchestrator.api.state.in_memory_requests_storage import (
     set_request_in_memory_storage,
@@ -33,22 +33,22 @@ async def watch_queue():
     retries after sleeping one second. The coroutine exits only when
     cancelled.
     """
-    logger = logging.getLogger("Queue")
+    logger = logging.getLogger("Queue Monitor")
 
     while True:
         try:
             # Get new updates
             try:
-                logger.debug("Awaiting update queue get")
-                update: MeasurementRequest = await shared_queue.get_async(
+                logger.debug("Waiting for new MeasurementRequests")
+                measurement_request: MeasurementRequest = await shared_queue.get_async(
                     block=True, timeout=30
                 )
-            except ray.util.queue.Empty:
+            except queue.Empty:
                 logger.info(
-                    "Did not get an update after 30 secs - will continue waiting"
+                    "Did not get any new MeasurementRequests after 30 secs - will continue waiting"
                 )
             else:
-                set_request_in_memory_storage(measurement_request=update)
+                set_request_in_memory_storage(measurement_request=measurement_request)
 
         except Exception as error:
             logger.warning(

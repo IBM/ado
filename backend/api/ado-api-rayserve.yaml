@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 apiVersion: ray.io/v1alpha1
 kind: RayService
 metadata:

@@ -34,6 +34,16 @@ async def list_requests_for_experiment(
     actuator_id: str,
     experiment_id: str,
 ) -> list[MeasurementRequest]:
+    """List all measurement requests for a given experiment.
+
+    Args:
+        actuator_id: Identifier of the actuator.
+        experiment_id: Identifier of the experiment.
+
+    Returns:
+        A list of :class:`MeasurementRequest` objects representing
+        the requests stored in memory for the specified experiment.
+    """
 
     return get_all_requests_in_memory_storage(
         experiment_reference=ExperimentReference(
@@ -46,6 +56,19 @@ async def list_requests_for_experiment(
 async def create_experiment_request(
     actuator_id: str, experiment_id: str, entities: list[Entity]
 ) -> list[str]:
+    """Create a new measurement request for an experiment.
+
+    This endpoint submits a list of entities to the actuator actor which
+    will process them asynchronously.
+
+    Args:
+        actuator_id: Identifier of the actuator.
+        experiment_id: Identifier of the experiment.
+        entities: A list of :class:`Entity` objects to be measured.
+
+    Returns:
+        A list of strings representing the IDs of the submitted requests.
+    """
 
     return await get_actuator_actor(actuator_id).submit.remote(
         entities=entities,
@@ -63,6 +86,18 @@ async def create_experiment_request(
 async def get_experiment_request_by_id(
     actuator_id: str, experiment_id: str, request_id: str
 ) -> MeasurementRequest:
+    """Retrieve a specific measurement request by its ID.
+
+    Args:
+        actuator_id: Identifier of the actuator.
+        experiment_id: Identifier of the experiment.
+        request_id: Unique identifier of the requested measurement.
+
+    Returns:
+        A :class:`MeasurementRequest` instance corresponding to the
+        provided request ID. Raises an HTTP 404 if the request is not
+        found in the in-memory storage.
+    """
 
     return get_request_in_memory_storage(
         experiment_reference=ExperimentReference(

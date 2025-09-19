@@ -1,6 +1,14 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+"""Watch the shared MeasurementQueue and update in-memory request storage.
+
+The :func:`watch_queue` coroutine continuously pulls from the
+``orchestrator.modules.actuators.measurement_queue.MeasurementQueue`` and
+stores requests via :func:`set_request_in_memory_storage`. It handles
+timeouts and exception cases by logging and retrying after a short delay.
+"""
+
 import asyncio
 import logging
 
@@ -16,12 +24,19 @@ shared_queue = MeasurementQueue.get_measurement_queue()
 
 
 async def watch_queue():
+    """Continuously consume the shared MeasurementQueue and update in-memory storage.
 
+    Blocks on :meth:`MeasurementQueue.get_async` with a 30-second timeout.  When
+    a :class:`orchestrator.schema.request.MeasurementRequest` is retrieved it
+    is forwarded to ``set_request_in_memory_storage``. A timeout results in an
+    informational log entry; unexpected exceptions are logged and the loop
+    retries after sleeping one second. The coroutine exits only when
+    cancelled.
+    """
     logger = logging.getLogger("Queue")
 
     while True:
         try:
-
             # Get new updates
             try:
                 logger.debug("Awaiting update queue get")

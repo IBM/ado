@@ -17,6 +17,12 @@ router = APIRouter(
 
 @router.get("")
 async def get_experiments() -> list[Experiment]:
+    """Retrieve all experiments from the registered actuators.
+
+    Returns:
+      list[Experiment]: A list containing all experiments implemented by the
+      registered actuators.
+    """
     actuator_registry = ActuatorRegistry()
     return itertools.chain.from_iterable(
         [

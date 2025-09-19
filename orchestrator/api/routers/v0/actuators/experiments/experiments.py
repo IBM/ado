@@ -24,6 +24,14 @@ router.include_router(requests.router)
 
 @router.get("")
 async def list_actuator_experiments(actuator_id: str) -> list[Experiment]:
+    """List all experiments for a given actuator.
+
+    Args:
+        actuator_id (str): The unique identifier of the actuator.
+
+    Returns:
+        list[Experiment]: A list of experiments associated with the actuator.
+    """
     actuator_registry = ActuatorRegistry()
     return (
         actuator_registry.actuatorForIdentifier(actuatorid=actuator_id)
@@ -36,6 +44,15 @@ async def list_actuator_experiments(actuator_id: str) -> list[Experiment]:
 async def get_actuator_experiment_by_id(
     actuator_id: str, experiment_id: str
 ) -> Experiment:
+    """Retrieve a specific experiment by its identifier for a given actuator.
+
+    Args:
+        actuator_id (str): The unique identifier of the actuator.
+        experiment_id (str): The unique identifier of the experiment.
+
+    Returns:
+        Experiment: The corresponding Experiment instance.
+    """
     return ActuatorRegistry().experimentForReference(
         ExperimentReference(
             experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id

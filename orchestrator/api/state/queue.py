@@ -131,7 +131,7 @@ class QueueMonitorActor:
 
         return self.requests_memory_storage[experiment_reference][request_id]
 
-    async def start_monitoring_queue(self):
+    async def start_monitoring_queue(self) -> None:
         """Continuously consume the shared MeasurementQueue and update memory.
 
         The coroutine waits for new :class:`MeasurementRequest` objects via
@@ -154,7 +154,8 @@ class QueueMonitorActor:
                     )
                 else:
                     self.logger.debug(
-                        "Adding measurement request to the entries", measurement_request
+                        "Adding measurement request to the entries %s",
+                        measurement_request,
                     )
                     self.add_measurement_request(
                         measurement_request=measurement_request

@@ -19,14 +19,14 @@ The code uses the ``serve`` decorator from Ray Serve to expose the
 
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-import asyncio
 
 from fastapi import FastAPI
 from ray import serve
 
 from orchestrator.api.routers.latest import latest
 from orchestrator.api.routers.v0 import v0
-from orchestrator.api.state.queue import watch_queue
+from orchestrator.api.state.actuators import ActuatorDictionaryActor
+from orchestrator.api.state.queue import QueueMonitorActor
 from orchestrator.utilities.logging import configure_logging
 
 app = FastAPI()
@@ -39,31 +39,27 @@ app.include_router(v0.router, prefix="/api")
 @serve.deployment
 @serve.ingress(app)
 class AdoRESTApi:
-    """Ray Serve deployment that hosts the FastAPI application.
-
-    The deployment creates a background coroutine that watches the
-    orchestration queue. It keeps a reference to the task to avoid
-    the CPython issue <https://github.com/python/cpython/issues/88831>,
-    where a task created with :func:`asyncio.create_task` may be
-    garbage-collected prematurely.
-    """
 
     def __init__(self):
-        """Initialise logging and start the background queue watcher.
+        """Initialise the REST API deployment.
 
-        The constructor performs two main actions:
+        The constructor configures coloured logging, then creates and
+        keeps references to the :class:`~orchestrator.api.state.queue.QueueMonitorActor`
+        and :class:`~orchestrator.api.state.actuator_actors.ActuatorDictionaryActor`.
 
-        1. Calls :func:`orchestrator.utilities.logging.configure_logging`
-           to set up coloured logging configuration.
-        2. Creates an asyncio task that runs :func:`watch_queue`
-           which continuously polls the shared queue for
-           incoming MeasurementRequests.
+        Keeping the actor references as instance attributes prevents
+        Ray from garbage-collecting them while the deployment remains
+        active.
         """
         configure_logging()
 
-        # Keep reference to the task to avoid CPython garbage-collection
-        # bug <https://github.com/python/cpython/issues/88831>.
-        self.task_reference = asyncio.get_event_loop().create_task(watch_queue())
+        self.queue_monitor = QueueMonitorActor.options(
+            name="QueueMonitorActor", namespace="api"
+        ).remote()
+
+        self.actuator_dictionary_actor = ActuatorDictionaryActor.options(
+            name="ActuatorDictionaryActor", namespace="api"
+        ).remote()
 
 
 # Bind the deployment for use by Ray Serve.

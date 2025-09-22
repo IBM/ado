@@ -1,19 +1,12 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+import ray
 from fastapi import APIRouter, Depends, status
 
 from orchestrator.api.dependencies.validation import (
     validated_actuator_id,
     validated_entities_for_experiment,
     validated_experiment_id,
-)
-from orchestrator.api.state.actuator_actors import (
-    get_actuator_actor,
-)
-from orchestrator.api.state.in_memory_requests_storage import (
-    get_all_requests_in_memory_storage,
-    get_request_in_memory_storage,
 )
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.reference import ExperimentReference
@@ -45,7 +38,9 @@ async def list_requests_for_experiment(
         the requests stored in memory for the specified experiment.
     """
 
-    return get_all_requests_in_memory_storage(
+    return await ray.get_actor(
+        name="QueueMonitorActor", namespace="api"
+    ).get_measurement_requests.remote(
         experiment_reference=ExperimentReference(
             experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
         )
@@ -69,8 +64,11 @@ async def create_experiment_request(
     Returns:
         A list of strings representing the IDs of the submitted requests.
     """
+    actuator_actor = await ray.get_actor(
+        name="ActuatorDictionaryActor", namespace="api"
+    ).get_actuator_actor.remote(actuator_id=actuator_id)
 
-    return await get_actuator_actor(actuator_id).submit.remote(
+    return await actuator_actor.submit.remote(
         entities=entities,
         experimentReference=ExperimentReference(
             experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
@@ -99,7 +97,9 @@ async def get_experiment_request_by_id(
         found in the in-memory storage.
     """
 
-    return get_request_in_memory_storage(
+    return await ray.get_actor(
+        name="QueueMonitorActor", namespace="api"
+    ).get_experiment_request_by_id.remote(
         experiment_reference=ExperimentReference(
             experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
         ),

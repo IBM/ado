@@ -426,7 +426,7 @@ ado get spaces --details
 !!! info
 
     More information on field-level querying is provided in the
-    [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
+    [searching the metastore](../resources/metastore.md#searching-the-metastore)
     section
 
 ```shell
@@ -807,8 +807,8 @@ ado show summary space -l issue=123 -o csv
 !!! info
 
     More information on field-level querying is provided in the
-    [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
-    section
+    [searching the metastore](../resources/metastore.md#searching-the-metastore)
+     section
 
 ```shell
 ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'

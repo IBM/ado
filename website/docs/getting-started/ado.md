@@ -400,10 +400,11 @@ for detailed information on the following options, including syntax.
   specified multiple times (even in conjunction with `-q` to further filter
   results).
 - The `--matching-point` option allows the user to search for spaces containing
-an entity with particular values for some properties along with a particular
-set of experiments applied to it
-- The `--matching-space` option allows searching for `discoveryspaces` which match
-a given [configuration YAML](../resources/discovery-spaces.md#discovery-space-configuration-yaml).
+  an entity with particular values for some properties along with a particular
+  set of experiments applied to it
+- The `--matching-space` option allows searching for `discoveryspaces` which
+  match a given
+  [configuration YAML](../resources/discovery-spaces.md#discovery-space-configuration-yaml).
 - The `--matching-space-id` option works in the same way as `--matching-space`
   but allows the user to provide a space id instead of a configuration
 

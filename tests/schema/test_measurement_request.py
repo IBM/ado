@@ -244,6 +244,24 @@ def test_cannot_reassign_measurements_field_in_measurement_request(
         request.measurements = None
 
 
+def test_measurement_request_measurement_for_entity(valid_measurement_result, entity):
+    request = MeasurementRequest(
+        entities=[entity],
+        measurements=(valid_measurement_result,),
+        experimentReference=valid_measurement_result.experimentReference,
+        requestid="testid-aaaccc",
+        requestIndex=0,
+        operation_id="pytest",
+    )
+    assert request.measurement_for_entity(entity.identifier) == valid_measurement_result
+
+    with pytest.raises(
+        ValueError,
+        match="Entity with identifier incorrect_id was not part of this MeasurementRequest",
+    ):
+        request.measurement_for_entity("incorrect_id")
+
+
 def test_measurement_request_valid(valid_measurement_result, entity):
 
     MeasurementRequest(

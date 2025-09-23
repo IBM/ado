@@ -117,6 +117,10 @@ class SQLResourceStore(ResourceStore):
         return engine_for_sql_store(configuration=self.configuration)
 
     def getResourceRaw(self, identifier) -> dict | None:
+        """Returns:
+        The raw serialized dict representation for the resource identifie or None if
+        no resource with the identifier was found.
+        """
 
         query = sqlalchemy.text(
             "SELECT * FROM resources WHERE identifier=:identifier"
@@ -139,6 +143,9 @@ class SQLResourceStore(ResourceStore):
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
     ) -> orchestrator.core.resources.ADOResource | None:
+        """Returns:
+        an instanceof the ADOResource subclass for identifier if it was found, otherwise None
+        """
 
         query = sqlalchemy.text(
             """
@@ -176,6 +183,9 @@ class SQLResourceStore(ResourceStore):
     def getResources(
         self, identifiers: list[str]
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
+        """Returns:
+        A dictionary whose keys are resource identifiers and whose values are ADOResource subclass resource instances.
+        If an identifier was not found it will not be in the dictionary"""
 
         retval = {}
         if len(identifiers) != 0:
@@ -221,6 +231,34 @@ class SQLResourceStore(ResourceStore):
         field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
     ) -> pd.DataFrame:
+        """
+        Parameters:
+            kind: The kind of the resource to get. The value of an element of CoreResourceKinds enum
+            version: The version of the resource to find (optional)
+            field_selectors: Use to select resources with give values of given fields
+                This parameter is a list of dictionaries where the keys are JSON fields and the
+                values are the values this field must have. See below for syntax details
+            details: Controls the columns in the returned dataframe - see "Returns" section for more.
+
+        Field Selectors
+            The keys can be a MYSQL JSON paths that uniquely specifies a field -> https://www.mysqltutorial.org/mysql-json/mysql-json-path/
+            The values are any valid JSON documents (can be plain strings etc.)
+            These are used with to MYSQL JSON_CONTAINS
+
+            The unique restriction means wildcards cannot be used in the path.
+            Instead of querying if an object in an array, A has a value of X for a field Y
+                PATH: $.A[*].Y, Value: X
+            query if A contains a document where X has field Y
+                PATH: $.A  Value: {"Y":"X"}
+
+        Returns:
+            A pandas dataframe with the following columns if details is False:
+                IDENTIFIER, AGE, NAME
+            otherwise:
+                IDENTIFIER, AGE, NAME, DESCRIPTION, LABEL
+
+            If no resources are found the data frame will be empty
+        """
 
         if kind not in [v.value for v in orchestrator.core.resources.CoreResourceKinds]:
             raise ValueError(f"Unknown kind specified: {kind}")
@@ -351,7 +389,17 @@ class SQLResourceStore(ResourceStore):
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Returns all resources of a given kind
 
-        A kind is a version+type"""
+        This, method calls getResourceIdentifiersOfKind() to find the resources
+        passing the kind, version and field_selectors parameters.
+        See getResourceIdentifiersOfKind() documentation for how these parameters
+        influence what is retrieved.
+
+        Then getResources() is called to retrieve all found resources.
+
+        Returns:
+            A dictionary whose keys are resource ids and whose values are ADO resource instances.
+            If no resources are found this method will return an empty dictionary
+        """
 
         identifiers = self.getResourceIdentifiersOfKind(
             kind=kind, version=version, field_selectors=field_selectors
@@ -362,7 +410,12 @@ class SQLResourceStore(ResourceStore):
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
         """Returns identifiers of resources that have a relationship with "identifier"
-        where "identifier" is the object"""
+        where "identifier" is the object
+
+        Returns:
+            A dataframe with two columns "IDENTIFIER" and "TYPE"
+
+        """
 
         query_text = """SELECT subject_identifier, resources.kind
                               FROM resource_relationships
@@ -392,7 +445,11 @@ class SQLResourceStore(ResourceStore):
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
         """Returns identifiers of resources that have a relationship with "identifier"
-        where "identifier" is the subject"""
+        where "identifier" is the subject
+
+        Returns:
+            A dataframe with two columns "IDENTIFIER" and "TYPE"
+        """
 
         # First select where identifier is the subject
         query_text = """SELECT object_identifier, resources.kind
@@ -422,6 +479,10 @@ class SQLResourceStore(ResourceStore):
     def getRelatedResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
+        """
+        Returns:
+            A dataframe with two columns "IDENTIFIER" and "TYPE"
+        """
 
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(
             identifier=identifier, kind=kind, version=version
@@ -445,6 +506,8 @@ class SQLResourceStore(ResourceStore):
         """
         Returns all resource object associated with identifier.
         Optionally returns only resources of the provided kind.
+
+        Returns: A dictionary whose keys are identifiers and whose values are ADOResource instances
         """
 
         identifiers = self.getRelatedResourceIdentifiers(

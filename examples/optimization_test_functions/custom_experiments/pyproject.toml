@@ -24,9 +24,6 @@ only-include = [
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
-[tool.uv]
-# Optional uv-specific config
-
 [tool.uv-dynamic-versioning]
 vcs = "git"
 style = "pep440"

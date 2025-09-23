@@ -683,8 +683,32 @@ class SQLResourceStore(ResourceStore):
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
         """
+        Retrieve identifiers of resources that are related to ``identifier`` either as a
+        subject or an object.
+
+        This method concatenates the results of
+        :meth:`getRelatedObjectResourceIdentifiers` and
+        :meth:`getRelatedSubjectResourceIdentifiers`.  The returned
+        :class:`pandas.DataFrame` has two columns:
+
+        * ``IDENTIFIER`` - the resource identifier
+        * ``TYPE``      - the resource kind
+
+        Args:
+            identifier : str
+                The resource identifier for which related resources are being
+                queried.
+            kind : str, optional
+                Filter by the resource *kind*.  If ``None`` (default) no kind
+                filtering is applied.
+            version : str, optional
+                Filter by the resource *version*.  If ``None`` (default) no
+                version filtering is applied.
+
         Returns:
-            A dataframe with two columns "IDENTIFIER" and "TYPE"
+            pandas.DataFrame
+                A DataFrame containing the identifiers of all related resources.
+                If no relationships exist an empty DataFrame is returned.
         """
 
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(

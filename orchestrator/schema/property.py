@@ -72,7 +72,6 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
     propertyType: MeasuredPropertyTypeEnum = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
-    concretePropertyIdentifiers: list[str] | None = None
 
     def __str__(self):
         return f"ap-{self.identifier}"
@@ -161,7 +160,6 @@ class AbstractProperty(Property):
     propertyType: MeasuredPropertyTypeEnum = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
-    concretePropertyIdentifiers: list[str] | None = None
     model_config = ConfigDict(frozen=True)
 
     @classmethod
@@ -169,7 +167,6 @@ class AbstractProperty(Property):
 
         return cls(
             identifier=descriptor.identifier,
-            concretePropertyIdentifiers=descriptor.concretePropertyIdentifiers,
         )
 
     def __str__(self):
@@ -177,20 +174,11 @@ class AbstractProperty(Property):
 
     def __eq__(self, other):
 
-        retval = super().__eq__(other)
-        if retval:
-            retval = (
-                self.concretePropertyIdentifiers == other.concretePropertyIdentifiers
-            )
-
-        return retval
+        return super().__eq__(other)
 
     def descriptor(self):
 
-        return AbstractPropertyDescriptor(
-            identifier=self.identifier,
-            concretePropertyIdentifiers=self.concretePropertyIdentifiers,
-        )
+        return AbstractPropertyDescriptor(identifier=self.identifier)
 
 
 class ConstitutiveProperty(Property):

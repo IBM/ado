@@ -310,32 +310,65 @@ class SQLResourceStore(ResourceStore):
         details: bool = False,
     ) -> pd.DataFrame:
         """
-        Parameters:
-            kind: The kind of the resource to get. The value of an element of CoreResourceKinds enum
-            version: The version of the resource to find (optional)
-            field_selectors: Use to select resources with give values of given fields
-                This parameter is a list of dictionaries where the keys are JSON fields and the
-                values are the values this field must have. See below for syntax details
-            details: Controls the columns in the returned dataframe - see "Returns" section for more.
+        Retrieve identifiers of resources of a given kind.
 
-        Field Selectors
-            The keys can be a MYSQL JSON paths that uniquely specifies a field -> https://www.mysqltutorial.org/mysql-json/mysql-json-path/
-            The values are any valid JSON documents (can be plain strings etc.)
-            These are used with to MYSQL JSON_CONTAINS
+        This method queries the ``resources`` table to return identifiers and
+        selected metadata for all resources that match the specified ``kind``.
+        Optionally, a version and a list of JSON field selectors may be
+        provided to further refine the results.  By default the returned
+        dataframe contains only the identifier, name and age of each
+        resource.  When ``details=True`` the returned dataframe also
+        includes the description, labels, and, for operation resources,
+        the current status.
 
-            The unique restriction means wildcards cannot be used in the path.
-            Instead of querying if an object in an array, A has a value of X for a field Y
-                PATH: $.A[*].Y, Value: X
-            query if A contains a document where X has field Y
-                PATH: $.A  Value: {"Y":"X"}
+        Args:
+            kind (str):
+                The kind of resource to filter on.  Must be a value from
+                :class:`orchestrator.core.resources.CoreResourceKinds`.
+            version (str | None, optional):
+                When provided only resources with this exact version are
+                returned.  Set to ``None`` to ignore the version filter.
+            field_selectors (list[dict[str, str]] | None, optional):
+                A list of dictionaries used to filter on JSON fields. Each
+                dictionary maps a MySQL JSON path (e.g. ``"$.config.owner"``)
+                to the value the field must contain. The matcher uses
+                ``JSON_CONTAINS`` under the hood and is subject to its
+                restrictions listed at:
+                https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains.
+            details (bool, optional):
+                If ``True`` the dataframe will contain extra columns
+                (``DESCRIPTION``, ``LABELS`` and, for operations, ``STATUS``).
+                Defaults to ``False`` for a lightweight payload.
+
+        Field Selectors:
+            - The keys of the dictionaries are MySQL JSON paths as defined in:
+            https://dev.mysql.com/doc/refman/8.4/en/json.html#json-path-syntax,
+            with some additional limitations as per the documentation from JSON_CONTAINS:
+            https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains.
+            Notably, single (*) and double-asterisk (**) wildcards are not supported.
+            - The values can be any valid JSON documents (including plain strings, etc.)
+
+            In practical terms, this means that, when searching for objects within arrays we
+            should use document matching instead of wildcard-based value matching.
+
+            DO NOT: {"config.experiments[*].experiments.identifier": "my-experiment"}
+            DO: {"config.experiments": {"experiments":{"identifier":"my-experiment"}}}
 
         Returns:
-            A pandas dataframe with the following columns if details is False:
-                IDENTIFIER, AGE, NAME
-            otherwise:
-                IDENTIFIER, AGE, NAME, DESCRIPTION, LABEL
+            pandas.DataFrame:
+                A dataframe containing the selected columns.  When
+                ``details`` is ``False`` the columns are ``IDENTIFIER``,
+                ``NAME`` and ``AGE``.  When ``details`` is ``True`` the
+                columns become ``IDENTIFIER``, ``NAME``, ``DESCRIPTION``,
+                ``LABELS`` and ``AGE``; for operation resources an
+                additional ``STATUS`` column is appended.  If
+                ``field_selectors`` or ``version`` exclude all rows the
+                dataframe is empty.
 
-            If no resources are found the data frame will be empty
+        Raises:
+            ValueError:
+                If the supplied ``kind`` is not a known
+                ``CoreResourceKinds`` value.
         """
 
         if kind not in [v.value for v in orchestrator.core.resources.CoreResourceKinds]:

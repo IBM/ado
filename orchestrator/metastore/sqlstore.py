@@ -238,9 +238,32 @@ class SQLResourceStore(ResourceStore):
     def getResources(
         self, identifiers: list[str]
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
-        """Returns:
-        A dictionary whose keys are resource identifiers and whose values are ADOResource subclass resource instances.
-        If an identifier was not found it will not be in the dictionary"""
+        """Retrieve multiple resources by identifier.
+
+        This method queries the `resources` table for all rows whose
+        ``identifier`` column matches an element of *identifiers*.  The
+        JSON payload stored in the `data` column is deserialized and
+        converted into the appropriate :class:`orchestrator.core.resources.ADOResource`
+        subclass.  The resulting objects are returned in a dictionary that maps each
+        identifier to its `ADOResource` instance.  Identifiers that
+        are not present in the database are simply omitted from the
+        returned mapping.
+
+        ``identifiers`` may be passed as either a plain list or a
+        :class:`pandas.Series`; if a series is supplied it is converted
+        to a list first.
+
+        Args:
+            identifiers: The list of resource identifiers to retrieve.
+                Duplicate identifiers are ignored.
+
+        Returns:
+            dict[str, orchestrator.core.resources.ADOResource]:
+                A mapping where each key is an identifier found in the
+                database and the value is the corresponding deserialized
+                resource instance. If a particular identifier does not
+                exist, it will not appear in the returned dictionary.
+        """
 
         retval = {}
         if len(identifiers) != 0:

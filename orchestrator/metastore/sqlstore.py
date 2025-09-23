@@ -161,8 +161,45 @@ class SQLResourceStore(ResourceStore):
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
     ) -> orchestrator.core.resources.ADOResource | None:
-        """Returns:
-        an instanceof the ADOResource subclass for identifier if it was found, otherwise None
+        """Retrieve a resource from the SQL store.
+
+        This method selects the resource with the given *identifier* and
+        *kind* from the ``resources`` table.  The JSON payload stored in
+        the database is deserialized and converted into the appropriate
+        :class:`~orchestrator.core.resources.ADOResource` subclass.
+
+        If the stored version is older than the resource instance being
+        retrieved (`resource.version`) the object is automatically updated
+        in the database.
+
+        Args:
+            identifier: The unique identifier of the resource to fetch.
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds`
+                enum value that specifies the expected resource kind.
+            raise_error_if_no_resource: If ``True``, a
+                :class:`~orchestrator.metastore.base.ResourceDoesNotExistError`
+                is raised when the resource cannot be found.  When ``False``
+                (default) the method simply returns ``None``.
+
+        Returns:
+            An instance of the appropriate
+            :class:`~orchestrator.core.resources.ADOResource` subclass if the
+            resource was found; otherwise ``None`` when
+            ``raise_error_if_no_resource`` is ``False``.
+
+        Raises:
+            ResourceDoesNotExistError:
+                If the resource is not located in the database and the
+                *raise_error_if_no_resource* flag is ``True``.
+
+        Notes:
+            * The database uses SQLAlchemy under the hood, and the query
+              result is loaded into a :class:`pandas.DataFrame` before the
+              JSON column is parsed.
+            * Custom load functions registered in
+              ``kind_custom_model_load`` are used when available; otherwise
+              the default Pydantic model from ``orchestrator.core.kindmap``
+              is instantiated.
         """
 
         query = sqlalchemy.text(

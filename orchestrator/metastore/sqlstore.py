@@ -117,9 +117,27 @@ class SQLResourceStore(ResourceStore):
         return engine_for_sql_store(configuration=self.configuration)
 
     def getResourceRaw(self, identifier) -> dict | None:
-        """Returns:
-        The raw serialized dict representation for the resource identifie or None if
-        no resource with the identifier was found.
+        """Retrieve the raw JSON data for a resource.
+
+        The method queries the ``resources`` table for a row with the
+        specified ``identifier``.  The `data` column holds a JSON string
+        representing the resource, which is deserialized and returned as
+        a Python ``dict``.  If the identifier is not present in the
+        database, the method returns ``None`` instead of raising an
+        exception.
+
+        Args:
+            identifier: The unique identifier of the resource to fetch.
+
+        Returns:
+            dict | None: The deserialized JSON object stored in the
+                database for the given identifier, or ``None`` when no
+                matching record is found.
+
+        Note:
+            This method does **not** perform any validation against the
+            resource schema - callers should use :meth:`getResource` if they
+            need a fully-typed object.
         """
 
         query = sqlalchemy.text(

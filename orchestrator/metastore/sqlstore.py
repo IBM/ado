@@ -731,10 +731,27 @@ class SQLResourceStore(ResourceStore):
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """
-        Returns all resource object associated with identifier.
-        Optionally returns only resources of the provided kind.
+        Retrieve all resources that are related to a given identifier.
 
-        Returns: A dictionary whose keys are identifiers and whose values are ADOResource instances
+        Args:
+            identifier (str):
+                The identifier of the primary resource.  The method will fetch
+                every other resource that shares a relationship with this
+                identifier - either as the **subject** or **object** of a
+                relationship entry in ``resource_relationships``.
+            kind (orchestrator.core.resources.CoreResourceKinds, optional):
+                If supplied, only resources whose ``kind`` matches this value
+                are returned.  Pass ``None`` (the default) to retrieve
+                resources of any kind.
+
+        Returns:
+            dict[str, orchestrator.core.resources.ADOResource]:
+                A mapping from resource identifier to a fully deserialized
+                ``ADOResource`` instance.  The dictionary keys are the
+                identifiers of all resources that are related to
+                ``identifier``; the values are the corresponding
+                resource objects.  When ``kind`` is set, the dictionary
+                contains only resources of that kind.
         """
 
         identifiers = self.getRelatedResourceIdentifiers(

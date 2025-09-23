@@ -162,6 +162,7 @@ class AbstractProperty(Property):
     propertyType: MeasuredPropertyTypeEnum = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
+    concretePropertyIdentifiers: list[str] | None = None
     model_config = ConfigDict(frozen=True)
 
     @classmethod
@@ -176,7 +177,17 @@ class AbstractProperty(Property):
 
     def __eq__(self, other):
 
-        return super().__eq__(other)
+        retval = super().__eq__(other)
+        if retval:
+            try:
+                retval = (
+                    self.concretePropertyIdentifiers
+                    == other.concretePropertyIdentifiers
+                )
+            except AttributeError:
+                retval = False
+
+        return retval
 
     def descriptor(self):
 

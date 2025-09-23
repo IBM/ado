@@ -75,6 +75,18 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
 
+    @pydantic.model_validator(mode="before")
+    def property_to_descriptor(cls, value):
+
+        if isinstance(value, Property):
+            value = value.descriptor()
+        elif isinstance(value, dict):
+            value.pop("propertyDomain", None)
+            value.pop("metadata", None)
+            value.pop("concretePropertyIdentifiers", None)
+
+        return value
+
     def __str__(self):
         return f"ap-{self.identifier}"
 

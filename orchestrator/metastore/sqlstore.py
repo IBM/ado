@@ -498,18 +498,39 @@ class SQLResourceStore(ResourceStore):
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
-        """Returns all resources of a given kind
+        """
+        Retrieve all resources of a given kind.
 
-        This, method calls getResourceIdentifiersOfKind() to find the resources
-        passing the kind, version and field_selectors parameters.
-        See getResourceIdentifiersOfKind() documentation for how these parameters
-        influence what is retrieved.
+        The method first obtains the identifiers of matching resources by
+        calling :meth:`getResourceIdentifiersOfKind`. The identifiers are
+        then used to fetch the full resource objects via
+        :meth:`getResources`.
 
-        Then getResources() is called to retrieve all found resources.
+        Args:
+            kind (str): The kind of resources to fetch. Must be one of
+                :class:`orchestrator.core.resources.CoreResourceKinds`.
+            version (str, optional): If supplied, only resources with this
+                exact version are returned.
+            field_selectors (list[dict[str, str]], optional): A list of
+                JSON-field selectors used to narrow the result set.  Each
+                selector maps a MySQL JSON path (e.g. ``"$.config.owner"``)
+                to the value the field must contain.
 
         Returns:
-            A dictionary whose keys are resource ids and whose values are ADO resource instances.
-            If no resources are found this method will return an empty dictionary
+            dict[str, orchestrator.core.resources.ADOResource]: A mapping
+            where the key is the resource identifier and the value is the
+            fully-deserialized :class:`orchestrator.core.resources.ADOResource`
+            instance.  An empty dictionary is returned when no matching
+            resources are found.
+
+        Raises:
+            ValueError: If ``kind`` is not a recognised
+                :class:`orchestrator.core.resources.CoreResourceKinds`
+                value.
+
+        See Also:
+            - getResourceIdentifiersOfKind's documentation
+            - https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains
         """
 
         identifiers = self.getResourceIdentifiersOfKind(

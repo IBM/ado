@@ -264,7 +264,6 @@ def dynamic_name_function(function: typing.Callable[..., typing.Any], new_name: 
     return wrapper
 
 
-# VV: Just a class to move around bunch of parameters for finetuning ray tasks
 class FinetuneContext:
     def __init__(
         self,
@@ -279,20 +278,30 @@ class FinetuneContext:
         actuator_params: ActuatorParameters,
         request_id: str,
     ):
-        """
+        """Helper class that holds all information related to 1 measurement on 1 entity
 
         Args:
             args:
-                The per worker arguments
+                The per-worker arguments to the sfttrainer_wrapper.py for instantiating the tuning job worker(s)
             runtime_env:
+                The Ray runtime environment to use for the measurement
             exp:
+                The experiment to apply
             exp_params:
+                The parameterisation of the experiment
             entity_space:
+                The base entity definition
             aim_metadata:
+                Extra metadata to store in AIM
             log_level:
+                The logging level to use during the measurement
             extra:
+                Additional arguments to ray.remote() when instantiating the measurement
             actuator_params:
+                The actuator parameters
             request_id:
+                The identifier of the MeasurementRequest object that owns the execution of this experiment
+                on this entity
         """
         self.runtime_env = runtime_env
         self.exp = exp

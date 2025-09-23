@@ -292,7 +292,7 @@ value `my_name`.
 > a value.
 <!-- markdownlint-enable no-blanks-blockquote -->
 
-### Searching in arrays
+#### Searching in arrays
 
 For fields whose values are arrays, the equality operation asks if the array at
 `$KEY_PATH` contains the value. In this case `value` can be any valid JSON

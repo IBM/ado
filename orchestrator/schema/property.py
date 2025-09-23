@@ -38,7 +38,9 @@ class PropertyDescriptor(pydantic.BaseModel):
     @pydantic.model_validator(mode="before")
     def property_to_descriptor(cls, value):
 
-        if isinstance(value, dict):
+        if isinstance(value, Property):
+            value = value.descriptor()
+        elif isinstance(value, dict):
             value.pop("propertyDomain", None)
             value.pop("metadata", None)
 

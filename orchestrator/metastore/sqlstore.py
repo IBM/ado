@@ -541,12 +541,47 @@ class SQLResourceStore(ResourceStore):
     def getRelatedSubjectResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
-        """Returns identifiers of resources that have a relationship with "identifier"
-        where "identifier" is the object
+        """Retrieve identifiers of resources that have a relationship to the
+        supplied ``identifier`` where that identifier acts as the *object*.
+
+        The method queries the ``resource_relationships`` table and returns
+        a ``pandas.DataFrame`` containing identifiers of all resources that
+        are the *subject* of a relationship whose *object* is the supplied
+        ``identifier``.  Optional filtering by the other resource's
+        ``kind`` or ``version`` is supported.
+
+        Args:
+            identifier (str):
+                The resource identifier that will be queried as the object
+                side of the relationship.
+            kind (str | None, optional):
+                If provided, only resources whose ``kind`` matches this
+                value will be returned.  Pass ``None`` to ignore the kind
+                filter.
+            version (str | None, optional):
+                If provided, only resources whose ``version`` matches this
+                value will be returned.  Pass ``None`` to ignore the
+                version filter.
 
         Returns:
-            A dataframe with two columns "IDENTIFIER" and "TYPE"
+            pandas.DataFrame:
+                A two-column dataframe with the columns ``IDENTIFIER`` and
+                ``TYPE``.  ``IDENTIFIER`` is the identifier of a resource
+                that is the subject of a relationship, and ``TYPE`` is its
+                ``kind``.  If no related resources are found an empty
+                dataframe is returned.
 
+        Raises:
+            sqlalchemy.exc.SQLAlchemyError:
+                Propagated if the underlying database query fails.
+
+        See Also:
+            getRelatedObjectResourceIdentifiers
+                The inverse relationship: fetches subjects where the given
+                identifier is the *subject*.
+            getRelatedResourceIdentifiers
+                Convenience wrapper that returns a dataframe with both subject
+                and object relationships merged.
         """
 
         query_text = """SELECT subject_identifier, resources.kind

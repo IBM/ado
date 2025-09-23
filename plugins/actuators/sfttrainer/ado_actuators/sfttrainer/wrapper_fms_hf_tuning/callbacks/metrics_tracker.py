@@ -189,7 +189,7 @@ class Metrics:
     training: TrainingMetrics
     model: ModelMetrics
     training_steps: int = dataclasses.field(
-        metadata={"help": "The number of training steps"},
+        metadata={"help": "The number of training steps excluding the warmup steps"},
     )
     aim_run_hash: str | None = None
     train_time_start: datetime.datetime | None = None
@@ -201,12 +201,13 @@ class Metrics:
             "array of GPU indices that the host used"
         },
     )
-    post_warmup_index_for_stable_properties: int | None = None
+    warmup_steps: int | None = None
     warmup_seconds: float | None = None
 
     def to_scalar_observations(
         self,
         distributed_backend: typing.Literal["FSDP", "DDP"] | None,
+        world_size: int,
     ) -> dict[str, float]:
         scalar_observations = {}
         import dataclasses
@@ -246,14 +247,6 @@ class Metrics:
                 [gpu.gpu_memory_percent.max for gpu in self.gpus],
             )
 
-        number_gpus = max(1, len(self.gpus))
-
-        if number_gpus > 1 and distributed_backend in ["FSDP", "DDP"]:
-            # VV: FSDP and DDP report the train_tokens_per_second per device
-            self.training.train_tokens_per_second.avg *= number_gpus
-            self.training.train_tokens_per_second.max *= number_gpus
-            self.training.train_tokens_per_second.min *= number_gpus
-
         scalar_observations.update(
             {
                 k: v["avg"]
@@ -262,27 +255,24 @@ class Metrics:
             }
         )
 
-        duration = self.training.train_runtime.avg
-        duration -= self.warmup_seconds or 0
+        if world_size > 1 and distributed_backend in ["FSDP", "DDP"]:
+            # VV: FSDP and DDP report the train_tokens_per_second per device
+            scalar_observations["train_tokens_per_second"] *= world_size
 
         if self.training.dataset_tokens.avg is not None:
             scalar_observations["dataset_tokens_per_second"] = (
-                self.training.dataset_tokens.avg / duration
+                self.training.dataset_tokens.avg / self.training.train_runtime.avg
             )
             scalar_observations["dataset_tokens_per_second_per_gpu"] = (
-                scalar_observations["dataset_tokens_per_second"] / number_gpus
+                scalar_observations["dataset_tokens_per_second"] / world_size
             )
         else:
             scalar_observations["dataset_tokens_per_second"] = -1.0
             scalar_observations["dataset_tokens_per_second_per_gpu"] = -1.0
 
-        tokens_per_gpu_per_second = (
-            self.training.train_tokens_per_second.avg / number_gpus
-        )
         scalar_observations["train_tokens_per_gpu_per_second"] = (
-            tokens_per_gpu_per_second
+            scalar_observations["train_tokens_per_second"] / world_size
         )
-
         scalar_observations["model_load_time"] = self.model.model_load_time.avg
 
         if self.aim_run_hash:
@@ -299,14 +289,6 @@ class Metrics:
             scalar_observations["train_time_start"] = self.train_time_start
 
         scalar_observations["training_steps"] = self.training_steps
-
-        # VV: Account for the steps we spent for the warmup phase
-        scalar_observations["training_steps"] -= (
-            self.post_warmup_index_for_stable_properties or 0
-        )
-
-        # VV: train_runtime includes the warmup phase so we're reporting the duration of the useful phase
-        scalar_observations["train_runtime"] = duration
 
         return scalar_observations
 
@@ -387,6 +369,19 @@ class Metrics:
         if train_time_stop:
             train_time_stop = datetime.datetime.strptime(train_time_stop, format_time)
 
+        # VV: training_steps does not include the warmup_steps
+        training_steps = aim_info["training_steps"] - (
+            aim_info.get("warmup_steps") or 0
+        )
+
+        warmup_seconds = aim_info.get("warmup_seconds") or 0
+
+        if warmup_seconds > 0:
+            # VV: Just like training_steps, train_runtime does not include the warmup_seconds
+            training_metrics.train_runtime.avg -= warmup_seconds
+            training_metrics.train_runtime.min -= warmup_seconds
+            training_metrics.train_runtime.max -= warmup_seconds
+
         return Metrics(
             gpus=gpu_metrics,
             system=system_metrics,
@@ -396,10 +391,8 @@ class Metrics:
             hostname_gpus={aim_info["hostname"]: aim_info["cuda_visible_devices"]},
             train_time_start=train_time_start,
             train_time_stop=train_time_stop,
-            training_steps=aim_info["training_steps"],
-            post_warmup_index_for_stable_properties=aim_info.get(
-                "post_warmup_index_for_stable_properties"
-            ),
+            training_steps=training_steps,
+            warmup_steps=aim_info.get("warmup_steps"),
             warmup_seconds=aim_info.get("warmup_seconds"),
         )
 

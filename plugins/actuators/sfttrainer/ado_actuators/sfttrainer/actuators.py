@@ -264,7 +264,6 @@ def dynamic_name_function(function: typing.Callable[..., typing.Any], new_name: 
     return wrapper
 
 
-# VV: Just a class to move around bunch of parameters for finetuning ray tasks
 class FinetuneContext:
     def __init__(
         self,
@@ -279,6 +278,31 @@ class FinetuneContext:
         actuator_params: ActuatorParameters,
         request_id: str,
     ):
+        """Helper class that holds all information related to 1 measurement on 1 entity
+
+        Args:
+            args:
+                The per-worker arguments to the sfttrainer_wrapper.py for instantiating the tuning job worker(s)
+            runtime_env:
+                The Ray runtime environment to use for the measurement
+            exp:
+                The experiment to apply
+            exp_params:
+                The parameterisation of the experiment
+            entity_space:
+                The base entity definition
+            aim_metadata:
+                Extra metadata to store in AIM
+            log_level:
+                The logging level to use during the measurement
+            extra:
+                Additional arguments to ray.remote() when instantiating the measurement
+            actuator_params:
+                The actuator parameters
+            request_id:
+                The identifier of the MeasurementRequest object that owns the execution of this experiment
+                on this entity
+        """
         self.runtime_env = runtime_env
         self.exp = exp
         self.exp_params = exp_params
@@ -311,6 +335,17 @@ class FinetuneContext:
             accelerate_config_fsdp_transformer_layer_cls_to_wrap=(
                 self.entity_space.accelerate_config_fsdp_transformer_layer_cls_to_wrap
             ),
+        )
+
+    def postprocess_metrics_tracker_metrics(
+        self,
+        metrics: "metrics_tracker.Metrics",
+    ) -> dict[str, typing.Any]:
+        world_size = max(1, self.entity_space.number_gpus)
+
+        return metrics.to_scalar_observations(
+            distributed_backend=self.entity_space.distributed_backend,
+            world_size=world_size,
         )
 
     def generate_method_call(
@@ -1078,25 +1113,8 @@ class SFTTrainer(ActuatorBase):
             return metrics
 
         # VV: This is for experiments that measure system metrics
-        return self._postprocess_metrics_tracker_metrics(
-            metrics=metrics,
-            entity=entity,
-            exp=exp,
-            distributed_backend=context.entity_space.distributed_backend,
-        )
-
-    @classmethod
-    def _postprocess_metrics_tracker_metrics(
-        cls,
-        metrics: "metrics_tracker.Metrics",
-        entity: "Entity",
-        exp: "Experiment",
-        distributed_backend: typing.Literal["FSDP", "DDP"] | None,
-    ) -> dict[str, typing.Any]:
         try:
-            return metrics.to_scalar_observations(
-                distributed_backend=distributed_backend
-            )
+            return context.postprocess_metrics_tracker_metrics(metrics=metrics)
         except Exception as e:
             raise InternalInconsistencyError(
                 "Exception when decoding metrics for experiment "

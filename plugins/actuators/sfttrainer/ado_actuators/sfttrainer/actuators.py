@@ -279,6 +279,21 @@ class FinetuneContext:
         actuator_params: ActuatorParameters,
         request_id: str,
     ):
+        """
+
+        Args:
+            args:
+                The per worker arguments
+            runtime_env:
+            exp:
+            exp_params:
+            entity_space:
+            aim_metadata:
+            log_level:
+            extra:
+            actuator_params:
+            request_id:
+        """
         self.runtime_env = runtime_env
         self.exp = exp
         self.exp_params = exp_params
@@ -311,6 +326,17 @@ class FinetuneContext:
             accelerate_config_fsdp_transformer_layer_cls_to_wrap=(
                 self.entity_space.accelerate_config_fsdp_transformer_layer_cls_to_wrap
             ),
+        )
+
+    def postprocess_metrics_tracker_metrics(
+        self,
+        metrics: "metrics_tracker.Metrics",
+    ) -> dict[str, typing.Any]:
+        world_size = max(1, self.entity_space.number_gpus)
+
+        return metrics.to_scalar_observations(
+            distributed_backend=self.entity_space.distributed_backend,
+            world_size=world_size,
         )
 
     def generate_method_call(
@@ -1078,25 +1104,8 @@ class SFTTrainer(ActuatorBase):
             return metrics
 
         # VV: This is for experiments that measure system metrics
-        return self._postprocess_metrics_tracker_metrics(
-            metrics=metrics,
-            entity=entity,
-            exp=exp,
-            distributed_backend=context.entity_space.distributed_backend,
-        )
-
-    @classmethod
-    def _postprocess_metrics_tracker_metrics(
-        cls,
-        metrics: "metrics_tracker.Metrics",
-        entity: "Entity",
-        exp: "Experiment",
-        distributed_backend: typing.Literal["FSDP", "DDP"] | None,
-    ) -> dict[str, typing.Any]:
         try:
-            return metrics.to_scalar_observations(
-                distributed_backend=distributed_backend
-            )
+            return context.postprocess_metrics_tracker_metrics(metrics=metrics)
         except Exception as e:
             raise InternalInconsistencyError(
                 "Exception when decoding metrics for experiment "

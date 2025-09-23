@@ -55,8 +55,7 @@ class PropertyDescriptor(pydantic.BaseModel):
 
         try:
             retval = self.identifier == other.identifier
-        except AttributeError as error:
-            print(error)
+        except AttributeError:
             retval = False
 
         return retval
@@ -132,8 +131,7 @@ class Property(pydantic.BaseModel):
                 self.identifier == other.identifier
                 and self.propertyDomain == other.propertyDomain
             )
-        except AttributeError as error:
-            print(error)
+        except AttributeError:
             retval = False
 
         return retval

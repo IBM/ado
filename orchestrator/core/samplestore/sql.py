@@ -157,6 +157,13 @@ class SQLSampleStore(ActiveSampleStore):
         self,
     ) -> ExperimentCatalog | None:
 
+        # TODO: This is not the right way to do this.
+        # Here we're using the descriptors of the first entity to create the catalog
+        # if this entity has an experiment with "replay" actuators
+        # This works in the case every entity in sampletore was imported from an external source
+        # and all had the same external experiment.
+        # A better way would be to find all results from a replay experiment and then
+        # get the set of those
         try:
             entity = self.entities[0]
         except IndexError:
@@ -169,7 +176,6 @@ class SQLSampleStore(ActiveSampleStore):
         experiments = {}
         for r in refs:
             props = [p for p in entity.observedProperties if p.experimentReference == r]
-            # FIXME: This is not the right way to do this.
             experiment = Experiment(
                 identifier=r.experimentIdentifier,
                 actuatorIdentifier=r.actuatorIdentifier,

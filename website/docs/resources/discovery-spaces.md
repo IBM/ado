@@ -217,7 +217,7 @@ propertyDomain: # The domain describes the values the property can take
 ```
 <!-- markdownlint-enable line-length -->
 
-As long as all constitutive properties are not "UNKNOWN_VARAIBLE_TYPE" there is
+As long as all constitutive properties are not "UNKNOWN_VARIABLE_TYPE" there is
 sufficient information to sample new entities from the `entityspace`
 description.
 

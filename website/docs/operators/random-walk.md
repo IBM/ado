@@ -273,7 +273,7 @@ spaces:
 ### Custom Samplers
 
 It is also possible to specify that `random_walk` uses a custom sampler. This is
-a class that inherits from `orchestrator.core.discovery.samplers.BaseSampler`.
+a class that inherits from `orchestrator.core.discoveryspace.samplers.BaseSampler`.
 This is useful for implementing more complex sampling schemes. For example, for
 developers who want to use random_walk to drive an exploration but have custom
 logic to execute before choosing each sample/entity.

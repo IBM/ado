@@ -184,22 +184,24 @@ subspace, a superspace, or an exact match.
 
 ### Searching for spaces containing a point
 
-The `--matching-point` option allows finding spaces which contain a particular
-[entity](../core-concepts/entity-spaces.md#entities) and experiment combination.
-For example:
+If you're looking for discovery spaces that **contain** a specific
+[entity](../core-concepts/entity-spaces.md#entities) and (optionally) a list of
+experiments, you can use the `--matching-point` option.
+
+This option accepts a YAML file with the following structure:
+
+> [!IMPORTANT]
+>
+> The match condition is not **equals** but **contains**. That is, any entity
+> that **at least** has the provided properties will match.
 
 ```yaml
 entity: # A key-value dictionary of constitutive property identifiers and values
   batch_size: 8
   number_gpus: 4
-experiments: # A list of experiments
+experiments: # (OPTIONAL) A list of experiments
   - finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0
 ```
-
-> [!IMPORTANT]
->
-> The match condition is not **equals** but **contains**. That is, any entity
-> with the listed properties will match - it may have others also.
 
 ### Searching for resources with a given label
 

@@ -146,7 +146,7 @@ def template_operation(parameters: AdoTemplateCommandParameters):
     if parameters.include_schema:
         schema_output_path = pathlib.Path(output_path.stem + "_schema.yaml")
         schema_model_instance = (
-            default_operation_parameters.parameters
+            default_operation_configuration.parameters
             if parameters.parameters_only_schema
             else model_instance
         )

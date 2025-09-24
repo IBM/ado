@@ -219,134 +219,135 @@ ado get operations -l labelone=valueone -l label_two=value_two
 will retrieve all operations that have the label `labelone` with the value
 `valueone` and `label_two` with the value `value_two`.
 
-### Searching against resource fields
+### Searching inside resource representations
 
-The `-q` (`--query`) option to `ado get` allows searching for resources where a
-particular field **contains** a particular value. The `-q` option can be
-specified multiple times allowing search conditions on multiple fields. It can
-also be specified with `-l`.
+> [!IMPORTANT]
+>
+> This functionality uses MySQL's
+> [`JSON_CONTAINS`](https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains)
+> function behind-the-scenes. We encourage users to read the provided
+> documentation to be aware of its limitations.
+
+For more advanced use cases, `ado` provides the `--query` option (or its
+shorthand `-q`) to filter resources based on the contents of their **JSON
+representation**. This option can be specified multiple times and in conjunction
+with the `-l` option to find resources that match all the specified filters.
 
 The syntax is:
 
 ```commandline
--q $KEY_PATH=value
+-q path=candidate
 ```
 
-In the simplest case `$KEY_PATH` is a `.`-separated sequence of fieldnames that
-lead to a target field. For example, in this case:
+Where:
 
-```yaml
-config:
-  metadata:
-    name: "my_name"
-    description: "some description"
-    tags:
-      - "test"
-      - "fine_tuning"
-```
+!!! warning
 
-`config.metadata.name` is the key path to the `name` field.
+    Make sure to properly quote JSON values when appropriate, so that they are
+    parsed correctly. This is particularly important when dealing with arrays or
+    objects.
 
-> [!IMPORTANT]
->
-> The key path and values are case-sensitive.
+- **Path** is a
+  [MySQL JSON Path](https://dev.mysql.com/doc/refman/8.4/en/json.html#json-path-syntax)
+  expression. **NOTE**: single (\*) and double-asterisk (\*\*) wildcards are not
+  supported.
+- **Candidate** is a valid JSON value (object, array, string, number, boolean).
 
-#### Searching for fields with scalar values
+#### Containment rules
 
-For fields whose values are scalars (integers, floats, and strings), to match
-the value at `$KEY_PATH` must be equal to the given value. In the example above
-the value of the `name` field is a string, so the query
+??? tip end "The examples below will reference this example YAML"
 
-```commandline
--q config.metadata.name=my_name
-```
+    ```yaml
+    config:
+      metadata:
+        description: Perform a random walk on all points in a space
+        name: randomwalk-all
+      operation:
+        parameters:
+          batchSize: 1
+          numberEntities: 48
+          samplerConfig:
+            mode: random
+            samplerType: generator
+          singleMeasurement: true
+      spaces:
+      - space-3904a4-96dd91
+    created: '2025-09-24T15:11:36.334913Z'
+    identifier: randomwalk-1.0.2.dev30+a96d4d1.dirty-b54866
+    metadata:
+      entities_submitted: 48
+      experiments_requested: 74
+    operationType: search
+    operatorIdentifier: randomwalk-1.0.2.dev30+a96d4d1.dirty
+    status:
+    - event: created
+      recorded_at: '2025-09-24T15:10:48.301104Z'
+    - event: added
+      recorded_at: '2025-09-24T15:11:39.692664Z'
+    - event: started
+      recorded_at: '2025-09-24T15:11:43.266627Z'
+    - event: updated
+      recorded_at: '2025-09-24T15:11:43.266640Z'
+    - event: finished
+      exit_state: success
+      recorded_at: '2025-09-24T15:16:54.422497Z'
+    - event: updated
+      recorded_at: '2025-09-24T15:16:54.429667Z'
+    ```
 
-asks whether the value of `config.metadata.name` is equal to `my_name`.
+Resources are returned if they **_contain_ the candidate value at the specified
+path**. Containment is rigorously defined in
+[MySQL's JSON_CONTAINS documentation](https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains),
+but for ease of use we distill the content here.
 
-<!-- markdownlint-disable no-blanks-blockquote -->
+##### The path points to a scalar
 
-> [!NOTE]
->
-> Be careful when searching for fields whose values are strings which are
-> numbers. If the field is an integer it will not be matched by the string
-> equivalent and vice versa. For example, "947" will not match 947.
+Resources are returned only if the candidate is a scalar of the **same type**
+(ints and floats count as the same type) and the **same value**.
 
-> [!NOTE]
->
-> You do not need to quote non-numeric strings to search them c.f. my_name
-> above.
+- ✅ `ado get operations -q 'config.operation.parameters.batchSize=1'` (1 == 1)
+- ✅ `ado get operations -q 'config.operation.parameters.batchSize=1.0'` (1.0 ==
+  1, floats and ints count as same type)
+- ❌ `ado get operations -q 'config.operation.parameters.batchSize="1"'` ("1" !=
+  1, type mismatch)
 
-<!-- markdownlint-enable no-blanks-blockquote -->
+##### The path points to an array
 
-#### Searching for fields with dictionary values
+**If the candidate is an array**, resources are returned only if the array the
+path points to **contains all elements of the candidate**.
 
-For fields whose values are dictionaries, the search value must also be a JSON
-dictionary. The query asks if the dictionary at `$KEY_PATH` contains the set of
-key:values in the given JSON dictionary.
+- ✅
+  `ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'`
+  (all keys are contained)
+- ❌
+  `ado get operation -q 'status=[{"exit_state": "success"}, {"exit_state": "failure"}]'`
+  (no operation can have both a `success` and a `failure` exit state)
 
-```commandline
--q 'config.metadata={"name":"my_name"}'
-```
+**If the candidate is not an array**, resources are returned only if the array
+the path points to contains the candidate.
 
-asks whether the dictionary at `config.metadata` contains the key `name` with
-value `my_name`.
+- ✅ `ado get operation -q 'status={"exit_state": "success"}'` (status has an
+  element that contains the key `exit_state` and value `success`)
+- ✅ `ado get operation -q 'config.spaces=space-3904a4-96dd91'` (the string is
+  part of the array)
+- ❌ `ado get operation -q 'status={"event": "fake"}'` (no element of the
+  `status` array has the value `fake` for the `event` key)
 
-<!-- markdownlint-disable no-blanks-blockquote -->
-> [!IMPORTANT]
->
-> The matching criteria is not equality but _**contains**_.
+##### The path points to an object
 
-> [!NOTE]
->
-> The dictionary keys (strings) must be quoted and string values **must** be
-> quoted. This is different from when a string is used on its own as a value.
+Resources are returned only if the candidate is an object that has **- for each
+key and related value from the candidate - the same key and the same related
+value**.
 
-<!-- markdownlint-enable no-blanks-blockquote -->
+<!-- markdownlint-disable line-length -->
+- ✅
+  `ado get operation -q 'config.operation.parameters={"batchSize": 1, "samplerConfig": {"mode": "random"}}'`
+- ❌
+  `ado get operation -q 'config.operation.parameters={"batchSize": 1, "samplerConfig": {"mode": "smart"}}'`
+  (the operation's `samplerConfig.mode` is `random`)
+<!-- markdownlint-enable line-length -->
 
-#### Searching in arrays
-
-For fields whose values are arrays, the equality operation asks if the array at
-`$KEY_PATH` contains the value. In this case `value` can be any valid JSON
-object. For example:
-
-```commandline
--q config.metadata.tags=fine_tuning
-```
-
-checks if the string "fine_tuning" is in the list (TBD: Should the string be
-quoted? c.f. dictionary or scalar?)
-
-<!-- markdownlint-disable no-blanks-blockquote -->
-> [!NOTE]
->
-> The matching criteria is not equality but _**contains**_.
-
-> [!NOTE]
->
-> If the value being searched for is a non-scalar JSON object, strings **must**
-> be properly quoted.
-
-<!-- markdownlint-enable no-blanks-blockquote -->
-
-#### More complex key paths
-
-The JSON Path follows
-[MYSQL JSON Path syntax](https://www.mysqltutorial.org/mysql-json/mysql-json-path/),
-with some important differences.
-
-First, the root element `$.` is added automatically as we've found this is
-intuitively how users expect the statement `X=Y` to work. That is, the key path
-`metadata.name` is translated to `$.metadata.name`.
-
-**TBD: The above page states that indexing arrays [N] indexes element [N-1] but
-this does not seem to be the case.**
-
-> [!IMPORTANT]
->
-> Finally, the select-all operator, `*`, is not supported. You can often
-> leverage the _contains_ matching to replicate the same behaviour.
-
-### Examples
+#### Examples
 
 If you want to query operations that use the RayTune operator you can do it
 with:

@@ -205,13 +205,19 @@ experiments: # (OPTIONAL) A list of experiments
 
 ### Searching for resources with a given label
 
-The `-l` (`--label`) option to `ado get` allows searching for resources with a
-particular value for a label. The `-l` option can be specified multiple times
-allowing search conditions on multiple fields.
+If you're using **labels** to tag your resources, you can quickly retrieve
+matching resources using the `--label` option (or its shorthand `-l`), providing
+each label in the format: `key=value`.
+
+You can specify this option **multiple times** to filter resources that match
+**all** the given labels. For example:
 
 ```commandline
-ado get spaces -l mylabel=somevalue
+ado get operations -l labelone=valueone -l label_two=value_two
 ```
+
+will retrieve all operations that have the label `labelone` with the value
+`valueone` and `label_two` with the value `value_two`.
 
 ### Searching against resource fields
 

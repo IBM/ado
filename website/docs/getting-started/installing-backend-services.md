@@ -8,3 +8,8 @@
    include-markdown "./kuberay.md"
    heading-offset=1
 %}
+
+{%
+   include-markdown "../../../backend/api/README.md"
+   heading-offset=1
+%}

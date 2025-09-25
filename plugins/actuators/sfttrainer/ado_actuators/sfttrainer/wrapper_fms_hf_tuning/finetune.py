@@ -1061,7 +1061,7 @@ def tokenize_text(
     num_entries: int,
     skip_entries: int,
     dataset_text_field: str,
-):
+) -> int:
     """Counts the tokens in a dataset that was used to train a model
 
     This method takes into account how many entries the experiment processed
@@ -1208,21 +1208,23 @@ def launch_finetune(
         )
 
     if count_dataset_tokens:
-        entries_in_one_step_on_one_machine = (
+        world_size = max(1, args.number_gpus) * max(1, multi_node.num_machines)
+
+        entries_in_one_step = (
             args.per_device_train_batch_size
-            * max(1, args.number_gpus)
-            * (args.gradient_accumulation_steps if args.gradient_checkpointing else 1)
+            * world_size
+            * max(1, args.gradient_accumulation_steps)
         )
 
-        num_entries = (
-            entries_in_one_step_on_one_machine * multi_node.num_machines
-        ) * metrics.training_steps
+        # VV: training_steps does not include warmup_steps
+        warmup_steps = metrics.warmup_steps or 0
+        total_steps = warmup_steps + metrics.training_steps
+
+        num_entries = entries_in_one_step * total_steps
 
         # VV: We want to get rid of the first X entries which correspond to optimization steps
         # that took place during warmup
-        skip_entries = (
-            entries_in_one_step_on_one_machine * multi_node.num_machines
-        ) * (metrics.post_warmup_index_for_stable_properties or 0)
+        skip_entries = entries_in_one_step * warmup_steps
 
         ds = tokenize_text(
             path_model=args.model_name_or_path,

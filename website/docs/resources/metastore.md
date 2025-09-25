@@ -365,8 +365,8 @@ To also include those using `NVIDIA-A100-SXM4-80GB` for `gpu_model` and
 <!-- markdownlint-disable line-length -->
 ```commandline
 ado get spaces -q 'config.entitySpace={"identifier": "model_name", "propertyDomain":{"values":["mistral-7b-v0.1"]}}' \
-              -q 'config.entitySpace={"identifier": "gpu_model", "propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
-              -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
+               -q 'config.entitySpace={"identifier": "gpu_model", "propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
+               -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -377,7 +377,7 @@ Note, if you know a value is only used in a particular domain you can leave out
 
 ```commandline
 ado get spaces -q 'config.entitySpace={"propertyDomain":{"values":["mistral-7b-v0.1"]}}' \
-              -q 'config.entitySpace={"propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
-              -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
+               -q 'config.entitySpace={"propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
+               -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
 ```
 <!-- markdownlint-enable line-length -->

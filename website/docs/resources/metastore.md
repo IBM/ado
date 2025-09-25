@@ -221,17 +221,11 @@ will retrieve all operations that have the label `labelone` with the value
 
 ### Searching inside resource representations
 
-> [!IMPORTANT]
->
-> This functionality uses MySQL's
-> [`JSON_CONTAINS`](https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains)
-> function behind-the-scenes. We encourage users to read the provided
-> documentation to be aware of its limitations.
-
 For more advanced use cases, `ado` provides the `--query` option (or its
 shorthand `-q`) to filter resources based on the contents of their **JSON
-representation**. This option can be specified multiple times and in conjunction
-with the `-l` option to find resources that match all the specified filters.
+representation** (equivalent to the YAML representation). This option can be
+specified multiple times and in conjunction with the `-l` option to find
+resources that match all the specified filters.
 
 The syntax is:
 
@@ -239,19 +233,19 @@ The syntax is:
 -q path=candidate
 ```
 
-Where:
-
-!!! warning
+!!! warning inline end
 
     Make sure to properly quote JSON values when appropriate, so that they are
     parsed correctly. This is particularly important when dealing with arrays or
     objects.
 
-- **Path** is a
-  [MySQL JSON Path](https://dev.mysql.com/doc/refman/8.4/en/json.html#json-path-syntax)
-  expression. **NOTE**: single (\*) and double-asterisk (\*\*) wildcards are not
-  supported.
-- **Candidate** is a valid JSON value (object, array, string, number, boolean).
+Where:
+
+- **Path** is a dot-separated expression that is backed by
+  [MySQL JSON Path](https://dev.mysql.com/doc/refman/8.4/en/json.html#json-path-syntax).
+  **NOTE**: single (\*) and double-asterisk (\*\*) wildcards are not supported.
+- **Candidate** is a valid JSON value (dictionary, array, string, number,
+  boolean).
 
 #### Containment rules
 

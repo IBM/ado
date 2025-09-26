@@ -85,6 +85,7 @@ default-groups = ["dev", "docs"]
 
 [project.scripts]
 ado = "orchestrator.cli.core.cli:app"
+run_experiment = "orchestrator.utilities.run_experiment:main"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]

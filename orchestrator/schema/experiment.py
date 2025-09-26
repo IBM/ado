@@ -18,7 +18,11 @@ from orchestrator.schema.property import (
     MeasuredPropertyTypeEnum,
     Property,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue, PropertyValue
+from orchestrator.schema.property_value import (
+    ConstitutivePropertyValue,
+    PropertyValue,
+    validate_point_against_properties,
+)
 from orchestrator.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
@@ -614,6 +618,36 @@ class Experiment(pydantic.BaseModel):
                 )
 
         return identifierValueMap
+
+    def validate_entity(self, entity: Entity, check_optional=False) -> bool:
+        """Returns True if Experiment can be applied to entity, false otherwise
+
+        This method only checks constitutive properties.
+        All required properties of the experiment must have a matching constitutive property
+        value in Entity.
+        If check_optional is True any additional constitutive property values of Entity must
+        match an optional property of experiment.
+        """
+
+        point = {
+            v.property.identifier: v.value for v in entity.constitutive_property_values
+        }
+        is_valid = False
+        if validate_point_against_properties(
+            point,
+            constitutive_properties=self.requiredConstitutiveProperties,
+        ):
+            is_valid = True
+        # See if partial match
+        if validate_point_against_properties(
+            point,
+            constitutive_properties=self.requiredConstitutiveProperties,
+            allow_partial_matches=True,
+        ):
+            # See if the unmatch properties are in optional properties
+            # FIXME:
+            is_valid = True
+        return is_valid
 
 
 class ParameterizedExperiment(Experiment):

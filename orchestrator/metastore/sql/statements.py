@@ -50,7 +50,7 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
     )
 
 
-def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
+def check_field_in_sqlite_json_document(candidate: dict, path: str) -> list[str]:
     """
     Check if a field exists in a SQLite JSON document.
     This method builds subqueries that, given a "database" F which contains
@@ -59,10 +59,10 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
         - key
         - value
         - path
-    Check whether the entries are contained in the document.
+    Check whether the candidate are contained in the document.
 
     Parameters:
-    entries (dict): A dictionary representing the JSON document.
+    candidate (dict): A dictionary representing the JSON document.
     path (str): The path to the field to check.
 
     Returns:
@@ -75,7 +75,7 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
     # The user has provided a scalar candidate.
     # There are two options:
     #   1. The path points to an object field (a field in a dictionary)
-    #   2. The path points to an array value (an entry in a list)
+    #   2. The path points to an array value (an field in a list)
     #
     ######################################################
     #
@@ -83,7 +83,7 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
     #   ado get operations -q config.operation.module.moduleClass=RayTune
     #
     # Which translates to
-    #   - entries = RayTune
+    #   - candidate = RayTune
     #   - path = $.config.operation.module.moduleClass
     #
     # When creating the json_tree we will see that:
@@ -105,7 +105,7 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
     #   ado get operation -q 'config.spaces=space-dfdc98-43534b'
     #
     # Which translates to
-    #   - entries = space-dfdc98-43534b
+    #   - candidate = space-dfdc98-43534b
     #   - path = $.config.spaces
     #
     # When creating the json_tree we will see that:
@@ -125,67 +125,69 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
     # Given that we cannot know for sure which of the two cases
     # we are in because it would require us to retrieve data from
     # the database, we must OR the two clauses.
-    if isinstance(entries, str):
+    if isinstance(candidate, str):
         return [
             f"{preamble} "
-            f"(F.key LIKE '{path[2:]}%' AND F.value = '{entries}') OR "
-            f"(F.path LIKE '{path}' AND F.value = '{entries}')"
+            f"(F.key LIKE '{path[2:]}%' AND F.value = '{candidate}') OR "
+            f"(F.path LIKE '{path}' AND F.value = '{candidate}')"
         ]
-    if isinstance(entries, (int, float)):
+    if isinstance(candidate, (int, float)):
         return [
             f"{preamble} "
-            f"(F.key LIKE '{path[2:]}%' AND F.value = {entries}) OR "
-            f"(F.path LIKE '{path}' AND F.value = {entries})"
+            f"(F.key LIKE '{path[2:]}%' AND F.value = {candidate}) OR "
+            f"(F.path LIKE '{path}' AND F.value = {candidate})"
         ]
 
     # We have handled an immediate scalar case, so we need to now handle:
     #   - Arrays (lists)
     #   - Objects (dictionaries)
     # Both can be iterated, returning either list elements or keys
-    for entry in entries:
+    for field in candidate:
 
         # If the list element or the dictionary key is not a scalar, we need recursion.
         # Example:
         #   - ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'
-        if isinstance(entry, (list, dict)):
-            fragments.extend(check_field_in_sqlite_json_document(entry, path))
+        if isinstance(field, (list, dict)):
+            fragments.extend(check_field_in_sqlite_json_document(field, path))
             continue
 
         # When dealing with lists we use recursion to ensure we process
         # their contents.
-        if isinstance(entries, list):
-            fragments.extend(check_field_in_sqlite_json_document(entry, path))
+        if isinstance(candidate, list):
+            fragments.extend(check_field_in_sqlite_json_document(field, path))
             continue
 
         # We now know that:
-        #   - entries is a dictionary
-        #   - entry is a scalar that we can use to index the dictionary
+        #   - candidate is a dictionary
+        #   - field is a scalar that we can use to index the dictionary
         #
-        # We need to check the type of entries[entry]:
+        # We need to check the type of candidate[field]:
         #   - If it's an array or an object, we need to use recursion. We will
         #     also update the path to keep track of the fact that we explored
         #     one field of the object.
         #   - If it's a scalar, we can create a query with all the information
         #     we have available.
-        if isinstance(entries[entry], (list, dict)):
+        if isinstance(candidate[field], (list, dict)):
             # The use of % in the path is because json_tree will add list items in the path.
             # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
             # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
             fragments.extend(
-                check_field_in_sqlite_json_document(entries[entry], f"{path}%.{entry}")
+                check_field_in_sqlite_json_document(
+                    candidate[field], f"{path}%.{field}"
+                )
             )
             continue
 
         # Here we need the % wildcard because we might be dealing
         # with an array field, for which the path would contain
         # the index.
-        if isinstance(entries[entry], (int, float)):
+        if isinstance(candidate[field], (int, float)):
             fragments.append(
-                f"{preamble} F.path LIKE '{path}%' AND F.key = '{entry}' AND F.value = {entries[entry]}"
+                f"{preamble} F.path LIKE '{path}%' AND F.key = '{field}' AND F.value = {candidate[field]}"
             )
         else:
             fragments.append(
-                f"{preamble} F.path LIKE '{path}%' AND F.key = '{entry}' AND F.value = '{entries[entry]}'"
+                f"{preamble} F.path LIKE '{path}%' AND F.key = '{field}' AND F.value = '{candidate[field]}'"
             )
 
     return fragments

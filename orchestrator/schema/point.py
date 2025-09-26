@@ -28,7 +28,7 @@ class SpacePoint(pydantic.BaseModel):
                     ConstitutivePropertyValue(
                         value=v, property=ConstitutivePropertyDescriptor(identifier=k)
                     )
-                    for k, v in self.entity
+                    for k, v in self.entity.items()
                 ]
             )
         )

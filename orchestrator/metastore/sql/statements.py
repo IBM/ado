@@ -28,12 +28,9 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
     """
 
     # The subqueries produced by check_field_in_sqlite_json_document need to be
-    # part of a JOIN to ensure they are all "AND"-ed (an actual AND is not sufficient
-    # as json_tree returns separate rows).
-    # We also add a progressive D<number> identifier to each subquery to avoid
-    # possible complaints about ambiguous column names.
+    # INTERSECT-ed to make sure we only retrieve the identifiers that match all
+    # the subqueries.
     subqueries = check_field_in_sqlite_json_document(json.loads(candidate), path)
-    subqueries = [f"{s} D{idx}" for idx, s in enumerate(subqueries)]
 
     return (  # noqa: S608 - we don't care about local sql injection
         """
@@ -44,14 +41,12 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
                     resources r,
                     json_tree(r.data, '{path}') jt
             )
-            SELECT
-                D0.identifier
-            FROM {subqueries}
+            {subqueries}
         )
         """
     ).format(
         path=path,
-        subqueries=" JOIN ".join(subqueries),
+        subqueries="\n            INTERSECT ".join(subqueries),
     )
 
 
@@ -75,30 +70,124 @@ def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
     """
 
     fragments = []
-    preamble = "(SELECT identifier FROM F WHERE "
+    preamble = "SELECT identifier FROM F WHERE "
 
-    # We iterate over all the keys in the dictionary representing our JSON document:
-    #   - If the value for the key is itself a dictionary, we use recursion to go deeper.
-    #   - If the value for the key is a list, we create a subquery for every list item.
-    #   - If the value for the key is a single value, we create a subquery for it.
+    # The user has provided a scalar candidate.
+    # There are two options:
+    #   1. The path points to an object field (a field in a dictionary)
+    #   2. The path points to an array value (an entry in a list)
     #
-    # The use of % in the path is because json_tree will add list items in the path.
-    # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
-    # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
-    for key in entries:
-        if isinstance(entries[key], dict):
+    ######################################################
+    #
+    # An example of the path pointing to an object field is:
+    #   ado get operations -q config.operation.module.moduleClass=RayTune
+    #
+    # Which translates to
+    #   - entries = RayTune
+    #   - path = $.config.operation.module.moduleClass
+    #
+    # When creating the json_tree we will see that:
+    #   - The path points to the root of the json_tree
+    #   - The key is the path provided
+    #   - The value is the candidate
+    #
+    # | identifier | key | value | path |
+    # | ------------------------------------------------- | ----------------------------------- | ------- | - |
+    # | raytune-0.9.2.dev11+gff71d082.d20250520-ax-9684fb | config.operation.module.moduleClass | RayTune | $ |
+    #
+    # Handling this case requires us to:
+    #   - Strip the $. from the path and use it as a key
+    #   - Searching for the value
+    #
+    ######################################################
+    #
+    # An example of the path pointing to an array value is:
+    #   ado get operation -q 'config.spaces=space-dfdc98-43534b'
+    #
+    # Which translates to
+    #   - entries = space-dfdc98-43534b
+    #   - path = $.config.spaces
+    #
+    # When creating the json_tree we will see that:
+    #   - The path is the one provided by the user
+    #   - The key is the index of the array
+    #   - The value is the candidate
+    #
+    # | identifier | key | value | path |
+    # | ------------------------------------------------- | - | ------------------- | --------------- |
+    # | randomwalk-0.8.3.dev46+g054e2ff6.d20250425-beaef5 | 0 | space-dfdc98-43534b | $.config.spaces |
+    #
+    # Handling this case requires us to not make any assumption
+    # about the key
+    #
+    ######################################################
+    #
+    # Given that we cannot know for sure which of the two cases
+    # we are in because it would require us to retrieve data from
+    # the database, we must OR the two clauses.
+    if isinstance(entries, str):
+        return [
+            f"{preamble} "
+            f"(F.key LIKE '{path[2:]}%' AND F.value = '{entries}') OR "
+            f"(F.path LIKE '{path}' AND F.value = '{entries}')"
+        ]
+    if isinstance(entries, (int, float)):
+        return [
+            f"{preamble} "
+            f"(F.key LIKE '{path[2:]}%' AND F.value = {entries}) OR "
+            f"(F.path LIKE '{path}' AND F.value = {entries})"
+        ]
+
+    # We have handled an immediate scalar case, so we need to now handle:
+    #   - Arrays (lists)
+    #   - Objects (dictionaries)
+    # Both can be iterated, returning either list elements or keys
+    for entry in entries:
+
+        # If the list element or the dictionary key is not a scalar, we need recursion.
+        # Example:
+        #   - ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'
+        if isinstance(entry, (list, dict)):
+            fragments.extend(check_field_in_sqlite_json_document(entry, path))
+            continue
+
+        # When dealing with lists we use recursion to ensure we process
+        # their contents.
+        if isinstance(entries, list):
+            fragments.extend(check_field_in_sqlite_json_document(entry, path))
+            continue
+
+        # We now know that:
+        #   - entries is a dictionary
+        #   - entry is a scalar that we can use to index the dictionary
+        #
+        # We need to check the type of entries[entry]:
+        #   - If it's an array or an object, we need to use recursion. We will
+        #     also update the path to keep track of the fact that we explored
+        #     one field of the object.
+        #   - If it's a scalar, we can create a query with all the information
+        #     we have available.
+        if isinstance(entries[entry], (list, dict)):
+            # The use of % in the path is because json_tree will add list items in the path.
+            # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
+            # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
             fragments.extend(
-                check_field_in_sqlite_json_document(entries[key], f"{path}%.{key}")
+                check_field_in_sqlite_json_document(entries[entry], f"{path}%.{entry}")
             )
-        elif isinstance(entries[key], list):
-            for item in entries[key]:
-                fragments.append(
-                    f"{preamble} F.path LIKE '{path}.{key}' AND F.value = '{item}')"
-                )
+            continue
+
+        # Here we need the % wildcard because we might be dealing
+        # with an array field, for which the path would contain
+        # the index.
+        if isinstance(entries[entry], (int, float)):
+            fragments.append(
+                f"{preamble} F.path LIKE '{path}%' AND F.key = '{entry}' AND F.value = {entries[entry]}"
+            )
         else:
             fragments.append(
-                f"{preamble} F.path LIKE '{path}%' AND F.value = '{entries[key]}')"
+                f"{preamble} F.path LIKE '{path}%' AND F.key = '{entry}' AND F.value = '{entries[entry]}'"
             )
+
     return fragments
 
 

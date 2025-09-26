@@ -1,4 +1,6 @@
 import argparse
+import logging
+import os
 from collections.abc import Callable
 
 import yaml
@@ -8,15 +10,13 @@ from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.entity import Entity
+from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.point import SpacePoint
-from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import InvalidMeasurementResult
 
 
-def execute_local_wrapper() -> (
-    Callable[[ExperimentReference, Entity], MeasurementRequest]
-):
+def execute_local_wrapper() -> Callable[[Experiment, Entity], MeasurementRequest]:
     """Create a callable that submits a local measurement request.
 
     The function keeps a dictionary of Actuator actors so that each actuator
@@ -25,20 +25,20 @@ def execute_local_wrapper() -> (
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}
     queue = MeasurementQueue.get_measurement_queue()
 
-    def execute_local(
-        reference: ExperimentReference, entity: Entity
-    ) -> MeasurementRequest:
+    def execute_local(experiment: Experiment, entity: Entity) -> MeasurementRequest:
         # instantiate the actuator for this experiment identifier.
-        if reference.actuatorIdentifier not in actuators:
+        if experiment.actuatorIdentifier not in actuators:
             actuator_class = ActuatorRegistry().actuatorForIdentifier(
-                reference.actuatorIdentifier
+                experiment.actuatorIdentifier
             )
-            actuators[reference.actuatorIdentifier] = actuator_class(queue=queue)
-        actuator = actuators[reference.actuatorIdentifier]
+            actuators[experiment.actuatorIdentifier] = actuator_class.remote(
+                queue=queue
+            )
+        actuator = actuators[experiment.actuatorIdentifier]
         # Submit the measurement request asynchronously.
         actuator.submit.remote(
             entities=[entity],
-            experimentReference=reference,
+            experimentReference=experiment.reference,
             requesterid="run_experiment",
             requestIndex=0,
         )
@@ -49,26 +49,24 @@ def execute_local_wrapper() -> (
 
 def execute_remote_wrapper(
     endpoint: str,
-) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
+) -> Callable[[Experiment, Entity], MeasurementRequest]:
     """Execute via ado API
 
     This is a placeholder that returns an ``InvalidMeasurementResult`` to
     indicate that no remote execution is actually configured.
     """
 
-    def execute_remote(
-        reference: ExperimentReference, entity: Entity
-    ) -> MeasurementRequest:
+    def execute_remote(experiment: Experiment, entity: Entity) -> MeasurementRequest:
         return MeasurementRequest(
             operation_id="test",
             requestIndex=0,
-            experimentReference=reference,
+            experimentReference=experiment.reference,
             entities=[entity],
             measurements=(
                 InvalidMeasurementResult(
                     reason="Not running remote measurements",
                     entityIdentifier=entity.identifier,
-                    experimentReference=reference,
+                    experimentReference=experiment.reference,
                 ),
             ),
         )
@@ -97,12 +95,14 @@ def main(argv: list[str] | None = None) -> None:
         help="Endpoint URL for remote execution; only used when --local is not set",
     )
 
+    logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
     args = parser.parse_args(argv)
 
     with open(args.point_file) as f:
         point = SpacePoint.model_validate(yaml.safe_load(f))
 
     entity = point.to_entity()
+    print(f"Point: {point.entity}")
 
     registry = ActuatorRegistry()
     execute = (
@@ -113,13 +113,15 @@ def main(argv: list[str] | None = None) -> None:
 
     for reference in point.experiments:
         experiment = registry.experimentForReference(reference)
+        print(f"Executing: {experiment}")
         try:
             experiment.validate_entity(entity)
         except Exception as err:
             print(f"Cannot execute {reference} on {entity}: {err}")
         else:
             request = execute(experiment, entity)
-            print(request.series_representation(output_format="target"))
+            print("Result:")
+            print(f"{request.series_representation(output_format='target')}\n")
 
 
 if __name__ == "__main__":

@@ -50,23 +50,26 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
     )
 
 
-def check_field_in_sqlite_json_document(candidate: dict, path: str) -> list[str]:
+def check_field_in_sqlite_json_document(
+    candidate: dict | list | str | float, path: str
+) -> list[str]:
     """
-    Check if a field exists in a SQLite JSON document.
-    This method builds subqueries that, given a "database" F which contains
-    at least the following keys:
-        - identifier
-        - key
-        - value
-        - path
-    Check whether the candidate are contained in the document.
+    Generate SQLite-compatible SQL fragments to check for the presence of specific fields or values
+    within a JSON document using the json_tree virtual table.
 
-    Parameters:
-    candidate (dict): A dictionary representing the JSON document.
-    path (str): The path to the field to check.
+    This function recursively traverses the input JSON-like structure (dictionary, list, or scalar)
+    and constructs SQL subqueries that can be used to filter rows produced by SQLite's json_tree
+    function based on whether the specified fields and values exist at the given JSON path.
+
+    Args:
+        candidate (dict | list | str | int | float): The JSON structure or scalar value to match against.
+            - If a scalar (str, int, float), generates a simple query checking for value presence.
+            - If a dict or list, recursively builds queries for nested fields and values.
+        path (str): The JSON path (e.g., '$.config.spaces') used to locate the field within the document.
 
     Returns:
-    list[str]: A list of SQL statements to check if the field exists in the document.
+        list[str]: A list of SQL SELECT statements that can be combined via INTERSECT
+        to filter rows whose JSON documents contain the specified structure or values.
     """
 
     fragments = []

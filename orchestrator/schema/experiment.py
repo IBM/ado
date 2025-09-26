@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import importlib.metadata
+import logging
 import typing
 from typing import Annotated
 
@@ -619,14 +620,15 @@ class Experiment(pydantic.BaseModel):
 
         return identifierValueMap
 
-    def validate_entity(self, entity: Entity, check_optional=False) -> bool:
+    def validate_entity(self, entity: Entity, strict_optional=False) -> bool:
         """Returns True if Experiment can be applied to entity, false otherwise
 
         This method only checks constitutive properties.
-        All required properties of the experiment must have a matching constitutive property
-        value in Entity.
-        If check_optional is True any additional constitutive property values of Entity must
-        match an optional property of experiment.
+        - All properties of the Entity that match the experiments required or optional properties must have
+        values in the domain of that property
+        - All required properties of the experiment must have a matching constitutive property
+        - If strict_optional is True all properties of the Entity that are not required properties of the Experiment
+        must match optional properties of the experiment.
         """
 
         point = {
@@ -638,15 +640,52 @@ class Experiment(pydantic.BaseModel):
             constitutive_properties=self.requiredConstitutiveProperties,
         ):
             is_valid = True
-        # See if partial match
-        if validate_point_against_properties(
-            point,
-            constitutive_properties=self.requiredConstitutiveProperties,
-            allow_partial_matches=True,
-        ):
-            # See if the unmatch properties are in optional properties
-            # FIXME:
-            is_valid = True
+        else:
+            # It's not an exact match - check if partial match
+            if validate_point_against_properties(
+                point,
+                constitutive_properties=self.requiredConstitutiveProperties,
+                allow_partial_matches=True,
+            ):
+                # It has the required properties with valid values but there are additional properties
+                # See if these properties are optional propertiesof the experiment
+                potential_optional_properties: set[str] = point.keys() - {
+                    cp.identifier for cp in self.requiredProperties
+                }
+                optional_properties = potential_optional_properties & {
+                    cp.identifier for cp in self.optionalProperties
+                }
+                # If strict_optional is on all the additional properties must be optional properties
+                if (
+                    len(optional_properties) != len(potential_optional_properties)
+                    and strict_optional
+                ):
+                    logging.getLogger("experiment").warning(
+                        f"Strict property checking is on and the following entity "
+                        f"properties are not required or optional properties of {self.identifier}:"
+                        f"{potential_optional_properties-optional_properties} "
+                    )
+                    is_valid = False
+                else:
+                    is_valid = validate_point_against_properties(
+                        point={key: point[key] for key in optional_properties},
+                        constitutive_properties=list(self.optionalProperties),
+                        allow_partial_matches=True,
+                    )
+                    if not is_valid:
+                        logging.getLogger("experiment").warning(
+                            f"The entity has properties that match optional properties"
+                            f"of {self.identifier} - "
+                            f"{potential_optional_properties - optional_properties} - "
+                            f"but its values for those properties are not in the domain of the optional properties"
+                        )
+            else:
+                # no partial match - missing required properties or has incorrect values for them
+                logging.getLogger("experiment").warning(
+                    f"The entity is missing or has invalid values for required properties of "
+                    f" {self.identifier}"
+                )
+
         return is_valid
 
 

@@ -620,7 +620,7 @@ class Experiment(pydantic.BaseModel):
 
         return identifierValueMap
 
-    def validate_entity(self, entity: Entity, strict_optional=False) -> bool:
+    def validate_entity(self, entity: "Entity", strict_optional=False) -> bool:
         """Returns True if Experiment can be applied to entity, false otherwise
 
         This method only checks constitutive properties.

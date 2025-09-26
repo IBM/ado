@@ -4,13 +4,12 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 4.0.0 | :x:                |
+| 1.x.y   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
-To report a security problem, please create an issue in
-<https://github.com/ibm/ado/issues>. List the steps you took to create the
-problem, affected versions, and if known, mitigations for the problem. Our
-vulnerability management team will acknowledge receiving your issue within 3
-working days.
+To report a security issue, please email <ado-project@ibm.com> with a description
+of the issue, the steps you took to create the issue, affected versions, and if
+known, mitigations for the issue. Our vulnerability management team will
+acknowledge receiving your email within 3 working days. This project follows a
+90 day disclosure timeline.

@@ -27,11 +27,11 @@ def parse_arguments_and_execute_wrapper(
         trainer_controller_args,
         tune_config,
         file_logger_config,
-        aim_config,
+        _aim_config,
         quantized_lora_config,
         fusedops_kernels_config,
         attention_and_distributed_packing_config,
-        exp_metadata,
+        _exp_metadata,
     ) = tuning.sft_trainer.parse_arguments(parser, job_config)
 
     if not os.path.isdir(training_args.output_dir):

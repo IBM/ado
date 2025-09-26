@@ -29,7 +29,7 @@ def parse_arguments_and_execute_wrapper(
         attention_and_distributed_packing_config,
         fast_moe_config,
         tracker_configs,
-        exp_metadata,
+        _exp_metadata,
     ) = tuning.sft_trainer.parse_arguments(parser, job_config)
 
     if not os.path.isdir(training_args.output_dir):

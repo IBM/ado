@@ -1,0 +1,83 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+apiVersion: ray.io/v1alpha1
+kind: RayService
+metadata:
+  name: ado-api
+spec:
+  serveConfigV2: |
+    applications: 
+      - import_path: orchestrator.api.rest:ado_rest_api
+        name: orchestrator_api
+        deployments:
+        - name: AdoRESTApi
+  rayClusterConfig:
+    rayVersion: "2.49.1" # should match the Ray version in the image of the containers
+    ######################headGroupSpecs#################################
+    # Ray head pod template.
+    headGroupSpec:
+      rayStartParams:
+        #Following https://ray-project.github.io/kuberay/best-practice/worker-head-reconnection/
+        num-cpus: "0"
+        dashboard-host: "0.0.0.0"
+        block: "true"
+      #pod template
+      template:
+        spec:
+          containers:
+            - name: ray-head
+              image: quay.io/ado/ado:6a6f6c389e95b0450e4574336999d3187684bc28-py310-cu121-ofed2410v1140
+              imagePullPolicy: Always
+              env:
+                - name: OMP_NUM_THREADS
+                  value: "1"
+                - name: OPENBLAS_NUM_THREADS
+                  value: "1"
+              resources:
+                limits:
+                  cpu: 4
+                  memory: 16Gi
+                requests:
+                  cpu: 4
+                  memory: 16Gi
+              ports:
+                - containerPort: 6379
+                  name: gcs-server
+                - containerPort: 8265
+                  name: dashboard
+                - containerPort: 10001
+                  name: client
+                - containerPort: 8000
+                  name: serve
+    workerGroupSpecs:
+      - replicas: 1
+        minReplicas: 1
+        maxReplicas: 5
+        # logical group name, for this called small-group, also can be functional
+        groupName: small-group
+        rayStartParams:
+          block: "true"
+        #pod template
+        template:
+          spec:
+            containers:
+              - name: ray-worker
+                image: quay.io/ado/ado:6a6f6c389e95b0450e4574336999d3187684bc28-py310-cu121-ofed2410v1140
+                imagePullPolicy: Always
+                env:
+                  - name: OMP_NUM_THREADS
+                    value: "1"
+                  - name: OPENBLAS_NUM_THREADS
+                    value: "1"
+                lifecycle:
+                  preStop:
+                    exec:
+                      command: [ "/bin/sh", "-c", "ray stop" ]
+                resources:
+                  limits:
+                    cpu: 4
+                    memory: 16Gi
+                  requests:
+                    cpu: 4
+                    memory: 16Gi

@@ -212,7 +212,7 @@ def test_type_detection(property_value: tuple[PropertyValue, type]):
 def test_uncertain_property_value(property_value):
     """Test the uncertain property works"""
 
-    val, value_type = property_value
+    val, _value_type = property_value
     assert val.isUncertain() is False
 
     uncertain_val = ConstitutivePropertyValue(

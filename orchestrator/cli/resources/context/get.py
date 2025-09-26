@@ -52,6 +52,9 @@ def get_context(
         # single and multiple contexts with the same code
         available_contexts = [parameters.resource_id]
 
+    # AP: we always want to dump default values for contexts
+    parameters.exclude_default = False
+
     if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
         if simplify_output:
             _simple_contexts_formatting(contexts=available_contexts)

@@ -10,7 +10,7 @@ from orchestrator.core.resources import CoreResourceKinds
 def test_resource_creation(
     resource_generator_from_file, create_resources, sql_store, request
 ):
-    resource_kind, generator = resource_generator_from_file
+    _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
     create_resources(resources=[resource], db=sql_store)
     assert sql_store.containsResourceWithIdentifier(identifier=resource.identifier)
@@ -19,11 +19,11 @@ def test_resource_creation(
 def test_invalid_resource_creation(
     resource_generator_from_file, create_resources, sql_store, request
 ):
-    resource_kind, generator = resource_generator_from_file
+    _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
     with pytest.raises(
         ValueError,
-        match="Cannot add resource, .*, that is not a subclass of ADOResource",
+        match=r"Cannot add resource, .*, that is not a subclass of ADOResource",
     ):
         create_resources(resources=[resource.config], db=sql_store)
 
@@ -31,7 +31,7 @@ def test_invalid_resource_creation(
 def test_resource_cannot_be_created_twice(
     resource_generator_from_file, create_resources, sql_store, request
 ):
-    resource_kind, generator = resource_generator_from_file
+    _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
     create_resources(resources=[resource], db=sql_store)
     with pytest.raises(

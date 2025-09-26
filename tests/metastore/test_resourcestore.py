@@ -163,7 +163,7 @@ def test_add_invalid_resource(resource_store, operation_resource):
     # Try adding the OperationResource config instead of the actual resource
     with pytest.raises(
         ValueError,
-        match="Cannot add resource, .*, that is not a subclass of ADOResource",
+        match=r"Cannot add resource, .*, that is not a subclass of ADOResource",
     ):
         resource_store.addResource(resource=operation_resource.config)
 

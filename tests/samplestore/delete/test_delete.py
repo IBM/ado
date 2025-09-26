@@ -8,7 +8,7 @@ import pytest
 def test_resource_deletion(
     resource_generator_from_db, delete_resource, sql_store, request
 ):
-    resource_kind, generator = resource_generator_from_db
+    _resource_kind, generator = resource_generator_from_db
     resource = request.getfixturevalue(generator)()
     delete_resource(resource.identifier)
     assert not sql_store.containsResourceWithIdentifier(identifier=resource.identifier)

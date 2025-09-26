@@ -13,6 +13,7 @@ from .fixtures.core.space import *
 from .fixtures.samplestore.crud import *
 from .fixtures.samplestore.fixtures import *
 from .fixtures.metastore import *
+from .fixtures.example_actuator.fixtures import *
 from .fixtures.ml_multi_cloud.fixtures import *
 from .fixtures.pfas.fixtures import *
 from .fixtures.modules.actuators import *

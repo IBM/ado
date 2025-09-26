@@ -64,7 +64,7 @@ class Entity(pydantic.BaseModel):
     constitutive_property_values: tuple[ConstitutivePropertyValue, ...] = (
         pydantic.Field(
             frozen=True,
-            description=" A list of PropertyValue objects giving values for constitutive properties",
+            description="A list of ConstitutivePropertyValue objects giving values for constitutive properties",
         )
     )
     measurement_results: list["ValidMeasurementResult"] = pydantic.Field(

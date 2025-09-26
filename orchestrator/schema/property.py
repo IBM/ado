@@ -36,6 +36,7 @@ class PropertyDescriptor(pydantic.BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     @pydantic.model_validator(mode="before")
+    @classmethod
     def property_to_descriptor(cls, value):
 
         if isinstance(value, Property):

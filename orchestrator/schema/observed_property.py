@@ -30,6 +30,7 @@ class ObservedProperty(pydantic.BaseModel):
     model_config = ConfigDict(frozen=True)
 
     @pydantic.field_validator("targetProperty", mode="before")
+    @classmethod
     def convert_property_to_descriptor(cls, value):
 
         # We allow instantiation with Property models and their subclass but they are converted

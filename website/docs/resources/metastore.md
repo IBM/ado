@@ -320,7 +320,7 @@ only if the array at that path **contains all elements of the candidate**.
   (no operation can have both a `success` and a `failure` exit state)
 
 **If the candidate is not an array**, resources are returned only if the array
-the path points to contains the candidate.
+the key-path points to contains the candidate.
 
 - ✅ `ado get operation -q 'status={"exit_state": "success"}'` (status has an
   element that contains the key `exit_state` and value `success`)

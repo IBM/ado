@@ -53,13 +53,7 @@ class PropertyDescriptor(pydantic.BaseModel):
         A PropertyDescriptor will be equal to a Property if it has the same identifier.
 
         Metadata is not included"""
-
-        try:
-            retval = self.identifier == other.identifier
-        except AttributeError:
-            retval = False
-
-        return retval
+        return hasattr(other, "identifier") and self.identifier == other.identifier
 
     def _repr_pretty_(self, p, cycle=False):
 

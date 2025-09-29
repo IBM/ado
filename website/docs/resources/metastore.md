@@ -221,33 +221,35 @@ will retrieve all operations that have the label `labelone` with the value
 
 ### Searching inside resource representations
 
-For more advanced use cases, `ado` provides the `--query` option (or its
-shorthand `-q`) to filter resources based on the contents of their **JSON
-representation** (equivalent to the YAML representation). This option can be
-specified multiple times and in conjunction with the `-l` option to find
+For more advanced searches, `ado` provides the `--query` option to find
+resources based on the contents of their
+[stored representation](resources.md/#common-features-of-resources). This option
+can be specified multiple times and in conjunction with the `-l` option to find
 resources that match all the specified filters.
 
 The syntax is:
 
 ```commandline
--q path=candidate
+-q 'path=candidate'
 ```
 
 !!! warning inline end
 
-    Make sure to properly quote JSON values when appropriate, so that they are
-    parsed correctly. This is particularly important when dealing with arrays or
-    objects.
+    We suggest using single quotation marks around the candidate passed to the -q
+    option. This helps when dealing with JSON values that require double quotes
+    (such as objects and arrays).
 
 Where:
 
-- **Path** is a dot-separated expression that is backed by
-  [MySQL JSON Path](https://dev.mysql.com/doc/refman/8.4/en/json.html#json-path-syntax).
-  **NOTE**: single (\*) and double-asterisk (\*\*) wildcards are not supported.
-- **Candidate** is a valid JSON value (dictionary, array, string, number,
+- **Path** is a dot-separated string that defines how to locate a specific field
+  within a resource (represented by a dictionary or a JSON object). Each segment
+  in the path represents a key at a particular level of the structure. By
+  following the path from left to right, you traverse through the nested fields
+  until you reach the target value. An example is `config.metadata.labels`.
+- **Candidate** is a valid JSON value (object, array, string, number,
   boolean).
 
-#### Containment rules
+#### Matching rules
 
 ??? tip end "The examples below will reference this example YAML"
 
@@ -290,14 +292,14 @@ Where:
     ```
 
 Resources are returned if they **_contain_ the candidate value at the specified
-path**. Containment is rigorously defined in
-[MySQL's JSON_CONTAINS documentation](https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains),
-but for ease of use we distill the content here.
+path**. The matching behavior depends on the type of the candidate value.
+Examples for different value types are shown below.
 
 ##### The path points to a scalar
 
-Resources are returned only if the candidate is a scalar of the **same type**
-(ints and floats count as the same type) and the **same value**.
+If the candidate is a scalar, the value at the specified path will match only if
+it is of the **same type** (treating integers and floats as equivalent) and has
+the **same value**.
 
 - ✅ `ado get operations -q 'config.operation.parameters.batchSize=1'` (1 == 1)
 - ✅ `ado get operations -q 'config.operation.parameters.batchSize=1.0'` (1.0 ==
@@ -307,8 +309,8 @@ Resources are returned only if the candidate is a scalar of the **same type**
 
 ##### The path points to an array
 
-**If the candidate is an array**, resources are returned only if the array the
-path points to **contains all elements of the candidate**.
+**If the candidate is an array**, the value at the specified path will match
+only if the array at that path **contains all elements of the candidate**.
 
 - ✅
   `ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'`
@@ -327,11 +329,10 @@ the path points to contains the candidate.
 - ❌ `ado get operation -q 'status={"event": "fake"}'` (no element of the
   `status` array has the value `fake` for the `event` key)
 
-##### The path points to an object
+##### The path points to an object (dictionary)
 
-Resources are returned only if the candidate is an object that has **- for each
-key and related value from the candidate - the same key and the same related
-value**.
+**If the candidate is an object**, the value at the specified path will match
+only if it contains all keys and corresponding values from the candidate.
 
 <!-- markdownlint-disable line-length -->
 - ✅
@@ -341,7 +342,14 @@ value**.
   (the operation's `samplerConfig.mode` is `random`)
 <!-- markdownlint-enable line-length -->
 
-#### Examples
+#### Additional examples
+
+!!! tip
+
+    The field-searching behavior described above is powered by MySQL's
+    `JSON_CONTAINS` function. For a more formal and complete definition of
+    containment logic, we encourage users to consult
+    [the official MySQL documentation](https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains).
 
 If you want to query operations that use the RayTune operator you can do it
 with:
@@ -374,7 +382,6 @@ Note, if you know a value is only used in a particular domain you can leave out
 `identifier` above.
 
 <!-- markdownlint-disable line-length -->
-
 ```commandline
 ado get spaces -q 'config.entitySpace={"propertyDomain":{"values":["mistral-7b-v0.1"]}}' \
                -q 'config.entitySpace={"propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \

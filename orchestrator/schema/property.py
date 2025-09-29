@@ -77,6 +77,7 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
     )
 
     @pydantic.model_validator(mode="before")
+    @classmethod
     def property_to_descriptor(cls, value):
 
         if isinstance(value, Property):

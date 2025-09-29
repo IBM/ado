@@ -1,0 +1,35 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+config:
+  operation:
+    parameters:
+      batchSize: 2
+      numberEntities: 10
+      samplerConfig:
+        mode: sequential
+        samplerType: generator
+  spaces:
+  - space-7dab39-c0c30f
+created: '2025-09-10T15:29:15.223757Z'
+identifier: randomwalk-1.0.2.dev39+7f0c421.dirty-43dfdf
+metadata:
+  entities_submitted: 10
+  experiments_requested: 10
+operationType: search
+operatorIdentifier: randomwalk-1.0.2.dev39+7f0c421.dirty
+status:
+- event: created
+  recorded_at: '2025-09-10T15:29:01.854202Z'
+- event: added
+  recorded_at: '2025-09-10T15:29:15.236808Z'
+- event: started
+  recorded_at: '2025-09-10T15:29:15.249270Z'
+- event: updated
+  recorded_at: '2025-09-10T15:29:15.249280Z'
+- event: finished
+  exit_state: success
+  recorded_at: '2025-09-10T15:29:17.699139Z'
+- event: updated
+  recorded_at: '2025-09-10T15:29:17.709570Z'
+

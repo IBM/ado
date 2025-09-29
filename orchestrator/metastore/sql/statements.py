@@ -28,12 +28,9 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
     """
 
     # The subqueries produced by check_field_in_sqlite_json_document need to be
-    # part of a JOIN to ensure they are all "AND"-ed (an actual AND is not sufficient
-    # as json_tree returns separate rows).
-    # We also add a progressive D<number> identifier to each subquery to avoid
-    # possible complaints about ambiguous column names.
+    # INTERSECT-ed to make sure we only retrieve the identifiers that match all
+    # the subqueries.
     subqueries = check_field_in_sqlite_json_document(json.loads(candidate), path)
-    subqueries = [f"{s} D{idx}" for idx, s in enumerate(subqueries)]
 
     return (  # noqa: S608 - we don't care about local sql injection
         """
@@ -44,61 +41,174 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
                     resources r,
                     json_tree(r.data, '{path}') jt
             )
-            SELECT
-                D0.identifier
-            FROM {subqueries}
+            {subqueries}
         )
         """
     ).format(
         path=path,
-        subqueries=" JOIN ".join(subqueries),
+        subqueries="\n            INTERSECT ".join(subqueries),
     )
 
 
-def check_field_in_sqlite_json_document(entries: dict, path: str) -> list[str]:
+def check_field_in_sqlite_json_document(
+    candidate: dict | list | str | float, path: str
+) -> list[str]:
     """
-    Check if a field exists in a SQLite JSON document.
-    This method builds subqueries that, given a "database" F which contains
-    at least the following keys:
-        - identifier
-        - key
-        - value
-        - path
-    Check whether the entries are contained in the document.
+    Generate SQLite-compatible SQL fragments to check for the presence of specific fields or values
+    within a JSON document using the json_tree virtual table.
 
-    Parameters:
-    entries (dict): A dictionary representing the JSON document.
-    path (str): The path to the field to check.
+    This function recursively traverses the input JSON-like structure (dictionary, list, or scalar)
+    and constructs SQL subqueries that can be used to filter rows produced by SQLite's json_tree
+    function based on whether the specified fields and values exist at the given JSON path.
+
+    Args:
+        candidate (dict | list | str | int | float): The JSON structure or scalar value to match against.
+            - If a scalar (str, int, float), generates a simple query checking for value presence.
+            - If a dict or list, recursively builds queries for nested fields and values.
+        path (str): The JSON path (e.g., '$.config.spaces') used to locate the field within the document.
 
     Returns:
-    list[str]: A list of SQL statements to check if the field exists in the document.
+        list[str]: A list of SQL SELECT statements that can be combined via INTERSECT
+        to filter rows whose JSON documents contain the specified structure or values.
     """
 
     fragments = []
-    preamble = "(SELECT identifier FROM F WHERE "
+    preamble = "SELECT identifier FROM F WHERE "
 
-    # We iterate over all the keys in the dictionary representing our JSON document:
-    #   - If the value for the key is itself a dictionary, we use recursion to go deeper.
-    #   - If the value for the key is a list, we create a subquery for every list item.
-    #   - If the value for the key is a single value, we create a subquery for it.
+    # The user has provided a scalar candidate.
+    # There are two options:
+    #   1. The path points to an object field (a field in a dictionary)
+    #   2. The path points to an array value (a field in a list)
     #
-    # The use of % in the path is because json_tree will add list items in the path.
-    # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
-    # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
-    for key in entries:
-        if isinstance(entries[key], dict):
+    ######################################################
+    #
+    # An example of the path pointing to an object field is:
+    #   ado get operations -q config.operation.parameters.batchSize=1
+    #
+    # Which translates to
+    #   - candidate = batchSize
+    #   - path = $.config.operation.parameter
+    #
+    # When creating the json_tree we will see that:
+    #   - The path points to the root of the json_tree
+    #   - The key is the path provided
+    #   - The value is the candidate
+    #
+    # | identifier | key | value | path |
+    # | ------------------------------------------- | ------------------------------------- | - | - |
+    # | randomwalk-1.0.2.dev39+7f0c421.dirty-43dfdf | config.operation.parameters.batchSize | 2 | $ |
+    #
+    # Handling this case requires us to:
+    #   - Strip the $. from the path and use it as a key
+    #   - Searching for the value
+    #
+    # AP: 29/09/2025
+    # In some cases it looks like this is not necessarily true.
+    # It can also be:
+    #
+    # | identifier | key | value | path |
+    # | ------------------------------------------- | --------- | - | ----------------------------- |
+    # | randomwalk-1.0.2.dev39+7f0c421.dirty-43dfdf | batchSize | 2 | $.config.operation.parameters |
+    #
+    # Handling this case requires us to:
+    #   - Remove the field selector from the path
+    #   - Use the field selector as key
+    #   - Searching for the value
+    #
+    ######################################################
+    #
+    # An example of the path pointing to an array value is:
+    #   ado get operation -q 'config.spaces=space-dfdc98-43534b'
+    #
+    # Which translates to
+    #   - candidate = space-dfdc98-43534b
+    #   - path = $.config.spaces
+    #
+    # When creating the json_tree we will see that:
+    #   - The path is the one provided by the user
+    #   - The key is the index of the array
+    #   - The value is the candidate
+    #
+    # | identifier | key | value | path |
+    # | ------------------------------------------------- | - | ------------------- | --------------- |
+    # | randomwalk-0.8.3.dev46+g054e2ff6.d20250425-beaef5 | 0 | space-dfdc98-43534b | $.config.spaces |
+    #
+    # Handling this case requires us to not make any assumption
+    # about the key
+    #
+    ######################################################
+    #
+    # Given that we cannot know for sure which of the three cases
+    # we are in because it would require us to retrieve data from
+    # the database, we must OR the three clauses.
+    last_dot_index = path.rfind(".")
+    if isinstance(candidate, str):
+        return [
+            f"{preamble} "
+            f"(F.key LIKE '{path[2:]}%' AND F.value = '{candidate}') OR "
+            f"(F.path LIKE '{path}' AND F.value = '{candidate}') OR "
+            f"(F.path = '{path[:last_dot_index]}' AND F.key = '{path[last_dot_index+1:]}' AND F.value='{candidate}')"
+        ]
+    if isinstance(candidate, (int, float)):
+        return [
+            f"{preamble} "
+            f"(F.key LIKE '{path[2:]}%' AND F.value = {candidate}) OR "
+            f"(F.path LIKE '{path}' AND F.value = {candidate}) OR "
+            f"(F.path = '{path[:last_dot_index]}' AND F.key = '{path[last_dot_index+1:]}' AND F.value={candidate})"
+        ]
+
+    # We have handled an immediate scalar case, so we need to now handle:
+    #   - Arrays (lists)
+    #   - Objects (dictionaries)
+    # Both can be iterated, returning either list elements or keys
+    for field in candidate:
+
+        # If the list element or the dictionary key is not a scalar, we need recursion.
+        # Example:
+        #   - ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'
+        if isinstance(field, (list, dict)):
+            fragments.extend(check_field_in_sqlite_json_document(field, path))
+            continue
+
+        # When dealing with lists we use recursion to ensure we process
+        # their contents.
+        if isinstance(candidate, list):
+            fragments.extend(check_field_in_sqlite_json_document(field, path))
+            continue
+
+        # We now know that:
+        #   - candidate is a dictionary
+        #   - field is a scalar that we can use to index the dictionary
+        #
+        # We need to check the type of candidate[field]:
+        #   - If it's an array or an object, we need to use recursion. We will
+        #     also update the path to keep track of the fact that we explored
+        #     one field of the object.
+        #   - If it's a scalar, we can create a query with all the information
+        #     we have available.
+        if isinstance(candidate[field], (list, dict)):
+            # The use of % in the path is because json_tree will add list items in the path.
+            # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
+            # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
             fragments.extend(
-                check_field_in_sqlite_json_document(entries[key], f"{path}%.{key}")
-            )
-        elif isinstance(entries[key], list):
-            for item in entries[key]:
-                fragments.append(
-                    f"{preamble} F.path LIKE '{path}.{key}' AND F.value = '{item}')"
+                check_field_in_sqlite_json_document(
+                    candidate[field], f"{path}%.{field}"
                 )
+            )
+            continue
+
+        # Here we need the % wildcard because we might be dealing
+        # with an array field, for which the path would contain
+        # the index.
+        if isinstance(candidate[field], (int, float)):
+            fragments.append(
+                f"{preamble} F.path LIKE '{path}%' AND F.key = '{field}' AND F.value = {candidate[field]}"
+            )
         else:
             fragments.append(
-                f"{preamble} F.path LIKE '{path}%' AND F.value = '{entries[key]}')"
+                f"{preamble} F.path LIKE '{path}%' AND F.key = '{field}' AND F.value = '{candidate[field]}'"
             )
+
     return fragments
 
 

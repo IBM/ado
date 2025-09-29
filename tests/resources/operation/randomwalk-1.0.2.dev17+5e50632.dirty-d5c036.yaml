@@ -1,0 +1,39 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+config:
+  metadata:
+    description: Perform a random walk on all points in a space
+    name: randomwalk-all
+  operation:
+    parameters:
+      samplerConfig:
+        samplerType: generator
+        mode: random
+      batchSize: 1
+      numberEntities: all
+      singleMeasurement: false
+  spaces:
+  - space-610c82-927db8
+created: '2025-09-08T15:28:03.622683Z'
+identifier: randomwalk-1.0.2.dev17+5e50632.dirty-d5c036
+metadata:
+  entities_submitted: 12
+  experiments_requested: 12
+operationType: search
+operatorIdentifier: randomwalk-1.0.2.dev17+5e50632.dirty
+status:
+- event: created
+  recorded_at: '2025-09-08T15:27:52.405818Z'
+- event: added
+  recorded_at: '2025-09-08T15:28:03.631678Z'
+- event: started
+  recorded_at: '2025-09-08T15:28:03.643462Z'
+- event: updated
+  recorded_at: '2025-09-08T15:28:03.643474Z'
+- event: finished
+  exit_state: success
+  recorded_at: '2025-09-08T15:39:30.202935Z'
+- event: updated
+  recorded_at: '2025-09-08T15:39:30.217895Z'
+

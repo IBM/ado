@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 config:
   metadata:
     description: Perform a random walk on all points in a space

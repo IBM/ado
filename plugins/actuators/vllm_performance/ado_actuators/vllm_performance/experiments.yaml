@@ -198,7 +198,7 @@ performance_testing-endpoint:
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
       metadata:
-        description: 'model to use for testing. Assumed to be served by all endpoints tested'
+        description: 'model to use for testing. Assumed to be served by all endpoints tested. Required to obtain correct tokenizer for benchmarking metrics calculation'
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]

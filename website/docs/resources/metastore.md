@@ -236,8 +236,8 @@ The syntax is:
 !!! warning inline end
 
     We suggest using single quotation marks around the candidate passed to the -q
-    option. This helps when dealing with JSON values that require double quotes
-    (such as objects and arrays).
+    option. **This is required when dealing with strings, dictionaries, and
+    arrays**.
 
 Where:
 
@@ -245,8 +245,8 @@ Where:
   within a resource (represented by a dictionary or a JSON object). Each segment
   in the path represents a key at a particular level of the structure. By
   following the path from left to right, you traverse through the nested fields
-  until you reach the target value. An example is `config.metadata.labels`.
-- **Candidate** is a valid JSON value (object, array, string, number,
+  until you reach the target field. An example is `config.metadata.labels`.
+- **Candidate** is a valid JSON value (dictionary, array, string, number,
   boolean).
 
 #### Matching rules
@@ -297,9 +297,9 @@ Examples for different value types are shown below.
 
 ##### The path points to a scalar
 
-If the candidate is a scalar, the value at the specified path will match only if
-it is of the **same type** (treating integers and floats as equivalent) and has
-the **same value**.
+If the candidate is a scalar (a string, a number, or a boolean), the value at
+the specified path will match if it is of the **same type** (treating integers
+and floats as equivalent) and has the **same value**.
 
 - ✅ `ado get operations -q 'config.operation.parameters.batchSize=1'` (1 == 1)
 - ✅ `ado get operations -q 'config.operation.parameters.batchSize=1.0'` (1.0 ==
@@ -309,8 +309,8 @@ the **same value**.
 
 ##### The path points to an array
 
-**If the candidate is an array**, the value at the specified path will match
-only if the array at that path **contains all elements of the candidate**.
+**If the candidate is an array**, the array at the specified path will match if
+it **contains all elements of the candidate**.
 
 - ✅
   `ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'`
@@ -319,8 +319,8 @@ only if the array at that path **contains all elements of the candidate**.
   `ado get operation -q 'status=[{"exit_state": "success"}, {"exit_state": "failure"}]'`
   (no operation can have both a `success` and a `failure` exit state)
 
-**If the candidate is not an array**, resources are returned only if the array
-the key-path points to contains the candidate.
+**If the candidate is not an array**, the array at the specified path will match
+if it **contains the candidate**.
 
 - ✅ `ado get operation -q 'status={"exit_state": "success"}'` (status has an
   element that contains the key `exit_state` and value `success`)
@@ -329,10 +329,10 @@ the key-path points to contains the candidate.
 - ❌ `ado get operation -q 'status={"event": "fake"}'` (no element of the
   `status` array has the value `fake` for the `event` key)
 
-##### The path points to an object (dictionary)
+##### The path points to a dictionary (JSON object)
 
-**If the candidate is an object**, the value at the specified path will match
-only if it contains all keys and corresponding values from the candidate.
+**If the candidate is a dictionary**, the dictionary at the specified path will
+match if it contains all keys and corresponding values from the candidate.
 
 <!-- markdownlint-disable line-length -->
 - ✅
@@ -342,14 +342,14 @@ only if it contains all keys and corresponding values from the candidate.
   (the operation's `samplerConfig.mode` is `random`)
 <!-- markdownlint-enable line-length -->
 
-#### Additional examples
-
 !!! tip
 
     The field-searching behavior described above is powered by MySQL's
     `JSON_CONTAINS` function. For a more formal and complete definition of
-    containment logic, we encourage users to consult
+    containment logic, read
     [the official MySQL documentation](https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains).
+
+#### Additional examples
 
 If you want to query operations that use the RayTune operator you can do it
 with:

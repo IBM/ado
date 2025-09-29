@@ -37,10 +37,10 @@ performance_testing-full:
         interval: 50
     - identifier: 'dataset'
       metadata:
-        description: "(benchmark) The dataset to use to generate requests"
+        description: "The dataset to use to generate requests - only random is currently supported"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "sharegpt", "sonnet", "random", "hf" ]
+        values: [ "random"]
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
@@ -231,10 +231,10 @@ performance_testing-endpoint:
         interval: 50
     - identifier: 'dataset'
       metadata:
-        description: "The dataset to use to generate requests"
+        description: "The dataset to use to generate requests - only random is currently supported"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "sharegpt", "sonnet", "random", "hf" ]
+        values: [ "random"]
   defaultParameterization:
     - value: 500
       property:

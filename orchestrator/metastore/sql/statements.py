@@ -78,16 +78,16 @@ def check_field_in_sqlite_json_document(
     # The user has provided a scalar candidate.
     # There are two options:
     #   1. The path points to an object field (a field in a dictionary)
-    #   2. The path points to an array value (an field in a list)
+    #   2. The path points to an array value (a field in a list)
     #
     ######################################################
     #
     # An example of the path pointing to an object field is:
-    #   ado get operations -q config.operation.module.moduleClass=RayTune
+    #   ado get operations -q config.operation.parameters.batchSize=1
     #
     # Which translates to
-    #   - candidate = RayTune
-    #   - path = $.config.operation.module.moduleClass
+    #   - candidate = batchSize
+    #   - path = $.config.operation.parameter
     #
     # When creating the json_tree we will see that:
     #   - The path points to the root of the json_tree
@@ -95,11 +95,24 @@ def check_field_in_sqlite_json_document(
     #   - The value is the candidate
     #
     # | identifier | key | value | path |
-    # | ------------------------------------------------- | ----------------------------------- | ------- | - |
-    # | raytune-0.9.2.dev11+gff71d082.d20250520-ax-9684fb | config.operation.module.moduleClass | RayTune | $ |
+    # | ------------------------------------------- | ------------------------------------- | - | - |
+    # | randomwalk-1.0.2.dev39+7f0c421.dirty-43dfdf | config.operation.parameters.batchSize | 2 | $ |
     #
     # Handling this case requires us to:
     #   - Strip the $. from the path and use it as a key
+    #   - Searching for the value
+    #
+    # AP: 29/09/2025
+    # In some case it looks like this is not necessarily the case
+    # with outputs like:
+    #
+    # | identifier | key | value | path |
+    # | ------------------------------------------- | --------- | - | ----------------------------- |
+    # | randomwalk-1.0.2.dev39+7f0c421.dirty-43dfdf | batchSize | 2 | $.config.operation.parameters |
+    #
+    # Handling this case requires us to:
+    #   - Remove the field selector from the path
+    #   - Use the field selector as key
     #   - Searching for the value
     #
     ######################################################
@@ -125,20 +138,23 @@ def check_field_in_sqlite_json_document(
     #
     ######################################################
     #
-    # Given that we cannot know for sure which of the two cases
+    # Given that we cannot know for sure which of the three cases
     # we are in because it would require us to retrieve data from
-    # the database, we must OR the two clauses.
+    # the database, we must OR the three clauses.
+    last_dot_index = path.rfind(".")
     if isinstance(candidate, str):
         return [
             f"{preamble} "
             f"(F.key LIKE '{path[2:]}%' AND F.value = '{candidate}') OR "
-            f"(F.path LIKE '{path}' AND F.value = '{candidate}')"
+            f"(F.path LIKE '{path}' AND F.value = '{candidate}') OR "
+            f"(F.path = '{path[:last_dot_index]}' AND F.key = '{path[last_dot_index+1:]}' AND F.value='{candidate}')"
         ]
     if isinstance(candidate, (int, float)):
         return [
             f"{preamble} "
             f"(F.key LIKE '{path[2:]}%' AND F.value = {candidate}) OR "
-            f"(F.path LIKE '{path}' AND F.value = {candidate})"
+            f"(F.path LIKE '{path}' AND F.value = {candidate}) OR "
+            f"(F.path = '{path[:last_dot_index]}' AND F.key = '{path[last_dot_index+1:]}' AND F.value={candidate})"
         ]
 
     # We have handled an immediate scalar case, so we need to now handle:

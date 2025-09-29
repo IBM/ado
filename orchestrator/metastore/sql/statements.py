@@ -103,8 +103,8 @@ def check_field_in_sqlite_json_document(
     #   - Searching for the value
     #
     # AP: 29/09/2025
-    # In some case it looks like this is not necessarily the case
-    # with outputs like:
+    # In some cases it looks like this is not necessarily true.
+    # It can also be:
     #
     # | identifier | key | value | path |
     # | ------------------------------------------- | --------- | - | ----------------------------- |

@@ -15,8 +15,11 @@ from orchestrator.core.samplestore.base import (
 )
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.observed_property import ObservedPropertyValue
+from orchestrator.schema.property import (
+    ConstitutivePropertyDescriptor,
+)
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.result import ValidMeasurementResult
 
 
@@ -39,11 +42,11 @@ class CSVSampleStoreDescription(SampleStoreDescription):
         return value.lower()
 
     @property
-    def constitutiveProperties(self) -> list[ConstitutiveProperty]:
+    def constitutiveProperties(self) -> list[ConstitutivePropertyDescriptor]:
 
         # sourceDescription.constitutivePropertyColumns may be mixed-case - convert to  lowercase
         return [
-            ConstitutiveProperty(identifier=column_name.lower())
+            ConstitutivePropertyDescriptor(identifier=column_name.lower())
             for column_name in self.constitutivePropertyColumns
         ]
 
@@ -187,8 +190,8 @@ class CSVSampleStore(PassiveSampleStore):
                 # No - Create a new entity
                 try:
                     ne = self._entity_from_csv_entry(row)
-                except pydantic.ValidationError:
-                    pass
+                except pydantic.ValidationError as error:
+                    self.log.debug(f"Error processing row {row}. {error}")
                 else:
                     self._entities.append(ne)
                     self._ent_by_id[ne.identifier] = ne
@@ -239,7 +242,7 @@ class CSVSampleStore(PassiveSampleStore):
                 columnHeader = expDescription.propertyMap[
                     op.targetProperty.identifier
                 ].lower()
-                opv = PropertyValue(property=op, value=row[columnHeader])
+                opv = ObservedPropertyValue(property=op, value=row[columnHeader])
                 observedCalcValue.append(opv)
                 columns_already_processed.append(columnHeader)
             else:
@@ -265,7 +268,9 @@ class CSVSampleStore(PassiveSampleStore):
         for cp in self.sourceDescription.constitutiveProperties:
             value = row[cp.identifier]
             # PropertyValue will handle converting value to the most appropriate type from string
-            constitutive_property_values.append(PropertyValue(property=cp, value=value))
+            constitutive_property_values.append(
+                ConstitutivePropertyValue(property=cp, value=value)
+            )
 
         try:
             entity = Entity(

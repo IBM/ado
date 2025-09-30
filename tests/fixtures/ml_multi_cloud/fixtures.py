@@ -26,9 +26,11 @@ from orchestrator.metastore.sqlstore import SQLResourceStore
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import AbstractProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
+from orchestrator.schema.property import AbstractPropertyDescriptor
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import (
     MeasurementRequest,
@@ -184,10 +186,10 @@ def random_ml_multi_cloud_benchmark_performance_measurement_results(
             return ValidMeasurementResult(
                 entityIdentifier=entity.identifier,
                 measurements=[
-                    PropertyValue(
+                    ObservedPropertyValue(
                         value=random.random(),
                         property=ObservedProperty(
-                            targetProperty=AbstractProperty(
+                            targetProperty=AbstractPropertyDescriptor(
                                 identifier="wallClockRuntime"
                             ),
                             experimentReference=ExperimentReference(
@@ -238,12 +240,14 @@ def random_ml_multi_cloud_benchmark_performance_measurement_requests(
             entities=entities,
             requestid=random_identifier(),
             status=status,
-            measurements=[
-                random_ml_multi_cloud_benchmark_performance_measurement_results(
-                    entity=e, measurements_per_result=measurements_per_result
-                )
-                for e in entities
-            ],
+            measurements=tuple(
+                [
+                    random_ml_multi_cloud_benchmark_performance_measurement_results(
+                        entity=e, measurements_per_result=measurements_per_result
+                    )
+                    for e in entities
+                ]
+            ),
         )
 
     return _random_ml_multi_cloud_benchmark_performance_measurement_requests
@@ -306,7 +310,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
 
         for i in range(number_requests):
             sample_store.add_measurement_results(
-                results=requests[i].measurements,
+                results=list(requests[i].measurements),
                 skip_relationship_to_request=False,
                 request_db_id=request_ids[i],
             )

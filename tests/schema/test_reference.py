@@ -8,8 +8,11 @@ import pytest
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.observed_property import ObservedPropertyValue
+from orchestrator.schema.property import (
+    ConstitutivePropertyDescriptor,
+)
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import ValidMeasurementResult
 
@@ -35,7 +38,7 @@ def test_reference_of_parameterizable_experiment_has_no_parameters(
 def test_create_parameterizable_experiment_reference_with_parameters(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: list[PropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ):
 
     import copy
@@ -63,8 +66,8 @@ def test_create_parameterizable_experiment_reference_with_parameters(
     # Test parameterization with incorrectly named property fails on validation
     incorrectParameterization = copy.deepcopy(customParameterization)
     pv = incorrectParameterization[0]
-    incorrectParameterization[0] = PropertyValue(
-        value=pv.value, property=ConstitutiveProperty(identifier="tes_opt1")
+    incorrectParameterization[0] = ConstitutivePropertyValue(
+        value=pv.value, property=ConstitutivePropertyDescriptor(identifier="tes_opt1")
     )
     with pytest.raises(
         ValueError,
@@ -99,7 +102,7 @@ def test_create_parameterizable_experiment_reference_with_parameters(
 def test_parameterized_experiment_reference_equality(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: list[PropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ):
 
     ref = ExperimentReference(
@@ -133,7 +136,7 @@ def test_parameterized_experiment_reference_equality(
 def test_parameterized_experiment_retrieval_from_registry(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: list[PropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ):
 
     # Test we can retrieve the experiment from the registry using its own reference
@@ -155,7 +158,7 @@ def test_parameterized_experiment_retrieval_from_registry(
 def test_entity_property_values_from_experiment_reference_parameterized(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: list[PropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ):
     """Tests that Entity.propertyValuesFromExperimentReference works for parameterized experiments"""
 
@@ -218,7 +221,7 @@ def test_entity_property_values_from_experiment_reference_parameterized(
     # Add a measurement
     values = []
     for op in exp.observedProperties:
-        pv = PropertyValue(property=op, value=numpy.random.rand())
+        pv = ObservedPropertyValue(property=op, value=numpy.random.rand())
         values.append(pv)
 
     entity.add_measurement_result(

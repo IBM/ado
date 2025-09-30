@@ -9,10 +9,14 @@ from typing import Annotated
 
 import pydantic
 
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
 from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.virtual_property import VirtualObservedProperty
+from orchestrator.schema.virtual_property import (
+    VirtualObservedProperty,
+)
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
@@ -61,8 +65,8 @@ class ValidMeasurementResult(MeasurementResult):
     ValidMeasurementResult.measurements[0].property.experimentReference
     """
 
-    measurements: list[PropertyValue] = pydantic.Field(
-        description="A list of the values measured. Cannot be empty"
+    measurements: list[ObservedPropertyValue] = pydantic.Field(
+        description="A list of the observed property values measured. Cannot be empty"
     )
 
     model_config = pydantic.ConfigDict(extra="forbid")

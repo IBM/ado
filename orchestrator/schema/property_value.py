@@ -2,17 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-import typing
 
 import pydantic
 
-from orchestrator.schema.observed_property import (
-    ObservedProperty,
+from orchestrator.schema.property import (
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+    Property,
+    PropertyDescriptor,
 )
-from orchestrator.schema.property import ConstitutiveProperty
-
-if typing.TYPE_CHECKING:  # pragma: nocover
-    from orchestrator.schema.virtual_property import VirtualObservedProperty
 
 
 class ValueTypeEnum(str, enum.Enum):
@@ -40,14 +38,20 @@ class PropertyValue(pydantic.BaseModel):
     value: int | float | list | str | bytes | None = pydantic.Field(
         description="The measured value."
     )
-    property: typing.Union[
-        "VirtualObservedProperty", ObservedProperty, ConstitutiveProperty
-    ] = pydantic.Field(
-        description="The ObservedProperty or ConstitutiveProperty instance that this is a measurement of"
+    property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(
+        description="The Property with the value"
     )
     uncertainty: float | None = pydantic.Field(
         default=None, description="The uncertainty in the measured value. Can be None"
     )
+
+    @pydantic.field_validator("property", mode="before")
+    def convert_property_to_descriptor(cls, value):
+
+        if isinstance(value, Property):
+            value = value.descriptor()
+
+        return value
 
     @pydantic.field_validator(
         "value",
@@ -141,9 +145,19 @@ class PropertyValue(pydantic.BaseModel):
         return self.uncertainty is not None
 
 
+class ConstitutivePropertyValue(PropertyValue):
+
+    property: ConstitutivePropertyDescriptor = pydantic.Field(
+        description="The ConstitutiveProperty with the value"
+    )
+
+
 def constitutive_property_values_from_point(
-    point: dict, properties: list[ConstitutiveProperty]
-) -> list[PropertyValue]:
+    point: dict, properties: list[ConstitutiveProperty | ConstitutivePropertyDescriptor]
+) -> list[ConstitutivePropertyValue]:
     """Given a dict of {property id:property value}, and the Property instances, returns the PropertyValue instances"""
 
-    return [PropertyValue(value=point[c.identifier], property=c) for c in properties]
+    return [
+        ConstitutivePropertyValue(value=point[c.identifier], property=c)
+        for c in properties
+    ]

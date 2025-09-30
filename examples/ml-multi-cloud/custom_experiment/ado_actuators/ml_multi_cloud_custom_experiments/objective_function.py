@@ -5,9 +5,7 @@ import logging
 
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property_value import (
-    PropertyValue,
-)
+from orchestrator.schema.observed_property import ObservedPropertyValue
 
 moduleLog = logging.getLogger()
 
@@ -55,7 +53,7 @@ def cost(
 
     # Augment the results with data required by ado
     return [
-        PropertyValue(
+        ObservedPropertyValue(
             value=value,
             property=experiment.observedPropertyForTargetIdentifier(
                 targetIdentifier=identifier

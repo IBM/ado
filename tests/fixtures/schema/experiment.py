@@ -8,8 +8,12 @@ import pytest
 
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.property import AbstractProperty, ConstitutiveProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.property import (
+    AbstractPropertyDescriptor,
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+)
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 
 
@@ -37,13 +41,13 @@ def experiment_reference(
 def experiment(
     experiment_identifier: typing.AnyStr,
     actuator_identifier: typing.AnyStr,
-    abstract_properties: list[AbstractProperty],
+    abstract_properties: list[AbstractPropertyDescriptor],
     requiredProperties,
 ) -> Experiment:
     return Experiment(
         identifier=experiment_identifier,
         metadata={"maintainer": "unknown@somewhere.com"},
-        requiredProperties=requiredProperties,
+        requiredProperties=tuple(requiredProperties),
         targetProperties=abstract_properties,
         actuatorIdentifier=actuator_identifier,
     )
@@ -87,12 +91,16 @@ def optionalProperties() -> list[ConstitutiveProperty]:
 
 
 @pytest.fixture(scope="module")
-def defaultParameterization(optionalProperties) -> list[PropertyValue]:
+def defaultParameterization(optionalProperties) -> list[ConstitutivePropertyValue]:
     return [
-        PropertyValue(value="B", property=ConstitutiveProperty(identifier="test_opt1")),
-        PropertyValue(value=-3, property=ConstitutiveProperty(identifier="test_opt2")),
-        PropertyValue(
-            value=5.78, property=ConstitutiveProperty(identifier="test_opt3")
+        ConstitutivePropertyValue(
+            value="B", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
+        ),
+        ConstitutivePropertyValue(
+            value=-3, property=ConstitutivePropertyDescriptor(identifier="test_opt2")
+        ),
+        ConstitutivePropertyValue(
+            value=5.78, property=ConstitutivePropertyDescriptor(identifier="test_opt3")
         ),
     ]
 
@@ -109,12 +117,16 @@ def experimentRawNoOptional(experiment) -> dict:
 
 
 @pytest.fixture(scope="module")
-def customParameterization(optionalProperties) -> list[PropertyValue]:
+def customParameterization(optionalProperties) -> list[ConstitutivePropertyValue]:
     return [
-        PropertyValue(value="C", property=ConstitutiveProperty(identifier="test_opt1")),
-        PropertyValue(value=-1, property=ConstitutiveProperty(identifier="test_opt2")),
-        PropertyValue(
-            value=6.78, property=ConstitutiveProperty(identifier="test_opt3")
+        ConstitutivePropertyValue(
+            value="C", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
+        ),
+        ConstitutivePropertyValue(
+            value=-1, property=ConstitutivePropertyDescriptor(identifier="test_opt2")
+        ),
+        ConstitutivePropertyValue(
+            value=6.78, property=ConstitutivePropertyDescriptor(identifier="test_opt3")
         ),
     ]
 
@@ -123,7 +135,7 @@ def customParameterization(optionalProperties) -> list[PropertyValue]:
 def mock_parameterizable_experiment(
     requiredProperties, optionalProperties, defaultParameterization
 ) -> Experiment:
-    "A parameterizable experiment that has required and optional properties"
+    """A parameterizable experiment that has required and optional properties"""
 
     return Experiment(
         actuatorIdentifier="mock",
@@ -131,7 +143,7 @@ def mock_parameterizable_experiment(
         requiredProperties=tuple(requiredProperties),
         optionalProperties=tuple(optionalProperties),
         defaultParameterization=tuple(defaultParameterization),
-        targetProperties=[AbstractProperty(identifier="measurable_one")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="measurable_one")],
         metadata={"description": "A mock experiment for testing"},
     )
 
@@ -140,14 +152,14 @@ def mock_parameterizable_experiment(
 def mock_parameterizable_experiment_no_required(
     optionalProperties, defaultParameterization
 ) -> Experiment:
-    "A parameterizable experiment that has no required properties"
+    """A parameterizable experiment that has no required properties"""
 
     return Experiment(
         actuatorIdentifier="mock",
         identifier="test_parameterizable_experiment_two",
-        optionalProperties=optionalProperties,
-        defaultParameterization=defaultParameterization,
-        targetProperties=[AbstractProperty(identifier="measurable_two")],
+        optionalProperties=tuple(optionalProperties),
+        defaultParameterization=tuple(defaultParameterization),
+        targetProperties=[AbstractPropertyDescriptor(identifier="measurable_two")],
         metadata={"description": "A mock experiment for testing"},
     )
 
@@ -159,7 +171,7 @@ def mock_parameterizable_experiment_with_required_observed(
     defaultParameterization,
     mock_parameterizable_experiment,
 ):
-    "A parameterizable experiment that has a required observed property"
+    """A parameterizable experiment that has a required observed property"""
 
     # We add the observed property of the standard mock experiment
     op = mock_parameterizable_experiment.observedProperties[0]
@@ -171,7 +183,7 @@ def mock_parameterizable_experiment_with_required_observed(
         requiredProperties=(*requiredProperties, op),
         optionalProperties=tuple(optionalProperties),
         defaultParameterization=tuple(defaultParameterization),
-        targetProperties=[AbstractProperty(identifier="measurable_three")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="measurable_three")],
     )
 
 

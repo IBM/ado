@@ -17,6 +17,7 @@ import orchestrator.modules.actuators.replay
 import orchestrator.modules.module
 import orchestrator.schema.entity
 import orchestrator.schema.experiment
+import orchestrator.schema.property
 import orchestrator.schema.property_value
 import orchestrator.schema.reference
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
@@ -30,8 +31,10 @@ def try_instantiate_experiment(
     print("test", json.dumps(entity_values), "for", exp.identifier)
 
     values = [
-        orchestrator.schema.property_value.PropertyValue(
-            property=orchestrator.schema.entity.ConstitutiveProperty(identifier=k),
+        orchestrator.schema.property_value.ConstitutivePropertyValue(
+            property=orchestrator.schema.property.ConstitutivePropertyDescriptor(
+                identifier=k
+            ),
             value=v,
         )
         for k, v in entity_values.items()

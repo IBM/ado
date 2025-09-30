@@ -6,9 +6,11 @@ import uuid
 import pydantic
 import pytest
 
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import AbstractProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
+from orchestrator.schema.property import AbstractPropertyDescriptor
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import (
     MeasurementRequest,
@@ -187,7 +189,7 @@ def test_string_representation_replayed(
 def test_cannot_reassign_measurements_field_in_measurement_request(
     valid_measurement_result, entity, property_values
 ):
-    """ "This tests that once the measurement field of MeasurementRequest is assigned a set of MeasurementResults
+    """This tests that once the measurement field of MeasurementRequest is assigned a set of MeasurementResults
     that set cannot be changed or set to None"""
 
     import copy
@@ -240,6 +242,24 @@ def test_cannot_reassign_measurements_field_in_measurement_request(
     # We attempt to set None value for measurement field - this will also fail
     with pytest.raises(pydantic.ValidationError):
         request.measurements = None
+
+
+def test_measurement_request_measurement_for_entity(valid_measurement_result, entity):
+    request = MeasurementRequest(
+        entities=[entity],
+        measurements=(valid_measurement_result,),
+        experimentReference=valid_measurement_result.experimentReference,
+        requestid="testid-aaaccc",
+        requestIndex=0,
+        operation_id="pytest",
+    )
+    assert request.measurement_for_entity(entity.identifier) == valid_measurement_result
+
+    with pytest.raises(
+        ValueError,
+        match="Entity with identifier incorrect_id was not part of this MeasurementRequest",
+    ):
+        request.measurement_for_entity("incorrect_id")
 
 
 def test_measurement_request_valid(valid_measurement_result, entity):
@@ -447,10 +467,12 @@ def test_populate_measurement_results_in_entities(
         uid=str(shared_uid),
         entityIdentifier=random_entity.identifier,
         measurements=[
-            PropertyValue(
+            ObservedPropertyValue(
                 value=1,
                 property=ObservedProperty(
-                    targetProperty=AbstractProperty(identifier="wallClockRuntime"),
+                    targetProperty=AbstractPropertyDescriptor(
+                        identifier="wallClockRuntime"
+                    ),
                     experimentReference=ExperimentReference(
                         experimentIdentifier="benchmark_performance",
                         actuatorIdentifier="replay",
@@ -468,10 +490,12 @@ def test_populate_measurement_results_in_entities(
         uid=str(shared_uid),
         entityIdentifier=random_entity.identifier,
         measurements=[
-            PropertyValue(
+            ObservedPropertyValue(
                 value=2,
                 property=ObservedProperty(
-                    targetProperty=AbstractProperty(identifier="wallClockRuntime"),
+                    targetProperty=AbstractPropertyDescriptor(
+                        identifier="wallClockRuntime"
+                    ),
                     experimentReference=ExperimentReference(
                         experimentIdentifier="benchmark_performance",
                         actuatorIdentifier="replay",

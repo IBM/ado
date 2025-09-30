@@ -60,6 +60,7 @@ from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperime
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.observed_property import ObservedPropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
@@ -1293,7 +1294,7 @@ class SFTTrainer(ActuatorBase):
                 f"the entity {entity.identifier}"
             )
             recorded_property_names.append(prop.targetProperty.identifier)
-            property_value = orchestrator.schema.property_value.PropertyValue(
+            property_value = ObservedPropertyValue(
                 valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
                 value=value,
                 property=prop,

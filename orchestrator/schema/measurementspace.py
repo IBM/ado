@@ -19,7 +19,7 @@ from orchestrator.schema.experiment import (
     ParameterizedExperiment,
 )
 from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import AbstractProperty
+from orchestrator.schema.property import AbstractPropertyDescriptor
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.virtual_property import VirtualObservedProperty
@@ -560,15 +560,17 @@ class MeasurementSpace:
     @property
     def targetProperties(
         self,
-    ) -> list[AbstractProperty]:
+    ) -> list[AbstractPropertyDescriptor]:
         """Returns a list of AbstractProperties in the measurement space"""
 
         # If more that one observed property measures same target we just need to
         # keep one of them
-        mapping = {op.targetProperty.identifier: op for op in self._observedProperties}
+        mapping = {
+            ap.identifier: ap for exp in self.experiments for ap in exp.targetProperties
+        }
         target_ids = list(set(mapping.keys()))
 
-        return [mapping[i].targetProperty for i in target_ids]
+        return [mapping[i] for i in target_ids]
 
     @property
     def observedProperties(

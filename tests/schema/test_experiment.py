@@ -13,9 +13,10 @@ from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.property import (
     AbstractProperty,
     ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
     MeasuredPropertyTypeEnum,
 )
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
@@ -229,8 +230,8 @@ def experimentWithOptions(
 ) -> Experiment:
 
     return Experiment(
-        optionalProperties=optionalProperties,
-        defaultParameterization=defaultParameterization,
+        optionalProperties=tuple(optionalProperties),
+        defaultParameterization=tuple(defaultParameterization),
         **experimentRawNoOptional,
     )
 
@@ -238,7 +239,7 @@ def experimentWithOptions(
 def test_create_experiment_with_optional_params(
     experimentRawNoOptional: dict,
     optionalProperties: list[ConstitutiveProperty],
-    defaultParameterization: list[PropertyValue],
+    defaultParameterization: list[ConstitutivePropertyValue],
 ):
     """Test we can create an experiment with optional parameters"""
 
@@ -311,7 +312,9 @@ def test_create_experiment_with_optional_params(
             optionalProperties=(*optionalProperties, baseExp.requiredProperties[0]),
             defaultParameterization=(
                 *defaultParameterization,
-                PropertyValue(value="X", property=baseExp.requiredProperties[0]),
+                ConstitutivePropertyValue(
+                    value="X", property=baseExp.requiredProperties[0].descriptor()
+                ),
             ),
             **experimentRawNoOptional,
         )
@@ -368,10 +371,14 @@ def test_is_valid_experiment_parameterization(
     assert experimentWithOptions.isValidParameterization(defaultParameterization)
 
     values = [
-        PropertyValue(value="D", property=ConstitutiveProperty(identifier="test_opt1")),
-        PropertyValue(value=-3, property=ConstitutiveProperty(identifier="test_opt2")),
-        PropertyValue(
-            value=5.78, property=ConstitutiveProperty(identifier="test_opt3")
+        ConstitutivePropertyValue(
+            value="D", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
+        ),
+        ConstitutivePropertyValue(
+            value=-3, property=ConstitutivePropertyDescriptor(identifier="test_opt2")
+        ),
+        ConstitutivePropertyValue(
+            value=5.78, property=ConstitutivePropertyDescriptor(identifier="test_opt3")
         ),
     ]
 
@@ -383,8 +390,8 @@ def test_is_valid_experiment_parameterization(
     assert not experimentWithOptions.isValidParameterization(values[:-1])
 
     # Rename a parameter e.g. due to misspelling
-    values[0] = PropertyValue(
-        value="C", property=ConstitutiveProperty(identifier="test_op1")
+    values[0] = ConstitutivePropertyValue(
+        value="C", property=ConstitutivePropertyDescriptor(identifier="test_op1")
     )
 
     assert not experimentWithOptions.isValidParameterization(values)
@@ -425,7 +432,7 @@ def test_retrieve_parameterizable_experiment(
 def test_parameterized_experiment_serialize_deserialize(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
-    customParameterization: list[PropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
 ):
     ref = ExperimentReference(
         actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,
@@ -440,7 +447,7 @@ def test_parameterized_experiment_serialize_deserialize(
 
 def test_create_parameterized_experiment(
     experimentWithOptions: Experiment,
-    customParameterization: list[PropertyValue],
+    customParameterization: list[ConstitutivePropertyValue],
     global_registry: ActuatorRegistry,
 ):
 
@@ -491,8 +498,8 @@ def test_create_parameterized_experiment(
     # Test parameterization with incorrectly named property fails
     incorrectParameterization = copy.deepcopy(customParameterization)
     pv = incorrectParameterization[0]
-    incorrectParameterization[0] = PropertyValue(
-        value=pv.value, property=ConstitutiveProperty(identifier="tes_opt1")
+    incorrectParameterization[0] = ConstitutivePropertyValue(
+        value=pv.value, property=ConstitutivePropertyDescriptor(identifier="tes_opt1")
     )
     with pytest.raises(
         ValueError,
@@ -636,7 +643,9 @@ def test_parameterized_experiment_reference_validation_detects_invalid_cases():
             experimentIdentifier="test",
             actuatorIdentifier="mock",
             parameterization=[
-                PropertyValue(value=3, property=ConstitutiveProperty(identifier="test"))
+                ConstitutivePropertyValue(
+                    value=3, property=ConstitutivePropertyDescriptor(identifier="test")
+                )
             ],
         ).validate_parameterization()
 
@@ -652,7 +661,9 @@ def test_parameterized_experiment_reference_validation_detects_invalid_cases():
             experimentIdentifier="test-experiment",
             actuatorIdentifier="mock",
             parameterization=[
-                PropertyValue(value=3, property=ConstitutiveProperty(identifier="test"))
+                ConstitutivePropertyValue(
+                    value=3, property=ConstitutivePropertyDescriptor(identifier="test")
+                )
             ],
         ).validate_parameterization()
 
@@ -710,8 +721,8 @@ def test_parameterized_experiment_fields_immutable(mock_parameterizable_experime
     Either by reassigning or modifying the container via a reference to the field
     """
 
-    test_property_value = PropertyValue(
-        value="C", property=ConstitutiveProperty(identifier="test_opt1")
+    test_property_value = ConstitutivePropertyValue(
+        value="C", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
     )
 
     # default parameterization
@@ -770,8 +781,8 @@ def test_cannot_set_parameterized_experiment_identifier_for_experiment(
     parameterizable_experiment,
 ):
     # Create a new value for one of the properties
-    test_property_value = PropertyValue(
-        value="C", property=ConstitutiveProperty(identifier="test_opt1")
+    test_property_value = ConstitutivePropertyValue(
+        value="C", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
     )
     with pytest.raises(pydantic.ValidationError):
         ParameterizedExperiment(

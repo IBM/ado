@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 
+import typing
+
 import pytest
 
 from orchestrator.schema.entity import Entity
@@ -11,17 +13,28 @@ from orchestrator.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.observed_property import ObservedProperty
-from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.property_value import PropertyValue, ValueTypeEnum
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
+from orchestrator.schema.property import (
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+)
+from orchestrator.schema.property_value import (
+    ConstitutivePropertyValue,
+    ValueTypeEnum,
+)
 from orchestrator.schema.result import ValidMeasurementResult
 
 
 @pytest.fixture
-def value_for_value_type():
+def value_for_value_type() -> (
+    typing.Callable[[ValueTypeEnum], int | float | str | bytes | None]
+):
     def _value_for_value_type(
         value_type: ValueTypeEnum = ValueTypeEnum.NUMERIC_VALUE_TYPE,
-    ):
+    ) -> int | float | str | bytes | None:
         import os
         import random
         import string
@@ -53,22 +66,45 @@ def value_for_value_type():
 
 @pytest.fixture
 def values_for_properties(
-    value_for_value_type,
-):
+    value_for_value_type: typing.Callable[
+        [ValueTypeEnum], int | float | str | bytes | None
+    ],
+) -> typing.Callable[
+    [
+        ConstitutiveProperty
+        | ObservedProperty
+        | ConstitutivePropertyDescriptor
+        | list[ConstitutiveProperty]
+        | list[ObservedProperty]
+        | list[ConstitutivePropertyDescriptor, ValueTypeEnum]
+    ],
+    list[ConstitutivePropertyValue | ObservedPropertyValue],
+]:
+    def value_class_for_property(
+        p: ConstitutiveProperty | ObservedProperty | ConstitutivePropertyDescriptor,
+    ):
+        return (
+            ObservedPropertyValue
+            if isinstance(p, ObservedProperty)
+            else ConstitutivePropertyValue
+        )
+
     def _values_for_properties(
         properties: (
             ConstitutiveProperty
+            | ConstitutivePropertyDescriptor
             | ObservedProperty
             | list[ConstitutiveProperty]
             | list[ObservedProperty]
+            | list[ConstitutivePropertyDescriptor]
         ),
         value_type: ValueTypeEnum = ValueTypeEnum.NUMERIC_VALUE_TYPE,
-    ) -> list[PropertyValue]:
+    ) -> list[ConstitutivePropertyValue | ObservedPropertyValue]:
         if not isinstance(properties, list):
             properties = [properties]
 
         return [
-            PropertyValue(
+            value_class_for_property(p)(
                 value=value_for_value_type(value_type),
                 valueType=value_type,
                 property=p,
@@ -81,13 +117,24 @@ def values_for_properties(
 
 @pytest.fixture
 def property_values(
-    values_for_properties,
+    values_for_properties: typing.Callable[
+        [
+            ConstitutiveProperty
+            | ObservedProperty
+            | ConstitutivePropertyDescriptor
+            | list[ConstitutiveProperty]
+            | list[ObservedProperty]
+            | list[ConstitutivePropertyDescriptor],
+            ValueTypeEnum,
+        ],
+        list[ConstitutivePropertyValue | ObservedPropertyValue],
+    ],
     experiment: Experiment,
-) -> list[PropertyValue]:
+) -> list[ObservedPropertyValue | ConstitutivePropertyValue]:
 
     return values_for_properties(
-        properties=experiment.observedProperties,
-        value_type=ValueTypeEnum.NUMERIC_VALUE_TYPE,
+        experiment.observedProperties,
+        ValueTypeEnum.NUMERIC_VALUE_TYPE,
     )
 
 
@@ -102,8 +149,8 @@ def entity(
     entity_identifier = "COOH"
     generator_id = "testgen"
 
-    constitutive_property_values = values_for_properties(
-        properties=constitutive_properties
+    constitutive_property_values: list[ConstitutivePropertyValue] = (
+        values_for_properties(constitutive_properties)
     )
 
     measurement_results = [
@@ -174,7 +221,7 @@ def entity_for_parameterized_experiment(
         entity.add_measurement_result(
             ValidMeasurementResult(
                 entityIdentifier=entity.identifier,
-                measurements=[PropertyValue(property=props[0], value=3)],
+                measurements=[ObservedPropertyValue(property=props[0], value=3)],
             )
         )
 

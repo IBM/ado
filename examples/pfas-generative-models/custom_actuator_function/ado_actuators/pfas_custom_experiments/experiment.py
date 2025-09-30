@@ -6,6 +6,7 @@ import logging
 import orchestrator.schema.entity
 import orchestrator.schema.experiment
 import orchestrator.schema.property_value
+from orchestrator.schema.observed_property import ObservedPropertyValue
 
 moduleLog = logging.getLogger()
 
@@ -80,7 +81,7 @@ def acid_test(
         for p in experiment.observedProperties
         if p.targetProperty.identifier == "isAcid"
     )
-    pv = orchestrator.schema.property_value.PropertyValue(
+    pv = ObservedPropertyValue(
         value=value,
         property=isAcidProp,
         valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,

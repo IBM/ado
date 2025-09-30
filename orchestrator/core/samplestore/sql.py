@@ -23,6 +23,9 @@ from orchestrator.metastore.sql.utils import engine_for_sql_store
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.property import (
+    ConstitutiveProperty,
+)
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import (
     MeasurementRequest,
@@ -154,6 +157,13 @@ class SQLSampleStore(ActiveSampleStore):
         self,
     ) -> ExperimentCatalog | None:
 
+        # TODO: This is not the right way to do this.
+        # Here we're using the descriptors of the first entity to create the catalog
+        # if this entity has an experiment with "replay" actuators
+        # This works in the case every entity in sampletore was imported from an external source
+        # and all had the same external experiment.
+        # A better way would be to find all results from a replay experiment and then
+        # get the set of those
         try:
             entity = self.entities[0]
         except IndexError:
@@ -170,7 +180,12 @@ class SQLSampleStore(ActiveSampleStore):
                 identifier=r.experimentIdentifier,
                 actuatorIdentifier=r.actuatorIdentifier,
                 targetProperties=[p.targetProperty for p in props],
-                requiredProperties=entity.constitutiveProperties,
+                requiredProperties=tuple(
+                    [
+                        ConstitutiveProperty.from_descriptor(p)
+                        for p in entity.constitutiveProperties
+                    ]
+                ),
             )
             experiments[experiment.identifier] = experiment
 

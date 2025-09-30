@@ -23,7 +23,11 @@ import orchestrator.schema.domain
 import orchestrator.schema.property_value
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.property import (
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+)
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 
 
 class InternalInconsistencyError(ValueError):
@@ -525,8 +529,8 @@ def generate_parameterisable_finetune_experiment(
 
     default_parameterisation.extend(
         [
-            orchestrator.schema.property_value.PropertyValue(
-                property=ConstitutiveProperty(identifier=identifier),
+            ConstitutivePropertyValue(
+                property=ConstitutivePropertyDescriptor(identifier=identifier),
                 value=value,
             )
             for identifier, value in default_params.items()
@@ -635,7 +639,7 @@ def generate_parameterisable_finetune_experiment(
             "versioning": versioning,
         },
         targetProperties=[
-            orchestrator.schema.property.AbstractProperty(identifier=prop)
+            orchestrator.schema.property.AbstractPropertyDescriptor(identifier=prop)
             for prop in properties
         ],
         optionalProperties=optional_properties,

@@ -297,9 +297,10 @@ Examples for different value types are shown below.
 
 ##### The path points to a scalar
 
-If the candidate is a scalar (a string, a number, or a boolean), the value at
-the specified path will match if it is of the **same type** (treating integers
-and floats as equivalent) and has the **same value**.
+If the candidate is a scalar (a string in double quotes, a number, `true`,
+`false`, `null`), the value at the specified path will match if it is of the
+**same type** (treating integers and floats as equivalent) and has the **same
+value**.
 
 - ✅ `ado get operations -q 'config.operation.parameters.batchSize=1'` (1 == 1)
 - ✅ `ado get operations -q 'config.operation.parameters.batchSize=1.0'` (1.0 ==

@@ -277,3 +277,14 @@ class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
             path=self.path,
             host="",
         )
+
+
+def db_scheme_discriminator(
+    configuration: dict | SQLiteStoreConfiguration | SQLStoreConfiguration,
+) -> str:
+    if isinstance(configuration, dict):
+        scheme = configuration.get("scheme")
+    else:
+        scheme = configuration.scheme
+
+    return "sqlite" if scheme == "sqlite" else "mysql"

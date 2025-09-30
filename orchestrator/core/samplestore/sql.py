@@ -265,7 +265,22 @@ class SQLSampleStore(ActiveSampleStore):
         import uuid
 
         if identifier is None:
-            identifier = str(uuid.uuid4())[:6]
+
+            # AP 26/09/2025:
+            # This identifier could be a string that gets
+            # parsed by --set as an int/float.
+            # Examples are:
+            # - 344846 -> interpreted as the number
+            # - 5013e3 -> interpreted as 5013000.0
+            # We check if this would happen and re-generate
+            # the identifier if that's the case
+            while True:
+                identifier = str(uuid.uuid4())[:6]
+                try:
+                    float(identifier)
+                except ValueError:
+                    break
+
             parameters["identifier"] = identifier
 
         self._identifier = identifier

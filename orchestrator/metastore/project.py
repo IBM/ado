@@ -14,6 +14,7 @@ import orchestrator.utilities.logging
 from orchestrator.utilities.location import (
     SQLiteStoreConfiguration,
     SQLStoreConfiguration,
+    db_scheme_discriminator,
 )
 
 if typing.TYPE_CHECKING:
@@ -59,8 +60,10 @@ class ProjectContext(pydantic.BaseModel):
     ] = "local"
 
     metadataStore: Annotated[
-        SQLiteStoreConfiguration | SQLStoreConfiguration,
+        Annotated[SQLiteStoreConfiguration, pydantic.Tag("sqlite")]
+        | Annotated[SQLStoreConfiguration, pydantic.Tag("mysql")],
         pydantic.Field(description="The SQL backend to use to store data"),
+        pydantic.Discriminator(db_scheme_discriminator),
     ] = SQLiteStoreConfiguration(
         path=str(Path(typer.get_app_dir("ado")) / Path("databases/local.db")),
         database="local",

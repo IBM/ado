@@ -297,6 +297,13 @@ Examples for different value types are shown below.
 
 ##### The path points to a scalar
 
+!!! warning inline end
+
+    `ado` converts boolean
+    [property values](/ado/resources/discovery-spaces/#defining-the-domains-of-constitutive-properties-in-the-entityspace)
+    to integers. For more details on how this works in practice, refer to the
+    [additional examples](#additional-examples).
+
 If the candidate is a scalar (a string in double quotes, a number, `true`,
 `false`, `null`), the value at the specified path will match if it is of the
 **same type** (treating integers and floats as equivalent) and has the **same
@@ -307,6 +314,9 @@ value**.
   1, floats and ints count as same type)
 - ❌ `ado get operations -q 'config.operation.parameters.batchSize="1"'` ("1" !=
   1, type mismatch)
+- ✅ `ado get operation -q 'config.operation.parameters.singleMeasurement=true'`
+- ❌ `ado get operation -q 'config.operation.parameters.singleMeasurement=True'`
+  (`true` and `false` are the only boolean values in JSON)
 
 ##### The path points to an array
 
@@ -352,12 +362,29 @@ match if it contains all keys and corresponding values from the candidate.
 
 #### Additional examples
 
+##### Finding operations using a certain operator
+
 If you want to query operations that use the RayTune operator you can do it
 with:
 
 ```commandline
 ado get operations -q config.operation.module.moduleClass=RayTune
 ```
+
+##### Finding spaces with a boolean parameterization
+
+To query all spaces are parameterized with the `bf16` property with the boolean
+value `true`, you will have to query using the value `1` instead. This is
+because `ado` applies a type conversion to boolean values in
+[properties](/ado/resources/discovery-spaces/#defining-the-domains-of-constitutive-properties-in-the-entityspace):
+
+<!-- markdownlint-disable line-length -->
+```commandline
+ado get spaces -q 'config.experiments={"experiments":{"parameterization":[{"property":{"identifier":"bf16"},"value":1}]}}
+```
+<!-- markdownlint-enable line-length -->
+
+##### Finding spaces with a specific experiment
 
 To query all spaces that contain the
 `finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0` experiment:

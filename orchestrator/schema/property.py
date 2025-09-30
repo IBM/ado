@@ -186,16 +186,11 @@ class AbstractProperty(Property):
     def __eq__(self, other):
 
         retval = super().__eq__(other)
-        if retval:
-            try:
-                retval = (
-                    self.concretePropertyIdentifiers
-                    == other.concretePropertyIdentifiers
-                )
-            except AttributeError:
-                retval = False
-
-        return retval
+        return (
+            retval
+            and hasattr(other, "concretePropertyIdentifiers")
+            and self.concretePropertyIdentifiers == other.concretePropertyIdentifiers
+        )
 
     def descriptor(self):
 

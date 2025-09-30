@@ -77,10 +77,10 @@ def check_field_in_sqlite_json_document(
     def _searchable_scalar_value_for_query_string(value: _ScalarType) -> str:
         if isinstance(value, str):
             return f"= '{value}'"
-        if isinstance(value, (int, float)):
-            return f"= {value}"
         if isinstance(value, bool):
             return f"= {json.dumps(value)}"
+        if isinstance(value, (int, float)):
+            return f"= {value}"
         if isinstance(value, NoneType):
             return "IS NULL"
         raise ValueError(f"Unexpected type {type(value)}")

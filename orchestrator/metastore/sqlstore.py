@@ -117,6 +117,28 @@ class SQLResourceStore(ResourceStore):
         return engine_for_sql_store(configuration=self.configuration)
 
     def getResourceRaw(self, identifier) -> dict | None:
+        """Retrieve the raw JSON data for a resource.
+
+        The method queries the ``resources`` table for a row with the
+        specified ``identifier``.  The `data` column holds a JSON string
+        representing the resource, which is deserialized and returned as
+        a Python ``dict``.  If the identifier is not present in the
+        database, the method returns ``None`` instead of raising an
+        exception.
+
+        Args:
+            identifier: The unique identifier of the resource to fetch.
+
+        Returns:
+            dict | None: The deserialized JSON object stored in the
+                database for the given identifier, or ``None`` when no
+                matching record is found.
+
+        Note:
+            This method does **not** perform any validation against the
+            resource schema - callers should use :meth:`getResource` if they
+            need a fully-typed object.
+        """
 
         query = sqlalchemy.text(
             "SELECT * FROM resources WHERE identifier=:identifier"
@@ -139,6 +161,46 @@ class SQLResourceStore(ResourceStore):
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
     ) -> orchestrator.core.resources.ADOResource | None:
+        """Retrieve a resource from the SQL store.
+
+        This method selects the resource with the given *identifier* and
+        *kind* from the ``resources`` table.  The JSON payload stored in
+        the database is deserialized and converted into the appropriate
+        :class:`~orchestrator.core.resources.ADOResource` subclass.
+
+        If the stored version is older than the resource instance being
+        retrieved (`resource.version`) the object is automatically updated
+        in the database.
+
+        Args:
+            identifier: The unique identifier of the resource to fetch.
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds`
+                enum value that specifies the expected resource kind.
+            raise_error_if_no_resource: If ``True``, a
+                :class:`~orchestrator.metastore.base.ResourceDoesNotExistError`
+                is raised when the resource cannot be found.  When ``False``
+                (default) the method simply returns ``None``.
+
+        Returns:
+            An instance of the appropriate
+            :class:`~orchestrator.core.resources.ADOResource` subclass if the
+            resource was found; otherwise ``None`` when
+            ``raise_error_if_no_resource`` is ``False``.
+
+        Raises:
+            ResourceDoesNotExistError:
+                If the resource is not located in the database and the
+                *raise_error_if_no_resource* flag is ``True``.
+
+        Notes:
+            * The database uses SQLAlchemy under the hood, and the query
+              result is loaded into a :class:`pandas.DataFrame` before the
+              JSON column is parsed.
+            * Custom load functions registered in
+              ``kind_custom_model_load`` are used when available; otherwise
+              the default Pydantic model from ``orchestrator.core.kindmap``
+              is instantiated.
+        """
 
         query = sqlalchemy.text(
             """
@@ -176,6 +238,32 @@ class SQLResourceStore(ResourceStore):
     def getResources(
         self, identifiers: list[str]
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
+        """Retrieve multiple resources by identifier.
+
+        This method queries the `resources` table for all rows whose
+        ``identifier`` column matches an element of *identifiers*.  The
+        JSON payload stored in the `data` column is deserialized and
+        converted into the appropriate :class:`orchestrator.core.resources.ADOResource`
+        subclass.  The resulting objects are returned in a dictionary that maps each
+        identifier to its `ADOResource` instance.  Identifiers that
+        are not present in the database are simply omitted from the
+        returned mapping.
+
+        ``identifiers`` may be passed as either a plain list or a
+        :class:`pandas.Series`; if a series is supplied it is converted
+        to a list first.
+
+        Args:
+            identifiers: The list of resource identifiers to retrieve.
+                Duplicate identifiers are ignored.
+
+        Returns:
+            dict[str, orchestrator.core.resources.ADOResource]:
+                A mapping where each key is an identifier found in the
+                database and the value is the corresponding deserialized
+                resource instance. If a particular identifier does not
+                exist, it will not appear in the returned dictionary.
+        """
 
         retval = {}
         if len(identifiers) != 0:
@@ -221,6 +309,67 @@ class SQLResourceStore(ResourceStore):
         field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
     ) -> pd.DataFrame:
+        """
+        Retrieve identifiers of resources of a given kind.
+
+        This method queries the ``resources`` table to return identifiers and
+        selected metadata for all resources that match the specified ``kind``.
+        Optionally, a version and a list of JSON field selectors may be
+        provided to further refine the results.  By default the returned
+        dataframe contains only the identifier, name and age of each
+        resource.  When ``details=True`` the returned dataframe also
+        includes the description, labels, and, for operation resources,
+        the current status.
+
+        Args:
+            kind (str):
+                The kind of resource to filter on.  Must be a value from
+                :class:`orchestrator.core.resources.CoreResourceKinds`.
+            version (str | None, optional):
+                When provided only resources with this exact version are
+                returned.  Set to ``None`` to ignore the version filter.
+            field_selectors (list[dict[str, str]] | None, optional):
+                A list of dictionaries used to filter on JSON fields. Each
+                dictionary maps a MySQL JSON path (e.g. ``"$.config.owner"``)
+                to the value the field must contain. The matcher uses
+                ``JSON_CONTAINS`` under the hood and is subject to its
+                restrictions listed at:
+                https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains.
+            details (bool, optional):
+                If ``True`` the dataframe will contain extra columns
+                (``DESCRIPTION``, ``LABELS`` and, for operations, ``STATUS``).
+                Defaults to ``False`` for a lightweight payload.
+
+        Field Selectors:
+            - The keys of the dictionaries are MySQL JSON paths as defined in:
+            https://dev.mysql.com/doc/refman/8.4/en/json.html#json-path-syntax,
+            with some additional limitations as per the documentation from JSON_CONTAINS:
+            https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains.
+            Notably, single (*) and double-asterisk (**) wildcards are not supported.
+            - The values can be any valid JSON documents (including plain strings, etc.)
+
+            In practical terms, this means that, when searching for objects within arrays we
+            should use document matching instead of wildcard-based value matching.
+
+            DO NOT: {"config.experiments[*].experiments.identifier": "my-experiment"}
+            DO: {"config.experiments": {"experiments":{"identifier":"my-experiment"}}}
+
+        Returns:
+            pandas.DataFrame:
+                A dataframe containing the selected columns.  When
+                ``details`` is ``False`` the columns are ``IDENTIFIER``,
+                ``NAME`` and ``AGE``.  When ``details`` is ``True`` the
+                columns become ``IDENTIFIER``, ``NAME``, ``DESCRIPTION``,
+                ``LABELS`` and ``AGE``; for operation resources an
+                additional ``STATUS`` column is appended.  If
+                ``field_selectors`` or ``version`` exclude all rows the
+                dataframe is empty.
+
+        Raises:
+            ValueError:
+                If the supplied ``kind`` is not a known
+                ``CoreResourceKinds`` value.
+        """
 
         if kind not in [v.value for v in orchestrator.core.resources.CoreResourceKinds]:
             raise ValueError(f"Unknown kind specified: {kind}")
@@ -349,9 +498,40 @@ class SQLResourceStore(ResourceStore):
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
-        """Returns all resources of a given kind
+        """
+        Retrieve all resources of a given kind.
 
-        A kind is a version+type"""
+        The method first obtains the identifiers of matching resources by
+        calling :meth:`getResourceIdentifiersOfKind`. The identifiers are
+        then used to fetch the full resource objects via
+        :meth:`getResources`.
+
+        Args:
+            kind (str): The kind of resources to fetch. Must be one of
+                :class:`orchestrator.core.resources.CoreResourceKinds`.
+            version (str, optional): If supplied, only resources with this
+                exact version are returned.
+            field_selectors (list[dict[str, str]], optional): A list of
+                JSON-field selectors used to narrow the result set.  Each
+                selector maps a MySQL JSON path (e.g. ``"$.config.owner"``)
+                to the value the field must contain.
+
+        Returns:
+            dict[str, orchestrator.core.resources.ADOResource]: A mapping
+            where the key is the resource identifier and the value is the
+            fully-deserialized :class:`orchestrator.core.resources.ADOResource`
+            instance.  An empty dictionary is returned when no matching
+            resources are found.
+
+        Raises:
+            ValueError: If ``kind`` is not a recognised
+                :class:`orchestrator.core.resources.CoreResourceKinds`
+                value.
+
+        See Also:
+            - getResourceIdentifiersOfKind's documentation
+            - https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains
+        """
 
         identifiers = self.getResourceIdentifiersOfKind(
             kind=kind, version=version, field_selectors=field_selectors
@@ -361,8 +541,48 @@ class SQLResourceStore(ResourceStore):
     def getRelatedSubjectResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
-        """Returns identifiers of resources that have a relationship with "identifier"
-        where "identifier" is the object"""
+        """Retrieve identifiers of resources that have a relationship to the
+        supplied ``identifier`` where that identifier acts as the *object*.
+
+        The method queries the ``resource_relationships`` table and returns
+        a ``pandas.DataFrame`` containing identifiers of all resources that
+        are the *subject* of a relationship whose *object* is the supplied
+        ``identifier``.  Optional filtering by the other resource's
+        ``kind`` or ``version`` is supported.
+
+        Args:
+            identifier (str):
+                The resource identifier that will be queried as the object
+                side of the relationship.
+            kind (str | None, optional):
+                If provided, only resources whose ``kind`` matches this
+                value will be returned.  Pass ``None`` to ignore the kind
+                filter.
+            version (str | None, optional):
+                If provided, only resources whose ``version`` matches this
+                value will be returned.  Pass ``None`` to ignore the
+                version filter.
+
+        Returns:
+            pandas.DataFrame:
+                A two-column dataframe with the columns ``IDENTIFIER`` and
+                ``TYPE``.  ``IDENTIFIER`` is the identifier of a resource
+                that is the subject of a relationship, and ``TYPE`` is its
+                ``kind``.  If no related resources are found an empty
+                dataframe is returned.
+
+        Raises:
+            sqlalchemy.exc.SQLAlchemyError:
+                Propagated if the underlying database query fails.
+
+        See Also:
+            getRelatedObjectResourceIdentifiers
+                The inverse relationship: fetches subjects where the given
+                identifier is the *subject*.
+            getRelatedResourceIdentifiers
+                Convenience wrapper that returns a dataframe with both subject
+                and object relationships merged.
+        """
 
         query_text = """SELECT subject_identifier, resources.kind
                               FROM resource_relationships
@@ -391,8 +611,48 @@ class SQLResourceStore(ResourceStore):
     def getRelatedObjectResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
-        """Returns identifiers of resources that have a relationship with "identifier"
-        where "identifier" is the subject"""
+        """Retrieve identifiers of resources that have a relationship to the
+        supplied ``identifier`` where that identifier acts as the *subject*.
+
+        The method queries the ``resource_relationships`` table and returns
+        a ``pandas.DataFrame`` containing identifiers of all resources that
+        are the *object* of a relationship whose *subject* is the supplied
+        ``identifier``.  Optional filtering by the other resource's
+        ``kind`` or ``version`` is supported.
+
+        Args:
+            identifier (str):
+                The resource identifier that will be queried as the subject
+                side of the relationship.
+            kind (str | None, optional):
+                If provided, only resources whose ``kind`` matches this
+                value will be returned.  Pass ``None`` to ignore the kind
+                filter.
+            version (str | None, optional):
+                If provided, only resources whose ``version`` matches this
+                value will be returned.  Pass ``None`` to ignore the
+                version filter.
+
+        Returns:
+            pandas.DataFrame:
+                A two-column dataframe with the columns ``IDENTIFIER`` and
+                ``TYPE``.  ``IDENTIFIER`` is the identifier of a resource
+                that is the object of a relationship, and ``TYPE`` is its
+                ``kind``.  If no related resources are found an empty
+                dataframe is returned.
+
+        Raises:
+            sqlalchemy.exc.SQLAlchemyError:
+                Propagated if the underlying database query fails.
+
+        See Also:
+            getRelatedSubjectResourceIdentifiers
+                The inverse relationship: fetches subjects where the given
+                identifier is the *object*.
+            getRelatedResourceIdentifiers
+                Convenience wrapper that returns a dataframe with both subject
+                and object relationships merged.
+        """
 
         # First select where identifier is the subject
         query_text = """SELECT object_identifier, resources.kind
@@ -422,6 +682,34 @@ class SQLResourceStore(ResourceStore):
     def getRelatedResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
     ) -> pd.DataFrame:
+        """
+        Retrieve identifiers of resources that are related to ``identifier`` either as a
+        subject or an object.
+
+        This method concatenates the results of
+        :meth:`getRelatedObjectResourceIdentifiers` and
+        :meth:`getRelatedSubjectResourceIdentifiers`.  The returned
+        :class:`pandas.DataFrame` has two columns:
+
+        * ``IDENTIFIER`` - the resource identifier
+        * ``TYPE``      - the resource kind
+
+        Args:
+            identifier : str
+                The resource identifier for which related resources are being
+                queried.
+            kind : str, optional
+                Filter by the resource *kind*.  If ``None`` (default) no kind
+                filtering is applied.
+            version : str, optional
+                Filter by the resource *version*.  If ``None`` (default) no
+                version filtering is applied.
+
+        Returns:
+            pandas.DataFrame
+                A DataFrame containing the identifiers of all related resources.
+                If no relationships exist an empty DataFrame is returned.
+        """
 
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(
             identifier=identifier, kind=kind, version=version
@@ -443,8 +731,27 @@ class SQLResourceStore(ResourceStore):
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """
-        Returns all resource object associated with identifier.
-        Optionally returns only resources of the provided kind.
+        Retrieve all resources that are related to a given identifier.
+
+        Args:
+            identifier (str):
+                The identifier of the primary resource.  The method will fetch
+                every other resource that shares a relationship with this
+                identifier - either as the **subject** or **object** of a
+                relationship entry in ``resource_relationships``.
+            kind (orchestrator.core.resources.CoreResourceKinds, optional):
+                If supplied, only resources whose ``kind`` matches this value
+                are returned.  Pass ``None`` (the default) to retrieve
+                resources of any kind.
+
+        Returns:
+            dict[str, orchestrator.core.resources.ADOResource]:
+                A mapping from resource identifier to a fully deserialized
+                ``ADOResource`` instance.  The dictionary keys are the
+                identifiers of all resources that are related to
+                ``identifier``; the values are the corresponding
+                resource objects.  When ``kind`` is set, the dictionary
+                contains only resources of that kind.
         """
 
         identifiers = self.getRelatedResourceIdentifiers(

@@ -67,6 +67,8 @@ def test_field_querying(
     sql_store,
     valid_ado_project_context,
     create_active_ado_context,
+    empty_sample_store,
+    sample_store_resource,
 ):
 
     runner = CliRunner()
@@ -91,6 +93,8 @@ def test_field_querying(
         )
     )
     sql_store.addResource(operation_43dfdf)
+
+    sql_store.addResource(sample_store_resource)
 
     # ---------------------------------------------------------
     # Query scalar int field with int
@@ -142,6 +146,86 @@ def test_field_querying(
             "operations",
             "-q",
             'config.parameters.batchSize="1"',
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert operation_d5c036.identifier not in result.output
+        assert operation_43dfdf.identifier not in result.output
+
+    # ---------------------------------------------------------
+    # Query scalar null field with null
+    # ---------------------------------------------------------
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "samplestores",
+            "-q",
+            "config.metadata.name=null",
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert empty_sample_store.identifier in result.output
+        assert sample_store_resource.identifier not in result.output
+        assert operation_d5c036.identifier not in result.output
+        assert operation_43dfdf.identifier not in result.output
+
+    # ---------------------------------------------------------
+    # Query scalar null field with string
+    # ---------------------------------------------------------
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "samplestores",
+            "-q",
+            'config.metadata.name="null"',
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert empty_sample_store.identifier not in result.output
+        assert sample_store_resource.identifier not in result.output
+        assert operation_d5c036.identifier not in result.output
+        assert operation_43dfdf.identifier not in result.output
+
+    # ---------------------------------------------------------
+    # Query scalar boolean field with boolean
+    # ---------------------------------------------------------
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "operations",
+            "-q",
+            "config.operation.parameters.singleMeasurement=false",
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert operation_d5c036.identifier in result.output
+        assert operation_43dfdf.identifier not in result.output
+
+    # ---------------------------------------------------------
+    # Query scalar boolean field with string
+    # ---------------------------------------------------------
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "operations",
+            "-q",
+            'config.parameters.singleMeasurement="false"',
         ],
     )
     assert result.exit_code == 0

@@ -27,14 +27,14 @@ performance_testing-full:
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [-1,1000]
-        interval: 2  # -1 means send all requests at time 0
+        interval: 1  # -1 means send all requests at time 0
     - identifier: 'max_concurrency'
       metadata:
         description: "(benchmark) The maximum number of concurrent requests to send"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ -1, 500 ] # -1 means no concurrency control
-        interval: 50
+        interval: 1
     - identifier: 'dataset'
       metadata:
         description: "The dataset to use to generate requests - only random is currently supported"
@@ -83,8 +83,8 @@ performance_testing-full:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 8096, 32769]
-        interval: 1028
+        domainRange: [ 8192, 32769]
+        interval: 1024
     - identifier: 'max_num_seq'
       metadata:
         description: "(deployment) Maximum number of sequences per iteration"
@@ -221,14 +221,14 @@ performance_testing-endpoint:
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [-1,1000]
-        interval: 2  # -1 means send all requests at time 0
+        interval: 1  # -1 means send all requests at time 0
     - identifier: 'max_concurrency'
       metadata:
         description: "The maximum number of concurrent requests to send"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ -1, 500 ] # -1 means no concurrency control
-        interval: 50
+        interval: 1
     - identifier: 'dataset'
       metadata:
         description: "The dataset to use to generate requests - only random is currently supported"

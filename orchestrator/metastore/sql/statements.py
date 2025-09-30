@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
+from types import NoneType
 from typing import Literal
 
 import sqlalchemy
@@ -71,6 +72,18 @@ def check_field_in_sqlite_json_document(
         list[str]: A list of SQL SELECT statements that can be combined via INTERSECT
         to filter rows whose JSON documents contain the specified structure or values.
     """
+    _ScalarType = str | int | float | bool | None
+
+    def _searchable_scalar_value_for_query_string(value: _ScalarType) -> str:
+        if isinstance(value, str):
+            return f"= '{value}'"
+        if isinstance(value, bool):
+            return f"= {json.dumps(value)}"
+        if isinstance(value, (int, float)):
+            return f"= {value}"
+        if isinstance(value, NoneType):
+            return "IS NULL"
+        raise ValueError(f"Unexpected type {type(value)}")
 
     fragments = []
     preamble = "SELECT identifier FROM F WHERE "
@@ -142,19 +155,14 @@ def check_field_in_sqlite_json_document(
     # we are in because it would require us to retrieve data from
     # the database, we must OR the three clauses.
     last_dot_index = path.rfind(".")
-    if isinstance(candidate, str):
+    if isinstance(candidate, _ScalarType):
         return [
             f"{preamble} "
-            f"(F.key LIKE '{path[2:]}%' AND F.value = '{candidate}') OR "
-            f"(F.path LIKE '{path}' AND F.value = '{candidate}') OR "
-            f"(F.path = '{path[:last_dot_index]}' AND F.key = '{path[last_dot_index+1:]}' AND F.value='{candidate}')"
-        ]
-    if isinstance(candidate, (int, float)):
-        return [
-            f"{preamble} "
-            f"(F.key LIKE '{path[2:]}%' AND F.value = {candidate}) OR "
-            f"(F.path LIKE '{path}' AND F.value = {candidate}) OR "
-            f"(F.path = '{path[:last_dot_index]}' AND F.key = '{path[last_dot_index+1:]}' AND F.value={candidate})"
+            f"(F.key LIKE '{path[2:]}%' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
+            f"(F.path LIKE '{path}' AND F.value {_searchable_scalar_value_for_query_string(candidate)}) OR "
+            f"(F.path = '{path[:last_dot_index]}' AND "
+            f"F.key = '{path[last_dot_index+1:]}' AND "
+            f"F.value {_searchable_scalar_value_for_query_string(candidate)})"
         ]
 
     # We have handled an immediate scalar case, so we need to now handle:
@@ -200,13 +208,11 @@ def check_field_in_sqlite_json_document(
         # Here we need the % wildcard because we might be dealing
         # with an array field, for which the path would contain
         # the index.
-        if isinstance(candidate[field], (int, float)):
+        if isinstance(candidate[field], _ScalarType):
             fragments.append(
-                f"{preamble} F.path LIKE '{path}%' AND F.key = '{field}' AND F.value = {candidate[field]}"
-            )
-        else:
-            fragments.append(
-                f"{preamble} F.path LIKE '{path}%' AND F.key = '{field}' AND F.value = '{candidate[field]}'"
+                f"{preamble} F.path LIKE '{path}%' AND "
+                f"F.key = '{field}' AND "
+                f"F.value {_searchable_scalar_value_for_query_string(candidate[field])}"
             )
 
     return fragments

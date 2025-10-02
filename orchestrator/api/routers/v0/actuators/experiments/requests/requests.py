@@ -99,7 +99,7 @@ async def get_experiment_request_by_id(
 
     return await ray.get_actor(
         name="QueueMonitorActor", namespace="api"
-    ).get_experiment_request_by_id.remote(
+    ).get_measurement_request_by_id.remote(
         experiment_reference=ExperimentReference(
             experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
         ),

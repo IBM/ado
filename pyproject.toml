@@ -76,6 +76,9 @@ docs = [
     "pygments>=2.19.1",
     "pymdown-extensions>=10.15",
 ]
+resolution-helpers = [
+    "urllib3>=2.5.0",
+]
 
 [tool.uv]
 default-groups = ["dev", "docs"]

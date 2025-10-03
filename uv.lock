@@ -59,6 +59,9 @@ docs = [
     { name = "pygments" },
     { name = "pymdown-extensions" },
 ]
+resolution-helpers = [
+    { name = "urllib3" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -105,6 +108,7 @@ docs = [
     { name = "pygments", specifier = ">=2.19.1" },
     { name = "pymdown-extensions", specifier = ">=10.15" },
 ]
+resolution-helpers = [{ name = "urllib3", specifier = ">=2.5.0" }]
 
 [[package]]
 name = "aiohappyeyeballs"

@@ -1291,11 +1291,16 @@ pywin32==311 ; platform_python_implementation != 'PyPy' and sys_platform == 'win
     --hash=sha256:d03ff496d2a0cd4a5893504789d4a15399133fe82517455e78bad62efbb7f0a3 \
     --hash=sha256:e286f46a9a39c4a18b319c28f59b61de793654af2f395c102b4f819e584b5852
     # via jupyter-core
-pywinpty==3.0.0 ; os_name == 'nt' \
-    --hash=sha256:1e0c4b01e5b03b1531d7c5d0e044b8c66dd0288c6d2b661820849f2a8d91aec3 \
-    --hash=sha256:29daa71ac5dcbe1496ef99f4cde85a732b1f0a3b71405d42177dbcf9ee405e5a \
-    --hash=sha256:327b6034e0dc38352c1c99a7c0b3e54941b4e506a5f21acce63609cd2ab6cce2 \
-    --hash=sha256:68f70e68a9f0766ffdea3fc500351cb7b9b012bcb8239a411f7ff0fc8f86dcb1
+pywinpty==3.0.2; os_name == 'nt' \
+    --hash=sha256:1505cc4cb248af42cb6285a65c9c2086ee9e7e574078ee60933d5d7fa86fb004 \
+    --hash=sha256:18f78b81e4cfee6aabe7ea8688441d30247b73e52cd9657138015c5f4ee13a51 \
+    --hash=sha256:28297cecc37bee9f24d8889e47231972d6e9e84f7b668909de54f36ca785029a \
+    --hash=sha256:327790d70e4c841ebd9d0f295a780177149aeb405bca44c7115a3de5c2054b23 \
+    --hash=sha256:34b55ae9a1b671fe3eae071d86618110538e8eaad18fcb1531c0830b91a82767 \
+    --hash=sha256:3962daf801bc38dd4de872108c424b5338c9a46c6efca5761854cd66370a9022 \
+    --hash=sha256:65db57fd3387d71e8372b6a54269cbcd0f6dfa6d4616a29e0af749ec19f5c558 \
+    --hash=sha256:663383ecfab7fc382cc97ea5c4f7f0bb32c2f889259855df6ea34e5df42d305b \
+    --hash=sha256:99fdd9b455f0ad6419aba6731a7a0d2f88ced83c3c94a80ff9533d95fa8d8a9e
     # via
     #   jupyter-server
     #   jupyter-server-terminals

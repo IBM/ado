@@ -93,9 +93,19 @@ def remote_execution_closure(
             json=[entity.model_dump()],
             verify=False,
         )
-        # The response is a MeasurementRequest identifier
-        # We need to poll the measurement request route until the measurement request is completed
-        request_id = response.json()[0]
+        # If the response is successful the response is a MeasurementRequest identifier
+        # If the response status is 404 then the experiment was not found
+        # If the response status is 422 there was a validation error
+        if response.status_code == 200:
+            request_id = response.json()[0]
+        elif response.status_code == 404:
+            raise Exception(f"Experiment {reference.experimentIdentifier} not found")
+        elif response.status_code == 422:
+            raise Exception(
+                f"Validation error for experiment {reference.experimentIdentifier}: {response.json()}"
+            )
+        else:
+            raise Exception(f"Unknown error {response.status_code}")
         logger.info(f"Request ID: {request_id}")
 
         is_completed = False

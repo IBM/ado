@@ -20,13 +20,19 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 
 
-def execute_local_wrapper(
+def local_execution_closure(
     registry: ActuatorRegistry,
 ) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
     """Create a callable that submits a local measurement request.
 
     The function keeps a dictionary of Actuator actors so that each actuator
     is instantiated only once.
+
+    Parameters:
+        registry: The ActuatorRegistry to use to get the Actuator actors
+
+    Returns:
+        A callable that submits a local measurement request.
     """
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}
     queue = MeasurementQueue.get_measurement_queue()
@@ -56,10 +62,19 @@ def execute_local_wrapper(
     return execute_local
 
 
-def execute_remote_wrapper(
+def remote_execution_closure(
     endpoint: str, timeout: int = 300
 ) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
-    """Execute via ado API"""
+    """Execute via ado API
+
+    Parameters:
+        endpoint: The endpoint to use to execute the experiment
+        timeout: The timeout for the experiment in seconds
+
+    Returns:
+        A callable that submits a remote measurement request to the given endpoint
+        with the given timeout.
+    """
 
     import logging
 
@@ -161,9 +176,9 @@ def run(
 
     registry = ActuatorRegistry()
     execute = (
-        execute_local_wrapper(registry=registry)
+        local_execution_closure(registry=registry)
         if not remote
-        else execute_remote_wrapper(remote, timeout=timeout)
+        else remote_execution_closure(remote, timeout=timeout)
     )
 
     for reference in point.experiments:

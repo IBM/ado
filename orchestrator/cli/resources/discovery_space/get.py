@@ -118,7 +118,7 @@ def _find_spaces_matching_point(
         raise
 
     experiment_selectors = []
-    for reference in target_point.experiments:
+    for reference in target_point.experiments or []:
         experiment_selectors.extend(
             prepare_query_filters_for_db(
                 {

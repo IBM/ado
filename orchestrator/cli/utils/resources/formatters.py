@@ -288,11 +288,7 @@ def _yaml_formatter_for_ado_resource(
 
 def _json_formatter_for_ado_resource(
     to_print: (
-        ADOResource
-        | list[ADOResource]
-        | pydantic.BaseModel
-        | list[pydantic.BaseModel]
-        | dict
+        ADOResource | list[ADOResource] | pydantic.BaseModel | list[pydantic.BaseModel]
     ),
     parameters: AdoGetCommandParameters,
 ):
@@ -304,41 +300,59 @@ def _json_formatter_for_ado_resource(
         serialization_context = None
         serialization_target = to_print
 
-    # To handle lists correctly, we need to select all items of the list
-    if parameters.exclude_fields and not parameters.resource_id:
-        parameters.exclude_fields = [
-            f"[*].{field_exclusion}" for field_exclusion in parameters.exclude_fields
-        ]
-
-    dict_representation = yaml.safe_load(
-        printable_pydantic_model(serialization_target).model_dump_json(
-            exclude_none=parameters.exclude_none,
-            exclude_unset=parameters.exclude_unset,
-            exclude_defaults=parameters.exclude_default,
-            context=serialization_context,
-        )
-    )
-
-    if parameters.exclude_fields:
-        dict_representation = remove_fields_from_dictionary(
-            dict_representation, parameters.exclude_fields
-        )
-
-    # AP: 28/07/2025:
-    # pydantic's json serializer can handle more data types
-    # so we need to construct a model on-the-fly.
-    # We can't use `model_validate` as we might have removed
-    # a required field.
-    return (
-        printable_pydantic_model(serialization_target)
-        .model_construct(dict_representation)
-        .model_dump_json(
+    # When exclude_fields is False, we know our data is valid.
+    # We don't need to do any processing other than
+    # using printable_pydantic_model to handle lists.
+    if not parameters.exclude_fields:
+        return printable_pydantic_model(serialization_target).model_dump_json(
             indent=2,
             exclude_none=parameters.exclude_none,
             exclude_unset=parameters.exclude_unset,
             exclude_defaults=parameters.exclude_default,
             context=serialization_context,
         )
+
+    # Here we need to remove some fields and this might
+    # mean creating a model that's invalid.
+
+    # To handle lists correctly, we need to select all items of the list
+    if not parameters.resource_id:
+        parameters.exclude_fields = [
+            f"[*].{field_exclusion}" for field_exclusion in parameters.exclude_fields
+        ]
+
+    printable_model = printable_pydantic_model(serialization_target)
+    filtered_representation = remove_fields_from_dictionary(
+        input_dictionary=printable_model.model_dump(
+            exclude_none=parameters.exclude_none,
+            exclude_unset=parameters.exclude_unset,
+            exclude_defaults=parameters.exclude_default,
+            context=serialization_context,
+        ),
+        fields_to_remove=parameters.exclude_fields,
+    )
+
+    # AP: 28/07/2025:
+    # pydantic's json serializer can handle more data types
+    # so we need to construct a model on-the-fly.
+    # We can't use `model_validate` as we might have removed
+    # a required field.
+    if isinstance(filtered_representation, list):
+        model = printable_model.model_construct(filtered_representation)
+    else:
+        model = printable_model.model_construct(**filtered_representation)
+
+    # AP: 30/09/2025
+    # We set warnings="none" as otherwise we'd print a ton of:
+    # PydanticSerializationUnexpectedValue(Expected `SOME_MODEL` -
+    # serialized value may not be as expected [input_value={...}, input_type=dict])
+    return model.model_dump_json(
+        indent=2,
+        warnings="none",
+        exclude_none=parameters.exclude_none,
+        exclude_unset=parameters.exclude_unset,
+        exclude_defaults=parameters.exclude_default,
+        context=serialization_context,
     )
 
 
@@ -365,11 +379,7 @@ def _raw_formatter_for_ado_resource(
 
 def _minimize_ado_resource_representation(
     to_print: (
-        ADOResource
-        | list[ADOResource]
-        | pydantic.BaseModel
-        | list[pydantic.BaseModel]
-        | dict
+        ADOResource | list[ADOResource] | pydantic.BaseModel | list[pydantic.BaseModel]
     ),
 ):
     if isinstance(to_print, list):

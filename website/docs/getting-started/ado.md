@@ -320,7 +320,7 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
                                     [--minimize] \
-                                    [--query | -q <path=candidate>] \
+                                    [--query | -q <path=value>] \
                                     [--label | -l <key=value>] \
                                     [--details] [--show-deprecated] \
                                     [--matching-point <point.yaml>] \
@@ -375,94 +375,38 @@ Where:
   transformations on the model, changing it from the original. If set, it
   implies `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This
   option is ignored when the output type is `default` or `raw`.
-- By using (optionally multiple times) the `--query` (or `-q`) flag, users can
-  restrict the resources returned by requiring that a field in the resource is
-  equal to a provided value or that the content of a JSON document appear in the
-  resource. This flag can be specified multiple times (even in conjunction with
-  `-l` to further filter results). More information is provided in the
-  [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
-  section.
-- By using (optionally multiple times) the `--label` (or `-l`) flag, users can
-  restrict the resources returned by means of the labels set in the resource's
-  metadata. Labels must be specified in the `key=value` format. This flag can be
-  specified multiple times (even in conjunction with `-q` to further filter
-  results).
+- The `--from-sample-store`, `--from-space`, `--from-operation` flags are
+  available **only for `ado get measurementrequests`** and allow specifying what
+  samplestore/space/operation the measurement request belongs to.
 - When using the `--details` flag with the `default` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
 - The `--show-deprecated` flag is available **only for
   `ado get actuators --details`** and allows displaying experiments that have
   been deprecated. They are otherwise hidden by default.
-- The `--matching-point` option allows the user to specify a file in the form
-  of:
 
-  ```yaml
-  entity: # A key-value dictionary of constitutive property identifiers and values
-    batch_size: 8
-    number_gpus: 4
-  experiments: # A list of experiments
-    - finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0
-  ```
+#### Searching and Filtering
 
-  To find the spaces that match that point.
+See [searching the metastore](../resources/metastore.md#searching-the-metastore)
+for detailed information on the following options, including syntax.
 
-- The `--matching-space` option allows the user to specify a
-  `DiscoverySpaceConfiguration` file which will be used to find similar spaces
-  in the database. Spaces will match if:
-    - They include **exactly** the same **base experiments**.
-    - Their entity space is in a hierarchical relationship with the input space.
-      The relationship will be output (i.e., a column will say whether the
-      matching space is a subspace, a superspace, or an exact match with the input
-      space).
+- By using (optionally multiple times) the `--query` (or `-q`) flag, users can
+  restrict the resources returned by requiring that a field in the resource
+  contains a given value. This flag can be specified multiple times (even in
+  conjunction with `-l` to further filter results).
+- By using (optionally multiple times) the `--label` (or `-l`) flag, users can
+  restrict the resources returned by means of the labels set in the resource's
+  metadata. Labels must be specified in the `key=value` format. This flag can be
+  specified multiple times (even in conjunction with `-q` to further filter
+  results).
+- The `--matching-point` option allows the user to search for spaces containing
+  an entity with particular values for some properties along with a particular
+  set of experiments applied to it
+- The `--matching-space` option allows searching for `discoveryspaces` which
+  match a given
+  [configuration YAML](../resources/discovery-spaces.md#discovery-space-configuration-yaml).
 - The `--matching-space-id` option works in the same way as `--matching-space`
-  but allows the user to provide a space id instead of a
-  `DiscoverySpaceConfiguration`.
-- The `--from-sample-store`, `--from-space`, `--from-operation` flags are
-  available **only for `ado get measurementrequests`** and allow specifying what
-  samplestore/space/operation the measurement request belongs to.
-
-#### Using the field-level querying functionality
-
-The field-querying functionality leverages MySQL's
-[`JSON_CONTAINS`](https://dev.mysql.com/doc/refman/8.4/en/json-search-functions.html#function_json-contains)
-function. The user is encouraged to familiarise themselves with the
-documentation to understand what the capabilities provided are.
-
-Under the hood, users will be querying a JSON representation of the
-[resources](../resources/resources.md) that are stored in the database. In a
-similar way to what is provided by the `jq` command line utility, querying a
-field means providing a dot-separated path leading to the target field
-(**NOTE**: the path is case sensitive) and the value the user is expecting to
-find in that field.
-
-As an example, if you want to query operations that use RayTune you can do it
-with:
-
-```commandline
-ado get operations -q config.operation.module.moduleClass=RayTune
-```
-
-When dealing with array fields, instead, the user will have to query the array
-field and provide a JSON document that is to be contained in the array.
-
-- **NOTE**: the document provided is required to be valid JSON, meaning that
-  keys and values must be in between quotes.
-- **NOTE**: when querying an array field with a document, the results will
-  include all resources that AT LEAST include the provided document and not the
-  resources that ONLY have it. The -q and -l options can be used multiple times
-  to return only resources that match all the filters.
-
-As an example, to query all spaces that run the
-`finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0` experiment on the
-`NVIDIA-A100-SXM4-80GB` GPU and use the `mistral-7b-v0.1` model you can run:
-
-<!-- markdownlint-disable line-length -->
-```commandline
-ado get space -q 'config.entitySpace={"identifier": "model_name", "propertyDomain":{"values":["mistral-7b-v0.1"]}}' \
-              -q 'config.entitySpace={"identifier": "gpu_model", "propertyDomain":{"values":["NVIDIA-A100-SXM4-80GB"]}}' \
-              -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
-```
-<!-- markdownlint-enable line-length -->
+  but allows the user to provide a space id instead of a configuration
 
 #### Examples
 
@@ -483,7 +427,7 @@ ado get spaces --details
 !!! info
 
     More information on field-level querying is provided in the
-    [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
+    [searching the metastore](../resources/metastore.md#searching-the-metastore)
     section
 
 ```shell
@@ -806,9 +750,7 @@ Where:
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the
   resource. This flag can be specified multiple times (even in conjunction with
-  `-l` to further filter results). More information is provided in the
-  [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
-  section.
+  `-l` to further filter results).
 - By using (optionally multiple times) the `--label` (or `-l`) flag, users can
   restrict the resources returned by means of the labels set in the resource's
   metadata. Labels must be specified in the `key=value` format. This flag can be
@@ -866,8 +808,8 @@ ado show summary space -l issue=123 -o csv
 !!! info
 
     More information on field-level querying is provided in the
-    [Using the field-level querying functionality](#using-the-field-level-querying-functionality)
-    section
+    [searching the metastore](../resources/metastore.md#searching-the-metastore)
+     section
 
 ```shell
 ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["granite-7b-base"]}}'

@@ -11,6 +11,7 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     ERROR,
     HINT,
+    INFO,
     WARN,
     console_print,
 )
@@ -67,6 +68,13 @@ def get_actuator(parameters: AdoGetCommandParameters):
 
         for actuator_id in actuator_identifiers:
             catalog = registry.catalogForActuatorIdentifier(actuator_id)
+            if not catalog.experiments:
+                console_print(
+                    f"{INFO}Actuator {actuator_id} has been omitted as it does not provide any experiment.",
+                    stderr=True,
+                )
+                continue
+
             data.extend(
                 [
                     actuator_id,

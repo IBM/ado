@@ -501,7 +501,9 @@ class DiscoverySpace:
         ]
 
     def matchingEntities(self):
-        """Returns all entities in the sample store that are consistent with the receiver
+        """Returns all entities in the sample store that match the space
+
+        Note: They do not have to have any measurements from the measurement space
 
         If
         - ExplicitEntitySpace defined -> filter on the space
@@ -573,14 +575,28 @@ class DiscoverySpace:
     def matchingEntitiesTable(
         self,
         property_type: PropertyFormatType = "observed",
-        virtualPropertyIdentifiers=None,
+        virtualPropertyIdentifiers: list[str] | None = None,
         aggregationMethod: (
             orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
     ) -> "DataFrame":
-        """Returns a dataframe containing entities in the sample store with at least one measured property
+        """Returns a dataframe containing entities in the sample store that match the space definition.
 
-        And that are compatible with the space definition"""
+        Notes:
+        Only measurements that match the measurement space are output in the table
+
+        The entities must have measurements from at least one of the experiments in the measurement space.
+        This means that entities that match the entity-space but have no measurements from the measurement
+        space are not output in the table
+
+        Parameters:
+            property_type: Controls if observed or target names are used to label properties
+            virtualPropertyIdentifiers: An optional list of virtual property identifiers.
+                These will replace the underlying property in the table
+            aggregationMethod: Controls how to handle properties with multiple values (where
+            no virtual property identifier is associated with them by previous parameter).
+                By default, all values will be returned.
+        """
 
         from pandas import DataFrame
 
@@ -594,6 +610,9 @@ class DiscoverySpace:
                     )
                     for e in self.matchingEntities()
                     if len(e.observedPropertyValues) > 0
+                    and not set(self.measurementSpace.experimentReferences).isdisjoint(
+                        set(e.experimentReferences)
+                    )
                 ]
             )
         if property_type == "target":

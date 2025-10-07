@@ -791,3 +791,21 @@ def test_domain_values():
     d2 = PropertyDomain(interval=0.1, domainRange=[0.1, 0.4])
 
     assert d1.domain_values == d2.domain_values
+
+    # Test continuous variables raise ValueError when domain_values is called
+    with pytest.raises(
+        ValueError,
+        match="Cannot generate domain values for continuous or unknown variables",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ).domain_values
+
+    # Test unknown variables raise ValueError when domain_values is called
+    with pytest.raises(
+        ValueError,
+        match="Cannot generate domain values for continuous or unknown variables",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+        ).domain_values

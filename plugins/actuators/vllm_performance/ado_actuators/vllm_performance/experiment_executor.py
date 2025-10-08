@@ -22,7 +22,7 @@ from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
     VLLMDtype,
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
-    execute_benchmark,
+    execute_random_benchmark,
 )
 from ray.actor import ActorHandle
 
@@ -33,7 +33,6 @@ from orchestrator.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
     dict_to_measurements,
-    get_experiment_input_values,
 )
 
 logger = logging.getLogger(__name__)
@@ -229,7 +228,7 @@ def run_resource_and_workload_experiment(
         # - One set of values will be retrieved from the Entity
         # - If the experiment was parameterizable another set may be retrieved from the Experiment
 
-        values = get_experiment_input_values(experiment=experiment, entity=entity)
+        values = experiment.propertyValuesFromEntity(entity=entity)
         print(
             f"Values for entity {entity.identifier} and experiment {experiment.identifier} "
             f"experiment type is {type(experiment)} are {json.dumps(values)}"
@@ -279,10 +278,9 @@ def run_resource_and_workload_experiment(
                 start = time.time()
                 result = None
                 try:
-                    result = execute_benchmark(
+                    result = execute_random_benchmark(
                         base_url=base_url,
                         model=values.get("model"),
-                        data_set=values.get("dataset"),
                         interpreter=actuator_parameters.interpreter,
                         num_prompts=int(values.get("num_prompts")),
                         request_rate=request_rate,
@@ -290,6 +288,9 @@ def run_resource_and_workload_experiment(
                         hf_token=actuator_parameters.hf_token,
                         benchmark_retries=actuator_parameters.benchmark_retries,
                         retries_timeout=actuator_parameters.retries_timeout,
+                        number_input_tokens=int(values.get("number_input_tokens")),
+                        max_output_tokens=int(values.get("max_output_tokens")),
+                        burstiness=float(values.get("burstiness")),
                     )
                     print(f"benchmark executed in {time.time() - start} sec")
                 except Exception as e:
@@ -363,7 +364,7 @@ def run_workload_experiment(
         # - One set of values will be retrieved from the Entity
         # - If the experiment was parameterizable another set may be retrieved from the Experiment
 
-        values = get_experiment_input_values(experiment=experiment, entity=entity)
+        values = experiment.propertyValuesFromEntity(entity=entity)
         print(
             f"Values for entity {entity.identifier} and experiment {experiment.identifier} "
             f"experiment type is {type(experiment)} are {json.dumps(values)}"
@@ -380,10 +381,9 @@ def run_workload_experiment(
         error = None
         measured_values = []
         try:
-            result = execute_benchmark(
+            result = execute_random_benchmark(
                 base_url=values.get("endpoint"),
                 model=values.get("model"),
-                data_set=values.get("dataset"),
                 interpreter=actuator_parameters.interpreter,
                 num_prompts=int(values.get("num_prompts")),
                 request_rate=request_rate,
@@ -391,6 +391,9 @@ def run_workload_experiment(
                 hf_token=actuator_parameters.hf_token,
                 benchmark_retries=actuator_parameters.benchmark_retries,
                 retries_timeout=actuator_parameters.retries_timeout,
+                number_input_tokens=int(values.get("number_input_tokens")),
+                max_output_tokens=int(values.get("max_output_tokens")),
+                burstiness=float(values.get("burstiness")),
             )
             print(f"benchmark executed in {time.time() - start} sec")
         except Exception as e:

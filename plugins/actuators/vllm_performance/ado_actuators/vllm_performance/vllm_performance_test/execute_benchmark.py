@@ -23,6 +23,9 @@ def execute_benchmark(
     hf_token: str | None = None,
     benchmark_retries: int = 3,
     retries_timeout: int = 5,
+    data_set_path: str | None = None,
+    custom_args: dict[str, Any] | None = None,
+    burstiness: float = 1,
 ) -> dict[str, Any]:
     """
     Execute benchmark
@@ -36,6 +39,9 @@ def execute_benchmark(
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
+    :param data_set_path: path to the dataset
+    :param custom_args: custom arguments to pass to the benchmark.
+    keys are vllm benchmark arguments. values are the values to pass to the arguments
     :return: results dictionary
     """
     print(f"executing benchmark, invoking service at {base_url} with the parameters: ")
@@ -60,12 +66,20 @@ def execute_benchmark(
         f"vllm bench serve --backend openai --base-url {base_url} --dataset-name {data_set} "
         f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
+        f"--burstiness {burstiness} "
     )
+
+    if data_set_path is not None:
+        request += f"--dataset-path {data_set_path} "
     if request_rate is not None:
         request += f"--request-rate {request_rate!s} "
     if max_concurrency is not None:
         request += f"--max-concurrency {max_concurrency!s}"
+    if custom_args is not None:
+        for key, value in custom_args.items():
+            request += f"{key} {value!s} "
     timeout = retries_timeout
+
     for i in range(benchmark_retries):
         try:
             subprocess.check_call(request, shell=True)

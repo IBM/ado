@@ -103,11 +103,11 @@ consider:
 
 - [Tuning Configuration](#tune-config): general optimization parameters
   - This includes specific
-    [Optimizer Parameters](#optimizer-parameters-search_algparams)
+       [Optimizer Parameters](#optimizer-parameters-search_algparams)
 - [Runtime Configuration](#run-config): parameters related to RayTune, for
   example where its stores data
   - This includes the [Stopper Configuration](#stoppers) that determines if an
-    optimization should stop
+       optimization should stop
 - [Orchestrator Configuration](#orchestrator-config): parameters related to
   `ado`
 

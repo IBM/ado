@@ -387,18 +387,45 @@ class PropertyDomain(pydantic.BaseModel):
             return True
 
         if self.variableType != otherDomain.variableType:
-            # Unless
-            # A_ this domain is discrete and the other is continuous OR
-            # B_ the other domain is unknown variable type
-            # NOTE: If this domain is UNKNOWN it can't be a sub-domain of any non UNKNOWN variable
-            # they can't be subdomains
+
             if otherDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
                 # We can return immediately as there is nothing else we can do with UNKNOWN
                 return True
-            if not (
-                self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+
+            # Variables not of same type cannot be subdomains in the following situations
+            # A_ this domain is unknown and the other is not-unknown
+            # B_ this domain is categorical and the other domain is discrete or binary (you can't create a categorical domain that could be a discrete domain or binary domain)
+            # C_ this domain is continuous and the other is discrete/categorical/binary
+
+            # Note: binary/discrete could be subdomains of categorical if categorical mixes numbers and strings
+            # e.g. binary is a subdomain of [True, False, "George"]
+
+            # A
+            if (
+                self.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+                and otherDomain.variableType != VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+            ):
+                return False
+
+            # B
+            if (
+                otherDomain.variableType
+                in [
+                    VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                    VariableTypeEnum.BINARY_VARIABLE_TYPE,
+                ]
+            ) and self.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
+                return False
+
+            # C
+            if (
+                self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
                 and otherDomain.variableType
-                == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+                in [
+                    VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+                    VariableTypeEnum.BINARY_VARIABLE_TYPE,
+                    VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                ]
             ):
                 return False
 
@@ -408,8 +435,10 @@ class PropertyDomain(pydantic.BaseModel):
             o = set(otherDomain.values)
 
             # The receiver is a subdomain if all its values are in otherDomain values
-            # i.e. we can check this by computing the set different
+            # (Note the case where otherDomain is discrete/binary is excluded above)
+            # i.e. we can check this by computing the set difference
             retval = len(s.difference(o)) == 0
+
         elif self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             # If the other domain has no range then the receiver is a subdomain
             if not otherDomain.domainRange:
@@ -489,6 +518,30 @@ class PropertyDomain(pydantic.BaseModel):
                 retval = bool(
                     min(self.domainRange) >= min(otherDomain.domainRange)
                     and max(self.domainRange) <= max(otherDomain.domainRange)
+                )
+        elif (
+            self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+            and otherDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+        ):
+            # We are a subdomain of binary domain if our values are [0,1], [1], or [0]
+            # AND we have less than 3 values
+            retval = all(x in [0, 1] for x in self.domain_values) and self.size <= 2
+        elif self.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+            if otherDomain.variableType in [
+                VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+            ]:
+                retval = all(
+                    x in otherDomain.domain_values for x in [0, 1, True, False]
+                )
+            elif otherDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+                retval = (
+                    (
+                        max(otherDomain.domainRange) > 1
+                        and min(otherDomain.domainRange) <= 0
+                    )
+                    if otherDomain.domainRange
+                    else True
                 )
 
         return retval

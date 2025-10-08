@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+metadata:
+  name: randomwalk
 spaces:
   - space-e9b432-2963a5
 actuatorConfigurationIdentifiers:
@@ -12,5 +13,5 @@ operation:
     numberEntities: all
     batchSize: 2
     samplerConfig:
-      mode: 'sequential'
+      mode: 'random'
       samplerType: 'generator'

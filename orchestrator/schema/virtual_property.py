@@ -7,9 +7,11 @@ import numpy as np
 import pydantic
 from typing_extensions import Self
 
-from orchestrator.schema.observed_property import ObservedProperty
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
 from orchestrator.schema.property_value import PropertyValue
-from orchestrator.schema.reference import ExperimentReference
 
 
 class PropertyAggregationMethodEnum(enum.Enum):
@@ -117,25 +119,27 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
         return f"{self.baseObservedProperty.targetProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
-    def aggregate(self, values: list) -> PropertyValue:
+    def aggregate(self, values: list) -> "VirtualObservedPropertyValue":
         """
-        Aggregate a list of values and return a PropertyValue object.
+        Aggregate a list of values and return a VirtualObservedPropertyValue object.
 
         Parameters:
         values (typing.List): A list of values to be aggregated.
 
         Returns:
-        PropertyValue: A PropertyValue object containing the aggregated value and uncertainty.
+        VirtualObservedPropertyValue: A VirtualObservedPropertyValue object containing the aggregated value and uncertainty.
 
         Raises:
         ValueError: If values is empty or none.
         """
         value, uncertainty = self.aggregationMethod.function(values)
-        return PropertyValue(property=self, value=value, uncertainty=uncertainty)
+        return VirtualObservedPropertyValue(
+            property=self, value=value, uncertainty=uncertainty
+        )
 
     def aggregate_from_observed_properties(
-        self, observed_property_values: list[PropertyValue]
-    ) -> PropertyValue:
+        self, observed_property_values: list[ObservedPropertyValue]
+    ) -> "VirtualObservedPropertyValue":
         """
         Aggregate values from observed property values.
 
@@ -211,5 +215,8 @@ class VirtualObservedProperty(pydantic.BaseModel):
         return virtual_observed_properties
 
 
-PropertyValue.model_rebuild()
-ExperimentReference.model_rebuild()
+class VirtualObservedPropertyValue(PropertyValue):
+
+    property: VirtualObservedProperty = pydantic.Field(
+        description="The ConstitutiveProperty with the value"
+    )

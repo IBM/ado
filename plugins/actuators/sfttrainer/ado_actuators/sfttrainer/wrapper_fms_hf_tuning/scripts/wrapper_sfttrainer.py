@@ -214,7 +214,7 @@ class CustomAimCallback(AimCallback):
 
         # VV: When auto_stop_method = WARMUP_60S_STABLE_120S_OR_10_STEPS, this ivar will (eventually) be the
         # index of the first optimization step that follows the WARMUP phase.
-        self._post_warmup_optimization_step_index: int | None = None
+        self._warmup_steps: int | None = None
         self._optimization_step_durations = []
         self._auto_stop_method = auto_stop_method
 
@@ -302,13 +302,13 @@ class CustomAimCallback(AimCallback):
                 )
 
                 if gathered_enough:
-                    self._post_warmup_optimization_step_index = post_warmup_step_idx
+                    self._warmup_steps = post_warmup_step_idx
                     print(
                         "Triggering experiment to stop after running for",
                         running_for,
                         f"seconds due to auto_stop_method={self._auto_stop_method}.",
-                        "Post warmup step index is",
-                        post_warmup_step_idx,
+                        "Warmup steps were",
+                        self._warmup_steps,
                     )
                     control.should_training_stop = True
             elif self._auto_stop_method is not None:
@@ -368,11 +368,9 @@ class CustomAimCallback(AimCallback):
 
                 skip_first_system_metrics, warmup_seconds = None, None
 
-                if self._post_warmup_optimization_step_index:
+                if self._warmup_steps:
                     warmup_seconds = sum(
-                        self._optimization_step_durations[
-                            : self._post_warmup_optimization_step_index
-                        ]
+                        self._optimization_step_durations[: self._warmup_steps]
                     )
 
                     skip_first_system_metrics = int(
@@ -438,7 +436,7 @@ class CustomAimCallback(AimCallback):
                             "world_rank": os.environ.get("RANK", "0"),
                             "world_size": os.environ.get("WORLD_SIZE", "1"),
                             "training_steps": CustomAimCallback.training_steps,
-                            "post_warmup_index_for_stable_properties": self._post_warmup_optimization_step_index,
+                            "warmup_steps": self._warmup_steps,
                             "warmup_seconds": warmup_seconds,
                         },
                         f,

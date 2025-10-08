@@ -6,7 +6,10 @@ import typing
 import pytest
 
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.property import AbstractProperty, ConstitutiveProperty
+from orchestrator.schema.property import (
+    AbstractPropertyDescriptor,
+    ConstitutiveProperty,
+)
 
 
 @pytest.fixture
@@ -15,8 +18,10 @@ def target_property_list() -> list[typing.AnyStr]:
 
 
 @pytest.fixture
-def abstract_properties(target_property_list: list[typing.AnyStr]):
-    return [AbstractProperty(identifier=t) for t in target_property_list]
+def abstract_properties(
+    target_property_list: list[typing.AnyStr],
+) -> list[AbstractPropertyDescriptor]:
+    return [AbstractPropertyDescriptor(identifier=t) for t in target_property_list]
 
 
 @pytest.fixture

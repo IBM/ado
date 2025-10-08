@@ -15,7 +15,8 @@ from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperime
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property import AbstractProperty
+from orchestrator.schema.observed_property import ObservedPropertyValue
+from orchestrator.schema.property import AbstractPropertyDescriptor
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
@@ -118,7 +119,7 @@ class MockActuator(ActuatorBase):
                 for op in experiment.observedProperties:
                     self.log.debug(f"Creating mock measured value of {op} for {entity}")
                     # Create fake values for each property in the experiment
-                    value = orchestrator.schema.property_value.PropertyValue(
+                    value = ObservedPropertyValue(
                         value=random.randint(0, 1000),
                         property=op,
                         valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
@@ -164,12 +165,12 @@ class MockActuator(ActuatorBase):
                 "test-experiment": Experiment(
                     identifier="test-experiment",
                     actuatorIdentifier="mock",
-                    targetProperties=[AbstractProperty(identifier="score")],
+                    targetProperties=[AbstractPropertyDescriptor(identifier="score")],
                 ),
                 "test-experiment-two": Experiment(
                     identifier="test-experiment-two",
                     actuatorIdentifier="mock",
-                    targetProperties=[AbstractProperty(identifier="score")],
+                    targetProperties=[AbstractPropertyDescriptor(identifier="score")],
                 ),
             },
         )

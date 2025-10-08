@@ -1,22 +1,30 @@
 [build-system]
-requires = ["setuptools", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true # This is on by default, including it for clarity
-
-[tool.setuptools_scm]
-root = "../../../"
-
-[tool.setuptools.packages.find]
-where = ["."]
-exclude = ["build"]
-
-[tool.setuptools.package-data]
-# Note: This is optional. If you don't specify it, every non python file that's in SCM will be added
-_ = ["*/objective_experiments.yaml", # Required: The file that describes the actuator classes the plugin provides
-                        ]
 [project]
 name="ml_multi_cloud_custom_experiments"
 description="Custom experiments for ml multi cloud example"
 dynamic = ["version"]
+
+[tool.hatch.build]
+include = [
+    "ado_actuators/ml_multi_cloud_custom_experiments/**",
+]
+
+[tool.hatch.build.targets.wheel]
+only-include = [
+    "ado_actuators/ml_multi_cloud_custom_experiments"
+]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+fallback-version = "0.0.0"
+tagged-metadata = true
+dirty = true
+bump = true

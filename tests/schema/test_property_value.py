@@ -8,6 +8,7 @@ import pytest
 
 from orchestrator.schema.property import ConstitutiveProperty
 from orchestrator.schema.property_value import (
+    ConstitutivePropertyValue,
     PropertyValue,
     ValueTypeEnum,
 )
@@ -43,7 +44,7 @@ def test_value_example(
 
 
 @pytest.fixture(params=[int, float, str, bytes, list, type(None)])
-def property_value(request) -> tuple[PropertyValue, type]:
+def property_value(request) -> tuple[ConstitutivePropertyValue, type]:
     """Returns PropertyValue instance of different types.
 
     Note: Does not set the valueType field explicitly in order to test that it is detected correctly
@@ -51,20 +52,20 @@ def property_value(request) -> tuple[PropertyValue, type]:
 
     prop = ConstitutiveProperty(identifier="cons_prop")
     if request.param is int:
-        val = PropertyValue(value=3, property=prop)
+        val = ConstitutivePropertyValue(value=3, property=prop.descriptor())
     elif request.param is float:
-        val = PropertyValue(value=3.0, property=prop)
+        val = ConstitutivePropertyValue(value=3.0, property=prop.descriptor())
     elif request.param is str:
-        val = PropertyValue(value="string", property=prop)
+        val = ConstitutivePropertyValue(value="string", property=prop.descriptor())
     elif request.param is bytes:
-        val = PropertyValue(
+        val = ConstitutivePropertyValue(
             value=b"PNG\r89\n\x1a\n\x00\x00",
-            property=prop,
+            property=prop.descriptor(),
         )
     elif request.param is list:
-        val = PropertyValue(value=[0, "a", 10], property=prop)
+        val = ConstitutivePropertyValue(value=[0, "a", 10], property=prop.descriptor())
     elif request.param is type(None):
-        val = PropertyValue(value=None, property=prop)
+        val = ConstitutivePropertyValue(value=None, property=prop.descriptor())
     else:
         raise ValueError(f"Unexpected param {request.param}")
 
@@ -86,7 +87,7 @@ def test_property_value_preserves_value_type(
 
 
 def test_property_value_preserves_value_type_after_json_serialization(
-    property_value: tuple[PropertyValue, type],
+    property_value: tuple[ConstitutivePropertyValue, type],
 ):
     """Test that PropertyValue preserved the type of the value added to it after it is dumped as json and re-read
 
@@ -97,7 +98,7 @@ def test_property_value_preserves_value_type_after_json_serialization(
     val, value_type = property_value
 
     ser = val.model_dump_json()
-    dser = PropertyValue.model_validate(json.loads(ser))
+    dser = ConstitutivePropertyValue.model_validate(json.loads(ser))
 
     assert isinstance(
         dser.value, value_type
@@ -105,7 +106,7 @@ def test_property_value_preserves_value_type_after_json_serialization(
 
 
 def test_property_value_preserves_value_type_after_serialization(
-    property_value: tuple[PropertyValue, type],
+    property_value: tuple[ConstitutivePropertyValue, type],
 ):
     """Test that PropertyValue preserved the type of the value added to it after it is dumped and re-read
 
@@ -114,7 +115,7 @@ def test_property_value_preserves_value_type_after_serialization(
     val, value_type = property_value
 
     ser = val.model_dump()
-    dser = PropertyValue.model_validate(ser)
+    dser = ConstitutivePropertyValue.model_validate(ser)
 
     assert isinstance(
         dser.value, value_type
@@ -126,7 +127,9 @@ def test_property_value_checks_value_type(value_example, test_value_example):
 
     prop = ConstitutiveProperty(identifier="cons_prop")
     example_type, example_value = value_example
-    PropertyValue(value=example_value, property=prop, valueType=example_type)
+    ConstitutivePropertyValue(
+        value=example_value, property=prop.descriptor(), valueType=example_type
+    )
 
     # Check against the other example values.
     # Values with the same type are fine, values of different types should fail
@@ -138,7 +141,9 @@ def test_property_value_checks_value_type(value_example, test_value_example):
         #
         # Passing str value with NUMERIC_VALUE_TYPE will change it to STRING_VALUE_TYPE
         if type(test_value) is str and example_type is ValueTypeEnum.NUMERIC_VALUE_TYPE:
-            PropertyValue(value=test_value, property=prop, valueType=example_type)
+            ConstitutivePropertyValue(
+                value=test_value, property=prop.descriptor(), valueType=example_type
+            )
             pytest.xfail(
                 "Automatically changing value type from NUMERIC_VALUE_TYPE to STRING_VALUE_TYPE to match string value."
                 " This is being allowed temporarily but should fail"
@@ -147,7 +152,9 @@ def test_property_value_checks_value_type(value_example, test_value_example):
             type(test_value) is list
             and example_type is ValueTypeEnum.NUMERIC_VALUE_TYPE
         ):
-            PropertyValue(value=test_value, property=prop, valueType=example_type)
+            ConstitutivePropertyValue(
+                value=test_value, property=prop.descriptor(), valueType=example_type
+            )
             pytest.xfail(
                 "Automatically changing value type from NUMERIC_VALUE_TYPE to VECTOR_VALUE_TYPE to match list value."
                 " This is being allowed temporarily but should fail"
@@ -155,20 +162,26 @@ def test_property_value_checks_value_type(value_example, test_value_example):
         elif type(test_value) is str and example_type is ValueTypeEnum.BLOB_VALUE_TYPE:
             # strings with BLOB_VALUE_TYPE are ALLOWED to be converted to bytes
             # i.e. this is not the same case as previous two
-            PropertyValue(value=test_value, property=prop, valueType=example_type)
+            ConstitutivePropertyValue(
+                value=test_value, property=prop.descriptor(), valueType=example_type
+            )
         else:
             with pytest.raises(pydantic.ValidationError):
-                PropertyValue(value=test_value, property=prop, valueType=example_type)
+                ConstitutivePropertyValue(
+                    value=test_value, property=prop.descriptor(), valueType=example_type
+                )
     else:
-        PropertyValue(value=test_value, property=prop, valueType=example_type)
+        ConstitutivePropertyValue(
+            value=test_value, property=prop.descriptor(), valueType=example_type
+        )
 
 
 def test_string_with_bytes_type_converted_to_blob():
 
     prop = ConstitutiveProperty(identifier="cons_prop")
-    val = PropertyValue(
+    val = ConstitutivePropertyValue(
         value="PNG\r89\n\x1a\n\x00\x00",
-        property=prop,
+        property=prop.descriptor(),
         valueType=ValueTypeEnum.BLOB_VALUE_TYPE,
     )
 
@@ -202,7 +215,7 @@ def test_uncertain_property_value(property_value):
     val, _value_type = property_value
     assert val.isUncertain() is False
 
-    uncertain_val = PropertyValue(
+    uncertain_val = ConstitutivePropertyValue(
         uncertainty=True, **val.model_dump(exclude_defaults=True)
     )
     assert uncertain_val.isUncertain() is True

@@ -8,7 +8,7 @@ import ray
 
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.observed_property import ObservedPropertyValue
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import ValidMeasurementResult
 from orchestrator.utilities.support import get_experiment_input_values
@@ -58,7 +58,7 @@ def run_experiment(
 
         # Augment the values returned by my_experiment to the structure used by ado
         measuredValues = [
-            PropertyValue(
+            ObservedPropertyValue(
                 value=identifier,
                 property=experiment.observedPropertyForTargetIdentifier(identifier),
             )

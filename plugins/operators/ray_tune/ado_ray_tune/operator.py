@@ -54,7 +54,8 @@ from orchestrator.schema.entityspace import EntitySpaceRepresentation
 from orchestrator.schema.measurementspace import (
     MeasurementSpace,
 )
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.property_value import ConstitutivePropertyValue
+from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import ValidMeasurementResult
 from orchestrator.schema.virtual_property import VirtualObservedProperty
@@ -114,10 +115,12 @@ def run_dependent_experiments(
     return request_ids
 
 
-def retrieve_results(entity, experimentReference) -> dict[str, Any]:
+def retrieve_results(
+    entity: Entity, experimentReference: ExperimentReference
+) -> dict[str, Any]:
     property_values = entity.propertyValuesFromExperimentReference(
         experimentReference=experimentReference
-    )  # type: List[PropertyValue]
+    )
 
     return {p.property.targetProperty.identifier: p.value for p in property_values}
 
@@ -174,7 +177,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     measurement_space = trainable_params.measurement_space
     measurement_queue = ray.get(trainable_params.state.measurement_queue.remote())
     property_values = [
-        PropertyValue(value=config[cp.identifier], property=cp)
+        ConstitutivePropertyValue(value=config[cp.identifier], property=cp.descriptor())
         for cp in entity_space.constitutiveProperties
     ]
     has_dependent_experiments = len(measurement_space.dependentExperiments) > 0
@@ -356,14 +359,14 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     log.info(f"Measurement properties obtained: {allResults}")
     log.debug("FINISHED PHASE TWO")
 
-    # There may have been multiple results for some properties
-    # The trainable can only return one
-    # The following code either returns the last available value or if the metric is virtual aggregates it
+    # There may have been multiple results for some properties.
+    # The trainable can only return one.
+    # The following code either returns the last available value or if the metric is virtual, aggregates it.
     # It also handles the case where no value of target metric is available
     final_results = {}
     virtual_property: VirtualObservedProperty | None = None
     # Check if we have a result for the target trainable metric.
-    # It will be None if target_metric is a virtual metric or somehow it's not a valid identifier
+    # It will be None if target_metric is a virtual metric, or somehow it's not a valid identifier
     if not allResults.get(trainable_params.target_metric):
         # Check if this is a virtual metric
         log.debug(

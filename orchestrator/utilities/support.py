@@ -7,7 +7,8 @@ from typing import Any, NamedTuple
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.measurementspace import MeasurementSpace
-from orchestrator.schema.property_value import PropertyValue, ValueTypeEnum
+from orchestrator.schema.observed_property import ObservedPropertyValue
+from orchestrator.schema.property_value import ValueTypeEnum
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import (
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 def dict_to_measurements(
     results: dict[str, Any],
     experiment: Experiment | ParameterizedExperiment,
-) -> list[PropertyValue]:
+) -> list[ObservedPropertyValue]:
     """
     Extracts the results for experiment from a dictionary of  measurements (property id:value pairs) and returns as PropertyValues
     :param results: dictionary of observation results
@@ -51,7 +52,7 @@ def dict_to_measurements(
         else:
             value_type = ValueTypeEnum.NUMERIC_VALUE_TYPE
         # build property value
-        property_value = PropertyValue(
+        property_value = ObservedPropertyValue(
             value=value,
             property=op,
             valueType=value_type,
@@ -63,7 +64,7 @@ def dict_to_measurements(
 # Create measurement result
 def create_measurement_result(
     identifier: str,
-    measurements: list[PropertyValue],
+    measurements: list[ObservedPropertyValue],
     reference: ExperimentReference,
     error: str | None = None,
 ) -> MeasurementResult:

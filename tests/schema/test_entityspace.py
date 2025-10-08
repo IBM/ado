@@ -13,8 +13,11 @@ from orchestrator.schema.measurementspace import (
     MeasurementSpace,
     MeasurementSpaceConfiguration,
 )
-from orchestrator.schema.property import AbstractProperty, ConstitutiveProperty
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.property import (
+    AbstractPropertyDescriptor,
+    ConstitutiveProperty,
+)
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 
 
 def test_entity_space_from_measurement_space(
@@ -55,14 +58,14 @@ def test_entity_space_compatibility_with_measurement_space():
     experiment_one = Experiment(
         identifier="experiment_one",
         actuatorIdentifier="test",
-        targetProperties=[AbstractProperty(identifier="throughput")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="throughput")],
         requiredProperties=(cp1, cp2),
     )
 
     experiment_two = Experiment(
         identifier="experiment_two",
         actuatorIdentifier="test",
-        targetProperties=[AbstractProperty(identifier="oom")],
+        targetProperties=[AbstractPropertyDescriptor(identifier="oom")],
         requiredProperties=(cp3, cp1),
     )
 
@@ -203,8 +206,8 @@ def test_entity_in_space(
     extraConstitutiveProperty = ConstitutiveProperty(
         propertyDomain=PropertyDomain(values=[1, 2, 3, 4]), identifier="extra_prop"
     )
-    extraConstitutivePropertyValue = PropertyValue(
-        value=2, property=extraConstitutiveProperty
+    extraConstitutivePropertyValue = ConstitutivePropertyValue(
+        value=2, property=extraConstitutiveProperty.descriptor()
     )
     newEntity = entity.model_copy(
         update={

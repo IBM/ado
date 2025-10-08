@@ -23,7 +23,10 @@ from orchestrator.metastore.base import (
 def show_operation_entities(parameters: AdoShowEntitiesCommandParameters):
 
     entities_type = "timeseries"
-    supported_property_formats = [AdoShowEntitiesSupportedPropertyFormats.OBSERVED]
+    supported_property_formats = [
+        AdoShowEntitiesSupportedPropertyFormats.OBSERVED,
+        AdoShowEntitiesSupportedPropertyFormats.TARGET,
+    ]
 
     if parameters.entities_property_format not in supported_property_formats:
         console_print(

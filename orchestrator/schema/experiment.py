@@ -12,13 +12,13 @@ from orchestrator.schema.observed_property import (
     ObservedProperty,
 )
 from orchestrator.schema.property import (
-    AbstractProperty,
-    ConcreteProperty,
+    AbstractPropertyDescriptor,
+    ConcretePropertyDescriptor,
     ConstitutiveProperty,
     MeasuredPropertyTypeEnum,
     Property,
 )
-from orchestrator.schema.property_value import PropertyValue
+from orchestrator.schema.property_value import ConstitutivePropertyValue, PropertyValue
 from orchestrator.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
@@ -49,9 +49,11 @@ class Experiment(pydantic.BaseModel):
         default={},
         description=""" Metadata about the experiment. Sufficient to track its source. Can be custom format per actuator""",
     )
-    targetProperties: list[AbstractProperty | ConcreteProperty] = pydantic.Field(
-        description="""The target properties this experiment aims to measure
+    targetProperties: list[AbstractPropertyDescriptor | ConcretePropertyDescriptor] = (
+        pydantic.Field(
+            description="""The target properties this experiment aims to measure
             (can be ConcreteProperty or AbstractProperty instances)"""
+        )
     )
     requiredProperties: tuple[ObservedProperty | ConstitutiveProperty, ...] = (
         pydantic.Field(
@@ -77,7 +79,7 @@ class Experiment(pydantic.BaseModel):
         frozen=True,
         description="""The optional properties this experiment can take as input. Must have default values specified in parameterization""",
     )
-    defaultParameterization: tuple[PropertyValue, ...] = pydantic.Field(
+    defaultParameterization: tuple[ConstitutivePropertyValue, ...] = pydantic.Field(
         validate_default=True,
         default=(),
         frozen=True,
@@ -111,7 +113,7 @@ class Experiment(pydantic.BaseModel):
         """
 
         targetProperties = [
-            AbstractProperty(identifier=t, propertyType=propertyType)
+            AbstractPropertyDescriptor(identifier=t, propertyType=propertyType)
             for t in targetProperties
         ]
         if requiredConstitutiveProperties is not None:
@@ -172,7 +174,9 @@ class Experiment(pydantic.BaseModel):
 
     @pydantic.field_validator("defaultParameterization")
     def validate_default_parameterization(
-        cls, value: list[PropertyValue], values: "pydantic.FieldValidationInfo"
+        cls,
+        value: list[ConstitutivePropertyValue],
+        values: "pydantic.FieldValidationInfo",
     ):
 
         if not value:
@@ -285,11 +289,15 @@ class Experiment(pydantic.BaseModel):
             p.breakable()
             p.breakable()
 
-    def isValidParameterization(self, parameterization: list[PropertyValue]):
+    def isValidParameterization(
+        self, parameterization: list[ConstitutivePropertyValue]
+    ):
         """Returns True if the list of values given by parameterization is valid, otherwise False"""
 
         try:
-            check_parameterization_validity(self.optionalProperties, parameterization)
+            check_parameterization_validity(
+                list(self.optionalProperties), parameterization
+            )
         except (ValueError, AssertionError) as error:
             print(error)
             retval = False
@@ -502,7 +510,9 @@ class Experiment(pydantic.BaseModel):
 
         return {op.experimentReference for op in self.requiredObservedProperties}
 
-    def valueForOptionalProperty(self, property_identifier: str) -> PropertyValue:
+    def valueForOptionalProperty(
+        self, property_identifier: str
+    ) -> ConstitutivePropertyValue:
         """Returns the parameterized value of the optional property property_identifier
 
         Raises:
@@ -612,7 +622,7 @@ class ParameterizedExperiment(Experiment):
     Note: The parameterization cannot be empty or have any values which are the same as default values
     """
 
-    parameterization: list[PropertyValue] = pydantic.Field(
+    parameterization: list[ConstitutivePropertyValue] = pydantic.Field(
         default=[],
         description="Values for optional properties",
     )
@@ -705,7 +715,9 @@ class ParameterizedExperiment(Experiment):
     @pydantic.model_validator(mode="after")
     def validate_parameterization(self):
 
-        check_parameterization_validity(self.optionalProperties, self.parameterization)
+        check_parameterization_validity(
+            list(self.optionalProperties), self.parameterization
+        )
 
         defaultParameterizationMap = {
             v.property.identifier: v for v in self.defaultParameterization
@@ -744,7 +756,9 @@ class ParameterizedExperiment(Experiment):
             parameterization=self.parameterization,
         )
 
-    def valueForOptionalProperty(self, property_identifier) -> PropertyValue:
+    def valueForOptionalProperty(
+        self, property_identifier
+    ) -> ConstitutivePropertyValue:
         """Returns the parameterized value of the optional property property_identifier
 
         Raises:

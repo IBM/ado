@@ -6,15 +6,19 @@ import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.schema.property import (
-    AbstractProperty,
-    ConcreteProperty,
+    AbstractPropertyDescriptor,
+    ConcretePropertyDescriptor,
+    Property,
 )
+from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.reference import ExperimentReference
 
 
 class ObservedProperty(pydantic.BaseModel):
-    targetProperty: AbstractProperty | ConcreteProperty = pydantic.Field(
-        description="The TargetProperty the receiver is an (attempted) observation of"
+    targetProperty: AbstractPropertyDescriptor | ConcretePropertyDescriptor = (
+        pydantic.Field(
+            description="The property the receiver is an (attempted) observation of"
+        )
     )
     experimentReference: ExperimentReference = pydantic.Field(
         description=" A reference to the experiment that produces measurements of this observed property"
@@ -24,6 +28,17 @@ class ObservedProperty(pydantic.BaseModel):
         description="Metadata on the instance of the measurement that observed this property",
     )
     model_config = ConfigDict(frozen=True)
+
+    @pydantic.field_validator("targetProperty", mode="before")
+    @classmethod
+    def convert_property_to_descriptor(cls, value):
+
+        # We allow instantiation with Property models and their subclass but they are converted
+        # to the equivalent descriptors
+        if isinstance(value, Property):
+            value = value.descriptor()
+
+        return value
 
     def __eq__(self, other):
         """Two properties are considered the same if they have the same identifier"""
@@ -46,3 +61,9 @@ class ObservedProperty(pydantic.BaseModel):
     @property
     def propertyType(self):
         return self.targetProperty.propertyType
+
+
+class ObservedPropertyValue(PropertyValue):
+    property: ObservedProperty = pydantic.Field(
+        description="The ObservedProperty with the value"
+    )

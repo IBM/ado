@@ -19,14 +19,17 @@ from orchestrator.core.samplestore.csv import (
     CSVSampleStoreDescription,
 )
 from orchestrator.core.samplestore.utils import initialize_sample_store_from_reference
-from orchestrator.schema.domain import VariableTypeEnum
+from orchestrator.schema.entity import Entity
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import (
-    AbstractProperty,
-    ConstitutiveProperty,
+    AbstractPropertyDescriptor,
+    ConstitutivePropertyDescriptor,
     Property,
 )
-from orchestrator.schema.property_value import PropertyValue, ValueTypeEnum
+from orchestrator.schema.property_value import (
+    ConstitutivePropertyValue,
+    ValueTypeEnum,
+)
 from orchestrator.schema.reference import ExperimentReference
 
 
@@ -282,10 +285,13 @@ def test_base_entity_with_constitutive_property_values(
 
     ents = ml_multi_cloud_csv_sample_store.entitiesWithConstitutivePropertyValues(
         [
-            PropertyValue(
-                value=0, property=ConstitutiveProperty(identifier="cpu_family")
+            ConstitutivePropertyValue(
+                value=0,
+                property=ConstitutivePropertyDescriptor(identifier="cpu_family"),
             ),
-            PropertyValue(value=3, property=ConstitutiveProperty(identifier="nodes")),
+            ConstitutivePropertyValue(
+                value=3, property=ConstitutivePropertyDescriptor(identifier="nodes")
+            ),
         ]
     )
 
@@ -295,7 +301,7 @@ def test_base_entity_with_constitutive_property_values(
 
 def test_csv_sample_store_type_parsing(ml_multi_cloud_csv_sample_store):
 
-    entity = ml_multi_cloud_csv_sample_store.entities[0]
+    entity: Entity = ml_multi_cloud_csv_sample_store.entities[0]
     for prop_id in ["cpu_family", "vcpu_size", "nodes", "provider"]:
         assert entity.valueForConstitutivePropertyIdentifier(
             prop_id
@@ -307,7 +313,7 @@ def test_csv_sample_store_type_parsing(ml_multi_cloud_csv_sample_store):
                 experimentIdentifier="benchmark_performance",
                 actuatorIdentifier="replay",
             ),
-            targetProperty=AbstractProperty(identifier=prop_id),
+            targetProperty=AbstractPropertyDescriptor(identifier=prop_id),
         )
         assert entity.valuesForObservedPropertyIdentifier(
             op.identifier
@@ -332,16 +338,8 @@ def test_csv_sample_store_type_parsing(ml_multi_cloud_csv_sample_store):
 
     values = entity.valuesForTargetProperty(Property(identifier="wallClockRuntime"))
     for v in values:
-        assert (
-            v.property.targetProperty.propertyDomain.variableType
-            == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
-        )
         assert v.valueType == ValueTypeEnum.NUMERIC_VALUE_TYPE
 
     values = entity.valuesForTargetProperty(Property(identifier="status"))
     for v in values:
-        assert (
-            v.property.targetProperty.propertyDomain.variableType
-            == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
-        )
         assert v.valueType == ValueTypeEnum.STRING_VALUE_TYPE

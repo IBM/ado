@@ -6,13 +6,10 @@ entitySpace:
   propertyDomain:
     values:  #You could have multiple endpoints here - or one endpoint that served multiple models
     - "http://localhost:28015"
-    variableType: UNKNOWN_VARIABLE_TYPE
-  propertyType: CONSTITUTIVE_PROPERTY_TYPE
 - identifier: model
   propertyDomain:
     values:
     - openai/gpt-oss-20b
-  propertyType: CONSTITUTIVE_PROPERTY_TYPE
 - identifier: request_rate
   propertyDomain:
     domainRange: [10,100]

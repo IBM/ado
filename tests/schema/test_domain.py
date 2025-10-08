@@ -482,6 +482,14 @@ def test_binary_property_is_subdomain_of_discrete():
     assert binaryPropertyDomain.isSubDomain(discretePropertyDomain)
     assert discretePropertyDomain.isSubDomain(binaryPropertyDomain)
 
+    # 1 is not included if range is [0,1] - closed upper bound
+    discretePropertyDomain = PropertyDomain(domainRange=[0, 1], interval=1)
+    assert not binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+    assert discretePropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    discretePropertyDomain = PropertyDomain(domainRange=[0, 2], interval=1)
+    assert binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+
     discretePropertyDomain = PropertyDomain(values=[0, 1, 2])
     assert binaryPropertyDomain.isSubDomain(discretePropertyDomain)
     assert not discretePropertyDomain.isSubDomain(binaryPropertyDomain)
@@ -814,3 +822,7 @@ def test_domain_values():
         PropertyDomain(
             variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
         ).domain_values
+
+    # Test 0 is in domain values of discrete var of range [0,1]
+    d = PropertyDomain(domainRange=[0, 1], interval=1)
+    assert d.domain_values == [0]

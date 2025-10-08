@@ -535,7 +535,7 @@ class PropertyDomain(pydantic.BaseModel):
             elif otherDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
                 retval = (
                     (
-                        max(otherDomain.domainRange) >= 1
+                        max(otherDomain.domainRange) > 1
                         and min(otherDomain.domainRange) <= 0
                     )
                     if otherDomain.domainRange

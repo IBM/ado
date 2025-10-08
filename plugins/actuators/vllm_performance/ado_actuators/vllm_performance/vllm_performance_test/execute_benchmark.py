@@ -96,6 +96,52 @@ def execute_benchmark(
     return get_results(f_name=f_name)
 
 
+def execute_random_benchmark(
+    base_url: str,
+    model: str,
+    num_prompts: int = 500,
+    request_rate: int | None = None,
+    max_concurrency: int | None = None,
+    hf_token: str | None = None,
+    benchmark_retries: int = 3,
+    retries_timeout: int = 5,
+    burstiness: float = 1,
+    number_input_tokens: int | None = None,
+    max_output_tokens: int | None = None,
+    interpreter: str = "python",
+) -> dict[str, Any]:
+    """
+    Execute benchmark with random dataset
+    :param base_url: url for vllm endpoint
+    :param model: model
+    :param data_set: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param hf_token: huggingface token
+    :param benchmark_retries: number of benchmark execution retries
+    :param retries_timeout: timeout between initial retry
+    :param input_token_length: length of input tokens
+    :param output_token_length: length of output tokens
+    :return: results dictionary
+    """
+    # Call execute_benchmark with the appropriate arguments
+    return execute_benchmark(
+        base_url=base_url,
+        model=model,
+        data_set="random",
+        interpreter=interpreter,
+        num_prompts=num_prompts,
+        request_rate=request_rate,
+        max_concurrency=max_concurrency,
+        hf_token=hf_token,
+        benchmark_retries=benchmark_retries,
+        retries_timeout=retries_timeout,
+        burstiness=burstiness,
+        custom_args={
+            "--random-input-len": number_input_tokens,
+            "--random-output-len": max_output_tokens,
+        },
+    )
+
+
 if __name__ == "__main__":
     results = execute_benchmark(
         interpreter="python3.10",

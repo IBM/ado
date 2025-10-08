@@ -525,13 +525,15 @@ class PropertyDomain(pydantic.BaseModel):
         ):
             # We are a subdomain of binary domain if our values are [0,1], [1], or [0]
             # AND we have less than 3 values
-            retval = all(x in [0, 1] for x in self.values) and len(self.values) <= 2
+            retval = all(x in [0, 1] for x in self.domain_values) and self.size <= 2
         elif self.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
             if otherDomain.variableType in [
                 VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
                 VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
             ]:
-                retval = all(x in otherDomain.values for x in [0, 1, True, False])
+                retval = all(
+                    x in otherDomain.domain_values for x in [0, 1, True, False]
+                )
             elif otherDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
                 retval = (
                     (

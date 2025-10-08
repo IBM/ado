@@ -13,6 +13,13 @@ performance_testing-full:
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
+    - identifier: 'request_rate'
+      metadata:
+        description: "(benchmark) The number of requests to send per second"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [-1,1000]
+        interval: 1  # -1 means send all requests at time 0
   optionalProperties:
     - identifier: 'num_prompts'
       metadata:
@@ -21,13 +28,6 @@ performance_testing-full:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1,10001]
         interval: 1
-    - identifier: 'request_rate'
-      metadata:
-        description: "(benchmark) The number of requests to send per second"
-      propertyDomain:
-        variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [-1,1000]
-        interval: 1  # -1 means send all requests at time 0
     - identifier: 'max_concurrency'
       metadata:
         description: "(benchmark) The maximum number of concurrent requests to send"
@@ -35,12 +35,27 @@ performance_testing-full:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ -1, 500 ] # -1 means no concurrency control
         interval: 1
-    - identifier: 'dataset'
+    - identifier: 'burstiness'
       metadata:
-        description: "The dataset to use to generate requests - only random is currently supported"
+        description: "(benchmark) The burstiness of the requests - 1.0 is a Poisson distribution with rate = request_rate. Others are gamma distributions with lambda = request_rate and shape = burstiness."
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "random"]
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [ 0, 10 ]
+        interval: 1
+    - identifier: 'number_input_tokens'
+      metadata:
+        description: "(benchmark) The number of input tokens to send per request"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [ 1, 128000 ]
+        interval: 1
+    - identifier: 'max_output_tokens'
+      metadata:
+        description: "(benchmark) The maximum number of output tokens to generate per request"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [ 1, 10000 ]
+        interval: 1
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
@@ -123,11 +138,17 @@ performance_testing-full:
         identifier: 'num_prompts'
       value: 500
     - property:
-        identifier: 'request_rate'
-      value: -1
-    - property:
         identifier: 'max_concurrency'
       value: -1
+    - property:
+        identifier: 'burstiness'
+      value: 1.0
+    - property:
+        identifier: 'number_input_tokens'
+      value: 1024
+    - property:
+        identifier: 'max_output_tokens'
+      value: 128
     - property:
         identifier: 'gpu_memory_utilization'
       value: .9
@@ -146,9 +167,6 @@ performance_testing-full:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
-    - property:
-        identifier: 'dataset'
-      value: "random"
   # measurements
   targetProperties:
     - identifier: "model_id"
@@ -207,6 +225,13 @@ performance_testing-endpoint:
         description: 'The endpoint(s) to test'
       propertyDomain:
         variableType: "UNKNOWN_VARIABLE_TYPE"
+    - identifier: 'request_rate'
+      metadata:
+        description: "The number of requests to send per second"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [-1,1000]
+        interval: 1  # -1 means send all requests at time 0
   optionalProperties:
     - identifier: 'num_prompts'
       metadata:
@@ -215,14 +240,7 @@ performance_testing-endpoint:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1,10001]
         interval: 1
-    - identifier: 'request_rate'
-      metadata:
-        description: "The number of requests to send per second"
-      propertyDomain:
-        variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [-1,1000]
-        interval: 1  # -1 means send all requests at time 0
-    - identifier: 'input_tokens'
+    - identifier: 'number_input_tokens'
       metadata:
         description: "The number of input tokens to send per request"
       propertyDomain:
@@ -236,6 +254,13 @@ performance_testing-endpoint:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ 1, 10000 ]
         interval: 1  # -1 means send all requests at time 0
+    - identifier: 'burstiness'
+      metadata:
+        description: "The burstiness of the requests - 1.0 is a Poisson distribution with rate = request_rate. Others are gamma distributions with lambda = request_rate and shape = burstiness."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [ 0, 10 ]
+        interval: 1
     - identifier: 'max_concurrency'
       metadata:
         description: "The maximum number of concurrent requests to send"
@@ -243,25 +268,22 @@ performance_testing-endpoint:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ -1, 500 ] # -1 means no concurrency control
         interval: 1
-    - identifier: 'dataset'
-      metadata:
-        description: "The dataset to use to generate requests - only random is currently supported"
-      propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "random"]
   defaultParameterization:
-    - value: 500
+    - value: 1000
       property:
         identifier: 'num_prompts'
     - value: -1
       property:
-        identifier: 'request_rate'
-    - value: -1
-      property:
         identifier: 'max_concurrency'
-    - value: "random"
+    - value: 1.0
       property:
-        identifier: 'dataset'
+        identifier: 'burstiness'
+    - value: 1024
+      property:
+        identifier: 'number_input_tokens'
+    - value: 128
+      property:
+        identifier: 'max_output_tokens'
   # measurements
   targetProperties:
     - identifier: "model_id"

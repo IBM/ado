@@ -543,8 +543,13 @@ def test_binary_property_is_subdomain_of_continuous():
     assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
 
     continuousPropertyDomain = PropertyDomain(domainRange=[0, 1])
-    assert binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
+    # Since the range is closed on upper value 1 is not included
+    assert not binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
     assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    # Now one is included
+    continuousPropertyDomain = PropertyDomain(domainRange=[0, 1.1])
+    assert binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
 
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 0])
     assert not binaryPropertyDomain.isSubDomain(continuousPropertyDomain)

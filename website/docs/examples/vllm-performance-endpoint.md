@@ -11,6 +11,12 @@
 > **Prerequisites**
 >
 > - An endpoint serving a LLM via the OpenAI API
+> - The `ray_tune` operator with hyperopt installed
+>
+> ```commandline
+> pip install ado-ray-tune
+> pip install hyperopt
+> ```
 
 ## The scenario
 

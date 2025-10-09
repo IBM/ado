@@ -2,17 +2,20 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 ## Overview
 
-### What does the RandomWalk operator do?
+> [!TIP]
+> The `random_walk` operator is installed when you install `ado`
 
-The RandomWalk operator provides different ways to randomly sample and measure
+### What does the `random_walk` operator do?
+
+The `random_walk` operator provides different ways to randomly sample and measure
 points from a `discoveryspace`. Despite its name it can also perform
 deterministic sampling.
 
-RandomWalk is an `explore` type operator.
+`random_walk` is an `explore` type operator.
 
-### When should you use the RandomWalk operator?
+### When should you use the `random_walk` operator?
 
-Use the RandomWalk operator when you want to:
+Use the `random_walk` operator when you want to:
 
 - get an unbiased idea of the distribution of property values across entities in
   the `discoveryspace`
@@ -20,24 +23,24 @@ Use the RandomWalk operator when you want to:
   (finite size spaces)
 - sample entities matching particular conditions (see below)
 
-The RandomWalk operator supports `memoization`: if it samples the same entity
+The `random_walk` operator supports `memoization`: if it samples the same entity
 twice, and that entity has already had the measurement space applied, it will
 replay the already measured values (by default).
 
-### What happens if I apply multiple RandomWalk operations to a space?
+### What happens if I apply multiple `random_walk` operations to a space?
 
-If you apply multiple RandomWalk operations you just get multiple random walks
+If you apply multiple `random_walk` operations you just get multiple random walks
 of the different lengths and types you have requested.
 
 All explore operations are independent. This means each proceeds as configured -
 the only influence of previous operations is to enable `memoziation` if a
 subsequent operation visits the same point.
 
-To concretize this, consider two RandomWalk operations that sample
+To concretize this, consider two `random_walk` operations that sample
 deterministically (i.e. aren't actually random). The first is configured to
 sample 50 entities, the second 200 entities.
 Suppose also that the first 50 entities are common to
-both RandomWalk operations. At the start no entities have been
+both `random_walk` operations. At the start no entities have been
 sampled and measured from a given discovery space.
 
 After the first operation:
@@ -56,12 +59,12 @@ After the second operation:
 
 ## Controlling sampling and measurements: Continuous batching
 
-When a RandomWalk operation encounters an unmeasured entity in the
+When a `random_walk` operation encounters an unmeasured entity in the
 `discoveryspace` it applies the experiments defined by its `measurementspace`
 Depending on the experiments you may want to control how many concurrent
 experiments are being executed.
 
-RandomWalk uses the concept of continuous batching to set the number of
+`random_walk` uses continuous batching to set the number of
 concurrent **requested** experiments and ensure that, as far as possible, there
 is always this number of experiments in flight.
 
@@ -73,9 +76,9 @@ system for (N-1) additional entities to be measured but it will not be used.
 
 The next section explains more about configuring continuous batching
 
-## Configuring a RandomWalk
+## Configuring a `random_walk` operation
 
-The parameters for a RandomWalk are (default values shown):
+The parameters for a `random_walk` operation are (default values shown):
 
 <!-- markdownlint-disable line-length -->
 ```yaml
@@ -118,7 +121,7 @@ spaces:
 
 !!! info end
 
-    You can get a default RandomWalk operation template and the schema of its
+    You can get a default `random_walk` operation template and the schema of its
     parameters by running
     `ado template operation --operator-name random_walk --include-schema`.
     The information output by this command should always be preferred
@@ -129,7 +132,7 @@ spaces:
 When it comes to managing resources during an exploration, the key variable one
 wants to control is the number of concurrent experiments.
 
-For the RandomWalk operator this number is its `batchSize` parameter (the number
+For the `random_walk` operator this number is its `batchSize` parameter (the number
 of initial entities submitted) multiplied by the number of experiments in the
 `measurementspace` of the `discoveryspace` it is operating on. For example, if
 the `batchSize` is 2 and there are 2 experiments defined in the
@@ -139,7 +142,7 @@ this many concurrent experiment requests during the operation.
 
 !!! info end
 
-    The RandomWalk operator only know how many experiments it has requested,
+    The `random_walk` operator only knows how many experiments it has requested,
     not how many are actually executing.
     Hence continuous batching can only maintain that there are 
     N experiments requested at any time.
@@ -336,7 +339,7 @@ In the first case `all` will be converted to the size of the space. In the
 second case `all` will be converted to the number of matching entities in the
 `samplestore`.
 
-If both of these conditions is False the RandomWalk operator will raise a
+If both of these conditions is False the `random_walk` operator will raise a
 ValueError when the execution starts.
 
 !!! info end
@@ -391,29 +394,30 @@ more details.
 
 ### Retrying Failed Measurements
 
-If the measurement of an entity by an experiment fails RandomWalk can retry it.
+If the measurement of an entity by an experiment fails `random_walk` can retry it.
 The parameter controlling this is `maxRetries` which by default is 0 - no
 retries. If `maxRetries` is N then failing measurements will be retried up to
 `N` times.
 
 #### Experiment request index v number of experiments requested
 
-To understand a RandomWalk operations logs when maxRetries is greater than 0 its
+To understand a `random_walk` operations logs when maxRetries is greater than 0 its
 necessary to understand how it tracks the entity+experiment combinations it
 wants to measure versus the number of experiments it has requested to do these
 measurements.
 
-RandomWalk assigns an integer to each entity+experiment combination it wants to
+`random_walk` assigns an integer to each entity+experiment combination it wants to
 measure. This is called the request index - the Nth entity+experiment
 combination will have request index N-1.
 
-RandomWalk tracks retries based on request index. For example, it tracks that
+`random_walk` tracks retries based on request index. For example, it tracks that
 request index 5 has been retried 2 times.
 
 !!! info end
 
-    At the end of an RandomWalk operation, a summary of each request index that was
-    retried is output. This includes how many times it was retried and what the
+    At the end of an `random_walk` operation, a summary of each request 
+    index that was retried is output. 
+    This includes how many times it was retried and what the
     final status was - either it performed maxRetries and still was FAILED 
     or one of the retries indicated SUCCESS
 
@@ -435,8 +439,8 @@ request index 5 has been retried 2 times.
     requested due to failures and retries.
 
     This also means that when retrying is enabled the experimentRequested metadata
-    recorded with each RandomWalk operation is not equal to (number entities
-    sampled) x (number of experiments in measurement space)
+    recorded with each `random_walk` operation is not equal to (number entities
+    sampled) x (number of `random_walk` in measurement space)
 
 ## What's next
 
@@ -448,7 +452,7 @@ request index 5 has been retried 2 times.
 
       ---
 
-      Try using the RandomWalk operator with our [example](../examples/random-walk.md).
+      Try using the `random_walk` operator with our [example](../examples/random-walk.md).
 
       [Random Walk example :octicons-arrow-right-24:](../examples/random-walk.md)
 

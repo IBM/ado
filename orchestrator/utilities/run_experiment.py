@@ -144,7 +144,7 @@ app = typer.Typer(
 )
 
 
-# Configure the typer app with the arguments
+@app.command()
 def run(
     point_file: pathlib.Path = typer.Argument(
         ...,
@@ -206,15 +206,6 @@ def run(
 
 
 def main():
-    app = typer.Typer(
-        help="Run ADO experiments locally or remotely.",
-        context_settings={"help_option_names": ["-h", "--help"]},
-        add_completion=True,
-        no_args_is_help=True,
-    )
-
-    app.command()(run)
-
     try:
         app()
     except Exception as e:

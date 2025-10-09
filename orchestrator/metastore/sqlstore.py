@@ -30,17 +30,6 @@ from orchestrator.metastore.sql.utils import (
     engine_for_sql_store,
 )
 
-#
-# Temporary - Refactoring plan
-# 1. (10) Update SQLStore to new API and refactor consumers and test - DONE
-# 2. (5) Update SQLEntityStore to new API and refactor consumers - DONE (25/43)
-# 3. (7) Implement SQLResourceStore (need 4 to test) - DONE (32/43)
-# 4. (2) Add/Use resources for DiscoverySpace and EntityStore and test - DONE
-# 5. (2) Refactor MetricServer to use new TS Metrics API - TODO
-# 6. (2) Enable dynamic switch for resource store - DONE
-# 7. (5) Implement NewSQLEntityStore and test - TODO
-# 8. (2) Set NewSQLEntityStore as default while maintaining backwards compatibility - TODO
-
 
 class SQLStore(ResourceStore):
     """Base class for SQLStores"""

@@ -21,6 +21,7 @@ class VariableTypeEnum(str, enum.Enum):
     CATEGORICAL_VARIABLE_TYPE = (
         "CATEGORICAL_VARIABLE_TYPE"  # the value of the variable is a category label
     )
+    OPEN_CATEGORICAL_VARIABLE_TYPE = "OPEN_CATEGORICAL_VARIABLE_TYPE"  # the value of the variable is a category label but all categories are not known in advance
     BINARY_VARIABLE_TYPE = "BINARY_VARIABLE_TYPE"  # the value of the variable is binary
     UNKNOWN_VARIABLE_TYPE = "UNKNOWN_VARIABLE_TYPE"  # the type of value of the variable is unknown/unspecified
     IDENTIFIER_VARIABLE_TYPE = "IDENTIFIER_VARIABLE_TYPE"  # the value is some type of, possible unique, identifier
@@ -233,6 +234,9 @@ class PropertyDomain(pydantic.BaseModel):
         elif value == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             assert values.data.get("values") is None
             assert values.data.get("interval") is None
+        elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
+            assert values.data.get("interval") is None
+            assert values.data.get("domainRange") is None
 
         return value
 
@@ -324,9 +328,10 @@ class PropertyDomain(pydantic.BaseModel):
         if self.variableType in {
             VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
             VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+            VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
         }:
             raise ValueError(
-                "Cannot generate domain values for continuous or unknown variables"
+                "Cannot generate domain values for continuous, unknown or open categorical variables"
             )
         if self.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
             return [False, True]
@@ -363,9 +368,12 @@ class PropertyDomain(pydantic.BaseModel):
                     retval = True
         elif self.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
             retval = value in self.values
-        elif self.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
-            # If the domain is unknown we just return True
-            # This is required if the value is from a PropertyType with this domain for self-consistency
+        elif self.variableType in [
+            VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+            VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+        ]:
+            # If the domain is unknown or open categorical we just return True
+            # This is required if the value is from a PropertyType with these domains for self-consistency
             # e.g. If we have a ConstitutiveProperty(identifier="smiles", PropertyDomain(type=UNKNOWN_VARIABLE_TYPE)
             # And then if we ask is smiles = (CO2) in the domain it should return True.
             retval = True
@@ -391,6 +399,14 @@ class PropertyDomain(pydantic.BaseModel):
             if otherDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
                 # We can return immediately as there is nothing else we can do with UNKNOWN
                 return True
+            if (
+                otherDomain.variableType
+                == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+            ):
+                # Infinite size domain cannot be subdomain of open_categorical domain
+                import math
+
+                return self.size == math.inf
 
             # Variables not of same type cannot be subdomains in the following situations
             # A_ this domain is unknown and the other is not-unknown
@@ -438,7 +454,13 @@ class PropertyDomain(pydantic.BaseModel):
             # (Note the case where otherDomain is discrete/binary is excluded above)
             # i.e. we can check this by computing the set difference
             retval = len(s.difference(o)) == 0
-
+        elif self.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
+            # The case where other is Unknown or open categorical are handled above
+            # for all other cases we are not a subdomain
+            return otherDomain.variableType in [
+                VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+                VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+            ]
         elif self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             # If the other domain has no range then the receiver is a subdomain
             if not otherDomain.domainRange:
@@ -550,8 +572,8 @@ class PropertyDomain(pydantic.BaseModel):
     def size(self) -> float | int:
         """Returns the size (number of elements) in the domain if this is countable.
 
-        Returns math.inf if the size is not countable.
-        This includes any domain with CONTINUOUS_VARIABLE_TYPE, UNKNOWN_VARIABLE_TYPE ir IDENTIFIER_VARIABLE_TYPE.
+        Returns math.inf if the size is not countable or is unknown/open categorical.
+        This includes any domain with CONTINUOUS_VARIABLE_TYPE, UNKNOWN_VARIABLE_TYPE or OPEN_CATEGORICAL_VARIABLE_TYPE.
         It also includes any unbounded domain with DISCRETE_VARIABLE_TYPE.
         """
 
@@ -561,9 +583,10 @@ class PropertyDomain(pydantic.BaseModel):
             self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
         ):  # noqa: SIM114
             size = math.inf
-        elif self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE and (
-            self.domainRange is None and self.values is None
-        ):
+        elif (
+            self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+            and (self.domainRange is None and self.values is None)
+        ) or self.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
             size = math.inf
         else:
             if self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:

@@ -651,6 +651,7 @@ class Experiment(pydantic.BaseModel):
                 f"The entity is missing or has invalid values for required properties of "
                 f" {self.identifier}"
             )
+            return False
 
         # It has the required properties with valid values but there are additional properties
         # See if these properties are optional propertiesof the experiment
@@ -670,20 +671,20 @@ class Experiment(pydantic.BaseModel):
                 f"properties are not required or optional properties of {self.identifier}:"
                 f"{potential_optional_properties-optional_properties} "
             )
-            is_valid = False
-        else:
-            is_valid = validate_point_against_properties(
-                point={key: point[key] for key in optional_properties},
-                constitutive_properties=list(self.optionalProperties),
-                allow_partial_matches=True,
+            return False
+
+        is_valid = validate_point_against_properties(
+            point={key: point[key] for key in optional_properties},
+            constitutive_properties=list(self.optionalProperties),
+            allow_partial_matches=True,
+        )
+        if not is_valid:
+            logging.getLogger("experiment").warning(
+                f"The entity has properties that match optional properties"
+                f"of {self.identifier} - "
+                f"{potential_optional_properties - optional_properties} - "
+                f"but its values for those properties are not in the domain of the optional properties"
             )
-            if not is_valid:
-                logging.getLogger("experiment").warning(
-                    f"The entity has properties that match optional properties"
-                    f"of {self.identifier} - "
-                    f"{potential_optional_properties - optional_properties} - "
-                    f"but its values for those properties are not in the domain of the optional properties"
-                )
 
         return is_valid
 

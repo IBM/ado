@@ -51,8 +51,9 @@ ado context local
 === "Install the SFTTrainer Actuator plugin from PyPi"
 
     <!-- markdownlint-disable code-block-style -->
-    Run `pip install ado-sfttrainer` to install the SFTTrainer actuator plugin using
-    the wheel that we push to PyPi.
+    ```commandline
+      pip install ado-sfttrainer`
+    ```
     <!-- markdownlint-enable code-block-style -->
 
 === "Install SFTTrainer from the `ado` sources"

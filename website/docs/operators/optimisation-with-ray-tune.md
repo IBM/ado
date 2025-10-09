@@ -2,6 +2,13 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 ## Overview
 
+> [!TIP]
+> You can install the `ray_tune` operator with
+>
+> ```commandline
+> pip install ado-ray-tune
+>```
+
 ### What does the `ray_tune` operator do?
 
 The `ray_tune` operator enables **running optimization algorithms on a

@@ -69,8 +69,11 @@ To explore this space, you will:
 
 === "Install the SFTTrainer Actuator plugin from PyPi"
 
-    Run `pip install ado-sfttrainer` to install the SFTTrainer actuator plugin using
-    the wheel that we push to PyPi.
+      <!-- markdownlint-disable code-block-style -->
+    ```commandline
+      pip install ado-sfttrainer`
+    ```
+    <!-- markdownlint-enable code-block-style -->
 
 === "Install SFTTrainer from the `ado` sources"
 

@@ -169,10 +169,6 @@ performance_testing-full:
       value: 'NVIDIA-A100-80GB-PCIe'
   # measurements
   targetProperties:
-    - identifier: "model_id"
-    - identifier: "num_prompts"
-    - identifier: "request_rate"
-    - identifier: "max_concurrency"
     - identifier: "duration"
     - identifier: "completed"
     - identifier: "total_input_tokens"
@@ -286,10 +282,6 @@ performance_testing-endpoint:
         identifier: 'max_output_tokens'
   # measurements
   targetProperties:
-    - identifier: "model_id"
-    - identifier: "num_prompts"
-    - identifier: "request_rate"
-    - identifier: "max_concurrency"
     - identifier: "duration"
     - identifier: "completed"
     - identifier: "total_input_tokens"

@@ -169,7 +169,6 @@ def is_subdomain_of_binary_domain(binaryDomain, testDomain):
     if testDomain.variableType in [
         VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-        VariableTypeEnum.BINARY_VARIABLE_TYPE,
     ]:
         if testDomain.size <= 2:
             return all(

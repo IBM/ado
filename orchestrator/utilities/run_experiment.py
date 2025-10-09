@@ -3,6 +3,7 @@
 
 import logging
 import os
+import pathlib
 import time
 from collections.abc import Callable
 
@@ -143,17 +144,15 @@ app = typer.Typer(
 )
 
 
-@app.callback()
-def main_callback(ctx: typer.Context):
-    if ctx.invoked_subcommand is None and not ctx.args:
-        typer.echo(ctx.get_help())
-        raise typer.Exit
-
-
 # Configure the typer app with the arguments
 def run(
-    point_file: str = typer.Argument(
-        ..., help="Path to a yaml file containing an ado point definition"
+    point_file: pathlib.Path = typer.Argument(
+        ...,
+        help="Path to a yaml file containing an ado point definition",
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
     ),
     remote: str = typer.Option(
         None,
@@ -167,19 +166,16 @@ def run(
         metavar="TIMEOUT",
         help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
     ),
-    no_validate: bool = typer.Option(
-        False,
-        "--no-validate",
-        is_flag=True,
-        help="Do not validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
+    validate: bool = typer.Option(
+        True,
+        help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
     ),
 ) -> None:
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
     logging.getLogger().setLevel(int(os.environ.get("LOGLEVEL", 40)))
 
-    with open(point_file) as f:
-        point = SpacePoint.model_validate(yaml.safe_load(f))
+    point = SpacePoint.model_validate(yaml.safe_load(point_file.read_text()))
 
     entity = point.to_entity()
     print(f"Point: {point.entity}")
@@ -193,7 +189,7 @@ def run(
 
     for reference in point.experiments:
         valid = True
-        if not no_validate:
+        if validate:
             print("Validating entity ...")
             experiment = registry.experimentForReference(reference)
             valid = experiment.validate_entity(entity)

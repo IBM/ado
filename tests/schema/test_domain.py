@@ -808,7 +808,7 @@ def test_domain_values():
     # Test continuous variables raise ValueError when domain_values is called
     with pytest.raises(
         ValueError,
-        match="Cannot generate domain values for continuous or unknown variables",
+        match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
@@ -817,7 +817,7 @@ def test_domain_values():
     # Test unknown variables raise ValueError when domain_values is called
     with pytest.raises(
         ValueError,
-        match="Cannot generate domain values for continuous or unknown variables",
+        match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE

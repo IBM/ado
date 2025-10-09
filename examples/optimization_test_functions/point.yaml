@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 entity:
  x0: 1
  x1: 2

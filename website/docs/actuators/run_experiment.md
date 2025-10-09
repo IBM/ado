@@ -2,7 +2,7 @@
 
 >[!Note]
 >
-> The `run_experiment.py` script provides a quick and convenient way to execute
+> The `run_experiment` script provides a quick and convenient way to execute
 > any experiment from an actuator on a single point (entity) without the
 > need to create a `discoveryspace`.
 >
@@ -22,7 +22,7 @@
 
 <!-- markdownlint-disable line-length -->
 ```bash
-python -m orchestrator.utilities.run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--no-validate]
+run_experiment <point_file.yaml> [--remote <ENDPOINT>] [--timeout <SECONDS>] [--no-validate]
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -70,11 +70,11 @@ run_experiment example_point.yaml
 on a single point/entity.
   - For evaluating multiple points or running large-scale experiments, use a `discoveryspace`
     and the standard `ado` workflow.
-- **No Metastore Tracking:** Results from `run_experiment.py`
+- **No Metastore Tracking:** Results from `run_experiment`
 are **not** tracked or stored in the `ado` [metastore](../resources/metastore.md).
   - This means results are ephemeral and only available in the console output.
 - **For Development & Debugging:** This script is best suited for
-actuator/experiment development,  debugging, or quick checks — not for
+actuator/experiment development, debugging, or quick checks — not for
 production or persistent experiment tracking.
 
 ## When to Use

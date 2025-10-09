@@ -77,8 +77,6 @@ def remote_execution_closure(
         with the given timeout.
     """
 
-    import logging
-
     logger = logging.getLogger("remote_execution")
 
     def execute_remote(
@@ -110,10 +108,12 @@ def remote_execution_closure(
         logger.info(f"Request ID: {request_id}")
 
         is_completed = False
-        wait_time = 0
         request = None
+        import datetime
+
+        start_time = datetime.datetime.now()
         while not is_completed:
-            time.sleep(5)
+            time.sleep(2)
             logger.debug(f"Polling for request {request_id}")
             response = requests.get(
                 f"{endpoint}/api/latest/actuators/{reference.actuatorIdentifier}/experiments/{reference.experimentIdentifier}/requests/{request_id}",
@@ -124,12 +124,12 @@ def remote_execution_closure(
                 request = MeasurementRequest.model_validate(response.json())
                 is_completed = True
             else:
-                logger.debug(f"Waiting - {wait_time}")
-            wait_time += 2
-            if wait_time > timeout:
-                raise Exception(
-                    f"Timeout waiting for measurement request {request_id} to complete"
-                )
+                elapsed = (datetime.datetime.now() - start_time).total_seconds()
+                logger.debug(f"Waiting - {elapsed:.1f} seconds elapsed")
+                if elapsed > timeout:
+                    raise Exception(
+                        f"Timeout waiting for measurement request {request_id} to complete"
+                    )
 
         return request
 

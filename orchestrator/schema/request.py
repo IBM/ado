@@ -290,7 +290,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
             # constitutive properties and the ones coming from the MeasurementResult
             e = entities_constitutive_properties_series[s["identifier"]]
             e = e[e.index.difference(s.keys())]
-            measurement_series.append(pd.concat([req, s, e]))
+            measurement_series.append(pd.concat([req, e, s]))
 
         return measurement_series
 

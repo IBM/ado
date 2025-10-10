@@ -261,6 +261,12 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
         ]
 
         #
+        entities_constitutive_properties_series = {
+            entity.identifier: entity.seriesRepresentation(constitutiveOnly=True)
+            for entity in self.entities
+        }
+
+        #
         measurement_series = []
         occurrences = {}
         for idx, s in enumerate(result_series):
@@ -278,7 +284,13 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
                     "result_index": result_index,
                 }
             )
-            measurement_series.append(pd.concat([req, s]))
+
+            # We are dealing with Series, so we want to avoid duplicate keys
+            # The only keys that can clash are the ones between the entities'
+            # constitutive properties and the ones coming from the MeasurementResult
+            e = entities_constitutive_properties_series[s["identifier"]]
+            e = e[e.index.difference(s.keys())]
+            measurement_series.append(pd.concat([req, e, s]))
 
         return measurement_series
 

@@ -3,6 +3,8 @@
 import json
 import math
 
+import pytest
+
 from orchestrator.schema.domain import (
     ProbabilityFunction,
     ProbabilityFunctionsEnum,
@@ -76,7 +78,6 @@ def test_probability_function_equivalanece():
 
 
 def test_valid_property_domains():
-    import pytest
 
     # Test that variableType of domain is assigned properly given valid inputs
 
@@ -468,6 +469,101 @@ def test_discrete_property_is_subdomain_of_continuous():
     assert discretePropertyDomain.isSubDomain(continuousPropertyDomain)
 
 
+def test_binary_property_is_subdomain_of_discrete():
+    """Tests the issubdomain method of PropertyDomain works
+    for binary properties where otherDomain is defined as a discrete domain
+
+    A.isSubDomain(B) means that A is a subdomain of B"""
+
+    binaryPropertyDomain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE
+    )
+    discretePropertyDomain = PropertyDomain(values=[0, 1])
+    assert binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+    assert discretePropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    # 1 is not included if range is [0,1] - closed upper bound
+    discretePropertyDomain = PropertyDomain(domainRange=[0, 1], interval=1)
+    assert not binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+    assert discretePropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    discretePropertyDomain = PropertyDomain(domainRange=[0, 2], interval=1)
+    assert binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+
+    discretePropertyDomain = PropertyDomain(values=[0, 1, 2])
+    assert binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+    assert not discretePropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    # This is a strange case but since below values are all numbers that will be mapped to discrete domain
+    discretePropertyDomain = PropertyDomain(values=[True, False, 0, 1])
+    assert (
+        discretePropertyDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    )
+    assert binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+    # Although all the values in the discrete domain are in the binary domain,
+    # the discrete domain is not a subdomain of the binary domain because the binary domain is size 2
+    assert not discretePropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    discretePropertyDomain = PropertyDomain(values=[1])
+    assert not binaryPropertyDomain.isSubDomain(discretePropertyDomain)
+    assert discretePropertyDomain.isSubDomain(binaryPropertyDomain)
+
+
+def test_binary_property_is_subdomain_of_categorical():
+    """Tests the issubdomain method of PropertyDomain works
+    for binary properties where otherDomain is defined as a categorical domain"""
+
+    binaryPropertyDomain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE
+    )
+    categoricalPropertyDomain = PropertyDomain(values=[True, False])
+    assert binaryPropertyDomain.isSubDomain(categoricalPropertyDomain)
+    assert categoricalPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    categoricalPropertyDomain = PropertyDomain(values=[True, False, "George"])
+    assert (
+        categoricalPropertyDomain.variableType
+        == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+    )
+    assert binaryPropertyDomain.isSubDomain(categoricalPropertyDomain)
+    # Although all the values in the categorical domain are in the binary domain,
+    # the categorical domain is not a subdomain of the binary domain because the binary domain is size 2
+    assert not categoricalPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    categoricalPropertyDomain = PropertyDomain(values=[True])
+    assert not binaryPropertyDomain.isSubDomain(categoricalPropertyDomain)
+    assert categoricalPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+
+def test_binary_property_is_subdomain_of_continuous():
+
+    binaryPropertyDomain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE
+    )
+    continuousPropertyDomain = PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    )
+    assert binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
+    assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
+    assert binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
+    assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    continuousPropertyDomain = PropertyDomain(domainRange=[0, 1])
+    # Since the range is closed on upper value 1 is not included
+    assert not binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
+    assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+    # Now one is included
+    continuousPropertyDomain = PropertyDomain(domainRange=[0, 1.1])
+    assert binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
+
+    continuousPropertyDomain = PropertyDomain(domainRange=[-10, 0])
+    assert not binaryPropertyDomain.isSubDomain(continuousPropertyDomain)
+    assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
+
+
 def test_domain_sizes():
 
     import math
@@ -708,3 +804,25 @@ def test_domain_values():
     d2 = PropertyDomain(interval=0.1, domainRange=[0.1, 0.4])
 
     assert d1.domain_values == d2.domain_values
+
+    # Test continuous variables raise ValueError when domain_values is called
+    with pytest.raises(
+        ValueError,
+        match="Cannot generate domain values for continuous or unknown variables",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ).domain_values
+
+    # Test unknown variables raise ValueError when domain_values is called
+    with pytest.raises(
+        ValueError,
+        match="Cannot generate domain values for continuous or unknown variables",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+        ).domain_values
+
+    # Test 0 is in domain values of discrete var of range [0,1]
+    d = PropertyDomain(domainRange=[0, 1], interval=1)
+    assert d.domain_values == [0]

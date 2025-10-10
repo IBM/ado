@@ -1,0 +1,10 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+entity:
+ x0: 1
+ x1: 2
+ x2: -1
+experiments:
+- actuatorIdentifier: custom_experiments
+  experimentIdentifier: nevergrad_opt_3d_test_func

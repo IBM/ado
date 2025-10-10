@@ -8,7 +8,6 @@ import yaml
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.space import SpacePoint
 from orchestrator.cli.models.types import (
     AdoGetSupportedOutputFormats,
 )
@@ -32,6 +31,7 @@ from orchestrator.core.discoveryspace.config import (
 )
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
+from orchestrator.schema.point import SpacePoint
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -118,10 +118,14 @@ def _find_spaces_matching_point(
         raise
 
     experiment_selectors = []
-    for experiment in target_point.experiments or []:
+    for reference in target_point.experiments or []:
         experiment_selectors.extend(
             prepare_query_filters_for_db(
-                {"config.experiments": {"experiments": {"identifier": experiment}}}
+                {
+                    "config.experiments": {
+                        "experiments": {"identifier": reference.experimentIdentifier}
+                    }
+                }
             )
         )
 

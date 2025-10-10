@@ -173,7 +173,7 @@ def run(
 ) -> None:
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
-    logging.getLogger().setLevel(int(os.environ.get("LOGLEVEL", 40)))
+    logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
 
     point = SpacePoint.model_validate(yaml.safe_load(point_file.read_text()))
 

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import typing
 
 import pydantic
 
@@ -161,3 +162,65 @@ def constitutive_property_values_from_point(
         ConstitutivePropertyValue(value=point[c.identifier], property=c)
         for c in properties
     ]
+
+
+def validate_point_against_properties(
+    point: dict[str, typing.Any],
+    constitutive_properties: list[ConstitutiveProperty],
+    allow_partial_matches: bool = False,
+):
+    """point is valid if all its keys have a constitutive_property with
+    a matching identifier and all its values are in the domain of this
+    property. If allow_partial_matches is False an additional condition is that
+    every key in point has a matching property AND vice versa
+
+    Params:
+        point: A dictionary whose keys are property identifiers and values are values for those properties
+        constitutive_properties: A list of ConstitutiveProperty instances to validate the point against
+        allow_partial_matches: If True a point is valid if all its points have matching properties, even if
+            there are more constitutive properties
+
+    Returns:
+        - True if point is compatible with space otherwise false
+    """
+
+    constitutive_property_identifiers_for_point = set(point.keys())
+    constitutive_property_identifiers_for_entity_space = {
+        cp.identifier for cp in constitutive_properties
+    }
+
+    matching_constitutive_property_identifiers = (
+        constitutive_property_identifiers_for_point.intersection(
+            constitutive_property_identifiers_for_entity_space
+        )
+    )
+
+    # If we don't allow partial matches, all properties must match
+    if not allow_partial_matches and len(
+        matching_constitutive_property_identifiers
+    ) != len(constitutive_property_identifiers_for_entity_space):
+        return False
+
+    # If we allow partial matches, all properties for the point must
+    # match
+    if len(matching_constitutive_property_identifiers) != len(
+        constitutive_property_identifiers_for_point
+    ):
+        return False
+
+    # Once we have checked that the identifiers match, we must
+    # check that the values specified by the point are in the domain
+    # of the constitutive properties.
+    for constitutive_property in constitutive_properties:
+        if (
+            constitutive_property.identifier
+            not in matching_constitutive_property_identifiers
+        ):
+            continue
+
+        if not constitutive_property.propertyDomain.valueInDomain(
+            point[constitutive_property.identifier]
+        ):
+            return False
+
+    return True

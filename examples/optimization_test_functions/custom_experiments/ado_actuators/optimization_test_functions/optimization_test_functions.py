@@ -30,6 +30,7 @@ def artificial_function(
         block_dimension=int(
             len(entity.constitutive_property_values) / parameters["num_blocks"]
         ),
+        translation_factor=0.0,
     )
 
     # Call the nevergrad function

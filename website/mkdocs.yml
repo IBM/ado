@@ -187,6 +187,7 @@ nav:
       - Actuators overview: actuators/working-with-actuators.md
       - Extending `ado` with new actuators: actuators/creating-actuator-classes.md
       - Adding custom experiments: actuators/creating-custom-experiments.md
+      - Running experiments on single entities: actuators/run_experiment.md
       - Using externally obtained data: actuators/replay.md
       #- ST4SD: actuators/st4sd.md
       - SFTTrainer - measure fine-tuning performance : actuators/sft-trainer.md

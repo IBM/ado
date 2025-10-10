@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import importlib.metadata
+import logging
 import typing
 from typing import Annotated
 
@@ -18,7 +19,11 @@ from orchestrator.schema.property import (
     MeasuredPropertyTypeEnum,
     Property,
 )
-from orchestrator.schema.property_value import ConstitutivePropertyValue, PropertyValue
+from orchestrator.schema.property_value import (
+    ConstitutivePropertyValue,
+    PropertyValue,
+    validate_point_against_properties,
+)
 from orchestrator.schema.reference import (
     ExperimentReference,
     check_parameterization_validity,
@@ -614,6 +619,74 @@ class Experiment(pydantic.BaseModel):
                 )
 
         return identifierValueMap
+
+    def validate_entity(self, entity: "Entity", strict_optional=False) -> bool:
+        """Returns True if Experiment can be applied to entity, false otherwise
+
+        This method only checks constitutive properties.
+        - All properties of the Entity that match the experiments required or optional properties must have
+        values in the domain of that property
+        - All required properties of the experiment must have a matching constitutive property
+        - If strict_optional is True all properties of the Entity that are not required properties of the Experiment
+        must match optional properties of the experiment.
+        """
+
+        point = {
+            v.property.identifier: v.value for v in entity.constitutive_property_values
+        }
+        if validate_point_against_properties(
+            point,
+            constitutive_properties=self.requiredConstitutiveProperties,
+        ):
+            return True
+
+        # It's not an exact match - check if partial match
+        if not validate_point_against_properties(
+            point,
+            constitutive_properties=self.requiredConstitutiveProperties,
+            allow_partial_matches=True,
+        ):
+            # no partial match - missing required properties or has incorrect values for them
+            logging.getLogger("experiment").warning(
+                f"The entity is missing or has invalid values for required properties of "
+                f" {self.identifier}"
+            )
+            return False
+
+        # It has the required properties with valid values but there are additional properties
+        # See if these properties are optional propertiesof the experiment
+        potential_optional_properties: set[str] = point.keys() - {
+            cp.identifier for cp in self.requiredProperties
+        }
+        optional_properties = potential_optional_properties & {
+            cp.identifier for cp in self.optionalProperties
+        }
+        # If strict_optional is on all the additional properties must be optional properties
+        if (
+            len(optional_properties) != len(potential_optional_properties)
+            and strict_optional
+        ):
+            logging.getLogger("experiment").warning(
+                f"Strict property checking is on and the following entity "
+                f"properties are not required or optional properties of {self.identifier}:"
+                f"{potential_optional_properties-optional_properties} "
+            )
+            return False
+
+        is_valid = validate_point_against_properties(
+            point={key: point[key] for key in optional_properties},
+            constitutive_properties=list(self.optionalProperties),
+            allow_partial_matches=True,
+        )
+        if not is_valid:
+            logging.getLogger("experiment").warning(
+                f"The entity has properties that match optional properties"
+                f"of {self.identifier} - "
+                f"{potential_optional_properties - optional_properties} - "
+                f"but its values for those properties are not in the domain of the optional properties"
+            )
+
+        return is_valid
 
 
 class ParameterizedExperiment(Experiment):

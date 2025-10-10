@@ -2,11 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import math
-import typing
 from io import StringIO
-from typing import Annotated
 
-import pydantic
 import rich.table
 
 import orchestrator.metastore.project
@@ -430,16 +427,3 @@ class SpaceSummary:
                 columns_to_hide=columns_to_hide,
             )
         )
-
-
-class SpacePoint(pydantic.BaseModel):
-    entity: Annotated[
-        dict[str, typing.Any] | None,
-        pydantic.Field(
-            description="A dictionary of property names and values to be searched."
-        ),
-    ] = None
-    experiments: Annotated[
-        list[str] | None,
-        pydantic.Field(description="A list of experiments to be searched."),
-    ] = None

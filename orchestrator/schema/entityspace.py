@@ -6,7 +6,10 @@ import typing
 from orchestrator.schema.domain import VariableTypeEnum
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.property import ConstitutiveProperty
-from orchestrator.schema.property_value import constitutive_property_values_from_point
+from orchestrator.schema.property_value import (
+    constitutive_property_values_from_point,
+    validate_point_against_properties,
+)
 from orchestrator.schema.result import MeasurementResult
 
 
@@ -224,51 +227,19 @@ class EntitySpaceRepresentation:
             Dictionary representing the point with constitutive property identifiers as keys and
             constitutive property values as values.
         :param allow_partial_matches:
-            If True, ill return True if at least one property matches; otherwise the point must
-             match all the constitutive properties of the entities.
+            If True, all key:values in point must have a matching constitutive property in the
+            entity space and be in its domain.
+            If False (default), in addition to above, all constitutive properties in the entity space
+            must have a matching key in point
 
         :return: True if the point is in the space, False otherwise.
         """
-        constitutive_property_identifiers_for_point = set(point.keys())
-        constitutive_property_identifiers_for_entity_space = {
-            cp.identifier for cp in self._constitutiveProperties
-        }
 
-        matching_constitutive_property_identifiers = (
-            constitutive_property_identifiers_for_point.intersection(
-                constitutive_property_identifiers_for_entity_space
-            )
+        return validate_point_against_properties(
+            point=point,
+            constitutive_properties=self._constitutiveProperties,
+            allow_partial_matches=allow_partial_matches,
         )
-
-        # If we don't allow partial matches, all properties must match
-        if not allow_partial_matches and len(
-            matching_constitutive_property_identifiers
-        ) != len(constitutive_property_identifiers_for_entity_space):
-            return False
-
-        # If we allow partial matches, all properties for the point must
-        # match
-        if len(matching_constitutive_property_identifiers) != len(
-            constitutive_property_identifiers_for_point
-        ):
-            return False
-
-        # Once we have checked that the identifiers match, we must
-        # check that the values specified by the point are in the domain
-        # of the constitutive properties.
-        for constitutive_property in self.constitutiveProperties:
-            if (
-                constitutive_property.identifier
-                not in matching_constitutive_property_identifiers
-            ):
-                continue
-
-            if not constitutive_property.propertyDomain.valueInDomain(
-                point[constitutive_property.identifier]
-            ):
-                return False
-
-        return True
 
     def isEntityInSpace(self, entity: Entity):
         """Returns True if entity is in the space otherwise false

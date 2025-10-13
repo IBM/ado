@@ -1,4 +1,4 @@
-# Testing the throughput of an inference endpoint
+# Exploring vLLM deployment configurations
 
 > [!NOTE]
 >

@@ -39,6 +39,7 @@ dependencies = [
     "ray[serve]>=2.9",
     "scipy>=1.15.3",
     "sqlalchemy>2",
+    "torch>=2.8.0",
     "typer>=0.16.1",
 ]
 

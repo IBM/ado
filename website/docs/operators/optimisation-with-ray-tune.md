@@ -56,7 +56,7 @@ If you apply multiple `ray_tune` operations you just get multiple optimization
 runs of the different lengths and types you have requested. This is the same
 behaviour as applying RandomWalk multiple time to a space and is explained in
 more detail in the
-[RandomWalk documentation](random-walk.md#what-happens-if-i-apply-multiple-randomwalk-operations-to-a-space)
+[RandomWalk documentation](random-walk.md#what-happens-if-i-apply-multiple-random_walk-operations-to-a-space)
 
 ## Available Optimizers
 

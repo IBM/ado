@@ -68,11 +68,24 @@ def _internal_range_values(lower, upper, interval) -> list:
 
 
 def is_subdomain_of_unknown_domain(unknownDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the unknownDomain
+    Parameters:
+        unknownDomain: A PropertyDomain with variableType UNKNOWN_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the unknownDomain
+    """
     return True
 
 
 def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
-
+    """Returns True if the testDomain is a subdomain of the continuousDomain
+    Parameters:
+        continuousDomain: A PropertyDomain with variableType CONTINUOUS_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the continuousDomain
+    """
     if testDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
         if continuousDomain.domainRange is None:
             return True
@@ -104,6 +117,13 @@ def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
 
 
 def is_subdomain_of_discrete_domain(discreteDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the discreteDomain
+    Parameters:
+        discreteDomain: A PropertyDomain with variableType DISCRETE_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the discreteDomain
+    """
     if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
         if discreteDomain.interval:
             if testDomain.interval:
@@ -147,7 +167,13 @@ def is_subdomain_of_discrete_domain(discreteDomain, testDomain):
 
 
 def is_subdomain_of_categorical_domain(categoricalDomain, testDomain):
-    """Checks if the other domain is a subdomain of the categorical domain"""
+    """Returns True if the testDomain is a subdomain of the categoricalDomain
+    Parameters:
+        categoricalDomain: A PropertyDomain with variableType CATEGORICAL_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the categoricalDomain
+    """
     # Check against all members of VariableTypeEnum
 
     if testDomain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
@@ -158,14 +184,25 @@ def is_subdomain_of_categorical_domain(categoricalDomain, testDomain):
         return testDomain.size != math.inf and all(
             x in categoricalDomain.domain_values for x in testDomain.domain_values
         )
-    if testDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-        return False
 
     # All other domains are false: OPEN_CATEGORICAL, UNKNOWN, CONTINUOUS
     return False
 
 
 def is_subdomain_of_binary_domain(binaryDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the binaryDomain
+
+    The cases where this returns True are
+    - testDomain is a BINARY_VARIABLE_TYPE
+    - testDomain is a DISCRETE_VARIABLE_TYPE or CATEGORICAL_VARIABLE_TYPE with size <= 2
+    and all values in testDomain are in binaryDomain.domain_values
+
+    Parameters:
+        binaryDomain: A PropertyDomain with variableType BINARY_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the binaryDomain
+    """
     if testDomain.variableType in [
         VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
@@ -181,7 +218,18 @@ def is_subdomain_of_binary_domain(binaryDomain, testDomain):
 
 
 def is_subdomain_of_open_categorical_domain(openCategoricalDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the openCategoricalDomain
 
+    The cases where this returns True are:
+    - testDomain is an OPEN_CATEGORICAL_VARIABLE_TYPE, BINARY_VARIABLE_TYPE or CATEGORICAL_VARIABLE_TYPE
+    - testDomain is a Discrete_VARIABLE_TYPE with size != math.inf
+
+    Parameters:
+        openCategoricalDomain: A PropertyDomain with variableType OPEN_CATEGORICAL_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the openCategoricalDomain
+    """
     if testDomain.variableType in [
         VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
         *VariableTypeEnum.BINARY_VARIABLE_TYPE,

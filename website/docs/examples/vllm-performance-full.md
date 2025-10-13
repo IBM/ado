@@ -2,45 +2,69 @@
 
 > [!NOTE]
 >
-> This example illustrates:
->
-> 1. Using the vllm-performance actuator to discover how best to deploy vllm
-> for a given use-case
-
-## The scenario
-
-TBA
+> This example illustrates using the vllm-performance actuator to discover
+> how best to deploy vLLM for a given use-case
+<!-- markdownlint-disable-next-line MD028 -->
 
 > [!IMPORTANT]
 >
 > **Prerequisites**
 >
-> - An endpoint serving a LLM via the OpenAI API
+> - Access to a k8s namespace where you can deploy vLLM
 
-## 1. Install the actuator
+## The scenario
 
-```bash
-# From the root of this repository
-pip install -e plugins/actuators/vllm_performance
-# Verify installation
-ado get actuators --details
+When deploying vLLM, you need to choose values for parameters like GPU type,
+batch size, and memory limits.
+These choices directly affect performance, cost, and scalability.
+To find the best configuration for your workload, whether you're optimizing for
+latency, throughput, or cost—you need to explore the deployment parameter space.
+
+In this example,
+
+- we will define a space of vLLM deployment configurations to test with
+the `vllm_performance` actuator's `performance_testing_full` experiment
+  - This experiment can create and characterize a vLLM deployment on Kubernetes
+- use the `random_walk` operator to explore the space
+
+## Install the actuator
+
+If you haven't already:
+
+```commandline
+pip install ado-vllm-performance
 ```
 
-The actuator will appear in the list of available actuators.
+If you have cloned the `ado` source repository you can also do:
 
-## 2. Create an actuator configuration
+```commandline
+# From the root of this repository 
+pip install -e plugins/actuators/vllm_performance
+```
 
-The vllm-performance actuator needs some information, for example about the target
-cluster to deploy on.
+Verify the installation with:
 
-```bash
+```commandline
+ado get actuators --details 
+```
+
+The actuator `vllm_performance` will appear in the list of available actuators.
+
+## Create an actuator configuration
+
+The vllm-performance actuator needs some information the target cluster to
+deploy on. This is provided via an `actuatorconfiguration`.
+
+First execute,
+
+```commandline
 # Generate the template file
 ado template actuatorconfiguration --actuator-identifier vllm_performance
 ```
 
-This will create a file called
+This will create a file called:
 
-Edit the file (open in your editor) and set correct values for the following fields:
+Edit the file and set correct values for the following fields:
 
 <!-- markdownlint-disable line-length -->
 ```yaml
@@ -50,11 +74,14 @@ node_selector: '{"kubernetes.io/hostname":"<host-with-gpu>"}' # JSON string sele
 ```
 <!-- markdownlint-enable line-length -->
 
-Then create the actuator configuration resource
+Then save this configuration as an `actuatorconfiguration` resource:
 
 ```bash
 ado create actuatorconfiguration -f $CONFIG_FILE
 ```
+
+Record the identifier of the created `actuatorconfiguration` as it
+will be used later.
 
 > [!TIP]
 >
@@ -62,9 +89,15 @@ ado create actuatorconfiguration -f $CONFIG_FILE
 > to different clusters/target environments.
 > You choose the one to use when you launch an operation requiring the actuator
 
-## 3. Prepare a discovery space (the configuration space to explore)
+## Define the configurations to test
 
-The discovery space is defined in a YAML file. An example is:
+When exploring vLLM deployments there are two sets of
+parameters that can be varied:
+
+- the deployment creation parameters (number GPUs, memory allocated etc)
+- the benchmark test parameters (request per second to send, tokens per request etc.)
+
+In this case we define a space where XXXX
 
 ```yaml
 # Example discovery space for vLLM performance
@@ -105,7 +138,17 @@ otherwise create a new one:
 ado create space -f vllm_discoveryspace.yaml --new-sample-store
 ```
 
-## 4. Create an operation to run the experiment
+Record the identifier of the created `discoveryspace` as it
+will be used in next section.
+
+## Explore the space with random_walk
+
+Next we'll scan this space sequentially using a `grouped` sampler
+to increase efficiency.
+The `grouped` sampler ensures we explore all the different
+benchmark configurations for a given vLLM deployment before
+creating a new deployment - minimising the need the number
+of deployment creations.
 
 ```yaml
 operation:
@@ -124,17 +167,18 @@ operation:
 ```
 
 Save the above as `random_walk.yaml`. Then execute the operation:
+
 <!-- markdownlint-disable line-length -->
 ```commandline
-ado create operation -f random_walk.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID" --set "actuatorConfigurationIdentifiers[0]=$ACTUATOR_CONF_ID"
+ado create operation -f random_walk.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID" --set actuatorConfigurationIdenfier=$ACTUATOR_CONFIGURATION_IDENTIFIER
 ```
 <!-- markdownlint-enable line-length -->
 
-> [!TIP]
->
-> If you prefer you can also edit the file and change the fields
+where `$DISCOVERY_SPACE_ID` is the identifier of the `discoveryspace`
+you created in the previous step, and `ACTUATOR_CONFIGURATION_IDENTIFIER` is
+the identifier of the `actuatorconfiguration` created earlier.
 
-## 5. Monitor the run
+### Monitor the optimization
 
 While the operation is running you can watch the deployment:
 
@@ -143,51 +187,49 @@ While the operation is running you can watch the deployment:
 oc get deployments --watch -n vllm-testing
 ```
 
-you can also see the measurement requests as the operation runs
+You can see the measurement requests as the operation runs
+by executing (in another terminal):
 
 ```commandline
 ado show requests operation $OPERATION_ID
 ```
 
-and the results
+and the results (this outputs the entities in sampled order):
 
 ```commandline
 ado show entities operation $OPERATION_ID
 ```
 
-When the output indicates that the experiment has finished,
-you can inspect the results of all operation  run so far on the space with
+If the `operation` is running the $OPERATION_ID will have been output
+just before the sampling started.
+Assuming no other operation was started it will also be
+the last id output by
 
-```bash
-ado show entities space $afo --output-format csv
+```commandline
+ado get operations
 ```
 
-## 6. Clean up
+### Check final results
 
-Delete the Kubernetes resources if you no longer need them:
+When the output indicates that the experiment has finished, you
+can inspect the results of all operations run so far on the space with:
 
-```bash
-# From the actuator directory (if you used the default templates)
-ad
-auto-delete -f deployment.yaml
+```commandline
+ado show entities space $DISCOVERY_SPACE_ID --output-format csv
 ```
 
-And optionally delete the ADO space and store:
-
-```bash
-ado delete space $afo
-ado delete samplestore <your_sample_store_id>
-```
+> [!NOTE]
+> At any time after an operation, $OPERATION_ID, is finished you can run
+> `ado show entities operation $OPERATION_ID`
+> to see the sampling time-series of that operation.
 
 ## Next steps
 
 - Try varying **`max_batch_tokens`** or **`gpu_memory_utilization`** to
 explore the impact on throughput.
+- Try creating a difference `actuatorconfiguration` with more
+`max_environments` and running the random walk with a non-grouped sampler
 - Replace the model with a different HF checkpoint to compare performance.
-- Use **RayTune** (see `best-configuration-search.md`) to optimise the
-hyper‑parameters of the benchmark.
-
----
-
-This example demonstrates the full workflow from installation to result retrieval,
-mirroring the style of the other examples.
+- Use **RayTune**
+(see the [vLLM endpoint performance](vllm-performance-endpoint.md) example`)
+to optimise the hyper‑parameters of the benchmark.

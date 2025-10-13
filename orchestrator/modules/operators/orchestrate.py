@@ -273,7 +273,7 @@ def run_explore_operation_core_closure(
             df: pd.DataFrame = (
                 discovery_space.complete_measurement_request_with_results_timeseries(
                     operation_id=operation_id,
-                    output_format="observed",
+                    output_format="target",
                 )
             )
 

@@ -5,41 +5,54 @@ import logging
 
 from nevergrad.functions import ArtificialFunction
 
-from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property_value import ValueTypeEnum
+from orchestrator.modules.actuators.custom_experiments import custom_experiment
+from orchestrator.schema.domain import PropertyDomain
+from orchestrator.schema.property import ConstitutiveProperty
 
 moduleLog = logging.getLogger()
 
 
-def artificial_function(
-    entity: Entity, experiment: Experiment, parameters: dict | None
-):
+@custom_experiment(
+    [
+        ConstitutiveProperty(
+            identifier="x0",
+            propertyDomain=PropertyDomain(variableType="CONTINUOUS_VARIABLE_TYPE"),
+        ),
+        ConstitutiveProperty(
+            identifier="x1",
+            propertyDomain=PropertyDomain(variableType="CONTINUOUS_VARIABLE_TYPE"),
+        ),
+        ConstitutiveProperty(
+            identifier="x2",
+            propertyDomain=PropertyDomain(variableType="CONTINUOUS_VARIABLE_TYPE"),
+        ),
+        ConstitutiveProperty(
+            identifier="name",
+            propertyDomain=PropertyDomain(
+                values=["discus", "sphere", "cigar", "griewank", "rosenbrock", "st1"]
+            ),
+        ),
+        ConstitutiveProperty(
+            identifier="num_blocks",
+            propertyDomain=PropertyDomain(
+                domainRange=[1, 10], variableType="DISCRETE_VARIABLE_TYPE", interval=1
+            ),
+        ),
+    ]
+)
+def artificial_function(x0: float, x1: float, x2: float, name: str, num_blocks: int):
 
     import numpy as np
 
-    # parameters is a dictionary of key:value pairs of the experiment required/optional inputs
-    # defined in custom_experiments.yaml
-    parameters = experiment.propertyValuesFromEntity(entity)
-
     # Get the function from nevergrad.functions.ArtificialFunction
     func = ArtificialFunction(
-        name=parameters["name"],
-        num_blocks=parameters["num_blocks"],
-        block_dimension=int(
-            len(entity.constitutive_property_values) / parameters["num_blocks"]
-        ),
+        name=name,
+        num_blocks=num_blocks,
+        block_dimension=int(3 / num_blocks),
         translation_factor=0.0,
     )
 
     # Call the nevergrad function
-    value = func(np.asarray([v.value for v in entity.constitutive_property_values]))
+    value = func(np.asarray([x0, x1, x2]))
 
-    # Return the function value to ado
-    pv = ObservedPropertyValue(
-        value=value,
-        property=experiment.observedPropertyForTargetIdentifier("function_value"),
-        valueType=ValueTypeEnum.NUMERIC_VALUE_TYPE,
-    )
-    return [pv]
+    return {"function_value": value}

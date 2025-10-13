@@ -32,3 +32,8 @@ fallback-version = "0.0.0"
 tagged-metadata = true
 dirty = true
 bump = true
+
+#Add entry point for custom experiments
+[project.entry-points."ado.custom_experiments"]
+optimization_test_functions = "optimization_test_functions.optimization_test_functions"
+

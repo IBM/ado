@@ -13,7 +13,6 @@ from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
 from orchestrator.modules.actuators.catalog import (
-    ActuatorCatalogExtension,
     ExperimentCatalog,
 )
 from orchestrator.schema.measurementspace import MeasurementSpace
@@ -198,25 +197,6 @@ class ActuatorRegistry:
                         actuatorid=actuator_class.identifier,
                         actuatorClass=actuator_class,
                     )
-            elif CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME in module_contents:
-                self.log.debug(f"Found {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME}")
-
-                experiments_configuration_file = Path(
-                    str(importlib.resources.files(module.name))
-                ) / Path(CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME)
-
-                try:
-                    catalog_extension = ActuatorCatalogExtension.model_validate(
-                        yaml.safe_load(experiments_configuration_file.read_text())
-                    )
-                except pydantic.ValidationError:
-                    self.log.exception(
-                        f"{module.name}'s {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME} raised a validation error"
-                    )
-                    raise
-
-                self.log.debug(f"Adding catalog extension {catalog_extension!s}")
-                self.updateCatalogs(catalogExtension=catalog_extension)
 
     def __str__(self):
 

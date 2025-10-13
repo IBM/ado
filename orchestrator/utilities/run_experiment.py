@@ -32,7 +32,7 @@ def local_execution_closure(
 
     Parameters:
         registry: The ActuatorRegistry to use to get the Actuator actors
-        actuator_configuration_identifier: (Optional) the actuator configuration to use
+        actuator_configuration_identifiers: (Optional) the actuator configuration to use
 
     Returns:
         A callable that submits a local measurement request.
@@ -53,7 +53,7 @@ def local_execution_closure(
             actuator_configuration = metastore.getResource(
                 identifier=actuator_configuration_identifier,
                 kind=CoreResourceKinds.ACTUATORCONFIGURATION,
-                raise_error_if_no_resource=False,
+                raise_error_if_no_resource=True,
             ).config
             actuator_configurations[actuator_configuration.actuatorIdentifier] = (
                 actuator_configuration
@@ -73,12 +73,12 @@ def local_execution_closure(
             actuator_class = registry.actuatorForIdentifier(
                 experiment.actuatorIdentifier
             )
-            if not (
-                config := actuator_configurations.get(experiment.actuatorIdentifier)
-            ):
-                config = actuator_class.default_parameters()
+            if experiment.actuatorIdentifier in actuator_configurations:
+                config = actuator_configurations[
+                    experiment.actuatorIdentifier
+                ].parameters
             else:
-                config = config.parameters
+                config = actuator_class.default_parameters()
 
             print(config)
             actuators[experiment.actuatorIdentifier] = actuator_class.remote(
@@ -206,7 +206,7 @@ def run(
     ),
     actuator_configuration_identifiers: list[str] = typer.Option(
         None,
-        "--actuator-config",
+        "--actuator-config-id",
         metavar="ACTUATOR_CONFIG_IDENTIFIER",
         help="Optional actuator configuration identifier(s) to use for this experiment. May be specified multiple times.",
     ),

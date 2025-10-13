@@ -374,3 +374,26 @@ def test_entity_space_iterators(measurement_space_from_single_parameterized_expe
     ), "Expected the first five random points to not be identical to first five sequential points"
 
     assert len(set(random)) == len(random), "Expected no points to be duplicated"
+
+
+def test_entity_space_updates_open_categorical_property():
+    es = EntitySpaceRepresentation(
+        constitutiveProperties=[
+            ConstitutiveProperty(
+                identifier="open_categorical_prop",
+                propertyDomain=PropertyDomain(
+                    variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+                    values=["a", "b", "c"],
+                ),
+            )
+        ]
+    )
+    assert (
+        es.constitutiveProperties[0].propertyDomain.variableType
+        == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+    ), "Expected open categorical property to be updated to categorical"
+    assert es.constitutiveProperties[0].propertyDomain.values == [
+        "a",
+        "b",
+        "c",
+    ], "Expected values to be retained"

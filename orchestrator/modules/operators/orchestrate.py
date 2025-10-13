@@ -262,10 +262,36 @@ def run_explore_operation_core_closure(
 ) -> typing.Callable[[], OperationOutput]:
 
     def _run_explore_operation_core() -> OperationOutput:
+        import pandas as pd
+        from rich.live import Live
+        from rich.table import Table
+
+        discovery_space = ray.get(state.discoverySpace.remote())
+        operation_id = ray.get(operator.operationIdentifier.remote())
+
+        def output_operation_results() -> Table:
+            df: pd.DataFrame = (
+                discovery_space.complete_measurement_request_with_results_timeseries(
+                    operation_id=operation_id,
+                    output_format="observed",
+                )
+            )
+
+            table = Table(*df.columns)
+            for _, row in df.iterrows():
+                table.add_row(*[str(value) for value in row])
+
+            return table
 
         state.startMonitoring.remote()
-        x = operator.run.remote()
-        return ray.get(x)  # type: OperationOutput
+        future = operator.run.remote()
+        finished = []
+        with Live(output_operation_results()) as live:
+            while not finished:
+                live.update(output_operation_results())
+                finished, _ = ray.wait(ray_waitables=[future], timeout=2)
+
+        return ray.get(future)  # type: OperationOutput
 
     return _run_explore_operation_core
 

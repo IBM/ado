@@ -17,6 +17,9 @@ def set_plugin():
 
 
 def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
+    if not ray_env.utils.is_pip_available():
+        pytest.skip("pip is unavailable")
+
     class_path = ".".join(
         (
             ray_env.ordered_pip.OrderedPipPlugin.__module__,
@@ -26,8 +29,7 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
 
     assert class_path == ray_env.ordered_pip.OrderedPipPlugin.ClassPath
 
-    if not ray_env.utils.is_ordered_pip_available():
-        pytest.skip("ordered_pip is unavailable")
+    assert ray_env.utils.is_ordered_pip_available()
 
     packages = ["torch==2.6.0", "flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"]
 

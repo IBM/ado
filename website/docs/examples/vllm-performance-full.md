@@ -97,32 +97,54 @@ parameters that can be varied:
 - the deployment creation parameters (number GPUs, memory allocated etc)
 - the benchmark test parameters (request per second to send, tokens per request etc.)
 
-In this case we define a space where XXXX
+In this case we define a space where we look at the impact of a few vLLM
+deployment parameters, including `max_num_seq` and `max_batch_tokens`, for a
+scenario where requests arrive between 1 and 10 per second with sizes
+around 2000 tokens .
 
 ```yaml
-# Example discovery space for vLLM performance
-sampleStoreIdentifier: <sample_store_id>
+sampleStoreIdentifier: 2963a5
 entitySpace:
-  - property: model
-    type: string
-    values:
-      - ibm-granite/granite-3.3-8b-instruct
-  - property: gpu_type
-    type: string
-    values:
-      - NVIDIA-A100-80GB-PCIe
-  - property: n_gpus
-    type: integer
-    min: 1
-    max: 1
-  - property: n_cpus
-    type: integer
-    min: 2
-    max: 8
-  - property: memory
-    type: string
-    values:
-      - 128Gi
+  - identifier: model
+    propertyDomain:
+      values:
+        - ibm-granite/granite-3.3-8b-instruct
+  - identifier: image
+    propertyDomain:
+      values:
+        - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
+  - identifier: "number_input_tokens"
+    propertyDomain:
+      values: [1024, 2048, 4096]
+  - identifier: "request_rate"
+    propertyDomain:
+      domainRange: [1,10]
+      interval: 1
+  - identifier: n_cpus
+    propertyDomain:
+      domainRange: [2,16]
+      interval: 2
+  - identifier: memory
+    propertyDomain:
+      values: ["128Gi", "256Gi"]
+  - identifier: "max_batch_tokens"
+    propertyDomain:
+      values: [1024, 2048, 4096, 8192, 16384, 32768]
+  - identifier: "max_num_seq"
+    propertyDomain:
+      values: [16,32,64]
+  - identifier: "n_gpus"
+    propertyDomain:
+      values: [1]
+  - identifier: "gpu_type"
+    propertyDomain:
+      values: ["NVIDIA-A100-80GB-PCIe"]
+experiments:
+  - actuatorIdentifier: vllm_performance
+    experimentIdentifier: performance-testing-full
+metadata:
+  description: A space of vllm deployment configurations
+  name: vllm_deployments
 ```
 
 Save the above as `vllm_discoveryspace.yaml`.
@@ -151,19 +173,30 @@ creating a new deployment - minimising the need the number
 of deployment creations.
 
 ```yaml
+metadata:
+  name: randomwalk-grouped-vllm-performance-full
+spaces:
+  - space-230d24-03b22d
+actuatorConfigurationIdentifiers:
+  - actuatorconfiguration-vllm_performance-09fcdf30
 operation:
   module:
-    operatorName: "random_walk"
-    operationType: "search"
+    moduleClass: RandomWalk
   parameters:
     numberEntities: all
-    singleMeasurement: true
-    mode: sequential
-    samplerType: generator
-    spaces:
-      - <spaceid>
-    actuatorConfigurationIdentifiers:
-      - <actuatorconfiguration-identifier-from-step-2>
+    batchSize: 1
+    samplerConfig:
+      mode: 'sequentialgrouped'
+      samplerType: 'generator'
+      grouping: #A unique combination of these properties is a new vLLM deployment
+        - model
+        - image
+        - memory
+        - max_batch_tokens
+        - max_num_seq
+        - n_gpus
+        - gpu_type
+        - n_cpus
 ```
 
 Save the above as `random_walk.yaml`. Then execute the operation:

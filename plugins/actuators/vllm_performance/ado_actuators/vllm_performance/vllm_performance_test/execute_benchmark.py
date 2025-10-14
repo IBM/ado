@@ -85,9 +85,9 @@ def execute_benchmark(
 if __name__ == "__main__":
     results = execute_benchmark(
         interpreter="python3.10",
-        base_url="https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/",
+        base_url="https://test-oss-discovery-dev.apps.morrigan.accelerated-discovery.res.ibm.com/",
         data_set="random",
-        model="deepseek-ai/DeepSeek-V2.5",
+        model="openai/gpt-oss-20b",
         request_rate=None,
         max_concurrency=None,
         hf_token=os.getenv("HF_TOKEN"),

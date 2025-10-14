@@ -87,11 +87,10 @@ def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
         True if the testDomain is a subdomain of the continuousDomain
     """
     if testDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-        if continuousDomain.domainRange is None:
-            return True
-        return min(continuousDomain.domainRange) <= min(testDomain.domainRange) and max(
-            continuousDomain.domainRange
-        ) >= max(testDomain.domainRange)
+        return continuousDomain.domainRange is None or (
+            min(continuousDomain.domainRange) <= min(testDomain.domainRange)
+            and max(continuousDomain.domainRange) >= max(testDomain.domainRange)
+        )
     if testDomain.variableType in [
         VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
         VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
@@ -232,7 +231,7 @@ def is_subdomain_of_open_categorical_domain(openCategoricalDomain, testDomain):
     """
     if testDomain.variableType in [
         VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
-        *VariableTypeEnum.BINARY_VARIABLE_TYPE,
+        VariableTypeEnum.BINARY_VARIABLE_TYPE,
         VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
     ]:
         return True

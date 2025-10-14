@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import math
 import typing
 
 import numpy as np
@@ -21,6 +22,7 @@ class VariableTypeEnum(str, enum.Enum):
     CATEGORICAL_VARIABLE_TYPE = (
         "CATEGORICAL_VARIABLE_TYPE"  # the value of the variable is a category label
     )
+    OPEN_CATEGORICAL_VARIABLE_TYPE = "OPEN_CATEGORICAL_VARIABLE_TYPE"  # the value of the variable is a category label but all categories are not known in advance
     BINARY_VARIABLE_TYPE = "BINARY_VARIABLE_TYPE"  # the value of the variable is binary
     UNKNOWN_VARIABLE_TYPE = "UNKNOWN_VARIABLE_TYPE"  # the type of value of the variable is unknown/unspecified
     IDENTIFIER_VARIABLE_TYPE = "IDENTIFIER_VARIABLE_TYPE"  # the value is some type of, possible unique, identifier
@@ -63,6 +65,184 @@ def _internal_range_values(lower, upper, interval) -> list:
         values = values[:-1]
     # values = np.linspace(lower, upper, num)[:-1]
     return list(np.round(values, 10))
+
+
+def is_subdomain_of_unknown_domain(unknownDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the unknownDomain
+    Parameters:
+        unknownDomain: A PropertyDomain with variableType UNKNOWN_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the unknownDomain
+    """
+    return True
+
+
+def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the continuousDomain
+    Parameters:
+        continuousDomain: A PropertyDomain with variableType CONTINUOUS_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the continuousDomain
+    """
+    if testDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+        return continuousDomain.domainRange is None or (
+            min(continuousDomain.domainRange) <= min(testDomain.domainRange)
+            and max(continuousDomain.domainRange) >= max(testDomain.domainRange)
+        )
+    if testDomain.variableType in [
+        VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+        VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+        VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+    ]:
+        return False
+    if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+        if continuousDomain.domainRange is None:
+            return True
+
+        if testDomain.size == math.inf:
+            return False
+
+        return min(continuousDomain.domainRange) <= min(
+            testDomain.domain_values
+        ) and max(continuousDomain.domainRange) > max(testDomain.domain_values)
+
+    # The only variable type left is BINARY
+    # Check 0,1 is within our domainRange
+    return continuousDomain.domainRange is None or (
+        min(continuousDomain.domainRange) <= 0 and max(continuousDomain.domainRange) > 1
+    )
+
+
+def is_subdomain_of_discrete_domain(discreteDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the discreteDomain
+    Parameters:
+        discreteDomain: A PropertyDomain with variableType DISCRETE_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the discreteDomain
+    """
+    if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+        if discreteDomain.interval:
+            if testDomain.interval:
+                # We both have  an interval
+                # Our interval must be divisible by domain interval
+                if testDomain.interval % discreteDomain.interval == 0:
+                    # Now we have to check the ranges
+                    if testDomain.domainRange and discreteDomain.domainRange:
+                        # Both have ranges - values must be subsets of each other
+                        retval = set(testDomain.domain_values).issubset(
+                            discreteDomain.domain_values
+                        )
+                    elif (
+                        testDomain.domainRange and not discreteDomain.domainRange
+                    ) or (not testDomain.domainRange and discreteDomain.domainRange):
+                        # If we have a range and the other doesn't, it's a subdomain; if we don't have a range and the other does, it's not a subdomain
+                        retval = (
+                            testDomain.domainRange and not discreteDomain.domainRange
+                        )
+                    else:
+                        # Neither have ranges
+                        retval = True
+                else:
+                    retval = False
+            else:
+                # they have a domain range and interval we have values
+                # convert their domain range to values
+                retval = set(testDomain.domain_values).issubset(
+                    discreteDomain.domain_values
+                )
+        else:
+            retval = set(testDomain.domain_values).issubset(
+                discreteDomain.domain_values
+            )
+        return retval
+    if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+        return all(x in discreteDomain.domain_values for x in [0, 1])
+
+    # All other domains are false (CONTINUOUS, OPEN_CATEGORICAL, UNKNOWN and CATEGORICAL
+    return False
+
+
+def is_subdomain_of_categorical_domain(categoricalDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the categoricalDomain
+    Parameters:
+        categoricalDomain: A PropertyDomain with variableType CATEGORICAL_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the categoricalDomain
+    """
+    # Check against all members of VariableTypeEnum
+
+    if testDomain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
+        return all(x in categoricalDomain.values for x in testDomain.values)
+    if testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+        return all(x in categoricalDomain.domain_values for x in [0, 1])
+    if testDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+        return testDomain.size != math.inf and all(
+            x in categoricalDomain.domain_values for x in testDomain.domain_values
+        )
+
+    # All other domains are false: OPEN_CATEGORICAL, UNKNOWN, CONTINUOUS
+    return False
+
+
+def is_subdomain_of_binary_domain(binaryDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the binaryDomain
+
+    The cases where this returns True are
+    - testDomain is a BINARY_VARIABLE_TYPE
+    - testDomain is a DISCRETE_VARIABLE_TYPE or CATEGORICAL_VARIABLE_TYPE with size <= 2
+    and all values in testDomain are in binaryDomain.domain_values
+
+    Parameters:
+        binaryDomain: A PropertyDomain with variableType BINARY_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the binaryDomain
+    """
+    if testDomain.variableType in [
+        VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+    ]:
+        if testDomain.size <= 2:
+            return all(
+                x in binaryDomain.domain_values for x in testDomain.domain_values
+            )
+        return False
+
+    # All other domains are false: OPEN_CATEGORICAL, UNKNOWN, CONTINUOUS except BINARY
+    return testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+
+
+def is_subdomain_of_open_categorical_domain(openCategoricalDomain, testDomain):
+    """Returns True if the testDomain is a subdomain of the openCategoricalDomain
+
+    The cases where this returns True are:
+    - testDomain is an OPEN_CATEGORICAL_VARIABLE_TYPE, BINARY_VARIABLE_TYPE or CATEGORICAL_VARIABLE_TYPE
+    - testDomain is a Discrete_VARIABLE_TYPE with size != math.inf
+
+    Parameters:
+        openCategoricalDomain: A PropertyDomain with variableType OPEN_CATEGORICAL_VARIABLE_TYPE
+        testDomain: A PropertyDomain with any variableType
+    Returns:
+        True if the testDomain is a subdomain of the openCategoricalDomain
+    """
+    if testDomain.variableType in [
+        VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+        VariableTypeEnum.BINARY_VARIABLE_TYPE,
+        VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+    ]:
+        return True
+    if testDomain.variableType in [
+        VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+        VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+    ]:
+        return False
+
+    # Only domain left is DISCRETE
+    return testDomain.size != math.inf
 
 
 class ProbabilityFunction(pydantic.BaseModel):
@@ -233,6 +413,9 @@ class PropertyDomain(pydantic.BaseModel):
         elif value == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             assert values.data.get("values") is None
             assert values.data.get("interval") is None
+        elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
+            assert values.data.get("interval") is None
+            assert values.data.get("domainRange") is None
 
         return value
 
@@ -324,9 +507,10 @@ class PropertyDomain(pydantic.BaseModel):
         if self.variableType in {
             VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
             VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+            VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
         }:
             raise ValueError(
-                "Cannot generate domain values for continuous or unknown variables"
+                "Cannot generate domain values for continuous, unknown or open categorical variables"
             )
         if self.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
             return [False, True]
@@ -363,9 +547,12 @@ class PropertyDomain(pydantic.BaseModel):
                     retval = True
         elif self.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
             retval = value in self.values
-        elif self.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
-            # If the domain is unknown we just return True
-            # This is required if the value is from a PropertyType with this domain for self-consistency
+        elif self.variableType in [
+            VariableTypeEnum.UNKNOWN_VARIABLE_TYPE,
+            VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+        ]:
+            # If the domain is unknown or open categorical we just return True
+            # This is required if the value is from a PropertyType with these domains for self-consistency
             # e.g. If we have a ConstitutiveProperty(identifier="smiles", PropertyDomain(type=UNKNOWN_VARIABLE_TYPE)
             # And then if we ask is smiles = (CO2) in the domain it should return True.
             retval = True
@@ -379,191 +566,61 @@ class PropertyDomain(pydantic.BaseModel):
         return retval
 
     def isSubDomain(self, otherDomain: "PropertyDomain") -> bool:
-        """Checks if the receiver is a subdomain of otherDomain.
+        """Checks if self is a subdomain of otherDomain.
 
         If the two domains are identical this method returns True"""
 
         if self is otherDomain:
             return True
 
-        if self.variableType != otherDomain.variableType:
+        if self == otherDomain:
+            return True
 
-            if otherDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
-                # We can return immediately as there is nothing else we can do with UNKNOWN
-                return True
-
-            # Variables not of same type cannot be subdomains in the following situations
-            # A_ this domain is unknown and the other is not-unknown
-            # B_ this domain is categorical and the other domain is discrete or binary (you can't create a categorical domain that could be a discrete domain or binary domain)
-            # C_ this domain is continuous and the other is discrete/categorical/binary
-
-            # Note: binary/discrete could be subdomains of categorical if categorical mixes numbers and strings
-            # e.g. binary is a subdomain of [True, False, "George"]
-
-            # A
-            if (
-                self.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
-                and otherDomain.variableType != VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
-            ):
-                return False
-
-            # B
-            if (
-                otherDomain.variableType
-                in [
-                    VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-                    VariableTypeEnum.BINARY_VARIABLE_TYPE,
-                ]
-            ) and self.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
-                return False
-
-            # C
-            if (
-                self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
-                and otherDomain.variableType
-                in [
-                    VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-                    VariableTypeEnum.BINARY_VARIABLE_TYPE,
-                    VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-                ]
-            ):
-                return False
-
-        retval = True
-        if self.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
-            s = set(self.values)
-            o = set(otherDomain.values)
-
-            # The receiver is a subdomain if all its values are in otherDomain values
-            # (Note the case where otherDomain is discrete/binary is excluded above)
-            # i.e. we can check this by computing the set difference
-            retval = len(s.difference(o)) == 0
-
-        elif self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-            # If the other domain has no range then the receiver is a subdomain
-            if not otherDomain.domainRange:
-                retval = True
-            elif otherDomain.values:  # If the other domain has values - use those
-                retval = all(
-                    min(self.domainRange) <= x < max(self.domainRange)
-                    for x in otherDomain.values
-                )
-            else:
-                retval = bool(
-                    min(self.domainRange) >= min(otherDomain.domainRange)
-                    and max(self.domainRange) <= max(otherDomain.domainRange)
-                )
-        elif (
-            self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
-            and otherDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
-        ):
-            # There are four situations
-            # 1. Us: DomainRange Other: DomainRange
-            # 2. Us: DomainRange Other: Values
-            # 3. Us: Values Other: Values
-            # 4. Us: Values Other: DomainRange
-            if otherDomain.interval:
-                if self.interval:
-                    # We both have  an interval
-                    # Our interval must be divisible by domain interval
-                    if self.interval % otherDomain.interval == 0:
-                        # No we have to check the ranges
-                        if self.domainRange and otherDomain.domainRange:
-                            # Both have ranges - values must be subsets of each other
-                            s = set(self.domain_values)
-                            o = set(otherDomain.domain_values)
-                            retval = len(s.difference(o)) == 0
-                        elif self.domainRange and not otherDomain.domainRange:
-                            # We have a range and the other doesn't
-                            retval = True
-                        elif not self.domainRange and otherDomain.domainRange:
-                            # We don't have a range and the other does - can't be subdomain
-                            retval = False
-                        else:
-                            # Neither have ranges
-                            retval = True
-                    else:
-                        retval = False
-                else:
-                    # they have a domain range and interval we have values
-                    # convert their domain range to values
-                    s = set(self.values)
-                    o = set(otherDomain.domain_values)
-                    retval = len(s.difference(o)) == 0
-            else:
-                if self.values:
-                    # we both have values
-                    s = set(self.values)
-                    o = set(otherDomain.values)
-                    retval = len(s.difference(o)) == 0
-                else:
-                    # we have a domain range and interval, and they have values
-                    # convert the domain range to values
-                    s = set(self.domain_values)
-                    o = set(otherDomain.values)
-                    retval = len(s.difference(o)) == 0
-        elif (
-            self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
-            and otherDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
-        ):
-            if not otherDomain.domainRange:
-                # If there is no domain on the continuous variable we are subdomain
-                retval = True
-            elif self.values:  # If we have values - use those
-                retval = all(
-                    min(otherDomain.domainRange) <= x < max(otherDomain.domainRange)
-                    for x in self.values
-                )
-            else:
-                retval = bool(
-                    min(self.domainRange) >= min(otherDomain.domainRange)
-                    and max(self.domainRange) <= max(otherDomain.domainRange)
-                )
-        elif (
-            self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
-            and otherDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
-        ):
-            # We are a subdomain of binary domain if our values are [0,1], [1], or [0]
-            # AND we have less than 3 values
-            retval = all(x in [0, 1] for x in self.domain_values) and self.size <= 2
-        elif self.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
-            if otherDomain.variableType in [
-                VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-                VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-            ]:
-                retval = all(
-                    x in otherDomain.domain_values for x in [0, 1, True, False]
-                )
-            elif otherDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-                retval = (
-                    (
-                        max(otherDomain.domainRange) > 1
-                        and min(otherDomain.domainRange) <= 0
-                    )
-                    if otherDomain.domainRange
-                    else True
-                )
-
-        return retval
+        # If variable types are the same, handle in each function
+        if otherDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE:
+            return is_subdomain_of_unknown_domain(
+                unknownDomain=otherDomain, testDomain=self
+            )
+        if otherDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
+            return is_subdomain_of_continuous_domain(
+                continuousDomain=otherDomain, testDomain=self
+            )
+        if otherDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
+            return is_subdomain_of_discrete_domain(
+                discreteDomain=otherDomain, testDomain=self
+            )
+        if otherDomain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
+            return is_subdomain_of_categorical_domain(
+                categoricalDomain=otherDomain, testDomain=self
+            )
+        if otherDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+            return is_subdomain_of_binary_domain(
+                binaryDomain=otherDomain, testDomain=self
+            )
+        if otherDomain.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
+            return is_subdomain_of_open_categorical_domain(
+                openCategoricalDomain=otherDomain, testDomain=self
+            )
+        # fallback to previous logic if unknown type
+        raise ValueError(f"Internal error: Unknown variable type {self.variableType}")
 
     @property
     def size(self) -> float | int:
         """Returns the size (number of elements) in the domain if this is countable.
 
-        Returns math.inf if the size is not countable.
-        This includes any domain with CONTINUOUS_VARIABLE_TYPE, UNKNOWN_VARIABLE_TYPE ir IDENTIFIER_VARIABLE_TYPE.
+        Returns math.inf if the size is not countable or is unknown/open categorical.
+        This includes any domain with CONTINUOUS_VARIABLE_TYPE, UNKNOWN_VARIABLE_TYPE or OPEN_CATEGORICAL_VARIABLE_TYPE.
         It also includes any unbounded domain with DISCRETE_VARIABLE_TYPE.
         """
-
-        import math
 
         if (
             self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
         ):  # noqa: SIM114
             size = math.inf
-        elif self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE and (
-            self.domainRange is None and self.values is None
-        ):
+        elif (
+            self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+            and (self.domainRange is None and self.values is None)
+        ) or self.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
             size = math.inf
         else:
             if self.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:

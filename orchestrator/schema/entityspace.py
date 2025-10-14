@@ -3,7 +3,7 @@
 
 import typing
 
-from orchestrator.schema.domain import VariableTypeEnum
+from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.property import ConstitutiveProperty
 from orchestrator.schema.property_value import (
@@ -26,8 +26,26 @@ class EntitySpaceRepresentation:
         constitutiveProperties: list[ConstitutiveProperty],
     ):
 
-        self._constitutiveProperties = constitutiveProperties
-        self._propertyLookup = {c.identifier: c for c in self._constitutiveProperties}
+        self._propertyLookup = {c.identifier: c for c in constitutiveProperties}
+        # Update open-categorical type to categorical -> once in an entityspace the category can't be open anymore
+        for c in constitutiveProperties:
+            if (
+                c.propertyDomain.variableType
+                == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+            ):
+                # ConstitutiveProperty is immutable so we need to create a new one
+                propertyDomain = PropertyDomain(
+                    variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+                    values=c.propertyDomain.values,
+                    probabilityFunction=c.propertyDomain.probabilityFunction,
+                )
+                c = ConstitutiveProperty(
+                    identifier=c.identifier,
+                    propertyDomain=propertyDomain,
+                )
+                self._propertyLookup[c.identifier] = c
+
+        self._constitutiveProperties = list(self._propertyLookup.values())
 
     @property
     def config(self) -> list[ConstitutiveProperty]:

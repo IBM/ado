@@ -104,12 +104,14 @@ def _create_environment(
             break
         time.sleep(check_interval)
     error = None
-    print(f"Environment state {env.state}, name {env.k8_name}, definition {definition}")
+    logger.debug(
+        f"Environment state {env.state}, name {env.k8_name}, definition {definition}"
+    )
     start = time.time()
     match env.state:
         case EnvironmentState.NONE:
             # Environment does not exist, create it
-            print(f"Environment {env.k8_name} does not exist. Creating it")
+            logger.debug(f"Environment {env.k8_name} does not exist. Creating it")
             tmout = 1
             for attempt in range(3):
                 try:
@@ -153,15 +155,17 @@ def _create_environment(
                     time.sleep(tmout)
                     tmout *= 2
             if error is None:
-                print(
+                logger.info(
                     f"Created test environment {env.k8_name} in {time.time() - start} sec"
                 )
             else:
-                print(f"Failed to create test environment {env.k8_name} exiting")
+                logger.warning(
+                    f"Failed to create test environment {env.k8_name} exiting"
+                )
                 sys.exit(1)
         case EnvironmentState.CREATING:
             # Someone is creating environment, wait till its ready
-            print(
+            logger.info(
                 f"Environment {env.k8_name} is being created. Waiting for it to be ready."
             )
             n_checks = math.ceil(timeout / check_interval)
@@ -177,10 +181,10 @@ def _create_environment(
             if env.state != EnvironmentState.READY:
                 # timed out waiting for environment creation
                 error = "Timed out waiting for environment to get ready"
-            print("Environment is created, using it")
+            logger.debug("Environment is created, using it")
         case _:
             # environment exists, use it
-            print(f"Environment {env.k8_name} already exists. Reusing it")
+            logger.debug(f"Environment {env.k8_name} already exists. Reusing it")
     return env.k8_name, error, definition
 
 
@@ -214,7 +218,7 @@ def run_resource_and_workload_experiment(
     # 2. Updates MeasurementRequest with the results of the measurement and status
     # 3. Puts it in the stateUpdateQueue
 
-    print(
+    logger.debug(
         f"number of entities {len(request.entities)}, actuator parameters {actuator_parameters}, node selector {node_selector}"
     )
 
@@ -229,16 +233,12 @@ def run_resource_and_workload_experiment(
         # - If the experiment was parameterizable another set may be retrieved from the Experiment
 
         values = experiment.propertyValuesFromEntity(entity=entity)
-        print(
-            f"Values for entity {entity.identifier} and experiment {experiment.identifier} "
-            f"experiment type is {type(experiment)} are {json.dumps(values)}"
-        )
         current_port += 1
         # create environment
         if not actuator_parameters.in_cluster:
-            print("We are running locally connecting to remote cluster")
-            print("please make sure that you have executed `oc login`")
-            print(
+            logger.info("We are running locally connecting to remote cluster")
+            logger.info("please make sure that you have executed `oc login`")
+            logger.info(
                 "We are using ports from 10000 and above to communicate with the cluster, "
                 "please make sure that it is not in use"
             )
@@ -250,7 +250,7 @@ def run_resource_and_workload_experiment(
             env_manager=env_manager,
         )
         if error is None:
-            print("test environment is created")
+            logger.debug("test environment is created")
             pf = None
             # compute base url
             if actuator_parameters.in_cluster:
@@ -261,11 +261,12 @@ def run_resource_and_workload_experiment(
                 pf_command = f"kubectl port-forward svc/{k8_name} -n {actuator_parameters.namespace} {current_port}:80"
                 try:
                     pf = subprocess.Popen(pf_command, shell=True)
-                    print("port forwarding set")
                     # make sure that port forwarding is up
                     time.sleep(5)
                 except Exception as e:
-                    print(f"failed to start port forward to service {k8_name} - {e}")
+                    logger.warning(
+                        f"failed to start port forward to service {k8_name} - {e}"
+                    )
                     error = f"failed to start port forward to service {k8_name} - {e}"
                 base_url = f"http://localhost:{current_port}"
             if error is None:
@@ -292,7 +293,7 @@ def run_resource_and_workload_experiment(
                         max_output_tokens=int(values.get("max_output_tokens")),
                         burstiness=float(values.get("burstiness")),
                     )
-                    print(f"benchmark executed in {time.time() - start} sec")
+                    logger.debug(f"benchmark executed in {time.time() - start} sec")
                 except Exception as e:
                     logger.error(f"Failed to execute VLLM performance test {e}")
                     error = f"Failed to execute VLLM performance test {e}"
@@ -311,7 +312,6 @@ def run_resource_and_workload_experiment(
         # (a) Separate results from multiple entities
         # (b) Distinguish Valid and Invalid measurements -> especially in latter case to provide info on failure reasons
 
-        print("creating measurement")
         measurements.append(
             create_measurement_result(
                 identifier=entity.identifier,
@@ -322,11 +322,10 @@ def run_resource_and_workload_experiment(
         )
 
     # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
-    print("done processing entities")
     if len(measurements) > 0:
         request.measurements = measurements
     request.status = compute_measurement_status(measurements=measurements)
-    print(f"request status is {request.status}. pushing to update queue")
+    logger.debug(f"request status is {request.status}. pushing to update queue")
     # Push the request to the state updates queue
     state_update_queue.put(request, block=False)
 
@@ -365,7 +364,7 @@ def run_workload_experiment(
         # - If the experiment was parameterizable another set may be retrieved from the Experiment
 
         values = experiment.propertyValuesFromEntity(entity=entity)
-        print(
+        logger.debug(
             f"Values for entity {entity.identifier} and experiment {experiment.identifier} "
             f"experiment type is {type(experiment)} are {json.dumps(values)}"
         )
@@ -376,7 +375,6 @@ def run_workload_experiment(
         max_concurrency = int(values.get("max_concurrency"))
         if max_concurrency < 0:
             max_concurrency = None
-        start = time.time()
         result = None
         error = None
         measured_values = []
@@ -395,7 +393,6 @@ def run_workload_experiment(
                 max_output_tokens=int(values.get("max_output_tokens")),
                 burstiness=float(values.get("burstiness")),
             )
-            print(f"benchmark executed in {time.time() - start} sec")
         except Exception as e:
             logger.error(f"Failed to execute VLLM performance test {e}")
             error = f"Failed to execute VLLM performance test {e}"
@@ -411,7 +408,6 @@ def run_workload_experiment(
         # (a) Separate results from multiple entities
         # (b) Distinguish Valid and Invalid measurements -> especially in latter case to provide info on failure reasons
 
-        print("creating measurement")
         measurements.append(
             create_measurement_result(
                 identifier=entity.identifier,
@@ -422,10 +418,9 @@ def run_workload_experiment(
         )
 
     # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
-    print("done processing entities")
     if len(measurements) > 0:
         request.measurements = measurements
     request.status = compute_measurement_status(measurements=measurements)
-    print(f"request status is {request.status}. pushing to update queue")
+    logger.debug(f"request status is {request.status}. pushing to update queue")
     # Push the request to the state updates queue
     state_update_queue.put(request, block=False)

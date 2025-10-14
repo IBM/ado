@@ -5,6 +5,7 @@ import os
 import subprocess
 import time
 import uuid
+import logging
 from typing import Any
 
 from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results import (
@@ -44,11 +45,15 @@ def execute_benchmark(
     keys are vllm benchmark arguments. values are the values to pass to the arguments
     :return: results dictionary
     """
-    print(f"executing benchmark, invoking service at {base_url} with the parameters: ")
-    print(
+    logger = logging.getLogger("vllm-bench")
+
+    logger.debug(
+        f"executing benchmark, invoking service at {base_url} with the parameters: "
+    )
+    logger.debug(
         f"model {model}, data set {data_set}, python {interpreter}, num prompts {num_prompts}"
     )
-    print(
+    logger.debug(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
     # The code below is commented as we are switching from a script invocation to command line
@@ -80,17 +85,19 @@ def execute_benchmark(
             request += f"{key} {value!s} "
     timeout = retries_timeout
 
+    logger.debug(f"Command line: {request}")
+
     for i in range(benchmark_retries):
         try:
             subprocess.check_call(request, shell=True)
             break
         except subprocess.CalledProcessError as e:
-            print(f"Command failed with return code {e.returncode}")
+            logger.warning(f"Command failed with return code {e.returncode}")
             if i < benchmark_retries - 1:
                 time.sleep(timeout)
                 timeout *= 2
             else:
-                print("Failed to execute benchmark")
+                logger.warning("Failed to execute benchmark")
                 raise Exception(f"Failed to execute benchmark {e}")
 
     return get_results(f_name=f_name)

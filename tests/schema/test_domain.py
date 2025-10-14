@@ -808,7 +808,7 @@ def test_domain_values():
     # Test continuous variables raise ValueError when domain_values is called
     with pytest.raises(
         ValueError,
-        match="Cannot generate domain values for continuous or unknown variables",
+        match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
@@ -817,7 +817,7 @@ def test_domain_values():
     # Test unknown variables raise ValueError when domain_values is called
     with pytest.raises(
         ValueError,
-        match="Cannot generate domain values for continuous or unknown variables",
+        match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
@@ -826,3 +826,108 @@ def test_domain_values():
     # Test 0 is in domain values of discrete var of range [0,1]
     d = PropertyDomain(domainRange=[0, 1], interval=1)
     assert d.domain_values == [0]
+
+
+def test_open_categorical_variable_type_property_domain():
+    import math
+
+    import pydantic
+
+    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+
+    d = PropertyDomain(variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE)
+    # Type is set
+    assert d.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    # valueInDomain always True
+    assert d.valueInDomain("anything") is True
+    assert d.valueInDomain(1234) is True
+    assert d.valueInDomain([1, 2, 3]) is True
+    # size is inf
+    assert d.size == math.inf
+    # domain_values raises ValueError
+    with pytest.raises(
+        ValueError,
+        match="Cannot generate domain values for continuous, unknown or open categorical variables",
+    ):
+        _ = d.domain_values
+    # isSubDomain only for open categorical
+    d2 = PropertyDomain(variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE)
+    assert d.isSubDomain(d2)
+    # Not a subdomain of categorical
+    d3 = PropertyDomain(values=["a", "b"])
+    assert not d.isSubDomain(d3)
+    # But categorical can be subdomain of open categorical
+    assert d3.isSubDomain(d)
+
+    # Check d.isSubDomain(OTHER) behaviour
+
+    # Open categorical is not a subdomain of any other domain except UNKNOWN_VARIABLE_TYPE
+    assert d.isSubDomain(
+        PropertyDomain(variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE)
+    )
+    # Open categorical is not a subdomain of continuous
+    assert not d.isSubDomain(
+        PropertyDomain(variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE)
+    )
+    # Open categorical is not a subdomain of discrete
+    assert not d.isSubDomain(
+        PropertyDomain(variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=1)
+    )
+
+    # Check OTHER.isSubDomain(d) behaviour
+
+    # Continuous is not a subdomain of open categorical
+    assert not PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    ).isSubDomain(d)
+    # Discrete with no bounds is not a subdomain of open categorical
+    assert not PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=1
+    ).isSubDomain(d)
+    # Discrete with bounds is a subdomain of open categorical
+    assert PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        domainRange=[0, 2],
+        interval=1,
+    ).isSubDomain(d)
+    # Unknown is not a subdomain of open categorical
+    assert not PropertyDomain(
+        variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+    ).isSubDomain(d)
+
+    # Test serialization retains variable type
+    dump = d.model_dump()
+    assert dump["variableType"] == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    dser = PropertyDomain.model_validate(dump)
+    assert dser.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+
+    # Test values can be passed for open categorical
+    d = PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+        values=["a", "b", "c"],
+    )
+    assert d.values == ["a", "b", "c"]
+    assert d.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    # Test domain range cannot be passed for open categorical
+    with pytest.raises(
+        pydantic.ValidationError, match="1 validation error for PropertyDomain"
+    ):
+        d = PropertyDomain(
+            variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+            domainRange=[0, 1],
+        )
+    # Test interval cannot be passed for open categorical
+    with pytest.raises(
+        pydantic.ValidationError, match="1 validation error for PropertyDomain"
+    ):
+        d = PropertyDomain(
+            variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE, interval=1
+        )
+
+    # Test serialization retains variable type and values
+    dump = d.model_dump()
+    assert dump["variableType"] == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    assert dump["values"] == ["a", "b", "c"]
+    dser = PropertyDomain.model_validate(dump)
+    assert dser.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    assert dser.values == ["a", "b", "c"]

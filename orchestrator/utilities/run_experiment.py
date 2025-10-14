@@ -23,7 +23,7 @@ from orchestrator.schema.request import MeasurementRequest
 
 def local_execution_closure(
     registry: ActuatorRegistry,
-    actuator_configuration_identifiers: list[str],
+    actuator_configuration_identifiers: list[str] | None = None,
 ) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
     """Create a callable that submits a local measurement request.
 
@@ -204,7 +204,7 @@ def run(
         True,
         help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
     ),
-    actuator_configuration_identifiers: list[str] = typer.Option(
+    actuator_configuration_identifiers: list[str] | None = typer.Option(
         None,
         "--actuator-config-id",
         metavar="ACTUATOR_CONFIG_IDENTIFIER",

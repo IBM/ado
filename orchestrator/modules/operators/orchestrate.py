@@ -262,10 +262,47 @@ def run_explore_operation_core_closure(
 ) -> typing.Callable[[], OperationOutput]:
 
     def _run_explore_operation_core() -> OperationOutput:
+        import pandas as pd
+        from rich.console import Console
+        from rich.live import Live
+        from rich.table import Table
+
+        discovery_space = ray.get(state.discoverySpace.remote())
+        operation_id = ray.get(operator.operationIdentifier.remote())
+
+        def output_operation_results(row_limit: int | None) -> Table:
+            df: pd.DataFrame = (
+                discovery_space.complete_measurement_request_with_results_timeseries(
+                    operation_id=operation_id,
+                    output_format="target",
+                )
+            )
+
+            table_title = "Latest measurements" if row_limit else "Measurements"
+            table = Table(*df.columns, title=table_title)
+            # We iterate over the reversed dataframe to find
+            # the last height rows
+            for idx, (_, row) in enumerate(df[::-1].iterrows()):
+                if row_limit and idx == row_limit:
+                    break
+                table.add_row(*[str(value) for value in row])
+
+            return table
 
         state.startMonitoring.remote()
-        x = operator.run.remote()
-        return ray.get(x)  # type: OperationOutput
+        future = operator.run.remote()
+        finished = []
+
+        # Try to make the table be more or less half of the terminal height
+        table_height = max(int(Console().height / 2) - 4, 4)
+        with Live(output_operation_results(row_limit=table_height)) as live:
+            while not finished:
+                live.update(output_operation_results(row_limit=table_height))
+                finished, _ = ray.wait(ray_waitables=[future], timeout=2)
+
+            # Output the whole table before exiting
+            live.update(output_operation_results(row_limit=None))
+        return ray.get(future)  # type: OperationOutput
 
     return _run_explore_operation_core
 

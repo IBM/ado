@@ -5,12 +5,13 @@
 > This example illustrates using the vllm-performance actuator to test the
 > throughput of an OpenAPI compatible inference endpoint
 >
-<!-- markdownlint-disable-next-line MD028 -->
+<!-- markdownlint-disable-next-line no-blanks-blockquote -->
 
 > [!IMPORTANT]
+>
 > **Prerequisites**
 >
-> - An endpoint serving a LLM via the OpenAI API
+> - An endpoint serving an LLM in an OpenAI API-compatible format
 > - The `ray_tune` operator with hyperopt installed
 >
 > ```commandline
@@ -103,6 +104,7 @@ Record the identifier of the created `discoveryspace` as it
 will be used in next section.
 
 > [!NOTE]
+>
 > More complex `discoveryspace`s can be created,
 > for example also including the number of input tokens.
 > See [Next Steps](#next-steps).
@@ -114,7 +116,7 @@ will be used in next section.
 which is a bayesian approach that is expected to be good for discrete dimensions
 and noisy metrics, which we have here i.e. `request_throughput`.
 
-The following operation will look for points ( in this case `request_rate`s)
+The following operation will look for points (in this case `request_rate`s)
 which lead to a `request_throughput` in the top 20 percentile:
 
 ```yaml
@@ -145,6 +147,7 @@ where `$DISCOVERY_SPACE_ID` is the identifier of the `discoveryspace`
 you created in the previous step.
 
 > [!NOTE]
+>
 > Hyperopt samples with replacement so you may see the same points
 > sampled twice.
 > The likelihood increase as number of points in the space decreases
@@ -183,6 +186,7 @@ ado show entities space $DISCOVERY_SPACE_ID --output-format csv
 ```
 
 > [!NOTE]
+>
 > At any time after an operation, $OPERATION_ID, is finished you can run
 > `ado show entities operation $OPERATION_ID`
 > to see the sampling time-series of that operation.
@@ -194,7 +198,8 @@ will start to prefer to sample points in the region with stable maximum,
 even if it has seen better values in "unstable" regions.
 
 > [!IMPORTANT]
-> Do not just take the best point found by hypoeropt but look at where it was
+>
+> Do not just take the best point found by hyperopt but look at where it was
 > focusing its attention
 
 TPE builds models of where the "good" regions and "bad" regions of the
@@ -212,6 +217,7 @@ As the search runs it will be directed towards where it has already seen good va
 and the best region is unlikely to be visited.
 
 > [!TIP]
+>
 > The number of samples hyperopt will use for first guess of good region
 > is (n_initial_points)*gamma -> in above case 2, the other will be used
 > for the "bad" region

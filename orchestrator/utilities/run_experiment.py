@@ -23,6 +23,7 @@ from orchestrator.schema.request import MeasurementRequest
 
 def local_execution_closure(
     registry: ActuatorRegistry,
+    actuator_configuration_identifiers: list[str] | None = None,
 ) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
     """Create a callable that submits a local measurement request.
 
@@ -31,6 +32,7 @@ def local_execution_closure(
 
     Parameters:
         registry: The ActuatorRegistry to use to get the Actuator actors
+        actuator_configuration_identifiers: (Optional) the actuator configuration to use
 
     Returns:
         A callable that submits a local measurement request.
@@ -38,17 +40,49 @@ def local_execution_closure(
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}
     queue = MeasurementQueue.get_measurement_queue()
 
+    actuator_configurations = {}
+    if actuator_configuration_identifiers:
+        from orchestrator.cli.core.config import AdoConfiguration
+        from orchestrator.core.resources import CoreResourceKinds
+        from orchestrator.metastore.sqlstore import SQLStore
+
+        # get the metastore instance for current project context
+        ado_config = AdoConfiguration.load()
+        metastore = SQLStore(project_context=ado_config.project_context)
+        for actuator_configuration_identifier in actuator_configuration_identifiers:
+            actuator_configuration = metastore.getResource(
+                identifier=actuator_configuration_identifier,
+                kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+                raise_error_if_no_resource=True,
+            ).config
+            actuator_configurations[actuator_configuration.actuatorIdentifier] = (
+                actuator_configuration
+            )
+            print(
+                f"Loaded configuration {actuator_configuration_identifier} for actuator {actuator_configuration.actuatorIdentifier}"
+            )
+
+    print(actuator_configurations)
+
     def execute_local(
         reference: ExperimentReference, entity: Entity
     ) -> MeasurementRequest:
         # instantiate the actuator for this experiment identifier.
         experiment = registry.experimentForReference(reference)
         if experiment.actuatorIdentifier not in actuators:
-            actuator_class = ActuatorRegistry().actuatorForIdentifier(
+            actuator_class = registry.actuatorForIdentifier(
                 experiment.actuatorIdentifier
             )
+            if experiment.actuatorIdentifier in actuator_configurations:
+                config = actuator_configurations[
+                    experiment.actuatorIdentifier
+                ].parameters
+            else:
+                config = actuator_class.default_parameters()
+
+            print(config)
             actuators[experiment.actuatorIdentifier] = actuator_class.remote(
-                queue=queue
+                queue=queue, params=config
             )
         actuator = actuators[experiment.actuatorIdentifier]
         # Submit the measurement request asynchronously.
@@ -170,6 +204,12 @@ def run(
         True,
         help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
     ),
+    actuator_configuration_identifiers: list[str] | None = typer.Option(
+        None,
+        "--actuator-config-id",
+        metavar="ACTUATOR_CONFIG_IDENTIFIER",
+        help="Optional actuator configuration identifier(s) to use for this experiment. May be specified multiple times.",
+    ),
 ) -> None:
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
@@ -182,7 +222,10 @@ def run(
 
     registry = ActuatorRegistry()
     execute = (
-        local_execution_closure(registry=registry)
+        local_execution_closure(
+            registry=registry,
+            actuator_configuration_identifiers=actuator_configuration_identifiers,
+        )
         if not remote
         else remote_execution_closure(remote, timeout=timeout)
     )

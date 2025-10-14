@@ -28,7 +28,7 @@ is reliably maintained e.g. by limiting
 the max number of concurrent requests.
 
 **In this example, the _vllm_performance_ actuator is used to find
-the maximum requests per second a server can be handle while maintaining
+the maximum requests per second a server can handle while maintaining
 stable maximum throughput.**
 
 To explore this space, you will:
@@ -226,3 +226,4 @@ them as dimensions of the `entityspace`, to explore their impact on throughput
   - You can keep running the optimization on the same `discoveryspace`.
     The previous runs will not influence new runs, but their results will
     be reused, speeding experimentation up
+- Measure the [performance of vLLM deployment configurations](vllm-performance-full.md)

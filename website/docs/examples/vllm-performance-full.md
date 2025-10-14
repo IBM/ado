@@ -231,5 +231,5 @@ explore the impact on throughput.
 `max_environments` and running the random walk with a non-grouped sampler
 - Replace the model with a different HF checkpoint to compare performance.
 - Use **RayTune**
-(see the [vLLM endpoint performance](vllm-performance-endpoint.md) example`)
+(see the [vLLM endpoint performance](vllm-performance-endpoint.md) example)
 to optimise the hyper‑parameters of the benchmark.

@@ -11,7 +11,7 @@ performance_testing-full:
       metadata:
         description: 'model to use for testing. Must be available through the huggingface hub'
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
     - identifier: 'request_rate'
       metadata:
@@ -214,13 +214,13 @@ performance_testing-endpoint:
       metadata:
         description: 'model to use for testing. Assumed to be served by all endpoints tested. Required to obtain correct tokenizer for benchmarking metrics calculation'
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["meta-llama/Llama-3.1-8B-Instruct", "ibm-granite/granite-3.3-8b-instruct", "openai/gpt-oss-20b"]
     - identifier: 'endpoint'
       metadata:
         description: 'The endpoint(s) to test'
       propertyDomain:
-        variableType: "UNKNOWN_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
     - identifier: 'request_rate'
       metadata:
         description: "The number of requests to send per second"

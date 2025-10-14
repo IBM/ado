@@ -17,6 +17,7 @@ app = typer.Typer(rich_markup_mode="markdown")
         "env_vars": {
             "LOG_LEVEL": "debug",
             "LOGLEVEL": "debug",
+            "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
         },
     },
 )

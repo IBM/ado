@@ -1,11 +1,11 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 import subprocess
 import time
 import uuid
-import logging
 from typing import Any
 
 from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results import (

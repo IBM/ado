@@ -278,14 +278,51 @@ def run_explore_operation_core_closure(
                 )
             )
 
+            # Remove the columns result_index, generatorid and entityIdentifier
+            # We have the constitutive properties in the df, so we don't need to show them
+            df = df.drop(
+                columns=["result_index", "generatorid", "identifier"], errors="ignore"
+            )
+
+            # Dynamically determine how many columns can fit the screen
+            console = Console()
+            terminal_width = console.width
+            min_col_width = 12  # Minimum width per column (estimate)
+            max_columns = max(1, terminal_width // min_col_width)
+
+            visible_columns = list(df.columns[:max_columns])
+            # Add index column to the beginning if there are more than 0 rows in the df
+            # result_index is the index within a request and we don't have request_index
+            if len(df) > 0:
+                visible_columns.insert(0, "index")
+            hidden_columns = len(df.columns) - max_columns
+
+            if hidden_columns > 0:
+                visible_columns.append(f"... (+{hidden_columns} more)")
+
             table_title = "Latest measurements" if row_limit else "Measurements"
-            table = Table(*df.columns, title=table_title)
-            # We iterate over the reversed dataframe to find
-            # the last height rows
+            table = Table(title=table_title)
+            # Add columns manually setting overflow="fold" - this will cause text to wrap
+            # It can't be set at table level
+            for col in visible_columns:
+                table.add_column(col, overflow="fold")
+
             for idx, (_, row) in enumerate(df[::-1].iterrows()):
                 if row_limit and idx == row_limit:
                     break
-                table.add_row(*[str(value) for value in row])
+                # Format numbers to 2 significant figures
+                # Add the row index to the first column
+                row_data = [str(idx)] + [
+                    (
+                        f"{row[col]:.2f}"
+                        if isinstance(row[col], (int, float))
+                        else str(row[col])
+                    )
+                    for col in df.columns[:max_columns]
+                ]
+                if hidden_columns > 0:
+                    row_data.append("...")
+                table.add_row(*row_data)
 
             return table
 

@@ -284,6 +284,16 @@ def run_explore_operation_core_closure(
                 columns=["result_index", "generatorid", "identifier"], errors="ignore"
             )
 
+            # If there is only one experiment drop the experiment column
+            if len(discovery_space.measurementSpace.experiments) == 1:
+                df = df.drop(columns=["experiment_id"], errors="ignore")
+            else:
+                # Convert the experiment column - which is ExperimentReference instances
+                # to experiment identifiers
+                df["experiment_id"] = df["experiment_id"].apply(
+                    lambda x: x.experimentIdentifier
+                )
+
             # Dynamically determine how many columns can fit the screen
             console = Console()
             terminal_width = console.width
@@ -300,22 +310,26 @@ def run_explore_operation_core_closure(
             if hidden_columns > 0:
                 visible_columns.append(f"... (+{hidden_columns} more)")
 
-            table_title = "Latest measurements" if row_limit else "Measurements"
+            table_title = (
+                f"Latest measurements - {operation_id}"
+                if row_limit
+                else f"Measurements - {operation_id}"
+            )
             table = Table(title=table_title)
             # Add columns manually setting overflow="fold" - this will cause text to wrap
             # It can't be set at table level
             for col in visible_columns:
                 table.add_column(col, overflow="fold")
 
-            for idx, (_, row) in enumerate(df[::-1].iterrows()):
-                if row_limit and idx == row_limit:
+            for _, (df_index, row) in enumerate(df[::-1].iterrows()):
+                if row_limit and _ == row_limit:
                     break
                 # Format numbers to 2 significant figures
-                # Add the row index to the first column
-                row_data = [str(idx)] + [
+                # Add the row index from the DataFrame to the first column
+                row_data = [str(df_index)] + [
                     (
                         f"{row[col]:.2f}"
-                        if isinstance(row[col], (int, float))
+                        if isinstance(row[col], (float))
                         else str(row[col])
                     )
                     for col in df.columns[:max_columns]

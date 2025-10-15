@@ -17,6 +17,7 @@ def execute_benchmark(
     base_url: str,
     model: str,
     data_set: str,
+    backend: str = "openai",
     interpreter: str = "python",
     num_prompts: int = 500,
     request_rate: int | None = None,
@@ -68,21 +69,21 @@ def execute_benchmark(
     request += (
         # changing from script invocation to cli invocation
         # f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "
-        f"vllm bench serve --backend openai --base-url {base_url} --dataset-name {data_set} "
+        f"vllm bench serve --backend {backend} --base-url {base_url} --dataset-name {data_set} "
         f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
         f"--burstiness {burstiness} "
     )
 
     if data_set_path is not None:
-        request += f"--dataset-path {data_set_path} "
+        request += f" --dataset-path {data_set_path} "
     if request_rate is not None:
-        request += f"--request-rate {request_rate!s} "
+        request += f" --request-rate {request_rate!s} "
     if max_concurrency is not None:
-        request += f"--max-concurrency {max_concurrency!s}"
+        request += f" --max-concurrency {max_concurrency!s} "
     if custom_args is not None:
         for key, value in custom_args.items():
-            request += f"{key} {value!s} "
+            request += f" {key} {value!s} "
     timeout = retries_timeout
 
     logger.debug(f"Command line: {request}")
@@ -149,14 +150,64 @@ def execute_random_benchmark(
     )
 
 
+def execute_geospatial_benchmark(
+    base_url: str,
+    model: str,
+    num_prompts: int = 500,
+    request_rate: int | None = None,
+    max_concurrency: int | None = None,
+    hf_token: str | None = None,
+    benchmark_retries: int = 3,
+    retries_timeout: int = 5,
+    burstiness: float = 1,
+    interpreter: str = "python",
+) -> dict[str, Any]:
+    """
+    Execute benchmark with random dataset
+    :param base_url: url for vllm endpoint
+    :param model: model
+    :param data_set: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param hf_token: huggingface token
+    :param benchmark_retries: number of benchmark execution retries
+    :param retries_timeout: timeout between initial retry
+    :param input_token_length: length of input tokens
+    :param output_token_length: length of output tokens
+    :return: results dictionary
+    """
+    from importlib import resources
+
+    data_set_path = resources.path(
+        "ado_actuators.vllm_performance",
+        "geospatial_valencia.jsonl",
+    )
+    return execute_benchmark(
+        base_url=base_url,
+        backend="io-processor-plugin",
+        model=model,
+        data_set="custom",
+        interpreter=interpreter,
+        num_prompts=num_prompts,
+        request_rate=request_rate,
+        max_concurrency=max_concurrency,
+        hf_token=hf_token,
+        benchmark_retries=benchmark_retries,
+        retries_timeout=retries_timeout,
+        burstiness=burstiness,
+        custom_args={
+            "--dataset-path": data_set_path,
+            "--endpoint": "/pooling",
+            "--skip-tokenizer-init": True,
+        },
+    )
+
+
 if __name__ == "__main__":
-    results = execute_benchmark(
+    results = execute_geospatial_benchmark(
         interpreter="python3.10",
-        base_url="http://localhost:28015",
-        data_set="random",
-        model="openai/gpt-oss-20b",
-        request_rate=None,
-        max_concurrency=None,
+        base_url="http://localhost:8000",
+        model="ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11",
+        request_rate=2,
+        max_concurrency=10,
         hf_token=os.getenv("HF_TOKEN"),
         num_prompts=100,
     )

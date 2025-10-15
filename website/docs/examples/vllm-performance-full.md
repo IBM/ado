@@ -29,17 +29,38 @@ the `vllm_performance` actuator's `performance_testing_full` experiment
 
 ## Install the actuator
 
-If you haven't already:
+[//]: # (If you haven't already:)
+
+[//]: # ()
+[//]: # (```commandline)
+
+[//]: # (pip install ado-vllm-performance)
+
+[//]: # (```)
+
+[//]: # ()
+[//]: # (If you have cloned the `ado` source repository you can also do:)
+
+[//]: # ()
+[//]: # (```commandline)
+
+[//]: # (# From the root of this repository )
+
+[//]: # (pip install -e plugins/actuators/vllm_performance)
+
+[//]: # (```)
+
+Execute:
 
 ```commandline
-pip install ado-vllm-performance
+pip install -e plugins/actuators/vllm_performance
 ```
 
-If you have cloned the `ado` source repository you can also do:
+in the root of the `ado` source repository.
+You can clone the repository with
 
 ```commandline
-# From the root of this repository 
-pip install -e plugins/actuators/vllm_performance
+git clone https://github.com/IBM/ado.git
 ```
 
 Verify the installation with:

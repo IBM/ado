@@ -54,7 +54,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
     First,
 
-    export RAY_RUNTIME_ENV_PLUGINS='[{"class":"ado_actuators.sfttrainer.ray_env.ordered_pip.OrderedPipPlugin"}]'
+    export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 
     This way Ray will dynamically load this plugin.
 
@@ -93,7 +93,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
     """
 
     name = "ordered_pip"
-    ClassPath = "ado_actuators.sfttrainer.ray_env.ordered_pip.OrderedPipPlugin"
+    ClassPath = "orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"
 
     def __init__(self, resources_dir: str | None = None):
         if resources_dir is None:

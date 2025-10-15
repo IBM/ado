@@ -54,7 +54,7 @@ def _check_if_ray_will_load_ordered_pip_plugin(
 ) -> bool:
     import json
 
-    from ado_actuators.sfttrainer.ray_env.ordered_pip import OrderedPipPlugin
+    from orchestrator.utilities.ray_env.ordered_pip import OrderedPipPlugin
 
     if not is_pip_available():
         return False

@@ -1,14 +1,16 @@
 import os
 
-import ado_actuators.sfttrainer.ray_env as ray_env
+import ado_actuators.sfttrainer.ray_env.utils as utils
 import pytest
 import ray
+
+import orchestrator.utilities.ray_env.ordered_pip as ordered_pip
 
 
 @pytest.fixture
 def set_plugin():
     os.environ["RAY_RUNTIME_ENV_PLUGINS"] = (
-        '[{"class":"' + ray_env.ordered_pip.OrderedPipPlugin.ClassPath + '"}]'
+        '[{"class":"' + ordered_pip.OrderedPipPlugin.ClassPath + '"}]'
     )
 
     yield
@@ -17,23 +19,23 @@ def set_plugin():
 
 
 def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
-    if not ray_env.utils.is_pip_available():
+    if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
     class_path = ".".join(
         (
-            ray_env.ordered_pip.OrderedPipPlugin.__module__,
-            ray_env.ordered_pip.OrderedPipPlugin.__name__,
+            ordered_pip.OrderedPipPlugin.__module__,
+            ordered_pip.OrderedPipPlugin.__name__,
         )
     )
 
-    assert class_path == ray_env.ordered_pip.OrderedPipPlugin.ClassPath
+    assert class_path == ordered_pip.OrderedPipPlugin.ClassPath
 
-    assert ray_env.utils.is_ordered_pip_available()
+    assert utils.is_ordered_pip_available()
 
     packages = ["torch==2.6.0", "flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"]
 
-    runtime_env = ray_env.utils.get_ray_environment(
+    runtime_env = utils.get_ray_environment(
         packages=packages,
         packages_requiring_extra_phase=[["flash_attn", "mamba-ssm"]],
     )
@@ -50,14 +52,14 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
 
 
 def test_ray_runtime_env_with_vanilla_pip():
-    if not ray_env.utils.is_pip_available():
+    if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
-    assert ray_env.utils.is_ordered_pip_available() is False
+    assert utils.is_ordered_pip_available() is False
 
     packages = ["torch==2.6.0", "flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"]
 
-    runtime_env = ray_env.utils.get_ray_environment(
+    runtime_env = utils.get_ray_environment(
         packages=packages,
         packages_requiring_extra_phase=[["flash_attn", "mamba-ssm"]],
     )
@@ -71,7 +73,7 @@ def test_ray_runtime_env_with_vanilla_pip():
 
 
 def test_ordered_pip_plugin(set_plugin):
-    if not ray_env.utils.is_nvidia_smi_available():
+    if not utils.is_nvidia_smi_available():
         pytest.skip("there's no NVIDIA gpu on this machine")
 
     @ray.remote(

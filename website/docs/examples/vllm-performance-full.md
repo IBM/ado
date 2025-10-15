@@ -224,7 +224,7 @@ Save the above as `random_walk.yaml`. Then execute the operation:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-ado create operation -f random_walk.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID" --set actuatorConfigurationIdenfier=$ACTUATOR_CONFIGURATION_IDENTIFIER
+ado create operation -f random_walk.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID" --set actuatorConfigurationIdentifier[0]=$ACTUATOR_CONFIGURATION_IDENTIFIER
 ```
 <!-- markdownlint-enable line-length -->
 

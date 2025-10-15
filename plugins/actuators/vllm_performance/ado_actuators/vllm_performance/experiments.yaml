@@ -488,6 +488,13 @@ performance_testing-geospatial-full:
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         values: [ 0, 8, 16, 24, 32 ]
+    - identifier: 'max_batch_tokens'
+      metadata:
+        description: "(deployment) maximum size of the sum of the 1st image dimensions per iteration"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [ 1024, 32769 ]
+        interval: 1024
     - identifier: 'max_num_seq'
       metadata:
         description: "(deployment) Maximum number of sequences per iteration"
@@ -546,6 +553,9 @@ performance_testing-geospatial-full:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'max_batch_tokens'
+      value: 16384
   # measurements
   targetProperties:
     - identifier: "duration"

@@ -22,6 +22,7 @@ from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
     VLLMDtype,
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
+    execute_geospatial_benchmark,
     execute_random_benchmark,
 )
 from ray.actor import ActorHandle
@@ -279,20 +280,34 @@ def run_resource_and_workload_experiment(
                 start = time.time()
                 result = None
                 try:
-                    result = execute_random_benchmark(
-                        base_url=base_url,
-                        model=values.get("model"),
-                        interpreter=actuator_parameters.interpreter,
-                        num_prompts=int(values.get("num_prompts")),
-                        request_rate=request_rate,
-                        max_concurrency=max_concurrency,
-                        hf_token=actuator_parameters.hf_token,
-                        benchmark_retries=actuator_parameters.benchmark_retries,
-                        retries_timeout=actuator_parameters.retries_timeout,
-                        number_input_tokens=int(values.get("number_input_tokens")),
-                        max_output_tokens=int(values.get("max_output_tokens")),
-                        burstiness=float(values.get("burstiness")),
-                    )
+                    if experiment.identifier == "performance-testing-geospatial-full":
+                        result = execute_geospatial_benchmark(
+                            base_url=base_url,
+                            model=values.get("model"),
+                            interpreter=actuator_parameters.interpreter,
+                            num_prompts=int(values.get("num_prompts")),
+                            request_rate=request_rate,
+                            max_concurrency=max_concurrency,
+                            hf_token=actuator_parameters.hf_token,
+                            benchmark_retries=actuator_parameters.benchmark_retries,
+                            retries_timeout=actuator_parameters.retries_timeout,
+                            burstiness=float(values.get("burstiness")),
+                        )
+                    else:
+                        result = execute_random_benchmark(
+                            base_url=base_url,
+                            model=values.get("model"),
+                            interpreter=actuator_parameters.interpreter,
+                            num_prompts=int(values.get("num_prompts")),
+                            request_rate=request_rate,
+                            max_concurrency=max_concurrency,
+                            hf_token=actuator_parameters.hf_token,
+                            benchmark_retries=actuator_parameters.benchmark_retries,
+                            retries_timeout=actuator_parameters.retries_timeout,
+                            number_input_tokens=int(values.get("number_input_tokens")),
+                            max_output_tokens=int(values.get("max_output_tokens")),
+                            burstiness=float(values.get("burstiness")),
+                        )
                     logger.debug(f"benchmark executed in {time.time() - start} sec")
                 except Exception as e:
                     logger.error(f"Failed to execute VLLM performance test {e}")
@@ -379,20 +394,34 @@ def run_workload_experiment(
         error = None
         measured_values = []
         try:
-            result = execute_random_benchmark(
-                base_url=values.get("endpoint"),
-                model=values.get("model"),
-                interpreter=actuator_parameters.interpreter,
-                num_prompts=int(values.get("num_prompts")),
-                request_rate=request_rate,
-                max_concurrency=max_concurrency,
-                hf_token=actuator_parameters.hf_token,
-                benchmark_retries=actuator_parameters.benchmark_retries,
-                retries_timeout=actuator_parameters.retries_timeout,
-                number_input_tokens=int(values.get("number_input_tokens")),
-                max_output_tokens=int(values.get("max_output_tokens")),
-                burstiness=float(values.get("burstiness")),
-            )
+            if experiment.identifier == "performance-testing-geospatial-endpoint":
+                result = execute_geospatial_benchmark(
+                    base_url=values.get("endpoint"),
+                    model=values.get("model"),
+                    interpreter=actuator_parameters.interpreter,
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    burstiness=float(values.get("burstiness")),
+                )
+            else:
+                result = execute_random_benchmark(
+                    base_url=values.get("endpoint"),
+                    model=values.get("model"),
+                    interpreter=actuator_parameters.interpreter,
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    number_input_tokens=int(values.get("number_input_tokens")),
+                    max_output_tokens=int(values.get("max_output_tokens")),
+                    burstiness=float(values.get("burstiness")),
+                )
         except Exception as e:
             logger.error(f"Failed to execute VLLM performance test {e}")
             error = f"Failed to execute VLLM performance test {e}"

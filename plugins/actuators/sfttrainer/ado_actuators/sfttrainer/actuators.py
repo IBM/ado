@@ -4,7 +4,6 @@
 import asyncio
 import copy
 import dataclasses
-import functools
 import importlib
 import json
 import logging
@@ -41,9 +40,8 @@ from ado_actuators.sfttrainer.experiments.common import (
     WeightsFormat,
     experiment_parameters_from_experiment,
     get_fms_hf_tuning_package,
-    get_ray_environment,
-    packages_requiring_nvidia_development_binaries,
 )
+from ado_actuators.sfttrainer.ray_env import utils as ray_env_utils
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
 
 import orchestrator.modules.actuators.catalog
@@ -98,41 +96,6 @@ def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCata
 
 
 _init_catalog(catalog)
-
-
-@functools.cache
-def is_using_arm_cpu() -> bool:
-    """Returns True when device is using an ARM cpu"""
-    import platform
-
-    platform_machine = platform.machine().lower()
-
-    return platform_machine == "aarch64" or "arm" in platform_machine
-
-
-@functools.cache
-def is_nvcc_available() -> bool:
-    """Returns True when nvcc is in $PATH"""
-    import shutil
-
-    return shutil.which("nvcc") is not None
-
-
-@functools.cache
-def is_uv_available() -> bool:
-    """Returns True when uv is in $PATH"""
-    import shutil
-
-    return shutil.which("uv") is not None
-
-
-@functools.cache
-def is_pip_available() -> bool:
-    """Returns True when pip is import-able"""
-    import importlib.util
-
-    spec = importlib.util.find_spec("pip")
-    return spec is not None and spec.loader is not None
 
 
 def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
@@ -702,12 +665,12 @@ class SFTTrainer(ActuatorBase):
         exclude_packages = []
 
         if not self.typed_parameters.match_exact_dependencies:
-            if is_using_arm_cpu():
+            if ray_env_utils.is_using_arm_cpu():
                 exclude_packages.append("bitsandbytes")
 
-            if not is_nvcc_available():
+            if not ray_env_utils.is_nvcc_available():
                 exclude_packages.extend(
-                    packages_requiring_nvidia_development_binaries()
+                    ray_env_utils.packages_requiring_nvidia_development_binaries()
                 )
 
         if exclude_packages:
@@ -738,26 +701,20 @@ class SFTTrainer(ActuatorBase):
         if "flash_attn" in exclude_packages and space.flash_attn:
             raise ValueError(msg_unsupported_feat.format(feature="flash_attn"))
 
-        if is_pip_available():
-            ray_env_backend = "pip"
-        elif is_uv_available():
-            ray_env_backend = "uv"
-        else:
-            raise NotImplementedError(
-                "No uv binary in $PATH and pip cannot be imported. Ensure your virtual environment is valid."
-            )
-
         self.log.info(f"Excluded packages {exclude_packages}")
-
-        # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
-        runtime_env = get_ray_environment(
+        packages = ray_env_utils.get_pinned_packages(
             path_requirements=PATH_PINNED_PACKAGES[space.fms_hf_tuning_version],
-            exclude_packages=exclude_packages,
             override_fms_hf_tuning=get_fms_hf_tuning_package(
                 commit=FMS_HF_TUNING_COMMIT[space.fms_hf_tuning_version]
             ),
+            exclude_packages=exclude_packages,
             ensure_aim=True,
-            backend=typing.cast(typing.Literal["uv", "pip"], ray_env_backend),
+        )
+
+        # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
+        runtime_env = ray_env_utils.get_ray_environment(
+            packages=packages,
+            packages_requiring_extra_phase=[["flash_attn", "mamba-ssm"]],
         )
 
         # VV: Need HF_HOME set so the tokenize_text() method in finetune.py can access

@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 import os
 
 import ado_actuators.sfttrainer.ray_env.utils as utils

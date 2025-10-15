@@ -71,7 +71,7 @@ def execute_benchmark(
         f"vllm bench serve --backend openai --base-url {base_url} --dataset-name {data_set} "
         f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
-        f"--burstiness {burstiness} "
+        f"--burstiness {burstiness} --disable-tqdm "
     )
 
     if data_set_path is not None:

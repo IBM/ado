@@ -206,11 +206,9 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
                     case CombinedWalkModeEnum.SEQUENTIAL:
                         sampler = SequentialSampleSelector()
                     case CombinedWalkModeEnum.RANDOMGROUPED:
-                        sampler = RandomGroupSampleSelector(group=self.params.grouping)
+                        sampler = RandomGroupSampleSelector(group=self.grouping)
                     case CombinedWalkModeEnum.SEQUENTIALGROUPED:
-                        sampler = SequentialGroupSampleSelector(
-                            group=self.params.grouping
-                        )
+                        sampler = SequentialGroupSampleSelector(group=self.grouping)
                     case _:
                         # this can never happen, as we are validating this above
                         pass
@@ -219,11 +217,11 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
                 match self.mode_to_enum():
                     case CombinedWalkModeEnum.RANDOMGROUPED:
                         sampler = ExplicitEntitySpaceGroupedGridSampleGenerator(
-                            mode=WalkModeEnum.RANDOM, group=self.params.grouping
+                            mode=WalkModeEnum.RANDOM, group=self.grouping
                         )
                     case CombinedWalkModeEnum.SEQUENTIALGROUPED:
                         sampler = ExplicitEntitySpaceGroupedGridSampleGenerator(
-                            mode=WalkModeEnum.SEQUENTIAL, group=self.params.grouping
+                            mode=WalkModeEnum.SEQUENTIAL, group=self.grouping
                         )
                     case CombinedWalkModeEnum.RANDOM:
                         sampler = ExplicitEntitySpaceGridSampleGenerator(

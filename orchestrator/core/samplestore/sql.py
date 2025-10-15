@@ -1034,7 +1034,9 @@ class SQLSampleStore(ActiveSampleStore):
                 measurement_results_for_entities[uid] = [result]
 
             # We also need the entity referenced by the measurement
-            # entity = self.entityWithIdentifier(entity_id)
+            if entity_id not in self._entities:
+                self._entities[entity_id] = self.entityWithIdentifier(entity_id)
+
             entity = self._entities[entity_id]
 
             # If we have already seen this measurement request

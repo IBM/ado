@@ -1,0 +1,19 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+metadata:
+  name: hyperopt_request_throughput
+spaces:
+  - space-ccf2bf-a50274 #substitute with your space id or override when running
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    tuneConfig:
+      metric: "request_throughput" # The metric that the test function measure
+      mode: 'max'
+      num_samples: 16
+      search_alg:
+        name: hyperopt
+        n_initial_points: 8 #Number of points to sample before trying to optimize 
+        gamma: 0.25 #metric values in the top gamma fraction of measured values are considered "good"

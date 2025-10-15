@@ -169,6 +169,8 @@ nav:
       - Identify the important dimensions of a space: examples/lhu.md
       - Measure throughput of fine-tuning locally: examples/finetune-locally.md
       - Measure throughput of fine-tuning on a remote RayCluster: examples/finetune-remotely.md
+      - Testing the throughput of an inference endpoint: examples/vllm-performance-endpoint.md
+      - Exploring vLLM deployment performance: examples/vllm-performance-full.md
   - Core Concepts:
       - core-concepts/concepts.md
       - Entities and Entity Spaces: core-concepts/entity-spaces.md

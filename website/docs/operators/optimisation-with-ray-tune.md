@@ -2,6 +2,13 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 ## Overview
 
+> [!TIP]
+> You can install the `ray_tune` operator with
+>
+> ```commandline
+> pip install ado-ray-tune
+>```
+
 ### What does the `ray_tune` operator do?
 
 The `ray_tune` operator enables **running optimization algorithms on a
@@ -49,7 +56,7 @@ If you apply multiple `ray_tune` operations you just get multiple optimization
 runs of the different lengths and types you have requested. This is the same
 behaviour as applying RandomWalk multiple time to a space and is explained in
 more detail in the
-[RandomWalk documentation](random-walk.md#what-happens-if-i-apply-multiple-randomwalk-operations-to-a-space)
+[RandomWalk documentation](random-walk.md#what-happens-if-i-apply-multiple-random_walk-operations-to-a-space)
 
 ## Available Optimizers
 
@@ -103,11 +110,11 @@ consider:
 
 - [Tuning Configuration](#tune-config): general optimization parameters
   - This includes specific
-    [Optimizer Parameters](#optimizer-parameters-search_algparams)
+       [Optimizer Parameters](#optimizer-parameters-search_algparams)
 - [Runtime Configuration](#run-config): parameters related to RayTune, for
   example where its stores data
   - This includes the [Stopper Configuration](#stoppers) that determines if an
-    optimization should stop
+       optimization should stop
 - [Orchestrator Configuration](#orchestrator-config): parameters related to
   `ado`
 

@@ -1,0 +1,235 @@
+# Testing the throughput of an inference endpoint
+
+> [!NOTE]
+>
+> This example illustrates using the vllm-performance actuator to test the
+> throughput of an OpenAPI compatible inference endpoint
+>
+<!-- markdownlint-disable-next-line no-blanks-blockquote -->
+
+> [!IMPORTANT]
+>
+> **Prerequisites**
+>
+> - An endpoint serving an LLM in an OpenAI API-compatible format
+> - The `ray_tune` operator with hyperopt installed
+>
+> ```commandline
+> pip install ado-ray-tune
+> pip install hyperopt
+> ```
+
+## The scenario
+
+A model deployed for inference will have a certain max stable throughput in
+terms of the requests it can serve per second.
+Sending more requests than this maximum will often lead to a drop in throughput.
+Hence, it can be useful to know what this maximum is so the maximum throughput
+is reliably maintained e.g. by limiting
+the max number of concurrent requests.
+
+**In this example, the _vllm_performance_ actuator is used to find
+the maximum requests per second a server can handle while maintaining
+stable maximum throughput.**
+
+To explore this space, you will:
+
+- define an endpoint, model and range of requests per second to test
+- use an optimizer to efficiently find the maximum requests per second
+
+## Install the actuator
+
+If you haven't already:
+
+```commandline
+pip install ado-vllm-performance
+```
+
+If you have cloned the `ado` source repository you can also do:
+
+```commandline
+# From the root of this repository 
+pip install -e plugins/actuators/vllm_performance
+```
+
+Verify the installation with:
+
+```commandline
+ado get actuators --details 
+```
+
+The actuator `vllm_performance` will appear in the list of available actuators.
+
+## Define the request rates to test
+
+This `discoveryspace` includes all
+request rates from 10 to 100 for an endpoint
+serving `gpt-oss-20b`:
+
+```yaml
+# Example discovery space for vLLM performance
+sampleStoreIdentifier: <sample_store_id>
+entitySpace:
+  - identifier: model
+    propertyDomain:
+      values:
+        - openai/gpt-oss-20b
+  - identifier: endpoint
+    propertyDomain:
+      values:
+        - http://localhost:8000
+  - identifier: request_rate
+    propertyDomain:
+      domainRange: [10,100]
+      interval: 1
+experiments:
+- actuatorIdentifier: vllm_performance
+  experimentIdentifier: performance-testing-endpoint
+```
+
+Save the above as `vllm_discoveryspace.yaml`.
+Then, if you have an existing `samplestore`, run:
+
+```bash
+ado create space -f vllm_discoveryspace.yaml --set sampleStoreIdentifier=$SAMPLE_STORE_ID
+```
+
+otherwise create a new one:
+
+```bash
+ado create space -f vllm_discoveryspace.yaml --new-sample-store
+```
+
+Record the identifier of the created `discoveryspace` as it
+will be used in next section.
+
+> [!NOTE]
+>
+> More complex `discoveryspace`s can be created,
+> for example also including the number of input tokens.
+> See [Next Steps](#next-steps).
+
+## Use hyperopt to find the best input request rate
+
+[Hyperopt](http://hyperopt.github.io/hyperopt/) uses
+[Tree-Parzen Estimators (TPE)](https://proceedings.neurips.cc/paper_files/paper/2011/file/86e8f7ab32cfd12577bc2619bc635690-Paper.pdf)
+which is a bayesian approach that is expected to be good for discrete dimensions
+and noisy metrics, which we have here i.e. `request_throughput`.
+
+The following operation will look for points (in this case `request_rate`s)
+which lead to a `request_throughput` in the top 20 percentile:
+
+```yaml
+spaces:
+  - space-ccf2bf-a50274 #substitute with your space id or override when running
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    tuneConfig:
+      metric: "request_throughput" # The metric to optimize
+      mode: 'max'
+      num_samples: 16
+      search_alg:
+        name: hyperopt
+        n_initial_points: 8 #Number of points to sample before optimizing 
+        gamma: 0.25 #The top gamma fraction of measured values are considered "good"
+```
+
+Save the above as `hyperopt.yaml`. Then create the operation:
+
+```commandline
+ado create operation -f hyperopt.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID"
+```
+
+where `$DISCOVERY_SPACE_ID` is the identifier of the `discoveryspace`
+you created in the previous step.
+
+> [!NOTE]
+>
+> Hyperopt samples with replacement so you may see the same points
+> sampled twice.
+> The likelihood increase as number of points in the space decreases
+
+### Monitor the optimization
+
+You can see the measurement requests as the operation runs
+by executing (in another terminal):
+
+```commandline
+ado show requests operation $OPERATION_ID
+```
+
+and the results (this outputs the entities in sampled order):
+
+```commandline
+ado show entities operation $OPERATION_ID
+```
+
+If the `operation` is running the $OPERATION_ID will have been output
+just before the sampling started.
+Assuming no other operation was started it will also be
+the last id output by
+
+```commandline
+ado get operations
+```
+
+### Check final results
+
+When the output indicates that the experiment has finished, you
+can inspect the results of all operations run so far on the space with:
+
+```commandline
+ado show entities space $DISCOVERY_SPACE_ID --output-format csv
+```
+
+> [!NOTE]
+>
+> At any time after an operation, $OPERATION_ID, is finished you can run
+> `ado show entities operation $OPERATION_ID`
+> to see the sampling time-series of that operation.
+
+## Some notes on hyperopt and TPE
+
+What you should observe is that as the search proceeds **hyperopt**
+will start to prefer to sample points in the region with stable maximum,
+even if it has seen better values in "unstable" regions.
+
+> [!IMPORTANT]
+>
+> Do not just take the best point found by hyperopt but look at where it was
+> focusing its attention
+
+TPE builds models of where the "good" regions and "bad" regions of the
+discovery space are i.e. `P(x|good)`, `P(x|bad)`, where x is an input point.
+It then chooses new points to test by maximizing  `P(x|good)/P(x|bad)`
+
+This makes TPE robust to noise in request_throughput as its not trying to find
+where the maximum is but is trying to find the request_rates that are most likely
+to give high throughput (above defined as throughput in top 20 percentile).
+This also makes it robust to outliers.
+
+Problems can arise if the best region is not sampled in the initial points
+and this region  is disjoint from other regions with "good" performance.
+As the search runs it will be directed towards where it has already seen good values
+and the best region is unlikely to be visited.
+
+> [!TIP]
+>
+> The number of samples hyperopt will use for first guess of good region
+> is (n_initial_points)*gamma -> in above case 2, the other will be used
+> for the "bad" region
+
+## Next steps
+
+- Use `ado describe experiment vllm_performance_endpoint` to see what
+other parameters can be explored
+- Try varying **`burstiness`** or **`number_input_tokens`**, or adding
+them as dimensions of the `entityspace`, to explore their impact on throughput
+- Try varying `num_samples`, `gamma` and `n_initial_points` parameters of hyperopt
+  - You can keep running the optimization on the same `discoveryspace`.
+    The previous runs will not influence new runs, but their results will
+    be reused, speeding experimentation up
+- Measure the [performance of vLLM deployment configurations](vllm-performance-full.md)

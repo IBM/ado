@@ -104,7 +104,7 @@ class VLLMPerformanceTest(ActuatorBase):
                     cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
                     cleaner_handle.add_to_cleanup.remote(handle=self.env_manager)
                 except Exception as e:
-                    print(
+                    logger.warning(
                         f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
                     )
 

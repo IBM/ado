@@ -262,6 +262,7 @@ def run_explore_operation_core_closure(
 ) -> typing.Callable[[], OperationOutput]:
 
     def _run_explore_operation_core() -> OperationOutput:
+        import numpy as np
         import pandas as pd
         from rich.console import Console
         from rich.live import Live
@@ -278,14 +279,70 @@ def run_explore_operation_core_closure(
                 )
             )
 
-            table_title = "Latest measurements" if row_limit else "Measurements"
-            table = Table(*df.columns, title=table_title)
-            # We iterate over the reversed dataframe to find
-            # the last height rows
-            for idx, (_, row) in enumerate(df[::-1].iterrows()):
-                if row_limit and idx == row_limit:
+            table_title = (
+                f"Latest measurements - {operation_id}"
+                if row_limit
+                else f"Measurements - {operation_id}"
+            )
+            table = Table(title=table_title)
+
+            if df.empty:
+                return table
+
+            # Remove the columns result_index, generatorid and entityIdentifier
+            # We have the constitutive properties in the df, so we don't need to show them
+            df = df.drop(
+                columns=["result_index", "generatorid", "identifier"], errors="ignore"
+            )
+            df.insert(0, "index", np.arange(len(df)))
+
+            # If there is only one experiment drop the experiment column
+            if len(discovery_space.measurementSpace.experiments) == 1:
+                df = df.drop(columns=["experiment_id"], errors="ignore")
+            else:
+                # Convert the experiment column - which is ExperimentReference instances
+                # to experiment identifiers
+                df["experiment_id"] = df["experiment_id"].apply(
+                    lambda x: x.experimentIdentifier
+                )
+
+            # Dynamically determine how many columns can fit the screen
+            console = Console()
+            terminal_width = console.width
+            min_col_width = 12  # Minimum width per column (estimate)
+            max_columns = max(1, terminal_width // min_col_width)
+
+            visible_columns = list(df.columns[:max_columns])
+            hidden_columns = len(df.columns) - max_columns
+
+            if hidden_columns > 0:
+                visible_columns.append(f"... (+{hidden_columns} more)")
+
+            # Add columns manually setting overflow="fold" - this will cause text to wrap
+            # It can't be set at table level
+            for col in visible_columns:
+                table.add_column(col, overflow="fold")
+
+            for row_number, (_, row) in enumerate(df[::-1].iterrows()):
+
+                if row_limit and row_number == row_limit:
                     break
-                table.add_row(*[str(value) for value in row])
+
+                # Format numbers to 2 significant figures
+                # Add the row index from the DataFrame to the first column
+                row_data = [
+                    (
+                        f"{row[col]:.2f}"
+                        if isinstance(row[col], float)
+                        else str(row[col])
+                    )
+                    for col in df.columns[:max_columns]
+                ]
+
+                if hidden_columns > 0:
+                    row_data.append("...")
+
+                table.add_row(*row_data)
 
             return table
 

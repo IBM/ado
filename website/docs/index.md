@@ -44,8 +44,10 @@ We have developed `ado` plugins providing advanced experiments for testing
 foundation-models:
 
 - :stopwatch: [fine-tuning performance benchmarking](actuators/sft-trainer.md)
-- :stopwatch: inference performance benchmarking (using the
-  [vLLM performance benchmark](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html))
+- :stopwatch:
+[inference performance benchmarking](examples/vllm-performance-endpoint.md)
+(using the
+  [vLLM performance benchmark](https://docs.vllm.ai/en/latest/cli/bench/serve.html))
 - **COMING SOON** :crystal_ball: inference and fine-tuning prediction
 
 ## Requirements

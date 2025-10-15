@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+metadata:
+  name: randomwalk-grouped-vllm-performance-full
 spaces:
   - space-230d24-03b22d
 actuatorConfigurationIdentifiers:
@@ -15,7 +16,7 @@ operation:
     samplerConfig:
       mode: 'sequentialgrouped'
       samplerType: 'generator'
-      grouping:
+      grouping: #These are properties entities compatible with vllm-performance-full
         - model
         - image
         - n_gpus

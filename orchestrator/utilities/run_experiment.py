@@ -80,7 +80,6 @@ def local_execution_closure(
             else:
                 config = actuator_class.default_parameters()
 
-            print(config)
             actuators[experiment.actuatorIdentifier] = actuator_class.remote(
                 queue=queue, params=config
             )

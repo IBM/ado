@@ -7,6 +7,7 @@ import math
 import subprocess
 import sys
 import time
+import traceback
 
 import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
@@ -152,6 +153,7 @@ def _create_environment(
                     logger.error(
                         f"Attempt {attempt}. Failed to create test environment {e}"
                     )
+                    logger.error(traceback.format_exception(e))
                     error = f"Failed to create test environment {e}"
                     time.sleep(tmout)
                     tmout *= 2
@@ -310,7 +312,7 @@ def run_resource_and_workload_experiment(
                         )
                     logger.debug(f"benchmark executed in {time.time() - start} sec")
                 except Exception as e:
-                    logger.error(f"Failed to execute VLLM performance test {e}")
+                    logger.error(traceback.format_exception(e))
                     error = f"Failed to execute VLLM performance test {e}"
                 finally:
                     if pf is not None:

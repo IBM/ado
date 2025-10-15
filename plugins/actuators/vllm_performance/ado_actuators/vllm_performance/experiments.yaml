@@ -420,7 +420,7 @@ performance_testing-geospatial-full:
       metadata:
         description: 'model to use for testing. Assumed to be served by all endpoints tested. Required to obtain correct tokenizer for benchmarking metrics calculation'
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11" ]
     - identifier: 'request_rate'
       metadata:
@@ -455,7 +455,7 @@ performance_testing-geospatial-full:
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ "quay.io/dataprep1/data-prep-kit/vllm_image:0.1" ]
     - identifier: n_cpus
       metadata:
@@ -495,6 +495,13 @@ performance_testing-geospatial-full:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [32,2049]
         interval: 32
+    - identifier: 'max_batch_tokens'
+      metadata:
+        description: "(deployment) maximum number of batched tokens per iteration"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [ 8192, 32769]
+        interval: 1024
     - identifier: 'n_gpus'
       metadata:
         description: "(deployment) Number of GPUs to use"
@@ -540,6 +547,9 @@ performance_testing-geospatial-full:
     - property:
         identifier: 'max_num_seq'
       value: 256
+    - property:
+        identifier: 'max_batch_tokens'
+      value: 16384
     - property:
         identifier: 'n_gpus'
       value: 1

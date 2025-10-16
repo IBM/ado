@@ -208,7 +208,7 @@ To create the Discovery Space:
        parameterization:
          - property:
              identifier: fms_hf_tuning_version
-           value: "3.0.0"
+           value: "2.8.2"
          - property:
              identifier: stop_after_seconds
            value: 30
@@ -307,10 +307,10 @@ It should look similar to this:
 
 ```csv
 ,identifier,generatorid,experiment_id,model_name,number_gpus,model_max_length,batch_size,gpu_compute_utilization_min,gpu_compute_utilization_avg,gpu_compute_utilization_max,gpu_memory_utilization_min,gpu_memory_utilization_avg,gpu_memory_utilization_max,gpu_power_watts_min,gpu_power_watts_avg,gpu_power_watts_max,gpu_power_percent_min,gpu_power_percent_avg,gpu_power_percent_max,cpu_compute_utilization,cpu_memory_utilization,train_runtime,train_samples_per_second,train_steps_per_second,dataset_tokens_per_second,dataset_tokens_per_second_per_gpu,is_valid
-0,model_name.smollm2-135m-number_gpus.0-model_max_length.512-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,512,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,79.55,49.11366699999999,30.4385,134.566,33.642,2624.0452059069926,2624.0452059069926,1
-1,model_name.smollm2-135m-number_gpus.0-model_max_length.512-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,512,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,76.3,49.163925750000004,30.095,136.103,17.013,4355.274962618375,4355.274962618375,1
-2,model_name.smollm2-135m-number_gpus.0-model_max_length.1024-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,1024,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,68.775,49.0008355,30.3635,134.899,33.725,3912.0654733479346,3912.0654733479346,1
-3,model_name.smollm2-135m-number_gpus.0-model_max_length.1024-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.3.0.0-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,1024,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,46.85,49.00481125,30.1101,136.034,17.004,4353.090823344991,4353.090823344991,1
+0,model_name.smollm2-135m-number_gpus.0-model_max_length.512-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,512,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,79.55,49.11366699999999,30.4385,134.566,33.642,2624.0452059069926,2624.0452059069926,1
+1,model_name.smollm2-135m-number_gpus.0-model_max_length.512-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,512,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,76.3,49.163925750000004,30.095,136.103,17.013,4355.274962618375,4355.274962618375,1
+2,model_name.smollm2-135m-number_gpus.0-model_max_length.1024-batch_size.1,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,1024,1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,68.775,49.0008355,30.3635,134.899,33.725,3912.0654733479346,3912.0654733479346,1
+3,model_name.smollm2-135m-number_gpus.0-model_max_length.1024-batch_size.2,explicit_grid_sample_generator,SFTTrainer.finetune_full_benchmark-v1.0.0-fms_hf_tuning_version.2.8.2-stop_after_seconds.30-flash_attn.0,smollm2-135m,0,1024,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,46.85,49.00481125,30.1101,136.034,17.004,4353.090823344991,4353.090823344991,1
 ```
 
 In the above CSV file you will find 1 column per:

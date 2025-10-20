@@ -194,8 +194,8 @@ def test_create_discovery_space_success_with_latest_samplestore(
     )
     assert result.exit_code == 0
     expected_output = (
-        "INFO:   The latest samplestore was requested to be reused.\n"
-        "        Samplestores referenced in the discoveryspace definition will be ignored and replaced with"
+        "INFO:   The latest sample store was requested to be reused.\n"
+        "        Sample Stores referenced in the space definition will be ignored and replaced with"
     )
     assert result.output.startswith(expected_output)
 

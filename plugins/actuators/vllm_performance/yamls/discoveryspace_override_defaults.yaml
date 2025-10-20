@@ -7,12 +7,10 @@ entitySpace:
     propertyDomain:
       values:
         - ibm-granite/granite-3.3-8b-instruct
-      variableType: CATEGORICAL_VARIABLE_TYPE
   - identifier: image
     propertyDomain:
       values:
         - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
-      variableType: CATEGORICAL_VARIABLE_TYPE
   - identifier: n_cpus
     propertyDomain:
       values: [8]

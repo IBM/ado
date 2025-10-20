@@ -561,9 +561,9 @@ importlib-metadata==8.7.0 \
     # via
     #   build
     #   opentelemetry-api
-ipykernel==6.30.1 \
-    --hash=sha256:6abb270161896402e76b91394fcdce5d1be5d45f456671e5080572f8505be39b \
-    --hash=sha256:aa6b9fb93dca949069d8b85b6c79b2518e32ac583ae9c7d37c51d119e18b3fb4
+ipykernel==7.0.1 \
+    --hash=sha256:2d3fd7cdef22071c2abbad78f142b743228c5d59cd470d034871ae0ac359533c \
+    --hash=sha256:87182a8305e28954b6721087dec45b171712610111d494c17bb607befa1c4000
     # via
     #   jupyter
     #   jupyter-console

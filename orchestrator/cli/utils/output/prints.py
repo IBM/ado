@@ -4,6 +4,10 @@ import typing
 
 from rich.console import Console
 
+from orchestrator.cli.utils.resources.mappings import (
+    resource_kinds_to_cli,
+    resource_kinds_to_human,
+)
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import DeleteFromDatabaseError
 from orchestrator.modules.actuators.registry import UnknownExperimentError
@@ -146,9 +150,12 @@ def could_not_delete_resource_from_database_error_str(
 
 
 def latest_identifier_for_resource_not_found(resource_kind: CoreResourceKinds) -> str:
+    resource_human_readable_name = resource_kinds_to_human[resource_kind]
+    resource_cli_name = resource_kinds_to_cli[resource_kind]
     return (
-        f"{ERROR}The identifier of the latest {resource_kind.value} is not present.\n\t"
-        f"This means that the {cyan(f'--with-latest {resource_kind.value}')} flag cannot be used."
+        f"{ERROR}Unable to find the identifier of the latest {resource_human_readable_name}.\n\t"
+        f"This means that the {cyan(f'--with-latest {resource_kinds_to_cli[resource_kind]}')} flag cannot be used.\n"
+        f"{HINT}Try creating a new {resource_human_readable_name} with {cyan(f'ado create {resource_cli_name}')}"
     )
 
 
@@ -157,10 +164,12 @@ def value_in_configuration_replaced_with_latest_identifier_for_resource(
     target_resource_kind: CoreResourceKinds,
     replacement_identifier: str,
 ) -> str:
+    reused_resource_human_readable_name = resource_kinds_to_human[reused_resource_kind]
+    target_resource_human_readable_name = resource_kinds_to_human[target_resource_kind]
     return (
-        f"{INFO}The latest {reused_resource_kind.value} was requested to be reused.\n"
-        f"\t{reused_resource_kind.value.title()}s referenced in the {target_resource_kind.value} definition "
-        f"will be ignored and replaced with {cyan(replacement_identifier)}."
+        f"{INFO}The latest {magenta(reused_resource_human_readable_name)} was requested to be reused.\n"
+        f"\t{reused_resource_human_readable_name.title()}s referenced in the {target_resource_human_readable_name} "
+        f"definition will be ignored and replaced with {cyan(replacement_identifier)}."
     )
 
 

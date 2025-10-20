@@ -10,12 +10,10 @@ from orchestrator.cli.models.parameters import AdoCreateCommandParameters
 from orchestrator.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ERROR,
-    HINT,
     INFO,
     SUCCESS,
     WARN,
     console_print,
-    cyan,
     latest_identifier_for_resource_not_found,
     magenta,
     value_in_configuration_replaced_with_latest_identifier_for_resource,
@@ -192,6 +190,8 @@ def reuse_requested_latest_identifiers(
     resource_configuration: DiscoveryOperationResourceConfiguration,
     parameters: AdoCreateCommandParameters,
 ):
+    updated = False
+
     if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_latest:
         latest_recorded_actuator_configuration = (
             parameters.ado_configuration.latest_resource_ids.get(
@@ -203,12 +203,12 @@ def reuse_requested_latest_identifiers(
             console_print(
                 latest_identifier_for_resource_not_found(
                     CoreResourceKinds.ACTUATORCONFIGURATION
-                )
-                + f"{HINT}Try creating one with {cyan(f'ado create {CoreResourceKinds.ACTUATORCONFIGURATION.value}')}",
+                ),
                 stderr=True,
             )
             raise typer.Exit(1)
 
+        updated = True
         resource_configuration.actuatorConfigurationIdentifiers = [
             latest_recorded_actuator_configuration
         ]
@@ -221,6 +221,7 @@ def reuse_requested_latest_identifiers(
             ),
             stderr=True,
         )
+
     if CoreResourceKinds.DISCOVERYSPACE in parameters.with_latest:
         latest_recorded_space = parameters.ado_configuration.latest_resource_ids.get(
             CoreResourceKinds.DISCOVERYSPACE
@@ -229,12 +230,12 @@ def reuse_requested_latest_identifiers(
             console_print(
                 latest_identifier_for_resource_not_found(
                     CoreResourceKinds.DISCOVERYSPACE
-                )
-                + f"{HINT}Try creating one with {cyan('ado create space')}",
+                ),
                 stderr=True,
             )
             raise typer.Exit(1)
 
+        updated = True
         resource_configuration.spaces = [latest_recorded_space]
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(
@@ -244,7 +245,9 @@ def reuse_requested_latest_identifiers(
             ),
             stderr=True,
         )
-    validate_operation(resource_configuration)
+
+    if updated:
+        validate_operation(resource_configuration)
 
 
 def output_operation_result(result: OperationOutput):

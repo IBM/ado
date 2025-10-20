@@ -69,8 +69,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         )
         if not latest_recorded_sample_store:
             console_print(
-                latest_identifier_for_resource_not_found(CoreResourceKinds.SAMPLESTORE)
-                + f"{HINT}Try creating a new sample store first with {cyan('ado create samplestore --new-sample-store')}",
+                latest_identifier_for_resource_not_found(CoreResourceKinds.SAMPLESTORE),
                 stderr=True,
             )
             raise typer.Exit(1)

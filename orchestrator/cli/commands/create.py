@@ -22,7 +22,10 @@ from orchestrator.cli.resources.context.create import create_context
 from orchestrator.cli.resources.discovery_space.create import create_discovery_space
 from orchestrator.cli.resources.operation.create import create_operation
 from orchestrator.cli.resources.sample_store.create import create_sample_store
-from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
+from orchestrator.cli.utils.input.parsers import (
+    parse_core_resource_kinds,
+    parse_key_value_pairs,
+)
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
@@ -111,6 +114,7 @@ def create_resource(
         list[CoreResourceKinds] | None,
         typer.Option(
             show_default=False,
+            parser=parse_core_resource_kinds,
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import inspect
+import logging
 import typing
 import uuid
 from functools import wraps
@@ -13,9 +14,11 @@ import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
+    ActuatorModuleConf,
     DeprecatedExperimentError,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
+from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -25,7 +28,12 @@ from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
-from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.property import (
+    AbstractPropertyDescriptor,
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+)
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import ValidMeasurementResult
@@ -40,60 +48,95 @@ _custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentC
 )
 
 
-def custom_experiment(properties: list[ConstitutiveProperty]):
+def derive_optional_properties_and_parameterization(func, required_properties):
+    func_signature = inspect.signature(func)
+    req_property_identifiers = {prop.identifier for prop in required_properties}
+    derived_optional_properties = []
+    derived_parameterization = {}
+    for param in func_signature.parameters.values():
+        if param.name in req_property_identifiers:
+            continue
+        if (
+            param.kind
+            in (inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            and param.default is not inspect.Parameter.empty
+        ):
+            derived_optional_properties.append(
+                ConstitutiveProperty(identifier=param.name)
+            )
+            derived_parameterization[param.name] = param.default
+    return derived_optional_properties, derived_parameterization
+
+
+def custom_experiment(
+    required_properties: list[ConstitutiveProperty | ObservedProperty],
+    output_properties: list[str],
+    optional_properties: list[ConstitutiveProperty] | None = None,
+    parameterization: dict[str, typing.Any] | None = None,
+    metadata: dict[str, typing.Any] | None = None,
+):
     """
     Decorator for custom experiment functions.
 
     Args:
-        properties: List of ConstitutiveProperty instances defining the input values the Entity must have
+        required_properties: List of ConstitutiveProperty instances that are required input values.
+        output_properties: List of strings identifying the output property names.
+        optional_properties: List of ConstitutiveProperty instances that are optional input values.
+        parameterization: Tuple of parameters for default parameterization.
+        metadata: Metadata for the experiment
 
     Returns:
         A decorator that wraps a function to work with ADO's custom experiment system
 
     Example:
-        from orchestrator.schema.property import ConstitutiveProperty
 
-        @custom_experiment([
-            ConstitutiveProperty(identifier="temperature"),
-            ConstitutiveProperty(identifier="pressure")
-        ])
-        def my_experiment(temperature: float, pressure: float) -> dict[str, float]:
-            # Function takes temperature and pressure as parameters
-            # Returns a dict of observed property values
-            return {
-                "density": temperature * pressure * 0.001,
-                "viscosity": temperature / pressure * 0.1
-            }
+    mass = ConstitutiveProperty(identifier="mass", propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[0, 100],
+    ))
+    volume = ConstitutiveProperty(identifier="volume", propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[0, 100],
+    ))
+
+    @custom_experiment(
+        required_properties=[mass, volume],
+        output_properties=["density"]
+    )
+    def calculate_density(mass, volume):
+        density_value = mass / volume if volume else None
+        return {
+            "density": density_value
+        }
     """
 
+    metadata = metadata if metadata else {}
+
     def decorator(func):
+        # Set up dynamic optional_properties and parameterization if none were provided
+        _optional_properties = optional_properties
+        _parameterization = parameterization
+        if _optional_properties is None:
+            _optional_properties, _parameterization = (
+                derive_optional_properties_and_parameterization(
+                    func, required_properties
+                )
+            )
+
         @wraps(func)
         def wrapper(
             entity: Entity, experiment: Experiment
         ) -> list[ObservedPropertyValue]:
             """
             Wrapper function that converts Entity+Experiment to dict and calls the wrapped function.
-
-            Args:
-                entity: The entity to measure
-                experiment: The experiment configuration
-
-            Returns:
-                List of ObservedPropertyValue instances
             """
-            # Convert Entity+Experiment to dict using propertyValuesFromEntity
             input_values = experiment.propertyValuesFromEntity(entity)
-
-            # Call the wrapped function with the input values
             result_dict = func(**input_values)
-
-            # Convert the result dict to ObservedPropertyValue list
             observed_property_values = []
             for property_identifier, value in result_dict.items():
-                # Create ObservedProperty for this result
-                observed_property = ObservedProperty(identifier=property_identifier)
-
-                # Create ObservedPropertyValue
+                observed_property = experiment.observedPropertyForTargetIdentifier(
+                    property_identifier
+                )
                 observed_property_value = ObservedPropertyValue(
                     property=observed_property, value=value
                 )
@@ -101,30 +144,47 @@ def custom_experiment(properties: list[ConstitutiveProperty]):
 
             return observed_property_values
 
-        # Validate that the properties match the function parameters
+        # Validate that the required property identifiers match the function parameters
         func_signature = inspect.signature(func)
         func_param_names = set(func_signature.parameters.keys())
-        property_identifiers = {prop.identifier for prop in properties}
-
-        if func_param_names != property_identifiers:
+        req_property_identifiers = {prop.identifier for prop in required_properties}
+        opt_property_identifiers = {prop.identifier for prop in optional_properties}
+        experiment_prop_identifiers = (
+            req_property_identifiers | opt_property_identifiers
+        )
+        if not experiment_prop_identifiers.issubset(func_param_names):
             raise ValueError(
-                f"Function parameter names {func_param_names} do not match "
-                f"property identifiers {property_identifiers}"
+                f"Function parameter names {func_param_names} must include all required property identifiers {req_property_identifiers}"
             )
 
         # Store decorator arguments as function attributes
-        wrapper._decorator_properties = properties
-        wrapper._decorator_func = func
+        wrapper._decorator_required_properties = required_properties
+        wrapper._decorator_optional_properties = _optional_properties
+        wrapper._decorator_parameterization = _parameterization
+        wrapper._original_func = func
         wrapper._is_custom_experiment = True
+
+        metadata["experiment_function"] = wrapper
 
         # Create and store the Experiment instance
         experiment = Experiment(
             actuatorIdentifier="custom_experiments",
             identifier=func.__name__,
-            requiredProperties=tuple(properties),
-            optionalProperties=(),
-            defaultParameterization=(),
+            requiredProperties=tuple(required_properties),
+            optionalProperties=tuple(_optional_properties),
+            targetProperties=[
+                AbstractPropertyDescriptor(identifier=p) for p in output_properties
+            ],
+            defaultParameterization=tuple(
+                [
+                    ConstitutivePropertyValue(
+                        property=ConstitutivePropertyDescriptor(identifier=k), value=v
+                    )
+                    for k, v in _parameterization.items()
+                ]
+            ),
             deprecated=False,
+            metadata=metadata,
         )
         wrapper._experiment = experiment
 
@@ -136,27 +196,52 @@ def custom_experiment(properties: list[ConstitutiveProperty]):
     return decorator
 
 
-def get_custom_experiment_info(func) -> dict:
-    """
-    Helper function to access decorator arguments and experiment from a decorated function.
+def load_custom_experiments_from_catalog_extensions(identifier):
+    import importlib.resources
+    import logging
+    import pkgutil
+    from pathlib import Path
 
-    Args:
-        func: A function decorated with @custom_experiment
+    import ado_actuators as plugins
+    import yaml
 
-    Returns:
-        Dict containing decorator properties and experiment instance
+    from orchestrator.modules.actuators.catalog import ActuatorCatalogExtension
+    from orchestrator.modules.actuators.registry import (
+        CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME,
+    )
 
-    Raises:
-        ValueError: If the function is not decorated with @custom_experiment
-    """
-    if not hasattr(func, "_is_custom_experiment") or not func._is_custom_experiment:
-        raise ValueError("Function is not decorated with @custom_experiment")
+    logger = logging.getLogger("custom_experiments")
 
-    return {
-        "properties": func._decorator_properties,
-        "experiment": func._experiment,
-        "original_func": func._decorator_func,
-    }
+    for module in pkgutil.iter_modules(plugins.__path__, f"{plugins.__name__}."):
+        module_contents = {
+            entry.name for entry in importlib.resources.files(module.name).iterdir()
+        }
+
+        if CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME in module_contents:
+            logger.debug(f"Found {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME}")
+
+            experiments_configuration_file = Path(
+                str(importlib.resources.files(module.name))
+            ) / Path(CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME)
+
+            try:
+                catalog_extension = ActuatorCatalogExtension.model_validate(
+                    yaml.safe_load(experiments_configuration_file.read_text())
+                )
+            except pydantic.ValidationError:
+                logger.exception(
+                    f"{module.name}'s {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME} raised a validation error"
+                )
+                raise
+
+            logger.debug(f"Adding catalog extension {catalog_extension!s}")
+            for experiment in catalog_extension.experiments:
+                if experiment.actuatorIdentifier == "custom_experiments":
+                    _custom_experiments_catalog.addExperiment(experiment)
+                else:
+                    logger.warning(
+                        f"Cannot add catalog extension for {experiment.actuatorIdentifier} - only custom_experiments supports catalog extensions"
+                    )
 
 
 def load_custom_experiments_from_entry_points():
@@ -172,14 +257,14 @@ def load_custom_experiments_from_entry_points():
 
         # Get all entry points for ado.custom_experiments
         entry_points = importlib.metadata.entry_points()
-        custom_experiment_groups = entry_points.get("ado.custom_experiments", [])
-
+        custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
         for entry_point in custom_experiment_groups:
+            print(entry_point)
             entry_point.load()
 
-    except ImportError:
+    except ImportError as error:
+        logging.getLogger("load_custom_experiments").warning(error)
         # importlib.metadata not available (Python < 3.8)
-        pass
 
 
 def get_custom_experiments_catalog() -> (
@@ -197,23 +282,26 @@ def get_custom_experiments_catalog() -> (
 async def custom_experiment_wrapper(
     function: typing.Callable,
     parameters: dict,
-    measurementRequest: MeasurementRequest,
-    targetExperiment: Experiment,
+    measurement_request: MeasurementRequest,
+    target_experiment: Experiment,
     queue: MeasurementQueue,
 ):
     """
     :param function: The function to call
     :param parameters: The custom parameters to the function
-    :param measurementRequest: The entity and custom experiment to be measured
-    :param targetExperiment: The experiment to execute.
+    :param measurement_request: The entity and custom experiment to be measured
+    :param target_experiment: The experiment to execute.
         Required as the measurementRequest only includes an ExperimentReference
     :param queue: The queue to put the result on
     :return:
     """
 
     measurement_results = []
-    for entity in measurementRequest.entities:
-        values = function(entity, targetExperiment, parameters=parameters)
+    for entity in measurement_request.entities:
+        if target_experiment.metadata.get("experiment_function"):
+            values = function(entity, target_experiment)
+        else:
+            values = function(entity, target_experiment, parameters=parameters)
 
         # Record the results in the entity
         if len(values) > 0:
@@ -223,12 +311,12 @@ async def custom_experiment_wrapper(
             measurement_results.append(measurement_result)
 
     if len(measurement_results) > 0:
-        measurementRequest.measurements = measurement_results
-        measurementRequest.status = MeasurementRequestStateEnum.SUCCESS
+        measurement_request.measurements = measurement_results
+        measurement_request.status = MeasurementRequestStateEnum.SUCCESS
     else:
-        measurementRequest.status = MeasurementRequestStateEnum.FAILED
+        measurement_request.status = MeasurementRequestStateEnum.FAILED
 
-    await queue.put_async(measurementRequest, block=False)
+    await queue.put_async(measurement_request, block=False)
 
 
 @ray.remote
@@ -259,39 +347,18 @@ class CustomExperiments(ActuatorBase):
 
         self._functionImplementations = {}
         for experiment in self._catalog.experiments:
-            # For custom experiments, we need to find the decorated function
-            # The experiment identifier should match the function name
-            function_name = experiment.identifier
+            if module := experiment.metadata.get("module"):
+                experiment_module_conf = ActuatorModuleConf.model_validate(module)
+                function = (
+                    load_module_class_or_function(experiment_module_conf)
+                    if experiment_module_conf
+                    else None
+                )
+            else:
+                function = experiment.metadata.get("experiment_function")
 
-            # Search for the function in the current module and loaded modules
-            found_function = None
-
-            # First, try to find it in the current module
-            import sys
-
-            current_module = sys.modules[__name__]
-            if hasattr(current_module, function_name):
-                potential_function = getattr(current_module, function_name)
-                if (
-                    hasattr(potential_function, "_is_custom_experiment")
-                    and potential_function._is_custom_experiment
-                ):
-                    found_function = potential_function
-
-            # If not found, search in other loaded modules
-            if not found_function:
-                for module_name, module in sys.modules.items():
-                    if module and hasattr(module, function_name):
-                        potential_function = getattr(module, function_name)
-                        if (
-                            hasattr(potential_function, "_is_custom_experiment")
-                            and potential_function._is_custom_experiment
-                        ):
-                            found_function = potential_function
-                            break
-
-            if found_function:
-                self._functionImplementations[experiment.identifier] = found_function
+            if function:
+                self._functionImplementations[experiment.identifier] = function
                 self.log.info(
                     f"Experiment name: {experiment.identifier}. "
                     f"Function Implementation: {self._functionImplementations[experiment.identifier]}. "
@@ -299,7 +366,7 @@ class CustomExperiments(ActuatorBase):
                 )
             else:
                 self.log.warning(
-                    f"Could not find function implementation for experiment {experiment.identifier}"
+                    f"Experiment in custom_experiment catalog is missing required metadata (either experiment_function or module): {experiment}"
                 )
 
         self.log.debug("Completed init")
@@ -364,9 +431,6 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
-        experiment = self._catalog.experimentForReference(request.experimentReference)
-        function = experiment.metadata.get("function", experiment.identifier)
-        self.log.debug(f"Calling custom experiment {function}")
 
         await custom_experiment_wrapper(
             self._functionImplementations[
@@ -383,59 +447,12 @@ class CustomExperiments(ActuatorBase):
         # We only send one request
         return [requestid]
 
-
-def load_custom_experiments_legacy(identifier):
-    import importlib.resources
-    import logging
-    import pkgutil
-    from pathlib import Path
-
-    import ado_actuators as plugins
-    import yaml
-
-    from orchestrator.modules.actuators.catalog import ActuatorCatalogExtension
-    from orchestrator.modules.actuators.registry import (
-        CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME,
-    )
-
-    logger = logging.getLogger("custom_experiments")
-
-    for module in pkgutil.iter_modules(plugins.__path__, f"{plugins.__name__}."):
-        module_contents = {
-            entry.name for entry in importlib.resources.files(module.name).iterdir()
-        }
-
-        if CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME in module_contents:
-            logger.debug(f"Found {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME}")
-
-            experiments_configuration_file = Path(
-                str(importlib.resources.files(module.name))
-            ) / Path(CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME)
-
-            try:
-                catalog_extension = ActuatorCatalogExtension.model_validate(
-                    yaml.safe_load(experiments_configuration_file.read_text())
-                )
-            except pydantic.ValidationError:
-                logger.exception(
-                    f"{module.name}'s {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME} raised a validation error"
-                )
-                raise
-
-            logger.debug(f"Adding catalog extension {catalog_extension!s}")
-            # Check if catalog extension is for this actuator
-            if catalog_extension.actuatorIdentifier == identifier:
-                logger.debug(
-                    f"Adding catalog extension {catalog_extension!s} for actuator {identifier}"
-                )
-                _custom_experiments_catalog.update(catalog_extension)
-
     @classmethod
     def catalog(
         cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
 
-        load_custom_experiments_legacy(cls.identifier)
+        load_custom_experiments_from_catalog_extensions(cls.identifier)
         # Load custom experiments from entry points before returning catalog
         load_custom_experiments_from_entry_points()
         return get_custom_experiments_catalog()

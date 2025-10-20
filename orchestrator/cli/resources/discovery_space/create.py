@@ -20,6 +20,7 @@ from orchestrator.cli.utils.output.prints import (
     magenta,
 )
 from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
+from orchestrator.core import CoreResourceKinds
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.base import ResourceDoesNotExistError
@@ -97,6 +98,9 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             )
 
         space_configuration.sampleStoreIdentifier = sample_store_resource.identifier
+        parameters.ado_configuration.latest_resource_ids[
+            CoreResourceKinds.SAMPLESTORE
+        ] = sample_store_resource.identifier
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
@@ -121,6 +125,12 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
 
         status.update(ADO_SPINNER_SAVING_TO_DB)
         space.saveSpace()
+
+    # Save the identifier of the resource we created
+    # for reuse
+    parameters.ado_configuration.latest_resource_ids[
+        CoreResourceKinds.DISCOVERYSPACE
+    ] = space.uri
 
     console_print(
         f"{SUCCESS}Created space with identifier: {magenta(space.uri)}", stderr=True

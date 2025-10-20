@@ -10,11 +10,15 @@ from orchestrator.cli.models.parameters import AdoCreateCommandParameters
 from orchestrator.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ERROR,
+    HINT,
     INFO,
     SUCCESS,
     WARN,
     console_print,
+    cyan,
+    latest_identifier_for_resource_not_found,
     magenta,
+    value_in_configuration_replaced_with_latest_identifier_for_resource,
 )
 from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
 from orchestrator.cli.utils.resources.formatters import most_important_status_update
@@ -51,6 +55,11 @@ def create_operation(parameters: AdoCreateCommandParameters):
     if parameters.override_values:
         op_resource_configuration = override_values_in_pydantic_model(
             model=op_resource_configuration, override_values=parameters.override_values
+        )
+        validate_operation(op_resource_configuration)
+    elif parameters.with_latest:
+        reuse_requested_latest_identifiers(
+            resource_configuration=op_resource_configuration, parameters=parameters
         )
 
     if len(op_resource_configuration.spaces) > 1:
@@ -177,6 +186,65 @@ def validate_operation(
             return
 
         configuration_model.model_validate(resource_configuration.operation.parameters)
+
+
+def reuse_requested_latest_identifiers(
+    resource_configuration: DiscoveryOperationResourceConfiguration,
+    parameters: AdoCreateCommandParameters,
+):
+    if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_latest:
+        latest_recorded_actuator_configuration = (
+            parameters.ado_configuration.latest_resource_ids.get(
+                CoreResourceKinds.ACTUATORCONFIGURATION
+            )
+        )
+
+        if not latest_recorded_actuator_configuration:
+            console_print(
+                latest_identifier_for_resource_not_found(
+                    CoreResourceKinds.ACTUATORCONFIGURATION
+                )
+                + f"{HINT}Try creating one with {cyan(f'ado create {CoreResourceKinds.ACTUATORCONFIGURATION.value}')}",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        resource_configuration.actuatorConfigurationIdentifiers = [
+            latest_recorded_actuator_configuration
+        ]
+
+        console_print(
+            value_in_configuration_replaced_with_latest_identifier_for_resource(
+                reused_resource_kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+                target_resource_kind=CoreResourceKinds.OPERATION,
+                replacement_identifier=latest_recorded_actuator_configuration,
+            ),
+            stderr=True,
+        )
+    if CoreResourceKinds.DISCOVERYSPACE in parameters.with_latest:
+        latest_recorded_space = parameters.ado_configuration.latest_resource_ids.get(
+            CoreResourceKinds.DISCOVERYSPACE
+        )
+        if not latest_recorded_space:
+            console_print(
+                latest_identifier_for_resource_not_found(
+                    CoreResourceKinds.DISCOVERYSPACE
+                )
+                + f"{HINT}Try creating one with {cyan('ado create space')}",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        resource_configuration.spaces = [latest_recorded_space]
+        console_print(
+            value_in_configuration_replaced_with_latest_identifier_for_resource(
+                reused_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
+                target_resource_kind=CoreResourceKinds.OPERATION,
+                replacement_identifier=latest_recorded_space,
+            ),
+            stderr=True,
+        )
+    validate_operation(resource_configuration)
 
 
 def output_operation_result(result: OperationOutput):

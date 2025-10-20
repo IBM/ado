@@ -145,6 +145,25 @@ def could_not_delete_resource_from_database_error_str(
     )
 
 
+def latest_identifier_for_resource_not_found(resource_kind: CoreResourceKinds) -> str:
+    return (
+        f"{ERROR}The identifier of the latest {resource_kind.value} is not present.\n\t"
+        f"This means that the {cyan(f'--with-latest {resource_kind.value}')} flag cannot be used."
+    )
+
+
+def value_in_configuration_replaced_with_latest_identifier_for_resource(
+    reused_resource_kind: CoreResourceKinds,
+    target_resource_kind: CoreResourceKinds,
+    replacement_identifier: str,
+) -> str:
+    return (
+        f"{INFO}The latest {reused_resource_kind.value} was requested to be reused.\n"
+        f"\t{reused_resource_kind.value.title()}s referenced in the {target_resource_kind.value} definition "
+        f"will be ignored and replaced with {cyan(replacement_identifier)}."
+    )
+
+
 # Styles
 def bold(input: str) -> str:
     return f"[b]{input}[/b]"

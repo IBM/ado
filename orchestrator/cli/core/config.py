@@ -16,6 +16,7 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
+from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.location import SQLiteStoreConfiguration
 
@@ -31,6 +32,7 @@ class AdoConfiguration(pydantic.BaseModel):
     _app_dir: Path = Path(typer.get_app_dir(ADO_APP_NAME))
     _project_context: ProjectContext | None = None
     active_context: str | None = None
+    latest_resource_ids: dict[CoreResourceKinds, str] = {}
 
     @classmethod
     def load(

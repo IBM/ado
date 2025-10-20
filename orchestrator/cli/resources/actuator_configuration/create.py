@@ -17,6 +17,7 @@ from orchestrator.cli.utils.output.prints import (
     magenta,
 )
 from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
+from orchestrator.core import CoreResourceKinds
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.actuatorconfiguration.resource import (
     ActuatorConfigurationResource,
@@ -52,6 +53,12 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters):
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_SAVING_TO_DB):
         sql.addResource(resource_to_be_created)
+
+    # Save the identifier of the resource we created
+    # for reuse
+    parameters.ado_configuration.latest_resource_ids[
+        CoreResourceKinds.ACTUATORCONFIGURATION
+    ] = resource_to_be_created.identifier
 
     console_print(
         f"{SUCCESS}Created actuator configuration with identifier "

@@ -217,6 +217,8 @@ def create_resource(
     except UnknownExperimentError as e:
         handle_unknown_experiment_error(error=e)
 
+    ado_configuration.store()
+
 
 def register_create_command(app: typer.Typer):
     app.command(

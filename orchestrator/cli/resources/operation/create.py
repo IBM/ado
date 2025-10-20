@@ -18,6 +18,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
 from orchestrator.cli.utils.resources.formatters import most_important_status_update
+from orchestrator.core import CoreResourceKinds
 from orchestrator.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     OperatorModuleConf,
@@ -115,6 +116,12 @@ def create_operation(parameters: AdoCreateCommandParameters):
             stderr=True,
         )
         raise
+
+    # Save the identifier of the resource we created
+    # for reuse
+    parameters.ado_configuration.latest_resource_ids[CoreResourceKinds.OPERATION] = (
+        operation_output.operation.identifier
+    )
 
     output_operation_result(result=operation_output)
 

@@ -1,5 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+from orchestrator.cli.utils.resources.mappings import cli_names_to_resource_kinds
 
 
 def parse_key_value_pairs(
@@ -43,3 +44,21 @@ def parse_key_value_pairs(
             result.append({split_result[0]: split_result[1]})
 
     return result
+
+
+def parse_core_resource_kinds(value: str) -> str:
+    """
+    Parses the core resource kind from a CLI name and returns its enum value.
+
+    Args:
+        value (str): The CLI name of the CoreResourceKind.
+
+    Returns:
+        str: The enum value associated with the CLI name.
+
+    Raises:
+        ValueError: If ``value`` is not a valid CoreResourceKind name.
+    """
+    if value not in cli_names_to_resource_kinds:
+        raise ValueError(f"{value} is not a valid CoreResourceKind")
+    return cli_names_to_resource_kinds[value].value

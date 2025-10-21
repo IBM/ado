@@ -158,6 +158,48 @@ def test_create_discovery_space_success_new_sample_store(
     assert result.output.startswith(expected_output)
 
 
+def test_create_discovery_space_success_with_latest_samplestore(
+    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
+):
+    space_configuration_file = pathlib.Path("tests/resources/space/sfttrainer.yaml")
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "samplestore",
+            "--new-sample-store",
+        ],
+    )
+    assert result.exit_code == 0
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "space",
+            "-f",
+            space_configuration_file,
+            "--with-latest",
+            "samplestore",
+        ],
+    )
+    assert result.exit_code == 0
+    expected_output = (
+        "INFO:   The latest sample store was requested to be reused.\n"
+        "        Sample Stores referenced in the space definition will be ignored and replaced with"
+    )
+    assert result.output.startswith(expected_output)
+
+
 def test_create_discovery_space_fail_new_sample_store_with_replay(
     tmp_path: pathlib.Path,
 ):

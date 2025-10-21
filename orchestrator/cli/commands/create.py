@@ -22,11 +22,15 @@ from orchestrator.cli.resources.context.create import create_context
 from orchestrator.cli.resources.discovery_space.create import create_discovery_space
 from orchestrator.cli.resources.operation.create import create_operation
 from orchestrator.cli.resources.sample_store.create import create_sample_store
-from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
+from orchestrator.cli.utils.input.parsers import (
+    parse_core_resource_kinds,
+    parse_key_value_pairs,
+)
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
 )
+from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
@@ -102,9 +106,21 @@ def create_resource(
         bool,
         typer.Option(
             "--new-sample-store",
-            help="Request and use a new, empty sample store. Available only for space and sample store.",
+            help="Request and use a new, empty sample store. Available only for space and sample store. "
+            "Ignored if --set or --with-latest are used.",
         ),
     ] = False,
+    with_latest: Annotated[
+        list[CoreResourceKinds] | None,
+        typer.Option(
+            show_default=False,
+            parser=parse_core_resource_kinds,
+            help="""
+            Reuse the latest identifier of a resource kind. Can be used multiple times.
+
+            Only supported for spaces and operations. Ignored if --set is used.""",
+        ),
+    ] = None,
     set_values: Annotated[
         list[str] | None,
         typer.Option(
@@ -194,6 +210,7 @@ def create_resource(
         override_values=override_values,
         resource_configuration_file=resource_configuration,
         resource_type=resource_type,
+        with_latest=with_latest,
     )
 
     method_mapping = {

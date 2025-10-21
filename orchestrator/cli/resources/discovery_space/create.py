@@ -17,7 +17,9 @@ from orchestrator.cli.utils.output.prints import (
     SUCCESS,
     console_print,
     cyan,
+    latest_identifier_for_resource_not_found,
     magenta,
+    value_in_configuration_replaced_with_latest_identifier_for_resource,
 )
 from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
 from orchestrator.core import CoreResourceKinds
@@ -27,6 +29,18 @@ from orchestrator.metastore.base import ResourceDoesNotExistError
 
 
 def create_discovery_space(parameters: AdoCreateCommandParameters):
+
+    if (
+        parameters.new_sample_store
+        and parameters.with_latest
+        and CoreResourceKinds.SAMPLESTORE in parameters.with_latest
+    ):
+        console_print(
+            f"{ERROR}You can only set one of --new-sample-store "
+            f"and --with-latest {CoreResourceKinds.SAMPLESTORE.value}",
+            stderr=True,
+        )
+        raise typer.Exit(1)
 
     try:
         space_configuration = DiscoverySpaceConfiguration.model_validate(
@@ -43,8 +57,33 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         space_configuration = override_values_in_pydantic_model(
             model=space_configuration, override_values=parameters.override_values
         )
+    elif (
+        parameters.with_latest
+        and CoreResourceKinds.SAMPLESTORE in parameters.with_latest
+    ):
 
-    if parameters.new_sample_store:
+        latest_recorded_sample_store = (
+            parameters.ado_configuration.latest_resource_ids.get(
+                CoreResourceKinds.SAMPLESTORE
+            )
+        )
+        if not latest_recorded_sample_store:
+            console_print(
+                latest_identifier_for_resource_not_found(CoreResourceKinds.SAMPLESTORE),
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        console_print(
+            value_in_configuration_replaced_with_latest_identifier_for_resource(
+                reused_resource_kind=CoreResourceKinds.SAMPLESTORE,
+                target_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
+                replacement_identifier=latest_recorded_sample_store,
+            ),
+            stderr=True,
+        )
+        space_configuration.sampleStoreIdentifier = latest_recorded_sample_store
+    elif parameters.new_sample_store:
 
         # Replay experiments cannot use --new-sample-store
         # We want to check whether the replay actuator is being used

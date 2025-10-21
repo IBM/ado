@@ -34,7 +34,9 @@ To see the `discoveryspaces` using a given `samplestore` run
 ado show related samplestore $SAMPLE_STORE_IDENTIFIER
 ```
 
-> [!TIP] The greater the similarity between two `discoveryspace`s, the greater
+> [!TIP]
+>
+> The greater the similarity between two `discoveryspace`s, the greater
 > the chance they can share data. So it is usually beneficial to ensure that
 > such `discoveryspace`s use the same `samplestore`.
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->

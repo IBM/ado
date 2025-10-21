@@ -123,7 +123,8 @@ Where:
   `--set` or `--with-latest` are used.
 - `--use-default-sample-store` uses the default sample store. Only available
   when running `ado create space`. Alias for
-  `--set sampleStoreIdentifier=default`.
+  `--set sampleStoreIdentifier=default`. It is ignored if --set, --with-latest,
+  or --new-sample-store are used.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
 

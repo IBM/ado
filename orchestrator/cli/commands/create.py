@@ -38,6 +38,7 @@ from orchestrator.metastore.base import (
 from orchestrator.modules.actuators.registry import UnknownExperimentError
 
 CREATE_OPERATION_PANEL_NAME = "Operation-specific options"
+CREATE_SPACE_PANEL_NAME = "Space-specific options"
 
 
 def resource_type_callback(
@@ -140,6 +141,7 @@ def create_resource(
         bool,
         typer.Option(
             "--use-default-sample-store",
+            rich_help_panel=CREATE_SPACE_PANEL_NAME,
             help="Request and use the default sample store. Available only for spaces. "
             "Ignored if --set, --with-latest, or --new-sample-store are used.",
         ),

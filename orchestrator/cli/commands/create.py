@@ -136,6 +136,14 @@ def create_resource(
             """,
         ),
     ] = None,
+    use_default_sample_store: Annotated[
+        bool,
+        typer.Option(
+            "--use-default-sample-store",
+            help="Request and use the default sample store. Available only for spaces. "
+            "Ignored if --set, --with-latest, or --new-sample-store are used.",
+        ),
+    ] = False,
     dry_run: Annotated[
         bool,
         typer.Option(
@@ -210,6 +218,7 @@ def create_resource(
         override_values=override_values,
         resource_configuration_file=resource_configuration,
         resource_type=resource_type,
+        use_default_sample_store=use_default_sample_store,
         with_latest=with_latest,
     )
 

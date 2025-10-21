@@ -7,16 +7,24 @@ from pathlib import Path
 import pydantic
 import typer
 import yaml
+from rich.status import Status
 
 import orchestrator.metastore.project
+from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
+    ADO_SPINNER_SAVING_TO_DB,
     ERROR,
     HINT,
     INFO,
     console_print,
     cyan,
 )
-from orchestrator.core import CoreResourceKinds
+from orchestrator.core import CoreResourceKinds, SampleStoreResource
+from orchestrator.core.samplestore.config import (
+    SampleStoreConfiguration,
+    SampleStoreModuleConf,
+    SampleStoreSpecification,
+)
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.location import SQLiteStoreConfiguration
 
@@ -148,6 +156,25 @@ class AdoConfiguration(pydantic.BaseModel):
         # Set the fields in the configuration
         ado_config._project_context = local_context
         ado_config.active_context = ADO_DEFAULT_LOCAL_CONTEXT_NAME
+
+        #
+        sql = get_sql_store(project_context=local_context)
+        with Status(ADO_SPINNER_SAVING_TO_DB):
+            sql.addResource(
+                resource=SampleStoreResource(
+                    identifier="default",
+                    config=SampleStoreConfiguration(
+                        specification=SampleStoreSpecification(
+                            module=SampleStoreModuleConf(
+                                moduleClass="SQLSampleStore",
+                                moduleName="orchestrator.core.samplestore.sql",
+                            ),
+                            storageLocation=local_context.metadataStore,
+                        )
+                    ),
+                )
+            )
+            ado_config.latest_resource_ids[CoreResourceKinds.SAMPLESTORE] = "default"
 
         # Store the configuration
         ado_config.store()

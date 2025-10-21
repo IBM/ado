@@ -122,10 +122,8 @@ Where:
   in the `DiscoverySpaceConfiguration` will be disregarded. It is ignored if
   `--set` or `--with-latest` are used.
 - `--use-default-sample-store` uses the default sample store. Only available
-  when running `ado create` on `space`s. If running
-  `ado create space --use-default-sample-store`, the `sampleStoreIdentifier`
-  contained in the `DiscoverySpaceConfiguration` will be disregarded. It is
-  ignored if `--set`, `--with-latest`, or `--new-sample-store` are used.
+  when running `ado create space`. Alias for
+  `--set sampleStoreIdentifier=default`.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
 

@@ -141,16 +141,23 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             CoreResourceKinds.SAMPLESTORE
         ] = sample_store_resource.identifier
     elif parameters.use_default_sample_store:
+        space_configuration.sampleStoreIdentifier = "default"
 
+    if parameters.dry_run:
+        console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
+        return
+
+    if space_configuration.sampleStoreIdentifier == "default":
         info_message = (
             f"{INFO}The {cyan('default')} sample store was requested to be used.\n"
-            f"\tSample store {cyan(space_configuration.sampleStoreIdentifier)} referenced in the space definition "
-            "will be ignored."
+            f"\tThe sample store referenced in the space definition will be ignored."
         )
         console_print(info_message, stderr=True)
+
         sql_store = get_sql_store(
             project_context=parameters.ado_configuration.project_context
         )
+
         if not sql_store.containsResourceWithIdentifier(
             identifier="default", kind=CoreResourceKinds.SAMPLESTORE
         ):
@@ -176,14 +183,6 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
                         ),
                     )
                 )
-                parameters.ado_configuration.latest_resource_ids[
-                    CoreResourceKinds.SAMPLESTORE
-                ] = "default"
-        space_configuration.sampleStoreIdentifier = "default"
-
-    if parameters.dry_run:
-        console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
 
     with Status("Initializing DiscoverySpace") as status:
         try:

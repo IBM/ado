@@ -37,7 +37,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
     ):
         console_print(
             f"{ERROR}You can only set one of --new-sample-store "
-            f"and --with-previous {CoreResourceKinds.SAMPLESTORE.value}",
+            f"and --with-latest {CoreResourceKinds.SAMPLESTORE.value}",
             stderr=True,
         )
         raise typer.Exit(1)

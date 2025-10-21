@@ -54,7 +54,7 @@ An example experiment description file is:
 
 ```yaml
 {%
-  include  "../../../examples/optimization_test_functions/custom_experiments/ado_actuators/optimization_test_functions/custom_experiments.yaml"
+  include  "../../../examples/ml-multi-cloud/custom_experiment/ado_actuators/ml_multi_cloud_custom_experiments/custom_experiments.yaml"
 %}
 ```
 

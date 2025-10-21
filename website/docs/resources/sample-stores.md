@@ -67,6 +67,39 @@ allocated automatically in the SQL db associated with the
 Running `ado create samplestore --new-sample-store` will create an empty
 SQLSampleStore in the current context.
 
+## The default samplestore
+
+When experimenting or when strict separation between sample stores is not
+required, you can create spaces using the **default** sample store. This sample
+store is created automatically when requested, allowing for quick setup without
+needing to create a sample store explicitly.
+
+There are three ways to use the default sample store:
+
+1. **Referencing it in the space configuration** by setting the
+   `sampleStoreIdentifier` to `default` in the space YAML:
+
+   ```yaml
+   sampleStoreIdentifier: default
+   ```
+
+2. **Using the `--use-default-sample-store` flag** with the `ado create space`
+   command:
+
+   ```terminal
+   ado create space --use-default-sample-store
+   ```
+
+3. **Using the `--set` flag** to explicitly override the sample store
+   identifier:
+
+   ```terminal
+   ado create space --set sampleStoreIdentifier=default
+   ```
+
+These options are interchangeable and can be used depending on your workflow or
+preference.
+
 ### Copying data into a samplestore
 
 You can specify data to be copied into a new `samplestore` resource on creation.

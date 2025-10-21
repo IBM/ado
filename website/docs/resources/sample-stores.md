@@ -191,9 +191,9 @@ You do not have to copy all the columns in a CSV or have any experiments.
 
 !!!info
 
-  Please note that
-  [standard deletion constraints](resources.md#deleting-resources) apply alongside
-  the considerations discussed in this section.
+      Please note that
+      [standard deletion constraints](resources.md#deleting-resources) apply alongside
+      the considerations discussed in this section.
 
 Deleting a sample store is a high-impact operation and should be performed with
 caution. When a sample store is deleted:

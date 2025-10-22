@@ -19,6 +19,7 @@ from orchestrator.cli.models.types import (
     AdoShowResultsSupportedOutputFormats,
     AdoShowSummarySupportedOutputFormats,
 )
+from orchestrator.core import CoreResourceKinds
 from orchestrator.core.operation.config import DiscoveryOperationEnum
 from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
 
@@ -51,6 +52,7 @@ class AdoCreateCommandParameters(pydantic.BaseModel):
     override_values: list[dict[str, str | None]]
     resource_configuration_file: Path | None
     resource_type: AdoCreateSupportedResourceTypes
+    with_latest: list[CoreResourceKinds] | None
 
 
 class AdoDeleteCommandParameters(pydantic.BaseModel):

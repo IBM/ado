@@ -106,12 +106,20 @@ Where:
 - `--file` or `-f` is a path to the resource configuration file in YAML format.
   It is mandatory in all scenarios, except when running
   `ado create samplestore --new-sample-store`.
+- `--set` allows overriding fields in the provided resource configuration. It
+  supports using JSONPath syntax. See the examples section for more information.
+- `--with-latest` allows reusing the previous identifier of a certain resource
+  kind. It is only supported for spaces and operations. The latest identifiers
+  are updated every time an `ado create` command is successful. The stored
+  identifiers are not per-context, meaning that, for example running
+  `ado create samplestore`, changing context, and running
+  `ado create --with-latest samplestore` will raise an error. Ignored if `--set`
+  is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the optional `sampleStoreIdentifier`
-  contained in the `DiscoverySpaceConfiguration` will be disregarded.
-- `--set` allows overriding fields in the provided resource configuration. It
-  supports using JSONPath syntax. See the examples section for more information.
+  contained in the `DiscoverySpaceConfiguration` will be disregarded. It is
+  ignored if `--set` or `--with-latest` are used.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
 
@@ -155,6 +163,12 @@ ado create space -f ds.yaml --new-sample-store
 
 ```shell
 ado create space -f ds.yaml --set "sampleStoreIdentifier=abcdef"
+```
+
+##### Create a space reusing the latest sample store identifier
+
+```shell
+ado create space -f ds.yaml --with-latest samplestore
 ```
 
 ##### Create a space renaming a property identifier in the space

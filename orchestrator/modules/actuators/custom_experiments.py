@@ -154,7 +154,7 @@ def custom_experiment(
         )
         if not experiment_prop_identifiers.issubset(func_param_names):
             raise ValueError(
-                f"Function parameter names {func_param_names} must include all required property identifiers {req_property_identifiers}"
+                f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. Missing identifiers: {experiment_prop_identifiers - func_param_names}"
             )
 
         # Store decorator arguments as function attributes
@@ -259,7 +259,6 @@ def load_custom_experiments_from_entry_points():
         entry_points = importlib.metadata.entry_points()
         custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
         for entry_point in custom_experiment_groups:
-            print(entry_point)
             entry_point.load()
 
     except ImportError as error:

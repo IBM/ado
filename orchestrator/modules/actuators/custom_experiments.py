@@ -18,7 +18,7 @@ from orchestrator.modules.actuators.base import (
     DeprecatedExperimentError,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import load_module_class_or_function
+from orchestrator.modules.module import ModuleTypeEnum, load_module_class_or_function
 from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -148,7 +148,11 @@ def custom_experiment(
         func_signature = inspect.signature(func)
         func_param_names = set(func_signature.parameters.keys())
         req_property_identifiers = {prop.identifier for prop in required_properties}
-        opt_property_identifiers = {prop.identifier for prop in optional_properties}
+        opt_property_identifiers = (
+            {prop.identifier for prop in optional_properties}
+            if optional_properties
+            else set()
+        )
         experiment_prop_identifiers = (
             req_property_identifiers | opt_property_identifiers
         )
@@ -164,7 +168,12 @@ def custom_experiment(
         wrapper._original_func = func
         wrapper._is_custom_experiment = True
 
-        metadata["experiment_function"] = wrapper
+        # Create an ActuatorModuleConf instance describing where the function is
+        metadata["module"] = ActuatorModuleConf(
+            moduleType=ModuleTypeEnum.ACTUATOR,
+            moduleName=func.__module__,
+            moduleFunction=func.__name__,
+        )
 
         # Create and store the Experiment instance
         experiment = Experiment(
@@ -297,10 +306,13 @@ async def custom_experiment_wrapper(
 
     measurement_results = []
     for entity in measurement_request.entities:
-        if target_experiment.metadata.get("experiment_function"):
-            values = function(entity, target_experiment)
-        else:
+        # Inspect function to see if it has a keyword parameter "parameters"
+        func_signature = inspect.signature(function)
+        func_param_names = set(func_signature.parameters.keys())
+        if "parameters" in func_param_names:
             values = function(entity, target_experiment, parameters=parameters)
+        else:
+            values = function(entity, target_experiment)
 
         # Record the results in the entity
         if len(values) > 0:
@@ -346,6 +358,8 @@ class CustomExperiments(ActuatorBase):
 
         self._functionImplementations = {}
         for experiment in self._catalog.experiments:
+
+            function = None
             if module := experiment.metadata.get("module"):
                 experiment_module_conf = ActuatorModuleConf.model_validate(module)
                 function = (
@@ -353,8 +367,6 @@ class CustomExperiments(ActuatorBase):
                     if experiment_module_conf
                     else None
                 )
-            else:
-                function = experiment.metadata.get("experiment_function")
 
             if function:
                 self._functionImplementations[experiment.identifier] = function

@@ -16,7 +16,6 @@ from orchestrator.cli.commands.delete import register_delete_command
 from orchestrator.cli.commands.describe import register_describe_command
 from orchestrator.cli.commands.edit import register_edit_command
 from orchestrator.cli.commands.get import register_get_command
-from orchestrator.cli.commands.hamilton import register_hamilton_command
 from orchestrator.cli.commands.show import register_show_command
 from orchestrator.cli.commands.template import register_template_command
 from orchestrator.cli.commands.upgrade import register_upgrade_command
@@ -60,8 +59,7 @@ register_show_command(app)
 register_template_command(app)
 register_upgrade_command(app)
 register_version_command(app)
-print("registering hamilton command")
-register_hamilton_command(app)
+# register_hamilton_command(app)
 
 
 @app.callback()

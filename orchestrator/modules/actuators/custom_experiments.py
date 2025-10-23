@@ -48,24 +48,212 @@ _custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentC
 )
 
 
-def derive_optional_properties_and_parameterization(func, required_properties):
+def _infer_domain_and_property(identifier, annotation, default):
+    """This function infers the domain of a parameter from its type and default value.
+    Parameters:
+    - identifier: The name of the parameter
+    - annotation: The type of the parameter. Must be a valid python type
+    - default: The default value of the parameter
+    Returns:
+    - A ConstitutiveProperty instance with the inferred domain
+    Exceptions:
+    - ValueError: If the parameter is not supported i.e. the domain cannot be inferred
+    """
+    import logging
+
+    logger = logging.getLogger("custom_experiments")
+    from typing import get_args, get_origin
+
+    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+
+    if annotation is int:
+        domain = PropertyDomain(
+            variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=1
+        )
+    elif annotation is float:
+        domain = PropertyDomain(variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE)
+    elif annotation is bool:
+        domain = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    elif annotation is str:
+        domain = PropertyDomain(
+            variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+            values=[default],
+        )
+    elif get_origin(annotation) in [
+        getattr(typing, "Literal", None),
+        getattr(__import__("typing_extensions"), "Literal", None),
+    ] or str(annotation).startswith("typing.Literal"):
+        vals = list(get_args(annotation))
+        domain = PropertyDomain(
+            variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE, values=vals
+        )
+    else:
+        logger.warning(
+            f"Error parameter '{identifier}' - unsupported annotation: {annotation}"
+        )
+        raise ValueError(f"Unsupported annotation: {annotation}")
+
+    return ConstitutiveProperty(identifier=identifier, propertyDomain=domain)
+
+
+def derive_required_properties_from_signature(func, optional_idents):
+    """This function derives the required properties from the function signature.
+
+    The required properties are the positional parameters of the function that are not in optional_idents.
+
+    Parameters:
+    - func: The function to derive the required properties from
+    - optional_idents: The identifiers of the optional properties
+    Returns:
+    - A list of ConstitutiveProperty instances
+    """
+
     func_signature = inspect.signature(func)
-    req_property_identifiers = {prop.identifier for prop in required_properties}
-    derived_optional_properties = []
-    derived_parameterization = {}
+    required_props = []
     for param in func_signature.parameters.values():
-        if param.name in req_property_identifiers:
+        if param.name in optional_idents:
+            continue
+        if (
+            param.kind
+            in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+            and param.default is inspect.Parameter.empty
+        ):
+            print(param)
+            inferred_prop = _infer_domain_and_property(
+                param.name, param.annotation, None
+            )
+            required_props.append(inferred_prop)
+    return required_props
+
+
+def get_parameterization(
+    properties: list[ConstitutiveProperty], func_signature: inspect.Signature
+) -> dict[str, typing.Any]:
+    """This function derives the parameterization of properties and function signature.
+
+    The parameterization of a property is the default value of the corresponding parameter in func_signature
+
+    Parameters:
+    - properties: The properties to derive the parameterization for
+    - func_signature: The function signature to derive the parameterization from
+    Returns:
+    - A dictionary of property identifiers and their default values
+    Exceptions:
+    - ValueError: If a parameterization cannot be"""
+    param_map = {p.name: p for p in func_signature.parameters.values()}
+    results = {}
+    missing = []
+    for prop in properties:
+        param = param_map.get(prop.identifier, None)
+        if param and param.default is not inspect.Parameter.empty:
+            results[prop.identifier] = param.default
+        else:
+            missing.append(prop.identifier)
+    if missing:
+        raise ValueError(f"Parameterization missing for: {missing}")
+    return results
+
+
+def derive_optional_properties_and_parameterization(
+    func: typing.Callable, required_properties: list[ConstitutiveProperty]
+) -> tuple[list[ConstitutiveProperty], dict[str, typing.Any]]:
+    """This function derives the optional properties and their parameterization from the function signature.
+
+    The optional properties are the keyword parameters of the function that are not in required_properties.
+    The parameterization of an optional property is the default value of the corresponding parameter in func_signature.
+
+    Parameters:
+    - func: The function to derive the optional properties and parameterization from
+    - required_properties: The properties that are required input values.
+    Returns:
+    - A tuple. The first element is a list of optional properties, the second element is a dictionary of property identifiers and their default values
+    Exceptions:
+    - ValueError: If a parameterization cannot be derived for any optional property (unexpected)
+    - ValueError: If a domain cannot be inferred for any optional property"""
+    optional_properties = []
+    for param in inspect.signature(func).parameters.values():
+        if param.name in {prop.identifier for prop in required_properties}:
             continue
         if (
             param.kind
             in (inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
             and param.default is not inspect.Parameter.empty
         ):
-            derived_optional_properties.append(
-                ConstitutiveProperty(identifier=param.name)
+            inferred_prop = _infer_domain_and_property(
+                param.name, param.annotation, param.default
             )
-            derived_parameterization[param.name] = param.default
-    return derived_optional_properties, derived_parameterization
+            optional_properties.append(inferred_prop)
+
+    return optional_properties, get_parameterization(
+        optional_properties, inspect.signature(func)
+    )
+
+
+def check_parameters_and_infer(
+    _optional_properties: list[ConstitutiveProperty] | None,
+    _parameterization: dict | None,
+    _required_properties: list[ConstitutiveProperty] | None,
+    func,
+):
+    logger = logging.getLogger("custom_experiment_decorator")
+
+    # Set up dynamic optional_properties and parameterization if none were provided
+    _optional_properties = _optional_properties if _optional_properties else []
+
+    if not _required_properties:
+        try:
+            _required_properties = derive_required_properties_from_signature(
+                func, {prop.identifier for prop in _optional_properties}
+            )
+        except ValueError as error:
+            logger.critical(
+                f"No required properties provided and they could not be derived from signature: {error}"
+            )
+            raise error
+    if _optional_properties and not _parameterization:
+        try:
+            _parameterization = get_parameterization(
+                _optional_properties, inspect.signature(func)
+            )
+        except ValueError as error:
+            logger.critical(
+                f"Optional properties provided but parameterization could not be derived from signature: {error}"
+            )
+            raise error
+    if not _optional_properties and not _parameterization:
+        try:
+            _optional_properties, _parameterization = (
+                derive_optional_properties_and_parameterization(
+                    func, _required_properties
+                )
+            )
+        except ValueError as error:
+            logger.critical(
+                f"No optional properties provided and theycould not be derived from signature: {error}"
+            )
+            raise error
+
+    return _optional_properties, _parameterization, _required_properties
+
+
+def check_parameters_valid(_optional_properties, _required_properties, func):
+    # Validate that the property identifiers match the function parameters
+    func_signature = inspect.signature(func)
+    func_param_names = set(func_signature.parameters.keys())
+    req_property_identifiers = {prop.identifier for prop in _required_properties}
+    opt_property_identifiers = (
+        {prop.identifier for prop in _optional_properties}
+        if _optional_properties
+        else set()
+    )
+    experiment_prop_identifiers = req_property_identifiers | opt_property_identifiers
+    if not experiment_prop_identifiers.issubset(func_param_names):
+        raise ValueError(
+            f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. Missing identifiers: {experiment_prop_identifiers - func_param_names}"
+        )
 
 
 def custom_experiment(
@@ -111,17 +299,9 @@ def custom_experiment(
     """
 
     metadata = metadata if metadata else {}
+    logger = logging.getLogger("custom_experiment_decorator")
 
     def decorator(func):
-        # Set up dynamic optional_properties and parameterization if none were provided
-        _optional_properties = optional_properties
-        _parameterization = parameterization
-        if _optional_properties is None:
-            _optional_properties, _parameterization = (
-                derive_optional_properties_and_parameterization(
-                    func, required_properties
-                )
-            )
 
         @wraps(func)
         def wrapper(
@@ -144,25 +324,27 @@ def custom_experiment(
 
             return observed_property_values
 
-        # Validate that the required property identifiers match the function parameters
-        func_signature = inspect.signature(func)
-        func_param_names = set(func_signature.parameters.keys())
-        req_property_identifiers = {prop.identifier for prop in required_properties}
-        opt_property_identifiers = (
-            {prop.identifier for prop in optional_properties}
-            if optional_properties
-            else set()
-        )
-        experiment_prop_identifiers = (
-            req_property_identifiers | opt_property_identifiers
-        )
-        if not experiment_prop_identifiers.issubset(func_param_names):
-            raise ValueError(
-                f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. Missing identifiers: {experiment_prop_identifiers - func_param_names}"
+        # If we were not given information on required/optional properties
+        # or parameterization try to infer it
+        # This function will log a critical error message and raise exception
+        # if inference is required (because user did not provide explicit information)
+        # but it could not be done (missing annotation, invalid annotation etc.)
+        _optional_properties, _parameterization, _required_properties = (
+            check_parameters_and_infer(
+                optional_properties, parameterization, required_properties, func
             )
+        )
+
+        try:
+            check_parameters_valid(_optional_properties, _required_properties, func)
+        except ValueError as error:
+            logger.critical(
+                f"Unable to generate custom function via decorator: {error}"
+            )
+            raise
 
         # Store decorator arguments as function attributes
-        wrapper._decorator_required_properties = required_properties
+        wrapper._decorator_required_properties = _required_properties
         wrapper._decorator_optional_properties = _optional_properties
         wrapper._decorator_parameterization = _parameterization
         wrapper._original_func = func
@@ -179,7 +361,7 @@ def custom_experiment(
         experiment = Experiment(
             actuatorIdentifier="custom_experiments",
             identifier=func.__name__,
-            requiredProperties=tuple(required_properties),
+            requiredProperties=tuple(_required_properties),
             optionalProperties=tuple(_optional_properties),
             targetProperties=[
                 AbstractPropertyDescriptor(identifier=p) for p in output_properties

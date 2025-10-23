@@ -69,13 +69,12 @@ SQLSampleStore in the current context.
 
 ## The default samplestore
 
-When experimenting or when strict separation between sample stores is not
-required, you can create spaces using the **default** sample store (whose
-identifier is `default`). This sample store is created automatically when
-requested, allowing for quick setup without needing to create a sample store
-explicitly.
+`ado` provides a **default** `samplestore` (whose identifier is `default`) per
+project, removing the need to create one explicitly unless necessary. This
+`samplestore` is created **automatically** when it is first required.
 
-There are three ways to use the default sample store:
+There are three ways to use the default `samplestore` - each will create it, if
+it doesn't already exist.
 
 1. **Referencing it in the space configuration** by setting the
    `sampleStoreIdentifier` to `default` in the space YAML:

@@ -1,0 +1,149 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+import re
+
+import pytest
+
+from orchestrator.modules.actuators import custom_experiments
+from orchestrator.schema.domain import VariableTypeEnum
+
+# Used in test_literal_domain
+try:
+    from typing import Literal
+except ImportError:
+    from typing import Literal
+
+
+def test_infer_domain_and_property_type():
+    """Tests that given a parameter name, its type and a default the correct behaviour is observed"""
+
+    fn = custom_experiments._infer_domain_and_property
+    # int
+    p = fn("a", int, 42)
+    assert p.propertyDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    # float
+    p = fn("b", float, 3.1)
+    assert p.propertyDomain.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    # bool
+    p = fn("c", bool, True)
+    assert p.propertyDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+    # str
+    p = fn("d", str, "hello")
+    assert (
+        p.propertyDomain.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    )
+    assert p.propertyDomain.values == ["hello"]
+    # Literal
+    p = fn("e", Literal["X", "Y"], "X")
+    assert p.propertyDomain.variableType == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+    assert set(p.propertyDomain.values) == {"X", "Y"}
+    # bytes is not supported
+    with pytest.raises(ValueError, match=r"Unsupported annotation: <class 'bytes'>"):
+        _ = fn("f", bytes, b"err")
+
+
+def test_derive_required_properties_from_signature_basic():
+    def f(a: int, b: float, c: int = 1):
+        pass
+
+    result = custom_experiments.derive_required_properties_from_signature(
+        f, optional_idents={}
+    )
+    # a, b expected (no-domain), c skipped as optional
+    ids = {r.identifier for r in result}
+    assert ids == {"a", "b"}
+
+    # Check that missing annotation raises error
+    def f(a, b: float, c: int = 1):
+        pass
+
+    with pytest.raises(
+        ValueError, match=r"Unsupported annotation: <class 'inspect._empty'>"
+    ):
+        custom_experiments.derive_required_properties_from_signature(
+            f, optional_idents={}
+        )
+
+
+def test_get_parameterization_success_and_failure():
+    import inspect
+
+    from orchestrator.schema.property import ConstitutiveProperty
+
+    def g(x=7, y=9):
+        pass
+
+    sig = inspect.signature(g)
+    ps = [ConstitutiveProperty(identifier="x"), ConstitutiveProperty(identifier="y")]
+    paramz = custom_experiments.get_parameterization(ps, sig)
+    assert paramz["x"] == 7
+    assert paramz["y"] == 9
+
+    def g2(x):
+        pass
+
+    sig2 = inspect.signature(g2)
+    with pytest.raises(
+        ValueError, match=re.escape("Parameterization missing for: ['x']")
+    ):
+        custom_experiments.get_parameterization(
+            [ConstitutiveProperty(identifier="x")], sig2
+        )
+
+
+def test_derive_optional_properties_and_parameterization_basic_types_and_unsupported():
+    # covers int, float, bool, str, literal, and unsupported
+
+    def fn(
+        i: int = 1,
+        f: float = 2.0,
+        b: bool = False,
+        s: str = "abc",
+        lit: Literal["A", "B"] = "A",
+    ):
+        pass
+
+    optionals, _ = custom_experiments.derive_optional_properties_and_parameterization(
+        fn, []
+    )
+    types = {p.identifier: p.propertyDomain.variableType for p in optionals}
+    print(types)
+    assert types["i"] == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    assert types["f"] == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    assert types["b"] == VariableTypeEnum.BINARY_VARIABLE_TYPE
+    assert types["s"] == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
+    assert types["lit"] == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+
+    # bytes is not supported for inference - check fails
+    def fn(
+        i: int = 1,
+        f: float = 2.0,
+        b: bool = False,
+        s: str = "abc",
+        lit: Literal["A", "B"] = "A",
+        n: bytes = b"foo",
+    ):
+        pass
+
+    with pytest.raises(ValueError, match="Unsupported annotation: <class 'bytes'>"):
+        optionals, _ = (
+            custom_experiments.derive_optional_properties_and_parameterization(fn, [])
+        )
+
+    # i has no annotation - check fails
+    def fn(
+        i=1,
+        f: float = 2.0,
+        b: bool = False,
+        s: str = "abc",
+        lit: Literal["A", "B"] = "A",
+    ):
+        pass
+
+    with pytest.raises(
+        ValueError, match=r"Unsupported annotation: <class 'inspect._empty'>"
+    ):
+        optionals, _ = (
+            custom_experiments.derive_optional_properties_and_parameterization(fn, [])
+        )

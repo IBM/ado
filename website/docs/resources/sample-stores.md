@@ -34,7 +34,9 @@ To see the `discoveryspaces` using a given `samplestore` run
 ado show related samplestore $SAMPLE_STORE_IDENTIFIER
 ```
 
-> [!TIP] The greater the similarity between two `discoveryspace`s, the greater
+> [!TIP]
+>
+> The greater the similarity between two `discoveryspace`s, the greater
 > the chance they can share data. So it is usually beneficial to ensure that
 > such `discoveryspace`s use the same `samplestore`.
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
@@ -64,6 +66,39 @@ allocated automatically in the SQL db associated with the
 
 Running `ado create samplestore --new-sample-store` will create an empty
 SQLSampleStore in the current context.
+
+## The default samplestore
+
+`ado` provides a **default** `samplestore` (whose identifier is `default`) per
+project, removing the need to create one explicitly unless necessary. This
+`samplestore` is created **automatically** when it is first required.
+
+There are three ways to use the default `samplestore` - each will create it, if
+it doesn't already exist.
+
+1. **Referencing it in the space configuration** by setting the
+   `sampleStoreIdentifier` to `default` in the space YAML:
+
+   ```yaml
+   sampleStoreIdentifier: default
+   ```
+
+2. **Using the `--use-default-sample-store` flag** with the `ado create space`
+   command:
+
+   ```terminal
+   ado create space --use-default-sample-store
+   ```
+
+3. **Using the `--set` flag** to explicitly override the sample store
+   identifier:
+
+   ```terminal
+   ado create space --set sampleStoreIdentifier=default
+   ```
+
+These options are interchangeable and can be used depending on your workflow or
+preference.
 
 ### Copying data into a samplestore
 
@@ -189,9 +224,9 @@ You do not have to copy all the columns in a CSV or have any experiments.
 
 !!!info
 
-  Please note that
-  [standard deletion constraints](resources.md#deleting-resources) apply alongside
-  the considerations discussed in this section.
+      Please note that
+      [standard deletion constraints](resources.md#deleting-resources) apply alongside
+      the considerations discussed in this section.
 
 Deleting a sample store is a high-impact operation and should be performed with
 caution. When a sample store is deleted:

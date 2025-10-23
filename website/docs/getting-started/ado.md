@@ -88,7 +88,8 @@ The complete syntax of the `ado create` command is as follows:
 ```shell
 ado create RESOURCE_TYPE [--file | -f <FILE.yaml>] \
                          [--set <jsonpath=json-value>] \
-                         [--new-sample-store] [--dry-run]
+                         [--new-sample-store] \
+                         [--use-default-sample-store] [--dry-run]
 ```
 
 Where:
@@ -117,9 +118,13 @@ Where:
   is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
-  `ado create space --new-sample-store`, the optional `sampleStoreIdentifier`
-  contained in the `DiscoverySpaceConfiguration` will be disregarded. It is
-  ignored if `--set` or `--with-latest` are used.
+  `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
+  in the `DiscoverySpaceConfiguration` will be disregarded. It is ignored if
+  `--set` or `--with-latest` are used.
+- `--use-default-sample-store` uses the default sample store. Only available
+  when running `ado create space`. Alias for
+  `--set sampleStoreIdentifier=default`. It is ignored if --set, --with-latest,
+  or --new-sample-store are used.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
 

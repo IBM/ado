@@ -88,7 +88,7 @@ def show_entities_for_resources(
         typer.Option(
             help="The naming format to be used when displaying measured properties."
         ),
-    ] = AdoShowEntitiesSupportedPropertyFormats.OBSERVED.value,
+    ] = AdoShowEntitiesSupportedPropertyFormats.TARGET.value,
     output_format: Annotated[
         AdoShowEntitiesSupportedOutputFormats,
         typer.Option(help="The format in which to output the entities."),

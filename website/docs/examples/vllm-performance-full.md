@@ -172,13 +172,7 @@ Save the above as `vllm_discoveryspace.yaml`.
 Then, if you have an existing `samplestore`, run
 
 ```bash
-ado create space -f vllm_discoveryspace.yaml --set sampleStoreIdentifier=$SAMPLE_STORE_ID
-```
-
-otherwise create a new one:
-
-```bash
-ado create space -f vllm_discoveryspace.yaml --new-sample-store
+ado create space -f vllm_discoveryspace.yaml --use-default-sample-store
 ```
 
 Record the identifier of the created `discoveryspace` as it
@@ -197,9 +191,9 @@ of deployment creations.
 metadata:
   name: randomwalk-grouped-vllm-performance-full
 spaces:
-  - space-230d24-03b22d
+  - <Will be set via ado>
 actuatorConfigurationIdentifiers:
-  - actuatorconfiguration-vllm_performance-09fcdf30
+  - <Will be set via ado>
 operation:
   module:
     moduleClass: RandomWalk
@@ -224,7 +218,7 @@ Save the above as `random_walk.yaml`. Then execute the operation:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-ado create operation -f random_walk.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID" --set actuatorConfigurationIdentifier[0]=$ACTUATOR_CONFIGURATION_IDENTIFIER
+ado create operation -f random_walk.yaml --with-latest space --with-latest actuatorconfiguration
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -241,26 +235,13 @@ While the operation is running you can watch the deployment:
 oc get deployments --watch -n vllm-testing
 ```
 
-You can see the measurement requests as the operation runs
-by executing (in another terminal):
+As it runs a table of the results is updated
+live in the terminal as they come in.
+
+You can also get the table be executing (in another terminal)
 
 ```commandline
-ado show requests operation $OPERATION_ID
-```
-
-and the results (this outputs the entities in sampled order):
-
-```commandline
-ado show entities operation $OPERATION_ID
-```
-
-If the `operation` is running the $OPERATION_ID will have been output
-just before the sampling started.
-Assuming no other operation was started it will also be
-the last id output by
-
-```commandline
-ado get operations
+ado show entities operation --with-latest
 ```
 
 ### Check final results
@@ -269,7 +250,7 @@ When the output indicates that the experiment has finished, you
 can inspect the results of all operations run so far on the space with:
 
 ```commandline
-ado show entities space $DISCOVERY_SPACE_ID --output-format csv
+ado show entities space --with-latest --output-format csv
 ```
 
 > [!NOTE]

@@ -34,7 +34,7 @@ If you haven't already installed the ray_tune operator, run (assumes you are in
 `examples/ml-multi-cloud/` ):
 
 ```commandline
-pip install ../../plugins/operators/ray_tune
+pip install ado-ray-tune
 ```
 
 then executing
@@ -137,7 +137,7 @@ The complete `discoveryspace` for this example is given in
 `ml_multicloud_space_with_custom.yaml` To create it execute:
 
 ```commandline
-ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+ado create space -f ml_multicloud_space_with_custom.yaml --use-default-sample-store
 ```
 
 > [!IMPORTANT] If an experiment takes the output of another experiment as input
@@ -148,12 +148,8 @@ ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdent
 > **SpaceInconsistencyError**: MeasurementSpace does not contain an experiment
 > measuring an observed property required by another experiment in the space
 
-Note the created `discoveryspace` resource identifier printed by this command
-for the next section. You can use this identifier in the following command to
-see a description of the space (replacing `$DISCOVERY_SPACE_IDENTIFIER`):
-
 ```commandline
-ado describe space $DISCOVERY_SPACE_IDENTIFIER
+ado describe space --with-lastest
 ```
 
 This will output:
@@ -214,7 +210,7 @@ To run a `randomwalk` operation on the new space, execute ((replacing
 `$DISCOVERY_SPACE_IDENTIFIER` with the identifier of the space you created):
 
 ```commandline
-ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f randomwalk_ml_multicloud_operation.yaml --with-latest space
 ```
 
 This produces an output similar to that described in the
@@ -222,11 +218,10 @@ This produces an output similar to that described in the
 and will exit printing the operation identifier. However, in this case there is
 additional information related to the dependent experiment.
 
-When it completes, execute the `ado show entities operation` command to see the
-results produced:
+When it completes you can get a table of the points visited
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show entities operation --with-latest
 ```
 
 You will see a table similar to the following - note the extra column for the

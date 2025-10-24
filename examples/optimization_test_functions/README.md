@@ -41,7 +41,7 @@ If you haven't already installed the ray_tune operator, run (assumes you are in
 `examples/optimization-test-functions/` ):
 
 ```commandline
-pip install ../../plugins/operators/ray_tune
+pip install ado-ray-tune
 ```
 
 then executing
@@ -133,31 +133,14 @@ ado context local
 ### Create the discovery space
 
 The file "space.yaml" contains an example space describing the rosenbrock
-function in 3d, from [-10,10] in each dimension. To create the space execute
-
-Then:
+function in 3d, from [-10,10] in each dimension. To create the space execute:
 
 ```commandline
-ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+ado create space -f space.yaml --use-default-store
 ```
 
-where `$SAMPLE_STORE_IDENTIFIER` is the identifier of the
-[samplestore](/ado/resources/sample-stores/#creating-a-samplestore) you want to
-use to store the results.
-
-> [!NOTE]
->
-> This can be the same `samplestore` used in another example.
->
-> `samplestores` can store samples and measurement from multiple different
-> experiments and `discoveryspaces`.
-
-This will output a `discoveryspace` id you can use to run an optimization
-operation. In the following sections we will refer to this id as
-`$DISCOVERY_SPACE_IDENTIFIER`.
-
 Assuming you did not modify `space.yaml` running
-`ado describe space $DISCOVERY_SPACE_IDENTIFIER` will output (identifiers will
+`ado describe space --with-latest` will output (identifiers will
 be different):
 
 ```text
@@ -232,16 +215,12 @@ The file `operation_bayesopt.yaml` is an example of running
 via RayTune. To run execute the following:
 
 ```commandline
-ado create operation -f operation_bayesopt.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f operation_bayesopt.yaml --with-latest space
 ```
 
-replacing `$DISCOVERY_SPACE_IDENTIFIER` with the identifier obtained in the
-previous step.
-
 This will run the optimization for 40 steps. You will see a lot of information
-from RayTune on the progress of the optimization. At the end you will see output
-like the following containing the identifier of the operation. In this case it's
-`raytune-1.0.2.dev11+1c62218-bayesopt-b7f779`:
+from RayTune on the progress of the optimization, finishing with a description
+of the operation like below:
 
 ```yaml
 Space ID: space-3fbaad-c3a5f6
@@ -327,7 +306,7 @@ information on the best configuration found.
 To get the id of the `datacontainer` related to the `operation` use:
 
 ```commandline
-ado show related operation $OPERATION_IDENTIFIER
+ado show related operation --with-latest
 ```
 
 This will output something like:
@@ -384,14 +363,11 @@ where `function_value` was ~20.8.
 
 ### Configurations visited
 
-To see the configurations visited during the optimization, execute:
+To see the configurations visited during the optimization you just ran, execute:
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show entities operation --with-latest
 ```
-
-where `$OPERATION_IDENTIFIER` is the identifier of the operation you just ran.
-This will output a dataframe containing the results of that operation.
 
 ### Operation resource YAML
 

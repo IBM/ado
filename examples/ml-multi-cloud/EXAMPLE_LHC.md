@@ -42,7 +42,7 @@ If you haven't already installed the ray_tune operator, run (assumes you are in
 `examples/ml-multi-cloud/` ):
 
 ```commandline
-pip install ../../plugins/operators/ray_tune
+pip install ado-ray-tune
 ```
 
 then executing

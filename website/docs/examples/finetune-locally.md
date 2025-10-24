@@ -199,9 +199,7 @@ To create the Discovery Space:
 
    <!-- markdownlint-disable line-length -->
    ```yaml
-   # if you do not have a Sample Store we provide a command-line that will create one for you
-   sampleStoreIdentifier: Replace this with the identifier of your sample store
-
+   sampleStoreIdentifier: <will be added by ado>
    experiments:
      - experimentIdentifier: finetune_full_benchmark-v1.0.0
        actuatorIdentifier: SFTTrainer
@@ -234,20 +232,14 @@ To create the Discovery Space:
 
 2. Create the space:
 
-   - If you have an `samplestore` ID, run:
+If you do not have a `samplestore` then run
 
-     ```commandline
-     ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
-     ```
+  ```commandline
+  ado create space -f space.yaml --use-default-sample-store
+  ```
 
-   - If you do not have a `samplestore` then run
-
-     ```commandline
-     ado create space -f space.yaml --new-sample-store
-     ```
-
-   This will print a `discoveryspace` ID (e.g., `space-ea937f-831dba`). Make a
-   note of this ID, you'll need it in the next step.
+This will print a `discoveryspace` ID (e.g., `space-ea937f-831dba`). Make a
+note of this ID, you'll need it in the next step.
 
 ### Create a random walk `operation` to explore the space
 
@@ -255,10 +247,9 @@ To create the Discovery Space:
 
    ```yaml
    spaces:
-     - The identifier of the DiscoverySpace resource
+     - <will be set by ado>
    actuatorConfigurationIdentifiers:
-     - The identifier of the Actuator Configuration resource
-
+     - <will be set by ado>
    operation:
      module:
        operatorName: "random_walk"
@@ -270,13 +261,10 @@ To create the Discovery Space:
        samplerType: generator
    ```
 
-2. Replace the placeholders with your `discoveryspace` ID and
-   `actuatorconfiguration` ID and save it in a file with the name
-   `operation.yaml`
-3. Create the operation
+2. Create the operation
 
    ```commandline
-   ado create operation -f operation.yaml
+   ado create operation -f operation.yaml --with-latest space --with-latest actuatorconfiguration
    ```
 
 The operation will execute the measurements (i.e. apply the experiment
@@ -296,9 +284,11 @@ cached model weights and the cached data, making them faster to complete.
 After the operation completes, you can download the results of your
 measurements:
 
+<!-- markdownlint-disable line-length -->
 ```commandline
-ado show entities --output-format csv --property-format=target space $yourDiscoverySpaceID
+ado show entities --output-format csv --property-format=target space --with-latest space
 ```
+<!-- markdownlint-enable line-length -->
 
 The command will generate a CSV file. Open it to explore the data that your
 operation has collected!

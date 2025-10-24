@@ -407,22 +407,15 @@ experiment.
 
 2. Create the space:
 
-   - If you have an `samplestore` ID, run:
+Run:
 
-     <!-- markdownlint-disable-next-line code-block-style -->
-     ```commandline
-     ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
-     ```
+ <!-- markdownlint-disable-next-line code-block-style -->
+ ```commandline
+ ado create space -f space.yaml --use-default-sample-store
+ ```
 
-   - If you do not have a `samplestore` then run
-
-     <!-- markdownlint-disable-next-line code-block-style -->
-     ```commandline
-     ado create space -f space.yaml --new-sample-store
-     ```
-
-   This will print a `discoveryspace` ID (e.g., `space-ea937f-831dba`). Make a
-   note of this ID, you'll need it in the next step.
+This will print a `discoveryspace` ID (e.g., `space-ea937f-831dba`). Make a
+note of this ID, you'll need it in the next step.
 
 ### Create a random walk `operation` to explore the space
 

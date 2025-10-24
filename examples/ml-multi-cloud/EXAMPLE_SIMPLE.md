@@ -60,9 +60,6 @@ and it will report that a `samplestore` has been created:
 Success! Created sample store with identifier $SAMPLE_STORE_IDENTIFIER
 ```
 
-Note the `samplestore` resource identifier printed by this command for the next
-section.
-
 Also try `ado get samplestores` and you will see an entry for the one you just
 created
 
@@ -81,10 +78,8 @@ will create a `discoveryspace` to describe the space explored in
 Execute:
 
 ```commandline
-ado create space -f ml_multicloud_space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+ado create space -f ml_multicloud_space.yaml --with-latest samplestore
 ```
-
-where `$SAMPLE_STORE_IDENTIFIER` is the identifier you copied in last step.
 
 This will confirm the creation of the `discoveryspace` with:
 
@@ -95,11 +90,10 @@ Success! Created space with identifier: $DISCOVERY_SPACE_IDENTIFIER
 You can now describe the `discoveryspace` with:
 
 ```commandline
-ado describe space $DISCOVERY_SPACE_IDENTIFIER
+ado describe space --with-latest
 ```
 
-where $DISCOVERY_SPACE_IDENTIFIER is the identifier of the `discoveryspace`
-resource that was just created. This will output:
+This will output:
 
 ```commandline
 Identifier: space-65cf33-a8df39
@@ -165,7 +159,7 @@ To run the operation execute (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the
 identifier of the space you created):
 
 ```commandline
-ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f randomwalk_ml_multicloud_operation.yaml --with-latest space
 ```
 
 This will output a lot of information as it samples all the entities. Typically,
@@ -230,9 +224,6 @@ status:
 version: v1
 ```
 
-Note the value of the `identifier` field: in above it is
-`randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`
-
 > [!NOTE]
 >
 > The operation "reuses" existing measurements: this is an `ado` feature called
@@ -258,7 +249,7 @@ Note the value of the `identifier` field: in above it is
 The command
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show entities operation --with-latest
 ```
 
 displays the results of the operation i.e. the entities sampled and the
@@ -334,7 +325,7 @@ Here are a variety of commands you can try after executing the example above:
 
 ### Viewing entities
 
-There are multiple ways to few the entities related to a `discoveryspace`. Try:
+There are multiple ways to view the entities related to a `discoveryspace`. Try:
 
 ```commandline
 ado show entities space $DISCOVERY_SPACE_IDENTIFIER
@@ -350,6 +341,10 @@ ado show details space $DISCOVERY_SPACE_IDENTIFIER
 ```
 
 will give you a summary of what has been measured.
+
+> [!NOTE]
+> If you want to run these commands with the latest space created
+> use the `with-latest` flag as above
 
 ### Resource provenance
 

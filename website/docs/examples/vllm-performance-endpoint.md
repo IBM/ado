@@ -1,41 +1,54 @@
 # Testing the throughput of an inference endpoint
 
-> [!NOTE]
->
-> This example illustrates using the vllm-performance actuator to test the
-> throughput of an OpenAPI compatible inference endpoint
->
-<!-- markdownlint-disable-next-line no-blanks-blockquote -->
+<!-- markdownlint-disable MD046 -->
 
-> [!IMPORTANT]
->
-> **Prerequisites**
->
-> - An endpoint serving an LLM in an OpenAI API-compatible format
-> - The `ray_tune` operator with hyperopt installed
->
-> ```commandline
-> pip install ado-ray-tune
-> pip install hyperopt
-> ```
+!!! abstract "The scenario"
 
-## The scenario
+      **In this example, the _vllm_performance_ actuator is used to find
+    the maximum requests per second a server can handle while maintaining
+    stable maximum throughput.**
 
-A model deployed for inference will have a certain max stable throughput in
-terms of the requests it can serve per second.
-Sending more requests than this maximum will often lead to a drop in throughput.
-Hence, it can be useful to know what this maximum is so the maximum throughput
-is reliably maintained e.g. by limiting
-the max number of concurrent requests.
+    A model deployed for inference will have a certain max stable throughput in
+    terms of the requests it can serve per second.
+    Sending more requests than this maximum will often lead to a drop in throughput.
+    Hence, it can be useful to know what this maximum is so the maximum throughput
+    is reliably maintained e.g. by limiting
+    the max number of concurrent requests.
 
-**In this example, the _vllm_performance_ actuator is used to find
-the maximum requests per second a server can handle while maintaining
-stable maximum throughput.**
+    To explore this space, you will:
+    
+    - define an endpoint, model and range of requests per second to test
+    - use an optimizer to efficiently find the maximum requests per second
 
-To explore this space, you will:
+!!! important "Prerequisites"
 
-- define an endpoint, model and range of requests per second to test
-- use an optimizer to efficiently find the maximum requests per second
+    - An endpoint serving an LLM in an OpenAI API-compatible format
+    - The following python packages: 
+    ```commandline
+    pip install ado-ray-tune
+    pip install hyperopt
+    pip install ado-vllm-performance
+    ```
+
+!!! example "In a nutshell"
+
+    Get the files `vllm_discoveryspace.yaml` and `hyperopt.yaml` from [here]().
+
+    - `vllm_discoveryspace.yaml`: this file describes the endpoint, model
+     and request range to explore.
+    **You will need to edit the model and endpoint fields in this file 
+     to match your own.**
+    - `hyperopt.yaml`: this file contains the optimization parameters. 
+    You do not need to edit it
+
+    Then in a directory with these files execute,
+    ```bash
+    : # Create the space to explore
+    ado create space -f vllm_discoveryspace.yaml --use-default-sample-store
+    : # Explore it!
+    ado create operation -f hyperopt.yaml --with-latest space
+    ```
+<!-- markdownlint-enable MD046 -->
 
 ## Install the actuator
 
@@ -78,7 +91,6 @@ serving `gpt-oss-20b`:
 
 ```yaml
 # Example discovery space for vLLM performance
-sampleStoreIdentifier: <sample_store_id>
 entitySpace:
   - identifier: model
     propertyDomain:
@@ -98,20 +110,11 @@ experiments:
 ```
 
 Save the above as `vllm_discoveryspace.yaml`.
-Then, if you have an existing `samplestore`, run:
+Then create a space with the [default sample store](../resources/sample-stores.md#the-default-samplestore):
 
 ```bash
-ado create space -f vllm_discoveryspace.yaml --set sampleStoreIdentifier=$SAMPLE_STORE_ID
+ado create space -f vllm_discoveryspace.yaml --use-default-sample-store
 ```
-
-otherwise create a new one:
-
-```bash
-ado create space -f vllm_discoveryspace.yaml --new-sample-store
-```
-
-Record the identifier of the created `discoveryspace` as it
-will be used in next section.
 
 > [!NOTE]
 >
@@ -131,7 +134,7 @@ which lead to a `request_throughput` in the top 20 percentile:
 
 ```yaml
 spaces:
-  - space-ccf2bf-a50274 #substitute with your space id or override when running
+  - <will be filled by ado>
 operation:
   module:
     operatorName: "ray_tune"
@@ -147,14 +150,12 @@ operation:
         gamma: 0.25 #The top gamma fraction of measured values are considered "good"
 ```
 
-Save the above as `hyperopt.yaml`. Then create the operation:
+Save the above as `hyperopt.yaml`. Then create the operation
+(this command uses the last space you created):
 
 ```commandline
-ado create operation -f hyperopt.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID"
+ado create operation -f hyperopt.yaml --with-latest space
 ```
-
-where `$DISCOVERY_SPACE_ID` is the identifier of the `discoveryspace`
-you created in the previous step.
 
 > [!NOTE]
 >
@@ -168,23 +169,16 @@ You can see the measurement requests as the operation runs
 by executing (in another terminal):
 
 ```commandline
-ado show requests operation $OPERATION_ID
+ado show requests operation --with-latest 
 ```
 
 and the results (this outputs the entities in sampled order):
 
 ```commandline
-ado show entities operation $OPERATION_ID
+ado show entities operation --with-latest 
 ```
 
-If the `operation` is running the $OPERATION_ID will have been output
-just before the sampling started.
-Assuming no other operation was started it will also be
-the last id output by
-
-```commandline
-ado get operations
-```
+Instead of `--with-latest` you can also supply the operation id directly.
 
 ### Check final results
 
@@ -192,7 +186,7 @@ When the output indicates that the experiment has finished, you
 can inspect the results of all operations run so far on the space with:
 
 ```commandline
-ado show entities space $DISCOVERY_SPACE_ID --output-format csv
+ado show entities space --with-latest --output-format csv
 ```
 
 > [!NOTE]

@@ -23,6 +23,7 @@ from orchestrator.cli.resources.discovery_space.show_entities import (
     show_discovery_space_entities,
 )
 from orchestrator.cli.resources.operation.show_entities import show_operation_entities
+from orchestrator.cli.utils.generic.common import get_effective_resource_id
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
@@ -62,6 +63,15 @@ def show_entities_for_resources(
             show_default=False,
         ),
     ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Show entities for the latest identifier of the selected resource type. "
+            "Ignored if a resource identifier is also specified.",
+            show_default=False,
+        ),
+    ] = False,
     resource_configuration: Annotated[
         pathlib.Path | None,
         typer.Option(
@@ -131,11 +141,23 @@ def show_entities_for_resources(
 
 
 
+    # Show the entities that have been sampled in the latest space
+    ado show entities space --use-latest
+
+
+
     # Show the entities measured in an operation, one row per entity
 
     ado show entities operation <operation-id> --property-format target
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    if use_latest:
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            ado_configuration=ado_configuration,
+        )
 
     if not (resource_id or resource_configuration) or (
         resource_id and resource_configuration

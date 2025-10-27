@@ -181,6 +181,13 @@ def value_in_configuration_replaced_with_latest_identifier_for_resource(
     )
 
 
+def using_latest_identifier_for_resource(
+    resource_kind: CoreResourceKinds, resource_identifier: str
+):
+    latest_resource_human_readable_name = resource_kinds_to_human[resource_kind]
+    return f"{INFO}Using {latest_resource_human_readable_name} {magenta(resource_identifier)}."
+
+
 # Styles
 def bold(input: str) -> str:
     return f"[b]{input}[/b]"

@@ -109,21 +109,21 @@ Where:
   `ado create samplestore --new-sample-store`.
 - `--set` allows overriding fields in the provided resource configuration. It
   supports using JSONPath syntax. See the examples section for more information.
-- `--with-latest` allows reusing the previous identifier of a certain resource
+- `--use-latest` allows reusing the previous identifier of a certain resource
   kind. It is only supported for spaces and operations. The latest identifiers
   are updated every time an `ado create` command is successful. The stored
   identifiers are not per-context, meaning that, for example running
   `ado create samplestore`, changing context, and running
-  `ado create --with-latest samplestore` will raise an error. Ignored if `--set`
+  `ado create --use-latest samplestore` will raise an error. Ignored if `--set`
   is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
   in the `DiscoverySpaceConfiguration` will be disregarded. It is ignored if
-  `--set` or `--with-latest` are used.
+  `--set` or `--use-latest` are used.
 - `--use-default-sample-store` uses the default sample store. Only available
   when running `ado create space`. Alias for
-  `--set sampleStoreIdentifier=default`. It is ignored if --set, --with-latest,
+  `--set sampleStoreIdentifier=default`. It is ignored if --set, --use-latest,
   or --new-sample-store are used.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
@@ -173,7 +173,7 @@ ado create space -f ds.yaml --set "sampleStoreIdentifier=abcdef"
 ##### Create a space reusing the latest sample store identifier
 
 ```shell
-ado create space -f ds.yaml --with-latest samplestore
+ado create space -f ds.yaml --use-latest samplestore
 ```
 
 ##### Create a space renaming a property identifier in the space

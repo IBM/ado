@@ -13,6 +13,8 @@ from orchestrator.cli.models.types import (
     AdoShowResultsSupportedResourceTypes,
 )
 from orchestrator.cli.resources.operation.show_results import show_operation_results
+from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.output.prints import ERROR, console_print
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
@@ -30,13 +32,21 @@ def show_results_for_resources(
         ),
     ],
     resource_id: Annotated[
-        str,
+        str | None,
         typer.Argument(
-            ...,
             help="The id of the resource to show the result timeseries for.",
             show_default=False,
         ),
-    ],
+    ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Show the timeseries of results for the latest identifier of the selected resource type. "
+            "Ignored if a resource identifier is also specified.",
+            show_default=False,
+        ),
+    ] = False,
     output_format: Annotated[
         AdoShowResultsSupportedOutputFormats,
         typer.Option(
@@ -70,11 +80,32 @@ def show_results_for_resources(
 
 
 
+    # Show the timeseries of results for the latest operation
+
+    ado show results operation --use-latest
+
+
+
     # Show the timeseries of results for an operation and hide the result uid
 
     ado show results operation <operation-id> --hide uid
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    if not resource_id and not use_latest:
+        console_print(
+            f"{ERROR}You must specify either a resource id or the --use-latest flag",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    if use_latest:
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            ado_configuration=ado_configuration,
+        )
+
     parameters = AdoShowResultsCommandParameters(
         ado_configuration=ado_configuration,
         hide_fields=hide_fields,

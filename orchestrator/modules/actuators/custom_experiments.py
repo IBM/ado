@@ -14,7 +14,6 @@ import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
-    ActuatorModuleConf,
     DeprecatedExperimentError,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
@@ -362,9 +361,9 @@ def custom_experiment(
         wrapper._original_func = func
         wrapper._is_custom_experiment = True
 
-        # Create an ActuatorModuleConf instance describing where the function is
-        metadata["module"] = ActuatorModuleConf(
-            moduleType=ModuleTypeEnum.ACTUATOR,
+        # Create an ExperimentModuleConf instance describing where the function is
+        metadata["module"] = ExperimentModuleConf(
+            moduleType=ModuleTypeEnum.EXPERIMENT,
             moduleName=func.__module__,
             moduleFunction=func.__name__,
         )

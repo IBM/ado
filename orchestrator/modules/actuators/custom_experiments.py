@@ -56,7 +56,9 @@ class ExperimentModuleConf(ModuleConf):
     moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.EXPERIMENT)
 
 
-def _infer_domain_and_property(identifier, annotation, default):
+def _infer_domain_and_property(
+    identifier: str, annotation: type, default: typing.Any
+) -> ConstitutiveProperty:
     """This function infers the domain of a parameter from its type and default value.
     Parameters:
     - identifier: The name of the parameter
@@ -104,7 +106,9 @@ def _infer_domain_and_property(identifier, annotation, default):
     return ConstitutiveProperty(identifier=identifier, propertyDomain=domain)
 
 
-def derive_required_properties_from_signature(func, optional_idents):
+def derive_required_properties_from_signature(
+    func: typing.Callable, optional_idents: list[str]
+) -> list[ConstitutiveProperty]:
     """This function derives the required properties from the function signature.
 
     The required properties are the positional parameters of the function that are not in optional_idents.

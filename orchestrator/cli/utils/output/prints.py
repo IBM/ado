@@ -154,7 +154,7 @@ def latest_identifier_for_resource_not_found(resource_kind: CoreResourceKinds) -
     resource_cli_name = resource_kinds_to_cli[resource_kind]
     return (
         f"{ERROR}Unable to find the identifier of the latest {resource_human_readable_name}.\n\t"
-        f"This means that the {cyan(f'--with-latest {resource_kinds_to_cli[resource_kind]}')} flag cannot be used.\n"
+        f"This means that the {cyan(f'--use-latest {resource_kinds_to_cli[resource_kind]}')} flag cannot be used.\n"
         f"{HINT}Try creating a new {resource_human_readable_name} with {cyan(f'ado create {resource_cli_name}')}"
     )
 

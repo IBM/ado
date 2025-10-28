@@ -266,7 +266,7 @@ def check_parameters_valid(_optional_properties, _required_properties, func):
 
 def custom_experiment(
     required_properties: list[ConstitutiveProperty | ObservedProperty],
-    output_properties: list[str],
+    output_property_identifiers: list[str],
     optional_properties: list[ConstitutiveProperty] | None = None,
     parameterization: dict[str, typing.Any] | None = None,
     metadata: dict[str, typing.Any] | None = None,
@@ -276,7 +276,7 @@ def custom_experiment(
 
     Args:
         required_properties: List of ConstitutiveProperty instances that are required input values.
-        output_properties: List of strings identifying the output property names.
+        output_property_identifiers: List of strings identifying the output property names.
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
         parameterization: Tuple of parameters for default parameterization.
         metadata: Metadata for the experiment
@@ -372,7 +372,8 @@ def custom_experiment(
             requiredProperties=tuple(_required_properties),
             optionalProperties=tuple(_optional_properties),
             targetProperties=[
-                AbstractPropertyDescriptor(identifier=p) for p in output_properties
+                AbstractPropertyDescriptor(identifier=p)
+                for p in output_property_identifiers
             ],
             defaultParameterization=tuple(
                 [
@@ -462,7 +463,6 @@ def load_custom_experiments_from_entry_points():
 
     except ImportError as error:
         logging.getLogger("load_custom_experiments").warning(error)
-        # importlib.metadata not available (Python < 3.8)
 
 
 def get_custom_experiments_catalog() -> (
@@ -566,7 +566,7 @@ class CustomExperiments(ActuatorBase):
                     f"Experiment: {experiment}"
                 )
             else:
-                self.log.warning(
+                self.log.error(
                     f"Experiment in custom_experiment catalog is missing required metadata (either experiment_function or module): {experiment}"
                 )
 

@@ -50,8 +50,9 @@ parameter of the decorator
 from typing import Dict, Any
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
 
+
 @custom_experiment(
-    output_properties=["density"]
+    output_property_identifiers=["density"]
 )
 def calculate_density(mass: float, volume: float) -> Dict[str, Any]:
     density_value = mass / volume if volume else None
@@ -204,7 +205,7 @@ from orchestrator.schema.property import ConstitutiveProperty
 mass = ConstitutiveProperty(
     identifier="mass",
     propertyDomain=PropertyDomain(
-        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE, 
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
         domainRange=[1, 100]
     )
 )
@@ -216,9 +217,10 @@ volume = ConstitutiveProperty(
     )
 )
 
+
 @custom_experiment(
     required_properties=[mass, volume],
-    output_properties=["density"]
+    output_property_identifiers=["density"]
 )
 def calculate_density(mass, volume) -> Dict[str, Any]:
     density_value = mass / volume if volume else None

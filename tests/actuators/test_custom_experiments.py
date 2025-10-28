@@ -2,17 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 import re
+from typing import Literal
 
 import pytest
 
 from orchestrator.modules.actuators import custom_experiments
 from orchestrator.schema.domain import VariableTypeEnum
-
-# Used in test_literal_domain
-try:
-    from typing import Literal
-except ImportError:
-    from typing import Literal
 
 
 def test_infer_domain_and_property_type():

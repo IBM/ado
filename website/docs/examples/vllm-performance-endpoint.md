@@ -23,30 +23,30 @@
 !!! important "Prerequisites"
 
     - An endpoint serving an LLM in an OpenAI API-compatible format
-    - The following python packages: 
+    - Install the following python packages: 
     ```commandline
-    pip install ado-ray-tune
     pip install hyperopt
+    pip install ado-ray-tune
     pip install ado-vllm-performance
     ```
 
 !!! example "In a nutshell"
 
-    Get the files `vllm_discoveryspace.yaml` and `hyperopt.yaml` from [here]().
+    Get the files `vllm_request_rate_space.yaml` and `hyperopt.yaml` from [here]().
 
-    - `vllm_discoveryspace.yaml`: this file describes the endpoint, model
-     and request range to explore.
-    **You will need to edit the model and endpoint fields in this file 
+    - `vllm_request_rate_space.yaml`: this file defines the _endpoint_, _model_
+     and _request_ _range_ to explore.
+        - **You must edit the _model_ and _endpoint_ fields in this file 
      to match your own.**
     - `hyperopt.yaml`: this file contains the optimization parameters. 
     You do not need to edit it
 
-    Then in a directory with these files execute,
+    Then, in a directory with these files, execute,
     ```bash
-    : # Create the space to explore
-    ado create space -f vllm_discoveryspace.yaml --use-default-sample-store
-    : # Explore it!
-    ado create operation -f hyperopt.yaml --with-latest space
+    : # Define the set of request rates to explore
+    ado create space -f vllm_request_rate_space.yaml
+    : # Explore them!
+    ado create operation -f hyperopt.yaml --use-latest space
     ```
 <!-- markdownlint-enable MD046 -->
 
@@ -154,7 +154,7 @@ Save the above as `hyperopt.yaml`. Then create the operation
 (this command uses the last space you created):
 
 ```commandline
-ado create operation -f hyperopt.yaml --with-latest space
+ado create operation -f hyperopt.yaml --use-latest space
 ```
 
 > [!NOTE]
@@ -169,16 +169,16 @@ You can see the measurement requests as the operation runs
 by executing (in another terminal):
 
 ```commandline
-ado show requests operation --with-latest 
+ado show requests operation --use-latest 
 ```
 
 and the results (this outputs the entities in sampled order):
 
 ```commandline
-ado show entities operation --with-latest 
+ado show entities operation --use-latest 
 ```
 
-Instead of `--with-latest` you can also supply the operation id directly.
+Instead of `--use-latest` you can also supply the operation id directly.
 
 ### Check final results
 
@@ -186,7 +186,7 @@ When the output indicates that the experiment has finished, you
 can inspect the results of all operations run so far on the space with:
 
 ```commandline
-ado show entities space --with-latest --output-format csv
+ado show entities space --use-latest --output-format csv
 ```
 
 > [!NOTE]

@@ -40,6 +40,9 @@ def create_test_environment(
     reuse_pvc: bool = True,
     pvc_name: str = "vllm-support",
     namespace: str = "vllm-testing",
+    enforce_eager: bool = False,
+    skip_tokenizer_init: bool = False,
+    io_processor_plugin: str | None = None
 ) -> None:
     """
     Create test deployment
@@ -113,15 +116,13 @@ def create_test_environment(
         n_gpus=n_gpus,
         n_cpus=n_cpus,
         memory=memory,
-        max_batch_tokens=max_batch_tokens,
-        gpu_memory_utilization=gpu_memory_utilization,
-        dtype=dtype,
-        cpu_offload=cpu_offload,
-        max_num_seq=max_num_seq,
         template=deployment_template,
         claim_name=pvc_name,
         hf_token=hf_token,
         reuse=reuse_deployment,
+        enforce_eager=enforce_eager,
+        skip_tokenizer_init=skip_tokenizer_init,
+        io_processor_plugin=io_processor_plugin
     )
     logger.debug("deployment created")
     c_manager.wait_deployment_ready(k8_name=k8_name)

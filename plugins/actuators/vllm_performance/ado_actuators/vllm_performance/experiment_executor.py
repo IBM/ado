@@ -144,6 +144,9 @@ def _create_environment(
                         reuse_deployment=False,
                         pvc_name=actuator.pvc_template,
                         namespace=actuator.namespace,
+                        skip_tokenizer_init=values.get("skip_tokenizer_init"),
+                        enforce_eager=values.get("enforce_eager"),
+                        io_processor_plugin=values.get("io_processor_plugin")
                     )
                     # Update manager
                     env_manager.done_creating.remote(definition=definition)

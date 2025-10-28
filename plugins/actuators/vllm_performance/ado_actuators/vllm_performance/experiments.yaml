@@ -120,6 +120,24 @@ performance_testing-full:
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
+    - identifier: 'skip_tokenizer_init'
+      metadata:
+        description: "(deployment) skip tokenizer intialization"
+      propertyDomain:
+        variableType: BINARY_VARIABLE_TYPE 
+        values: [True, False]
+    - identifier: 'enforce_eager'
+      metadata:
+        description: "(deployment) enforce pytorch eager mode"
+      propertyDomain:
+        variableType: BINARY_VARIABLE_TYPE 
+        values: [True, False]
+    - identifier: 'io_processor_plugin'
+      metadata:
+        description: 'IO Pocessor plugin to load for the model'
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: [ None, "terratorch_segmentation" ]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -167,6 +185,15 @@ performance_testing-full:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'skip_tokenizer_init'
+      value: False
+    - property:
+        identifier: 'enforce_eager'
+      value: False
+    - property:
+        identifier: 'io_processor_plugin'
+      value: None
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -522,6 +549,24 @@ performance_testing-geospatial-full:
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
+    - identifier: 'skip_tokenizer_init'
+      metadata:
+        description: "(deployment) skip tokenizer intialization"
+      propertyDomain:
+        variableType: BINARY_VARIABLE_TYPE 
+        values: [True, False]
+    - identifier: 'enforce_eager'
+      metadata:
+        description: "(deployment) enforce pytorch eager mode"
+      propertyDomain:
+        variableType: BINARY_VARIABLE_TYPE 
+        values: [True, False]
+    - identifier: 'io_processor_plugin'
+      metadata:
+        description: 'IO Pocessor plugin to load for the model'
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: [ None, "terratorch_segmentation" ]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -564,8 +609,14 @@ performance_testing-geospatial-full:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
     - property:
-        identifier: 'max_batch_tokens'
-      value: 16384
+        identifier: 'skip_tokenizer_init'
+      value: True
+    - property:
+        identifier: 'enforce_eager'
+      value: True
+    - property:
+        identifier: 'io_processor_plugin'
+      value: "terratorch_segmentation"
   # measurements
   targetProperties:
     - identifier: "duration"

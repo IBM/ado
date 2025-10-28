@@ -176,29 +176,29 @@ def execute_geospatial_benchmark(
     """
     from importlib import resources
 
-    data_set_path = resources.path(
+    with resources.path(
         "ado_actuators.vllm_performance",
         "geospatial_valencia.jsonl",
-    )
-    return execute_benchmark(
-        base_url=base_url,
-        backend="io-processor-plugin",
-        model=model,
-        data_set="custom",
-        interpreter=interpreter,
-        num_prompts=num_prompts,
-        request_rate=request_rate,
-        max_concurrency=max_concurrency,
-        hf_token=hf_token,
-        benchmark_retries=benchmark_retries,
-        retries_timeout=retries_timeout,
-        burstiness=burstiness,
-        custom_args={
-            "--dataset-path": data_set_path,
-            "--endpoint": "/pooling",
-            "--skip-tokenizer-init": True,
-        },
-    )
+    ) as data_set_path:
+        return execute_benchmark(
+            base_url=base_url,
+            backend="io-processor-plugin",
+            model=model,
+            data_set="custom",
+            interpreter=interpreter,
+            num_prompts=num_prompts,
+            request_rate=request_rate,
+            max_concurrency=max_concurrency,
+            hf_token=hf_token,
+            benchmark_retries=benchmark_retries,
+            retries_timeout=retries_timeout,
+            burstiness=burstiness,
+            custom_args={
+                "--dataset-path": data_set_path,
+                "--endpoint": "/pooling",
+                "--skip-tokenizer-init": True,
+            },
+        )
 
 
 if __name__ == "__main__":

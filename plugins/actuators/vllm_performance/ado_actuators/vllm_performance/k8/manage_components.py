@@ -231,6 +231,9 @@ class ComponentsManager:
         claim_name: str | None = None,
         hf_token: str | None = None,
         reuse: bool = False,
+        enforce_eager: bool = False,
+        skip_tokenizer_init: bool = False,
+        io_processor_plugin: str | None = None
     ) -> None:
         """
         create deployment for model
@@ -293,6 +296,9 @@ class ComponentsManager:
                     template=template,
                     claim_name=claim_name,
                     hf_token=hf_token,
+                    enforce_eager=enforce_eager,
+                    skip_tokenizer_init=skip_tokenizer_init,
+                    io_processor_plugin=io_processor_plugin,
                 ),
             )
         except ApiException as e:

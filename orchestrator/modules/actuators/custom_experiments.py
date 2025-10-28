@@ -18,7 +18,11 @@ from orchestrator.modules.actuators.base import (
     DeprecatedExperimentError,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import ModuleTypeEnum, load_module_class_or_function
+from orchestrator.modules.module import (
+    ModuleConf,
+    ModuleTypeEnum,
+    load_module_class_or_function,
+)
 from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -46,6 +50,10 @@ configure_logging()
 _custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
     catalogIdentifier="CustomExperiments"
 )
+
+
+class ExperimentModuleConf(ModuleConf):
+    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.EXPERIMENT)
 
 
 def _infer_domain_and_property(identifier, annotation, default):
@@ -543,7 +551,7 @@ class CustomExperiments(ActuatorBase):
 
             function = None
             if module := experiment.metadata.get("module"):
-                experiment_module_conf = ActuatorModuleConf.model_validate(module)
+                experiment_module_conf = ExperimentModuleConf.model_validate(module)
                 function = (
                     load_module_class_or_function(experiment_module_conf)
                     if experiment_module_conf

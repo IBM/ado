@@ -1,7 +1,7 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 > [!NOTE]
 >
-> For a full worked example, see
+> For a fully working example, see
 > [search a space with an optimizer](../examples/best-configuration-search.md)
 
 `ado` enables you to use Python functions as experiments by registering
@@ -31,9 +31,9 @@ my_experiment = "my_custom_package.experiments"
 
 >[!NOTE]
 >
-> Note: You can have more than one decorated function in a module,
-> and register more than one entry-point i.e. have functions
-> in different modules.
+> 1. You can have more than one decorated function in a module.
+> 2. If you want to have functions in different modules you
+> need to register each module as an entrypoint.
 
 ## Decorating your custom experiment function
 
@@ -43,7 +43,7 @@ In the simplest case:
 
 - type the parameters (using python `typing`)
 - return the output in a dictionary of key value pairs
-- define the keys of these dictionary in the `output_properties`
+- define the keys of this dictionary in the `output_property_identifiers`
 parameter of the decorator
 
 ```python
@@ -190,8 +190,8 @@ Defining the domain explicitly enables:
 - Better input validation when creating `spaces`
 - Automated construction of relevant discovery spaces (via `ado template`)
 - Control of what are considered required and optional properties
-- Finer grained control of the domain e.g. you can have a float
-parameter but make the domain discrete
+- Finer grained control of the domain (e.g. you can have a float
+parameter but make the domain discrete)
 
 In the following example, we explicitly indicate that the mass and volume parameters
 of our `calculate_density` function are  positive numbers.
@@ -230,7 +230,8 @@ def calculate_density(mass, volume) -> Dict[str, Any]:
 > [!NOTE]
 >
 > Every non-keyword parameter in your python function is **required**.
-> However you can make any keyword parameter also required
+> However, you can make any keyword parameter required by adding it to
+> required_properties parameter of the decorator
 
 ### Defining the domains of optional properties
 
@@ -261,7 +262,7 @@ round_result = ConstitutiveProperty(
     required_properties=[mass, volume],
     #round_result will get its default value from the keyword arg
     optional_properties=[round_result], 
-    output_properties=["density"],
+    output_property_identifiers=["density"],
     metadata={"description": "Calculates density from mass and volume"}
 )
 def calculate_density(mass, volume, round_result: bool = False):

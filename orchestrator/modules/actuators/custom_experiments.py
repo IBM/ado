@@ -39,7 +39,7 @@ from orchestrator.schema.property import (
 from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.schema.result import ValidMeasurementResult
+from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.logging import configure_logging
 
@@ -405,13 +405,20 @@ def load_custom_experiments_from_catalog_extensions(identifier):
     import pkgutil
     from pathlib import Path
 
-    import ado_actuators as plugins
     import yaml
 
     from orchestrator.modules.actuators.catalog import ActuatorCatalogExtension
     from orchestrator.modules.actuators.registry import (
         CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME,
     )
+
+    try:
+        import ado_actuators as plugins
+    except ImportError:
+        logging.getLogger("custom_experiments").info(
+            "ado_actuators namespace package has not been created yet"
+        )
+        return
 
     logger = logging.getLogger("custom_experiments")
 
@@ -502,15 +509,23 @@ async def custom_experiment_wrapper(
         # Inspect function to see if it has a keyword parameter "parameters"
         func_signature = inspect.signature(function)
         func_param_names = set(func_signature.parameters.keys())
-        if "parameters" in func_param_names:
-            values = function(entity, target_experiment, parameters=parameters)
-        else:
-            values = function(entity, target_experiment)
+        try:
+            if "parameters" in func_param_names:
+                values = function(entity, target_experiment, parameters=parameters)
+            else:
+                values = function(entity, target_experiment)
 
-        # Record the results in the entity
-        if len(values) > 0:
-            measurement_result = ValidMeasurementResult(
-                entityIdentifier=entity.identifier, measurements=values
+            # Record the results in the entity
+            if len(values) > 0:
+                measurement_result = ValidMeasurementResult(
+                    entityIdentifier=entity.identifier, measurements=values
+                )
+                measurement_results.append(measurement_result)
+        except Exception as error:
+            measurement_result = InvalidMeasurementResult(
+                entityIdentifier=entity.identifier,
+                experimentReference=target_experiment.reference,
+                reason=f"Unexpected exception: {error}",
             )
             measurement_results.append(measurement_result)
 

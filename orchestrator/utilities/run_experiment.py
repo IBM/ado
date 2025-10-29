@@ -84,13 +84,23 @@ def local_execution_closure(
                 queue=queue, params=config
             )
         actuator = actuators[experiment.actuatorIdentifier]
-        # Submit the measurement request asynchronously.
-        actuator.submit.remote(
-            entities=[entity],
-            experimentReference=experiment.reference,
-            requesterid="run_experiment",
-            requestIndex=0,
-        )
+        # Submit the measurement request asynchronously, handle errors gracefully.
+        try:
+            actuator.submit.remote(
+                entities=[entity],
+                experimentReference=experiment.reference,
+                requesterid="run_experiment",
+                requestIndex=0,
+            )
+        except Exception as e:
+            print(
+                f"[ERROR] Failed to submit measurement request to actuator '{experiment.actuatorIdentifier}': {e}"
+            )
+            import traceback
+
+            traceback.print_exc()
+            # Either skip, or return None, or propagate. Let's return None.
+            return None
         return queue.get()
 
     return execute_local
@@ -241,8 +251,13 @@ def run(
         if valid:
             print(f"Executing: {reference.experimentIdentifier}")
             request = execute(reference, entity)
-            print("Result:")
-            print(f"{request.series_representation(output_format='target')}\n")
+            if request is None:
+                print(
+                    "Measurement request failed unexpectedly. Skipping this experiment."
+                )
+            else:
+                print("Result:")
+                print(f"{request.series_representation(output_format='target')}\n")
         else:
             print("Entity is not valid")
 

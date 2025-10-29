@@ -553,9 +553,9 @@ Where:
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
-- `--use-latest` will use the identifier of the latest resource of RESOURCE_TYPE
-  in the command. It requires having created a resource of RESOURCE_TYPE with
-  `ado create`. It is ignored if a RESOURCE_ID is provided.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -596,9 +596,9 @@ Where:
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
-- `--use-latest` will use the identifier of the latest resource of RESOURCE_TYPE
-  in the command. It requires having created a resource of RESOURCE_TYPE with
-  `ado create`. It is ignored if a RESOURCE_ID is provided.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   enables showing entities that match the space defined in the configuration
   file. **NOTE**: using this flag forces `--include matching`.
@@ -673,8 +673,8 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 ```
 <!-- markdownlint-enable line-length -->
 
-- `--use-latest` will use the identifier of the latest operation in the command.
-  It requires having created an operation with `ado create`. It is ignored if a
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation created locally. It is not context aware. It is ignored if a
   RESOURCE_ID is provided.
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
@@ -712,8 +712,8 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 ```
 <!-- markdownlint-enable line-length -->
 
-- `--use-latest` will use the identifier of the latest operation in the command.
-  It requires having created an operation with `ado create`. It is ignored if a
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation created locally. It is not context aware. It is ignored if a
   RESOURCE_ID is provided.
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
@@ -753,9 +753,9 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
-- `--use-latest` will use the identifier of the latest resource of RESOURCE_TYPE
-  in the command. It requires having created a resource of RESOURCE_TYPE with
-  `ado create`.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -788,8 +788,8 @@ Where:
 
 - `RESOURCE_TYPE` is always _space_
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
-- `--use-latest` will add the identifier of the latest space to the
-  RESOURCE_IDS. It requires having created a space with `ado create`.
+- `--use-latest` will add the identifier of the latest (i.e. most recent) space
+  created locally to the RESOURCE_IDS. It is not context aware.
 - By using (optionally multiple times) the `--query` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the

@@ -149,7 +149,7 @@ use to store the results.
 >
 > This can be the same `samplestore` used in another example.
 >
-> `samplestores` can store samples and measurement from multiple different
+> `samplestores` can store samples and measurements from multiple different
 > experiments and `discoveryspaces`.
 
 This will output a `discoveryspace` id you can use to run an optimization
@@ -222,7 +222,7 @@ ado get spaces
 ```
 
 This will output a list of the spaces created. If this is the first time you
-have are following this example it will contain one entry, the identifier of the
+are following this example it will contain one entry, the identifier of the
 space you just created above.
 
 ### Run an optimization
@@ -491,7 +491,7 @@ to find out more.
   can set to change what they do. When experiment is parameterized it will have
   a different id including the parameterization to differentiate it from the
   base experiment.
-- **custom experiments**: You can add your own python functions as experiments
+- **custom experiments**: You can add your own Python functions as experiments
   using `ado`'s custom experiments feature.
 - **continuous dimensions**: `ado` supports `discoveryspaces` with continuous
   dimensions - however in this case memoization is unlikely to provide benefit

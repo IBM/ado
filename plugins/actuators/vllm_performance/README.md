@@ -13,7 +13,7 @@ cluster to serve
 [IBM Granite-3.3-8b](https://huggingface.co/ibm-granite/granite-3.3-8b-instruct)
 and runs an experiment that utilises the
 [vLLM serving benchmark](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html).
-The actuator is called `vllm_performance` and features two experiments:
+The the actuator is named `vllm_performance` and features two experiments:
 `performance-testing-full` and `performance-testing-endpoint`.
 
 # Getting Started
@@ -44,7 +44,7 @@ After running the exercise, please feel free to
 
 > [!NOTE]
 >
-> These pre-requisites must be fulfilled before you start with this actuator
+> These prerequisites must be fulfilled before you start with this actuator
 >
 > 1. Access to an OpenShift cluster with at least 1 node with 1 available
 >     NVIDIA GPU. You will need access to a namespace with permissions for
@@ -96,7 +96,7 @@ accepted as valid for the input properties.
 
 ### Configuring the actuator
 
-Before using the vLLM actuator to execute experiments, you will need to
+Before using the vLLM actuator to execute experiments, you must
 configure its parameters. First, get the template for the configuration:
 
 ```commandline
@@ -318,7 +318,7 @@ its measured properties
 (`performance-testing-output_throughput`,`performance-testing-total_token_throughput`,`performance-testing-mean_ttft_ms`,
 etc.)
 
-Congratulations! you have successfully executed the vLLM benchmark on a vLLM
+Congratulations! You have successfully executed the vLLM benchmark on a vLLM
 workload configuration using `ado`!
 
 # Exploring Further
@@ -361,8 +361,8 @@ partially inferred from the configuration space and partially from the context
 ## The Actuator Package: Key Files
 
 The actuator package is under `ado_actuators/vllm_performance`. Note all
-actuator packages must be under a directory called `ado_actuators` as this is
-the name of package that contains all `ado` plugins.
+actuator packages should be placed under a directory called `ado_actuators` as
+this is the name of package that contains all `ado` plugins.
 
 The key files are:
 
@@ -384,7 +384,7 @@ The key files are:
 
 ### Customising Actuator Configurations
 
-Actuator is configured using
+The actuator is configured using
 [VLLMPerformanceTestParameters class](ado_actuators/vllm_performance/actuator_parameters.py)
 
 You can customise `deployment_template`, `service_template` and `pvc_template`
@@ -434,10 +434,10 @@ the location to update will be:
 ### Notes on the Random walk operation
 
 VLLM testing is using external environment (deployment + service) to run tests.
-Creation of such environment is expensive. To speed up experiments execution it
-is recommended to used group samplers for running VLLM testing. This allows to
-create an environment once and use it for all experiments that can be used for
-it. In this case the group definition looks as follows:
+Creating such an environment is resource-intensive. To speed up experiments
+execution it is recommended to use group samplers for running VLLM testing. This
+allows to create an environment once and use it for all experiments that can be
+used for it. In this case the group definition looks as follows:
 
 ```yaml
 grouping:

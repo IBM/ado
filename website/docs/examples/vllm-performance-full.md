@@ -14,10 +14,10 @@
 
 ## The scenario
 
-When deploying vLLM, you need to choose values for parameters like GPU type,
+When deploying vLLM, you must choose values for parameters like GPU type,
 batch size, and memory limits.
 These choices directly affect performance, cost, and scalability.
-To find the best configuration for your workload, whether you're optimizing for
+To find the best configuration for your workload, whether you are optimizing for
 latency, throughput, or cost—you need to explore the deployment parameter space.
 
 In this example,
@@ -101,7 +101,7 @@ Then save this configuration as an `actuatorconfiguration` resource:
 ado create actuatorconfiguration -f $CONFIG_FILE
 ```
 
-Record the identifier of the created `actuatorconfiguration` as it
+Make a note of the identifier of the created `actuatorconfiguration` as it
 will be used later.
 
 > [!TIP]
@@ -181,7 +181,7 @@ otherwise create a new one:
 ado create space -f vllm_discoveryspace.yaml --new-sample-store
 ```
 
-Record the identifier of the created `discoveryspace` as it
+Make a note of the identifier of the created `discoveryspace` as it
 will be used in next section.
 
 ## Explore the space with random_walk
@@ -190,7 +190,7 @@ Next we'll scan this space sequentially using a `grouped` sampler
 to increase efficiency.
 The `grouped` sampler ensures we explore all the different
 benchmark configurations for a given vLLM deployment before
-creating a new deployment - minimising the need the number
+creating a new deployment - minimizing the number
 of deployment creations.
 
 ```yaml
@@ -234,7 +234,7 @@ the identifier of the `actuatorconfiguration` created earlier.
 
 ### Monitor the optimization
 
-While the operation is running you can watch the deployment:
+While the operation is running you can monitor the deployment:
 
 ```bash
 # In a separate terminal
@@ -256,7 +256,7 @@ ado show entities operation $OPERATION_ID
 
 If the `operation` is running the $OPERATION_ID will have been output
 just before the sampling started.
-Assuming no other operation was started it will also be
+Assuming no other operation was started, it will also be
 the last id output by
 
 ```commandline
@@ -281,7 +281,7 @@ ado show entities space $DISCOVERY_SPACE_ID --output-format csv
 
 - Try varying **`max_batch_tokens`** or **`gpu_memory_utilization`** to
 explore the impact on throughput.
-- Try creating a difference `actuatorconfiguration` with more
+- Try creating a different `actuatorconfiguration` with more
 `max_environments` and running the random walk with a non-grouped sampler
 - Replace the model with a different HF checkpoint to compare performance.
 - Use **RayTune**

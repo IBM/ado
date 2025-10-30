@@ -40,7 +40,7 @@ of points are randomly selected without replacement.
 
 For this example we will use some **pre-existing data**. This makes the example
 simpler and quicker to execute but can also be useful in other situations. The
-data is in the file `ml_export.csv` and is consists of results of running a
+data is in the file `ml_export.csv` and consists of results of running a
 benchmark on different cloud hardware configurations from different providers.
 
 In `ado` such configurations are called `entities`, and are stored, along with
@@ -63,8 +63,7 @@ Success! Created sample store with identifier $SAMPLE_STORE_IDENTIFIER
 Note the `samplestore` resource identifier printed by this command for the next
 section.
 
-Also try `ado get samplestores` and you will see an entry for the one you just
-created
+Also try `ado get samplestores` and you will see an entry for the one you just created
 
 !!! info end
     <!-- markdownlint-disable-next-line code-block-style -->
@@ -84,7 +83,7 @@ Execute:
 ado create space -f ml_multicloud_space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
 ```
 
-where `$SAMPLE_STORE_IDENTIFIER` is the identifier you copied in last step.
+where `$SAMPLE_STORE_IDENTIFIER` is the identifier you copied in the last step.
 
 This will confirm the creation of the `discoveryspace` with:
 
@@ -334,7 +333,7 @@ Here are a variety of commands you can try after executing the example above:
 
 ### Viewing entities
 
-There are multiple ways to few the entities related to a `discoveryspace`. Try:
+There are multiple ways to view the entities related to a `discoveryspace`. Try:
 
 ```commandline
 ado show entities space $DISCOVERY_SPACE_IDENTIFIER
@@ -400,5 +399,5 @@ of `show entities operation` for the two operations, and `show entities space`.
 - **measurement timeseries**: The sequence (timeseries) of measurements,
   successful or not, of each `operation` is preserved
 - **`discoveryspace` views**: By default `ado show entities space` only shows
-  successfully measured entities , but you can see what has not been measured if
+  successfully measured entities, but you can see what has not been measured if
   you want

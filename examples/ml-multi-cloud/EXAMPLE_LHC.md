@@ -2,7 +2,7 @@
 
 > [!NOTE]
 >
-> This example shows
+> This example shows:
 >
 > 1. Using the Latin Hyper-Cube Sampler from the `ray_tune` operator to explore
 >    the space
@@ -28,21 +28,14 @@ The workloads in the `ml_multi_cloud` data set are defined by four parameters,
 in the related examples have 4 dimensions. Here we will try to find **which
 dimensions have the most influence over the `wallClockRuntime` property.**
 
-> [!CAUTION]
->
-> The commands below assume you are in the directory `examples/ml-multi-cloud`
-> in **the ado source repository**. See
-> [the instructions for cloning the repository](/ado/getting-started/install/#__tabbed_1_3).
-
 ## Pre-requisites
 
 ### Install the ray_tune ado operator
 
-If you haven't already installed the ray_tune operator, run (assumes you are in
-`examples/ml-multi-cloud/` ):
+If you haven't already installed the ray_tune operator, run:
 
 ```commandline
-pip install ../../plugins/operators/ray_tune
+pip install ado-ray-tune
 ```
 
 Then, executing
@@ -62,6 +55,12 @@ Available operators by type:
 
 ### Creating the `discoveryspace`
 
+> [!CAUTION]
+>
+> The commands below assume you are in the directory `examples/ml-multi-cloud`
+> in **the ado source repository**. See
+> [the instructions for cloning the repository](/ado/getting-started/install/#__tabbed_1_3).
+
 This example uses the same `discoveryspace` created in the
 [taking a random walk example](/ado/examples/random-walk/). You can use
 `ado get spaces` to find the identifier.
@@ -73,7 +72,7 @@ We will use the
 to sample points. This is a sampling method which tries maintaining properties
 similar to true random sampling, while ensuring the samples are more evenly
 spread across the space. An example operation file is given in
-`lhc-sampler.yaml`.
+[`lhc-sampler.yaml`](https://github.com/IBM/ado/blob/main/examples/ml-multi-cloud/lhc_sampler.yaml).
 
 The operation also configures the exploration to monitor the relationship
 between the four parameters and the cost metric and stop when it has determined
@@ -133,6 +132,6 @@ This is chosen as follows:
 
 > [!NOTE]
 >
-> Since Latin Hypercube sampling is random the Pareto set can change slightly
+> Since Latin Hypercube sampling is random, the Pareto set can change slightly
 > from run to run as different entities are used. In this example over multiple
 > runs you should see the Pareto set being 2 or 3 and always including `nodes`.

@@ -19,6 +19,15 @@ spec:
         app.kubernetes.io/name: vllm
         app.kubernetes.io/instance: vllm-testing
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - operator: NotIn
+                key: kubernetes.io/hostname
+                values:
+                - adcpu014 # funny node
       containers:
         - name: vllm
           image: "vllm/vllm-openai:v0.6.3"
@@ -27,15 +36,6 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                - matchExpressions:
-                  - operator: NotIn
-                    key: kubernetes.io/hostname
-                    values:
-                    - adcpu014 # funny node
           startupProbe:
             exec:
               command:

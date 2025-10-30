@@ -25,7 +25,7 @@ A model deployed for inference will have a certain max stable throughput in
 terms of the requests it can serve per second.
 Sending more requests than this maximum will often lead to a drop in throughput.
 Hence, it can be useful to know what this maximum is so the maximum throughput
-is reliably maintained e.g. by limiting
+is reliably maintained e.g., by limiting
 the max number of concurrent requests.
 
 **In this example, the _vllm_performance_ actuator is used to find
@@ -34,7 +34,7 @@ stable maximum throughput.**
 
 To explore this space, you will:
 
-- define an endpoint, model and range of requests per second to test
+- define an endpoint, model, and range of requests per second to test
 - use an optimizer to efficiently find the maximum requests per second
 
 ## Install the actuator
@@ -49,13 +49,13 @@ To explore this space, you will:
 [//]: # (```)
 
 [//]: # (If you have cloned the `ado` source repository you can also do:)
-Execute:
+To install, execute:
 
 ```commandline
 pip install -e plugins/actuators/vllm_performance
 ```
 
-in the root of the `ado` source repository.
+from the root of the `ado` source repository.
 You can clone the repository with
 
 ```commandline
@@ -111,7 +111,7 @@ ado create space -f vllm_discoveryspace.yaml --new-sample-store
 ```
 
 Record the identifier of the created `discoveryspace` as it
-will be used in next section.
+will be used in the next section.
 
 > [!NOTE]
 >
@@ -127,7 +127,7 @@ which is a bayesian approach that is expected to be good for discrete dimensions
 and noisy metrics, which we have here i.e. `request_throughput`.
 
 The following operation will look for points (in this case `request_rate`s)
-which lead to a `request_throughput` in the top 20 percentile:
+that result in a `request_throughput` within the top 20th percentile:
 
 ```yaml
 spaces:
@@ -160,7 +160,7 @@ you created in the previous step.
 >
 > Hyperopt samples with replacement so you may see the same points
 > sampled twice.
-> The likelihood increase as number of points in the space decreases
+> The likelihood increases as the number of points in the space decreases
 
 ### Monitor the optimization
 
@@ -179,7 +179,7 @@ ado show entities operation $OPERATION_ID
 
 If the `operation` is running the $OPERATION_ID will have been output
 just before the sampling started.
-Assuming no other operation was started it will also be
+Assuming no other operation was started, it will also be
 the last id output by
 
 ```commandline
@@ -204,7 +204,7 @@ ado show entities space $DISCOVERY_SPACE_ID --output-format csv
 ## Some notes on hyperopt and TPE
 
 What you should observe is that as the search proceeds **hyperopt**
-will start to prefer to sample points in the region with stable maximum,
+will begin to prefer sampling points in the region with stable maximum,
 even if it has seen better values in "unstable" regions.
 
 > [!IMPORTANT]
@@ -216,12 +216,12 @@ TPE builds models of where the "good" regions and "bad" regions of the
 discovery space are i.e. `P(x|good)`, `P(x|bad)`, where x is an input point.
 It then chooses new points to test by maximizing  `P(x|good)/P(x|bad)`
 
-This makes TPE robust to noise in request_throughput as its not trying to find
+This makes TPE robust to noise in request_throughput as it is not trying to find
 where the maximum is but is trying to find the request_rates that are most likely
 to give high throughput (above defined as throughput in top 20 percentile).
 This also makes it robust to outliers.
 
-Problems can arise if the best region is not sampled in the initial points
+Issues may arise if the optimal region is not sampled in the initial points
 and this region  is disjoint from other regions with "good" performance.
 As the search runs it will be directed towards where it has already seen good values
 and the best region is unlikely to be visited.

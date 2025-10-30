@@ -16,7 +16,7 @@ value.
 
 In this example we will install **a custom objective function that calculates a
 cost** for the application workload configurations used in the
-[talking a random walk example](/ado/examples/random-walk/). When the workload
+[taking a random walk example](/ado/examples/random-walk/). When the workload
 configuration space is explored using a random walk, both the `wallClockRuntime`
 and the `cost`, as defined by the custom function, will be measured.
 
@@ -26,7 +26,7 @@ and the `cost`, as defined by the custom function, will be measured.
 > in **the ado source repository**. See
 > [the instructions for cloning the repository](/ado/getting-started/install/#__tabbed_1_3).
 
-## Pre-requisites
+## Prerequisites
 
 ### Install the ray_tune ado operator
 
@@ -37,7 +37,7 @@ If you haven't already installed the ray_tune operator, run (assumes you are in
 pip install ../../plugins/operators/ray_tune
 ```
 
-then executing
+Then execute
 
 ```commandline
 ado get operators
@@ -54,7 +54,7 @@ Available operators by type:
 
 ## Installing the custom experiment
 
-The custom experiment is defined in a python package under
+The custom experiment is defined in a Python package under
 `custom_actuator_function/`. To install it run:
 
 ```commandline
@@ -67,7 +67,7 @@ then
 ado get actuators --details
 ```
 
-will output something like
+will output something similar to
 
 <!-- markdownlint-disable line-length -->
 ```commandline
@@ -106,7 +106,7 @@ Required Inputs:
 Outputs: ml-multicloud-cost-v1.0-total_cost
 ```
 
-From this you can see the `ml-multicloud-cost-v1.0` requires an observed
+From this, you can see the `ml-multicloud-cost-v1.0` requires an observed
 property, i.e. a property measured by another experiment, as input. From the
 observed property identifier, the experiment is called `benchmark_performance`
 and the property is `wallClockRuntime`.
@@ -116,12 +116,12 @@ and the property is `wallClockRuntime`.
 First create a `samplestore` with the `ml-multi-cloud` example data following
 [these instructions](/ado/examples/random-walk/#using-pre-existing-data-with-ado).
 If you have already completed the
-[talking a random walk example](/ado/examples/random-walk/), reuse the
+[taking a random walk example](/ado/examples/random-walk/), reuse the
 `samplestore` you created there (use `ado get samplestores` if you cannot recall
 the identifier).
 
-To use the custom experiment you must add it in the `experiments` list of a
-`discoveryspace`. The `acutauatorIdentifer` will be `custom_experiments` and the
+To use the custom experiment, you must add it in the `experiments` list of a
+`discoveryspace`. The `actuatorIdentifier` will be `custom_experiments` and the
 `experimentIdentifier` will be the name of your experiment. For this case the
 relevant section looks like:
 
@@ -150,7 +150,7 @@ ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdent
 
 Note the created `discoveryspace` resource identifier printed by this command
 for the next section. You can use this identifier in the following command to
-see a description of the space (replacing `$DISCOVERY_SPACE_IDENTIFIER`):
+view a description of the space (replacing `$DISCOVERY_SPACE_IDENTIFIER`):
 
 ```commandline
 ado describe space $DISCOVERY_SPACE_IDENTIFIER
@@ -218,7 +218,7 @@ ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]
 ```
 
 This produces an output similar to that described in the
-[talking a random walk example](/ado/examples/random-walk/#exploring-the-discoveryspace)
+[taking a random walk example](/ado/examples/random-walk/#exploring-the-discoveryspace)
 and will exit printing the operation identifier. However, in this case there is
 additional information related to the dependent experiment.
 
@@ -302,13 +302,13 @@ request_index
   replayed (`benchmark_performance`) and what is calculated
   (`ml_multicloud_cost-v1.0`)
 
-## Takeaways
+## Key Takeaways
 
 - **dependent experiments**: `ado` allows you to define experiments which
   consume the output of other experiments.
   - There is no limit to the depth of the chain of dependent experiments
   - Dependent experiments are executed when the required inputs are available.
-- **custom experiments**: You can add your own python functions as experiments
+- **custom experiments**: You can add your own Python functions as experiments
   using `ado`'s custom experiments feature.
 - **uniform usage pattern**: How you use `ado` to define spaces or perform
   operations does not change if you use custom or dependent experiments

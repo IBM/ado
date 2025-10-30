@@ -53,13 +53,14 @@
 ado uses a plugin system to provide **additional actuators** and **operators**.
 We maintain a set of actuators and operators
 [in the ado main repo](https://github.com/ibm/ado/tree/main/plugins/).
-Some plugins may also have packages on PyPi.
+Some plugins may also be available on PyPi.
 You can install these actuators as follows:
 
 !!! info
 
     Some plugins may have dependencies that may require credentials to access.
-    Check the plugins's docs if you encounter issues installing a specific actuator.
+    Check the plugin's documentation if you encounter issues installing 
+    a specific actuator.
 
 === "From PyPi"
 

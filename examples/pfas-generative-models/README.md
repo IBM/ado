@@ -47,7 +47,7 @@ The `samplestore` resource configuration looks like
 The command to create the `samplestore` is:
 
 ```commandline
-ado create samplestore -f gen_models_transformer_test_source.yaml
+ado create samplestore -f gen_models_transformer_test_sample_store.yaml
 ```
 
 This outputs a `samplestore` id which you should record for the next step.
@@ -63,46 +63,41 @@ The `discoveryspace` configuration looks like:
 You can see the experiment `calculate_morgan_fingerprint` from the
 `molecule_embeddings` actuator is selected in the `measurementspace`.
 
-Create the space
+Create the space:
 
 ```commandline
-ado create space -f space_transformer_simple.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+ado create space -f space_transformer_simple.yaml --use-latest samplestore
 ```
-
-This outputs a `discoveryspace` id which you should record for the next step.
 
 ## Create an Operation
 
 This operation samples 10 molecules from the space and applies the measurement
 space, including `calculate_morgan_fingerprint` to them.
 
-The `operation` resource configuration looks like
+The `operation` resource configuration looks like:
 
 ```yaml
 {% include "./operation_random_walk_test.yaml" %}
 ```
 
-To start the operation
+Start the operation:
 
 ```commandline
-ado create operation -f operation_random_walk_test.yaml --set "spaces[0]=$DISCOVERYSPACEIDENTIFIER"
+ado create operation -f operation_random_walk_test.yaml --use-latest space
 ```
-
-where `$DISCOVERYSPACEIDENTIFIER` is the identifier of the `discoveryspace` you
-created in the previous step.
 
 ## View the Results
 
-To see the fingerprints of the ten sampled entities (molecules) run
+To see the fingerprints of the ten sampled entities (molecules) run:
 
 ```commandline
-ado show entities space $SPACEID
+ado show entities space --use-latest
 ```
 
-also try
+Try as well:
 
 ```commandline
-ado show details space $SPACEID
+ado show details space --use-latest
 ```
 
 ## Next Steps

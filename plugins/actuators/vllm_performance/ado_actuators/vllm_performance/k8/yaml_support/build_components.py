@@ -6,6 +6,7 @@ import os
 import sys
 import uuid
 from enum import Enum
+import json
 from typing import Any
 
 import yaml
@@ -158,9 +159,9 @@ class ComponentsYaml:
         ]
 
         if enforce_eager:
-            vllm_serve_args.append("--skip-tokenizer-init")
-        if skip_tokenizer_init:
             vllm_serve_args.append("--enforce-eager")
+        if skip_tokenizer_init:
+            vllm_serve_args.append("--skip-tokenizer-init")
         if io_processor_plugin:
             vllm_serve_args.append("--io-processor-plugin")
             vllm_serve_args.append(io_processor_plugin)
@@ -213,10 +214,7 @@ class ComponentsYaml:
                 ]
             )
 
-        # return
-
-        import json
-        print(json.dumps(deployment_yaml, indent=2))
+        logger.debug(json.dumps(deployment_yaml, indent=2))
         return deployment_yaml
 
     @staticmethod

@@ -132,12 +132,6 @@ performance_testing-full:
       propertyDomain:
         variableType: BINARY_VARIABLE_TYPE 
         values: [True, False]
-    - identifier: 'io_processor_plugin'
-      metadata:
-        description: 'IO Pocessor plugin to load for the model'
-      propertyDomain:
-        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ None, "terratorch_segmentation" ]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -191,9 +185,6 @@ performance_testing-full:
     - property:
         identifier: 'enforce_eager'
       value: False
-    - property:
-        identifier: 'io_processor_plugin'
-      value: None
   # measurements
   targetProperties:
     - identifier: "duration"

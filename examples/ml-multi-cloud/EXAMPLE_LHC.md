@@ -26,7 +26,7 @@ ignoring those that are less relevant**.
 The workloads in the `ml_multi_cloud` data set are defined by four parameters,
 `provider`, `cpu_family`, `vcpu_size` and `nodes`, and hence the `entityspace`
 in the related examples have 4 dimensions. Here we will try to find **which
-dimensions have most influence over the `wallClockRuntime` property.**
+dimensions have the most influence over the `wallClockRuntime` property.**
 
 > [!CAUTION]
 >
@@ -45,7 +45,7 @@ If you haven't already installed the ray_tune operator, run (assumes you are in
 pip install ../../plugins/operators/ray_tune
 ```
 
-then executing
+Then, executing
 
 ```commandline
 ado get operators
@@ -63,13 +63,13 @@ Available operators by type:
 ### Creating the `discoveryspace`
 
 This example uses the same `discoveryspace` created in the
-[talking a random walk example](/ado/examples/random-walk/). You can use
+[taking a random walk example](/ado/examples/random-walk/). You can use
 `ado get spaces` to find the identifier.
 
 ## Discovering what workload parameters most impact cost
 
 We will use the
-[latin-hyper-cube sampler](/ado/operators/optimisation-with-ray-tune/#latin-hypercube-sampler)
+[Latin-Hyper-Cube sampler](/ado/operators/optimisation-with-ray-tune/#latin-hypercube-sampler)
 to sample points. This is a sampling method which tries maintaining properties
 similar to true random sampling, while ensuring the samples are more evenly
 spread across the space. An example operation file is given in
@@ -82,17 +82,17 @@ which are most important using the
 
 To execute this operation run (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the
 identifier of the space created in the
-[talking a random walk example](/ado/examples/random-walk/)):
+[taking a random walk example](/ado/examples/random-walk/)):
 
 ```commandline
 ado create operation -f lhc_sampler.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
 ```
 
 You will see a lot of RayTune-related output as it samples different entities
-using the latin-hyper-cube sampler. The number of samples to obtain is set to 32
-in `lhc_sampler.yaml`, however the operation will stop before reaching that due
+using the Latin-Hyper-Cube sampler. The number of samples to obtain is set to 32
+in `lhc_sampler.yaml`, however, the operation will stop before reaching that due
 to the InformationGain stopper. If you look back through the log of the
-operation, within the logs for the last sample you will lines like:
+operation, within the logs for the last sample you will see lines like:
 
 ```commandline
 (tune pid=7959) Stopping criteria reached after 13 samples.
@@ -110,12 +110,12 @@ operation, within the logs for the last sample you will lines like:
 
 In this table the dimensions are ranked in order of importance, as determined by
 their mutual information with the target variable, wallClockRuntime. The
-`uncertainty%` is the ratio of the dimensions mutual information with the
+`uncertainty%` is the ratio of the dimension's mutual information with the
 entropy of the target variable (or clusters of the target variable to be more
 exact) i.e. how much of the entropy or variance of the target variable is
 explained by the dimension.
 
-At the end of the output we can see the stopper has identified a "pareto
+At the end of the output we can see the stopper has identified a "Pareto
 selection" of three dimensions: ['provider', 'vcpu_size', 'nodes']. This is the
 smallest number of dimensions, whose total mutual information exceeds a
 threshold, which is `0.8` by default.
@@ -127,12 +127,12 @@ This is chosen as follows:
   - For example, for a set of size 2 dimensions, it evaluates the 6 possible
     pairs: [nodes,vcpu_size], [nodes, provider], [nodes, cpu_family] ,
     [vcpu_size, provider], [vcpu_size, nodes], [provider, nodes].
-- This gives one set for each possible dimensions set size: 1,2,3 and 4 in this
-  case - the pareto optimal sets
+- This gives one set for each possible dimension set size: 1,2,3 and 4 in this
+  case - the Pareto optimal sets
 - Then the smallest of these sets which exceeds the threshold value is selected.
 
 > [!NOTE]
 >
-> Since latin hypercube sampling is random the pareto set can change slightly
+> Since Latin Hypercube sampling is random the Pareto set can change slightly
 > from run to run as different entities are used. In this example over multiple
-> runs you should see the pareto set being 2 or 3 and always including `nodes`.
+> runs you should see the Pareto set being 2 or 3 and always including `nodes`.

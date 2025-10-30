@@ -149,12 +149,20 @@ def could_not_delete_resource_from_database_error_str(
     )
 
 
-def latest_identifier_for_resource_not_found(resource_kind: CoreResourceKinds) -> str:
+def latest_identifier_for_resource_not_found(
+    resource_kind: CoreResourceKinds, hide_resource_in_flag: bool = False
+) -> str:
     resource_human_readable_name = resource_kinds_to_human[resource_kind]
     resource_cli_name = resource_kinds_to_cli[resource_kind]
+    flag = (
+        cyan("--use-latest")
+        if hide_resource_in_flag
+        else cyan(f"--use-latest {resource_kinds_to_cli[resource_kind]}")
+    )
+
     return (
         f"{ERROR}Unable to find the identifier of the latest {resource_human_readable_name}.\n\t"
-        f"This means that the {cyan(f'--use-latest {resource_kinds_to_cli[resource_kind]}')} flag cannot be used.\n"
+        f"This means that the {flag} flag cannot be used.\n"
         f"{HINT}Try creating a new {resource_human_readable_name} with {cyan(f'ado create {resource_cli_name}')}"
     )
 
@@ -171,6 +179,13 @@ def value_in_configuration_replaced_with_latest_identifier_for_resource(
         f"\t{reused_resource_human_readable_name.title()}s referenced in the {target_resource_human_readable_name} "
         f"definition will be ignored and replaced with {cyan(replacement_identifier)}."
     )
+
+
+def using_latest_identifier_for_resource(
+    resource_kind: CoreResourceKinds, resource_identifier: str
+):
+    latest_resource_human_readable_name = resource_kinds_to_human[resource_kind]
+    return f"{INFO}Using {latest_resource_human_readable_name} {magenta(resource_identifier)}."
 
 
 # Styles

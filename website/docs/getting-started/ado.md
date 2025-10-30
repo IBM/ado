@@ -541,7 +541,7 @@ resources.
 The complete syntax of the `ado show details` command is as follows:
 
 ```shell
-ado show details RESOURCE_TYPE RESOURCE_ID
+ado show details RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 ```
 
 Where:
@@ -553,6 +553,9 @@ Where:
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -560,6 +563,12 @@ Where:
 
 ```shell
 ado show details space space-abc123-456def
+```
+
+###### Show details for the latest space
+
+```shell
+ado show details space --use-latest
 ```
 
 #### ado show entities
@@ -570,7 +579,7 @@ operation.
 The complete syntax of the `ado show entities` command is as follows:
 
 ```shell
-ado show entities RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>] \
+ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
                   [--output-format {console | csv | json}] \
                   [--property <property-name>] \
@@ -587,6 +596,9 @@ Where:
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   enables showing entities that match the space defined in the configuration
   file. **NOTE**: using this flag forces `--include matching`.
@@ -655,11 +667,15 @@ The complete syntax of the `ado show requests` command is as follows:
 
 <!-- markdownlint-disable line-length -->
 ```shell
-ado show requests operation RESOURCE_ID [--output-format | -o <console | csv | json>] \
-                                        [--hide <field>]
+ado show requests operation [RESOURCE_ID] [--use-latest] \
+                            [--output-format | -o <console | csv | json>] \
+                            [--hide <field>]
 ```
 <!-- markdownlint-enable line-length -->
 
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation created locally. It is not context aware. It is ignored if a
+  RESOURCE_ID is provided.
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
 - `--hide` can be specified multiple times and allows hiding fields from the
@@ -690,11 +706,15 @@ The complete syntax of the `ado show results` command is as follows:
 
 <!-- markdownlint-disable line-length -->
 ```shell
-ado show results operation RESOURCE_ID [--output-format | -o <console | csv | json>] \
-                                       [--hide <field>]
+ado show results operation [RESOURCE_ID] [--use-latest] \
+                           [--output-format | -o <console | csv | json>] \
+                           [--hide <field>]
 ```
 <!-- markdownlint-enable line-length -->
 
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation created locally. It is not context aware. It is ignored if a
+  RESOURCE_ID is provided.
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
 - `--hide` can be specified multiple times and allows hiding fields from the
@@ -722,7 +742,7 @@ id is provided (e.g., operations run on a space).
 The complete syntax of the `ado show related` command is as follows:
 
 ```shell
-ado show related RESOURCE_TYPE RESOURCE_ID
+ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 ```
 
 - `RESOURCE_TYPE` is one of the supported resource types:
@@ -733,6 +753,9 @@ ado show related RESOURCE_TYPE RESOURCE_ID
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -754,7 +777,7 @@ can be provided in the following formats:
 The complete syntax of the `ado show summary` command is as follows:
 
 ```shell
-ado show summary RESOURCE_TYPE [RESOURCE_IDS...] \
+ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
                  [--query | -q <path=candidate>] \
                  [--label | -l <LABEL> ] \
                  [--with-property | -p <PROPERTY> ] \
@@ -765,6 +788,8 @@ Where:
 
 - `RESOURCE_TYPE` is always _space_
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
+- `--use-latest` will add the identifier of the latest (i.e. most recent) space
+  created locally to the RESOURCE_IDS. It is not context aware.
 - By using (optionally multiple times) the `--query` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the

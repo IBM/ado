@@ -10,7 +10,7 @@ where measurement results and entities are recorded.
 ## Example: Fine-Tuning Deployment Configuration Discovery Space
 
 <!-- markdownlint-disable descriptive-link-text -->
-We can combine the fine-tuning deployment configuration Entity Space example
+We can combine the Entity Space example for fine-tuning deployment configuration
 [here](entity-spaces.md#example-fine-tuning-deployment-configuration) with one
 of the experiments from the `SFTTrainer` actuator to create the following
 Discovery Space:
@@ -70,7 +70,7 @@ Here we can see:
 
 - A unique id for the discovery space
 - The entity space
-- For each experiment in the measuerment space (in this case just one) the
+- For each experiment in the measurement space (in this case just one) the
   target properties it measures.
 
 ## Sampling and Measurement
@@ -81,7 +81,7 @@ operation, like a Random Walk, to the Discovery Space. This operation samples
 entities from the Entity Space, measures them according to the Measurement Space
 experiments, and places the results into the Sample Store.
 
-Therefore, at a given point of time a Discovery Space will have some number of
+Therefore, at any given point in time a Discovery Space will have some number of
 
 - sampled and measured entities
 - sampled and unmeasured entities (because the measurements failed)
@@ -91,7 +91,7 @@ The first two will have corresponding data in the Sample Store.
 
 ## Comparison: Discovery Space and a DataFrame
 
-Comparing a Discovery Space and a DataFrame can help understand the concept and
+Comparing a Discovery Space with a DataFrame can help clarify the concept and
 also illustrate the benefits
 
 ### A Discovery Space defines a DataFrame schema
@@ -104,7 +104,7 @@ schema where:
 3. Each row is an entity
 
 If we were to look at the example fine-tuning deployment configuration Discovery
-Space this would look like (the rows and columns have been truncated)
+Space this would look like (the rows and columns are truncated)
 
 <!-- markdownlint-disable line-length -->
 | model_id | gpu_type              | batch_size | model_max_length | number_gpus | ... | finetune-lora-fsdp-r-4-a-16-tm-default-v1.2.0.dataset_tokens_per_second | finetune-lora-fsdp-r-4-a-16-tm-default-v1.2.0.gpu_memory_utilization_peak | ... |
@@ -126,9 +126,9 @@ unknown
 ### A Discovery Space defines how to fill all the data in the DataFrame
 
 In the above example the columns associated with the measurement space have no
-data. However, the DiscoverySpace defines exactly how to get this data, as it
-defines the actual experiments, supplied by actuators, that you can execute to
-get it.
+data. However, the Discovery Space specifies exactly how to obtain this data, as
+it defines the actual experiments, supplied by actuators, that you can execute
+to get it.
 
 Using the Discovery Space at any point we can choose a row (entity) with no
 measurement and get the measurements
@@ -137,7 +137,7 @@ measurement and get the measurements
 
 A Discovery Space is a view rather than a container.
 
-This means when you generate a DataFrame from a DiscoverySpace the data in the
+This means when you generate a DataFrame from a Discovery Space the data in the
 rows is fetched from a shared-source. If someone else measured an entity that
 corresponds to one of the rows in your DataFrame it will be automatically
 populated.
@@ -147,7 +147,7 @@ in. You can choose to look at:
 
 1. Rows filled in by operations on this space (Entities sampled and measured via
    this Discovery Space)
-2. Rows filled in by operations on on other spaces (Entities sampled and
+2. Rows filled in by operations on other spaces (Entities sampled and
    measured via any Discovery Space using same Sample Store)
 3. Rows not filled in at all (Unmeasured entities)
 
@@ -156,6 +156,6 @@ in. You can choose to look at:
 <!-- markdownlint-disable line-length -->
 | Method          | Column Definition                                                                                                                   | Defines how to acquire missing data?       | Data Sharing                                                  |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------- |
-| DataFrame       | Ad-Hoc. The data-frame creator defines the columns when its is created. The meaning of the columns must be communicated separately, | Not defined. The DataFrame just holds data | Not possible. A DataFrame is a static object                  |
+| DataFrame       | Ad-Hoc. The data-frame creator defines the columns when it is created. The meaning of the columns must be communicated separately, | Not defined. The DataFrame just holds data | Not possible. A DataFrame is a static object                  |
 | Discovery Space | Defined by the discovery space. A set of Entity Space columns and Measurement Space columns.                                        | Yes ,defined by the MeasurementSpace       | Yes, values are loaded from a distributed shared db on demand |
 <!-- markdownlint-enable line-length -->

@@ -3,7 +3,7 @@
 > [!NOTE]
 >
 > This example illustrates using the vllm-performance actuator to test the
-> throughput of an OpenAPI compatible inference endpoint
+> throughput of an OpenAI-compatible inference endpoint
 >
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
 
@@ -11,8 +11,8 @@
 >
 > **Prerequisites**
 >
-> - An endpoint serving an LLM in an OpenAI API-compatible format
-> - The `ray_tune` operator with hyperopt installed
+> - An endpoint serving an LLM in an OpenAI-compatible format
+> - The `ray_tune` operator with `hyperopt` installed
 >
 > ```commandline
 > pip install ado-ray-tune
@@ -22,11 +22,10 @@
 ## The scenario
 
 A model deployed for inference will have a certain max stable throughput in
-terms of the requests it can serve per second.
-Sending more requests than this maximum will often lead to a drop in throughput.
-Hence, it can be useful to know what this maximum is so the maximum throughput
-is reliably maintained e.g., by limiting
-the max number of concurrent requests.
+terms of the requests it can serve per second. Sending more requests than this
+maximum will often lead to a drop in throughput. Hence, it can be useful to know
+what this maximum is so the maximum throughput is reliably maintained e.g., by
+limiting the max number of concurrent requests.
 
 **In this example, the _vllm_performance_ actuator is used to find
 the maximum requests per second a server can handle while maintaining
@@ -72,13 +71,12 @@ The actuator `vllm_performance` will appear in the list of available actuators.
 
 ## Define the request rates to test
 
-This `discoveryspace` includes all
-request rates from 10 to 100 for an endpoint
+This `discoveryspace` includes all request rates from 10 to 100 for an endpoint
 serving `gpt-oss-20b`:
 
 ```yaml
 # Example discovery space for vLLM performance
-sampleStoreIdentifier: <sample_store_id>
+sampleStoreIdentifier: default
 entitySpace:
   - identifier: model
     propertyDomain:
@@ -97,21 +95,12 @@ experiments:
   experimentIdentifier: performance-testing-endpoint
 ```
 
-Save the above as `vllm_discoveryspace.yaml`.
-Then, if you have an existing `samplestore`, run:
+The space will use the `default` sample store. You can always ask for a new one
+to be created by adding the `--new-sample-store` flag to the following command:
 
 ```bash
-ado create space -f vllm_discoveryspace.yaml --set sampleStoreIdentifier=$SAMPLE_STORE_ID
+ado create space -f vllm_discoveryspace.yaml
 ```
-
-otherwise create a new one:
-
-```bash
-ado create space -f vllm_discoveryspace.yaml --new-sample-store
-```
-
-Record the identifier of the created `discoveryspace` as it
-will be used in the next section.
 
 > [!NOTE]
 >
@@ -150,11 +139,10 @@ operation:
 Save the above as `hyperopt.yaml`. Then create the operation:
 
 ```commandline
-ado create operation -f hyperopt.yaml --set "spaces[0]=$DISCOVERY_SPACE_ID"
+ado create operation -f hyperopt.yaml --use-latest space
 ```
 
-where `$DISCOVERY_SPACE_ID` is the identifier of the `discoveryspace`
-you created in the previous step.
+Results will appear as they are measured.
 
 > [!NOTE]
 >
@@ -162,37 +150,13 @@ you created in the previous step.
 > sampled twice.
 > The likelihood increases as the number of points in the space decreases
 
-### Monitor the optimization
-
-You can see the measurement requests as the operation runs
-by executing (in another terminal):
-
-```commandline
-ado show requests operation $OPERATION_ID
-```
-
-and the results (this outputs the entities in sampled order):
-
-```commandline
-ado show entities operation $OPERATION_ID
-```
-
-If the `operation` is running the $OPERATION_ID will have been output
-just before the sampling started.
-Assuming no other operation was started, it will also be
-the last id output by
-
-```commandline
-ado get operations
-```
-
 ### Check final results
 
 When the output indicates that the experiment has finished, you
 can inspect the results of all operations run so far on the space with:
 
 ```commandline
-ado show entities space $DISCOVERY_SPACE_ID --output-format csv
+ado show entities space --output-format csv --use-latest
 ```
 
 > [!NOTE]

@@ -58,8 +58,19 @@ After running the exercise, please feel free to
 
 Ensure the virtual environment you installed `ado` into is active. Then, run:
 
-```commandline
+<!-- ```commandline
 pip install ado-vllm-performance
+``` -->
+
+```commandline
+pip install -e plugins/actuators/vllm_performance
+```
+
+from the root of the `ado` source repository.
+You can clone the repository with
+
+```commandline
+git clone https://github.com/IBM/ado.git
 ```
 
 Confirm that the actuator is installed:

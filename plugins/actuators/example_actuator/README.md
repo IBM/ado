@@ -45,24 +45,21 @@ ado create samplestore --new-sample-store
 ```
 
 A `samplestore` is a database for storing entities and measurement results. It
-can be reused with multiple `discoveryspaces`. The above command will output an
-identifier, record this for the next step. We will refer to it as
-`$SAMPLE_STORE_IDENTIFIER`.
+can be reused with multiple `discoveryspaces`.
 
 1. Create a [discoveryspace](https://ibm.github.io/ado/resources/discovery-spaces/):
 
     ```bash
-    ado create space -f yamls/discoveryspace.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+    ado create space -f yamls/discoveryspace.yaml --use-latest samplestore
     ```
 
-    Record the ID output by the above command. We will refer to it as
-    `$DISCOVERY_SPACE_IDENTIFIER`. At this point, you can also use `ado get` or
-    `ado describe` on the `discoveryspace`.
+    You can use `ado get` or `ado describe` on the `discoveryspace` using
+    the identifier output by the command above.
 
 2. Create a random walk [operation](https://ibm.github.io/ado/resources/operation/):
 
     ```bash
-    ado create operation -f yamls/random_walk_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+    ado create operation -f yamls/random_walk_operation.yaml --use-latest space
     ```
 
 At this point, you can try `ado show entities` to get sampled entities or apply

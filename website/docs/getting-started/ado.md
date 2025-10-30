@@ -244,8 +244,8 @@ about resources.
 The complete syntax of the `ado describe` command is as follows:
 
 ```shell
-ado describe RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>]\
-             [--actuator-id <actuator>]
+ado describe RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>] \
+             [--use-latest] [--actuator-id <actuator>]
 ```
 
 Where:
@@ -260,6 +260,8 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource to describe.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   allows getting a description of the space, given a space configuration file.
+- `--use-latest` flag is **currently only available for spaces** and allows
+  describing the latest space created locally. It is not context aware.
 - `--actuator-id` (**optional**) can be used only when the resource type is
   experiment and is used to indicate what actuator the experiment belongs to.
 

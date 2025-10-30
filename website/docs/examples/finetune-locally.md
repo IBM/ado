@@ -5,7 +5,7 @@
 > This example illustrates:
 >
 > 1. Set up a local environment for running finetuning performance benchmarks
->    with SFTTrainer
+>    using SFTTrainer
 >
 > 2. Benchmarking a set of finetuning configurations for a small model using a
 >    local context and only the CPU
@@ -92,7 +92,7 @@ ado context local
 SFTTrainer includes parameters that control its behavior. For example, it pushes
 any training metrics it collects, like system profiling metadata, to an
 [AIM](https://github.com/aimhubio/aim) server by default. It also features
-parameters that define important paths, such as the location of the Hugging Face
+parameters that specify important paths, such as the location of the Hugging Face
 cache and the directory where the actuator expects to find files like the test
 dataset.
 
@@ -287,7 +287,7 @@ cached model weights and the cached data, making them faster to complete.
 !!! info end
     <!-- markdownlint-disable-next-line code-block-style -->
     Each measurement takes about two minutes to complete, with a total of four
-    measurements. Ray will also take a couple of minutes to build the Ray runtime
+    measurements. Ray may take a few minutes to build the Ray runtime
     environment on participating ray workers so expect the operation to take O(10)
     minutes to complete.
 

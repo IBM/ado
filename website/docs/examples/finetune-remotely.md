@@ -4,7 +4,7 @@
 >
 > This example illustrates:
 >
-> 1. Set a remote RayCluster environment for running finetuning performance
+> 1. Set up a remote RayCluster environment for running finetuning performance
 >    benchmarks with SFTTrainer
 >
 > 2. Benchmarking a set of finetuning configurations using GPUs on a remote
@@ -36,7 +36,7 @@ To explore this space, you will:
     This example assumes you have already followed the
     [Measure throughput of finetuning locally](./finetune-locally.md) example.
 
-## Pre-requisites
+## Prerequisites
 
 1. A remote shared context is available (see
    [shared contexts](../../resources/metastore/) for more information). Here we
@@ -194,7 +194,7 @@ should see the landing page of the Ray web dashboard.
 
 ### Prepare files for the Ray jobs you will run later
 
-Create a directory called `my-remote-measurements` and `cd` into it. You will
+Create a directory named `my-remote-measurements` and `cd` into it. You will
 keep all the files for this example in there.
 
 Similar to how you installed `ado` and `SFTTrainer` on your laptop, it's
@@ -274,7 +274,7 @@ In this section, we’ll focus on the second approach.
 
     !!! info end
 
-        Your wheel will filenames may vary.
+        Your wheel filenames may vary.
 
     For convenience, you can run the script below from inside the
     `my-remote-measurements` directory. It will build the wheels of both `ado` and
@@ -288,7 +288,7 @@ In this section, we’ll focus on the second approach.
     [Reference docs on using ado with remote RayClusters](../../getting-started/remote_run/#getting-ready).
 
 You will use the files you created during this step in later steps when
-launching jobs on your remote RayCluster.
+submitting jobs to your remote RayCluster.
 
 ### Create the test Dataset on the remote RayCluster
 
@@ -333,7 +333,7 @@ granite-3.1-2b:
   Vanilla: ibm-granite/granite-3.1-2b-base
 ```
 
-To start the ray job run:
+To submit the Ray job run:
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->

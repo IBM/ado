@@ -7,7 +7,7 @@
 
 ## The scenario
 
-Often experiments will not directly produce the value that you are interested
+Often, experiments will not directly produce the value that you are interested
 in. For example, an experiment might measure the run time of an application,
 while **the meaningful metric is the associated cost, which requires knowing
 information like the cost per hour of the GPUs used**. Another common scenario
@@ -30,14 +30,13 @@ and the `cost`, as defined by the custom function, will be measured.
 
 ### Install the ray_tune ado operator
 
-If you haven't already installed the ray_tune operator, run (assumes you are in
-`examples/ml-multi-cloud/` ):
+If you haven't already installed the ray_tune operator, run:
 
 ```commandline
-pip install ../../plugins/operators/ray_tune
+pip install ado-ray-tune
 ```
 
-Then execute
+Then, execute
 
 ```commandline
 ado get operators
@@ -67,7 +66,7 @@ then
 ado get actuators --details
 ```
 
-will output something similar to
+will output something similar to:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
@@ -81,9 +80,7 @@ will output something similar to
 
 You can see the custom experiment provided by the package,
 **ml-multicloud-cost-v1.0** on the first line. Executing
-`ado describe experiment ml-multicloud-cost-v1.0`
-
-outputs:
+`ado describe experiment ml-multicloud-cost-v1.0` outputs:
 
 ```commandline
 Identifier: custom_experiments.ml-multicloud-cost-v1.0
@@ -140,7 +137,9 @@ The complete `discoveryspace` for this example is given in
 ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
 ```
 
-> [!IMPORTANT] If an experiment takes the output of another experiment as input
+> [!IMPORTANT]
+>
+> If an experiment takes the output of another experiment as input
 > both experiments must be in the `discoveryspace`. In the above example if the
 > entry `benchmark_performance` was omitted the `ado create space` command would
 > fail with:
@@ -148,12 +147,10 @@ ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdent
 > **SpaceInconsistencyError**: MeasurementSpace does not contain an experiment
 > measuring an observed property required by another experiment in the space
 
-Note the created `discoveryspace` resource identifier printed by this command
-for the next section. You can use this identifier in the following command to
-view a description of the space (replacing `$DISCOVERY_SPACE_IDENTIFIER`):
+You view a description of the space using the `ado describe` command:
 
 ```commandline
-ado describe space $DISCOVERY_SPACE_IDENTIFIER
+ado describe space --use-latest
 ```
 
 This will output:
@@ -210,11 +207,10 @@ Sample store identifier: '0b762f'
 
 ## Exploring the `discoveryspace`
 
-To run a `randomwalk` operation on the new space, execute ((replacing
-`$DISCOVERY_SPACE_IDENTIFIER` with the identifier of the space you created):
+To run a `randomwalk` operation on the new space, execute:
 
 ```commandline
-ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f randomwalk_ml_multicloud_operation.yaml --use-latest space
 ```
 
 This produces an output similar to that described in the
@@ -226,7 +222,7 @@ When it completes, execute the `ado show entities operation` command to see the
 results produced:
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show entities operation --use-latest
 ```
 
 You will see a table similar to the following - note the extra column for the
@@ -289,26 +285,26 @@ request_index
 
 ## Explore Further
 
-- _perform an optimization instead of a random walk_: See the
+- _Perform an optimization instead of a random walk_: See the
   [search a space with an optimizer example](/ado/examples/best-configuration-search).
-- _modify the objective function_: Try modifying the cost function and creating
+- _Modify the objective function_: Try modifying the cost function and creating
   a new space - be careful to change the name of the experiment!
-- _create a custom experiment_: Explore
+- _Create a custom experiment_: Explore
   [the documentation for writing your own custom experiment](/ado/actuators/creating-custom-experiments/)
-- _break the discoveryspace_: See what happens if you try to create the
+- _Break the discoveryspace_: See what happens if you try to create the
   `discoveryspace` without the experiment that provides input to the cost
   function.
-- _examine the requests_: Run `ado show requests operation` to see what is
+- _Examine the requests_: Run `ado show requests operation` to see what is
   replayed (`benchmark_performance`) and what is calculated
   (`ml_multicloud_cost-v1.0`)
 
 ## Key Takeaways
 
-- **dependent experiments**: `ado` allows you to define experiments which
+- **Dependent experiments**: `ado` allows you to define experiments which
   consume the output of other experiments.
-  - There is no limit to the depth of the chain of dependent experiments
+  - There is no limit to the depth of the chain of dependent experiments.
   - Dependent experiments are executed when the required inputs are available.
-- **custom experiments**: You can add your own Python functions as experiments
+- **Custom experiments**: You can add your own Python functions as experiments
   using `ado`'s custom experiments feature.
-- **uniform usage pattern**: How you use `ado` to define spaces or perform
-  operations does not change if you use custom or dependent experiments
+- **Uniform usage pattern**: How you use `ado` to define spaces or perform
+  operations does not change if you use custom or dependent experiments.

@@ -178,7 +178,7 @@ def execute_geospatial_benchmark(
 
     with resources.path(
         "ado_actuators.vllm_performance",
-        "geospatial_valencia.jsonl",
+        "geospatial_india.jsonl",
     ) as data_set_path:
         return execute_benchmark(
             base_url=base_url,

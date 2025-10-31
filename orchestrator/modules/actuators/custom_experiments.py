@@ -20,7 +20,7 @@ from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
-from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import ValidMeasurementResult
@@ -189,6 +189,12 @@ class CustomExperiments(ActuatorBase):
         self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
         experiment = self._catalog.experimentForReference(request.experimentReference)
+        if experimentReference.parameterization:
+            experiment = ParameterizedExperiment(
+                parameterization=experimentReference.parameterization,
+                **experiment.model_dump(),
+            )
+
         function = experiment.metadata.get("function", experiment.identifier)
         self.log.debug(f"Calling custom experiment {function}")
 

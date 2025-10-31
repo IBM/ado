@@ -1,7 +1,7 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 Some actuators expose parameters that can be configured. For these actuators an
-`actuatorconfiguration` resource define a particular set of values for these
+`actuatorconfiguration` resource defines a particular set of values for these
 parameters. When creating an `operation` resource you can then optionally
 specify the `actuatorconfiguration` resources to retrieve to configure the
 actuators used in the operation.
@@ -15,12 +15,12 @@ actuators used in the operation.
 Some examples of configuration parameters are:
 
 - location of storage e.g. pvc name
-- A rest end-point
+- A REST endpoint
 - what compute resources are available
 
 Often these parameters capture things that change depending on the system the
 actuator is running on. For example, one system has A100 GPUs but another
-doesn't, and the configuration allows the actuator to know before trying to
+does not, and the configuration allows the actuator to know before trying to
 submit an experiment that it can't be executed on the given system.
 
 !!! important end
@@ -61,7 +61,7 @@ The schema will be output to a file called
 
 ### Creation and validation
 
-Once the values you want are set and saved in a file called
+Once the desired values are set and saved in a file called
 `$ACTUATOR_CONFIGURATION_FILE` then the `actuatorconfiguration` resource can be
 created with:
 

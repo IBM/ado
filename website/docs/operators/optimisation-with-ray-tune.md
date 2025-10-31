@@ -182,19 +182,19 @@ The `tuneConfig` section supports many of the
 
 - `metric` (required)
   - The
-      [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
-      to optimize.
+        [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
+        to optimize.
 - `mode` (required)
   - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
   - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in
-      RayTune it would be an optimizer instance
+        RayTune it would be an optimizer instance
 - `num_samples` (defaults to 1)
   - **Note**: The exact interpretation of `num_samples` is optimizer dependent
-      e.g. some do not count "warm-up" samples as part of this.
+        e.g. some do not count "warm-up" samples as part of this.
 - `max_concurrent_trials`
   - **Note**: this can also be controlled via most optimizers parameters. If not
-      set, the default value depends on the optimizer
+        set, the default value depends on the optimizer
 - `time_budget_s`: How many second to run the optimizer for
 
 **Unsupported parameters:**

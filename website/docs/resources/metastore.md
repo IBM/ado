@@ -5,7 +5,7 @@
 and [SQLSampleStores](sample-stores.md#sqlsamplestore). When you execute `ado`
 commands like `get` or `describe` they are interacting with this metastore.
 
-By hosting a metastore on a dedicated server `ado` can be used by multiple
+By hosting a metastore on a dedicated server, `ado` can be used by multiple
 distributed users.
 
 !!! info end

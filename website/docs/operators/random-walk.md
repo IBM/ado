@@ -33,7 +33,7 @@ If you apply multiple `random_walk` operations you just get multiple random walk
 of the different lengths and types you have requested.
 
 All explore operations are independent. This means each proceeds as configured -
-the only influence of previous operations is to enable `memoziation` if a
+the only influence of previous operations is to enable `memoization` if a
 subsequent operation visits the same point.
 
 To concretize this, consider two `random_walk` operations that sample
@@ -61,14 +61,14 @@ After the second operation:
 
 When a `random_walk` operation encounters an unmeasured entity in the
 `discoveryspace` it applies the experiments defined by its `measurementspace`
-Depending on the experiments you may want to control how many concurrent
+Depending on the experiments, you may want to control how many concurrent
 experiments are being executed.
 
 `random_walk` uses continuous batching to set the number of
 concurrent **requested** experiments and ensure that, as far as possible, there
 is always this number of experiments in flight.
 
-This approach maximises throughput compared to normal batch-wise submission. In
+This approach maximizes throughput compared to standard batch-wise submission. In
 the normal case the time to finish measuring batch of N entities is, at a
 minimum, the time taken for the longest experiment to complete. This means if
 one experiment is very long and the others short, there can be capacity in the

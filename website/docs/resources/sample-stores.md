@@ -1,14 +1,14 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 A `samplestore` resource is a database containing
-[`entities`](../core-concepts/entity-spaces.md#entities) along with result of
+[`entities`](../core-concepts/entity-spaces.md#entities) along with results of
 experiments that have been applied to them.
 
 ## `samplestore`s and `discoveryspace`s
 
 When you create a [discovery space](discovery-spaces.md) you associate a
 `samplestore` with it. This is where the `discoveryspace` will read and write
-data i.e. entities and the results of experiments on them. You primarily access
+data i.e., entities and the results of experiments on them. You primarily access
 the entities in a `samplestore` via a `discoveryspace` that is attached to it.
 
 You can think of a `discoveryspace` as a view or filter on a sample store - when
@@ -51,7 +51,7 @@ ado show related samplestore $SAMPLE_STORE_IDENTIFIER
 allow read and write; and **passive** Sample Stores that only have read
 capabilities (for example a CSV file containing measurement data).
 
-All `samplestore` resources created with `ado` will be `**active**. However,
+All `samplestore` resources created with `ado` will be **active**. However,
 they can copy data in from **passive** Sample Stores.
 
 ## The primary Sample Store type: SQLSampleStore
@@ -169,7 +169,7 @@ This is an active Sample Store that stores entity data in SQL tables. In `ado` a
 SQLSampleStore is always associated with a particular project.
 
 When you want to copy from another SQLSampleStore you need the identifier and
-the metastore URL to the the project it is in
+the metastore URL to the project it is in
 
 <!-- markdownlint-disable line-length -->
 ```yaml
@@ -190,7 +190,7 @@ copyFrom:
 ### CSVSampleStore
 
 This is a passive Sample Store that can be used to extract entities from a CSV
-file. Its assumed each row is an entity and the columns are constitutive
+file. It is assumed each row is an entity and the columns are constitutive
 properties or observed properties
 
 <!-- markdownlint-disable line-length -->
@@ -213,10 +213,10 @@ copyFrom:
 ```
 <!-- markdownlint-enable line-length -->
 
-Note, since CSV have arbitrary data in general there is no way `ado` can know
-how a particular value was generated or how to generate new such values.
-However, the measurements in a CSV can be mapped to the "experiment+property"
-model that `ado` uses, if you want to copy them.
+Note, since CSV files contain arbitrary data in general there is no way `ado`
+can know how a particular value was generated or how to generate new such
+values. However, the measurements in a CSV can be mapped to the
+"experiment+property" model that `ado` uses, if you want to copy them.
 
 You do not have to copy all the columns in a CSV or have any experiments.
 

@@ -5,15 +5,15 @@
 > [search a space with an optimizer](../examples/best-configuration-search.md)
 > example contains the code described here
 
-Often you might want to use an experiment that is a simple python function. A
-typical example is a cost-function to be used with an optimization. `ado`
+Often you might want to use an experiment that is a simple Python function. A
+typical example is a cost-function to be used in an optimization. `ado`
 provides a way to add such functions as experiments without having to create an
 Actuator class.
 
-The process involves creating a python package with two files
+The process involves creating a Python package with two files
 
-- A python module with your functions
-- A yaml file describing the experiments they provide
+- A Python module with your functions
+- A YAML file describing the experiments they provide
 
 And then installing this package.
 
@@ -30,7 +30,7 @@ $YOUR_REPO_NAME
        - $YOUR_CUSTOM_EXPERIMENT_PLUGIN_PACKAGE/  # Your package with custom experiments
          - __init__.py
          - $EXPERIMENTS.py # Python file with your function in it
-         - custom_experiments.yaml # A yaml file describing the custom experiments your package provides
+         - custom_experiments.yaml # A YAML file describing the custom experiments your package provides
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -39,12 +39,12 @@ $YOUR_REPO_NAME
 The experiment catalog contains the following critical pieces of information:
 
 1. What your experiment is called
-2. Who is going to execute your experiment - for custom python functions this
+2. Who is going to execute your experiment - for custom Python functions this
    will **always** be the special actuator "custom_experiments"
-3. What the python function that executes your experiment is called
+3. What the Python function that executes your experiment is called
 4. What properties your experiment measures
 5. The properties from other experiments this experiment requires as input - if
-   your function does not require properties from another experiment you don't
+   your function does not require properties from another experiment you do not
    need this field
 
 A catalog can define multiple experiments. Each one is a new element in the
@@ -61,7 +61,7 @@ An example experiment description file is:
 This YAML describes:
 
 - a single experiment called `nevergrad_opt_3d_test_func`
-- the measurement will be executed using a python function called
+- the measurement will be executed using a Python function called
   `artificial_function`
   - the function is in the module
     `ado_actuators.optimization_test_functions.optimization_test_functions` i.e.
@@ -70,14 +70,14 @@ This YAML describes:
   - this name will always start with `ado_actuators`
 - The experiment has a set of required input properties - `x0`, `x1` and `x2` -
   and set of optional input properties - `name` and `num_blocks`
-  - these input properties are what the python function is expected to use
+  - these input properties are what the Python function is expected to use
 - The experiment measures a single target property `function_value`
   - so applying this experiment will return a value of an observed property
     called `nevergrad_opt_3d_test_func.total_cost`
 
 ## Writing your custom experiment functions
 
-The python function that implements the experiment described in the catalog must
+The Python function that implements the experiment described in the catalog must
 
 1. Be called the name you gave in the catalog (`metadata.function` field)
 2. Have a specific signature and return value
@@ -124,8 +124,8 @@ def artificial_function(
 <!-- markdownlint-enable line-length -->
 
 In the above function `entity` and `experiment` are `ado` objects describing
-what to measure and what to measure it with. Since the custom experiment package
-only defined one experiment (see
+what is being measured and how it is measured. Since the custom experiment
+package defines only one experiment (see
 [Writing the experiment catalog](#writing-the-experiment-catalog)) the
 `experiment` object will represent the `nevergrad_opt_3d_test_func` experiment.
 The `entity` and `experiment` objects can be converted into a dictionary of
@@ -140,8 +140,8 @@ To find out more about the class instances passed to this function check the
 
 !!! warning end
     <!-- markdownlint-disable-next-line code-block-style -->
-    If your function returns properties with different names than those
-    you specified in the catalog for the experiment entry, they will be ignored.
+    If your function returns properties with different names than those you have
+    specified in the catalog for the experiment entry, they will be disregarded.
 
 ## Using your custom experiments: the custom_experiments actuator
 
@@ -166,9 +166,9 @@ for the _objective_functions_ actuator called `ml-multicloud-cost-v1.0`.
 
 ### Add a custom experiment to a `discoveryspace`
 
-To use a custom experiment you declare it the `measurementspace` of a
+To use a custom experiment you declare it in the `measurementspace` of a
 `discoveryspaces` - exactly like other experiments. The only difference is you
-used the `custom_experiments` actuator.
+use the `custom_experiments` actuator.
 
 ```yaml
 {% include "../../../examples/optimization_test_functions/space.yaml" %}

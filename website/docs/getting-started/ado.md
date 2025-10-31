@@ -31,7 +31,7 @@ ado [--context | -c <context-file.yaml>] \
 
 - `--context | -c` allows overriding the active context with one loaded from a
   file. This feature should only be used when running on remote Ray clusters.
-- `--log-level | -l` allows configuring the level of logging to be used. This
+- `--log-level | -l` configures the logging level. This
   does not affect child processes.
 
 ### ado context
@@ -49,7 +49,7 @@ ado context [CONTEXT_NAME]
 
 ##### Getting the current context
 
-In a similar way to `oc project`, users can see the name of the currently active
+Similar to `oc project`, users can see the name of the currently active
 context by running:
 
 ```shell
@@ -58,7 +58,7 @@ ado context
 
 ##### Listing available contexts
 
-In a similar way to `oc projects`, users can see the available contexts by
+Similar to `oc projects`, users can list available contexts by
 running:
 
 ```shell
@@ -69,7 +69,7 @@ The default context will also be printed out.
 
 ##### Switching between contexts
 
-To switch between the available contexts, provide the name of the target context
+To switch between the available contexts, specify the target context name
 to the `ado context` command. In this example we assume that the `my-context`
 context exists:
 
@@ -158,7 +158,7 @@ ado create samplestore --new-sample-store
 ##### Creating a space with a new sample store
 
 Note that if the space definition `ds.yaml` contains an `sampleStoreIdentifier`,
-it will be disregarded, and a new one will be created.
+it will be ignored, and a new one will be created.
 
 ```shell
 ado create space -f ds.yaml --new-sample-store
@@ -208,7 +208,7 @@ Where:
     - _space_
 
 - `RESOURCE_ID` is the unique identifier of the resource to delete.
-- `--force` allows forcing deletion of resources in the following cases:
+- `--force` enables forced deletion of resources in the following cases:
     - When attempting to delete operations while other operations are executing.
     - When attempting to delete sample stores that still contain data.
 - When deleting a local context, users can specify the flags `--delete-local-db`
@@ -238,7 +238,7 @@ ado delete space space-abc123-456def
 
 ### ado describe
 
-**ado** provides the `describe` command to retrieve easy-to-read information
+**ado** provides the `describe` command to retrieve readable information
 about resources.
 
 The complete syntax of the `ado describe` command is as follows:
@@ -276,7 +276,7 @@ ado describe space space-abc123-456def
 ### ado edit
 
 **ado** automatically stores metadata in the backend for some of the resources
-you can create. The quickest way to make adjustments to these metadata is to use
+you can create. The fastest way to update these metadata is to use
 the `ado edit` command.
 
 The complete syntax of the `ado edit` command is as follows:
@@ -330,7 +330,7 @@ ADO_EDITOR=nano ado edit space space-abc123-456def
 
 **ado** allows getting resources in a similar way to `kubectl`. Users can choose
 to either get all resources of a given type or specify a resource identifier to
-limit the results to a single resource.
+restrict results to a single resource.
 
 The complete syntax of the `ado get` command is as follows:
 
@@ -392,7 +392,7 @@ Where:
   <https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax>.
   This flag is only supported when using the `yaml`, `json`, or `config` output
   format.
-- `--minimize` attempts to minimize the output. This might entail applying
+- `--minimize` minimizes the output. This might entail applying
   transformations on the model, changing it from the original. If set, it
   implies `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This
   option is ignored when the output type is `default` or `raw`.
@@ -802,7 +802,7 @@ Where:
   metadata. Labels must be specified in the `key=value` format. This flag can be
   specified multiple times (even in conjunction with `-q` to further filter
   results).
-- `--with-property | -p` can be used to display the values of a subset of the
+- `--with-property | -p` displays values for a subset of the
   constitutive properties. Cannot be used when the output format is `md`.
 - `--format | -o` allows choosing the output format in which the information
   should be displayed. Can be one of either:
@@ -863,9 +863,9 @@ ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["gran
 
 ### ado template
 
-To help us in the creation of a resource configuration file, we typically start
+To assist in creating a resource configuration file, we typically start
 from a reference file. The `ado template` command allows you to create template
-files that you can edit to speed up the process.
+files that you can edit to streamline the process.
 
 The complete syntax of the `ado template` command is as follows:
 
@@ -963,7 +963,7 @@ ado template operation --operator-name rifferla
 
 !!! tip
 
-    **`ado` will detect automatically when resources need to be upgraded**
+    **`ado` will detect automatically when resource upgrades are required**
     and will print the exact command to run as a warning. In all other cases, there
     is no need to run this command.
 

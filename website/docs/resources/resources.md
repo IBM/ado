@@ -2,7 +2,7 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 !!! info end
 
-    We recommend to first familiarise yourself with the
+    We recommend first familiarizing yourself with the
     [core-concepts](../core-concepts/concepts.md) before reading about resources.
 
 `ado` manages resources related to discovery, for example descriptions of spaces
@@ -11,7 +11,7 @@ allows you to create resources, which it stores in a database (the
 [metastore](metastore.md)) along with their relationships to other resources.
 You can then describe, list or delete those resources.
 
-The resources are (use side panel to fine out more about each type):
+The resources are (use side panel to find out more about each type):
 
 - **samplestore**: A bucket used to store entities
 - **discoveryspace**: Describes a set of entities along with the experiment
@@ -19,7 +19,7 @@ The resources are (use side panel to fine out more about each type):
 - **operation**: An instance of applying an operator to a DiscoverySpace. For
   example, running an optimization
 - **datacontainer**: A collection of string, tabular or location data. Used to
-  store arbitrary output from `operation`'s.
+  store arbitrary output from operations.
 - **actuatorconfigurations**: A configuration for an actuator.
 
 > [!NOTE]
@@ -60,25 +60,25 @@ Here is a list of common `ado` CLI commands for interacting with resources. See
 the [ado CLI guide](../getting-started/ado.md) for more details
 
 - `ado get [resource type]`
-  - Lists all resource of the requested type
+  - Lists all resources of the requested type
 - `ado get [resource type] [$identifier] -o yaml`
   - Outputs the YAML of resource `$identifier`
 - `ado create [resource type] -f [YAMLFILE]`
-  - Creates the resource of the given type from the definition in "YAMLFILE"
+  - Creates the resource of the specified type from the definition in "YAMLFILE"
 - `ado delete [resource type] [$identifier]`
-  - Deletes the resource of the given type with the provided identifier from the
-    database. See the [deleting resources](#deleting-resources) section for more
-    information and considerations to keep in mind.
+  - Deletes the resource of the specified type with the provided identifier from
+      the database. See the [deleting resources](#deleting-resources) section for
+      more information and considerations to keep in mind.
 - `ado describe [resource type] [$identifier]`
   - Outputs a human-readable description of resource `$identifier`
 - `ado show related [resource type] [$identifier]`
   - List ids of resources related to resource `$identifier`
 - `ado show details [resource type] [$identifier]`
   - Outputs some details on the resource. Usually these are quantities that have
-    to be computed.
+      to be computed.
 - `ado template [resource type] --include-schema`
   - Outputs a default YAML for the given resource along with a schema file
-    explaining the fields.`
+      explaining the fields.`
 
 ### Deleting resources
 
@@ -102,7 +102,7 @@ ERROR:  Cannot delete discoveryspace space-3fbaad-c3a5f6 as it has children reso
                                           IDENTIFIER       TYPE
 0  raytune-1.0.2.dev11+1c62218-bayesopt-b7f779  operation
 
-HINT:   You must delete each of them them first.
+HINT:   You must delete each of them first.
 ```
 
 To proceed, ensure that all child resources are deleted (using the `ado delete`

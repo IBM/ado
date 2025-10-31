@@ -197,7 +197,7 @@ class VLLMPerformanceTest(ActuatorBase):
                     )
 
             # Execute experiment
-            # Note: Here the experiment instance is just past for convenience since we retrieved it above
+            # Note: Here the experiment instance is just passed for convenience since we retrieved it above
             run_resource_and_workload_experiment.remote(
                 request=request,
                 experiment=experiment,

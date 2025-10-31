@@ -162,7 +162,7 @@ class ComponentsYaml:
             vllm_serve_args.append("--enforce-eager")
         if skip_tokenizer_init:
             vllm_serve_args.append("--skip-tokenizer-init")
-        if io_processor_plugin:
+        if io_processor_plugin is not None:
             vllm_serve_args.append("--io-processor-plugin")
             vllm_serve_args.append(io_processor_plugin)
 

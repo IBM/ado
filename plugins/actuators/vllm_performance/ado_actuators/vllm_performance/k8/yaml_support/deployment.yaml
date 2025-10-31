@@ -69,5 +69,3 @@ spec:
             medium: Memory
       nodeSelector:
         nvidia.com/gpu.product: NVIDIA-A100-80GB-PCIe
-        #nvidia.com/gpu.product: Tesla-V100-PCIE-16GB
-        #kubernetes.io/hostname: cpu15

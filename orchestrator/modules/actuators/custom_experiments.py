@@ -188,15 +188,16 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
-        experiment = self._catalog.experimentForReference(request.experimentReference)
-        if experimentReference.parameterization:
-            experiment = ParameterizedExperiment(
-                parameterization=experimentReference.parameterization,
-                **experiment.model_dump(),
-            )
-
-        function = experiment.metadata.get("function", experiment.identifier)
+        function = targetExperiment.metadata.get(
+            "function", targetExperiment.identifier
+        )
         self.log.debug(f"Calling custom experiment {function}")
+
+        if experimentReference.parameterization:
+            targetExperiment = ParameterizedExperiment(
+                parameterization=experimentReference.parameterization,
+                **targetExperiment.model_dump(),
+            )
 
         await custom_experiment_wrapper(
             self._functionImplementations[

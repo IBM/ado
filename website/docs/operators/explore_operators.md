@@ -2,12 +2,12 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 A core task is sampling and measuring `entities` from a `discoveryspace` and
 this is the objective of explore `operators`. In fact, other than copying data
-from an external source, `operations`using _explore_ `operators` are the only
+from an external source, ``operations` using _explore_ `operators` are the only
 way new entities can be sampled and measurements performed.
 
 Because `operations` of the explore operators do more than just modify or
 analyse data, but result in measurements being executed and `entities` being
-placed in the `samplestore`, its worth diving into the in more detail.
+placed in the `samplestore`, it's worth diving into them in more detail.
 
 ## Timeseries
 
@@ -22,7 +22,7 @@ ado show entities operation $OPERATION_IDENTIFIER
 this will output a table of the entities in the order they were sampled during
 the operation.
 
-Programmatically you can access this information by modifying the follow snippet
+You can access this information programmatically by modifying the following snippet
 
 <!-- markdownlint-disable line-length -->
 ```python
@@ -94,7 +94,7 @@ time the experiment was applied to that entity.
 What if you switch it on but an entity has multiple measurements of the same
 experiment? In this case _each existing measurement is replayed_. In our
 example, this would mean if an entity has had `myexperiment-v1` applied twice,
-and then is sample again with replay on, two measurements will be replayed: the
+and then is sampled again with replay on, two measurements will be replayed: the
 first and the second.
 
 ### Failed measurements

@@ -54,14 +54,26 @@ class VLLMPerformanceTest(ActuatorBase):
     ) -> ExperimentCatalog:
         """Returns the Experiments your actuator provides"""
 
-        # The catalog be formed in code here or read from a file containing the Experiments models
-        # This shows reading from a file
-
+        # Loading experiment definitions for yaml files contained in the `experiments` directory.
+        # NOTE: Only files can be placed in the experiments directory,
+        #       but each file can contain multiple experiment definitions
         path = os.path.abspath(__file__)
-        path = os.path.split(path)[0]
-        with open(os.path.join(path, "experiments.yaml")) as f:
-            data = yaml.safe_load(f)
-            experiments = [Experiment(**data[e]) for e in data]
+        exp_dir = os.path.join(os.path.split(path)[0], "experiments")
+        experiments = []
+        for exp_file in os.listdir(exp_dir):
+            logger.debug(f"Loading experiments from {exp_file}")
+            exp_file_path = os.path.join(exp_dir, exp_file)
+            if os.path.isdir(exp_file_path):
+                logger.error(f"{exp_file_path} is a directory. Only files are supported in the experiments directory")
+                raise Exception(f"{exp_file_path} is a directory. Only files are supported in the experiments directory")
+            with open(exp_file_path) as f:
+                try:
+                    data = yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    logger.error(f"File {exp_file} is a malformed YAML - {e}")
+                    raise Exception (f"File {exp_file} is a malformed YAML - {e}")
+
+            experiments.extend([Experiment(**data[e]) for e in data])
 
         return ExperimentCatalog(
             catalogIdentifier=cls.identifier,

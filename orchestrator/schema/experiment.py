@@ -654,7 +654,7 @@ class Experiment(pydantic.BaseModel):
             return False
 
         # It has the required properties with valid values but there are additional properties
-        # See if these properties are optional propertiesof the experiment
+        # See if these properties are optional properties of the experiment
         potential_optional_properties: set[str] = point.keys() - {
             cp.identifier for cp in self.requiredProperties
         }

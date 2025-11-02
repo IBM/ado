@@ -26,6 +26,7 @@ class VariableTypeEnum(str, enum.Enum):
     BINARY_VARIABLE_TYPE = "BINARY_VARIABLE_TYPE"  # the value of the variable is binary
     UNKNOWN_VARIABLE_TYPE = "UNKNOWN_VARIABLE_TYPE"  # the type of value of the variable is unknown/unspecified
     IDENTIFIER_VARIABLE_TYPE = "IDENTIFIER_VARIABLE_TYPE"  # the value is some type of, possible unique, identifier
+    VECTOR_VARIABLE_TYPE = "VECTOR_VARIABLE_TYPE"  # the value is a vector
 
 
 class ProbabilityFunctionsEnum(str, enum.Enum):
@@ -416,6 +417,10 @@ class PropertyDomain(pydantic.BaseModel):
         elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
             assert values.data.get("interval") is None
             assert values.data.get("domainRange") is None
+        elif value == VariableTypeEnum.VECTOR_VARIABLE_TYPE:
+            raise ValueError(
+                "Vector variables are not supported by PropertyDomain - use VectorPropertyDomain instead"
+            )
 
         return value
 

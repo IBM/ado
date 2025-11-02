@@ -2,11 +2,32 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.schema.domain import PropertyDomain
+from orchestrator.schema.vector_domain import VectorPropertyDomain
+
+
+def domain_type_discriminator(domain):
+
+    if isinstance(domain, PropertyDomain):
+        return "scalar"
+    if isinstance(domain, VectorPropertyDomain):
+        return "vector"
+    if isinstance(domain, dict):
+        return "vector" if domain.get("element_domain") else "scalar"
+
+    raise ValueError(f"Unable to determine domain type for domain: {domain}")
+
+
+Domain = Annotated[
+    Annotated[PropertyDomain, pydantic.Tag("scalar")]
+    | Annotated[VectorPropertyDomain, pydantic.Tag("vector")],
+    pydantic.Discriminator(domain_type_discriminator),
+]
 
 
 class MeasuredPropertyTypeEnum(str, enum.Enum):
@@ -117,7 +138,7 @@ class Property(pydantic.BaseModel):
     metadata: dict | None = pydantic.Field(
         default=None, description="Metadata on the property"
     )
-    propertyDomain: PropertyDomain = pydantic.Field(
+    propertyDomain: Domain = pydantic.Field(
         default=PropertyDomain(),
         description="Provides information on the variable type and the valid values it can take",
     )

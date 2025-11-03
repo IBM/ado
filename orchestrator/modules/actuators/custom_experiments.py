@@ -26,7 +26,7 @@ from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
-from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.experiment import Experiment,  ParameterizedExperiment
 from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
@@ -650,6 +650,12 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
+
+        if experimentReference.parameterization:
+            targetExperiment = ParameterizedExperiment(
+                parameterization=experimentReference.parameterization,
+                **targetExperiment.model_dump(),
+            )
 
         await custom_experiment_wrapper(
             self._functionImplementations[

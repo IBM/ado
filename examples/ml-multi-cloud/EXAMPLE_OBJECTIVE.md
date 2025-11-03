@@ -134,7 +134,7 @@ The complete `discoveryspace` for this example is given in
 `ml_multicloud_space_with_custom.yaml` To create it execute:
 
 ```commandline
-ado create space -f ml_multicloud_space_with_custom.yaml --use-default-sample-store
+ado create space -f ml_multicloud_space_with_custom.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
 ```
 
 > [!IMPORTANT]

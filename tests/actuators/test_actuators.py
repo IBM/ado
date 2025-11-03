@@ -131,3 +131,40 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
 
     for e in catalog.experiments:
         assert c.experimentForReference(e.reference) is not None
+
+
+def test_execute_nevergrad_opt_3d_test_func(experiment_catalogs):
+    import orchestrator.modules.actuators.registry
+    import orchestrator.schema.request
+    from orchestrator.schema.point import SpacePoint
+    from orchestrator.utilities.run_experiment import local_execution_closure
+
+    execute = local_execution_closure(
+        registry=orchestrator.modules.actuators.registry.ActuatorRegistry()
+    )
+
+    point = SpacePoint(
+        entity={"x0": 1, "x1": 2, "x2": -1},
+        experiments=[
+            orchestrator.schema.reference.ExperimentReference(
+                actuatorIdentifier="custom_experiments",
+                experimentIdentifier="nevergrad_opt_3d_test_func",
+            )
+        ],
+    )
+    entity = point.to_entity()
+    request: orchestrator.schema.request.MeasurementRequest = execute(
+        point.experiments[0], entity
+    )
+
+    assert request is not None
+    assert (
+        request.status
+        == orchestrator.schema.request.MeasurementRequestStateEnum.SUCCESS
+    )
+    assert request.measurements is not None
+    assert len(request.measurements) == 1
+    assert request.measurements[0].entityIdentifier == entity.identifier
+    assert isinstance(
+        request.measurements[0], orchestrator.schema.result.ValidMeasurementResult
+    )

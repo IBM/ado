@@ -16,6 +16,7 @@ from orchestrator.schema.property import (
 
 logger = logging.getLogger("property_value")
 
+
 class ValueTypeEnum(str, enum.Enum):
     NUMERIC_VALUE_TYPE = "NUMERIC_VALUE_TYPE"  # the value is a bool,int, float etc.
     VECTOR_VALUE_TYPE = "VECTOR_VALUE_TYPE"  # the value is a 1-D list or vector, possible of mixed other value types

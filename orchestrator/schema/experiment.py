@@ -636,14 +636,16 @@ class Experiment(pydantic.BaseModel):
         }
         if validate_point_against_properties(
             point,
-            constitutive_properties=self.requiredConstitutiveProperties + list(self.optionalProperties),
+            constitutive_properties=self.requiredConstitutiveProperties
+            + list(self.optionalProperties),
         ):
             return True
 
         # It's not an exact match - check if partial match
         if not validate_point_against_properties(
             point,
-            constitutive_properties=self.requiredConstitutiveProperties + list(self.optionalProperties),
+            constitutive_properties=self.requiredConstitutiveProperties
+            + list(self.optionalProperties),
             allow_partial_matches=True,
         ):
             # no partial match - missing required properties or has incorrect values for them

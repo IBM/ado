@@ -26,7 +26,7 @@ from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
-from orchestrator.schema.experiment import Experiment,  ParameterizedExperiment
+from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,

@@ -28,8 +28,14 @@ def semver_cmp(v1: tuple[int, ...], v2: tuple[int, ...]) -> int:
         NotImplementedError:
             If the two semver versions do not consist of the same number of integers
     """
-    if len(v1) != len(v2):
-        raise NotImplementedError("Cannot compare semvers of different length", v1, v2)
+    max_len = max(len(v1), len(v2))
+
+    if max_len != len(v1):
+        v1 = tuple(list(v1) + [0] * (max_len - len(v1)))
+
+    if max_len != len(v2):
+        v1 = tuple(list(v2) + [0] * (max_len - len(v2)))
+
     if v1 < v2:
         return -1
     if v2 < v1:

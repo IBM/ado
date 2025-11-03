@@ -4,14 +4,9 @@
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoShowEntitiesCommandParameters
-from orchestrator.cli.models.types import (
-    AdoShowEntitiesSupportedPropertyFormats,
-)
 from orchestrator.cli.utils.output.dataframes import df_to_output
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
-    WARN,
-    console_print,
 )
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.base import (
@@ -23,21 +18,6 @@ from orchestrator.metastore.base import (
 def show_operation_entities(parameters: AdoShowEntitiesCommandParameters):
 
     entities_type = "timeseries"
-    supported_property_formats = [
-        AdoShowEntitiesSupportedPropertyFormats.OBSERVED,
-        AdoShowEntitiesSupportedPropertyFormats.TARGET,
-    ]
-
-    if parameters.entities_property_format not in supported_property_formats:
-        console_print(
-            f"{WARN}The {parameters.entities_property_format.value} property format "
-            f"is not supported for operations. "
-            f"Will default to {AdoShowEntitiesSupportedPropertyFormats.OBSERVED.value}.",
-            stderr=True,
-        )
-        parameters.entities_property_format = (
-            AdoShowEntitiesSupportedPropertyFormats.OBSERVED
-        )
 
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         try:

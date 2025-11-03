@@ -4,16 +4,16 @@
 
     A complete example operator is provided
     [here](https://github.com/IBM/ado/tree/main/plugins/operators/profile_space).
-    This example operator is functional, and useful, out-of-the-box. It can be used
+    This example operator is functional, and useful out of the box. It can be used
     as the basis to create new operators. It references this document to help tie
-    details here to implementation.
+    details here to the implementation.
 
 Developers can write their own [operator](working-with-operators.md) plugins to
 add new operations that work on `discoveryspaces` to `ado`. Operator plugins are
-written in python and can live in their own repository.
+written in Python and can live in their own repository.
 
 The main part of writing an operator plugin, from an integration standpoint, is
-**writing a python function that implements a specific interface.** `ado` will
+**writing a Python function that implements a specific interface.** `ado` will
 call this function to execute an operation with your operator. From this
 function you then call your operator logic (or in many cases it can just live in
 this function).
@@ -24,13 +24,13 @@ After reading this page the best resource is to check
 
 ## Knowledge required
 
-- Knowledge of python
+- Knowledge of Python
 - Knowledge of [pydantic](https://docs.pydantic.dev/latest/) is useful, but not
   necessary
 
 ## `ado` operator functions
 
-An operator function is a decorated python function with a specific signature.
+An operator function is a decorated Python function with a specific signature.
 To execute your operator `ado` will call your function and expect it to return
 output in a given way. Below is an example of such a decorated function. The
 next sections describe the decorator, its parameters, and the structure of the
@@ -55,7 +55,7 @@ def detect_anomalous_series(
         operationInfo: typing.Optional[FunctionOperationInfo] = None,
         **parameters,
 ) -> OperationOutput:
-    # Your operation logic - can also call other python modules etc.
+    # Your operation logic - can also call other Python modules etc.
     ...
     return operationOutput
 ```
@@ -63,7 +63,7 @@ def detect_anomalous_series(
 
 ### Operator Type
 
-The first thing you need to do is decided what type of operator you are
+The first thing you need to do is decide what type of operator you are
 creating. The choices are
 [explore, characterize, learn, modify, fuse, export, or compare](working-with-operators.md).
 You then import the decorator for this operator type from
@@ -419,9 +419,11 @@ def my_learning_operation(...):
     ...
 ```
 
-> [!IMPORTANT] The name used to call an operator function is the name of the
+> [!IMPORTANT]
+>
+> The name used to call an operator function is the name of the
 > operator. This is the name given to the decorator `name` parameter and is the
-> name show by `ado get operators`
+> name shown by `ado get operators`
 
 You access the data of the operation from the OperationOutput instance it
 returns. Any `ado` resources the nested operation creates will have been
@@ -513,17 +515,17 @@ The key to making it an ado plugin is having a
 
 ```yaml
 [project]
-name = "ado-ray-tune" #Note this is the distribution name of the python package. Your ado operator(s) can have different ado identifier
+name = "ado-ray-tune" #Note: this is the distribution name of the Python package. Your ado operator(s) can have different ado identifier
 version = "0.1.0"
 dependencies = [
   #Dependencies
 ]
 
 [project.entry-points."ado.operators"]
-ado-ray-tune = "ado_ray_tune.operator_function" # The key is the distribution name of your python package and the value is the python module in your package containing your decorated operator function
+ado-ray-tune = "ado_ray_tune.operator_function" # The key is the distribution name of your Python package and the value is the Python module in your package containing your decorated operator function
 ```
 
-This references the python module (file) that contains your operator function
+This references the Python module (file) that contains your operator function
 
 > [!NOTE]
 >

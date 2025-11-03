@@ -15,11 +15,20 @@ from orchestrator.cli.models.types import (
 from orchestrator.cli.resources.discovery_space.show_summary import (
     show_discovery_space_summary,
 )
-from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
-from orchestrator.cli.utils.output.prints import ERROR, console_print
+from orchestrator.cli.utils.input.parsers import (
+    parse_core_resource_kinds,
+    parse_key_value_pairs,
+)
+from orchestrator.cli.utils.output.prints import (
+    ERROR,
+    console_print,
+    latest_identifier_for_resource_not_found,
+    using_latest_identifier_for_resource,
+)
 from orchestrator.cli.utils.queries.parser import (
     prepare_query_filters_for_db,
 )
+from orchestrator.core import CoreResourceKinds
 from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
@@ -50,6 +59,15 @@ def show_summary_for_resources(
             show_default=False,
         ),
     ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Adds the latest identifier of the selected resource type to "
+            "the identifiers to show a summary for.",
+            show_default=False,
+        ),
+    ] = False,
     query: Annotated[
         list[str] | None,
         typer.Option(
@@ -134,9 +152,15 @@ def show_summary_for_resources(
 
 
 
-    # Show a high-level summary of the discovery space as a markdown table
+    # Show a high-level summary of the discovery space as a Markdown table
 
     ado show summary space <space-id>
+
+
+
+    # Show a high-level summary of the latest discovery space as a Markdown table
+
+    ado show summary space --use-latest
 
 
 
@@ -146,11 +170,33 @@ def show_summary_for_resources(
 
 
 
-    # Show a detailed summary of the discovery space as a markdown document
+    # Show a detailed summary of the discovery space as a Markdown document
 
     ado show summary space <space-id> -o md
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    resource_kind = CoreResourceKinds(parse_core_resource_kinds(resource_type.value))
+    resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
+    if not resource_id:
+        console_print(
+            latest_identifier_for_resource_not_found(
+                resource_kind=resource_kind, hide_resource_in_flag=True
+            ),
+            stderr=True,
+        )
+        raise typer.Exit(1)
+    console_print(
+        using_latest_identifier_for_resource(
+            resource_kind=resource_kind, resource_identifier=resource_id
+        ),
+        stderr=True,
+    )
+
+    if ids:
+        ids.append(resource_id)
+    else:
+        ids = [resource_id]
 
     try:
         query = prepare_query_filters_for_db(parse_key_value_pairs(query))

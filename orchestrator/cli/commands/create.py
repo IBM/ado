@@ -38,6 +38,7 @@ from orchestrator.metastore.base import (
 from orchestrator.modules.actuators.registry import UnknownExperimentError
 
 CREATE_OPERATION_PANEL_NAME = "Operation-specific options"
+CREATE_SPACE_PANEL_NAME = "Space-specific options"
 
 
 def resource_type_callback(
@@ -107,10 +108,10 @@ def create_resource(
         typer.Option(
             "--new-sample-store",
             help="Request and use a new, empty sample store. Available only for space and sample store. "
-            "Ignored if --set or --with-latest are used.",
+            "Ignored if --set or --use-latest are used.",
         ),
     ] = False,
-    with_latest: Annotated[
+    use_latest: Annotated[
         list[CoreResourceKinds] | None,
         typer.Option(
             show_default=False,
@@ -136,6 +137,16 @@ def create_resource(
             """,
         ),
     ] = None,
+    use_default_sample_store: Annotated[
+        bool,
+        typer.Option(
+            "--use-default-sample-store",
+            rich_help_panel=CREATE_SPACE_PANEL_NAME,
+            help="Request and use the default sample store. Available only for spaces. "
+            "Ignored if --set, --use-latest, or --new-sample-store are used."
+            "Alias for --set sampleStoreIdentifier=default.",
+        ),
+    ] = False,
     dry_run: Annotated[
         bool,
         typer.Option(
@@ -210,7 +221,8 @@ def create_resource(
         override_values=override_values,
         resource_configuration_file=resource_configuration,
         resource_type=resource_type,
-        with_latest=with_latest,
+        use_default_sample_store=use_default_sample_store,
+        use_latest=use_latest,
     )
 
     method_mapping = {

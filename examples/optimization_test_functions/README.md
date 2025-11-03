@@ -37,14 +37,13 @@ of finding the minimum of standard optimization test functions.
 
 ### Install the ray_tune ado operator
 
-If you haven't already installed the ray_tune operator, run (assumes you are in
-`examples/optimization-test-functions/` ):
+If you haven't already installed the ray_tune operator, run:
 
 ```commandline
-pip install ../../plugins/operators/ray_tune
+pip install ado-ray-tune
 ```
 
-then executing
+then, executing
 
 ```commandline
 ado get operators
@@ -138,26 +137,19 @@ function in 3d, from [-10,10] in each dimension. To create the space execute
 Then:
 
 ```commandline
-ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+ado create space -f space.yaml --use-default-sample-store
 ```
-
-where `$SAMPLE_STORE_IDENTIFIER` is the identifier of the
-[samplestore](/ado/resources/sample-stores/#creating-a-samplestore) you want to
-use to store the results.
 
 > [!NOTE]
 >
-> This can be the same `samplestore` used in another example.
->
-> `samplestores` can store samples and measurement from multiple different
+> `samplestores` can store samples and measurements from multiple different
 > experiments and `discoveryspaces`.
 
 This will output a `discoveryspace` id you can use to run an optimization
-operation. In the following sections we will refer to this id as
-`$DISCOVERY_SPACE_IDENTIFIER`.
+operation.
 
-Assuming you did not modify `space.yaml` running
-`ado describe space $DISCOVERY_SPACE_IDENTIFIER` will output (identifiers will
+Assuming you did not modify `space.yaml`, running
+`ado describe space --use-latest` will output (identifiers will
 be different):
 
 ```text
@@ -222,7 +214,7 @@ ado get spaces
 ```
 
 This will output a list of the spaces created. If this is the first time you
-have are following this example it will contain one entry, the identifier of the
+are following this example it will contain one entry, the identifier of the
 space you just created above.
 
 ### Run an optimization
@@ -232,11 +224,8 @@ The file `operation_bayesopt.yaml` is an example of running
 via RayTune. To run execute the following:
 
 ```commandline
-ado create operation -f operation_bayesopt.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f operation_bayesopt.yaml --use-latest space
 ```
-
-replacing `$DISCOVERY_SPACE_IDENTIFIER` with the identifier obtained in the
-previous step.
 
 This will run the optimization for 40 steps. You will see a lot of information
 from RayTune on the progress of the optimization. At the end you will see output
@@ -327,7 +316,7 @@ information on the best configuration found.
 To get the id of the `datacontainer` related to the `operation` use:
 
 ```commandline
-ado show related operation $OPERATION_IDENTIFIER
+ado show related operation --use-latest
 ```
 
 This will output something like:
@@ -387,10 +376,9 @@ where `function_value` was ~20.8.
 To see the configurations visited during the optimization, execute:
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show entities operation --use-latest
 ```
 
-where `$OPERATION_IDENTIFIER` is the identifier of the operation you just ran.
 This will output a dataframe containing the results of that operation.
 
 ### Operation resource YAML
@@ -402,6 +390,7 @@ options used, execute:
 ado get operation $OPERATION_IDENTIFIER -o yaml
 ```
 
+Where `$OPERATION_IDENTIFIER` is the identifier of the operation you just ran.
 This will output the details of this operation in YAML format - this will be the
 same YAML as shown in the previous section.
 
@@ -491,7 +480,7 @@ to find out more.
   can set to change what they do. When experiment is parameterized it will have
   a different id including the parameterization to differentiate it from the
   base experiment.
-- **custom experiments**: You can add your own python functions as experiments
+- **custom experiments**: You can add your own Python functions as experiments
   using `ado`'s custom experiments feature.
 - **continuous dimensions**: `ado` supports `discoveryspaces` with continuous
   dimensions - however in this case memoization is unlikely to provide benefit

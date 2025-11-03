@@ -659,6 +659,7 @@ class Experiment(pydantic.BaseModel):
                 f"properties are not required or optional properties of {self.identifier}:"
                 f"{additional_properties_present} "
             )
+            return False
 
         # Check if all the required properties are present with values in domain
         if not validate_point_against_properties(

@@ -232,7 +232,7 @@ def validate_point_against_properties(
             logger.warning(
                 f"Property {constitutive_property.identifier}({point[constitutive_property.identifier]}) "
                 "is not in the target consitutive property "
-                f"domain ({constitutive_property.propertyDomain.domainRange})"
+                f"domain ({constitutive_property.propertyDomain.domain_values()})"
             )
             return False
 

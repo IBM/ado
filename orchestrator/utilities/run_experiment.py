@@ -68,33 +68,32 @@ def local_execution_closure(
         reference: ExperimentReference, entity: Entity
     ) -> MeasurementRequest:
         # instantiate the actuator for this experiment identifier.
-        experiment = registry.experimentForReference(reference)
-        if experiment.actuatorIdentifier not in actuators:
+        if reference.actuatorIdentifier not in actuators:
             actuator_class = registry.actuatorForIdentifier(
-                experiment.actuatorIdentifier
+                reference.actuatorIdentifier
             )
-            if experiment.actuatorIdentifier in actuator_configurations:
+            if reference.actuatorIdentifier in actuator_configurations:
                 config = actuator_configurations[
-                    experiment.actuatorIdentifier
+                    reference.actuatorIdentifier
                 ].parameters
             else:
                 config = actuator_class.default_parameters()
 
-            actuators[experiment.actuatorIdentifier] = actuator_class.remote(
+            actuators[reference.actuatorIdentifier] = actuator_class.remote(
                 queue=queue, params=config
             )
-        actuator = actuators[experiment.actuatorIdentifier]
+        actuator = actuators[reference.actuatorIdentifier]
         # Submit the measurement request asynchronously, handle errors gracefully.
         try:
             actuator.submit.remote(
                 entities=[entity],
-                experimentReference=experiment.reference,
+                experimentReference=reference,
                 requesterid="run_experiment",
                 requestIndex=0,
             )
         except Exception as e:
             print(
-                f"[ERROR] Failed to submit measurement request to actuator '{experiment.actuatorIdentifier}': {e}"
+                f"[ERROR] Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}': {e}"
             )
             import traceback
 
@@ -249,7 +248,7 @@ def run(
             print("Skipping validation")
 
         if valid:
-            print(f"Executing: {reference.experimentIdentifier}")
+            print(f"Executing: {reference}")
             request = execute(reference, entity)
             if request is None:
                 print(

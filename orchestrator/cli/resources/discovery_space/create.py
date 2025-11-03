@@ -32,12 +32,12 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
 
     if (
         parameters.new_sample_store
-        and parameters.with_latest
-        and CoreResourceKinds.SAMPLESTORE in parameters.with_latest
+        and parameters.use_latest
+        and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
     ):
         console_print(
             f"{ERROR}You can only set one of --new-sample-store "
-            f"and --with-latest {CoreResourceKinds.SAMPLESTORE.value}",
+            f"and --use-latest {CoreResourceKinds.SAMPLESTORE.value}",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -58,8 +58,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             model=space_configuration, override_values=parameters.override_values
         )
     elif (
-        parameters.with_latest
-        and CoreResourceKinds.SAMPLESTORE in parameters.with_latest
+        parameters.use_latest and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
     ):
 
         latest_recorded_sample_store = (

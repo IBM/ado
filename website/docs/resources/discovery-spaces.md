@@ -8,7 +8,7 @@
 
 ### Pre-requisites
 
-In order to create a `discoveryspace` you must provide a `samplestore` that the
+In order to create a `discoveryspace`, you must provide a `samplestore` that the
 `discoveryspace` will use for storage. To see existing `samplestores` run:
 
 ```commandline
@@ -16,16 +16,15 @@ ado get samplestores
 ```
 
 Alternatively, if there is no existing store, when creating the space you can
-use the `---new-sample-store` flag. See the [samplestores](sample-stores.md)
+use the `--new-sample-store` flag. See the [samplestores](sample-stores.md)
 documentation for more details.
 
 ### Discovery Space configuration YAML
 
 !!! info end
 
-    You can execute
-    `commandline ado template space --include-schema` to output example YAML
-    and full schema information for `discoveryspace`
+    You can execute `ado template space --include-schema` to output
+    example YAML and full schema information for `discoveryspace`
 
 An example `discoveryspace` is given below. Note, the values in this YAML are
 for illustrative purposes and need to be changed to define a valid space.
@@ -47,8 +46,8 @@ metadata:
 
 The
 [describing constitutive properties](#defining-the-domains-of-constitutive-properties-in-the-entityspace)
-has more information on the options available for defining constitutive
-properties.
+page provides more information on the available options for defining
+constitutive properties.
 
 Once you have your `discoveryspace` YAML in a file called `FILE.yaml` create it
 with
@@ -59,13 +58,13 @@ ado create space -f FILE.yaml
 
 If there are errors or inconsistencies in the space definition the create
 command will output an error. A common reason for inconsistency is that the
-properties defined in the entity-space do not match the properties required for
+properties defined in the entity space do not match the properties required for
 the experiments in the measurement space. The next section shows a way to handle
 this issue.
 
 ### Generating an initial YAML from an Experiment list
 
-Given a list of experiment ids, that you want to use for the `measurementspace`,
+Given a list of experiment ids that you want to use for the `measurementspace`,
 you can create an initial compatible `discoveryspace` which you can then edit.
 See
 [constitutive properties and domains](#defining-the-domains-of-constitutive-properties-in-the-entityspace)
@@ -98,14 +97,14 @@ contents, filtering just the `entities` that match its description.
 To be more rigorous, given a `discoveryspace` you can apply this filter in two
 ways:
 
-1. Filter `entities` that were placed in the `samplestore` via an operation the
-   `discoveryspace`
+1. Filter `entities` that were placed in the `samplestore` via an operation
+   on the `discoveryspace`
 2. Filter `entities` in the `samplestore` that match the `discoveryspace`
 
 To understand the difference in these two methods imagine two overlapping
 `discoveryspaces`, A and B, that use the same `samplestore`. If someone uses
 method one on `discoveryspace` A, they will only see the `entities` placed there
-by operations on `discoveryspace` A. However if someone uses method two on
+by operations on `discoveryspace` A. However, if someone uses method two on
 `discoveryspace` A, they will see `entities` placed there via operations on both
 `discoveryspace` A and space B.
 
@@ -137,7 +136,7 @@ are two lists of entities this could show. The command above will use filter
 `discoveryspace`.
 
 If you want to use filter (2) - `entities` in the `samplestore` that match the
-`discoveryspace` - use.
+`discoveryspace` - use:
 
 ```commandline
 ado show entities space --include matching

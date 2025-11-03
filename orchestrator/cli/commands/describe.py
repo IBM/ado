@@ -18,9 +18,11 @@ from orchestrator.cli.models.types import AdoDescribeSupportedResourceTypes
 from orchestrator.cli.resources.data_container.describe import describe_data_container
 from orchestrator.cli.resources.discovery_space.describe import describe_discovery_space
 from orchestrator.cli.resources.experiment.describe import describe_experiment
+from orchestrator.cli.utils.generic.common import get_effective_resource_id
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
+    cyan,
 )
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
@@ -35,6 +37,7 @@ if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
 
 EXPERIMENT_ONLY_OPTIONS = "Experiment-only options"
+SPACE_ONLY_OPTIONS = "Space-only options"
 
 
 def describe_resource(
@@ -55,6 +58,16 @@ def describe_resource(
             show_default=False,
         ),
     ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Describe the space using the latest space identifier created. "
+            "Ignored if a resource identifier is also specified.",
+            rich_help_panel=SPACE_ONLY_OPTIONS,
+            show_default=False,
+        ),
+    ] = False,
     resource_configuration: Annotated[
         pathlib.Path | None,
         typer.Option(
@@ -110,6 +123,21 @@ def describe_resource(
     ado describe experiment <experiment-id> --actuator-id <actuator-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    if use_latest:
+
+        if resource_type != AdoDescribeSupportedResourceTypes.DISCOVERY_SPACE:
+            console_print(
+                f"{ERROR}The {cyan('--use-latest')} flag is available only for spaces.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            ado_configuration=ado_configuration,
+        )
 
     if not (resource_id or resource_configuration) or (
         resource_id and resource_configuration

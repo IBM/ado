@@ -1,7 +1,7 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 > [!NOTE]
 >
-> We recommend to read about [Discovery Spaces](discovery-spaces.md) before
+> We recommend reading about [Discovery Spaces](discovery-spaces.md) before
 > reading this document.
 
 In `ado` Entities and measurement results are stored in a database called
@@ -14,13 +14,13 @@ points are key:
 
 - You can **share** a Sample Store between multiple Discovery Spaces
   - This allows a Discovery Space to (re)use relevant Entities and Measurements
-    placed in the Sample Store by operations on other Discovery Spaces
+    stored in the Sample Store by operations on other Discovery Spaces
 - **Entities are always shared**. There is only one entry in a Sample Store for
   an Entity
 
 > [!NOTE]
 >
-> To maximise the chance of data-reuse, similar Discovery Spaces should use the
+> To maximize the chance of data-reuse, similar Discovery Spaces should use the
 > same Sample Store. However, Discovery Spaces do not have to be similar to use
 > the same Sample Store.
 
@@ -32,7 +32,7 @@ There are two situations where data can be shared between Discovery Spaces in
 - **Data Retrieval**: retrieving data about entities and measurements from the
   Discovery Space e.g. `ado show entities space`
 - **Data Generation**: When performing an explore operation on a Discovery
-  Space - we call data reuse in this case `memoization`
+  Space - this type of data reuse is called `memoization`
 
 ## How `ado` determines what data can be shared
 
@@ -54,7 +54,7 @@ of the Entities.
 
 ### Measurements
 
-Each Experiment in a Measurement Space also has a unique identifier, determined
+Each experiment in a Measurement Space has a unique identifier, determined
 from its base name plus any optional properties that have been explicitly set.
 When an Entity is retrieved from the Sample Store, it contains results of all
 the experiments that have been applied to it. If the identifier of a result

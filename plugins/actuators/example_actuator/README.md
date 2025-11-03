@@ -1,29 +1,30 @@
-# Example actuator
+# Example Actuator
 
 This repository contains an example for creating an actuator for `ado`.
 
-For more about Actuators, what they represent, how to create them etc., see the
-`ado` [docs](https://ibm.github.io/ado/actuators/working-with-actuators/).
+For more about actuators - what they represent, how to create them, etc. - see
+the  
+[`ado` documentation](https://ibm.github.io/ado/actuators/working-with-actuators/).
 
-This example defines an actuator called "robotic_lab" with one experiment called
-"peptide_mineralization". The example is fully installable and works as is - the
-only caveat being it makes up properties it measures.
+This example defines an actuator called `robotic_lab` with one experiment called
+`peptide_mineralization`. The example is fully installable and works as-is,  
+the only caveat being that it uses made up properties for measurement.
 
 ## Installing
 
-To install run in the directory with this README
+To install, run the following command in the directory containing this README:
 
-```commandline
+```bash
 pip install .
 ```
 
-You can then confirm its installed with
+You can then confirm it's installed with:
 
-```commandline
+```bash
 ado get actuators --details
 ```
 
-You will see
+You will see:
 
 ```commandline
    ACTUATOR ID   CATALOG ID           EXPERIMENT ID  SUPPORTED
@@ -32,40 +33,37 @@ You will see
 2  robotic_lab  robotic_lab  peptide_mineralization       True
 ```
 
-On the last line you can see the new actuator and the experiment
+On the last line, you can see the new actuator and its experiment.
 
-## Create a `discoveryspace` and operation
+## Create a `discoveryspace` and Operation
 
-You can create a `discoveryspace` and run `operations` on it with this example
-actuator. The files in `yamls/` give some examples.
+You can create a `discoveryspace` and run `operations` on it using this example
+actuator. The files in `yamls/` provide some examples.
 
-```commandline
+```bash
 ado create samplestore --new-sample-store
 ```
 
 A `samplestore` is a database for storing entities and measurement results. It
-can be reused with multiple `discoveryspaces`. The above command will output an
-identifier, record this for the next step. We will refer to it as
-`$SAMPLE_STORE_IDENTIFIER`.
+can be reused with multiple `discoveryspaces`.
 
-1. Create a [discoveryspace](https://ibm.github.io/ado/resources/discovery-spaces/)
+1. Create a [discoveryspace](https://ibm.github.io/ado/resources/discovery-spaces/):
 
-    ```commandline
-    ado create space -f yamls/discoveryspace.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+    ```bash
+    ado create space -f yamls/discoveryspace.yaml --use-latest samplestore
     ```
 
-    Record the id output by above. We will refer to it as
-    `$DISCOVERY_SPACE_IDENTIFIER`. At this point you can also `ado get` or
-    `ado describe` the `discoveryspace`
+    You can use `ado get` or `ado describe` on the `discoveryspace` using
+    the identifier output by the command above.
 
-2. Create a random walk [operation](https://ibm.github.io/ado/resources/operation/)
+2. Create a random walk [operation](https://ibm.github.io/ado/resources/operation/):
 
-    ```commandline
-    ado create operation -f yamls/random_walk_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+    ```bash
+    ado create operation -f yamls/random_walk_operation.yaml --use-latest space
     ```
 
-At this point you can try `ado show entities` to get entities sampled, or apply
-other Operators. The actuator is already fully integrated in `ado` - all you
+At this point, you can try `ado show entities` to get sampled entities or apply
+other operators. The actuator is already fully integrated with `ado`: all you
 need to do is have it perform "real" experiments.
 
 ## Parameterizable Experiments
@@ -75,58 +73,59 @@ experiment that define optional properties with default values. Users can then
 create different variants of the base experiment by changing defaults or moving
 optional properties into the entity space.
 
-Some examples of how parameterizable experiment can be used are:
+Some examples of how parameterizable experiments can be used:
 
-- [discoveryspace_override_defaults.yaml](yamls/discoveryspace_override_defaults.yaml)
-  - Shows changing the default of one of the optional properties
-- [discoveryspace_optional_parameter_in_entity_space.yaml](yamls/discoveryspace_optional_parameter_in_entity_space.yaml)
-  - Shows using one of the optional parameters to define the Entities in the
-    entity space
-- [discoveryspace_multiple_parameterizations](yamls/discoveryspace_multiple_parameterizations.yaml)
-  - Shows using two parameterizations of the same base experiment
+- [`discoveryspace_override_defaults.yaml`](yamls/discoveryspace_override_defaults.yaml)
+  - Demonstrates changing the default of one of the optional properties.
+
+- [`discoveryspace_optional_parameter_in_entity_space.yaml`](yamls/discoveryspace_optional_parameter_in_entity_space.yaml)
+  - Demonstrates using one of the optional parameters to define the entities in
+    the entity space.
+
+- [`discoveryspace_multiple_parameterizations.yaml`](yamls/discoveryspace_multiple_parameterizations.yaml)
+  - Demonstrates using two parameterizations of the same base experiment.
 
 ## The Actuator Package: Key Files
 
-The actuator package is under `ado_actuators/robotic_lab_actuator`. Note all
-actuator packages must be under a directory called `ado_actuators` as this is
-the name of the namespace package that contains all `ado` actuator plugins.
+The actuator package is located under `ado_actuators/robotic_lab_actuator`.  
+Note: all actuator packages must be under a directory called `ado_actuators`, as
+this is the namespace package that contains all `ado` actuator plugins.
 
-The key files are:
+Key files include:
 
-- actuator_definitions.yaml (REQUIRED)
-  - This defines which classes in which modules of your package contain
-    Actuators.
-- actuators.py (REQUIRED but can have any name)
-  - In this example this python module contains our one actuator, `robotic_lab`.
-  - Each Actuator plugin has at least one python module containing one actuator,
-    however the name can be anything.
-  - It just needs to be the same name as in `actuator_definitions.yaml`
-- experiments.yaml (OPTIONAL)
-  - In this example this file contains the definitions of the experiments the
-    actuator defines as YAML
-  - This list could also be created via code in a python module
-- experiement_executor.py (OPTIONAL)
-  - In this example this file contains the code that
-    - determines the values for the experiment parameters from the passed Entity
-      and Experiment
-    - sends the measured property values back to the orchestrator
+- `actuator_definitions.yaml` (**Required**)
+  - Defines which classes in which modules of your package contain actuators.
+
+- `actuators.py` (**Required**, but can have any name)
+  - Contains the `robotic_lab` actuator in this example.
+  - Each actuator plugin must have at least one Python module containing one
+    actuator.
+  - The module name must match the name specified in
+    `actuator_definitions.yaml`.
+
+- `experiments.yaml` (**Optional**)
+  - Contains YAML definitions of the experiments defined by the actuator.
+  - This list could also be created via code in a Python module.
+
+- `experiment_executor.py` (**Optional**)
+  - Contains code that:
+    - Determines the values for experiment parameters from the passed entity and
+      experiment.
+    - Sends the measured property values back to the orchestrator.
 
 ## Renaming the Actuator
 
-There are three different things you can rename independently if you like
+There are three components you can rename independently:
 
-- Change the name pip installs the package as (currently 'robotic_lab') ->
-  Change the name field in pyproject.toml
-- Change the python module name to $NAME i.e instead of
-  `import ado_actuators.robotic_lab_actuator`
-  - Change the name of the `robotic_lab_actutor` directory under
-    'ado_actuators/' to $NAME
-  - Change the package name under [tool.setuptools.package-data], if using, to
-    $NAME
-  - Change the `actuator_definitions.yaml` to use $NAME
-- Change the identifier of the actuator as seen by the user to $ID i.e. what
-  they see in `get actuators` and use when creating `discoveryspace` with the
-  actuators experiments.
-  - Change the `identifier` field of RoboticLabActuator in `actuator.py` to $ID
-  - Change the `identifier` fields of the experiments in `experiment.yaml` to
-    $ID
+- **Package name installed via pip** (currently `'robotic_lab'`)
+  - Change the `name` field in `pyproject.toml`.
+
+- **Python module name** (currently `ado_actuators.robotic_lab_actuator`)
+  - Rename the `robotic_lab_actuator` directory under `ado_actuators/` to your
+    desired name.
+  - Update the package name under `[tool.setuptools.package-data]` if used.
+  - Update `actuator_definitions.yaml` to reflect the new name.
+
+- **Actuator identifier seen by users**
+  - Change the `identifier` field of `RoboticLabActuator` in `actuators.py`.
+  - Change the `identifier` fields of the experiments in `experiments.yaml`.

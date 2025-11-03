@@ -10,7 +10,7 @@ For users familiar with `pandas` and `dataframes`, a Discovery Space combines:
 - instructions on how to fill the `dataframe` rows
 - the current data in the `dataframe` (and what's missing!)
 
-So a Discovery Space allows expressing the hidden metadata and contextual
+A Discovery Space expresses the hidden metadata and contextual
 information necessary to understand and extend a dataframe. See
 [Discovery Space](discovery-spaces.md) for more details.
 
@@ -25,13 +25,13 @@ A Discovery Space is built from:
 
 ## Sample Store
 
-In `ado` data on sampled entities, and the results of experiments on them, are
+In `ado`, data on sampled entities, and the results of experiments on them, are
 kept in a **sample store**.
 
 A single sample store can be used by multiple Discovery Spaces, allowing them to
 share data. This means, for example, if an experiment has already been run,
 `ado` can reuse the existing results instead of running the experiment again,
-saving time and compute resources.
+saving time and computational resources.
 
 This ability to transparently share and reuse data is a core feature of `ado`.
 See [Shared Sample Stores](data-sharing.md) for more details.
@@ -54,7 +54,7 @@ See [Shared Sample Stores](data-sharing.md) for more details.
 
       ---
 
-      Try some or our [examples](../examples/examples.md) if you want to dive straight in.
+      Try some of our [examples](../examples/examples.md) if you want to dive straight in.
 
       [Our examples :octicons-arrow-right-24:](../examples/examples.md)
 

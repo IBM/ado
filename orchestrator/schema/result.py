@@ -205,7 +205,9 @@ def measurement_result_type_discriminator(result):
         if result.get("reason", None):
             return "Invalid"
 
-    raise ValueError(f"Unable to determine experiment type for experiment: {result}")
+    raise ValueError(
+        f"Unable to determine measurement result type for result: {result}"
+    )
 
 
 MeasurementResultType = Annotated[

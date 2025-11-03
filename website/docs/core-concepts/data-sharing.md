@@ -1,16 +1,11 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
-> [!NOTE]
->
-> We recommend reading about [Discovery Spaces](discovery-spaces.md) before
-> reading this document.
+# Shared Sample Stores
 
-In `ado` Entities and measurement results are stored in a database called
+In `ado` Entities and measurement results are stored in a database called a
 **Sample Store**. This document describes how Sample Stores enable sharing of
 data. For more general information about these databases see
 [their dedicated page](../resources/sample-stores.md).
 
-From the point-of-view of understanding data reuse in `ado`, the following
-points are key:
+There are two key points that underpin data reuse in `ado`:
 
 - You can **share** a Sample Store between multiple Discovery Spaces
   - This allows a Discovery Space to (re)use relevant Entities and Measurements

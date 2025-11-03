@@ -47,6 +47,12 @@ performance_testing-geospatial-endpoint:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ -1, 500 ] # -1 means no concurrency control
         interval: 1
+    - identifier: 'dataset'
+      metadata:
+        description: "The dataset to be used for the experiment"
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ 'india_url_in_b64_out', 'valencia_url_in_b64_out' ]
   defaultParameterization:
     - value: 100
       property:
@@ -57,6 +63,9 @@ performance_testing-geospatial-endpoint:
     - value: 1.0
       property:
         identifier: 'burstiness'
+    - property:
+        identifier: 'dataset'
+      value: 'india_url_in_b64_out'
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -135,6 +144,12 @@ performance_testing-geospatial-full:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ 0, 10 ]
         interval: 1
+    - identifier: 'dataset'
+      metadata:
+        description: "(benchmark) The dataset to be used for the experiment"
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ 'india_url_in_b64_out', 'valencia_url_in_b64_out' ]
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
@@ -267,6 +282,9 @@ performance_testing-geospatial-full:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
+    - property:
+        identifier: 'dataset'
+      value: 'india_url_in_b64_out'
   # measurements
   targetProperties:
     - identifier: "duration"

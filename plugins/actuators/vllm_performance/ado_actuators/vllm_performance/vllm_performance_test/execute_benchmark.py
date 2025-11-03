@@ -12,6 +12,10 @@ from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results 
     get_results,
 )
 
+default_geospatial_datasets_filenames = {
+    "india_url_in_b64_out": "india_url_in_b64_out.jsonl",
+    "valencia_url_in_b64_out": "valencia_url_in_b64_out.jsonl",
+}
 
 def execute_benchmark(
     base_url: str,
@@ -107,6 +111,7 @@ def execute_benchmark(
 def execute_random_benchmark(
     base_url: str,
     model: str,
+    dataset: str,
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
@@ -134,7 +139,7 @@ def execute_random_benchmark(
     return execute_benchmark(
         base_url=base_url,
         model=model,
-        data_set="random",
+        data_set=dataset,
         interpreter=interpreter,
         num_prompts=num_prompts,
         request_rate=request_rate,
@@ -153,6 +158,7 @@ def execute_random_benchmark(
 def execute_geospatial_benchmark(
     base_url: str,
     model: str,
+    dataset: str,
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
@@ -176,9 +182,11 @@ def execute_geospatial_benchmark(
     """
     from importlib import resources
 
+    dataset_filename = default_geospatial_datasets_filenames[dataset]
+
     with resources.path(
-        "ado_actuators.vllm_performance",
-        "geospatial_india.jsonl",
+        "ado_actuators.vllm_performance.datasets",
+        dataset_filename,
     ) as data_set_path:
         return execute_benchmark(
             base_url=base_url,

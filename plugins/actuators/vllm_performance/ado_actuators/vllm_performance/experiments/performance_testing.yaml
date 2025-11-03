@@ -56,6 +56,12 @@ performance_testing-full:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ 1, 10000 ]
         interval: 1
+    - identifier: 'dataset'
+      metadata:
+        description: "(benchmark) The dataset to be used fof the experiment"
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ 'random' ]
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
@@ -161,6 +167,9 @@ performance_testing-full:
     - property:
         identifier: 'max_output_tokens'
       value: 128
+    - property:
+        identifier: 'dataset'
+      value: 'random'
     - property:
         identifier: 'gpu_memory_utilization'
       value: .9
@@ -282,6 +291,12 @@ performance_testing-endpoint:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ -1, 500 ] # -1 means no concurrency control
         interval: 1
+    - identifier: 'dataset'
+      metadata:
+        description: "(benchmark) The dataset to be used fof the experiment"
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: [ 'random' ]
   defaultParameterization:
     - value: 1000
       property:
@@ -298,6 +313,9 @@ performance_testing-endpoint:
     - value: 128
       property:
         identifier: 'max_output_tokens'
+    - property:
+        identifier: 'dataset'
+      value: 'random'
   # measurements
   targetProperties:
     - identifier: "duration"

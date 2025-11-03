@@ -297,6 +297,7 @@ def run_resource_and_workload_experiment(
                             benchmark_retries=actuator_parameters.benchmark_retries,
                             retries_timeout=actuator_parameters.retries_timeout,
                             burstiness=float(values.get("burstiness")),
+                            dataset = values.get("dataset"),
                         )
                     else:
                         result = execute_random_benchmark(
@@ -312,6 +313,7 @@ def run_resource_and_workload_experiment(
                             number_input_tokens=int(values.get("number_input_tokens")),
                             max_output_tokens=int(values.get("max_output_tokens")),
                             burstiness=float(values.get("burstiness")),
+                            dataset = values.get("dataset"),
                         )
                     logger.debug(f"benchmark executed in {time.time() - start} sec")
                 except Exception as e:
@@ -411,6 +413,7 @@ def run_workload_experiment(
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
                     burstiness=float(values.get("burstiness")),
+                    dataset = values.get("dataset"),
                 )
             else:
                 result = execute_random_benchmark(
@@ -426,6 +429,7 @@ def run_workload_experiment(
                     number_input_tokens=int(values.get("number_input_tokens")),
                     max_output_tokens=int(values.get("max_output_tokens")),
                     burstiness=float(values.get("burstiness")),
+                    dataset = values.get("dataset"),
                 )
         except Exception as e:
             logger.error(f"Failed to execute VLLM performance test {e}")

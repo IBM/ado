@@ -3,6 +3,7 @@
 ## Overview
 
 > [!TIP]
+>
 > You can install the `ray_tune` operator with
 >
 > ```commandline
@@ -14,8 +15,8 @@
 The `ray_tune` operator enables **running optimization algorithms on a
 `discoveryspace`**. It uses the
 [RayTune](https://docs.ray.io/en/latest/tune/index.html) framework, and most of
-the capabilities of RayTune can be access via the operator without the need to
-write python code.
+the capabilities of RayTune can be accessed via the operator without the need to
+write Python code.
 
 `ray_tune` is an _explore_ operator.
 
@@ -44,17 +45,16 @@ Using RayTune via the ado `ray_tune` operator brings the following advantages:
 
 However, there are a few drawbacks:
 
-- Some customizations that requires programming are not available
+- Some features that require custom code are not available
 - The current `ado` generic actuator model is not compatible with some RayTune
-  features which assume interaction with RayTrain.
-  - See [early measurement stopping](#early-measurement-stopping) for more
-    details.
+  features which assume interaction with RayTrain. See
+  [early measurement stopping](#early-measurement-stopping) for more details.
 
 ### What happens if I apply multiple `ray_tune` operations to a space?
 
 If you apply multiple `ray_tune` operations you just get multiple optimization
 runs of the different lengths and types you have requested. This is the same
-behaviour as applying RandomWalk multiple time to a space and is explained in
+behaviour as applying RandomWalk multiple times to a space and is explained in
 more detail in the
 [RandomWalk documentation](random-walk.md#what-happens-if-i-apply-multiple-random_walk-operations-to-a-space)
 
@@ -64,6 +64,7 @@ The optimizers available depend on the RayTune version used. At time of writing
 they are:
 
 !!! info
+
     The ax optimizer has been removed due to incompatibilities
     with the latest numpy versions.
 
@@ -75,8 +76,8 @@ they are:
 - zoopt
 - hebo
 
-In addition `ado` adds a
-[additional optimizer called `lhu_sampler`](#ado-additions-to-raytune).
+In addition, `ado` also provides an
+[optimizer called `lhu_sampler`](#ado-additions-to-raytune).
 
 !!! important end
 
@@ -110,11 +111,11 @@ consider:
 
 - [Tuning Configuration](#tune-config): general optimization parameters
   - This includes specific
-       [Optimizer Parameters](#optimizer-parameters-search_algparams)
+         [Optimizer Parameters](#optimizer-parameters-search_algparams)
 - [Runtime Configuration](#run-config): parameters related to RayTune, for
   example where its stores data
   - This includes the [Stopper Configuration](#stoppers) that determines if an
-       optimization should stop
+         optimization should stop
 - [Orchestrator Configuration](#orchestrator-config): parameters related to
   `ado`
 
@@ -138,24 +139,24 @@ tuneConfig:
 ```
 <!-- markdownlint-enable line-length -->
 
-The following sections describes each of these parameter sets in more detail. As
-you go through these sections it is worth referring to the
-[comprehensive example](#example) that demonstrate putting all the pieces
+The following sections describe each of these parameter sets in more detail. As
+you go through these sections, it is worth referring to the
+[comprehensive example](#example) that demonstrates putting all the pieces
 together and how they interact.
 
 !!! info end
 
     You can get a default RayTune operation template and the schema of its
     parameters by running
-    `ado template operation --operator-name ray_tune --include-schema` The
+    `ado template operation --operator-name ray_tune --include-schema`. The
     information output by this command should always be preferred over the
-    information presented here if there is an inconsistency.
+    information presented here in case of inconsistencies.
 
 ### Trials versus Samples
 
-In RayTune `samples` means the points to measure, and `trials` are measurements
-of those points. They are related to `ado` concepts of `entities` (samples) and
-`measurements` (trials).
+In RayTune, `samples` refer to the points to be measured, and `trials` are
+measurements of those points. They are related to `ado` concepts of `entities`
+(samples) and `measurements` (trials).
 
 ### Orchestrator Config
 
@@ -164,13 +165,13 @@ which are all optional:
 
 - `failed_metric_value` (default None)
   - This will be used for the value of "metric' for any entities where it could
-    not be measured (for any reason)
+      not be measured (for any reason)
 - `result_dump (default None)
   - If specified the best result found will be written to this file
 - `single_measurement_per_property` (default true)
   - If true
-    [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
-    is used. If false already measured entities will be re-measured.
+      [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
+      is used. If false already measured entities will be re-measured.
 
 ### Tune Config
 
@@ -181,19 +182,19 @@ The `tuneConfig` section supports many of the
 
 - `metric` (required)
   - The
-    [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
-    to optimize.
+        [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
+        to optimize.
 - `mode` (required)
   - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
   - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in
-    RayTune it would be an optimizer instance
+        RayTune it would be an optimizer instance
 - `num_samples` (defaults to 1)
   - **Note**: The exact interpretation of `num_samples` is optimizer dependent
-    e.g. some do not count "warm-up" samples as part of this.
+        e.g. some do not count "warm-up" samples as part of this.
 - `max_concurrent_trials`
   - **Note**: this can also be controlled via most optimizers parameters. If not
-    set, the default value depends on the optimizer
+        set, the default value depends on the optimizer
 - `time_budget_s`: How many second to run the optimizer for
 
 **Unsupported parameters:**
@@ -205,7 +206,7 @@ The `tuneConfig` section supports many of the
 
 ### Optimizer Parameters (search_alg.params)
 
-The optimizer parameters are given as a dictionary to the
+The optimizer parameters are provided as a dictionary to the
 `tuneConfig.search_alg.params` field.
 
 The parameters available for a given optimizer are detailed in the
@@ -226,8 +227,8 @@ However, there are a few that should not be set. This is discussed in
 
 !!! info end
 
-    Currently you cannot obtain a given optimizers parameters are via `ado`. To
-    understand the configuration possibilities for an optimizer you must check the
+    Currently, you cannot get the list of available parameters for an optimizer
+    via `ado`. To find this information, you must check the relevant
     RayTune documentation.
 
 #### Parameters to omit
@@ -267,7 +268,7 @@ For example:
 
 In addition to `points_to_evaluate` each optimizer has its own parameters. For
 example, some optimizers allow evaluating multiple points at same time, while
-others have a warm-up period of random sampling that can set. Check the
+others have a warm-up period of random sampling that can be set. Check the
 [RayTune documentation for each optimizer](https://docs.ray.io/en/latest/tune/api/suggestion.html)
 to understand the available options.
 
@@ -278,10 +279,10 @@ to understand the available options.
 
 #### nevergrad parameters
 
-The nevergrad search algorithm has a required parameter `optimizer` that
-programmatically is set to a nevergrad optimizer class or instance. In `ado` set
-this value to the string name of the optimizer. This valid strings are the keys
-of the nevergrad registry, which you can see with:
+The nevergrad search algorithm has a required parameter `optimizer` that is
+programmatically set to a nevergrad optimizer class or instance. In `ado`, set
+this value to the string name of the optimizer. For a list of valid values,
+check the keys of the nevergrad registry, with:
 
 ```python
 import nevergrad
@@ -304,8 +305,8 @@ disk. Since `ado` automatically stores the results and operation details in
 - `stop` - see [Stoppers](#stoppers)
 - `storage_path`:
   - `ado` defaults this to "/tmp/ray_results" as this directory is writable in
-    the default `ado` image used in ray clusters.
-    - If you change this path ensure it is writable
+      the default `ado` image used in ray clusters.
+    - If you change this path, ensure it is writable
 
 **Other supported parameters:**
 
@@ -342,7 +343,7 @@ keywordParams: #The keyword params of the stopper: a dictionary of key/value pai
 
 !!! info end
 
-    Its recommend to use `keywordParams` even for positional parameters
+    It is recommend to use `keywordParams` even for positional parameters
 
 The following sections describe the available stoppers.
 
@@ -354,23 +355,24 @@ Some of these, MaximumIterationStopper, ExperimentPlateauStopper and
 TrialPlateauStopper, are for early measurement stopping when using RayTrain and
 have no effect when used via `ado`.
 
-Of the remaining stoppers TimeoutStopper is automatically used if you specify
+Of the remaining stoppers, TimeoutStopper is automatically used if you specify
 [`tuneConfig.time_budget_s`](#tune-config) so it does not have to specified
 independently. Similarly, CombinedStopper is automatically used if you specify
 more than one `stopper` in the list given to `runConfig.stop`.
 
-Finally, FunctionStopper, which allows passing a custom python function as a
+Finally, FunctionStopper, which allows passing a custom Python function as a
 stopper, cannot currently be used with `ado`.
 
 #### `ado` stoppers
 
-`ado` provides four inbuilt stoppers:
+`ado` provides four in-built stoppers:
 
-- SimpleStopper: Stops if no improvement in the target metric after N steps
+- SimpleStopper: Stops if there is no improvement in the target metric after N
+  steps
 - GrowthStopper: Stops when the improvement in the target metric is less than a
   threshold for N steps
-- MaxSamplesStopper: Stops when a certain number of samples have been drawn. Is
-  less ambiguous than `tuneConfig.num_samples`
+- MaxSamplesStopper: Stops when a certain number of samples have been drawn. It
+  is less ambiguous than `tuneConfig.num_samples`
 - InformationGainStopper: Stops when samples are no longer providing significant
   additional information on how the constitutive properties of the entity space
   are related to the target property.
@@ -404,15 +406,15 @@ stop:
 #### Early Measurement Stopping
 
 Some RayTune stoppers directly support the case where each trial (measurement)
-is a RayTrain job. These [stoppers](#stoppers) can inspect the progress of an
+is a RayTrain job. These [stoppers](#stoppers) can inspect the progress of
 individual RayTrain jobs i.e. intermediate metric values, to determine if a
-trial should be stopped. This ability assumes particular behaviour of such a job
-e.g. the trial is generating a timeseries of the metric being optimized.
+trial should be stopped. This ability assumes a particular behaviour of such a
+job e.g. the trial is generating a timeseries of the metric being optimized.
 
-Currently, `ado`s actuator model does not assume there are intermediate values
+Currently, `ado`'s actuator model does not assume there are intermediate values
 of a metric being measured by an experiment, or provide a way to expose them.
 Instead, we leave these domain specific details to the actuator. For example, in
-`ado`s current model the actuator can implement and/or expose early-stopping if
+`ado`'s current model the actuator can implement and/or expose early-stopping if
 it is possible.
 
 ### Example operation YAML
@@ -593,11 +595,11 @@ keywordParams:
 
 ### SimpleStopper
 
-Stops an optimization when the metric has not improved after N steps. Note, its
-excepted `mode` and `metric` should match the corresponding
-[`tuneConfig`](#tune-config) parameters but this is not checked.
+Stops an optimization when the metric has not improved after N steps. Note: it
+is expected `mode` and `metric` should match the corresponding
+[`tuneConfig`](#tune-config) parameters, but this is not checked.
 
-The following YAML describes the stoppers parameters. Parameters without values
+The following YAML describes the stopper's parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
@@ -621,15 +623,15 @@ keywordParams:
 
 ### GrowthStopper
 
-Stops an optimization once it sees the metric improvement rate is below a
-threshold. This differs to SimpleStopper which as long as there is any
-improvement won't stop the optimization.
+Stops an optimization once the metric improvement rate falls below a threshold.
+This differs from SimpleStopper, in which optimization will not be stopped as
+long as there is any improvement in the metric.
 
 - if the metric value gets worse on a step, i.e. negative improvement, it is
   considered to be below the threshold.
 - Samples whose metric value is `nan` are always included
 
-The following YAML describes the stoppers parameters. Parameters without values
+The following YAML describes the stopper's parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
@@ -646,28 +648,28 @@ keywordParams:
 !!! important end
 
     `grace_trials` does not reset if the metric is observed to "grow" in a step
-    after it was observed to not "grow" That is, it is the _total_ number of samples
+    after it was observed to not "grow". That is, it is the _total_ number of samples
     allowed where the improvement in the metric is less than threshold.
 
 ### InformationGainStopper
 
 This stopper criteria is based on Mutual Information, which here is used to
 measures how related the constitutive properties (dimensions of the entity
-space) are to the metric being optimized. At a high-level this stopper stops
+space) are to the metric being optimized. At a high-level, this stopper stops
 when it observes the mutual information is converging.
 
 This stopper considers two ways that the mutual information can change:
 
 1. **mutual information value**: If the value is changing by less than a
-   threshold it is considered "converging"
+   threshold, it is considered "converging"
 2. **properties contribution to the mutual information**: This can be measured
    in two ways:
-   1. Change in the ranking of which constitutive properties contribute the most
-      to the mutual information with the metric. If the ranking is not changing
-      the mutual information is considered to be converging.
-   2. Change in the set of constitutive properties which contribute most to the
-      mutual information with metric. If the set of propertiers is not changing
-      the mutual information is considered to be converging.
+      1. Change in the ranking of which constitutive properties contribute the most
+         to the mutual information with the metric. If the ranking is not changing,
+         the mutual information is considered to be converging.
+      2. Change in the set of constitutive properties which contribute most to the
+         mutual information with metric. If the set of propertiers is not changing,
+         the mutual information is considered to be converging.
 
 The stopper will only stop when it sees _both_ the **mutual information value**
 and the **properties that contribute to it** converging.

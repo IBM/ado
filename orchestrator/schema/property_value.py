@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import logging
 import typing
 
 import pydantic
@@ -13,6 +14,7 @@ from orchestrator.schema.property import (
     PropertyDescriptor,
 )
 
+logger = logging.getLogger("property_value")
 
 class ValueTypeEnum(str, enum.Enum):
     NUMERIC_VALUE_TYPE = "NUMERIC_VALUE_TYPE"  # the value is a bool,int, float etc.
@@ -189,6 +191,12 @@ def validate_point_against_properties(
         cp.identifier for cp in constitutive_properties
     }
 
+    logger.debug(
+        f"Validating point's constitutive properties "
+        f"(allow_partial_matches = {allow_partial_matches}) {constitutive_property_identifiers_for_point}, "
+        f"against the space constitutive properties {constitutive_property_identifiers_for_entity_space}"
+    )
+
     matching_constitutive_property_identifiers = (
         constitutive_property_identifiers_for_point.intersection(
             constitutive_property_identifiers_for_entity_space
@@ -221,6 +229,11 @@ def validate_point_against_properties(
         if not constitutive_property.propertyDomain.valueInDomain(
             point[constitutive_property.identifier]
         ):
+            logger.warning(
+                f"Property {constitutive_property.identifier}({point[constitutive_property.identifier]}) "
+                "is not in the target consitutive property "
+                f"domain ({constitutive_property.propertyDomain.domainRange})"
+            )
             return False
 
     return True

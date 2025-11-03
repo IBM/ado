@@ -4,7 +4,7 @@
 >
 > This example illustrates:
 >
-> 1. Set a remote RayCluster environment for running finetuning performance
+> 1. Setting up a remote RayCluster environment for running finetuning performance
 >    benchmarks with SFTTrainer
 >
 > 2. Benchmarking a set of finetuning configurations using GPUs on a remote
@@ -36,7 +36,7 @@ To explore this space, you will:
     This example assumes you have already followed the
     [Measure throughput of finetuning locally](./finetune-locally.md) example.
 
-## Pre-requisites
+## Prerequisites
 
 1. A remote shared context is available (see
    [shared contexts](../../resources/metastore/) for more information). Here we
@@ -58,10 +58,10 @@ To explore this space, you will:
 
 4. Activate the `finetuning` shared context for the example.
 
-   <!-- markdownlint-disable-next-line code-block-style -->
-   ```commandline
-   ado context finetuning
-   ```
+    <!-- markdownlint-disable-next-line code-block-style -->
+    ```commandline
+    ado context finetuning
+    ```
 
 ## Install and Configure the SFTTrainer actuator
 
@@ -71,7 +71,7 @@ To explore this space, you will:
 
       <!-- markdownlint-disable code-block-style -->
     ```commandline
-      pip install ado-sfttrainer`
+    pip install ado-sfttrainer
     ```
     <!-- markdownlint-enable code-block-style -->
 
@@ -149,7 +149,7 @@ RayCluster.
     RayCluster workers. We recommend deploying a remote RayCluster following our
     [instructions](../../actuators/sft-trainer/#configure-your-raycluster).
 
-Next, create the `actuatorconfiguration` resource like so:
+Next, create the `actuatorconfiguration` resource:
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
@@ -175,7 +175,7 @@ See the full list of the actuator parameters you can set in the
 
 !!! info end
 
-    If your remote RayCluster is not hosted on Kubernetes or OpenShift then you can
+    If your remote RayCluster is not hosted on Kubernetes or OpenShift, you can
     skip this step.
 
 In a terminal, start a `kubectl port-forward` process to the service that
@@ -194,7 +194,7 @@ should see the landing page of the Ray web dashboard.
 
 ### Prepare files for the Ray jobs you will run later
 
-Create a directory called `my-remote-measurements` and `cd` into it. You will
+Create a directory named `my-remote-measurements` and `cd` into it. You will
 keep all the files for this example in there.
 
 Similar to how you installed `ado` and `SFTTrainer` on your laptop, it's
@@ -219,7 +219,7 @@ In this section, we’ll focus on the second approach.
     <!-- markdownlint-disable line-length -->
     ```yaml
     pip:
-       - sfttrainer
+       - ado-sfttrainer
     env_vars:
       env_vars:
         AIM_UI_TELEMETRY_ENABLED: "0"
@@ -248,12 +248,12 @@ In this section, we’ll focus on the second approach.
     ```
 
     Then create a `ray_runtime_env.yaml` file under `my-remote-measurements` with
-    the following contents:
+    the following contents (update the wheel name accordingly):
 
     <!-- markdownlint-disable line-length -->
     ```yaml
     pip:
-       - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/sfttrainer-1.1.0.dev152+g23c7ba34e-py3-none-any.whl
+       - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ado_sfttrainer-1.1.0.dev152+g23c7ba34e-py3-none-any.whl
     env_vars:
        env_vars:
        AIM_UI_TELEMETRY_ENABLED: "0"
@@ -270,11 +270,11 @@ In this section, we’ll focus on the second approach.
     If your RayCluster doesn't already have `ado` installed in its virtual
     environment then build the wheel for `ado-core` by repeating the above in the
     root directory of `ado`. Then add an entry under `pip` pointing to the the
-    resulting `ado` wheel file.
+    resulting `ado-core` wheel file.
 
     !!! info end
 
-        Your wheel will filenames may vary.
+        Your wheel filenames may vary.
 
     For convenience, you can run the script below from inside the
     `my-remote-measurements` directory. It will build the wheels of both `ado` and
@@ -288,7 +288,7 @@ In this section, we’ll focus on the second approach.
     [Reference docs on using ado with remote RayClusters](../../getting-started/remote_run/#getting-ready).
 
 You will use the files you created during this step in later steps when
-launching jobs on your remote RayCluster.
+submitting jobs to your remote RayCluster.
 
 ### Create the test Dataset on the remote RayCluster
 
@@ -333,7 +333,7 @@ granite-3.1-2b:
   Vanilla: ibm-granite/granite-3.1-2b-base
 ```
 
-To start the ray job run:
+To submit the Ray job run:
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
@@ -372,57 +372,49 @@ experiment.
 
 1. Create the file `space.yaml` with the contents:
 
-   <!-- markdownlint-disable-next-line code-block-style -->
-   ```yaml
-   experiments:
-     - experimentIdentifier: finetune_full_benchmark-v1.0.0
-       actuatorIdentifier: SFTTrainer
-       parameterization:
-         - property:
-             identifier: fms_hf_tuning_version
-           value: "3.0.0"
-         - property:
-             identifier: stop_after_seconds
-           # Set training duration to at least 30 seconds.
-           # For meaningful system metrics, we recommend a minimum of 300 seconds.
-           value: 30
+    <!-- markdownlint-disable-next-line code-block-style -->
+    ```yaml
+    sampleStoreIdentifier: default
 
-   entitySpace:
-     - identifier: "model_name"
-       propertyDomain:
-         values: ["granite-3.1-2b"]
-     - identifier: "number_gpus"
-       propertyDomain:
-         values: [1]
-     - identifier: "gpu_model"
-       propertyDomain:
-         values: ["NVIDIA-A100-SXM4-80GB"]
-     - identifier: "model_max_length"
-       propertyDomain:
-         values: [512, 1024]
-     - identifier: "batch_size"
-       propertyDomain:
-         values: [1, 2]
-   ```
+    experiments:
+      - experimentIdentifier: finetune_full_benchmark-v1.0.0
+        actuatorIdentifier: SFTTrainer
+        parameterization:
+          - property:
+              identifier: fms_hf_tuning_version
+            value: "3.0.0"
+          - property:
+              identifier: stop_after_seconds
+            # Set training duration to at least 30 seconds.
+            # For meaningful system metrics, we recommend a minimum of 300 seconds.
+            value: 30
+
+    entitySpace:
+      - identifier: "model_name"
+        propertyDomain:
+          values: ["granite-3.1-2b"]
+      - identifier: "number_gpus"
+        propertyDomain:
+          values: [1]
+      - identifier: "gpu_model"
+        propertyDomain:
+          values: ["NVIDIA-A100-SXM4-80GB"]
+      - identifier: "model_max_length"
+        propertyDomain:
+          values: [512, 1024]
+      - identifier: "batch_size"
+        propertyDomain:
+          values: [1, 2]
+    ```
 
 2. Create the space:
 
-   - If you have an `samplestore` ID, run:
+    <!-- markdownlint-disable-next-line code-block-style -->
+    ```commandline
+    ado create space -f space.yaml
+    ```
 
-     <!-- markdownlint-disable-next-line code-block-style -->
-     ```commandline
-     ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
-     ```
-
-   - If you do not have a `samplestore` then run
-
-     <!-- markdownlint-disable-next-line code-block-style -->
-     ```commandline
-     ado create space -f space.yaml --new-sample-store
-     ```
-
-   This will print a `discoveryspace` ID (e.g., `space-ea937f-831dba`). Make a
-   note of this ID, you'll need it in the next step.
+   The space will use the `default` sample store.
 
 ### Create a random walk `operation` to explore the space
 
@@ -457,7 +449,7 @@ experiment.
 
     <!-- markdownlint-disable-next-line code-block-style -->
     ```commandline
-    ado get context --output yaml finetuning >context.yaml
+    ado get context --output yaml finetuning > context.yaml
     ```
 
 4. For the next step your `my-remote-measurements` directory needs the
@@ -505,28 +497,29 @@ experiment.
 
       Each measurement finetunes the
       [`granite-3.1-2b`](https://huggingface.co/ibm-granite/granite-3.1-2b-base)
-      model and takes about two minutes to complete. There is a total of four measurements.
+      model and takes about two minutes to complete.
+      There is a total of four measurements.
       It will also take a couple of minutes for Ray to create the ray environment
-      on participating GPU worker nodes so expect the `operation` to take O(10) minutes
-      to complete.
+      on participating GPU worker nodes, so expect the `operation`
+      to take around 10 minutes to complete.
 
     [Reference docs for submitting ado operations to remote RayClusters](../../getting-started/remote_run/#submitting-the-ado-operation).
 
 ### Examine the results of the exploration
 
-After the operation completes, you can download the results of your
+After the operation completes, you can retrieve the results of your
 measurements:
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
-ado show entities --output-format csv --property-format=target space $yourDiscoverySpaceID
+ado show entities --output-format csv --property-format=target space --use-latest
 ```
 
 !!! info end
 
     Notice that because the context we are using refers to a remote project we can
     access the data created by the operation on the remote ray cluster. Anyone that
-    has access to the `finetuning` context can also download the results of your
+    has access to the `finetuning` context can also retrieve the results of your
     measurements!
 
 The command will generate a CSV file. Open it to explore the data that your

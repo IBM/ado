@@ -39,10 +39,10 @@ repos:
       - id: uv-lock
       - id: uv-export
         args: ["--frozen", "--no-emit-project", "--no-default-groups", "--output-file=requirements.txt"]
-#  - repo: https://github.com/hashicorp/copywrite
-#    rev: v0.22.0
-#    hooks:
-#      - id: add-headers
+  - repo: https://github.com/hashicorp/copywrite
+    rev: 4dde8b0
+    hooks:
+      - id: add-headers
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.18.1
     hooks:

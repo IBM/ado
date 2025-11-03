@@ -14,9 +14,9 @@ import ado_actuators.myactuator.actuator
 ```
 
 Namespace packages allow developers to independently create and distribute
-python modules that will be installed under a common package name.
+Python modules that will be installed under a common package name.
 
-## Installing actuators
+## Installing Actuators
 
 To install an actuator $NAME that is in this directory, first cd into this
 directory, then:
@@ -32,7 +32,7 @@ pip uninstall $NAME
 ```
 
 Note: Don't execute the uninstall command in the $NAME directory as `pip` will
-see the local package not the installed package
+see the local package not the installed package.
 
 For example, for `sfttrainer`
 
@@ -41,14 +41,14 @@ pip install ./sfttrainer
 pip uninstall sfttrainer
 ```
 
-## Installing an actuator on a remote Ray cluster
+## Installing an Actuator on a Remote Ray Cluster
 
-The recommended way of installing an actuator in a remote ray cluster is to
+The recommended way of installing an actuator in a remote Ray cluster is to
 build a wheel. You would do this if you have local changes to one or more
 plugins you want to use for a run OR the version of the orchestrator in the
-remote ray image is behind the latest
+remote ray image is behind the latest.
 
-The simplest scenario is outlined below and its uses the actuator
+The simplest scenario is outlined below and it uses the actuator
 `fms_hf_tuning` as a concrete example. It assumes _you are in the directory of
 the actuator you want to install_ : in this case
 `orchestrator_plugins/actuator/fms_hf_tuning`
@@ -56,7 +56,7 @@ the actuator you want to install_ : in this case
 1. `rm -rf dist/ build/ *.egg-info`
 
    This removes any previous build artifacts and wheels. This prevents issues
-   with old files being included in the new wheel
+   with old files being included in the new wheel.
 
 2. `python -m build`
 
@@ -87,7 +87,7 @@ ray job submit --working-dir $PWD \
     --address=http://localhost:8265 -- ado get actuators --details
 ```
 
-Things to check
+### Things to Check
 
 - Make sure plugin code changes are committed.
   - If they are not committed then the version of the built wheel will not
@@ -111,12 +111,12 @@ remote cluster is problematic for the following reasons
 1. You cannot use ray `py_modules` with the package directory as it doesn't
    actually install the package
    - It just adds the module dir to python path which does not work for
-     namespace packages as they have no `__init__.py`
+     namespace packages as they have no `__init__.py`.
 2. For plugins stored in `ado` repo, you can't use ray `pip` field with the
    package directory as it requires sending `.git` dir of ado which exceeds ray
    transfer limit
    - This is because the namespace package `setup.py` uses `setuptools_scm` to
-     dynamically compute version and identify non-python files
+     dynamically compute version and identify non-python files.
    - NOTE: If you have a standalone plugin repository you may not have this
      issue.
 

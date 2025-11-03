@@ -1,13 +1,13 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 A `datacontainer` resource is one that contains data like tables, string and
-locations. It's main purpose is to store output of `operations` that aren't
-`samplestores` or `discoveryspaces`. For example, results of analysing the
+locations. Its main purpose is to store output of `operations` that aren't
+`samplestores` or `discoveryspaces`. For example, results of analyzing the
 distribution of values in a space.
 
 ## creating a `datacontainer`
 
-You currently can't create a `datacontainer` via the `ado` cli. They are only
+You currently can't create a `datacontainer` via the `ado` CLI. They are only
 created as the result of applying certain operators.
 
 ## `datacontainer` contents
@@ -18,8 +18,8 @@ A `datacontainer` can contain the following types of data:
 - tabular data (DataFrames)
 - location data (URLs)
 
-A `datacontainer` resource has upto three top-level fields: `data`,
-`locationData` and `tabularData` Each of these is a dictionary whose values are
+A `datacontainer` resource has up to three top-level fields: `data`,
+`locationData` and `tabularData`. Each of these is a dictionary whose values are
 data objects and keys are the names of the data. The `tabularData` field
 contains items that are DataFrames. The `locationData` field contains items that
 are URLs. The `data` field contains items that are JSON serializable types:

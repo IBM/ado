@@ -2,27 +2,28 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 A core task is sampling and measuring `entities` from a `discoveryspace` and
 this is the objective of explore `operators`. In fact, other than copying data
-from an external source, `operations`using _explore_ `operators` are the only
+from an external source, `operations` using _explore_ `operators` are the only
 way new entities can be sampled and measurements performed.
 
 Because `operations` of the explore operators do more than just modify or
 analyse data, but result in measurements being executed and `entities` being
-placed in the `samplestore`, its worth diving into the in more detail.
+placed in the `samplestore`, it's worth diving into them in more detail.
 
 ## Timeseries
 
-Every explore operation sample entities and perform measurements in some
+Every explore operation samples entities and performs measurements in some
 sequence, hence there is an associated timeseries. This timeseries is recorded
-for every `explore` operation. To see it via `ado` CLI use
+for every `explore` operation. To see it via `ado` CLI use:
 
 ```commandline
 ado show entities operation $OPERATION_IDENTIFIER
 ```
 
-this will output a table of the entities in the order they were sampled during
+This will output a table of the entities in the order they were sampled during
 the operation.
 
-Programmatically you can access this information by modifying the follow snippet
+You can access this information programmatically by modifying the following
+snippet:
 
 <!-- markdownlint-disable line-length -->
 ```python
@@ -42,7 +43,7 @@ space.complete_measurement_request_with_results_timeseries(operation_id="operati
 ```
 <!-- markdownlint-enable line-length -->
 
-Importantly the same entity can be visited by multiple different `operations`.
+Importantly, the same entity can be visited by multiple different `operations`.
 Looking at the `entity` will not show which `operation` measured which value.
 However, this information is accessible via the timeseries.
 
@@ -53,17 +54,17 @@ Each explore operation will perform the following steps in some way:
 - Sample 1 or more entities from the `discoveryspace`
 - For each experiment in the `measurementspace`:
   - If it has been already executed on this entity AND the `discoveryspace` only
-    permits one value per observed-property
+      permits one value per observed-property
     - replay the already measured value
   - Otherwise:
     - call the actuator to perform the measurement
 - Wait until all measurements have completed
   - As each completes:
     - add the replayed/newly measured values to the sampling timeseries for this
-      operation (if the measurement did not fail)
+          operation (if the measurement did not fail)
     - add the entity to the `samplestore` if it's not there
     - update the entity in the `samplestore` with the new measured property
-      values (if the measurement did not fail)
+          values (if the measurement did not fail)
 
 ### Replayed Measurements
 
@@ -72,11 +73,11 @@ A core goal of `ado` is transparent data-sharing. This is enabled via the
 the schema used to store `entities`.
 
 To leverage this data-sharing capability explore operation will, be default, not
-remeasure an entity they sample if it already has data for that measurement. For
-example, an explore operation samples an entity from a space that whose
+re-measure an entity they sample if it already has data for that measurement.
+For example, an explore operation samples an entity from a space whose
 `measurementspace` includes an experiment called "myexperiment-v1". If it sees
-the entity has values for experiment `myexperiment-v1` it won't execute it
-again, instead it replays (aka "memoizes") it
+the entity has values for experiment `myexperiment-v1`, it won't execute it
+again, instead it replays (aka "memoizes") it.
 
 This means if a different user sampled and measured this entity with this
 experiment on a different space we transparently reuse their results, saving
@@ -84,17 +85,17 @@ execution time.
 
 Some operators will allow turning this replay behaviour on and off.
 
-If the replay functionality is off then the entity will be remeasured with the
+If the replay functionality is off, the entity will be re-measured with the
 experiment and it will have two values for each observed property of that
 experiment. Going back to our example above, if `myexperiment-v1` was executed
-again, and it measured properties `prop1` and `prop2` then the entity will two
-values for `myexperiment-v1.prop1` and `myexperiment-v1.prop2`, one from each
-time the experiment was applied to that entity.
+again, and it measured properties `prop1` and `prop2`, then the entity will have
+two values for `myexperiment-v1.prop1` and `myexperiment-v1.prop2`, one from
+each time the experiment was applied to that entity.
 
 What if you switch it on but an entity has multiple measurements of the same
 experiment? In this case _each existing measurement is replayed_. In our
 example, this would mean if an entity has had `myexperiment-v1` applied twice,
-and then is sample again with replay on, two measurements will be replayed: the
+and then is sampled again with replay on, two measurements will be replayed: the
 first and the second.
 
 ### Failed measurements
@@ -106,7 +107,7 @@ but this entity will have no measured values for this experiment.
 
 ## Exploration operation metadata
 
-When an explore operation finishes the system (top-level) metadata field of the
+When an explore operation finishes, the system (top-level) metadata field of the
 associated `operation` resource is updated with the following fields.
 
 <!-- markdownlint-disable line-length -->
@@ -174,5 +175,6 @@ Commands that do not reflect changing state during an `operation`:
 - `ado show details operation $OPERATION_IDENTIFIER`
 
 The `operation` resource itself will be updated with metadata when the operation
-finishes but not during it. `ado show details operation $OPERATION_IDENTIFIER`
-uses this metadata so hence it will be correct until the operation is finished.
+finishes but not while it is running.
+`ado show details operation $OPERATION_IDENTIFIER` uses this metadata, so it
+will not be correct until the operation is finished.

@@ -2,14 +2,14 @@
 ## Using externally obtained data: the replay actuator
 
 The replay actuator allows you to leverage results that were obtained via
-experiments outside of `ado`, and are contained in external sources like
+experiments outside of `ado` that are contained in external sources like
 [CSV files](../resources/sample-stores.md#csvsamplestore). We can't repeat these
-experiments, or add new data using them, in `ado` as no actuator exits to do so.
-However, you still might want to define measurement spaces with them so entities
-that have the relevant data can be sampled and the data used, perhaps in a
-custom objective function.
+experiments, or add new data using them, in `ado` as no actuator exists to do
+so. However, you still might want to define measurement spaces with them so
+entities that have the relevant data can be sampled and the data used, perhaps
+in a custom objective function.
 
-The [talking a random walk](../examples/random-walk.md) tutorial uses external
+The [taking a random walk](../examples/random-walk.md) tutorial uses external
 data and the replay actuator.
 
 ### Importing data from a CSV
@@ -24,7 +24,7 @@ creation time. When copying this data into the `samplestore` the columns
 containing measured values (observed properties) and which columns containing
 constitutive properties are defined. With this information `ado` can create
 entities for each row. The following example is from
-[talking a random walk](../examples/random-walk.md):
+[taking a random walk](../examples/random-walk.md):
 
 ```yaml
 {% include "../../../examples/ml-multi-cloud/ml_multicloud_sample_store.yaml" %}
@@ -82,7 +82,7 @@ approach.
 ### How the `replay` actuator works
 
 Looking at the example in
-[Importing data from a CSV](#importing-data-from-a-csv), you might wonder how
+[Importing data from a CSV](#importing-data-from-a-csv), you may wonder how
 `ado` can use it, if it does not have an actuator that provides the experiment
 `benchmark_performance`!
 
@@ -90,7 +90,7 @@ Looking at the example in
 What happens is that when a measurement of an experiment associated with the
 `replay` actuator is requested to be performed on an entity, if the data is
 present (because it was copied in) it is reused as normal by `ado`'s memoization
-mechanism. If there is no data, it can't be measured as no real experiment
+mechanism. If there is no data, it cannot be measured as no real experiment
 exists, and the `replay` actuator handles this case correctly - it creates the
 `No value to replay` messages seen
 [here](../examples/random-walk.md#looking-at-the-operation-output).

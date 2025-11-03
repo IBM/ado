@@ -185,6 +185,12 @@ style, test.
 
 ## Copyright and license headers
 
+> [!NOTE]
+>
+> See the
+> [Automating checks with pre-commit](#automating-checks-with-pre-commit)
+> section to automate this.
+
 We require copyright and SPDX license headers to be added to the source code.
 This can be automated by using Hashicorp's Copywrite tool:
 <https://github.com/hashicorp/copywrite>
@@ -234,6 +240,10 @@ the provided pre-commit hooks.
 >   - On MacOS we suggest
 >     [installing it via brew](https://formulae.brew.sh/formula/node) for ease
 >     of use
+> - [Copywrite](https://github.com/hashicorp/copywrite) installed
+>   - On MacOS we suggest
+>     [installing it via brew](https://github.com/hashicorp/copywrite#getting-started)
+>     for ease of use.
 
 ```commandline
 pre-commit install
@@ -260,11 +270,13 @@ highlighting any issues and preventing the commit if problems are found.
      [Secret scanning](#secret-scanning).
 4. **Commit style failures**: change your commit message to match conventional
    commits. See [Commit style](#commit-style) for more in-depth information.
-5. **Misspellings detected by codespell**: fix the misspellings reported or
+5. **Missing headers**: commit the updated files. It has been updated following
+   running of `copywrite`.
+6. **Misspellings detected by codespell**: fix the misspellings reported or
    [add an inline ignore comment](https://github.com/codespell-project/codespell?tab=readme-ov-file#inline-ignore).
-6. **uv export failures**: commit the updated `requirements.txt` file. It has
+7. **uv export failures**: commit the updated `requirements.txt` file. It has
    been updated following changes to the lock file.
-7. **Markdown linter failures**: `markdownlint-cli2` usually fixes most issues
+8. **Markdown linter failures**: `markdownlint-cli2` usually fixes most issues
    automatically. If you review its error message and still don’t see a clear
    explanation or solution, try recommitting your changes and let the tool
    re-run.

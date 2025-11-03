@@ -22,11 +22,15 @@ from orchestrator.cli.resources.context.create import create_context
 from orchestrator.cli.resources.discovery_space.create import create_discovery_space
 from orchestrator.cli.resources.operation.create import create_operation
 from orchestrator.cli.resources.sample_store.create import create_sample_store
-from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
+from orchestrator.cli.utils.input.parsers import (
+    parse_core_resource_kinds,
+    parse_key_value_pairs,
+)
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
 )
+from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
@@ -34,6 +38,7 @@ from orchestrator.metastore.base import (
 from orchestrator.modules.actuators.registry import UnknownExperimentError
 
 CREATE_OPERATION_PANEL_NAME = "Operation-specific options"
+CREATE_SPACE_PANEL_NAME = "Space-specific options"
 
 
 def resource_type_callback(
@@ -102,9 +107,21 @@ def create_resource(
         bool,
         typer.Option(
             "--new-sample-store",
-            help="Request and use a new, empty sample store. Available only for space and sample store.",
+            help="Request and use a new, empty sample store. Available only for space and sample store. "
+            "Ignored if --set or --use-latest are used.",
         ),
     ] = False,
+    use_latest: Annotated[
+        list[CoreResourceKinds] | None,
+        typer.Option(
+            show_default=False,
+            parser=parse_core_resource_kinds,
+            help="""
+            Reuse the latest identifier of a resource kind. Can be used multiple times.
+
+            Only supported for spaces and operations. Ignored if --set is used.""",
+        ),
+    ] = None,
     set_values: Annotated[
         list[str] | None,
         typer.Option(
@@ -120,6 +137,16 @@ def create_resource(
             """,
         ),
     ] = None,
+    use_default_sample_store: Annotated[
+        bool,
+        typer.Option(
+            "--use-default-sample-store",
+            rich_help_panel=CREATE_SPACE_PANEL_NAME,
+            help="Request and use the default sample store. Available only for spaces. "
+            "Ignored if --set, --use-latest, or --new-sample-store are used."
+            "Alias for --set sampleStoreIdentifier=default.",
+        ),
+    ] = False,
     dry_run: Annotated[
         bool,
         typer.Option(
@@ -194,6 +221,8 @@ def create_resource(
         override_values=override_values,
         resource_configuration_file=resource_configuration,
         resource_type=resource_type,
+        use_default_sample_store=use_default_sample_store,
+        use_latest=use_latest,
     )
 
     method_mapping = {
@@ -216,6 +245,8 @@ def create_resource(
         )
     except UnknownExperimentError as e:
         handle_unknown_experiment_error(error=e)
+
+    ado_configuration.store()
 
 
 def register_create_command(app: typer.Typer):

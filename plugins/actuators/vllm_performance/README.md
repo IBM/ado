@@ -13,7 +13,7 @@ cluster to serve
 [IBM Granite-3.3-8b](https://huggingface.co/ibm-granite/granite-3.3-8b-instruct)
 and runs an experiment that utilises the
 [vLLM serving benchmark](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html).
-The actuator is called `vllm_performance` and features two experiments:
+The the actuator is named `vllm_performance` and features two experiments:
 `performance-testing-full` and `performance-testing-endpoint`.
 
 # Getting Started
@@ -26,8 +26,7 @@ This guide has two parts:
     - [Configuring the actuator](#configuring-the-actuator)
   - [A Simple Benchmarking Exercise](#a-simple-benchmarking-exercise)
     - [Creating a Discovery Space to describe the vLLM configurations to test](#creating-a-discovery-space-to-describe-the-vllm-configurations-to-test)
-      - [Checking the context](#checking-the-context)
-      - [Creating an sample store, if needed](#creating-an-sample-store-if-needed)
+      - [Activating the local context](#activating-the-local-context)
       - [Defining a Discovery Space of vLLM configurations](#defining-a-discovery-space-of-vllm-configurations)
       - [Querying the Discovery Space](#querying-the-discovery-space)
     - [Exploring the vLLM workload configuration space](#exploring-the-vllm-workload-configuration-space)
@@ -45,7 +44,7 @@ After running the exercise, please feel free to
 
 > [!NOTE]
 >
-> These pre-requisites must be fulfilled before you start with this actuator
+> These prerequisites must be fulfilled before you start with this actuator
 >
 > 1. Access to an OpenShift cluster with at least 1 node with 1 available
 >     NVIDIA GPU. You will need access to a namespace with permissions for
@@ -57,11 +56,21 @@ After running the exercise, please feel free to
 
 ### Installation
 
-Ensure the virtual environment you installed `ado` into is active. Then, in the
-top-level directory of this actuator (i.e. the directory with this README), run:
+Ensure the virtual environment you installed `ado` into is active. Then, run:
+
+<!-- ```commandline
+pip install ado-vllm-performance
+``` -->
 
 ```commandline
-pip install .
+pip install -e plugins/actuators/vllm_performance
+```
+
+from the root of the `ado` source repository.
+You can clone the repository with
+
+```commandline
+git clone https://github.com/IBM/ado.git
 ```
 
 Confirm that the actuator is installed:
@@ -92,32 +101,38 @@ ado describe experiment performance-testing-full
 ```
 
 The experiment protocol for the vLLM actuator is defined in
-[this YAML file](ado_actuators/vllm_performance/experiments.yaml). You will need
-to update this if you want to modify the values that can be accepted as valid
-for the input properties.
+[this YAML file](https://github.com/IBM/ado/blob/main/plugins/actuators/vllm_performance/ado_actuators/vllm_performance/experiments.yaml).
+You will need to update this if you want to modify the values that can be
+accepted as valid for the input properties.
 
 ### Configuring the actuator
 
-Before using the vLLM actuator to execute experiments, you will need to
-configure its parameters. First, get the template for the configuration. First,
-get the template for the configuration:
+Before using the vLLM actuator to execute experiments, you must
+configure its parameters. First, get the template for the configuration:
 
 ```commandline
-ado template actuatorconfiguration --actuator-identifier vllm_performance
+ado template actuatorconfiguration --actuator-identifier vllm_performance \
+                                   -o actuatorconfiguration.yaml
 ```
 
-that will create a yaml file of parameters, which looks like follows:
+This will create the `vllm_performance_actuatorconfiguration.yaml` file, which
+will look like:
 
 ```yaml
 actuatorIdentifier: vllm_performance
+metadata:
+  description: null
+  labels: null
+  name: null
 parameters:
   benchmark_retries: 3
   deployment_template: deployment.yaml
   hf_token: ""
   image_secret: ""
-  in_cluster: false
-  interpreter: python3.10
-  namespace: vllm-testing
+  in_cluster: true
+  interpreter: python3
+  max_environments: 1
+  namespace: null
   node_selector: ""
   pvc_template: pvc.yaml
   retries_timeout: 5
@@ -130,34 +145,22 @@ The three key parameters we have to set here are `hf_token`, `namespace`, and
 
 - `hf_token`: Access token from
   [HuggingFace](https://huggingface.co/settings/tokens).
-- `namespace`: The namespace you have access to in your OpenShift cluster
-- `node_selector`: Kubernetes selector string for a node with an available GPU.
-  Node selector parameter is a json string. Make sure that you format it
-  correctly, for example:
+- `namespace`: The namespace you have access to in your OpenShift cluster.
+- `node_selector`: JSON dictionary representing a Kubernetes selector for a node
+  with available GPUs. Make sure it is formatted correctly, for example:
 
-```text
-node_selector: '{"kubernetes.io/hostname":"cpu16"}'
-```
+    ```text
+    node_selector: '{"kubernetes.io/hostname":"cpu16"}'
+    ```
 
 We will discuss the other parameters later. Once you have put in the parameters,
-create the actuator configuration by:
+create the actuator configuration with:
 
 ```commandline
-ado create actuatorconfiguration -f your-file-name
+ado create actuatorconfiguration -f `vllm_performance_actuatorconfiguration.yaml`
 ```
 
-If this operation succeed you should get something like:
-
-<!-- markdownlint-disable line-length -->
-```text
-Success! Created actuator configuration with identifier actuatorconfiguration-vllm_performance-d2b1f016
-```
-<!-- markdownlint-enable line-length -->
-
-The resulting resource `actuatorconfiguration-vllm_performance-d2b1f016` can now
-be used for [executing experiments](#a-simple-benchmarking-exercise).
-
-Note: You can have multiple different configurations for an actuator.
+Note: You can have multiple configurations for an actuator.
 
 ## A Simple Benchmarking Exercise
 
@@ -168,45 +171,17 @@ Kubernetes/OpenShift cluster.
 
 ### Creating a Discovery Space to describe the vLLM configurations to test
 
-#### Checking the context
+> [!NOTE]
+>
+> Since this is an example exercise, we will use the `local` context and the
+> `default` sample store.
 
-Activate the `ado` context you want to use to store the results, for example the
-`local` context created when `ado` is started. Confirm this by running
+#### Activating the local context
 
-```commandline
-ado context
-```
-
-which should return your selected context.
-
-#### Creating an sample store, if needed
-
-First, we have to create an
-[sample store](https://ibm.github.io/ado/core-concepts/concepts/#sample-store),
-if you do not have one already, to store the sampled vLLM configurations and the
-results of the measurements on them.
+To ensure the `local` context is active, run:
 
 ```commandline
-ado create samplestore --new-sample-store
-```
-
-If this operation succeed you should get something like:
-
-```text
-Success! Created sample store with identifier df57a3
-```
-
-You can list the sample stores as below:
-
-```commandline
-ado get sample stores
-```
-
-should return output like below:
-
-```text
-  IDENTIFIER  NAME    AGE
-0    df57a3   null   5s
+ado context local
 ```
 
 #### Defining a Discovery Space of vLLM configurations
@@ -241,36 +216,22 @@ on a node (determined through `node_selector`) with a specific GPU
 > If this returns a different GPU model, then you must
 > [update the experiment protocol](#customising-experiment-protocol).
 
-Replace the sample store identifier at the top of the space definition file with
-the one created just before, like so:
-
-```yaml
-sampleStoreIdentifier: df57a3 #Use the one created in previous step
-```
-
-Next, run the following command to create the `discoveryspace`:
+Create the `discoveryspace`:
 
 ```commandline
-ado create space -f yamls/discoveryspace_override_defaults.yaml
-```
-
-If the operation succeeds, you should get the identifier of the created space:
-
-```text
-Discovery space identifier: space-c81773-df57a3
+ado create space -f yamls/discoveryspace_override_defaults.yaml \
+                 --use-default-sample-store
 ```
 
 #### Querying the Discovery Space
 
-The `discoveryspace` identifier will be used in the following step to run the
-experiment. In the meanwhile, you can see what has been measured in the
-`discoveryspace` by:
+Before we run any experiment, we can see that the `discoveryspace` is empty:
 
 ```commandline
-ado show entities space space-c81773-df57a3
+ado show entities space --use-latest
 ```
 
-Without any measurements being done, this will return:
+Will output:
 
 <!-- markdownlint-disable line-length -->
 ```text
@@ -282,10 +243,10 @@ To see all the entities (parameter combinations) that are waiting to be
 measured, try executing:
 
 ```commandline
-ado show entities space --include missing space-c81773-df57a3
+ado show entities space --include missing --use-latest
 ```
 
-that will return output similar to:
+The output will look like:
 
 <!-- markdownlint-disable line-length -->
 ```terminaloutput
@@ -294,7 +255,7 @@ that will return output similar to:
 ```
 <!-- markdownlint-enable line-length -->
 
-which is the entity we want to measure
+Which is the entity we want to measure.
 
 ### Exploring the vLLM workload configuration space
 
@@ -311,14 +272,14 @@ In `ado` parlance, measurements are executed through `operations` which
 represent the executions of `experiments` on `entities`.
 
 An example of an operation can be found in
-[`yamls/random_walk_operation.yaml`](yamls/random_walk_operation.yaml). You will
-have to replace the identifier of the created space in the `spaces` block and
-the identifier of the actuator configuration created previously, in the
-`actuatorConfigurationIdentifiers` block and execute the operation, like so:
+[`yamls/random_walk_operation.yaml`](https://github.com/IBM/ado/blob/main/plugins/actuators/vllm_performance/yamls/random_walk_operation.yaml).
+You can run the operation using the actuator configuration and space that we
+have created earlier with:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-ado create operation -f yamls/random_walk_operation.yaml --set "spaces[0]=space-c81773-df57a3" --set 'actuatorConfigurationIdentifiers[0]=actuatorconfiguration-vllm_performance-d2b1f016'
+ado create operation -f yamls/random_walk_operation.yaml \
+                     --use-latest space --use-latest actuatorconfiguration
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -337,7 +298,7 @@ point where these lines appear:
 
 The actuator uses the entity to create a vLLM deployment, followed by execution
 of the benchmark script. This process will take some time as it involves
-downloading the Docker image from [Quay](quay.io) and the model from
+downloading the container image from [Quay](quay.io) and the model from
 HuggingFace, both of which are network-intensive. You can monitor if the
 deployment is ready by executing the following in another shell:
 
@@ -360,7 +321,7 @@ If the output contains `EXPERIMENT FAILURE`, then something has gone wrong.
 Verify that the entity has been measured by running:
 
 ```commandline
-ado show entities space space-c81773-df57a3 --output-format csv
+ado show entities space --use-latest --output-format csv
 ```
 
 The csv file will have one line representing the entity featuring values for all
@@ -368,7 +329,7 @@ its measured properties
 (`performance-testing-output_throughput`,`performance-testing-total_token_throughput`,`performance-testing-mean_ttft_ms`,
 etc.)
 
-Congratulations! you have successfully executed the vLLM benchmark on a vLLM
+Congratulations! You have successfully executed the vLLM benchmark on a vLLM
 workload configuration using `ado`!
 
 # Exploring Further
@@ -385,16 +346,16 @@ To use this approach it is necessary to:
 <!-- markdownlint-disable descriptive-link-text -->
 - Create a docker image: Existing docker images for VLLM project are not
   directly suitable for this purpose, as they are hard to use on Openshift
-  cluster and not directly extensible. We have provided a Docker image to get
+  clusters and not directly extensible. We have provided a Docker image to get
   started but if you want to customize it for your installation, then you will
-  need to rebuild the image. We provide a slightly different
+  need to rebuild it. We provide a slightly different
   [build](docker_image), described [here](docker_image/README.md)
 - Create automation for vLLM deployment for running experiments. A simple
   implementation of such an automation is presented
   [here](ado_actuators/vllm_performance/k8)
 - Create a vLLM performance test. Here we are directly reusing
   [performance test](https://github.com/vllm-project/vllm/blob/main/benchmarks/benchmark_serving.py)
-  provided by vLLM project. required code is
+  provided by the vLLM project. The required code is
   [here](ado_actuators/vllm_performance/vllm_performance_test)
 <!-- markdownlint-enable descriptive-link-text -->
 
@@ -411,8 +372,8 @@ partially inferred from the configuration space and partially from the context
 ## The Actuator Package: Key Files
 
 The actuator package is under `ado_actuators/vllm_performance`. Note all
-actuator packages must be under a directory called `ado_actuators` as this is
-the name of package that contains all `ado` plugins.
+actuator packages should be placed under a directory called `ado_actuators` as
+this is the name of package that contains all `ado` plugins.
 
 The key files are:
 
@@ -434,7 +395,7 @@ The key files are:
 
 ### Customising Actuator Configurations
 
-Actuator is configured using
+The actuator is configured using
 [VLLMPerformanceTestParameters class](ado_actuators/vllm_performance/actuator_parameters.py)
 
 You can customise `deployment_template`, `service_template` and `pvc_template`
@@ -484,10 +445,10 @@ the location to update will be:
 ### Notes on the Random walk operation
 
 VLLM testing is using external environment (deployment + service) to run tests.
-Creation of such environment is expensive. To speed up experiments execution it
-is recommended to used group samplers for running VLLM testing. This allows to
-create an environment once and use it for all experiments that can be used for
-it. In this case the group definition looks as follows:
+Creating such an environment is resource-intensive. To speed up experiments
+execution it is recommended to use group samplers for running VLLM testing. This
+allows to create an environment once and use it for all experiments that can be
+used for it. In this case the group definition looks as follows:
 
 ```yaml
 grouping:

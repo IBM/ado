@@ -7,7 +7,8 @@ from typing import Literal
 import pytest
 
 from orchestrator.modules.actuators import custom_experiments
-from orchestrator.schema.domain import VariableTypeEnum
+from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+from orchestrator.schema.property import ConstitutiveProperty
 
 
 def test_infer_domain_and_property_type():
@@ -43,7 +44,7 @@ def test_derive_required_properties_from_signature_basic():
         pass
 
     result = custom_experiments.derive_required_properties_from_signature(
-        f, optional_idents={}
+        f, optional_idents=[]
     )
     # a, b expected (no-domain), c skipped as optional
     ids = {r.identifier for r in result}
@@ -57,7 +58,7 @@ def test_derive_required_properties_from_signature_basic():
         ValueError, match=r"Unsupported annotation: <class 'inspect._empty'>"
     ):
         custom_experiments.derive_required_properties_from_signature(
-            f, optional_idents={}
+            f, optional_idents=[]
         )
 
 
@@ -177,3 +178,30 @@ def test_check_parameters_and_infer():
         == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
     )
     assert required_properties[1].propertyDomain.interval is None
+
+    # Check if we pass in optional properties the parameterization is derived from the function signature
+    # and the optional property returned is the same as the one passed in
+    optionals, parameterization, required_properties = (
+        custom_experiments.check_parameters_and_infer(
+            [
+                ConstitutiveProperty(
+                    identifier="c",
+                    propertyDomain=PropertyDomain(
+                        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                        interval=2,
+                        domainRange=[0, 10],
+                    ),
+                )
+            ],
+            None,
+            None,
+            fn,
+        )
+    )
+    assert len(optionals) == 1
+    assert optionals[0].propertyDomain == PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        interval=2,
+        domainRange=[0, 10],
+    )
+    assert parameterization["c"] == 1

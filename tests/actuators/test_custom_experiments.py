@@ -142,3 +142,38 @@ def test_derive_optional_properties_and_parameterization_basic_types_and_unsuppo
         optionals, _ = (
             custom_experiments.derive_optional_properties_and_parameterization(fn, [])
         )
+
+
+def test_check_parameters_and_infer():
+
+    def fn(a: int, b: float, c: int = 1):
+        pass
+
+    optionals, parameterization, required_properties = (
+        custom_experiments.check_parameters_and_infer(None, None, None, fn)
+    )
+
+    assert len(optionals) == 1
+    assert optionals[0].identifier == "c"
+    assert (
+        optionals[0].propertyDomain.variableType
+        == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    )
+    assert optionals[0].propertyDomain.interval == 1
+
+    assert len(parameterization) == 1
+    assert parameterization["c"] == 1
+
+    assert len(required_properties) == 2
+    assert required_properties[0].identifier == "a"
+    assert (
+        required_properties[0].propertyDomain.variableType
+        == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    )
+    assert required_properties[0].propertyDomain.interval == 1
+    assert required_properties[1].identifier == "b"
+    assert (
+        required_properties[1].propertyDomain.variableType
+        == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    )
+    assert required_properties[1].propertyDomain.interval is None

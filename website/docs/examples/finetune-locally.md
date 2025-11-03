@@ -4,8 +4,8 @@
 >
 > This example illustrates:
 >
-> 1. Set up a local environment for running finetuning performance benchmarks
->    with SFTTrainer
+> 1. Setting up a local environment for running finetuning performance benchmarks
+>    using SFTTrainer
 >
 > 2. Benchmarking a set of finetuning configurations for a small model using a
 >    local context and only the CPU
@@ -52,7 +52,7 @@ ado context local
 
     <!-- markdownlint-disable code-block-style -->
     ```commandline
-      pip install ado-sfttrainer`
+    pip install ado-sfttrainer
     ```
     <!-- markdownlint-enable code-block-style -->
 
@@ -92,7 +92,7 @@ ado context local
 SFTTrainer includes parameters that control its behavior. For example, it pushes
 any training metrics it collects, like system profiling metadata, to an
 [AIM](https://github.com/aimhubio/aim) server by default. It also features
-parameters that define important paths, such as the location of the Hugging Face
+parameters that specify important paths, such as the location of the Hugging Face
 cache and the directory where the actuator expects to find files like the test
 dataset.
 
@@ -115,9 +115,6 @@ To create the `actuatorconfiguration` resource run:
 ```commandline
 ado create actuatorconfiguration -f actuator_configuration.yaml
 ```
-
-The command will print the ID of the resource. Make a note of it, you will need
-it in a later step.
 
 See the full list of parameters you can set in an `actuatorconfiguration`
 resource for the SFTTrainer actuator in its
@@ -197,87 +194,76 @@ To create the Discovery Space:
 
 1. Create the file `space.yaml` with the following content
 
-   <!-- markdownlint-disable line-length -->
-   ```yaml
-   # if you do not have a Sample Store we provide a command-line that will create one for you
-   sampleStoreIdentifier: Replace this with the identifier of your sample store
+    <!-- markdownlint-disable line-length -->
+    ```yaml
+    sampleStoreIdentifier: default
 
-   experiments:
-     - experimentIdentifier: finetune_full_benchmark-v1.0.0
-       actuatorIdentifier: SFTTrainer
-       parameterization:
-         - property:
-             identifier: fms_hf_tuning_version
-           value: "2.8.2"
-         - property:
-             identifier: stop_after_seconds
-           value: 30
-         - property:
-             identifier: flash_attn
-           value: False
+    experiments:
+      - experimentIdentifier: finetune_full_benchmark-v1.0.0
+        actuatorIdentifier: SFTTrainer
+        parameterization:
+          - property:
+              identifier: fms_hf_tuning_version
+            value: "2.8.2"
+          - property:
+              identifier: stop_after_seconds
+            value: 30
+          - property:
+              identifier: flash_attn
+            value: False
 
-   entitySpace:
-     - identifier: "model_name"
-       propertyDomain:
-         values: ["smollm2-135m"]
-     - identifier: "number_gpus"
-       propertyDomain:
-         values: [0]
-     - identifier: "model_max_length"
-       propertyDomain:
-         values: [512, 1024]
-     - identifier: "batch_size"
-       propertyDomain:
-         values: [1, 2]
-   ```
-   <!-- markdownlint-enable line-length -->
+    entitySpace:
+      - identifier: "model_name"
+        propertyDomain:
+          values: ["smollm2-135m"]
+      - identifier: "number_gpus"
+        propertyDomain:
+          values: [0]
+      - identifier: "model_max_length"
+        propertyDomain:
+          values: [512, 1024]
+      - identifier: "batch_size"
+        propertyDomain:
+          values: [1, 2]
+    ```
+    <!-- markdownlint-enable line-length -->
 
 2. Create the space:
 
-   - If you have an `samplestore` ID, run:
+    ```commandline
+    ado create space -f space.yaml
+    ```
 
-     ```commandline
-     ado create space -f space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
-     ```
-
-   - If you do not have a `samplestore` then run
-
-     ```commandline
-     ado create space -f space.yaml --new-sample-store
-     ```
-
-   This will print a `discoveryspace` ID (e.g., `space-ea937f-831dba`). Make a
-   note of this ID, you'll need it in the next step.
+   The space will use the `default` sample store.
 
 ### Create a random walk `operation` to explore the space
 
 1. Create the file `operation.yaml` with the following content:
 
-   ```yaml
-   spaces:
-     - The identifier of the DiscoverySpace resource
-   actuatorConfigurationIdentifiers:
-     - The identifier of the Actuator Configuration resource
+    ```yaml
+    spaces:
+      - The identifier of the DiscoverySpace resource
+    actuatorConfigurationIdentifiers:
+      - The identifier of the Actuator Configuration resource
 
-   operation:
-     module:
-       operatorName: "random_walk"
-       operationType: "search"
-     parameters:
-       numberEntities: all
-       singleMeasurement: True
-       mode: sequential
-       samplerType: generator
-   ```
+    operation:
+      module:
+        operatorName: "random_walk"
+        operationType: "search"
+      parameters:
+        numberEntities: all
+        singleMeasurement: True
+        samplerConfig:
+          mode: sequential
+          samplerType: generator
+    ```
 
-2. Replace the placeholders with your `discoveryspace` ID and
-   `actuatorconfiguration` ID and save it in a file with the name
-   `operation.yaml`
-3. Create the operation
+2. Create the operation
 
-   ```commandline
-   ado create operation -f operation.yaml
-   ```
+    ```commandline
+    ado create operation -f operation.yaml \
+                --use-latest space --use-latest actuatorconfiguration
+    ```
 
 The operation will execute the measurements (i.e. apply the experiment
 **finetune_full_benchmark-v1.0.0** on the 4 entities) based on the definition of
@@ -287,17 +273,17 @@ cached model weights and the cached data, making them faster to complete.
 !!! info end
     <!-- markdownlint-disable-next-line code-block-style -->
     Each measurement takes about two minutes to complete, with a total of four
-    measurements. Ray will also take a couple of minutes to build the Ray runtime
-    environment on participating ray workers so expect the operation to take O(10)
-    minutes to complete.
+    measurements. Ray may take a few minutes to build the Ray runtime
+    environment on participating ray workers, so expect the operation to take around
+    10 minutes to complete.
 
 ### Examine the results of the exploration
 
-After the operation completes, you can download the results of your
+After the operation completes, you can retrieve the results of your
 measurements:
 
 ```commandline
-ado show entities --output-format csv --property-format=target space $yourDiscoverySpaceID
+ado show entities --output-format csv --property-format=target space --use-latest
 ```
 
 The command will generate a CSV file. Open it to explore the data that your

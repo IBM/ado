@@ -17,7 +17,11 @@ from orchestrator.cli.resources.discovery_space.show_details import (
     show_discovery_space_details,
 )
 from orchestrator.cli.resources.operation.show_details import show_operation_details
-from orchestrator.cli.utils.output.prints import ERROR, console_print
+from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.output.prints import (
+    ERROR,
+    console_print,
+)
 from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
@@ -43,13 +47,21 @@ def show_details_for_resources(
         ),
     ],
     resource_id: Annotated[
-        str,
+        str | None,
         typer.Argument(
-            ...,
             help="The id of the resource to show details for.",
             show_default=False,
         ),
-    ],
+    ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Show entities for the latest identifier of the selected resource type. "
+            "Ignored if a resource identifier is also specified.",
+            show_default=False,
+        ),
+    ] = False,
 ):
     """
     Show a high-level overview of a resource and what resources are related to it.
@@ -73,11 +85,31 @@ def show_details_for_resources(
 
 
 
+    # Show details for the latest space
+    ado show details space --use-latest
+
+
+
     # Show how many entities were measured as part of an operation
 
     ado show details operation <operation-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    if not resource_id and not use_latest:
+        console_print(
+            f"{ERROR}You must specify either a resource id or the --use-latest flag",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    if use_latest:
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            ado_configuration=ado_configuration,
+        )
+
     parameters = AdoShowDetailsCommandParameters(
         ado_configuration=ado_configuration, resource_id=resource_id
     )

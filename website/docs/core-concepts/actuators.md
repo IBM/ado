@@ -3,7 +3,7 @@
 
 To find the values of certain properties of Entities we need to perform
 measurements on them. We use the term "experiment" to describe a particular type
-of measurement. This could also be called an "experiment protocol".
+of measurement. This is also referred to as an "experiment protocol".
 
 An experiment will define its inputs - the set of constitutive and observed
 properties it requires entities to have. It will also define the properties it
@@ -14,11 +14,11 @@ measures.
 Experiments are provided by Actuators. An Actuator usually provides sets of
 experiments that work on the same types of entities i.e. have the same or
 similar input requirements. As such Actuators usually are related to a
-particular domain e.g. computational chemistry, foundation model inference,
+particular domain e.g., computational chemistry, foundation model inference,
 robotic biology lab.
 
 `ado get actuators --details` lists the available actuators and experiments.
-Here is a truncated example of the output:
+Below is a truncated example of the output:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
@@ -35,7 +35,7 @@ Here is a truncated example of the output:
 ```
 <!-- markdownlint-enable line-length -->
 
-One of the primary ways to extend `ado` is to develop new Actuators providing
+A primary way to extend `ado` is by developing new Actuators providing
 the ability to do experiments on entities in a new domain.
 
 ### Example: Experiment from the SFTTrainer actuator
@@ -141,7 +141,7 @@ Outputs:
   band-gap-pm3-gamess-us:1.0.0-total-energy
 ```
 
-The ST4SD actuator provides experiments which perform computational measurements
+The ST4SD actuator provides experiments that perform computational measurements
 of entities, often molecules. Therefore, the entities it takes as input often
 represent molecules.
 
@@ -180,7 +180,7 @@ Entity before Experiment `B` can be run on it.
 
 ### Optional Properties
 
-Experiment can also define optional properties. These are properties an Entity
+Experiments can also define optional properties. These are properties an Entity
 can have but if they don't the Experiment will give it a default value. In
 addition, the default values of optional properties can be overridden to create
 **parameterized experiments**. This is described further in the

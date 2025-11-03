@@ -11,12 +11,12 @@ model, number of GPUs and batch size.
 
 An entity will also have observed properties. These are properties measured by
 an experiment (or experiment protocol). For example, a molecule might have an
-observed properties for its `band-gap` while a fine-tuning deployment
-configuration might have an observed properties related to `tokens throughput`.
+an observed property for its `band-gap` while a fine-tuning deployment
+configuration might have an an observed property related to `tokens throughput`.
 
 ### Example: FM Fine-tuning Deployment Configuration
 
-Here's an example of an entity that represents a FM fine-tuning deployment
+Here is an example of an entity that represents a FM fine-tuning deployment
 
 <!-- markdownlint-disable line-length -->
 ```terminaloutput
@@ -60,7 +60,7 @@ Associated experiments:
 ```
 <!-- markdownlint-enable line-length -->
 
-For more about the meaning of `observed properties` see
+For more information about the meaning of `observed properties` see
 [target & observed properties](actuators.md#target-and-observed-properties)
 
 ## Entity Spaces
@@ -72,7 +72,7 @@ then sample Entities from them.
 ### Example: Molecules
 
 This space has a single dimension with type identifier. This is a property whose
-values are a, potential very large, set of unique-ids generated in some fashion.
+values are a potentially very large set of unique-ids generated in some fashion.
 
 ```commandline
   Space with non-discrete dimensions. Cannot count entities

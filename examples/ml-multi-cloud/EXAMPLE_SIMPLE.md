@@ -40,7 +40,7 @@ of points are randomly selected without replacement.
 
 For this example we will use some **pre-existing data**. This makes the example
 simpler and quicker to execute but can also be useful in other situations. The
-data is in the file `ml_export.csv` and is consists of results of running a
+data is in the file `ml_export.csv` and consists of results of running a
 benchmark on different cloud hardware configurations from different providers.
 
 In `ado` such configurations are called `entities`, and are stored, along with
@@ -60,11 +60,7 @@ and it will report that a `samplestore` has been created:
 Success! Created sample store with identifier $SAMPLE_STORE_IDENTIFIER
 ```
 
-Note the `samplestore` resource identifier printed by this command for the next
-section.
-
-Also try `ado get samplestores` and you will see an entry for the one you just
-created
+You can see all available sample stores using `ado get samplestores`.
 
 !!! info end
     <!-- markdownlint-disable-next-line code-block-style -->
@@ -81,10 +77,8 @@ will create a `discoveryspace` to describe the space explored in
 Execute:
 
 ```commandline
-ado create space -f ml_multicloud_space.yaml --set "sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER"
+ado create space -f ml_multicloud_space.yaml --use-latest samplestore
 ```
-
-where `$SAMPLE_STORE_IDENTIFIER` is the identifier you copied in last step.
 
 This will confirm the creation of the `discoveryspace` with:
 
@@ -95,11 +89,10 @@ Success! Created space with identifier: $DISCOVERY_SPACE_IDENTIFIER
 You can now describe the `discoveryspace` with:
 
 ```commandline
-ado describe space $DISCOVERY_SPACE_IDENTIFIER
+ado describe space --use-latest
 ```
 
-where $DISCOVERY_SPACE_IDENTIFIER is the identifier of the `discoveryspace`
-resource that was just created. This will output:
+This will output:
 
 ```commandline
 Identifier: space-65cf33-a8df39
@@ -161,11 +154,10 @@ reuse it. An example operation file is given in
 {% include "./randomwalk_ml_multicloud_operation.yaml" %}
 ```
 
-To run the operation execute (replacing `$DISCOVERY_SPACE_IDENTIFIER` with the
-identifier of the space you created):
+To run the operation execute:
 
 ```commandline
-ado create operation -f randomwalk_ml_multicloud_operation.yaml --set "spaces[0]=$DISCOVERY_SPACE_IDENTIFIER"
+ado create operation -f randomwalk_ml_multicloud_operation.yaml --use-latest space
 ```
 
 This will output a lot of information as it samples all the entities. Typically,
@@ -230,8 +222,8 @@ status:
 version: v1
 ```
 
-Note the value of the `identifier` field: in above it is
-`randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`
+The identifier operation is stored in the `identifier` field: in the output
+above, it is `randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`.
 
 > [!NOTE]
 >
@@ -258,7 +250,7 @@ Note the value of the `identifier` field: in above it is
 The command
 
 ```commandline
-ado show entities operation $OPERATION_IDENTIFIER
+ado show entities operation --use-latest
 ```
 
 displays the results of the operation i.e. the entities sampled and the
@@ -334,38 +326,38 @@ Here are a variety of commands you can try after executing the example above:
 
 ### Viewing entities
 
-There are multiple ways to few the entities related to a `discoveryspace`. Try:
+There are multiple ways to view the entities related to a `discoveryspace`. Try:
 
 ```commandline
-ado show entities space $DISCOVERY_SPACE_IDENTIFIER
-ado show entities space $DISCOVERY_SPACE_IDENTIFIER --aggregate mean
-ado show entities space $DISCOVERY_SPACE_IDENTIFIER --include unmeasured
-ado show entities space $DISCOVERY_SPACE_IDENTIFIER --property-format target
+ado show entities space --use-latest
+ado show entities space --use-latest --aggregate mean
+ado show entities space --use-latest --include unmeasured
+ado show entities space --use-latest --property-format target
 ```
 
 Also,
 
 ```commandline
-ado show details space $DISCOVERY_SPACE_IDENTIFIER
+ado show details space --use-latest
 ```
 
 will give you a summary of what has been measured.
 
 ### Resource provenance
 
-The `related` sub-command shows resource provenance e.g.
+The `related` sub-command shows resource provenance:
 
 ```commandline
-ado show related operation $OPERATION_IDENTIFIER
+ado show related operation --use-latest
 ```
 
 ### Operation timeseries
 
-The following commands give more details of the operation timeseries
+The following commands give more details of the operation timeseries:
 
 ```commandline
-ado show results operation $OPERATION_IDENTIFIER
-ado show requests operation $OPERATION_IDENTIFIER
+ado show results operation --use-latest
+ado show requests operation --use-latest
 ```
 
 ### Resource templates
@@ -386,19 +378,19 @@ of `show entities operation` for the two operations, and `show entities space`.
 
 - **create-explore-view pattern**: A common pattern in `ado` is to create a
   `discoveryspace` to describe a set of points to measure, create `operations`
-  on it to explore or analyse it, and then view the results
+  on it to explore or analyse it, and then view the results.
 - **entity space and measurement space**: A `discoveryspace` consists of an
   `entityspace` - the set of points to measure - and a `measurementspace` - the
   set of experiments to apply to them.
 - **operations are domain agnostic**: `ado` enables operations to run on
-  multiple different domains without modification
+  multiple different domains without modification.
 - **memoization**: By default `ado` will identify if a measurement has already
   been completed on an entity and reuse it
-- **provenance**: `ado` stores the relationship between the resources it creates
+- **provenance**: `ado` stores the relationship between the resources it creates.
 - **results viewing**: `ado show entities` outputs the data in a
-  `discoveryspace` or measured in an `operation`
+  `discoveryspace` or measured in an `operation`.
 - **measurement timeseries**: The sequence (timeseries) of measurements,
-  successful or not, of each `operation` is preserved
+  successful or not, of each `operation` is preserved.
 - **`discoveryspace` views**: By default `ado show entities space` only shows
-  successfully measured entities , but you can see what has not been measured if
-  you want
+  successfully measured entities, but you can see what has not been measured if
+  you want.

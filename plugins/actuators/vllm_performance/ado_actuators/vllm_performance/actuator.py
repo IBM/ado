@@ -195,6 +195,7 @@ class VLLMPerformanceTest(ActuatorBase):
         if experiment.identifier in [
             "performance-testing-full",
             "performance-testing-geospatial-full",
+            "performance-testing-geospatial-full-custom-dataset",
         ]:
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(

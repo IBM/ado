@@ -285,7 +285,10 @@ def run_resource_and_workload_experiment(
                 start = time.time()
                 result = None
                 try:
-                    if experiment.identifier == "performance-testing-geospatial-full":
+                    if experiment.identifier in [
+                        "performance-testing-geospatial-full",
+                        "performance-testing-geospatial-full-custom-dataset",
+                    ]:
                         result = execute_geospatial_benchmark(
                             base_url=base_url,
                             model=values.get("model"),

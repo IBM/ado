@@ -12,6 +12,8 @@ from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results 
     get_results,
 )
 
+logger = logging.getLogger("vllm-bench")
+
 default_geospatial_datasets_filenames = {
     "india_url_in_b64_out": "india_url_in_b64_out.jsonl",
     "valencia_url_in_b64_out": "valencia_url_in_b64_out.jsonl",
@@ -51,7 +53,6 @@ def execute_benchmark(
     keys are vllm benchmark arguments. values are the values to pass to the arguments
     :return: results dictionary
     """
-    logger = logging.getLogger("vllm-bench")
 
     logger.debug(
         f"executing benchmark, invoking service at {base_url} with the parameters: "
@@ -181,33 +182,49 @@ def execute_geospatial_benchmark(
     :param output_token_length: length of output tokens
     :return: results dictionary
     """
-    from importlib import resources
 
-    dataset_filename = default_geospatial_datasets_filenames[dataset]
+    if dataset in default_geospatial_datasets_filenames:
+        from pathlib import Path
 
-    with resources.path(
-        "ado_actuators.vllm_performance.datasets",
-        dataset_filename,
-    ) as data_set_path:
-        return execute_benchmark(
-            base_url=base_url,
-            backend="io-processor-plugin",
-            model=model,
-            data_set="custom",
-            interpreter=interpreter,
-            num_prompts=num_prompts,
-            request_rate=request_rate,
-            max_concurrency=max_concurrency,
-            hf_token=hf_token,
-            benchmark_retries=benchmark_retries,
-            retries_timeout=retries_timeout,
-            burstiness=burstiness,
-            custom_args={
-                "--dataset-path": data_set_path,
-                "--endpoint": "/pooling",
-                "--skip-tokenizer-init": True,
-            },
+        dataset_filename = default_geospatial_datasets_filenames[dataset]
+        parent_path = Path(__file__).parents[1].absolute()
+        data_set_path = os.path.join(parent_path, "datasets", dataset_filename)
+    else:
+        # This can only happen with the performance-testing-geospatial-full-custom-dataset
+        # experiment, otherwise the dataset name is always one of the allowed ones.
+        # Here the assumption is that the dataset file is placed in the  process working directory.
+        ray_working_dir = os.getcwd()
+        data_set_path = os.path.join(ray_working_dir, dataset)
+
+    if not os.path.exists(data_set_path) or not os.path.isfile(data_set_path):
+        logger.warning(
+            f"The dataset filename provided does not exist or does not point to a valid file: {data_set_path}"
         )
+        raise Exception(
+            f"The dataset filename provided does not exist or does not point to a valid file: {data_set_path}"
+        )
+
+    logger.debug(f"Dataset path {data_set_path}")
+
+    return execute_benchmark(
+        base_url=base_url,
+        backend="io-processor-plugin",
+        model=model,
+        data_set="custom",
+        interpreter=interpreter,
+        num_prompts=num_prompts,
+        request_rate=request_rate,
+        max_concurrency=max_concurrency,
+        hf_token=hf_token,
+        benchmark_retries=benchmark_retries,
+        retries_timeout=retries_timeout,
+        burstiness=burstiness,
+        custom_args={
+            "--dataset-path": data_set_path,
+            "--endpoint": "/pooling",
+            "--skip-tokenizer-init": True,
+        },
+    )
 
 
 if __name__ == "__main__":

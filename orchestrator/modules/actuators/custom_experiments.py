@@ -249,7 +249,7 @@ def check_parameters_and_infer(
     return _optional_properties, _parameterization, _required_properties
 
 
-def check_parameters_valid(_optional_properties, _required_properties, func):
+def check_parameters_valid(func, _required_properties, _optional_properties):
     # Validate that the property identifiers match the function parameters
     func_signature = inspect.signature(func)
     func_param_names = set(func_signature.parameters.keys())
@@ -350,7 +350,11 @@ def custom_experiment(
         )
 
         try:
-            check_parameters_valid(_optional_properties, _required_properties, func)
+            check_parameters_valid(
+                func,
+                _required_properties=required_properties,
+                _optional_properties=_optional_properties,
+            )
         except ValueError as error:
             logger.critical(
                 f"Unable to generate custom function via decorator: {error}"

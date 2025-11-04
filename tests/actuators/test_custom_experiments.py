@@ -44,7 +44,7 @@ def test_derive_required_properties_from_signature_basic():
         pass
 
     result = custom_experiments.derive_required_properties_from_signature(
-        f, optional_idents=[]
+        f, optional_property_identifiers=[]
     )
     # a, b expected (no-domain), c skipped as optional
     ids = {r.identifier for r in result}
@@ -58,7 +58,7 @@ def test_derive_required_properties_from_signature_basic():
         ValueError, match=r"Unsupported annotation: <class 'inspect._empty'>"
     ):
         custom_experiments.derive_required_properties_from_signature(
-            f, optional_idents=[]
+            f, optional_property_identifiers=[]
         )
 
 

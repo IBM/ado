@@ -106,15 +106,15 @@ def _infer_domain_and_property(
 
 
 def derive_required_properties_from_signature(
-    func: typing.Callable, optional_idents: list[str]
+    func: typing.Callable, optional_property_identifiers: list[str]
 ) -> list[ConstitutiveProperty]:
     """This function derives the required properties from the function signature.
 
-    The required properties are the positional parameters of the function that are not in optional_idents.
+    The required properties are the positional parameters of the function that are not in optional_property_identifiers.
 
     Parameters:
     - func: The function to derive the required properties from
-    - optional_idents: The identifiers of the optional properties
+    - optional_property_identifiers: The identifiers of the optional properties
     Returns:
     - A list of ConstitutiveProperty instances
     """
@@ -122,7 +122,7 @@ def derive_required_properties_from_signature(
     func_signature = inspect.signature(func)
     required_props = []
     for param in func_signature.parameters.values():
-        if param.name in optional_idents:
+        if param.name in optional_property_identifiers:
             continue
         if (
             param.kind

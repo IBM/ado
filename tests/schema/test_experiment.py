@@ -1003,7 +1003,7 @@ def test_validate_entity_additional_property_strict_optional_true(
     entity = entity_with_props(props)
     assert (
         nevergrad_opt_3d_test_func_experiment.validate_entity(
-            entity, strict_optional=True
+            entity, disallow_extra_properties=True
         )
         is False
     )

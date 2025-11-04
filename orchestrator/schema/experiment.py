@@ -620,7 +620,9 @@ class Experiment(pydantic.BaseModel):
 
         return identifierValueMap
 
-    def validate_entity(self, entity: "Entity", strict_optional=False) -> bool:
+    def validate_entity(
+        self, entity: "Entity", disallow_extra_properties=False
+    ) -> bool:
         """Returns True if Experiment can be applied to entity, false otherwise
 
         This method only checks constitutive properties.
@@ -653,7 +655,7 @@ class Experiment(pydantic.BaseModel):
         )
 
         # First check against strict optional as it is a quick fail condition
-        if additional_properties_present and strict_optional:
+        if additional_properties_present and disallow_extra_properties:
             logging.getLogger("experiment").warning(
                 f"Strict property checking is on and the following entity "
                 f"properties are not required or optional properties of {self.identifier}:"

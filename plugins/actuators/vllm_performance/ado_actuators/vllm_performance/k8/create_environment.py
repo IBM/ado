@@ -42,7 +42,7 @@ def create_test_environment(
     namespace: str = "vllm-testing",
     enforce_eager: bool = False,
     skip_tokenizer_init: bool = False,
-    io_processor_plugin: str | None = None
+    io_processor_plugin: str | None = None,
 ) -> None:
     """
     Create test deployment
@@ -122,7 +122,7 @@ def create_test_environment(
         reuse=reuse_deployment,
         enforce_eager=enforce_eager,
         skip_tokenizer_init=skip_tokenizer_init,
-        io_processor_plugin=io_processor_plugin
+        io_processor_plugin=io_processor_plugin,
     )
     logger.debug("deployment created")
     c_manager.wait_deployment_ready(k8_name=k8_name)

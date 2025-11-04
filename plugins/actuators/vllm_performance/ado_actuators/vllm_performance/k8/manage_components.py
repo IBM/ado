@@ -233,7 +233,7 @@ class ComponentsManager:
         reuse: bool = False,
         enforce_eager: bool = False,
         skip_tokenizer_init: bool = False,
-        io_processor_plugin: str | None = None
+        io_processor_plugin: str | None = None,
     ) -> None:
         """
         create deployment for model

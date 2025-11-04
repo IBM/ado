@@ -1,12 +1,12 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import json
 import logging
 import os
 import sys
 import uuid
 from enum import Enum
-import json
 from typing import Any
 
 import yaml
@@ -45,7 +45,7 @@ class ComponentsYaml:
 
         # Making sure the resulting name is not longer than 63 characters as it is
         # the maximum allowed for a name in kubernetes.
-        name_prefix = m_parts[-1][:min(len(m_parts[-1]), 21)].rstrip("-")
+        name_prefix = m_parts[-1][: min(len(m_parts[-1]), 21)].rstrip("-")
         return f"vllm-{name_prefix.lower()}-{uuid.uuid4()}".replace(".", "-")
 
     @staticmethod
@@ -180,7 +180,7 @@ class ComponentsYaml:
         limits["memory"] = memory
         limits["nvidia.com/gpu"] = str(n_gpus)
 
-        #command
+        # command
         container["command"] = ["vllm", "serve"]
         container["args"] = vllm_serve_args
         # env variables to to set parameters for docker execution
@@ -194,7 +194,7 @@ class ComponentsYaml:
         #     {"name": "TENSOR_PARALLEL_SIZE", "value": str(n_gpus)},
         # ]
         if hf_token is not None:
-            container["env"]=[{"name": "HF_TOKEN", "value": hf_token}]
+            container["env"] = [{"name": "HF_TOKEN", "value": hf_token}]
         if claim_name is not None:
             if "env" not in container:
                 container["env"] = []

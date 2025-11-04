@@ -17,6 +17,7 @@ default_geospatial_datasets_filenames = {
     "valencia_url_in_b64_out": "valencia_url_in_b64_out.jsonl",
 }
 
+
 def execute_benchmark(
     base_url: str,
     model: str,

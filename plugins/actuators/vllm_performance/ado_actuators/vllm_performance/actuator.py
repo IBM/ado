@@ -64,14 +64,18 @@ class VLLMPerformanceTest(ActuatorBase):
             logger.debug(f"Loading experiments from {exp_file}")
             exp_file_path = os.path.join(exp_dir, exp_file)
             if os.path.isdir(exp_file_path):
-                logger.error(f"{exp_file_path} is a directory. Only files are supported in the experiments directory")
-                raise Exception(f"{exp_file_path} is a directory. Only files are supported in the experiments directory")
+                logger.error(
+                    f"{exp_file_path} is a directory. Only files are supported in the experiments directory"
+                )
+                raise Exception(
+                    f"{exp_file_path} is a directory. Only files are supported in the experiments directory"
+                )
             with open(exp_file_path) as f:
                 try:
                     data = yaml.safe_load(f)
                 except yaml.YAMLError as e:
                     logger.error(f"File {exp_file} is a malformed YAML - {e}")
-                    raise Exception (f"File {exp_file} is a malformed YAML - {e}")
+                    raise Exception(f"File {exp_file} is a malformed YAML - {e}")
 
             experiments.extend([Experiment(**data[e]) for e in data])
 
@@ -188,7 +192,10 @@ class VLLMPerformanceTest(ActuatorBase):
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
-        if experiment.identifier in ["performance-testing-full", "performance-testing-geospatial-full"]:
+        if experiment.identifier in [
+            "performance-testing-full",
+            "performance-testing-geospatial-full",
+        ]:
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(
                     f"Actuator configuration did not contain sufficient information for a kubernetes environment manager to be created. "

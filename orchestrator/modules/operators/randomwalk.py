@@ -208,9 +208,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
                     case CombinedWalkModeEnum.RANDOMGROUPED:
                         sampler = RandomGroupSampleSelector(group=self.grouping)
                     case CombinedWalkModeEnum.SEQUENTIALGROUPED:
-                        sampler = SequentialGroupSampleSelector(
-                            group=self.grouping
-                        )
+                        sampler = SequentialGroupSampleSelector(group=self.grouping)
                     case _:
                         # this can never happen, as we are validating this above
                         pass

@@ -620,73 +620,78 @@ class Experiment(pydantic.BaseModel):
 
         return identifierValueMap
 
-    def validate_entity(self, entity: "Entity", strict_optional=False) -> bool:
+    def validate_entity(
+        self, entity: "Entity", disallow_extra_properties=False
+    ) -> bool:
         """Returns True if Experiment can be applied to entity, false otherwise
 
         This method only checks constitutive properties.
-        - All properties of the Entity that match the experiments required or optional properties must have
-        values in the domain of that property
-        - All required properties of the experiment must have a matching constitutive property
-        - If strict_optional is True all properties of the Entity that are not required properties of the Experiment
-        must match optional properties of the experiment.
+        - The entity has valid values for all required properties of the experiment
+        - The entity has valid values for any optional properties of the experiment it contains
+        - If strict_optional is True all properties of the Entity are properties (required+optional) of the experiment
         """
 
         point = {
             v.property.identifier: v.value for v in entity.constitutive_property_values
         }
-        if validate_point_against_properties(
-            point,
-            constitutive_properties=self.requiredConstitutiveProperties,
-        ):
-            return True
 
-        # It's not an exact match - check if partial match
-        if not validate_point_against_properties(
-            point,
-            constitutive_properties=self.requiredConstitutiveProperties,
-            allow_partial_matches=True,
-        ):
-            # no partial match - missing required properties or has incorrect values for them
-            logging.getLogger("experiment").warning(
-                f"The entity is missing or has invalid values for required properties of "
-                f" {self.identifier}"
-            )
-            return False
-
-        # It has the required properties with valid values but there are additional properties
-        # See if these properties are optional propertiesof the experiment
-        potential_optional_properties: set[str] = point.keys() - {
-            cp.identifier for cp in self.requiredProperties
+        #
+        # Get required and optional property sets of the experiment
+        #
+        required_property_identifiers = {
+            cp.identifier for cp in self.requiredConstitutiveProperties
         }
-        optional_properties = potential_optional_properties & {
+        optional_property_identifiers = {
             cp.identifier for cp in self.optionalProperties
         }
-        # If strict_optional is on all the additional properties must be optional properties
-        if (
-            len(optional_properties) != len(potential_optional_properties)
-            and strict_optional
-        ):
+
+        #
+        # Get the equivalent sets from the entity
+        #
+        required_properties_present = point.keys() & required_property_identifiers
+        optional_properties_present = point.keys() & optional_property_identifiers
+        additional_properties_present = (
+            point.keys() - required_properties_present - optional_properties_present
+        )
+
+        # First check against strict optional as it is a quick fail condition
+        if additional_properties_present and disallow_extra_properties:
             logging.getLogger("experiment").warning(
                 f"Strict property checking is on and the following entity "
                 f"properties are not required or optional properties of {self.identifier}:"
-                f"{potential_optional_properties-optional_properties} "
+                f"{additional_properties_present} "
             )
             return False
 
-        is_valid = validate_point_against_properties(
-            point={key: point[key] for key in optional_properties},
+        # Check if all the required properties are present with values in domain
+        if not validate_point_against_properties(
+            point={k: v for k, v in point.items() if k in required_properties_present},
+            constitutive_properties=self.requiredConstitutiveProperties,
+        ):
+            logging.getLogger("experiment").warning(
+                f"The entity is missing values for required properties of {self.identifier}: {required_property_identifiers - required_properties_present}"
+            )
+            return False
+
+        # All required properties are there
+        # Now check optional properties, if given
+        # We can set partial_match=True because:
+        # - If we wanted full match of optional properties (strict_optional), but it wasn't present,
+        #   we would have already exited
+        if optional_properties_present and not validate_point_against_properties(
+            point={k: v for k, v in point.items() if k in optional_properties_present},
             constitutive_properties=list(self.optionalProperties),
             allow_partial_matches=True,
-        )
-        if not is_valid:
+        ):
             logging.getLogger("experiment").warning(
                 f"The entity has properties that match optional properties"
                 f"of {self.identifier} - "
-                f"{potential_optional_properties - optional_properties} - "
+                f"{optional_properties_present} - "
                 f"but its values for those properties are not in the domain of the optional properties"
             )
+            return False
 
-        return is_valid
+        return True
 
 
 class ParameterizedExperiment(Experiment):

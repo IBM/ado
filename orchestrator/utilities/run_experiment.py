@@ -24,7 +24,7 @@ from orchestrator.schema.request import MeasurementRequest
 def local_execution_closure(
     registry: ActuatorRegistry,
     actuator_configuration_identifiers: list[str] | None = None,
-) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
+) -> Callable[[ExperimentReference, Entity], MeasurementRequest] | None:
     """Create a callable that submits a local measurement request.
 
     The function keeps a dictionary of Actuator actors so that each actuator
@@ -66,7 +66,7 @@ def local_execution_closure(
 
     def execute_local(
         reference: ExperimentReference, entity: Entity
-    ) -> MeasurementRequest:
+    ) -> MeasurementRequest | None:
         # instantiate the actuator for this experiment identifier.
         if reference.actuatorIdentifier not in actuators:
             actuator_class = registry.actuatorForIdentifier(
@@ -100,6 +100,7 @@ def local_execution_closure(
             traceback.print_exc()
             # Either skip, or return None, or propagate. Let's return None.
             return None
+
         return queue.get()
 
     return execute_local

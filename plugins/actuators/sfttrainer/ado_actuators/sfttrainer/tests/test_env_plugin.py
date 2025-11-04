@@ -92,6 +92,45 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
         }
 
 
+def test_pip_find_links_option():
+    if not utils.is_pip_available():
+        pytest.skip("pip is unavailable")
+
+    packages = ["mamba-ssm==2.2.5"]
+
+    wheelhouse = "file:///path/to/wheelhouse"
+    runtime_env = utils.get_ray_environment(
+        packages=packages,
+        packages_requiring_extra_phase=[utils.packages_depending_on_torch()],
+        env_vars={"PIP_FIND_LINKS": wheelhouse},
+    )
+
+    if utils.ray_version_supports_pip_install_options():
+        assert runtime_env == {
+            "env_vars": {
+                "AIM_UI_TELEMETRY_ENABLED": "0",
+                "PIP_FIND_LINKS": wheelhouse,
+            },
+            "pip": {
+                "packages": packages,
+                "pip_install_options": [
+                    "--no-build-isolation",
+                    "--find-links",
+                    wheelhouse,
+                ],
+            },
+        }
+    else:
+        assert runtime_env == {
+            "env_vars": {
+                "AIM_UI_TELEMETRY_ENABLED": "0",
+                "PIP_NO_BUILD_ISOLATION": "0",
+                "PIP_FIND_LINKS": wheelhouse,
+            },
+            "pip": {"packages": packages},
+        }
+
+
 def test_ray_runtime_env_with_vanilla_pip():
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")

@@ -174,6 +174,21 @@ def load_model_map() -> dict[str, dict[WeightsFormat, str]]:
 
 def get_default_measured_properties() -> list[str]:
     return [
+        "is_valid",
+        "dataset_tokens_per_second_per_gpu",
+        "train_runtime",
+        "dataset_tokens_per_second",
+        # VV: the next 4 are inaccurate when terminating the job early
+        "train_samples_per_second",
+        "train_steps_per_second",
+        "train_tokens_per_second",
+        "train_tokens_per_gpu_per_second",
+        # VV: We no longer record the model_load_time
+        # "model_load_time",
+        # VV: CPU measurements
+        "cpu_compute_utilization",
+        "cpu_memory_utilization",
+        # VV: GPU measurements - these will be 0 when running on a machine without GPUs
         "gpu_compute_utilization_min",
         "gpu_compute_utilization_avg",
         "gpu_compute_utilization_max",
@@ -187,19 +202,6 @@ def get_default_measured_properties() -> list[str]:
         "gpu_power_percent_min",
         "gpu_power_percent_avg",
         "gpu_power_percent_max",
-        "cpu_compute_utilization",
-        "cpu_memory_utilization",
-        "train_runtime",
-        # VV: the next 4 are inaccurate when terminating the job early
-        "train_samples_per_second",
-        "train_steps_per_second",
-        "train_tokens_per_second",
-        "train_tokens_per_gpu_per_second",
-        # VV: We no longer record the model_load_time
-        # "model_load_time",
-        "dataset_tokens_per_second",
-        "dataset_tokens_per_second_per_gpu",
-        "is_valid",
     ]
 
 

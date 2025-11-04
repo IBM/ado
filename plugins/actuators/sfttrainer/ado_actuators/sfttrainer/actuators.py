@@ -204,6 +204,120 @@ class ActuatorParameters(
         return values
 
 
+def prepare_runtime_environment(
+    actuator_parameters: ActuatorParameters,
+    log: logging.Logger,
+    space: EntitySpace,
+    args: "finetune.FineTuneArgs",
+) -> dict[str, typing.Any]:
+    exclude_packages = []
+
+    if not actuator_parameters.match_exact_dependencies:
+        if ray_env_utils.is_using_arm_cpu():
+            exclude_packages.append("bitsandbytes")
+
+        if not ray_env_utils.is_nvcc_available():
+            exclude_packages.extend(
+                ray_env_utils.packages_requiring_nvidia_development_binaries()
+            )
+
+    if exclude_packages:
+        log.info(
+            f"Because match_exact_dependencies=False we will exclude the packages {exclude_packages}"
+        )
+
+    # VV: Users that switch off match_exact_dependencies are likely in an "exploration" mode.
+    # Help them out a bit by explaining why their measurement cannot work instead of asking them to
+    # manually investigate the exception that pip raises.
+    msg_unsupported_feat = (
+        "The measurement requires {feature}, but the required NVIDIA development "
+        "binaries are not supported on this platform. When using match_exact_dependencies=False you cannot use: "
+        "fast_moe, fast_kernels, flash_attn"
+    )
+    if "fms-acceleration-foak" in exclude_packages and "true" in [
+        str(x).lower() for x in space.fast_kernels or []
+    ]:
+        raise ValueError(msg_unsupported_feat.format(feature="fast_kernels"))
+
+    if "fms-acceleration-moe" in exclude_packages and space.fast_moe not in [
+        [0],
+        0,
+        None,
+    ]:
+        raise ValueError(msg_unsupported_feat.format(feature="fast_moe"))
+
+    if "flash_attn" in exclude_packages and space.flash_attn:
+        raise ValueError(msg_unsupported_feat.format(feature="flash_attn"))
+
+    log.info(f"Excluded packages {exclude_packages}")
+    packages = ray_env_utils.get_pinned_packages(
+        path_requirements=PATH_PINNED_PACKAGES[space.fms_hf_tuning_version],
+        override_fms_hf_tuning=get_fms_hf_tuning_package(
+            commit=FMS_HF_TUNING_COMMIT[space.fms_hf_tuning_version]
+        ),
+        exclude_packages=exclude_packages,
+        ensure_aim=True,
+    )
+
+    # VV: Detect any extra wheels and propagate them to the job e.g. sfttrainer
+    import ray.runtime_context
+
+    context = ray.get_runtime_context()
+
+    pip_config_packages = context.runtime_env.pip_config().get("packages", [])
+    uv_config_packages = context.runtime_env.uv_config().get("packages", [])
+
+    ordered_pip = context.runtime_env.get("ordered_pip", {})
+    ordered_pip_packages = []
+    for phase in ordered_pip.get("phases", []):
+        if isinstance(phase, dict):
+            ordered_pip_packages.extend(phase.get("packages"), [])
+        elif isinstance(phase, list):
+            ordered_pip_packages.extend(phase)
+
+    additional_packages = (
+        pip_config_packages + uv_config_packages + ordered_pip_packages
+    )
+
+    additional_wheels = [
+        x
+        for x in additional_packages
+        # VV: Do not install the ado_core wheel. Its dependencies may conflict with those in fms-hf-tuning
+        if x.endswith(".whl") and not os.path.basename(x).startswith("ado_core-")
+    ]
+
+    if additional_wheels:
+        log.info(
+            "Discovered custom wheels which will be propagated to dynamic virtual environment: "
+            f"{[os.path.basename(x) for x in additional_wheels]}"
+        )
+        packages.extend(additional_wheels)
+
+    # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
+
+    env_vars = {}
+    for key, name in os.environ.items():
+        # VV: Propagate environment variables that are related to pip
+        # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
+        # This is useful for packages that take too long to compile from source like mamba-ssm
+        if key.startswith("PIP_"):
+            env_vars[key] = name
+
+    runtime_env = ray_env_utils.get_ray_environment(
+        packages=packages,
+        packages_requiring_extra_phase=[ray_env_utils.packages_depending_on_torch()],
+        env_vars=env_vars,
+    )
+
+    # VV: Need HF_HOME set so the tokenize_text() method in finetune.py can access
+    # the same transformers cache that the fms-hf-tuning.sft_trainer.py script uses
+    # This is useful for handling models we download from huggingface
+    runtime_env["env_vars"] = runtime_env.get("env_vars", {})
+    runtime_env["env_vars"]["HF_HOME"] = args.hf_home
+
+    return runtime_env
+
+
 def dynamic_name_function(function: typing.Callable[..., typing.Any], new_name: str):
     """Returns a new function identical to the original, but with a new name.
 
@@ -662,66 +776,12 @@ class SFTTrainer(ActuatorBase):
             f"and args {dataclasses.asdict(args)}"
         )
 
-        exclude_packages = []
-
-        if not self.typed_parameters.match_exact_dependencies:
-            if ray_env_utils.is_using_arm_cpu():
-                exclude_packages.append("bitsandbytes")
-
-            if not ray_env_utils.is_nvcc_available():
-                exclude_packages.extend(
-                    ray_env_utils.packages_requiring_nvidia_development_binaries()
-                )
-
-        if exclude_packages:
-            self.log.info(
-                f"Because match_exact_dependencies=False we will exclude the packages {exclude_packages}"
-            )
-
-        # VV: Users that switch off match_exact_dependencies are likely in an "exploration" mode.
-        # Help them out a bit by explaining why their measurement cannot work instead of asking them to
-        # manually investigate the exception that pip raises.
-        msg_unsupported_feat = (
-            "The measurement requires {feature}, but the required NVIDIA development "
-            "binaries are not supported on this platform. When using match_exact_dependencies=False you cannot use: "
-            "fast_moe, fast_kernels, flash_attn"
+        runtime_env = prepare_runtime_environment(
+            actuator_parameters=self.typed_parameters,
+            log=self.log,
+            space=space,
+            args=args,
         )
-        if "fms-acceleration-foak" in exclude_packages and "true" in [
-            str(x).lower() for x in space.fast_kernels or []
-        ]:
-            raise ValueError(msg_unsupported_feat.format(feature="fast_kernels"))
-
-        if "fms-acceleration-moe" in exclude_packages and space.fast_moe not in [
-            [0],
-            0,
-            None,
-        ]:
-            raise ValueError(msg_unsupported_feat.format(feature="fast_moe"))
-
-        if "flash_attn" in exclude_packages and space.flash_attn:
-            raise ValueError(msg_unsupported_feat.format(feature="flash_attn"))
-
-        self.log.info(f"Excluded packages {exclude_packages}")
-        packages = ray_env_utils.get_pinned_packages(
-            path_requirements=PATH_PINNED_PACKAGES[space.fms_hf_tuning_version],
-            override_fms_hf_tuning=get_fms_hf_tuning_package(
-                commit=FMS_HF_TUNING_COMMIT[space.fms_hf_tuning_version]
-            ),
-            exclude_packages=exclude_packages,
-            ensure_aim=True,
-        )
-
-        # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
-        runtime_env = ray_env_utils.get_ray_environment(
-            packages=packages,
-            packages_requiring_extra_phase=[["flash_attn", "mamba-ssm"]],
-        )
-
-        # VV: Need HF_HOME set so the tokenize_text() method in finetune.py can access
-        # the same transformers cache that the fms-hf-tuning.sft_trainer.py script uses
-        # This is useful for handling models we download from huggingface
-        runtime_env["env_vars"] = runtime_env.get("env_vars", {})
-        runtime_env["env_vars"]["HF_HOME"] = args.hf_home
 
         number_cpus = max(space.number_gpus, 1) * 2
 
@@ -744,29 +804,6 @@ class SFTTrainer(ActuatorBase):
         if space.number_gpus > 0:
             extra["num_gpus"] = space.number_gpus
             extra["resources"] = {space.gpu_model: space.number_gpus}
-
-        # VV: Detect any extra wheels and propagate them to the job e.g. sfttrainer
-        import ray.runtime_context
-
-        context = ray.get_runtime_context()
-        pip_config = context.runtime_env.pip_config()
-        uv_config = context.runtime_env.uv_config()
-
-        packages = pip_config.get("packages", []) + uv_config.get("packages", [])
-
-        additional_wheels = [
-            x
-            for x in packages
-            # VV: Do not install the ado_core wheel. Its dependencies may conflict with those in fms-hf-tuning
-            if x.endswith(".whl") and not os.path.basename(x).startswith("ado_core-")
-        ]
-
-        if additional_wheels:
-            self.log.info(
-                "Discovered custom wheels which will be propagated to dynamic virtual environment: "
-                f"{[os.path.basename(x) for x in additional_wheels]}"
-            )
-            runtime_env["pip"]["packages"].extend(additional_wheels)
 
         self.log.info(f"The environment is {json.dumps(runtime_env)}")
 

@@ -204,10 +204,10 @@ def derive_optional_properties_and_parameterization(
 
 
 def check_parameters_and_infer(
-    _optional_properties: list[ConstitutiveProperty] | None,
-    _parameterization: dict | None,
-    _required_properties: list[ConstitutiveProperty] | None,
     func,
+    _required_properties: list[ConstitutiveProperty] | None,
+    _optional_properties: list[ConstitutiveProperty] | None = None,
+    _parameterization: dict | None = None,
 ):
     logger = logging.getLogger("custom_experiment_decorator")
 
@@ -342,7 +342,10 @@ def custom_experiment(
         # but it could not be done (missing annotation, invalid annotation etc.)
         _optional_properties, _parameterization, _required_properties = (
             check_parameters_and_infer(
-                optional_properties, parameterization, required_properties, func
+                func=func,
+                _required_properties=required_properties,
+                _optional_properties=optional_properties,
+                _parameterization=parameterization,
             )
         )
 

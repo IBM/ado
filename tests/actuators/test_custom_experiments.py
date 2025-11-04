@@ -151,7 +151,7 @@ def test_check_parameters_and_infer():
         pass
 
     optionals, parameterization, required_properties = (
-        custom_experiments.check_parameters_and_infer(None, None, None, fn)
+        custom_experiments.check_parameters_and_infer(fn, None, None, None)
     )
 
     assert len(optionals) == 1
@@ -183,7 +183,9 @@ def test_check_parameters_and_infer():
     # and the optional property returned is the same as the one passed in
     optionals, parameterization, required_properties = (
         custom_experiments.check_parameters_and_infer(
-            [
+            func=fn,
+            _required_properties=None,
+            _optional_properties=[
                 ConstitutiveProperty(
                     identifier="c",
                     propertyDomain=PropertyDomain(
@@ -193,9 +195,7 @@ def test_check_parameters_and_infer():
                     ),
                 )
             ],
-            None,
-            None,
-            fn,
+            _parameterization=None,
         )
     )
     assert len(optionals) == 1

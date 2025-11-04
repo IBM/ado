@@ -19,7 +19,6 @@ moduleLog = logging.getLogger()
 # This tells ado
 # - The domains of all your parameters i.e. what are valid values they can take
 # - The name of the output variable
-# - If you return a named tuple -> No point really as need to declare a NamedTuple class or TypedDict which is longer than below
 # - If you use keyword args -> Can extract optional parameters and parameterization
 @custom_experiment(
     required_properties=[

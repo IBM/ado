@@ -91,17 +91,23 @@ def packages_requiring_nvidia_development_binaries():
         "flash_attn",
         "mamba-ssm",
         "causal-conv1d",
+        # VV: mamba_ssm and causal_conv1d changed their package names
+        "mamba_ssm",
+        "causal_conv1d",
         "nvidia-cublas-cu12",
         "nvidia-cuda-cupti-cu12",
         "nvidia-cuda-nvrtc-cu12",
         "nvidia-cuda-runtime-cu12",
         "nvidia-cudnn-cu12",
         "nvidia-cufft-cu12",
+        "nvidia-cufile-cu12",
         "nvidia-curand-cu12",
         "nvidia-cusolver-cu12",
         "nvidia-cusparse-cu12",
+        "nvidia-cusparselt-cu12",
         "nvidia-nccl-cu12",
         "nvidia-nvjitlink-cu12",
+        "nvidia-nvshmem-cu12",
         "nvidia-nvtx-cu12",
     ]
 
@@ -191,9 +197,31 @@ def get_pinned_packages(
     return packages
 
 
+@functools.cache
+def ray_version_supports_pip_install_options() -> bool | None:
+    import ray
+
+    try:
+        # VV: Ray added support for pip_install_options in 2.50.0
+        version = [int(x) for x in ray.__version__.split(".")]
+        return version[0] > 2 or (version[0] >= 2 and version[1] >= 50)
+    except Exception as e:
+        print(
+            f"Unable to tell whether pip_install_options is available for Ray Runtime environments due to {e!s} - "
+            f"will assume that it is unavailable"
+        )
+        return None
+
+
+def packages_depending_on_torch() -> list[str]:
+    # VV: mamba_ssm and causal_conv1d changed their package names
+    return ["flash_attn", "mamba-ssm", "causal-conv1d", "mamba_ssm", "causal_conv1d"]
+
+
 def get_ray_environment(
     packages: list[str],
     packages_requiring_extra_phase: list[list[str]],
+    env_vars: dict[str, str],
 ) -> dict[str, typing.Any]:
     """Builds a ray-environment using a Ray RuntimeEnvPlugin.
 
@@ -211,8 +239,10 @@ def get_ray_environment(
             A list of lists of packages. The list with index i expects that the packages in the list with index i-1
             have already been installed in the virtual environment that ray will be building.
             This is only used when the ordered_pip RuntimeEnvPlugin is available. Otherwise, it is ignored.
+        env_vars:
+            Environment variables to inject into the RuntimeContext
     Returns:
-        A dictionary representing a Ray environment
+        A dictionary representing a RuntimeContext for Ray jobs
     """
     if is_ordered_pip_available():
         env_plugin_name = "ordered_pip"
@@ -228,21 +258,40 @@ def get_ray_environment(
 
     # VV: Do not switch on pip_check.
     plugin = {}
+    env = {"AIM_UI_TELEMETRY_ENABLED": "0"}
+    env.update(env_vars)
+
     ray_environment = {
-        "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0"},
+        "env_vars": env,
         env_plugin_name: plugin,
     }
 
+    pip_install_options = []
+
+    if ray_version_supports_pip_install_options() or env_plugin_name == "uv":
+        # VV: Ray added support for pip_install_options in 2.50.0
+        pip_install_options = ["--no-build-isolation"]
+
+        if env.get("PIP_FIND_LINKS"):
+            # VV: I find that exporting PIP_FIND_LINKS does not behave the same way as using --find-links
+            pip_install_options.extend(("--find-links", env["PIP_FIND_LINKS"]))
+
     if env_plugin_name == "pip":
-        ray_environment["env_vars"]["PIP_NO_BUILD_ISOLATION"] = "0"
-        plugin.update({"packages": packages})
+        phase = {"packages": packages}
+
+        if pip_install_options:
+            phase["pip_install_options"] = pip_install_options
+        else:
+            ray_environment["env_vars"]["PIP_NO_BUILD_ISOLATION"] = "0"
+
+        plugin.update(phase)
     elif env_plugin_name == "uv":
+        pip_install_options.insert(0, "--no-build-isolation")
         plugin.update(
-            {"uv_pip_install_options": ["--no-build-isolation"], "packages": packages}
+            {"uv_pip_install_options": pip_install_options, "packages": packages}
         )
     elif env_plugin_name == "ordered_pip":
-        # VV: TODO For ray 2.49+ we can also set "pip_install_options"= ["--no-build-isolation"]
-        ray_environment["env_vars"]["PIP_NO_BUILD_ISOLATION"] = "0"
+        # VV: Keeps the linter happy
         base_packages = []
         phases = [{"packages": base_packages}]
         plugin["phases"] = phases
@@ -252,7 +301,10 @@ def get_ray_environment(
                 exclude_packages=p, packages=packages
             )
             if this_phase:
-                phases.append({"packages": this_phase})
+                phase = {"packages": this_phase}
+                if ray_version_supports_pip_install_options():
+                    phase["pip_install_options"] = list(pip_install_options)
+                phases.append(phase)
 
         # VV: At this point the packages var contains all the packages that must go into the very first phase
         base_packages.extend(packages)

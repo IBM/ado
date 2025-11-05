@@ -32,6 +32,68 @@ the
     avoid S3-like filesystems as that is known to cause failures
     in **transformers**. Use a NFS or GPFS-backed PersistentVolumeClaim instead.
 
+### Configuring a Kubernetes ServiceAccount for the RayCluster
+
+The default Kubernetes ServiceAccount created for a RayCluster does not
+have enough permissions for an ado actuator to create Kubernetes resources
+(e.g., deployments, pods, services, etc.) as part of its operations.
+Users are required to create a custom ServiceAccount bound to a Role with
+sufficient permissions, before creating the RayCluster, to avoid
+runtime errors.
+Below is an example ServiceAccount bound to a Role that allows
+monitoring, creating, deleting, and updating of pods, deployments and services.
+It also provides access to the RayCluster resources.
+
+<!-- markdownlint-disable-next-line code-block-style -->
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ray-deployer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ray-deployer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ray-deployer
+subjects:
+  - kind: ServiceAccount
+    name: ray-deployer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ray-deployer
+rules:
+  - apiGroups: ["ray.io"]
+    resources:
+      - rayclusters
+    verbs: ["get", "patch"]
+  - apiGroups: ["apps"]
+    resources:
+      - pods
+      - deployments
+    verbs: ["get", "create", "delete", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources:
+      - services
+    verbs: ["get", "create", "delete", "list", "watch", "update"]
+```
+
+From the root of the ado project run the below command:
+
+    kubectl apply -f backend/kuberay/service-account.yaml
+
+This will create a ServiceAccount named `ray-deployer`.
+We will reference this name later when
+[deploying the RayCluster](#example-kubernetes-cluster-with-4-nodes-8-gpus-each).
+
+More information about ServiceAccount, Role, and RoleBinding objects can be found
+in the [official Kubernetes RBAC documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+
 ### Best Practices for Efficient GPU Resource Utilization
 
 To maximize the efficiency of your RayCluster and minimize GPU resource
@@ -232,8 +294,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
 
 !!! note
 
-    Notice that the only variant with a **full-worker** custom resource 
-    is the one with 8 GPUs. Some actuators, like SFTTrainer, use this 
+    Notice that the only variant with a **full-worker** custom resource
+    is the one with 8 GPUs. Some actuators, like SFTTrainer, use this
     custom resource for measurements that involve reserving an entire GPU node.
 
 We provide [an example set of values](vanilla-ray.yaml) for deploying a
@@ -241,5 +303,19 @@ RayCluster via KubeRay. To deploy it, simply run:
 
     helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 --values backend/kuberay/vanilla-ray.yaml
 
-Feel free to customize it to suit your cluster, such as uncommenting GPU-enabled
-workers.
+In the case the ado operation to be executed requires creating Kubernetes
+resources, the RayCluster to be deployed must be associated with a properly
+configured ServiceAccount like the one described [above](#configuring-a-kubernetes-serviceaccount-for-the-raycluster).
+The below command shows how to set the `serviceAccountName` property for head
+and worker nodes.
+
+<!-- markdownlint-disable-next-line code-block-style -->
+```bash
+helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 \
+  --values backend/kuberay/vanilla-ray-service-account.yaml \
+  --set head.serviceAccountName=ray-deployer \
+  --set worker.serviceAccountName=ray-deployer
+```
+
+Feel free to customize the example file provided to suit your cluster,
+such as uncommenting GPU-enabled workers.

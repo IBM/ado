@@ -123,7 +123,6 @@ around 2000 tokens.
 Save the following as `vllm_discoveryspace.yaml`:
 
 ```yaml
-sampleStoreIdentifier: default
 entitySpace:
   - identifier: model
     propertyDomain:
@@ -167,8 +166,8 @@ metadata:
   name: vllm_deployments
 ```
 
-The space will use the `default` sample store. You can always ask for a new one
-to be created by adding the `--new-sample-store` flag to the following command:
+Save the above as `vllm_discoveryspace.yaml`.
+Then run:
 
 ```bash
 ado create space -f vllm_discoveryspace.yaml
@@ -187,9 +186,9 @@ Save the following as `random_walk.yaml`:
 metadata:
   name: randomwalk-grouped-vllm-performance-full
 spaces:
-  - space-230d24-03b22d
+  - <Will be set via ado>
 actuatorConfigurationIdentifiers:
-  - actuatorconfiguration-vllm_performance-09fcdf30
+  - <Will be set via ado>
 operation:
   module:
     moduleClass: RandomWalk
@@ -226,6 +225,15 @@ While the operation is running you can monitor the deployment:
 ```bash
 # In a separate terminal
 oc get deployments --watch -n vllm-testing
+```
+
+As it runs a table of the results is updated
+live in the terminal as they come in.
+
+You can also get the table be executing (in another terminal)
+
+```commandline
+ado show entities operation --use-latest
 ```
 
 ### Check final results

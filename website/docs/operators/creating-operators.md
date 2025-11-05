@@ -358,9 +358,11 @@ This allows the specific field to be changed as appropriate before validation is
 applied. To ensure the users are aware of the change, we will also use the
 `warn_deprecated_operator_parameters_model_in_use` method in the validator:
 
-!!! note The method being called is the same as the one for
-[warning about deprecated fields](#deprecating-a-field-in-your-operator-input-parameters),
-but we omit the `deprecated_fields` parameter.
+> [!NOTE]
+>
+> The method being called is the same as the one for
+> [warning about deprecated fields](#deprecating-a-field-in-your-operator-input-parameters),
+> but we omit the `deprecated_fields` parameter.
 
 ```python
 import pydantic

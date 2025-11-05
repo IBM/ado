@@ -1570,9 +1570,9 @@ six==1.17.0 \
     #   opencensus
     #   python-dateutil
     #   rfc3339-validator
-smart-open==7.4.1 \
-    --hash=sha256:5c20f09026875e6dec708e9610e0cd13d24d91f0a2c12e6511b9e478a566b4a0 \
-    --hash=sha256:f52cb9bc897c7676dfc6996735332bd2465dfb048c73bfa9dfcdc829f48018cc
+smart-open==7.4.4 \
+    --hash=sha256:2c264f43c55c2fcdea37b1752dcd06bb152afd514490a0aee5d21db0424b0669 \
+    --hash=sha256:47077ed486a7e66d0bb928c284a8e5775c705092c6ea3e3bc6979d5b561c7bbf
     # via ray
 sniffio==1.3.1 \
     --hash=sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2 \

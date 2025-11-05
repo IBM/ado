@@ -79,7 +79,7 @@ def execute_benchmark(
     if request_rate is not None:
         request += f"--request-rate {request_rate!s} "
     if max_concurrency is not None:
-        request += f"--max-concurrency {max_concurrency!s}"
+        request += f"--max-concurrency {max_concurrency!s} "
     if custom_args is not None:
         for key, value in custom_args.items():
             request += f"{key} {value!s} "

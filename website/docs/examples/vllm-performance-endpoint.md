@@ -1,82 +1,77 @@
 # Testing the throughput of an inference endpoint
 
-> [!NOTE]
+> [!NOTE] The scenario
 >
-> This example illustrates using the vllm-performance actuator to test the
-> throughput of an OpenAI-compatible inference endpoint
+> **In this example, the _vllm_performance_ actuator is used to find
+> the maximum requests per second a server can handle while maintaining
+> stable maximum throughput.**
 >
-<!-- markdownlint-disable-next-line no-blanks-blockquote -->
+> A model deployed for inference will have a certain max stable throughput in
+> terms of the requests it can serve per second.
+> Sending more requests than this maximum will often lead to a drop in throughput.
+> Hence, it can be useful to know what this maximum is so the maximum throughput
+> is reliably maintained e.g. by limiting
+> the max number of concurrent requests.
+>
+> To explore this space, you will:
+>
+> - define an endpoint, model and range of requests per second to test
+> - use an optimizer to efficiently find the maximum requests per second
+<!-- markdownlint-disable-next-line MD028 -->
 
-> [!IMPORTANT]
+> [!IMPORTANT] Prerequisites
 >
-> **Prerequisites**
+> - An endpoint serving an LLM in an OpenAI API-compatible format  
+> - Install the following Python packages:
 >
-> - An endpoint serving an LLM in an OpenAI-compatible format
-> - The `ray_tune` operator with `hyperopt` installed
->
-> ```commandline
-> pip install ado-ray-tune
+> ```bash
 > pip install hyperopt
+> pip install ado-ray-tune
+> pip install ado-vllm-performance
+> ```
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!TIP] TL;DR
+>
+> Get the files `vllm_request_rate_space.yaml` and `operation_hyperopt.yaml`
+> from [our repository](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls).
+>
+> - `vllm_request_rate_space.yaml`: this file defines the _endpoint_, _model_,
+>   and _request_ _range_ to explore.
+>   - **You must edit the _model_ and _endpoint_ fields in this file
+>     to match your own.**
+> - `operation_hyperopt.yaml`: this file contains the optimization parameters.
+>   You do not need to edit it.
+>
+> Then, in a directory with these files, execute:
+>
+> ```bash
+> : # Define the set of request rates to explore
+> ado create space -f vllm_request_rate_space.yaml
+> : # Run the optimization!
+> ado create operation -f operation_hyperopt.yaml --use-latest space
 > ```
 
-## The scenario
+## Verify the installation
 
-A model deployed for inference will have a certain max stable throughput in
-terms of the requests it can serve per second. Sending more requests than this
-maximum will often lead to a drop in throughput. Hence, it can be useful to know
-what this maximum is so the maximum throughput is reliably maintained e.g., by
-limiting the max number of concurrent requests.
-
-**In this example, the _vllm_performance_ actuator is used to find
-the maximum requests per second a server can handle while maintaining
-stable maximum throughput.**
-
-To explore this space, you will:
-
-- define an endpoint, model, and range of requests per second to test
-- use an optimizer to efficiently find the maximum requests per second
-
-## Install the actuator
-
-[//]: # (If you haven't already:)
-
-[//]: # ()
-[//]: # (```commandline)
-
-[//]: # (pip install ado-vllm-performance)
-
-[//]: # (```)
-
-[//]: # (If you have cloned the `ado` source repository you can also do:)
-To install, execute:
-
-```commandline
-pip install -e plugins/actuators/vllm_performance
-```
-
-from the root of the `ado` source repository.
-You can clone the repository with
-
-```commandline
-git clone https://github.com/IBM/ado.git
-```
-
-Verify the installation with:
+Execute:
 
 ```commandline
 ado get actuators --details 
 ```
 
-The actuator `vllm_performance` will appear in the list of available actuators.
+If the prerequisites (see above) have been installed correctly the actuator
+`vllm_performance` will appear in the list of available actuators
 
 ## Define the request rates to test
 
-This `discoveryspace` includes all request rates from 10 to 100 for an endpoint
-serving `gpt-oss-20b`:
+The file
+[`vllm_request_rate_space.yaml`](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/])
+defines a space with all request rates from 10 to 100 for an endpoint serving `gpt-oss-20b`.
+It's contents are:
 
 ```yaml
 # Example discovery space for vLLM performance
-sampleStoreIdentifier: default
 entitySpace:
   - identifier: model
     propertyDomain:
@@ -95,11 +90,10 @@ experiments:
   experimentIdentifier: performance-testing-endpoint
 ```
 
-The space will use the `default` sample store. You can always ask for a new one
-to be created by adding the `--new-sample-store` flag to the following command:
+Create the space with:
 
 ```bash
-ado create space -f vllm_discoveryspace.yaml
+ado create space -f vllm_request_rate_space.yaml
 ```
 
 > [!NOTE]
@@ -115,12 +109,15 @@ ado create space -f vllm_discoveryspace.yaml
 which is a bayesian approach that is expected to be good for discrete dimensions
 and noisy metrics, which we have here i.e. `request_throughput`.
 
-The following operation will look for points (in this case `request_rate`s)
-that result in a `request_throughput` within the top 20th percentile:
+<!-- markdownlint-disable-next-line MD013 -->
+The file [operation_hyperopt.yaml](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/) defines an optimization that
+will look for points (in this case `request_rate`s)that result in a `request_throughput`
+within the top 20th percentile.
+The files contents look like:
 
 ```yaml
 spaces:
-  - space-ccf2bf-a50274 #substitute with your space id or override when running
+  - <will be filled by ado>
 operation:
   module:
     operatorName: "ray_tune"
@@ -136,7 +133,7 @@ operation:
         gamma: 0.25 #The top gamma fraction of measured values are considered "good"
 ```
 
-Save the above as `hyperopt.yaml`. Then create the operation:
+Create the operation with:
 
 ```commandline
 ado create operation -f hyperopt.yaml --use-latest space
@@ -149,6 +146,24 @@ Results will appear as they are measured.
 > Hyperopt samples with replacement so you may see the same points
 > sampled twice.
 > The likelihood increases as the number of points in the space decreases
+> The likelihood increase as number of points in the space decreases
+
+### Monitor the optimization
+
+You can see the measurement requests as the operation runs
+by executing (in another terminal):
+
+```commandline
+ado show requests operation --use-latest 
+```
+
+and the results (this outputs the entities in sampled order):
+
+```commandline
+ado show entities operation --use-latest 
+```
+
+Instead of `--use-latest` you can also supply the operation id directly.
 
 ### Check final results
 

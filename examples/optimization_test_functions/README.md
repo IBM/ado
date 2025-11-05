@@ -132,9 +132,7 @@ ado context local
 ### Create the discovery space
 
 The file "space.yaml" contains an example space describing the rosenbrock
-function in 3d, from [-10,10] in each dimension. To create the space execute
-
-Then:
+function in 3d, from [-10,10] in each dimension. To create the space execute:
 
 ```commandline
 ado create space -f space.yaml --use-default-sample-store
@@ -228,9 +226,8 @@ ado create operation -f operation_bayesopt.yaml --use-latest space
 ```
 
 This will run the optimization for 40 steps. You will see a lot of information
-from RayTune on the progress of the optimization. At the end you will see output
-like the following containing the identifier of the operation. In this case it's
-`raytune-1.0.2.dev11+1c62218-bayesopt-b7f779`:
+from RayTune on the progress of the optimization, finishing with a description
+of the operation like below:
 
 ```yaml
 Space ID: space-3fbaad-c3a5f6
@@ -373,7 +370,7 @@ where `function_value` was ~20.8.
 
 ### Configurations visited
 
-To see the configurations visited during the optimization, execute:
+To see the configurations visited during the optimization you just ran, execute:
 
 ```commandline
 ado show entities operation --use-latest

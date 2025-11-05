@@ -218,8 +218,7 @@ This produces an output similar to that described in the
 and will exit printing the operation identifier. However, in this case there is
 additional information related to the dependent experiment.
 
-When it completes, execute the `ado show entities operation` command to see the
-results produced:
+When it completes, you can get a table of the points visited with:
 
 ```commandline
 ado show entities operation --use-latest

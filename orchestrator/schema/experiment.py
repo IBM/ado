@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import importlib.metadata
+import sys
 import typing
 from typing import Annotated
 
@@ -630,7 +631,7 @@ class Experiment(pydantic.BaseModel):
         - If disallow_extra_properties is True all properties of the Entity must be
          properties (required+optional) of the experiment
 
-        If verbose=True if entity is not valid, the reason will be printed to stdout
+        If verbose=True if entity is not valid, the reason will be printed to stderr
         """
 
         point = {
@@ -660,9 +661,10 @@ class Experiment(pydantic.BaseModel):
         if additional_properties_present and disallow_extra_properties:
             if verbose:
                 print(
-                    f"disllow_extra_properties is set and the following entity "
+                    f"disallow_extra_properties is set and the following entity "
                     f"properties are not required or optional properties of {self.identifier}:"
-                    f"{additional_properties_present} "
+                    f"{additional_properties_present} ",
+                    file=sys.stderr,
                 )
             return False
 
@@ -693,7 +695,8 @@ class Experiment(pydantic.BaseModel):
                 f"The entity has properties that match optional properties"
                 f"of {self.identifier} - "
                 f"{optional_properties_present} - "
-                f"but its values for those properties are not in the domain of the optional properties"
+                f"but its values for those properties are not in the domain of the optional properties",
+                file=sys.stderr,
             )
             return False
 

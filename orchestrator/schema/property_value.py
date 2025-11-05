@@ -183,11 +183,13 @@ def validate_point_against_properties(
         constitutive_properties: A list of ConstitutiveProperty instances to validate the point against
         allow_partial_matches: If True a point is valid if all its points have matching properties, even if
             there are more constitutive properties
-        verbose: If True print reasons that point is not valid to stdout
+        verbose: If True print reasons that point is not valid to stderr
 
     Returns:
         - True if point is compatible with space otherwise false
     """
+
+    import sys
 
     constitutive_property_identifiers_for_point = set(point.keys())
     constitutive_property_identifiers_for_validation_set = {
@@ -209,7 +211,8 @@ def validate_point_against_properties(
                 f"The point does not contain all the constitutive properties in the validation set.\n "
                 f"Missing properties: {constitutive_property_identifiers_for_validation_set - matching_constitutive_property_identifiers}.\n"
                 f"Properties in validation set: {constitutive_property_identifiers_for_validation_set}.\n "
-                f"Point properties matching validation set: {matching_constitutive_property_identifiers}.\n"
+                f"Point properties matching validation set: {matching_constitutive_property_identifiers}.\n",
+                file=sys.stderr,
             )
         return False
 
@@ -222,7 +225,8 @@ def validate_point_against_properties(
             print(
                 f"The point contains properties not in the validation set.\n "
                 f"Point properties not in validation set: {constitutive_property_identifiers_for_point - matching_constitutive_property_identifiers}.\n"
-                f"Point properties in validation set: {matching_constitutive_property_identifiers}.\n "
+                f"Point properties in validation set: {matching_constitutive_property_identifiers}.\n ",
+                file=sys.stderr,
             )
         return False
 
@@ -243,7 +247,8 @@ def validate_point_against_properties(
                 print(
                     f"Value {point[constitutive_property.identifier]} for property {constitutive_property.identifier} "
                     "is not in the domain of the matching constitutive property in the validation set "
-                    f" ({constitutive_property.propertyDomain})"
+                    f" ({constitutive_property.propertyDomain})",
+                    file=sys.stderr,
                 )
             return False
 

@@ -244,7 +244,7 @@ def run(
         if validate:
             print("Validating entity ...")
             experiment = registry.experimentForReference(reference)
-            valid = experiment.validate_entity(entity)
+            valid = experiment.validate_entity(entity, verbose=True)
         else:
             print("Skipping validation")
 

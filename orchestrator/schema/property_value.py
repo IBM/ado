@@ -171,6 +171,7 @@ def validate_point_against_properties(
     point: dict[str, typing.Any],
     constitutive_properties: list[ConstitutiveProperty],
     allow_partial_matches: bool = False,
+    verbose=False,
 ):
     """point is valid if all its keys have a constitutive_property with
     a matching identifier and all its values are in the domain of this
@@ -182,32 +183,37 @@ def validate_point_against_properties(
         constitutive_properties: A list of ConstitutiveProperty instances to validate the point against
         allow_partial_matches: If True a point is valid if all its points have matching properties, even if
             there are more constitutive properties
+        verbose: If True print reasons that point is not valid to stderr
 
     Returns:
         - True if point is compatible with space otherwise false
     """
 
+    import sys
+
     constitutive_property_identifiers_for_point = set(point.keys())
-    constitutive_property_identifiers_for_entity_space = {
+    constitutive_property_identifiers_for_validation_set = {
         cp.identifier for cp in constitutive_properties
     }
 
-    logger.debug(
-        f"Validating point's constitutive properties "
-        f"(allow_partial_matches = {allow_partial_matches}) {constitutive_property_identifiers_for_point}, "
-        f"against the space constitutive properties {constitutive_property_identifiers_for_entity_space}"
-    )
-
     matching_constitutive_property_identifiers = (
         constitutive_property_identifiers_for_point.intersection(
-            constitutive_property_identifiers_for_entity_space
+            constitutive_property_identifiers_for_validation_set
         )
     )
 
     # If we don't allow partial matches, all properties must match
     if not allow_partial_matches and len(
         matching_constitutive_property_identifiers
-    ) != len(constitutive_property_identifiers_for_entity_space):
+    ) != len(constitutive_property_identifiers_for_validation_set):
+        if verbose:
+            print(
+                f"The point does not contain all the constitutive properties in the validation set.\n "
+                f"Missing properties: {constitutive_property_identifiers_for_validation_set - matching_constitutive_property_identifiers}.\n"
+                f"Properties in validation set: {constitutive_property_identifiers_for_validation_set}.\n "
+                f"Point properties matching validation set: {matching_constitutive_property_identifiers}.\n",
+                file=sys.stderr,
+            )
         return False
 
     # If we allow partial matches, all properties for the point must
@@ -215,6 +221,13 @@ def validate_point_against_properties(
     if len(matching_constitutive_property_identifiers) != len(
         constitutive_property_identifiers_for_point
     ):
+        if verbose:
+            print(
+                f"The point contains properties not in the validation set.\n "
+                f"Point properties not in validation set: {constitutive_property_identifiers_for_point - matching_constitutive_property_identifiers}.\n"
+                f"Point properties in validation set: {matching_constitutive_property_identifiers}.\n ",
+                file=sys.stderr,
+            )
         return False
 
     # Once we have checked that the identifiers match, we must
@@ -230,11 +243,13 @@ def validate_point_against_properties(
         if not constitutive_property.propertyDomain.valueInDomain(
             point[constitutive_property.identifier]
         ):
-            logger.warning(
-                f"Property {constitutive_property.identifier}({point[constitutive_property.identifier]}) "
-                "is not in the target consitutive property "
-                f"domain ({constitutive_property.propertyDomain.domain_values})"
-            )
+            if verbose:
+                print(
+                    f"Value {point[constitutive_property.identifier]} for property {constitutive_property.identifier} "
+                    "is not in the domain of the matching constitutive property in the validation set "
+                    f" ({constitutive_property.propertyDomain})",
+                    file=sys.stderr,
+                )
             return False
 
     return True

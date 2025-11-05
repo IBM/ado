@@ -30,14 +30,15 @@
 > ```
 <!-- markdownlint-disable-next-line MD028 -->
 
-> [!TIP] In a nutshell
-> Get the files `vllm_request_rate_space.yaml` and `hyperopt.yaml` from here.
+> [!TIP] TL;DR
+> Get the files `vllm_request_rate_space.yaml` and `operation_hyperopt.yaml`
+> from [our repository](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls).
 >
 > - `vllm_request_rate_space.yaml`: this file defines the _endpoint_, _model_,
 >   and _request_ _range_ to explore.
 >   - **You must edit the _model_ and _endpoint_ fields in this file
 >     to match your own.**
-> - `hyperopt.yaml`: this file contains the optimization parameters.
+> - `operation_hyperopt.yaml`: this file contains the optimization parameters.
 >   You do not need to edit it.
 >
 > Then, in a directory with these files, execute:
@@ -45,47 +46,27 @@
 > ```bash
 > : # Define the set of request rates to explore
 > ado create space -f vllm_request_rate_space.yaml
-> : # Explore them!
-> ado create operation -f hyperopt.yaml --use-latest space
+> : # Run the optimization!
+> ado create operation -f operation_hyperopt.yaml --use-latest space
 > ```
 
-## Install the actuator
+## Verify the installation
 
-[//]: # (If you haven't already:)
-
-[//]: # ()
-[//]: # (```commandline)
-
-[//]: # (pip install ado-vllm-performance)
-
-[//]: # (```)
-
-[//]: # (If you have cloned the `ado` source repository you can also do:)
-To install, execute:
-
-```commandline
-pip install -e plugins/actuators/vllm_performance
-```
-
-from the root of the `ado` source repository.
-You can clone the repository with
-
-```commandline
-git clone https://github.com/IBM/ado.git
-```
-
-Verify the installation with:
+Execute:
 
 ```commandline
 ado get actuators --details 
 ```
 
-The actuator `vllm_performance` will appear in the list of available actuators.
+If the prerequisites (see above) have been installed correctly the actuator
+`vllm_performance` will appear in the list of available actuators
 
 ## Define the request rates to test
 
-This `discoveryspace` includes all request rates from 10 to 100 for an endpoint
-serving `gpt-oss-20b`:
+The file
+[`vllm_request_rate_space.yaml`](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/vllm_request_rate_space.yaml)
+defines a space with all request rates from 10 to 100 for an endpoint serving `gpt-oss-20b`.
+It's contents are:
 
 ```yaml
 # Example discovery space for vLLM performance
@@ -107,11 +88,10 @@ experiments:
   experimentIdentifier: performance-testing-endpoint
 ```
 
-Save the above as `vllm_discoveryspace.yaml`.
-Then create the space with:
+Create the space with:
 
 ```bash
-ado create space -f vllm_discoveryspace.yaml
+ado create space -f vllm_request_rate_space.yaml
 ```
 
 > [!NOTE]
@@ -127,8 +107,11 @@ ado create space -f vllm_discoveryspace.yaml
 which is a bayesian approach that is expected to be good for discrete dimensions
 and noisy metrics, which we have here i.e. `request_throughput`.
 
-The following operation will look for points (in this case `request_rate`s)
-that result in a `request_throughput` within the top 20th percentile:
+<!-- markdownlint-disable-next-line MD013 -->
+The file [operation_hyperopt.yaml](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/operation_hyperopt.yaml) defines an optimization that
+will look for points (in this case `request_rate`s)that result in a `request_throughput`
+within the top 20th percentile.
+The files contents look like:
 
 ```yaml
 spaces:
@@ -148,8 +131,7 @@ operation:
         gamma: 0.25 #The top gamma fraction of measured values are considered "good"
 ```
 
-Save the above as `hyperopt.yaml`. Then create the operation
-(this command uses the last space you created):
+Create the operation with:
 
 ```commandline
 ado create operation -f hyperopt.yaml --use-latest space

@@ -32,6 +32,7 @@ To explore this space, you will:
 - explore the parameter space - the sampling method
 
 > [!NOTE]
+>
 > This example assumes you have already followed the
 > [Measure throughput of finetuning locally](./finetune-locally.md) example.
 
@@ -138,6 +139,7 @@ RayCluster.
 <!-- markdownlint-enable code-block-style -->
 
 >[!IMPORTANT]
+>
 > If you have deployed a custom RayCluster then make sure that the `hf_home` and
 > `data_directory` parameters point to paths that can be created by your remote
 > RayCluster workers. We recommend deploying a remote RayCluster following our
@@ -145,7 +147,7 @@ RayCluster.
 
 Next, create the `actuatorconfiguration` resource:
 
- ```commandline
+```commandline
 ado create actuatorconfiguration -f actuator_configuration.yaml
 ```
 
@@ -158,6 +160,7 @@ See the full list of the actuator parameters you can set in the
 ## Prepare the remote RayCluster
 
 >[!NOTE]
+>
 > This section assumes you have
 > [configured your RayCluster for use with SFTTrainer](../../actuators/sft-trainer/#configure-your-raycluster)
 > and that you have configured your SFTTrainer actuator with the values we
@@ -166,6 +169,7 @@ See the full list of the actuator parameters you can set in the
 ### For RayClusters on Kubernetes/OpenShift - create a port-forward
 
 >[!TIP]
+>
 > If your remote RayCluster is not hosted on Kubernetes or OpenShift, you can
 > skip this step.
 
@@ -483,7 +487,8 @@ The operation will execute the measurements (i.e. apply the experiment
 **finetune_full_benchmark-v1.0.0** on the 4 entities) as defined in your
 `discoveryspace`.
 
-> [!INFO]
+> [!NOTE]
+>
 > Each measurement finetunes the
 > [`granite-3.1-2b`](https://huggingface.co/ibm-granite/granite-3.1-2b-base)
 > model and takes about two minutes to complete.
@@ -504,7 +509,8 @@ measurements:
 ado show entities --output-format csv --property-format=target space --use-latest
 ```
 
-> [!INFO]
+> [!NOTE]
+>
 > Notice that because the context we are using refers to a remote project we can
 > access the data created by the operation on the remote ray cluster. Anyone that
 > has access to the `finetuning` context can also retrieve the results of your

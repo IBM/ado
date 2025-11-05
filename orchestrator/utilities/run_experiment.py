@@ -251,8 +251,13 @@ def run(
         if valid:
             print(f"Executing: {reference}")
             request = execute(reference, entity)
-            print("Result:")
-            print(f"{request.series_representation(output_format='target')}\n")
+            if request is None:
+                print(
+                    "Measurement request failed unexpectedly. Skipping this experiment."
+                )
+            else:
+                print("Result:")
+                print(f"{request.series_representation(output_format='target')}\n")
         else:
             print("Entity is not valid")
 

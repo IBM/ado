@@ -13,12 +13,12 @@ dependencies = [
 [tool.hatch.build]
 # Include the full namespace path
 include = [
-    "ado_actuators/optimization_test_functions/**",
+    "optimization_test_functions/**",
 ]
 
 [tool.hatch.build.targets.wheel]
 only-include = [
-    "ado_actuators/optimization_test_functions"
+    "optimization_test_functions"
 ]
 
 [tool.hatch.version]
@@ -32,3 +32,8 @@ fallback-version = "0.0.0"
 tagged-metadata = true
 dirty = true
 bump = true
+
+#Add entry point for custom experiments
+[project.entry-points."ado.custom_experiments"]
+optimization_test_functions = "optimization_test_functions.optimization_test_functions"
+

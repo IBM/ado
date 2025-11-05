@@ -11,7 +11,7 @@ specific documentation for various actuators available.
 
 You can also add [your own custom experiments](creating-custom-experiments.md)
 using the special actuator
-[_custom_experiments_](creating-custom-experiments.md#using-your-custom-experiments-the-custom_experiments-actuator)
+[_custom_experiments_](creating-custom-experiments.md#using-your-custom-experiment).
 
 !!! info end
 

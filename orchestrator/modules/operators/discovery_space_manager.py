@@ -351,37 +351,6 @@ class DiscoverySpaceManager:
 
         return self._discoverySpace.metadataStore
 
-    def addOperation(
-        self, operation: orchestrator.core.operation.resource.OperationResource
-    ):
-        """Add information on a new operation on the space
-
-        Param:
-            operation: The operation instance
-        """
-
-        self._discoverySpace.addOperation(operation)
-
-        return operation.identifier
-
-    # def numberEntities(self):
-    #
-    #    pass
-    #
-    def updateOperation(
-        self, operationResource: orchestrator.core.operation.resource.OperationResource
-    ):
-        """Updates the metadata of a stored operation resource
-
-        TODO: Most of the fields passed here are not necessary. Only really new_samples_generated.
-
-        Params:
-            operationResource: The operation resource to update
-
-        """
-
-        return self._discoverySpace.updateOperation(operationResource=operationResource)
-
 
 if typing.TYPE_CHECKING:
     DiscoverySpaceManagerActor = type[ActorHandle[DiscoverySpaceManager]]

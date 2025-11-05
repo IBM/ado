@@ -16,6 +16,7 @@ class ModuleTypeEnum(enum.Enum):
     SAMPLE_STORE = "sample_store"
     GENERIC = "generic"
     SAMPLER = "sampler"
+    EXPERIMENT = "experiment"
 
 
 class ModuleConf(pydantic.BaseModel):

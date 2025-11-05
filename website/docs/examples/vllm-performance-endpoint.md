@@ -66,7 +66,7 @@ If the prerequisites (see above) have been installed correctly the actuator
 ## Define the request rates to test
 
 The file
-[`vllm_request_rate_space.yaml`](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/vllm_request_rate_space.yaml)
+[`vllm_request_rate_space.yaml`](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/])
 defines a space with all request rates from 10 to 100 for an endpoint serving `gpt-oss-20b`.
 It's contents are:
 
@@ -110,7 +110,7 @@ which is a bayesian approach that is expected to be good for discrete dimensions
 and noisy metrics, which we have here i.e. `request_throughput`.
 
 <!-- markdownlint-disable-next-line MD013 -->
-The file [operation_hyperopt.yaml](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/operation_hyperopt.yaml) defines an optimization that
+The file [operation_hyperopt.yaml](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/) defines an optimization that
 will look for points (in this case `request_rate`s)that result in a `request_throughput`
 within the top 20th percentile.
 The files contents look like:

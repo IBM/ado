@@ -1,54 +1,53 @@
 # Testing the throughput of an inference endpoint
 
-<!-- markdownlint-disable MD046 -->
+> [!NOTE] The scenario
+> **In this example, the _vllm_performance_ actuator is used to find
+> the maximum requests per second a server can handle while maintaining
+> stable maximum throughput.**
+>
+> A model deployed for inference will have a certain max stable throughput in
+> terms of the requests it can serve per second.
+> Sending more requests than this maximum will often lead to a drop in throughput.
+> Hence, it can be useful to know what this maximum is so the maximum throughput
+> is reliably maintained e.g. by limiting
+> the max number of concurrent requests.
+>
+> To explore this space, you will:
+>
+> - define an endpoint, model and range of requests per second to test
+> - use an optimizer to efficiently find the maximum requests per second
+<!-- markdownlint-disable-next-line MD028 -->
 
-!!! abstract "The scenario"
+> [!IMPORTANT] Prerequisites
+>
+> - An endpoint serving an LLM in an OpenAI API-compatible format  
+> - Install the following Python packages:
+>
+> ```bash
+> pip install hyperopt
+> pip install ado-ray-tune
+> pip install ado-vllm-performance
+> ```
+<!-- markdownlint-disable-next-line MD028 -->
 
-      **In this example, the _vllm_performance_ actuator is used to find
-    the maximum requests per second a server can handle while maintaining
-    stable maximum throughput.**
-
-    A model deployed for inference will have a certain max stable throughput in
-    terms of the requests it can serve per second.
-    Sending more requests than this maximum will often lead to a drop in throughput.
-    Hence, it can be useful to know what this maximum is so the maximum throughput
-    is reliably maintained e.g. by limiting
-    the max number of concurrent requests.
-
-    To explore this space, you will:
-    
-    - define an endpoint, model and range of requests per second to test
-    - use an optimizer to efficiently find the maximum requests per second
-
-!!! important "Prerequisites"
-
-    - An endpoint serving an LLM in an OpenAI API-compatible format
-    - Install the following python packages: 
-    ```commandline
-    pip install hyperopt
-    pip install ado-ray-tune
-    pip install ado-vllm-performance
-    ```
-
-!!! example "In a nutshell"
-
-    Get the files `vllm_request_rate_space.yaml` and `hyperopt.yaml` from [here]().
-
-    - `vllm_request_rate_space.yaml`: this file defines the _endpoint_, _model_
-     and _request_ _range_ to explore.
-        - **You must edit the _model_ and _endpoint_ fields in this file 
-     to match your own.**
-    - `hyperopt.yaml`: this file contains the optimization parameters. 
-    You do not need to edit it
-
-    Then, in a directory with these files, execute,
-    ```bash
-    : # Define the set of request rates to explore
-    ado create space -f vllm_request_rate_space.yaml
-    : # Explore them!
-    ado create operation -f hyperopt.yaml --use-latest space
-    ```
-<!-- markdownlint-enable MD046 -->
+> [!TIP] In a nutshell
+> Get the files `vllm_request_rate_space.yaml` and `hyperopt.yaml` from here.
+>
+> - `vllm_request_rate_space.yaml`: this file defines the _endpoint_, _model_,
+>   and _request_ _range_ to explore.
+>   - **You must edit the _model_ and _endpoint_ fields in this file
+>     to match your own.**
+> - `hyperopt.yaml`: this file contains the optimization parameters.
+>   You do not need to edit it.
+>
+> Then, in a directory with these files, execute:
+>
+> ```bash
+> : # Define the set of request rates to explore
+> ado create space -f vllm_request_rate_space.yaml
+> : # Explore them!
+> ado create operation -f hyperopt.yaml --use-latest space
+> ```
 
 ## Install the actuator
 

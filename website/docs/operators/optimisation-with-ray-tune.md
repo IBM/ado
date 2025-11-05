@@ -166,12 +166,13 @@ which are all optional:
 - `failed_metric_value` (default None)
   - This will be used for the value of "metric' for any entities where it could
       not be measured (for any reason)
-- `result_dump (default None)
+- `result_dump` (default None)
   - If specified the best result found will be written to this file
 - `single_measurement_per_property` (default true)
   - If true
       [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
-      is used. If false already measured entities will be re-measured.
+      is used.
+  - If false already measured entities will be re-measured.
 
 ### Tune Config
 

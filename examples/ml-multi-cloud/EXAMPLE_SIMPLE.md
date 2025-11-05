@@ -344,8 +344,9 @@ ado show details space --use-latest
 will give you a summary of what has been measured.
 
 > [!NOTE]
+>
 > If you want to run these commands with the latest space created
-> use the `with-latest` flag as above
+> use the `--use-latest` flag as above
 
 ### Resource provenance
 

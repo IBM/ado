@@ -196,8 +196,6 @@ To create the Discovery Space:
 
     <!-- markdownlint-disable line-length -->
     ```yaml
-    sampleStoreIdentifier: default
-
     experiments:
       - experimentIdentifier: finetune_full_benchmark-v1.0.0
         actuatorIdentifier: SFTTrainer
@@ -242,9 +240,9 @@ To create the Discovery Space:
 
     ```yaml
     spaces:
-      - The identifier of the DiscoverySpace resource
+      - <will be set by ado>
     actuatorConfigurationIdentifiers:
-      - The identifier of the Actuator Configuration resource
+      - <will be set by ado>
 
     operation:
       module:
@@ -282,9 +280,11 @@ cached model weights and the cached data, making them faster to complete.
 After the operation completes, you can retrieve the results of your
 measurements:
 
+<!-- markdownlint-disable line-length -->
 ```commandline
-ado show entities --output-format csv --property-format=target space --use-latest
+ado show entities space --output-format csv --use-latest
 ```
+<!-- markdownlint-enable line-length -->
 
 The command will generate a CSV file. Open it to explore the data that your
 operation has collected!

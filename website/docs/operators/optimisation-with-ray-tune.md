@@ -170,8 +170,8 @@ which are all optional:
   - If specified the best result found will be written to this file
 - `single_measurement_per_property` (default true)
   - If true
-   [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
-    is used.
+      [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
+      is used.
   - If false already measured entities will be re-measured.
 
 ### Tune Config

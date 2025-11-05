@@ -1,6 +1,7 @@
 # Testing the throughput of an inference endpoint
 
 > [!NOTE] The scenario
+>
 > **In this example, the _vllm_performance_ actuator is used to find
 > the maximum requests per second a server can handle while maintaining
 > stable maximum throughput.**
@@ -31,6 +32,7 @@
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!TIP] TL;DR
+>
 > Get the files `vllm_request_rate_space.yaml` and `operation_hyperopt.yaml`
 > from [our repository](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls).
 >

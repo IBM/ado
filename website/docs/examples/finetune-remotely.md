@@ -460,17 +460,18 @@ experiment.
     └── ado_sfttrainer-1.1.0.dev133+gf4b639c10.d20250812-py3-none-any.whl
     ```
 
-    >[!INFO]
-    > You can find instructions for generating the `.whl` and `ray_runtime_env.yaml`
-    > files in the
-   > [Prepare files for the Ray jobs you will run later](#prepare-files-for-the-ray-jobs-you-will-run-later)
-   > section.
-
 5. Create the operation on the remote RayCluster
 
 Use the `.whl` and `ray_runtime_env.yaml` files to submit a job to your
 remote RayCluster which creates the `operation` that runs your finetuning
 measurements.
+
+>[!NOTE]
+>
+> You can find instructions for generating the `.whl` and `ray_runtime_env.yaml`
+> files in the
+> [Prepare files for the Ray jobs you will run later](#prepare-files-for-the-ray-jobs-you-will-run-later)
+> section.
 
 Run the command:
 

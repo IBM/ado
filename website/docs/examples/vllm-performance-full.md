@@ -167,7 +167,7 @@ metadata:
 ```
 
 Save the above as `vllm_discoveryspace.yaml`.
-Then run,
+Then run:
 
 ```bash
 ado create space -f vllm_discoveryspace.yaml

@@ -233,7 +233,7 @@ live in the terminal as they come in.
 You can also get the table be executing (in another terminal)
 
 ```commandline
-ado show entities operation --with-latest
+ado show entities operation --use-latest
 ```
 
 ### Check final results

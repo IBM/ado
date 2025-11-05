@@ -83,6 +83,7 @@ the [ado CLI guide](../getting-started/ado.md) for more details
 ### Deleting resources
 
 >[!TIP]
+>
 > Refer to the following documentation for detailed information on
 > specific use cases:
 >

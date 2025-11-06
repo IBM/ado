@@ -31,10 +31,10 @@ To explore this space, you will:
   `finetune_full_benchmark-v1.0.0` experiment
 - explore the parameter space - the sampling method
 
-!!! info end
-
-    This example assumes you have already followed the
-    [Measure throughput of finetuning locally](./finetune-locally.md) example.
+> [!NOTE]
+>
+> This example assumes you have already followed the
+> [Measure throughput of finetuning locally](./finetune-locally.md) example.
 
 ## Prerequisites
 
@@ -67,31 +67,24 @@ To explore this space, you will:
 
 ### Install the SFTTrainer actuator
 
+<!-- markdownlint-disable code-block-style -->
 === "Install the SFTTrainer Actuator plugin from PyPi"
 
-      <!-- markdownlint-disable code-block-style -->
     ```commandline
     pip install ado-sfttrainer
     ```
-    <!-- markdownlint-enable code-block-style -->
 
 === "Install SFTTrainer from the `ado` sources"
-
-    !!! info
-
-        This step assumes you are in the root directory of the ado source repository.
 
     If you haven't already installed the `SFTTrainer` actuator, run
     (assumes you are in the root directory of ado):
 
-    <!-- markdownlint-disable-next-line code-block-style -->
     ```commandline
     pip install plugins/actuators/sfttrainer
     ```
 
      then executing
 
-    <!-- markdownlint-disable-next-line code-block-style -->
      ```commandline
      ado get actuators
      ```
@@ -105,6 +98,7 @@ To explore this space, you will:
      2               replay
      3           SFTTrainer
      ```
+ <!-- markdownlint-enable code-block-style -->
 
 ### Configure the SFTTrainer Actuator
 
@@ -118,6 +112,7 @@ Dataset.
 In this section you will configure the actuator for experiments on your remote
 RayCluster.
 
+<!-- markdownlint-disable code-block-style -->
 === "If you do not have an AIM server"
 
      Create the file `actuator_configuration.yaml` with the following contents:
@@ -141,17 +136,17 @@ RayCluster.
       hf_home: /hf-models-pvc/huggingface_home
       data_directory: /data/fms-hf-tuning/artificial-dataset/
     ```
+<!-- markdownlint-enable code-block-style -->
 
-!!! info end
-
-    If you have deployed a custom RayCluster then make sure that the `hf_home` and
-    `data_directory` parameters point to paths that can be created by your remote
-    RayCluster workers. We recommend deploying a remote RayCluster following our
-    [instructions](../../actuators/sft-trainer/#configure-your-raycluster).
+>[!IMPORTANT]
+>
+> If you have deployed a custom RayCluster then make sure that the `hf_home` and
+> `data_directory` parameters point to paths that can be created by your remote
+> RayCluster workers. We recommend deploying a remote RayCluster following our
+> [instructions](../../actuators/sft-trainer/#configure-your-raycluster).
 
 Next, create the `actuatorconfiguration` resource:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
 ado create actuatorconfiguration -f actuator_configuration.yaml
 ```
@@ -164,19 +159,19 @@ See the full list of the actuator parameters you can set in the
 
 ## Prepare the remote RayCluster
 
-!!! info end
-
-    This section assumes you have
-    [configured your RayCluster for use with SFTTrainer](../../actuators/sft-trainer/#configure-your-raycluster)
-    and that you have configured your SFTTrainer actuator with the values we
-    provided above for the `hf_home` and `data_directory` parameters.
+>[!NOTE]
+>
+> This section assumes you have
+> [configured your RayCluster for use with SFTTrainer](../../actuators/sft-trainer/#configure-your-raycluster)
+> and that you have configured your SFTTrainer actuator with the values we
+> provided above for the `hf_home` and `data_directory` parameters.
 
 ### For RayClusters on Kubernetes/OpenShift - create a port-forward
 
-!!! info end
-
-    If your remote RayCluster is not hosted on Kubernetes or OpenShift, you can
-    skip this step.
+>[!TIP]
+>
+> If your remote RayCluster is not hosted on Kubernetes or OpenShift, you can
+> skip this step.
 
 In a terminal, start a `kubectl port-forward` process to the service that
 connects to the head of your RayCluster. Keep this process running until your
@@ -211,6 +206,7 @@ You have two options for installing the required packages:
 
 In this section, we’ll focus on the second approach.
 
+<!-- markdownlint-disable code-block-style -->
 === "Use the SFTTrainer plugin wheel from PyPi"
 
     Create the `ray_runtime_env.yaml` file under the directory
@@ -286,6 +282,7 @@ In this section, we’ll focus on the second approach.
     ```
 
     [Reference docs on using ado with remote RayClusters](../../getting-started/remote_run/#getting-ready).
+<!-- markdownlint-enable code-block-style -->
 
 You will use the files you created during this step in later steps when
 submitting jobs to your remote RayCluster.
@@ -297,12 +294,12 @@ a job on your remote RayCluster. This job will create the synthetic dataset and
 place it in the correct location under the directory specified by the
 `data_directory` parameter of the SFTTrainer actuator.
 
-!!! info end
-
-    You can find instructions for generating the `.whl` and `ray_runtime_env.yaml`
-    files in the
-    [Prepare files for the Ray jobs you will run later](#prepare-files-for-the-ray-jobs-you-will-run-later)
-    section.
+>[!INFO]
+>
+> You can find instructions for generating the `.whl` and `ray_runtime_env.yaml`
+> files in the
+> [Prepare files for the Ray jobs you will run later](#prepare-files-for-the-ray-jobs-you-will-run-later)
+> section.
 
 To submit the job to your remote RayCluster run the command:
 
@@ -374,8 +371,6 @@ experiment.
 
     <!-- markdownlint-disable-next-line code-block-style -->
     ```yaml
-    sampleStoreIdentifier: default
-
     experiments:
       - experimentIdentifier: finetune_full_benchmark-v1.0.0
         actuatorIdentifier: SFTTrainer
@@ -465,45 +460,45 @@ experiment.
     └── ado_sfttrainer-1.1.0.dev133+gf4b639c10.d20250812-py3-none-any.whl
     ```
 
-    !!! info end
-
-        You can find instructions for generating the `.whl` and `ray_runtime_env.yaml`
-        files in the
-        [Prepare files for the Ray jobs you will run later](#prepare-files-for-the-ray-jobs-you-will-run-later)
-        section.
-
 5. Create the operation on the remote RayCluster
 
-    Use the `.whl` and `ray_runtime_env.yaml` files to submit a job to your
-    remote RayCluster which creates the `operation` that runs your finetuning
-    measurements.
+Use the `.whl` and `ray_runtime_env.yaml` files to submit a job to your
+remote RayCluster which creates the `operation` that runs your finetuning
+measurements.
 
-    Run the command:
+>[!NOTE]
+>
+> You can find instructions for generating the `.whl` and `ray_runtime_env.yaml`
+> files in the
+> [Prepare files for the Ray jobs you will run later](#prepare-files-for-the-ray-jobs-you-will-run-later)
+> section.
 
-    <!-- markdownlint-disable line-length -->
-    <!-- markdownlint-disable-next-line code-block-style -->
-    ```commandline
-    ray job submit --no-wait --address http://localhost:8265  --working-dir . \
-    --runtime-env ray_runtime_env.yaml -v -- \
-    ado -c context.yaml create operation -f operation.yaml
-    ```
-    <!-- markdownlint-enable line-length -->
+Run the command:
 
-    The operation will execute the measurements (i.e. apply the experiment
-    **finetune_full_benchmark-v1.0.0** on the 4 entities) as defined in your
-    `discoveryspace`.
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable-next-line code-block-style -->
+```commandline
+ray job submit --no-wait --address http://localhost:8265  --working-dir . \
+--runtime-env ray_runtime_env.yaml -v -- \
+ado -c context.yaml create operation -f operation.yaml
+```
+<!-- markdownlint-enable line-length -->
 
-    !!! info end
+The operation will execute the measurements (i.e. apply the experiment
+**finetune_full_benchmark-v1.0.0** on the 4 entities) as defined in your
+`discoveryspace`.
 
-      Each measurement finetunes the
-      [`granite-3.1-2b`](https://huggingface.co/ibm-granite/granite-3.1-2b-base)
-      model and takes about two minutes to complete.
-      There is a total of four measurements.
-      It will also take a couple of minutes for Ray to create the ray environment
-      on participating GPU worker nodes, so expect the `operation`
-      to take around 10 minutes to complete.
+> [!NOTE]
+>
+> Each measurement finetunes the
+> [`granite-3.1-2b`](https://huggingface.co/ibm-granite/granite-3.1-2b-base)
+> model and takes about two minutes to complete.
+> There is a total of four measurements.
+> It will also take a couple of minutes for Ray to create the ray environment
+> on participating GPU worker nodes, so expect the `operation`
+> to take around 10 minutes to complete.
 
-    [Reference docs for submitting ado operations to remote RayClusters](../../getting-started/remote_run/#submitting-the-ado-operation).
+[Reference docs for submitting ado operations to remote RayClusters](../../getting-started/remote_run/#submitting-the-ado-operation).
 
 ### Examine the results of the exploration
 
@@ -515,12 +510,12 @@ measurements:
 ado show entities --output-format csv --property-format=target space --use-latest
 ```
 
-!!! info end
-
-    Notice that because the context we are using refers to a remote project we can
-    access the data created by the operation on the remote ray cluster. Anyone that
-    has access to the `finetuning` context can also retrieve the results of your
-    measurements!
+> [!NOTE]
+>
+> Notice that because the context we are using refers to a remote project we can
+> access the data created by the operation on the remote ray cluster. Anyone that
+> has access to the `finetuning` context can also retrieve the results of your
+> measurements!
 
 The command will generate a CSV file. Open it to explore the data that your
 operation has collected!

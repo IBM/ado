@@ -59,6 +59,7 @@ register_show_command(app)
 register_template_command(app)
 register_upgrade_command(app)
 register_version_command(app)
+# register_hamilton_command(app)
 
 
 @app.callback()

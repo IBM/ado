@@ -1,11 +1,10 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-sampleStoreIdentifier: ID
 entitySpace:
 - identifier: endpoint
   propertyDomain:
     values:  #You could have multiple endpoints here - or one endpoint that served multiple models
-    - "http://localhost:28015"
+    - "http://localhost:8000"
 - identifier: model
   propertyDomain:
     values:

@@ -45,8 +45,8 @@ class ComponentsYaml:
 
         # Making sure the resulting name is not longer than 63 characters as it is
         # the maximum allowed for a name in kubernetes.
-        name_prefix = m_parts[-1][: min(len(m_parts[-1]), 21)].rstrip("-")
-        return f"vllm-{name_prefix.lower()}-{uuid.uuid4()}".replace(".", "-")
+        name_prefix = m_parts[-1][: min(len(m_parts[-1]), 25)].rstrip("-")
+        return f"vllm-{name_prefix.lower()}-{uuid.uuid4().hex}".replace(".", "-")
 
     @staticmethod
     def _adjust_file_name(f: str) -> str:

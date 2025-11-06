@@ -1,8 +1,11 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import inspect
+import logging
 import typing
 import uuid
+from functools import wraps
 
 import pydantic
 import ray
@@ -11,60 +14,535 @@ import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
-    ActuatorModuleConf,
     DeprecatedExperimentError,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import load_module_class_or_function
+from orchestrator.modules.module import (
+    ModuleConf,
+    ModuleTypeEnum,
+    load_module_class_or_function,
+)
 from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.observed_property import (
+    ObservedProperty,
+    ObservedPropertyValue,
+)
+from orchestrator.schema.property import (
+    AbstractPropertyDescriptor,
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+)
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from orchestrator.schema.result import ValidMeasurementResult
+from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.logging import configure_logging
 
 configure_logging()
 
+# Module-level catalog for custom experiments
+_custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
+    catalogIdentifier="CustomExperiments"
+)
+
+
+class ExperimentModuleConf(ModuleConf):
+    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.EXPERIMENT)
+
+
+def _infer_domain_and_property(
+    identifier: str, annotation: type, default: typing.Any
+) -> ConstitutiveProperty:
+    """This function infers the domain of a parameter from its type and default value.
+    Parameters:
+    - identifier: The name of the parameter
+    - annotation: The type of the parameter. Must be a valid python type
+    - default: The default value of the parameter
+    Returns:
+    - A ConstitutiveProperty instance with the inferred domain
+    Exceptions:
+    - ValueError: If the parameter is not supported i.e. the domain cannot be inferred
+    """
+    import logging
+
+    logger = logging.getLogger("custom_experiments")
+    from typing import get_args, get_origin
+
+    from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+
+    if annotation is int:
+        domain = PropertyDomain(
+            variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE, interval=1
+        )
+    elif annotation is float:
+        domain = PropertyDomain(variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE)
+    elif annotation is bool:
+        domain = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    elif annotation is str:
+        domain = PropertyDomain(
+            variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+            values=[default],
+        )
+    elif get_origin(annotation) in [
+        getattr(typing, "Literal", None),
+        getattr(__import__("typing_extensions"), "Literal", None),
+    ] or str(annotation).startswith("typing.Literal"):
+        vals = list(get_args(annotation))
+        domain = PropertyDomain(
+            variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE, values=vals
+        )
+    else:
+        logger.warning(
+            f"Error parameter '{identifier}' - unsupported annotation: {annotation}"
+        )
+        raise ValueError(f"Unsupported annotation: {annotation}")
+
+    return ConstitutiveProperty(identifier=identifier, propertyDomain=domain)
+
+
+def derive_required_properties_from_signature(
+    func: typing.Callable, optional_property_identifiers: list[str]
+) -> list[ConstitutiveProperty]:
+    """This function derives the required properties from the function signature.
+
+    The required properties are the positional parameters of the function that are not in optional_property_identifiers.
+
+    Parameters:
+    - func: The function to derive the required properties from
+    - optional_property_identifiers: The identifiers of the optional properties
+    Returns:
+    - A list of ConstitutiveProperty instances
+    """
+
+    func_signature = inspect.signature(func)
+    required_props = []
+    for param in func_signature.parameters.values():
+        if param.name in optional_property_identifiers:
+            continue
+        if (
+            param.kind
+            in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+            and param.default is inspect.Parameter.empty
+        ):
+            inferred_prop = _infer_domain_and_property(
+                param.name, param.annotation, None
+            )
+            required_props.append(inferred_prop)
+    return required_props
+
+
+def get_parameterization(
+    properties: list[ConstitutiveProperty], func_signature: inspect.Signature
+) -> dict[str, typing.Any]:
+    """This function derives the parameterization of properties and function signature.
+
+    The parameterization of a property is the default value of the corresponding parameter in func_signature
+
+    Parameters:
+    - properties: The properties to derive the parameterization for
+    - func_signature: The function signature to derive the parameterization from
+    Returns:
+    - A dictionary of property identifiers and their default values
+    Exceptions:
+    - ValueError: If a parameterization cannot be derived for a property"""
+    param_map = {p.name: p for p in func_signature.parameters.values()}
+    results = {}
+    missing = []
+    for prop in properties:
+        param = param_map.get(prop.identifier, None)
+        if param and param.default is not inspect.Parameter.empty:
+            results[prop.identifier] = param.default
+        else:
+            missing.append(prop.identifier)
+    if missing:
+        raise ValueError(f"Parameterization missing for: {missing}")
+    return results
+
+
+def derive_optional_properties_and_parameterization(
+    func: typing.Callable, required_properties: list[ConstitutiveProperty]
+) -> tuple[list[ConstitutiveProperty], dict[str, typing.Any]]:
+    """This function derives the optional properties and their parameterization from the function signature.
+
+    The optional properties are the keyword parameters of the function that are not in required_properties.
+    The parameterization of an optional property is the default value of the corresponding parameter in func_signature.
+
+    Parameters:
+    - func: The function to derive the optional properties and parameterization from
+    - required_properties: The properties that are required input values.
+    Returns:
+    - A tuple. The first element is a list of optional properties, the second element is a dictionary of property identifiers and their default values
+    Exceptions:
+    - ValueError: If a parameterization cannot be derived for any optional property (unexpected)
+    - ValueError: If a domain cannot be inferred for any optional property"""
+    optional_properties = []
+    for param in inspect.signature(func).parameters.values():
+        if param.name in {prop.identifier for prop in required_properties}:
+            continue
+        if (
+            param.kind
+            in (inspect.Parameter.KEYWORD_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            and param.default is not inspect.Parameter.empty
+        ):
+            inferred_prop = _infer_domain_and_property(
+                param.name, param.annotation, param.default
+            )
+            optional_properties.append(inferred_prop)
+
+    return optional_properties, get_parameterization(
+        optional_properties, inspect.signature(func)
+    )
+
+
+def check_parameters_and_infer(
+    func,
+    _required_properties: list[ConstitutiveProperty] | None,
+    _optional_properties: list[ConstitutiveProperty] | None = None,
+    _parameterization: dict | None = None,
+):
+    logger = logging.getLogger("custom_experiment_decorator")
+
+    # Set up dynamic optional_properties and parameterization if none were provided
+    _optional_properties = _optional_properties if _optional_properties else []
+
+    if not _required_properties:
+        try:
+            _required_properties = derive_required_properties_from_signature(
+                func, {prop.identifier for prop in _optional_properties}
+            )
+        except ValueError as error:
+            logger.critical(
+                f"No required properties provided and they could not be derived from signature: {error}"
+            )
+            raise error
+    if _optional_properties and not _parameterization:
+        try:
+            _parameterization = get_parameterization(
+                _optional_properties, inspect.signature(func)
+            )
+        except ValueError as error:
+            logger.critical(
+                f"Optional properties provided but parameterization could not be derived from signature: {error}"
+            )
+            raise error
+    if not _optional_properties and not _parameterization:
+        try:
+            _optional_properties, _parameterization = (
+                derive_optional_properties_and_parameterization(
+                    func, _required_properties
+                )
+            )
+        except ValueError as error:
+            logger.critical(
+                f"No optional properties provided and theycould not be derived from signature: {error}"
+            )
+            raise error
+
+    return _optional_properties, _parameterization, _required_properties
+
+
+def check_parameters_valid(func, _required_properties, _optional_properties):
+    # Validate that the property identifiers match the function parameters
+    func_signature = inspect.signature(func)
+    func_param_names = set(func_signature.parameters.keys())
+    req_property_identifiers = {prop.identifier for prop in _required_properties}
+    opt_property_identifiers = (
+        {prop.identifier for prop in _optional_properties}
+        if _optional_properties
+        else set()
+    )
+    experiment_prop_identifiers = req_property_identifiers | opt_property_identifiers
+    if not experiment_prop_identifiers.issubset(func_param_names):
+        raise ValueError(
+            f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. "
+            f"Missing identifiers: {experiment_prop_identifiers - func_param_names}"
+        )
+
+
+def custom_experiment(
+    required_properties: list[ConstitutiveProperty | ObservedProperty],
+    output_property_identifiers: list[str],
+    optional_properties: list[ConstitutiveProperty] | None = None,
+    parameterization: dict[str, typing.Any] | None = None,
+    metadata: dict[str, typing.Any] | None = None,
+):
+    """
+    Decorator for custom experiment functions.
+
+    Args:
+        required_properties: List of ConstitutiveProperty instances that are required input values.
+        output_property_identifiers: List of strings identifying the output property names.
+        optional_properties: List of ConstitutiveProperty instances that are optional input values.
+        parameterization: Tuple of parameters for default parameterization.
+        metadata: Metadata for the experiment
+
+    Returns:
+        A decorator that wraps a function to work with ADO's custom experiment system
+
+    Example:
+
+    mass = ConstitutiveProperty(identifier="mass", propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[0, 100],
+    ))
+    volume = ConstitutiveProperty(identifier="volume", propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[0, 100],
+    ))
+
+    @custom_experiment(
+        required_properties=[mass, volume],
+        output_properties=["density"]
+    )
+    def calculate_density(mass, volume):
+        density_value = mass / volume if volume else None
+        return {
+            "density": density_value
+        }
+    """
+
+    metadata = metadata if metadata else {}
+    logger = logging.getLogger("custom_experiment_decorator")
+
+    def decorator(func):
+
+        @wraps(func)
+        def wrapper(
+            entity: Entity, experiment: Experiment
+        ) -> list[ObservedPropertyValue]:
+            """
+            Wrapper function that converts Entity+Experiment to dict and calls the wrapped function.
+            """
+            input_values = experiment.propertyValuesFromEntity(entity)
+            result_dict = func(**input_values)
+            observed_property_values = []
+            for property_identifier, value in result_dict.items():
+                observed_property = experiment.observedPropertyForTargetIdentifier(
+                    property_identifier
+                )
+                observed_property_value = ObservedPropertyValue(
+                    property=observed_property, value=value
+                )
+                observed_property_values.append(observed_property_value)
+
+            return observed_property_values
+
+        # If we were not given information on required/optional properties
+        # or parameterization try to infer it
+        # This function will log a critical error message and raise exception
+        # if inference is required (because user did not provide explicit information)
+        # but it could not be done (missing annotation, invalid annotation etc.)
+        _optional_properties, _parameterization, _required_properties = (
+            check_parameters_and_infer(
+                func=func,
+                _required_properties=required_properties,
+                _optional_properties=optional_properties,
+                _parameterization=parameterization,
+            )
+        )
+
+        try:
+            check_parameters_valid(
+                func,
+                _required_properties=required_properties,
+                _optional_properties=_optional_properties,
+            )
+        except ValueError as error:
+            logger.critical(
+                f"Unable to generate custom function via decorator: {error}"
+            )
+            raise
+
+        # Store decorator arguments as function attributes
+        wrapper._decorator_required_properties = _required_properties
+        wrapper._decorator_optional_properties = _optional_properties
+        wrapper._decorator_parameterization = _parameterization
+        wrapper._original_func = func
+        wrapper._is_custom_experiment = True
+
+        # Create an ExperimentModuleConf instance describing where the function is
+        metadata["module"] = ExperimentModuleConf(
+            moduleType=ModuleTypeEnum.EXPERIMENT,
+            moduleName=func.__module__,
+            moduleFunction=func.__name__,
+        )
+
+        # Create and store the Experiment instance
+        experiment = Experiment(
+            actuatorIdentifier="custom_experiments",
+            identifier=func.__name__,
+            requiredProperties=tuple(_required_properties),
+            optionalProperties=tuple(_optional_properties),
+            targetProperties=[
+                AbstractPropertyDescriptor(identifier=p)
+                for p in output_property_identifiers
+            ],
+            defaultParameterization=tuple(
+                [
+                    ConstitutivePropertyValue(
+                        property=ConstitutivePropertyDescriptor(identifier=k), value=v
+                    )
+                    for k, v in _parameterization.items()
+                ]
+            ),
+            deprecated=False,
+            metadata=metadata,
+        )
+        wrapper._experiment = experiment
+
+        # Add the experiment to the module-level catalog
+        _custom_experiments_catalog.addExperiment(experiment)
+
+        return wrapper
+
+    return decorator
+
+
+def load_custom_experiments_from_catalog_extensions(identifier):
+    import importlib.resources
+    import logging
+    import pkgutil
+    from pathlib import Path
+
+    import yaml
+
+    from orchestrator.modules.actuators.catalog import ActuatorCatalogExtension
+    from orchestrator.modules.actuators.registry import (
+        CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME,
+    )
+
+    try:
+        import ado_actuators as plugins
+    except ImportError:
+        logging.getLogger("custom_experiments").info(
+            "ado_actuators namespace package has not been created yet"
+        )
+        return
+
+    logger = logging.getLogger("custom_experiments")
+
+    for module in pkgutil.iter_modules(plugins.__path__, f"{plugins.__name__}."):
+        module_contents = {
+            entry.name for entry in importlib.resources.files(module.name).iterdir()
+        }
+
+        if CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME in module_contents:
+            logger.debug(f"Found {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME}")
+
+            experiments_configuration_file = Path(
+                str(importlib.resources.files(module.name))
+            ) / Path(CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME)
+
+            try:
+                catalog_extension = ActuatorCatalogExtension.model_validate(
+                    yaml.safe_load(experiments_configuration_file.read_text())
+                )
+            except pydantic.ValidationError:
+                logger.exception(
+                    f"{module.name}'s {CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME} raised a validation error"
+                )
+                raise
+
+            logger.debug(f"Adding catalog extension {catalog_extension!s}")
+            for experiment in catalog_extension.experiments:
+                if experiment.actuatorIdentifier == "custom_experiments":
+                    _custom_experiments_catalog.addExperiment(experiment)
+                else:
+                    logger.warning(
+                        f"Cannot add catalog extension for {experiment.actuatorIdentifier} - only custom_experiments supports catalog extensions"
+                    )
+
+
+def load_custom_experiments_from_entry_points():
+    """
+    Load custom experiments from entry points.
+
+    This function searches for entry points under 'ado.custom_experiments' and loads
+    any decorated functions from those modules.
+    """
+    try:
+        import importlib
+        import importlib.metadata
+
+        # Get all entry points for ado.custom_experiments
+        entry_points = importlib.metadata.entry_points()
+        custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
+        for entry_point in custom_experiment_groups:
+            entry_point.load()
+
+    except ImportError as error:
+        logging.getLogger("load_custom_experiments").warning(error)
+
+
+def get_custom_experiments_catalog() -> (
+    orchestrator.modules.actuators.catalog.ExperimentCatalog
+):
+    """
+    Get the module-level catalog of custom experiments.
+
+    Returns:
+        The ExperimentCatalog containing all registered custom experiments
+    """
+    return _custom_experiments_catalog
+
 
 async def custom_experiment_wrapper(
     function: typing.Callable,
     parameters: dict,
-    measurementRequest: MeasurementRequest,
-    targetExperiment: Experiment,
+    measurement_request: MeasurementRequest,
+    target_experiment: Experiment,
     queue: MeasurementQueue,
 ):
     """
     :param function: The function to call
     :param parameters: The custom parameters to the function
-    :param measurementRequest: The entity and custom experiment to be measured
-    :param targetExperiment: The experiment to execute.
+    :param measurement_request: The entity and custom experiment to be measured
+    :param target_experiment: The experiment to execute.
         Required as the measurementRequest only includes an ExperimentReference
     :param queue: The queue to put the result on
     :return:
     """
 
     measurement_results = []
-    for entity in measurementRequest.entities:
-        values = function(entity, targetExperiment, parameters=parameters)
+    for entity in measurement_request.entities:
+        # Inspect function to see if it has a keyword parameter "parameters"
+        func_signature = inspect.signature(function)
+        func_param_names = set(func_signature.parameters.keys())
+        try:
+            if "parameters" in func_param_names:
+                values = function(entity, target_experiment, parameters=parameters)
+            else:
+                values = function(entity, target_experiment)
 
-        # Record the results in the entity
-        if len(values) > 0:
-            measurement_result = ValidMeasurementResult(
-                entityIdentifier=entity.identifier, measurements=values
+            # Record the results in the entity
+            if len(values) > 0:
+                measurement_result = ValidMeasurementResult(
+                    entityIdentifier=entity.identifier, measurements=values
+                )
+                measurement_results.append(measurement_result)
+        except Exception as error:
+            measurement_result = InvalidMeasurementResult(
+                entityIdentifier=entity.identifier,
+                experimentReference=target_experiment.reference,
+                reason=f"Unexpected exception: {error}",
             )
             measurement_results.append(measurement_result)
 
     if len(measurement_results) > 0:
-        measurementRequest.measurements = measurement_results
-        measurementRequest.status = MeasurementRequestStateEnum.SUCCESS
+        measurement_request.measurements = measurement_results
+        measurement_request.status = MeasurementRequestStateEnum.SUCCESS
     else:
-        measurementRequest.status = MeasurementRequestStateEnum.FAILED
+        measurement_request.status = MeasurementRequestStateEnum.FAILED
 
-    await queue.put_async(measurementRequest, block=False)
+    await queue.put_async(measurement_request, block=False)
 
 
 @ray.remote
@@ -89,41 +567,32 @@ class CustomExperiments(ActuatorBase):
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
         self.log.debug(f"Params are {params}")
 
-        import orchestrator.modules.actuators.registry
-
-        # Load custom_experiments catalog from registry
-        registry = (
-            orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
-        )
-        self._catalog = registry.catalogForActuatorIdentifier(self.__class__.identifier)
-
+        # Use the module-level catalog by calling the class method
+        self._catalog = type(self).catalog()
         self.log.debug(f"Catalog is {self._catalog}")
 
         self._functionImplementations = {}
         for experiment in self._catalog.experiments:
-            # We cannot do a check of the dependencies here because
-            # (a) Catalog addition to registry is non-deterministic so any dependent experiment
-            # may not be in the registry yet
 
-            # Store function name in the experiments metadata
-            try:
-                experiment_module_conf = ActuatorModuleConf.model_validate(
-                    experiment.metadata.get("module", None)
-                )
-            except pydantic.ValidationError:
-                self.log.exception(
-                    f"Experiment {experiment} did not provide a valid module configuration - skipping"
-                )
-            else:
-                self._functionImplementations[experiment.identifier] = (
+            function = None
+            if module := experiment.metadata.get("module"):
+                experiment_module_conf = ExperimentModuleConf.model_validate(module)
+                function = (
                     load_module_class_or_function(experiment_module_conf)
+                    if experiment_module_conf
+                    else None
                 )
 
+            if function:
+                self._functionImplementations[experiment.identifier] = function
                 self.log.info(
                     f"Experiment name: {experiment.identifier}. "
-                    f"Function Name: {experiment_module_conf.moduleFunction}. "
                     f"Function Implementation: {self._functionImplementations[experiment.identifier]}. "
                     f"Experiment: {experiment}"
+                )
+            else:
+                self.log.error(
+                    f"Experiment in custom_experiment catalog is missing required metadata (either experiment_function or module): {experiment}"
                 )
 
         self.log.debug("Completed init")
@@ -188,10 +657,6 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
-        function = targetExperiment.metadata.get(
-            "function", targetExperiment.identifier
-        )
-        self.log.debug(f"Calling custom experiment {function}")
 
         if experimentReference.parameterization:
             targetExperiment = ParameterizedExperiment(
@@ -218,9 +683,11 @@ class CustomExperiments(ActuatorBase):
     def catalog(
         cls, actuator_configuration: GenericActuatorParameters | None = None
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
-        return orchestrator.modules.actuators.catalog.ExperimentCatalog(
-            catalogIdentifier="CustomExperiments"
-        )
+
+        load_custom_experiments_from_catalog_extensions(cls.identifier)
+        # Load custom experiments from entry points before returning catalog
+        load_custom_experiments_from_entry_points()
+        return get_custom_experiments_catalog()
 
     def current_catalog(
         self,

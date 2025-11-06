@@ -244,15 +244,20 @@ def run(
         if validate:
             print("Validating entity ...")
             experiment = registry.experimentForReference(reference)
-            valid = experiment.validate_entity(entity)
+            valid = experiment.validate_entity(entity, verbose=True)
         else:
             print("Skipping validation")
 
         if valid:
             print(f"Executing: {reference}")
             request = execute(reference, entity)
-            print("Result:")
-            print(f"{request.series_representation(output_format='target')}\n")
+            if request is None:
+                print(
+                    "Measurement request failed unexpectedly. Skipping this experiment."
+                )
+            else:
+                print("Result:")
+                print(f"{request.series_representation(output_format='target')}\n")
         else:
             print("Entity is not valid")
 

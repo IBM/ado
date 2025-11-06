@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import importlib.metadata
-import logging
+import sys
 import typing
 from typing import Annotated
 
@@ -621,14 +621,17 @@ class Experiment(pydantic.BaseModel):
         return identifierValueMap
 
     def validate_entity(
-        self, entity: "Entity", disallow_extra_properties=False
+        self, entity: "Entity", disallow_extra_properties=False, verbose=False
     ) -> bool:
         """Returns True if Experiment can be applied to entity, false otherwise
 
         This method only checks constitutive properties.
         - The entity has valid values for all required properties of the experiment
         - The entity has valid values for any optional properties of the experiment it contains
-        - If strict_optional is True all properties of the Entity are properties (required+optional) of the experiment
+        - If disallow_extra_properties is True all properties of the Entity must be
+         properties (required+optional) of the experiment
+
+        If verbose=True if entity is not valid, the reason will be printed to stderr
         """
 
         point = {
@@ -656,21 +659,25 @@ class Experiment(pydantic.BaseModel):
 
         # First check against strict optional as it is a quick fail condition
         if additional_properties_present and disallow_extra_properties:
-            logging.getLogger("experiment").warning(
-                f"Strict property checking is on and the following entity "
-                f"properties are not required or optional properties of {self.identifier}:"
-                f"{additional_properties_present} "
-            )
+            if verbose:
+                print(
+                    f"disallow_extra_properties is set and the following entity "
+                    f"properties are not required or optional properties of {self.identifier}:"
+                    f"{additional_properties_present} ",
+                    file=sys.stderr,
+                )
             return False
 
         # Check if all the required properties are present with values in domain
         if not validate_point_against_properties(
             point={k: v for k, v in point.items() if k in required_properties_present},
             constitutive_properties=self.requiredConstitutiveProperties,
+            verbose=verbose,
         ):
-            logging.getLogger("experiment").warning(
-                f"The entity is missing values for required properties of {self.identifier}: {required_property_identifiers - required_properties_present}"
-            )
+            if verbose:
+                print(
+                    f"The entity is missing values for required properties of {self.identifier}: {required_property_identifiers - required_properties_present}"
+                )
             return False
 
         # All required properties are there
@@ -682,12 +689,14 @@ class Experiment(pydantic.BaseModel):
             point={k: v for k, v in point.items() if k in optional_properties_present},
             constitutive_properties=list(self.optionalProperties),
             allow_partial_matches=True,
+            verbose=verbose,
         ):
-            logging.getLogger("experiment").warning(
+            print(
                 f"The entity has properties that match optional properties"
                 f"of {self.identifier} - "
                 f"{optional_properties_present} - "
-                f"but its values for those properties are not in the domain of the optional properties"
+                f"but its values for those properties are not in the domain of the optional properties",
+                file=sys.stderr,
             )
             return False
 

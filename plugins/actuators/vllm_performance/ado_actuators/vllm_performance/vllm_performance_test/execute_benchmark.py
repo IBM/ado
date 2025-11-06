@@ -23,7 +23,7 @@ default_geospatial_datasets_filenames = {
 def execute_benchmark(
     base_url: str,
     model: str,
-    data_set: str,
+    dataset: str,
     backend: str = "openai",
     interpreter: str = "python",
     num_prompts: int = 500,
@@ -32,7 +32,7 @@ def execute_benchmark(
     hf_token: str | None = None,
     benchmark_retries: int = 3,
     retries_timeout: int = 5,
-    data_set_path: str | None = None,
+    dataset_path: str | None = None,
     custom_args: dict[str, Any] | None = None,
     burstiness: float = 1,
 ) -> dict[str, Any]:
@@ -40,7 +40,7 @@ def execute_benchmark(
     Execute benchmark
     :param base_url: url for vllm endpoint
     :param model: model
-    :param data_set: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
     :param interpreter - name of Python interpreter
     :param num_prompts: number of prompts
     :param request_rate: request rate
@@ -48,7 +48,7 @@ def execute_benchmark(
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
-    :param data_set_path: path to the dataset
+    :param dataset_path: path to the dataset
     :param custom_args: custom arguments to pass to the benchmark.
     keys are vllm benchmark arguments. values are the values to pass to the arguments
     :return: results dictionary
@@ -58,7 +58,7 @@ def execute_benchmark(
         f"executing benchmark, invoking service at {base_url} with the parameters: "
     )
     logger.debug(
-        f"model {model}, data set {data_set}, python {interpreter}, num prompts {num_prompts}"
+        f"model {model}, data set {dataset}, python {interpreter}, num prompts {num_prompts}"
     )
     logger.debug(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
@@ -67,16 +67,14 @@ def execute_benchmark(
     request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
     request += (
-        # changing from script invocation to cli invocation
-        # f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "
-        f"vllm bench serve --backend {backend} --base-url {base_url} --dataset-name {data_set} "
+        f"vllm bench serve --backend {backend} --base-url {base_url} --dataset-name {dataset} "
         f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
         f"--burstiness {burstiness} "
     )
 
-    if data_set_path is not None:
-        request += f" --dataset-path {data_set_path} "
+    if dataset_path is not None:
+        request += f" --dataset-path {dataset_path} "
     if request_rate is not None:
         request += f" --request-rate {request_rate!s} "
     if max_concurrency is not None:
@@ -123,7 +121,7 @@ def execute_random_benchmark(
     Execute benchmark with random dataset
     :param base_url: url for vllm endpoint
     :param model: model
-    :param data_set: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
@@ -135,7 +133,7 @@ def execute_random_benchmark(
     return execute_benchmark(
         base_url=base_url,
         model=model,
-        data_set=dataset,
+        dataset=dataset,
         interpreter=interpreter,
         num_prompts=num_prompts,
         request_rate=request_rate,
@@ -168,12 +166,12 @@ def execute_geospatial_benchmark(
     Execute benchmark with random dataset
     :param base_url: url for vllm endpoint
     :param model: model
-    :param data_set: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
-    :param input_token_length: length of input tokens
-    :param output_token_length: length of output tokens
+    :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
+    :param interpreter: python interpreter to use
     :return: results dictionary
     """
     from pathlib import Path
@@ -181,29 +179,29 @@ def execute_geospatial_benchmark(
     if dataset in default_geospatial_datasets_filenames:
         dataset_filename = default_geospatial_datasets_filenames[dataset]
         parent_path = Path(__file__).parents[1]
-        data_set_path = parent_path / "datasets" / dataset_filename
+        dataset_path = parent_path / "datasets" / dataset_filename
     else:
         # This can only happen with the performance-testing-geospatial-full-custom-dataset
         # experiment, otherwise the dataset name is always one of the allowed ones.
         # Here the assumption is that the dataset file is placed in the  process working directory.
         ray_working_dir = Path.cwd()
-        data_set_path = ray_working_dir / dataset
+        dataset_path = ray_working_dir / dataset
 
-    if not data_set_path.is_file():
+    if not dataset_path.is_file():
         error_string = (
             "The dataset filename provided does not exist or "
-            f"does not point to a valid file: {data_set_path}"
+            f"does not point to a valid file: {dataset_path}"
         )
         logger.warning(error_string)
         raise ValueError(error_string)
 
-    logger.debug(f"Dataset path {data_set_path}")
+    logger.debug(f"Dataset path {dataset_path}")
 
     return execute_benchmark(
         base_url=base_url,
         backend="io-processor-plugin",
         model=model,
-        data_set="custom",
+        dataset="custom",
         interpreter=interpreter,
         num_prompts=num_prompts,
         request_rate=request_rate,
@@ -213,7 +211,7 @@ def execute_geospatial_benchmark(
         retries_timeout=retries_timeout,
         burstiness=burstiness,
         custom_args={
-            "--dataset-path": f"{data_set_path.resolve()}",
+            "--dataset-path": f"{dataset_path.resolve()}",
             "--endpoint": "/pooling",
             "--skip-tokenizer-init": True,
         },

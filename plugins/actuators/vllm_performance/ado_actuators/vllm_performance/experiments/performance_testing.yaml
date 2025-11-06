@@ -134,7 +134,7 @@ performance_testing-full:
         values: [True, False]
     - identifier: 'enforce_eager'
       metadata:
-        description: "(deployment) enforce pytorch eager mode"
+        description: "(deployment) enforce PyTorch eager mode"
       propertyDomain:
         variableType: BINARY_VARIABLE_TYPE 
         values: [True, False]

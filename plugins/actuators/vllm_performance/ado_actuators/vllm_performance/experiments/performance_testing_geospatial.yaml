@@ -229,7 +229,7 @@ performance_testing-geospatial-full:
         values: [True, False]
     - identifier: 'io_processor_plugin'
       metadata:
-        description: 'IO Pocessor plugin to load for the model'
+        description: 'IO Processor plugin to load for the model'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ None, "terratorch_segmentation" ]
@@ -347,7 +347,7 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(benchmark) The dataset to be used for the experiment"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [" custom_dataset.jsonl "]
+        values: ["custom_dataset.jsonl"]
   optionalProperties:
     - identifier: 'num_prompts'
       metadata:
@@ -442,13 +442,13 @@ performance_testing-geospatial-full-custom-dataset:
         values: [True, False]
     - identifier: 'enforce_eager'
       metadata:
-        description: "(deployment) enforce pytorch eager mode"
+        description: "(deployment) enforce PyTorch eager mode"
       propertyDomain:
         variableType: BINARY_VARIABLE_TYPE 
         values: [True, False]
     - identifier: 'io_processor_plugin'
       metadata:
-        description: 'IO Pocessor plugin to load for the model'
+        description: 'IO Processor plugin to load for the model'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ "terratorch_segmentation" ]

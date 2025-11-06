@@ -63,13 +63,7 @@ def execute_benchmark(
     logger.debug(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
-    # The code below is commented as we are switching from a script invocation to command line
-    # invocation. If we want to bring back script execution for any reason, this code must be
-    # uncommented
-    # parameters
-    # code = os.path.abspath(
-    #    os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
-    # )
+
     request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
     request += (
@@ -182,27 +176,26 @@ def execute_geospatial_benchmark(
     :param output_token_length: length of output tokens
     :return: results dictionary
     """
+    from pathlib import Path
 
     if dataset in default_geospatial_datasets_filenames:
-        from pathlib import Path
-
         dataset_filename = default_geospatial_datasets_filenames[dataset]
-        parent_path = Path(__file__).parents[1].absolute()
-        data_set_path = os.path.join(parent_path, "datasets", dataset_filename)
+        parent_path = Path(__file__).parents[1]
+        data_set_path = parent_path / "datasets" / dataset_filename
     else:
         # This can only happen with the performance-testing-geospatial-full-custom-dataset
         # experiment, otherwise the dataset name is always one of the allowed ones.
         # Here the assumption is that the dataset file is placed in the  process working directory.
-        ray_working_dir = os.getcwd()
-        data_set_path = os.path.join(ray_working_dir, dataset)
+        ray_working_dir = Path.cwd()
+        data_set_path = ray_working_dir / dataset
 
-    if not os.path.exists(data_set_path) or not os.path.isfile(data_set_path):
-        logger.warning(
-            f"The dataset filename provided does not exist or does not point to a valid file: {data_set_path}"
+    if not data_set_path.is_file():
+        error_string = (
+            "The dataset filename provided does not exist or "
+            f"does not point to a valid file: {data_set_path}"
         )
-        raise Exception(
-            f"The dataset filename provided does not exist or does not point to a valid file: {data_set_path}"
-        )
+        logger.warning(error_string)
+        raise ValueError(error_string)
 
     logger.debug(f"Dataset path {data_set_path}")
 
@@ -220,7 +213,7 @@ def execute_geospatial_benchmark(
         retries_timeout=retries_timeout,
         burstiness=burstiness,
         custom_args={
-            "--dataset-path": data_set_path,
+            "--dataset-path": f"{data_set_path.resolve()}",
             "--endpoint": "/pooling",
             "--skip-tokenizer-init": True,
         },

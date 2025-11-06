@@ -183,16 +183,7 @@ class ComponentsYaml:
         # command
         container["command"] = ["vllm", "serve"]
         container["args"] = vllm_serve_args
-        # env variables to to set parameters for docker execution
-        # container["env"] = [
-        #     {"name": "MODEL", "value": model},
-        #     {"name": "GPU_MEMORY_UTILIZATION", "value": str(gpu_memory_utilization)},
-        #     {"name": "DTYPE", "value": dtype.value},
-        #     {"name": "CPU_OFFLOAD_GB", "value": str(cpu_offload)},
-        #     {"name": "MAX_NUM_BATCHED_TOKENS", "value": str(max_batch_tokens)},
-        #     {"name": "MAX_NUM_SEQ", "value": str(max_num_seq)},
-        #     {"name": "TENSOR_PARALLEL_SIZE", "value": str(n_gpus)},
-        # ]
+
         if hf_token is not None:
             container["env"] = [{"name": "HF_TOKEN", "value": hf_token}]
         if claim_name is not None:

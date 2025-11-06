@@ -58,7 +58,7 @@ performance_testing-full:
         interval: 1
     - identifier: 'dataset'
       metadata:
-        description: "(benchmark) The dataset to be used fof the experiment"
+        description: "(benchmark) The dataset to be used for the experiment"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: [ 'random' ]
@@ -128,7 +128,7 @@ performance_testing-full:
         values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
     - identifier: 'skip_tokenizer_init'
       metadata:
-        description: "(deployment) skip tokenizer intialization"
+        description: "(deployment) skip tokenizer initialization"
       propertyDomain:
         variableType: BINARY_VARIABLE_TYPE 
         values: [True, False]
@@ -248,6 +248,7 @@ performance_testing-endpoint:
         description: 'The endpoint(s) to test'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["http://localhost:8000"]
     - identifier: 'request_rate'
       metadata:
         description: "The number of requests to send per second"
@@ -293,7 +294,7 @@ performance_testing-endpoint:
         interval: 1
     - identifier: 'dataset'
       metadata:
-        description: "(benchmark) The dataset to be used fof the experiment"
+        description: "(benchmark) The dataset to be used for the experiment"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: [ 'random' ]

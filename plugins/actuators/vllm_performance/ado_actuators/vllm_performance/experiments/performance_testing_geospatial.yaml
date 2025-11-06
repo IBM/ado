@@ -17,7 +17,8 @@ performance_testing-geospatial-endpoint:
       metadata:
         description: 'The endpoint(s) to test'
       propertyDomain:
-        variableType: "UNKNOWN_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["http://localhost:8000"]
     - identifier: 'request_rate'
       metadata:
         description: "The number of requests to send per second"
@@ -341,6 +342,12 @@ performance_testing-geospatial-full-custom-dataset:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [-1,1000]
         interval: 1  # -1 means send all requests at time 0
+    - identifier: 'dataset'
+      metadata:
+        description: "(benchmark) The dataset to be used for the experiment"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: [" custom_dataset.jsonl "]
   optionalProperties:
     - identifier: 'num_prompts'
       metadata:
@@ -444,12 +451,7 @@ performance_testing-geospatial-full-custom-dataset:
         description: 'IO Pocessor plugin to load for the model'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ None, "terratorch_segmentation" ]
-    - identifier: 'dataset'
-      metadata:
-        description: "(benchmark) The dataset to be used for the experiment"
-      propertyDomain:
-        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: [ "terratorch_segmentation" ]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -500,9 +502,6 @@ performance_testing-geospatial-full-custom-dataset:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
-    - property:
-        identifier: 'dataset'
-      value: None
   # measurements
   targetProperties:
     - identifier: "duration"

@@ -85,3 +85,7 @@ granite-4.0-h-small:
   Vanilla: ibm-granite/granite-4.0-h-small
 granite-4.0-1b:
   Vanilla: ibm-granite/granite-4.0-1b
+granite-4.0-h-micro:
+  Vanilla: ibm-granite/granite-4.0-h-micro
+granite-4.0-h-tiny:
+  Vanilla: ibm-granite/granite-4.0-h-tiny

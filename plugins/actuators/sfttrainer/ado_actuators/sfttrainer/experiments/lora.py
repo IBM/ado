@@ -43,6 +43,8 @@ default_target_modules = {
     "granite-4.0-h-1b": ["q_proj", "v_proj"],
     "granite-4.0-350m": ["q_proj", "v_proj"],
     "granite-4.0-h-small": ["q_proj", "v_proj"],
+    "granite-4.0-h-micro": ["q_proj", "v_proj"],
+    "granite-4.0-h-tiny": ["q_proj", "v_proj"],
     "granite-3.0-1b-a400m-base": ["q_proj", "v_proj"],
     "granite-3.1-3b-a800m-instruct": ["q_proj", "v_proj"],
     "granite-vision-3.2-2b": ["q_proj", "v_proj"],

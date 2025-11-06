@@ -75,3 +75,13 @@ llama3.2-3b:
   Vanilla: meta-llama/Llama-3.2-3B
 granite-3.0-1b-a400m-base:
   Vanilla: ibm-granite/granite-3.0-1b-a400m-base
+granite-4.0-micro:
+  Vanilla: ibm-granite/granite-4.0-micro
+granite-4.0-h-1b:
+  Vanilla: ibm-granite/granite-4.0-h-1b
+granite-4.0-350m:
+  Vanilla: ibm-granite/granite-4.0-350m
+granite-4.0-h-small:
+  Vanilla: ibm-granite/granite-4.0-h-small
+granite-4.0-1b:
+  Vanilla: ibm-granite/granite-4.0-1b

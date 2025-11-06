@@ -3,8 +3,8 @@
 
 import json
 import logging
-import os
 import uuid
+from pathlib import Path
 
 import ray
 import yaml
@@ -57,27 +57,24 @@ class VLLMPerformanceTest(ActuatorBase):
         # Loading experiment definitions for yaml files contained in the `experiments` directory.
         # NOTE: Only files can be placed in the experiments directory,
         #       but each file can contain multiple experiment definitions
-        path = os.path.abspath(__file__)
-        exp_dir = os.path.join(os.path.split(path)[0], "experiments")
+        curr_path = Path(__file__)
+        exp_dir = curr_path.parent / Path("experiments")
+        logger.debug(f"Experiments dir {exp_dir.absolute()}")
         experiments = []
-        for exp_file in os.listdir(exp_dir):
-            logger.debug(f"Loading experiments from {exp_file}")
-            exp_file_path = os.path.join(exp_dir, exp_file)
-            if os.path.isdir(exp_file_path):
-                logger.error(
-                    f"{exp_file_path} is a directory. Only files are supported in the experiments directory"
-                )
-                raise Exception(
-                    f"{exp_file_path} is a directory. Only files are supported in the experiments directory"
-                )
-            with open(exp_file_path) as f:
-                try:
-                    data = yaml.safe_load(f)
-                except yaml.YAMLError as e:
-                    logger.error(f"File {exp_file} is a malformed YAML - {e}")
-                    raise Exception(f"File {exp_file} is a malformed YAML - {e}")
+        for exp_file in exp_dir.iterdir():
+            if exp_file.is_dir():
+                continue
 
-            experiments.extend([Experiment(**data[e]) for e in data])
+            logger.debug(f"Loading experiments from {exp_file.name}")
+            try:
+                file_data = exp_file.read_text()
+                data = yaml.safe_load(file_data)
+            except yaml.YAMLError:
+                error_message = f"File {exp_file.name} is a malformed YAML"
+                logger.error(error_message)
+                raise ValueError(error_message)
+
+            experiments.extend([Experiment.model_validate(data[e]) for e in data])
 
         return ExperimentCatalog(
             catalogIdentifier=cls.identifier,

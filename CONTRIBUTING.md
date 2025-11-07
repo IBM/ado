@@ -101,6 +101,42 @@ tox --colored yes --stderr-color RESET -r -e "$TOX_ENV" -vvv
 Similarly, you can test different Python versions by changing `py310` to `py311`
 or `py312`.
 
+## Commit and PR title guidelines
+
+We require commits and PR titles to conform to the
+[conventional commits standard](https://www.conventionalcommits.org/en/v1.0.0/)
+and follow the
+[Angular convention](https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#-commit-message-guidelines).
+In a nutshell, the commit message should be structured as follows:
+
+> [!TIP]
+>
+> It is highly recommended to include the scope in the PR title and in all the
+> commits
+
+```plaintext
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Where `type` is one of the following:
+
+- **build**: Changes that affect the build system (e.g., pyproject.toml files,
+  Dockerfiles, etc.) or external dependencies.
+- **ci**: Changes to CI-related configuration files and scripts
+- **docs**: Documentation only changes
+- **feat**: A new feature
+- **fix**: A bug fix
+- **perf**: A code change that improves performance
+- **refactor**: A code change that neither fixes a bug nor adds a feature
+- **style**: Changes that do not affect the meaning of the code (white-space,
+  formatting, etc)
+- **test**: Adding missing tests or correcting existing tests
+- **chore** (discouraged): Minor changes that don't fit in other categories
+
 ## Coding style guidelines
 
 We require code and markup to adhere to certain rules. We enforce these rules

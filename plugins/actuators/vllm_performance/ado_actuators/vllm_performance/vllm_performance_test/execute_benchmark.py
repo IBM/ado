@@ -41,16 +41,19 @@ def execute_benchmark(
     :param base_url: url for vllm endpoint
     :param model: model
     :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
-    :param interpreter - name of Python interpreter
+    :param backend: name of the vLLM benchmark backend to be used ["vllm", "openai", "openai-chat", "openai-audio", "openai-embeddings"]
+    :param interpreter: name of Python interpreter
     :param num_prompts: number of prompts
     :param request_rate: request rate
-    :param max_concurrency: max concurrency
+    :param max_concurrency: maximum number of concurrent requests
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
     :param dataset_path: path to the dataset
     :param custom_args: custom arguments to pass to the benchmark.
+    :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     keys are vllm benchmark arguments. values are the values to pass to the arguments
+
     :return: results dictionary
     """
 
@@ -68,7 +71,7 @@ def execute_benchmark(
     f_name = f"{uuid.uuid4().hex}.json"
     request += (
         f"vllm bench serve --backend {backend} --base-url {base_url} --dataset-name {dataset} "
-        f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
+        f"--model {model} --seed 12345 --num-prompts 10 --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
         f"--burstiness {burstiness} "
     )
@@ -122,11 +125,17 @@ def execute_random_benchmark(
     :param base_url: url for vllm endpoint
     :param model: model
     :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param num_prompts: number of prompts
+    :param request_rate: request rate
+    :param max_concurrency: maximum number of concurrent requests
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
-    :param input_token_length: length of input tokens
-    :param output_token_length: length of output tokens
+    :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
+    :param number_input_tokens: maximum number of input tokens for each request,
+    :param max_output_tokens: maximum number of output tokens for each request,
+    :param interpreter: name of Python interpreter
+
     :return: results dictionary
     """
     # Call execute_benchmark with the appropriate arguments
@@ -167,11 +176,15 @@ def execute_geospatial_benchmark(
     :param base_url: url for vllm endpoint
     :param model: model
     :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param num_prompts: number of prompts
+    :param request_rate: request rate
+    :param max_concurrency: maximum number of concurrent requests
     :param hf_token: huggingface token
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     :param interpreter: python interpreter to use
+
     :return: results dictionary
     """
     from pathlib import Path

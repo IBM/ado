@@ -6,6 +6,10 @@ import os
 from typing import Any
 
 
+class VLLMBenchmarkResultReadError(Exception):
+    """Raised if there was an issue reading benchmark results"""
+
+
 def get_results(f_name: str = "random.json") -> dict[str, Any]:
     """
     Get benchmark results
@@ -17,8 +21,9 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
             results = json.load(f)
         os.remove(f_name)
     except Exception as e:
-        print(f"Failed to read benchmark result {e}")
-        raise Exception(f"Failed to read benchmark result {e}")
+        raise VLLMBenchmarkResultReadError(
+            f"Failed to read benchmark result due to {e}"
+        )
     del results["date"]
     del results["endpoint_type"]
     del results["tokenizer_id"]

@@ -13,7 +13,7 @@
 >
 > - We will define a space of vLLM deployment configurations to test with
 > the `vllm_performance` actuator's `performance_testing_full` experiment
->   - This experiment can create and characterize a vLLM deployment on Kubernetes
+>       - This experiment can create and characterize a vLLM deployment on Kubernetes
 > - Use the `random_walk` operator to explore the space
 <!-- markdownlint-disable-next-line MD028 -->
 
@@ -30,19 +30,18 @@
 > [!TIP] TL;DR
 >
 > Get the files `vllm_deployment_space.yaml`, `vllm_actuator_configuration.yaml`
-> and operation_random_walk.yaml` from
+> and `operation_random_walk.yaml` from
 > <!-- markdownlint-disable line-length -->
 > [our repository](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls).
 > <!-- markdownlint-enable line-length -->
 >
 > - `vllm_deployment_space.yaml`: this file defines the deployment configurations
 > to explore
-> - `vllm_actuator_configuration.yaml`: Contains information about a Kubernetes/OpenShift
-> cluster the actuator will deploy vLLM, along with how to manage the deployments.
-> - `operation_randomwalk.yaml`: this file contains the optimization parameters.
->   You do not need to edit it.
+> - `vllm_actuator_configuration.yaml`: Holds information about the Kubernetes/OpenShift
+> cluster the actuator will deploy vLLM to, along with how to manage the deployments.
+> - `random_walk_operation_grouped.yaml`: this file contains the optimization parameters.
 >
-> **You must first edit the configuration file with your details.**
+> **You must first edit `vllm_actuator_configuration.yaml` with your details.**
 > In particular the following three fields:
 > <!-- markdownlint-disable line-length -->
 > ```yaml
@@ -56,14 +55,14 @@
 > ```bash
 > : # Define the configurations to explore
 > ado create space -f vllm_deployment_space.yaml
-> : # Create a configuration for the actuator - it can be reused in multiple operations
+> : # Create a configuration for the actuator - normally just once as it can be reused
 > ado create actuatorconfiguration -f vllm_actuator_configuration.yaml
 > : # Explore!
-> ado create operation -f operation_randomwalk.yaml --use-latest space --use-latest actuatorconfiguration
+> ado create operation -f random_walk_operation_grouped.yaml --use-latest space --use-latest actuatorconfiguration
 > ```
 > <!-- markdownlint-enable line-length -->
 > See [configuring the `vllm_performance` actuator](../actuators/vllm_performance.md#configuring-the-vllm_performance-actuator)
-> for more configuration options
+> for more configuration options.
 
 ## Verify the installation
 
@@ -73,42 +72,42 @@ Verify the installation with:
 ado get actuators --details 
 ```
 
-The actuator `vllm_performance` will appear in the list of available actuators.
+The actuator `vllm_performance` should appear in the list of available actuators
+if installation completed successfully.
 
 ## Create an actuator configuration
 
-The vllm-performance actuator needs some information the target cluster to
+The vllm-performance actuator needs some information about the target cluster to
 deploy on. This is provided via an `actuatorconfiguration`.
 
-First execute,
+First execute:
 
 ```commandline
-# Generate the template file
-ado template actuatorconfiguration --actuator-identifier vllm_performance -o actuatorconfiguration.yaml
+ado template actuatorconfiguration --actuator-identifier vllm_performance -o vllm_actuator_configuration.yaml
 ```
 
-This will create a file called `vllm_performance_actuatorconfiguration.yaml`
+This will create a file called `vllm_actuator_configuration.yaml`
 
 Edit the file and set correct values for (at least) the following fields:
-> <!-- markdownlint-disable line-length -->
-> ```yaml
-> hf_token: <your HuggingFace access token>
-> namespace: vllm-testing # OpenShift namespace you have write access to
-> node_selector: '{"kubernetes.io/hostname":"<host-with-gpu>"}' # JSON string selecting a node that owns GPU
-> ```
+<!-- markdownlint-disable line-length -->
+```yaml
+hf_token: <your HuggingFace access token>
+namespace: vllm-testing # OpenShift namespace you have write access to
+node_selector: '{"kubernetes.io/hostname":"<host-with-gpu>"}' # JSON string selecting a node that owns GPU
+```
 <!-- markdownlint-enable line-length -->
 
 Then save this configuration as an `actuatorconfiguration` resource:
 
 ```bash
-ado create actuatorconfiguration -f vllm_performance_actuatorconfiguration.yaml
+ado create actuatorconfiguration -f vllm_actuator_configuration.yaml
 ```
 
 > [!TIP]
 >
 > You can create multiple actuator configurations corresponding
-> to different clusters/target environments.
-> You choose the one to use when you launch an operation requiring the actuator
+> to different target environments.
+> You choose the one to use when you launch an operation requiring the actuator.
 
 ## Define the configurations to test
 
@@ -181,7 +180,7 @@ efficiency. The `grouped` sampler ensures we explore all the different benchmark
 configurations for a given vLLM deployment before creating a new deployment -
 minimizing the number of deployment creations.
 
-Save the following as `operation_random_walk.yaml`:
+Save the following as `random_walk_operation_grouped.yaml`:
 
 ```yaml
 metadata:
@@ -213,7 +212,7 @@ operation:
 Then, start the operation with:
 
 ```commandline
-ado create operation -f random_walk.yaml \
+ado create operation -f random_walk_operation_grouped.yaml \
            --use-latest space --use-latest actuatorconfiguration
 ```
 
@@ -260,3 +259,6 @@ explore the impact on throughput.
 - Use **RayTune**
 (see the [vLLM endpoint performance](vllm-performance-endpoint.md) example)
 to optimise the hyper‑parameters of the benchmark.
+<!-- markdownlint-disable-next-line MD028 -->
+- Run [the exploration on the OpenShift/Kubernetes cluster](../actuators/vllm_performance.md#the-in_cluster-configuration-option)
+you create the deployments on, so you don't have to keep your laptop open.

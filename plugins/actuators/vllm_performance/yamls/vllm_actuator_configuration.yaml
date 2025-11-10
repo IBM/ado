@@ -1,0 +1,19 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+actuatorIdentifier: vllm_performance
+metadata:
+  name: "Test actuator deployment"
+parameters:
+  benchmark_retries: 3
+  deployment_template: deployment.yaml
+  hf_token: 'test'
+  image_secret: ''
+  in_cluster: false
+  interpreter: python3
+  max_environments: 1
+  namespace: null
+  node_selector: ''
+  pvc_template: pvc.yaml
+  retries_timeout: 5
+  service_template: service.yaml
+  verify_ssl: false

@@ -4,6 +4,7 @@
 import logging
 import math
 import time
+import uuid
 
 from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
     ComponentsYaml,
@@ -25,12 +26,17 @@ class ComponentsManager:
         namespace: str = "discovery-dev",
         in_cluster: bool = True,
         verify_ssl: bool = True,
+        init_pvc: bool = False,
+        pvc_name: None | str = None,
+        pvc_template: None | str = None,
     ):
         """
         set up for configuration usage
         :param namespace: cluster namespace to use
         :param in_cluster: flag defining whether we are running in cluster
         :param verify_ssl: flag to verify SSL (self-signed certificate)
+        :param init_pvc: flag to decide whether to initialize the PVC for the experiment
+        :param pvc_name: the name of the pvc to be created
         """
         try:
             if in_cluster:
@@ -48,6 +54,26 @@ class ComponentsManager:
             logger.error(f"Exception connecting to kubernetes {exception}")
             raise
 
+        # We do this only once when creating a ComponentsManager in the EnvironmentManager because
+        # we want the PVC to be shared by all deployments we are testing with the same operation.
+        if init_pvc:
+            if pvc_name is None:
+                # Make sure the PVC we create has a unique name
+                self.pvc_name = f"vllm-support-{uuid.uuid4().hex!s}"
+                self.create_pvc(pvc_name=self.pvc_name, template=pvc_template)
+                self.pvc_created = True
+                logger.debug(f"Created pvc {pvc_name} in namespace {namespace}")
+            else:
+                if not self.check_pvc_exists(pvc_name=pvc_name):
+                    error_message = (
+                        f"The PVC {pvc_name} does not exist in namespace {namespace}."
+                    )
+                    logger.error(error_message)
+                    raise ValueError(error_message)
+                self.pvc_name = pvc_name
+                self.pvc_created = False
+                logger.debug(f"Reusing pvc {pvc_name} from namespace {namespace}")
+
     def check_pvc_exists(self, pvc_name: str) -> bool:
         """
         Check if PVC exists
@@ -63,7 +89,7 @@ class ComponentsManager:
             return False
         return any(pvc.metadata.name == pvc_name for pvc in pvcs.items)
 
-    def delete_pvc(self, pvc_name: str) -> None:
+    def delete_pvc(self) -> None:
         """
         Delete service for model
         :param pvc_name: pvc name
@@ -71,39 +97,20 @@ class ComponentsManager:
         """
         try:
             self.kube_client_V1.delete_namespaced_persistent_volume_claim(
-                namespace=self.namespace, name=pvc_name
+                namespace=self.namespace, name=self.pvc_name
             )
         except ApiException as e:
             logger.error(f"error deleting pvc {e}")
 
-    def create_pvc(
-        self, pvc_name: str, template: str = "pvc.yaml", reuse: bool = True
-    ) -> None:
+        logger.debug(f"Deleted pvc {self.pvc_name} from namespace {self.namespace}")
+
+    def create_pvc(self, pvc_name: str, template: str = "pvc.yaml") -> None:
         """
         create service for model
         :param pvc_name: pvc name
         :param template: yaml template name
-        :param reuse: reuse if exists
         :return:
         """
-        # try to reuse existing one if exists
-        exists = self.check_pvc_exists(pvc_name=pvc_name)
-        if exists and reuse:
-            return
-        if exists and not reuse:
-            # delete it first
-            self.delete_pvc(pvc_name=pvc_name)
-            # make sure that deletion is completed
-            deleting = True
-            for _ in range(150):
-                deleting = self.check_pvc_exists(pvc_name=pvc_name)
-                if not deleting:
-                    break
-                time.sleep(1)
-            if deleting:
-                logger.error("Did not complete PVC deletion")
-                raise
-        # create pvc
         try:
             self.kube_client_V1.create_namespaced_persistent_volume_claim(
                 namespace=self.namespace,

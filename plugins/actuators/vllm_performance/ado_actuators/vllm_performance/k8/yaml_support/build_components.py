@@ -167,7 +167,11 @@ class ComponentsYaml:
             container["env"].extend(
                 [
                     {
-                        "name": "HF_HUB_CACHE",
+                        "name": "HOME",
+                        "value": "/tmp",
+                    },
+                    {
+                        "name": "HF_HOME",
                         "value": f"{PVC_MOUNT_PATH}/transformers_cache",
                     },
                 ]

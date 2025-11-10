@@ -108,6 +108,10 @@ def _create_environment(
         f"Environment state {env.state}, name {env.k8_name}, definition {definition}"
     )
     start = time.time()
+
+    # We retrieve the PVC name from the actor because it is one to be shared for the whole experiment
+    pvc_name = ray.get(env_manager.get_experiment_pvc_name.remote())
+
     match env.state:
         case EnvironmentState.NONE:
             # Environment does not exist, create it
@@ -124,7 +128,6 @@ def _create_environment(
                         image_secret=actuator.image_secret,
                         deployment_template=actuator.deployment_template,
                         service_template=actuator.service_template,
-                        pvc_template=actuator.pvc_template,
                         n_gpus=int(values.get("n_gpus")),
                         gpu_type=values.get("gpu_type"),
                         node_selector=node_selector,
@@ -140,8 +143,8 @@ def _create_environment(
                         hf_token=actuator.hf_token,
                         reuse_service=False,
                         reuse_deployment=False,
-                        pvc_name=actuator.pvc_template,
                         namespace=actuator.namespace,
+                        pvc_name=pvc_name,
                     )
                     # Update manager
                     env_manager.done_creating.remote(definition=definition)

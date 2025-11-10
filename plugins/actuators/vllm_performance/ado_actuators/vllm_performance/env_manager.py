@@ -60,6 +60,8 @@ class EnvironmentManager:
         max_concurrent: int,
         in_cluster: bool = True,
         verify_ssl: bool = False,
+        pvc_name: str | None = None,
+        pvc_template: str = "pvc.yaml",
     ):
         """
         Initialize
@@ -73,11 +75,15 @@ class EnvironmentManager:
         self.max_concurrent = max_concurrent
         self.in_cluster = in_cluster
         self.verify_ssl = verify_ssl
+
         # component manager for cleanup
         self.manager = ComponentsManager(
             namespace=self.namespace,
             in_cluster=self.in_cluster,
             verify_ssl=self.verify_ssl,
+            init_pvc=True,
+            pvc_name=pvc_name,
+            pvc_template=pvc_template,
         )
 
     def get_environment(
@@ -125,6 +131,9 @@ class EnvironmentManager:
             self.environments[definition] = env
         return env
 
+    def get_experiment_pvc_name(self):
+        return self.manager.pvc_name
+
     def done_creating(self, definition: str) -> None:
         """
         Report creation
@@ -159,3 +168,9 @@ class EnvironmentManager:
             if env.state == EnvironmentState.READY:
                 self.manager.delete_service(k8_name=env.k8_name)
                 self.manager.delete_deployment(k8_name=env.k8_name)
+        # We only delete the PVC if it was created by this actuator
+        if self.manager.pvc_created:
+            logger.debug("Deleting PVC")
+            self.manager.delete_pvc()
+        else:
+            logger.debug("No PVC was created. Nothing to delete!")

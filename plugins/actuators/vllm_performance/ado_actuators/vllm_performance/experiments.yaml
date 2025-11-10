@@ -60,7 +60,7 @@ performance_testing-full:
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ "quay.io/dataprep1/data-prep-kit/vllm_image:0.1" ]
     - identifier: n_cpus
       metadata:

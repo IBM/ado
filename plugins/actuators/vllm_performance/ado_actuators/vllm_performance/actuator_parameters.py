@@ -37,6 +37,9 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     pvc_template: str = pydantic.Field(
         default="pvc.yaml", description="name of pvc template"
     )
+    pvc_name: None | str = pydantic.Field(
+        default=None, description="name of pvc to be created/attached"
+    )
     interpreter: str = pydantic.Field(
         default="python3", description="name of python interpreter"
     )

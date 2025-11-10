@@ -92,6 +92,7 @@ class VLLMPerformanceTest(ActuatorBase):
                     max_concurrent=params.max_environments,
                     in_cluster=params.in_cluster,
                     verify_ssl=params.verify_ssl,
+                    pvc_name=params.pvc_name,
                 )
             except Exception as error:
                 self.log.warning(

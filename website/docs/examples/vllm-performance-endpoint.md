@@ -21,7 +21,7 @@
 
 > [!IMPORTANT] Prerequisites
 >
-> - An endpoint serving an LLM in an OpenAI API-compatible format  
+> - An endpoint serving an LLM via an OpenAI API-compatible API  
 > - Install the following Python packages:
 >
 > ```bash
@@ -37,11 +37,15 @@
 > from [our repository](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls).
 >
 > - `vllm_request_rate_space.yaml`: this file defines the _endpoint_, _model_,
->   and _request_ _range_ to explore.
->   - **You must edit the _model_ and _endpoint_ fields in this file
->     to match your own.**
+> and _request_ _range_ to explore.
+> <!-- markdownlint-disable MD007 -->
+> <!-- markdownlint-disable MD046 -->
+>     - **You must edit the _model_ and _endpoint_ fields in this file
+>        to match your own.**
+> <!-- markdownlint-enable MD046 -->
+> <!-- markdownlint-enable MD007  -->
 > - `operation_hyperopt.yaml`: this file contains the optimization parameters.
->   You do not need to edit it.
+>    You do not need to edit it.
 >
 > Then, in a directory with these files, execute:
 >
@@ -213,12 +217,14 @@ and the best region is unlikely to be visited.
 
 ## Next steps
 
+<!-- markdownlint-disable MD007 -->
 - Use `ado describe experiment vllm_performance_endpoint` to see what
 other parameters can be explored
 - Try varying **`burstiness`** or **`number_input_tokens`**, or adding
 them as dimensions of the `entityspace`, to explore their impact on throughput
 - Try varying `num_samples`, `gamma` and `n_initial_points` parameters of hyperopt
-  - You can keep running the optimization on the same `discoveryspace`.
-    The previous runs will not influence new runs, but their results will
-    be reused, speeding experimentation up
+    - You can keep running the optimization on the same `discoveryspace`.
+       The previous runs will not influence new runs, but their results will
+        be reused, speeding experimentation up
 - Measure the [performance of vLLM deployment configurations](vllm-performance-full.md)
+<!-- markdownlint-enable MD007 -->

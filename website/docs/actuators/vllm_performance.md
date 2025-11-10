@@ -81,12 +81,14 @@ model and configuration.
 To launch and benchmark a temporary vLLM deployment
 (including provisioning on Kubernetes/OpenShift), you must provide both:
 
+<!-- markdownlint-disable MD007 -->
 - An entity definition (as before)
 - The identifier of a valid `actuatorconfiguration` resource
-  - This contains information necessary for accessing and creating
+    - This contains information necessary for accessing and creating
      deployments on the Kubernetes/OpenShift cluster
-  - See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
-    for details.
+    - See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
+      for details.
+<!-- markdownlint-enable MD007 -->
 
 Example `point.yaml`:
 
@@ -184,26 +186,26 @@ ado create actuatorconfiguration -f vllm_config.yaml
 > ```
 
 ### Configuration option details
-
+<!-- markdownlint-disable MD007 -->
 - `actuatorIdentifier`: Always set to `vllm_performance` for this actuator.
 - `metadata`: Descriptive metadata for organization or tracking.
 - **parameters:**
-  - `benchmark_retries`: Number of times a benchmark can be retried if it fails
+    - `benchmark_retries`: Number of times a benchmark can be retried if it fails
     (see Handling benchmark failures)
-  - `deployment_template`, `service_template`, `pvc_template`: YAML templates for
-      k8s resources created by the actuator
-  - `hf_token`: [HuggingFace token](https://huggingface.co/settings/tokens)
-      for protected model downloads
-  - `image_secret`: Kubernetes secret name for private registry images
-  - `in_cluster`: Whether to execute inside the cluster for better network access
-  - `interpreter`: Python interpreter or path
-  - `max_environments`: Maximum number of deployments to create concurrently
-      (see Maximum number of deployments)
-  - `namespace`: Namespace to use for deployments
-  - `node_selector`: Kubernetes node label for targeting e.g. GPU nodes
-  - `retries_timeout`: Timeout in seconds for exponential backoff between retries
-  - `verify_ssl`: Toggle SSL certificate verification for endpoints
-
+    - `deployment_template`, `service_template`, `pvc_template`: YAML templates for
+        k8s resources created by the actuator
+    - `hf_token`: [HuggingFace token](https://huggingface.co/settings/tokens)
+        for protected model downloads
+    - `image_secret`: Kubernetes secret name for private registry images
+    - `in_cluster`: Whether to execute inside the cluster for better network access
+    - `interpreter`: Python interpreter or path
+    - `max_environments`: Maximum number of deployments to create concurrently
+        (see Maximum number of deployments)
+    - `namespace`: Namespace to use for deployments
+    - `node_selector`: Kubernetes node label for targeting e.g. GPU nodes
+    - `retries_timeout`: Timeout in seconds for exponential backoff between retries
+    - `verify_ssl`: Toggle SSL certificate verification for endpoints
+<!-- markdownlint-enable MD007 -->
 > [!IMPORTANT] Further details
 >
 > For further details on specific options and advanced behavior see:

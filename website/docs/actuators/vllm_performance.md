@@ -1,131 +1,51 @@
-# vLLM Performance Actuator: Capabilities Overview
+# The `vllm_performance` actuator
 
-The `vllm_performance` actuator enables automated benchmarking of
-large language model (LLM)inference performance using
-[vLLM](https://github.com/vllm-project/vllm) on
-Kubernetes and OpenShift clusters with GPU support.
-It is designed for robust, repeatable, and configurable experiment execution
-in enterprise and research environments.
+<!-- markdownlint-disable line-length -->
 
-**Key Capabilities:**
+> [!TIP] Overview
+> The `vllm_performance` actuator **can
+> automatically create and benchmark [vLLM](https://github.com/vllm-project/vllm) inference deployments on Kubernetes and OpenShift clusters**.
+>
+> It is designed for robust, repeatable, and configurable experiment execution.
+> It is suitable for both simple one-off benchmarks and large parameter sweeps.
+<!-- markdownlint-enable line-length -->
+
+## Key Capabilities
 
 - **Automated LLM benchmarking:** Deploys vLLM serving endpoints
-(such as IBM Granite-3.3-8b) on GPU-enabled clusters and runs
+on GPU-enabled Open/Shift Kubernetes clusters and runs
 standardized serving benchmarks.
 - **Cluster integration:** Handles deployments and clean-up of vLLM inference
 pods on  OpenShift/Kubernetes, with configurable resource selection via namespace,
 node selector,  and PVC/service templates.
-- **Comprehensive experiment support:** Implements two main
-experiments—`performance-testing-full` and `performance-testing-endpoint`—for fine-grained
-measurement of throughput, latency, and other performance metrics.
 - **Scenario configurability:** Supports customizing models, GPU types, node selection,
-retry behavior, concurrent deployments, and more, through its actuator configuration
-YAML.
-- **Validation & grouping:** Ensures entity-space (configuration) and
-experiment space validation and supports grouped sampling for efficient
-cluster/resource usage.
-- **Integration with ADO:** Used within the [ADO](https://ibm.github.io/ado/) experimentation
-platform, supporting reproducible research and optimization workflows.
+retry behavior, concurrent deployments, and more
+- **Efficient sampling:** Supports grouped sampling which maximises reuse
+of vLLM deployments, hence minimising time spent creating such deployments
+- **Endpoint benchmarking:** Can also be used to benchmark existing OpenAI
+compatible endpoints
 
-The actuator is extensible—users can adjust experiment definitions, add models or
-hardware types, and change cluster templates.
-It is suitable for both simple one-off benchmarks and large parameter sweeps.
+### Available experiments
 
----
+The `vllm_performance` actuator implements two experiments
 
-## Configuring the vllm_performance actuator
-
-An actuator configuration specifies how the vllm_performance actuator should create,
-manage, and monitor vLLM deployments for benchmarking. Each configuration captures
-the cluster-specific, security-sensitive, and experiment-relevant settings necessary
-for the actuator to operate in your environment.
-
-An actuator configuration covers several needs:
-
-- **Cluster targeting and permissions**: Specify the OpenShift/Kubernetes namespace
-and optionally node selectors, secrets, and templates to match your cluster resources.
-- **Secure access**: Pass required HuggingFace tokens, set up image pull secrets,
-control in-cluster or remote execution, and toggle SSL verification.
-- **Experiment protocol and retries**: Choose how benchmarks are run, including interpreter,
-retry logic, and YAML templates for deployments/services used.
-- **Deployment resource management**: Limit the number of concurrent deployments
-with `max_environments`(see details below), and control automated clean-up
-(see "Deployment Clean-Up").
-
-For further details on specific options and advanced behavior, see:
-
-- [Maximum number of deployments](#maximum-number-of-deployments) (details on `max_environments`)
-- [Handling benchmark failures](#handling-benchmark-failures) and [Deployment Clean-Up](#deployment-clean-up)
-- [Grouped sampling for efficient deployment usage](#grouped-sampling-for-efficient-deployment-usage)
-
-A configuration is represented as a YAML file, for example:
-
-```yaml
-actuatorIdentifier: vllm_performance
-metadata:
-  description: "Actuator config for vLLM LLM benchmarking"
-  labels: {}
-  name: demo-vllm-perf
-parameters:
-  benchmark_retries: 3              # Number of benchmark attempts (see Failure Handling)
-  deployment_template: deployment.yaml  # k8s deployment spec template
-  hf_token: "<YOUR_HUGGINGFACE_TOKEN>" # Required for pulling some models
-  image_secret: ""                 # Optional image pull secret
-  in_cluster: true                  # Run from within the cluster
-  interpreter: python3              # Language for test drivers/benchmarks
-  max_environments: 1               # Max concurrent vLLM deployments
-  namespace: "mynamespace"          # OpenShift/K8s namespace to deploy into
-  node_selector: '{"kubernetes.io/hostname":"gpunode01"}' # Restricts GPU node
-  pvc_template: pvc.yaml            # Persistent volume claim template
-  retries_timeout: 5                # Seconds between retries (exponential backoff)
-  service_template: service.yaml    # k8s service spec template
-  verify_ssl: false                 # Whether to verify HTTPS endpoints
-```
-
-**Key fields:**
-
-- `actuatorIdentifier`: Always set to `vllm_performance` for this actuator.
-- `metadata`: Descriptive metadata for organization or tracking.
-- **parameters:**
-  - `benchmark_retries`: Number of times a benchmark can be retried if it fails
-  (see Handling benchmark failures)
-  - `deployment_template`, `service_template`, `pvc_template`: YAML templates for
-  k8s resources created by the actuator
-  - `hf_token`: [HuggingFace token](https://huggingface.co/settings/tokens)
-  for protected model downloads
-  - `image_secret`: Kubernetes secret name for private registry images
-  - `in_cluster`: Whether to execute inside the cluster for better network access
-  - `interpreter`: Python interpreter or path
-  - `max_environments`: Maximum number of deployments to create concurrently
-  (see Maximum number of deployments)
-  - `namespace`: Namespace to use for deployments
-  - `node_selector`: Kubernetes node label for targeting e.g. GPU nodes
-  - `retries_timeout`: Timeout in seconds for exponential backoff between retries
-  - `verify_ssl`: Toggle SSL certificate verification for endpoints
-
-You can generate a template via the CLI:
-
-```shell
-ado template actuatorconfiguration --actuator-identifier vllm_performance -o actuatorconfiguration.yaml
-```
-
-See the
-[Actuator Configuration CLI documentation](../../orchestrator/cli/resources/actuator_configuration/)
-for more.
+- `performance-testing-full`: This experiment can test the full vLLM workload configuration,
+including resource requests and server deployment configuration. It deploys
+servers with given configuration on kubernetes and runs `vllm bench serve` on them
+with the given parameters
+- `performance-testing-endpoint`: This experiment is equivalent to running
+`vllm bench serve` against an endpoint.
 
 ---
 
 ## Running single experiments: Quick endpoint and deployment tests
 
-For rapid testing and debugging, you can use the `run_experiment` tool to execute
-individual actuator experiments on a single point (entity), without creating a
-full discovery space.
+For rapid testing and debugging, you can use the [`run_experiment`](run_experiment.md)
+tool to execute individual  experiments on a single point (entity).
 This is ideal when you want to:
 
 - Quickly check if your actuator installation and configuration works
 - Debug a deployment scenario or endpoint using the vllm_performance actuator
-
-See the complete overview in [Running experiments on single entities](run_experiment.md).
 
 ### Running an endpoint test
 
@@ -151,17 +71,22 @@ run_experiment point.yaml
 This will assess how many requests per second the endpoint can handle for the given
 model and configuration.
 
-See [the detailed endpoint scenario](../examples/vllm-performance-endpoint.md) for
-a production-style workflow exploring endpoint throughput.
+> [!TIP] Inference endpoint testing example
+>
+> See [the detailed endpoint scenario](../examples/vllm-performance-endpoint.md)
+> for a production-style workflow exploring inference endpoint throughput.
 
-### Running a deployment test (with actuator configuration)
+### Running a deployment test
 
 To launch and benchmark a temporary vLLM deployment
 (including provisioning on Kubernetes/OpenShift), you must provide both:
 
 - An entity definition (as before)
-- The identifier of a valid actuator configuration resource (so the test can access
-- and deploy to your target cluster)
+- The identifier of a valid `actuatorconfiguration` resource
+  - See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
+for details.
+  - This contains information necessary for accessing and creating
+     deployments on the Kubernetes/OpenShift cluster
 
 Example `point.yaml`:
 
@@ -177,30 +102,124 @@ entity:
 experiments:
 - actuatorIdentifier: vllm_performance
   experimentIdentifier: performance-testing-full
-  actuatorConfigurationIdentifier: my-vllm-k8s-config   # <--- REQUIRED
 ```
-
-Where `my-vllm-k8s-config` matches the name or ID of an existing actuator
-configuration resource that is able to deploy to your cluster
-(see above for how to create one).
 
 Then run:
 
 ```shell
-run_experiment point.yaml
+run_experiment point.yaml  --actuator-config-id my-vllm-performance-config
 ```
 
-This will provision the deployment for the specified entity, using your indicated
+Here `my-vllm-performance-config` is the ID of an `actuatorconfiguration` resource
+containing the details for accessing and running on your target cluster.
+See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
+for more.
+
+This command will provision the deployment for the specified entity, using your indicated
 actuator configuration, run the benchmark, and print results.
 
-See [the vLLM deployment exploration example](../examples/vllm-performance-full.md)
-for full details on exploring many deployment configurations.
+> [!TIP] vLLM deployment example
+>
+> See [the vLLM deployment exploration example](../examples/vllm-performance-full.md)
+> for details on how to explore many deployment configurations.
 
-> For quick iteration, `run_experiment` is best for simple, local or immediate
-> endpoint/deployment evaluation.
-> For experiments involving many variations and large-scale tracking, use full discovery
-> spaces and operations
-> as documented in the examples above.
+---
+
+## Configuring the vllm_performance actuator
+
+In order for the `vllm_performance` actuator to create,
+manage, and monitor vLLM deployments on a Kubernetes/OpenShift
+cluster, you must provide some configuration information
+This configuration covers several needs:
+
+- **Cluster targeting and permissions**: Specify the OpenShift/Kubernetes namespace
+and optionally node selectors, secrets, and templates to match your cluster resources.
+- **Secure access**: Pass required HuggingFace tokens, set up image pull secrets,
+control in-cluster or remote execution, and toggle SSL verification.
+- **Experiment protocol and retries**: Choose how benchmarks are run, including interpreter,
+retry logic, and YAML templates for deployments/services used.
+- **Deployment resource management**: Limit the number of concurrent deployments
+and control automated clean-up.
+
+You supply this configuration information as an `ado`
+[`actuatorconfiguration` resource](../resources/actuatorconfig.md),
+which is a YAML file with the configuration options.
+An example is:
+
+```yaml
+actuatorIdentifier: vllm_performance #The actuator the configuration is for
+metadata:
+  description: "Actuator config for vLLM LLM benchmarking"
+  name: demo-vllm-perf
+parameters:
+  benchmark_retries: 3              # Number of benchmark attempts (see Failure Handling)
+  deployment_template: deployment.yaml  # k8s deployment spec template
+  hf_token: "<YOUR_HUGGINGFACE_TOKEN>" # Required for pulling some models
+  image_secret: ""                 # Optional image pull secret
+  in_cluster: true                  # Run from within the cluster
+  interpreter: python3              # Language for test drivers/benchmarks
+  max_environments: 1               # Max concurrent vLLM deployments
+  namespace: "mynamespace"          # OpenShift/K8s namespace to deploy into
+  node_selector: '{"kubernetes.io/hostname":"gpunode01"}' # Restricts GPU node
+  pvc_template: pvc.yaml            # Persistent volume claim template
+  retries_timeout: 5                # Seconds between retries (exponential backoff)
+  service_template: service.yaml    # k8s service spec template
+  verify_ssl: false                 # Whether to verify HTTPS endpoints
+```
+
+If the above YAML was saved to a file called `vllm_config.yaml` you would create
+the configuration using
+
+```commandline
+ado create actuatorconfiguration -f vllm_config.yaml
+```
+
+> [!TIP] Getting a default configuration
+>
+> You can generate a default configuration via the ado CLI:
+>
+> ```shell
+> ado template actuatorconfiguration --actuator-identifier vllm_performance -o actuatorconfiguration.yaml
+> ```
+
+### Configuration option details
+
+- `actuatorIdentifier`: Always set to `vllm_performance` for this actuator.
+- `metadata`: Descriptive metadata for organization or tracking.
+- **parameters:**
+  - `benchmark_retries`: Number of times a benchmark can be retried if it fails
+  (see Handling benchmark failures)
+  - `deployment_template`, `service_template`, `pvc_template`: YAML templates for
+    k8s resources created by the actuator
+  - `hf_token`: [HuggingFace token](https://huggingface.co/settings/tokens)
+    for protected model downloads
+  - `image_secret`: Kubernetes secret name for private registry images
+  - `in_cluster`: Whether to execute inside the cluster for better network access
+  - `interpreter`: Python interpreter or path
+  - `max_environments`: Maximum number of deployments to create concurrently
+    (see Maximum number of deployments)
+  - `namespace`: Namespace to use for deployments
+  - `node_selector`: Kubernetes node label for targeting e.g. GPU nodes
+  - `retries_timeout`: Timeout in seconds for exponential backoff between retries
+  - `verify_ssl`: Toggle SSL certificate verification for endpoints
+
+> [!IMPORTANT] Further details
+>
+> For further details on specific options and advanced behavior see:
+>
+> - [Maximum number of deployments](#maximum-number-of-deployments) (details on `max_environments`)
+> - [Handling benchmark failures](#handling-benchmark-failures) and [Deployment Clean-Up](#deployment-clean-up)
+> - [Grouped sampling for efficient deployment usage](#grouped-sampling-for-efficient-deployment-usage)
+
+### Multiple configurations
+
+You can create multiple `actuatorconfiguration`s for the `vllm_performance` actuator.
+Each configuration captures
+the cluster-specific, security-sensitive, and experiment-relevant settings necessary
+for the actuator to operate in a given environment.
+Each configuration will have a different id and you can choose the one to use
+when submitting an operation or single experiment that uses the `vllm_performance`
+actuator.
 
 ---
 
@@ -210,25 +229,25 @@ for full details on exploring many deployment configurations.
 
 The `in_cluster` option in your `actuatorconfiguration` tells the `vllm_performance`
 actuator how to communicate with the target Kubernetes or OpenShift cluster when
-running `performance-testing-full` or any deployment-based experiment.
+running `performance-testing-full`.
+
+If running `ado` from outside the Kubernetes/OpenShift cluster where
+the deployments will be created, leave `in_cluster: false` (the default).
 
 Set `in_cluster: true` if your `ado` operation will be run on a
 **remote Ray cluster that is in the same Kubernetes/OpenShift cluster** as your
 vLLM deployments.
 This configuration maximizes efficiency for large-scale, distributed benchmarking.
-
-**Important notes:**
-
-- If running in this mode, your RayCluster **must** be configured so that jobs launched
-by `ado` have permissions to create and manage Kubernetes deployments, pods, and
-services.
-For configuring the necessary ServiceAccount, roles, and permissions,
-see the [KubeRay README](../../backend/kuberay/README.md).
-- For a detailed guide on running `ado` remotely on a Ray cluster, including environment
+For a detailed guide on running `ado` remotely on a Ray cluster, including environment
 and package setup, see [Running ado remotely](../getting-started/remote_run.md).
 
-If running `ado` from outside the Kubernetes/OpenShift cluster, leave
-`in_cluster: false` (the default).
+> [!IMPORTANT] RayCluster permissions
+>
+> If running with `in_cluset=True`, your RayCluster **must** be configured so that
+> jobs launched  by `ado` have permissions to create and manage Kubernetes deployments,
+> pods, and services.
+> For configuring the necessary ServiceAccount, roles, and permissions,
+> see our [documentation on deploying RayClusters for `ado`](../getting-started/installing-backend-services.md).
 
 ### Maximum number of deployments
 
@@ -249,9 +268,9 @@ Some notes:
   - This is to increases chances they can be reused/minimise cost of redeploying
 - Environment creation is serialized
   - If `max_environments` is reached and all are active, the first experiment
-    that requires a new environment will block. Subsequent experiment
-    requests will queue behind it in FIFO order until it can proceed (i.e. delete
-    an existing environment and create the one it needs)
+      that requires a new environment will block. Subsequent experiment
+      requests will queue behind it in FIFO order until it can proceed (i.e. delete
+      an existing environment and create the one it needs)
 
 ### Handling benchmark failures
 

@@ -441,10 +441,10 @@ def _run_operation_harness(
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,
-            message=f"Operation exited due to the following error: {e}.",
+            message=f"Operation exited due to the following error from a Ray task: {e}.",
         )
         raise OperationException(
-            message=f"Error raised while executing operation {operation_resource.identifier}",
+            message=f"Error raised from Ray task while executing operation {operation_resource.identifier}",
             operation=operation_resource,
         ) from error
     except BaseException as error:

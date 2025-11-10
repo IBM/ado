@@ -3,7 +3,7 @@
 > [!NOTE] The scenario
 >
 > **In this example, the _vllm_performance_ actuator is used to evaluate
-> different vLLM server deployment configuration on Kubernetes/OpenShift.**
+> different vLLM server deployment configurations on Kubernetes/OpenShift.**
 >
 > When deploying vLLM, you must choose values for parameters like GPU type, batch
 > size, and memory limits. These choices directly affect performance, cost, and

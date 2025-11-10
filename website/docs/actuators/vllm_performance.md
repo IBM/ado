@@ -83,10 +83,10 @@ To launch and benchmark a temporary vLLM deployment
 
 - An entity definition (as before)
 - The identifier of a valid `actuatorconfiguration` resource
-  - See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
-for details.
   - This contains information necessary for accessing and creating
      deployments on the Kubernetes/OpenShift cluster
+  - See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
+    for details.
 
 Example `point.yaml`:
 
@@ -148,6 +148,7 @@ An example is:
 
 ```yaml
 actuatorIdentifier: vllm_performance #The actuator the configuration is for
+actuatorIdentifier: vllm_performance #The actuator the configuration is for
 metadata:
   description: "Actuator config for vLLM LLM benchmarking"
   name: demo-vllm-perf
@@ -188,16 +189,16 @@ ado create actuatorconfiguration -f vllm_config.yaml
 - `metadata`: Descriptive metadata for organization or tracking.
 - **parameters:**
   - `benchmark_retries`: Number of times a benchmark can be retried if it fails
-  (see Handling benchmark failures)
+    (see Handling benchmark failures)
   - `deployment_template`, `service_template`, `pvc_template`: YAML templates for
-    k8s resources created by the actuator
+      k8s resources created by the actuator
   - `hf_token`: [HuggingFace token](https://huggingface.co/settings/tokens)
-    for protected model downloads
+      for protected model downloads
   - `image_secret`: Kubernetes secret name for private registry images
   - `in_cluster`: Whether to execute inside the cluster for better network access
   - `interpreter`: Python interpreter or path
   - `max_environments`: Maximum number of deployments to create concurrently
-    (see Maximum number of deployments)
+      (see Maximum number of deployments)
   - `namespace`: Namespace to use for deployments
   - `node_selector`: Kubernetes node label for targeting e.g. GPU nodes
   - `retries_timeout`: Timeout in seconds for exponential backoff between retries

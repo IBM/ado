@@ -9,8 +9,8 @@ import uuid
 from typing import Any
 
 from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results import (
-    get_results,
     VLLMBenchmarkResultReadError,
+    get_results,
 )
 
 

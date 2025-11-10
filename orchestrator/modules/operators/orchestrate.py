@@ -446,7 +446,7 @@ def _run_operation_harness(
         raise OperationException(
             message=f"Error raised from Ray task while executing operation {operation_resource.identifier}",
             operation=operation_resource,
-        ) from error
+        ) from e
     except BaseException as error:
         import traceback
 

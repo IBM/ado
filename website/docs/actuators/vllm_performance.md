@@ -147,28 +147,30 @@ You supply this configuration information as an `ado`
 [`actuatorconfiguration` resource](../resources/actuatorconfig.md),
 which is a YAML file with the configuration options.
 An example is:
+<!-- markdownlint-disable line-length -->
 
 ```yaml
-actuatorIdentifier: vllm_performance #The actuator the configuration is for
 actuatorIdentifier: vllm_performance #The actuator the configuration is for
 metadata:
   description: "Actuator config for vLLM LLM benchmarking"
   name: demo-vllm-perf
 parameters:
-  benchmark_retries: 3              # Number of benchmark attempts (see Failure Handling)
+  benchmark_retries: 3                  # Number of benchmark attempts (see Failure Handling)
   deployment_template: deployment.yaml  # k8s deployment spec template
-  hf_token: "<YOUR_HUGGINGFACE_TOKEN>" # Required for pulling some models
-  image_secret: ""                 # Optional image pull secret
-  in_cluster: true                  # Run from within the cluster
-  interpreter: python3              # Language for test drivers/benchmarks
-  max_environments: 1               # Max concurrent vLLM deployments
-  namespace: "mynamespace"          # OpenShift/K8s namespace to deploy into
+  hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
+  image_secret: ""                      # Optional image pull secret
+  in_cluster: true                      # Run from within the cluster
+  interpreter: python3                  # Language for test drivers/benchmarks
+  max_environments: 1                   # Max concurrent vLLM deployments
+  namespace: "mynamespace"              # OpenShift/K8s namespace to deploy into
   node_selector: '{"kubernetes.io/hostname":"gpunode01"}' # Restricts GPU node
-  pvc_template: pvc.yaml            # Persistent volume claim template
-  retries_timeout: 5                # Seconds between retries (exponential backoff)
-  service_template: service.yaml    # k8s service spec template
-  verify_ssl: false                 # Whether to verify HTTPS endpoints
+  pvc_template: pvc.yaml                # Persistent volume claim template
+  pvc_name: `vllm_support`              # Name of pvc to use - if it doesn't exist it is created
+  retries_timeout: 5                    # Seconds between retries (exponential backoff)
+  service_template: service.yaml        # k8s service spec template
+  verify_ssl: false                     # Whether to verify HTTPS endpoints
 ```
+<!-- markdownlint-enable line-length -->
 
 If the above YAML was saved to a file called `vllm_config.yaml` you would create
 the configuration using
@@ -265,15 +267,17 @@ environment to become idle, at which point it is deleted and
 the new environment is created.
 
 Some notes:
+<!-- markdownlint-disable MD007 -->
 
 - `max_environments` deployments are always created before any are deleted
-  - This means idle environments will remain until there is a need to delete them
-  - This is to increases chances they can be reused/minimise cost of redeploying
+    - This means idle environments will remain until there is a need to delete them
+    - This is to increases chances they can be reused/minimise cost of redeploying
 - Environment creation is serialized
-  - If `max_environments` is reached and all are active, the first experiment
+    - If `max_environments` is reached and all are active, the first experiment
       that requires a new environment will block. Subsequent experiment
       requests will queue behind it in FIFO order until it can proceed (i.e. delete
       an existing environment and create the one it needs)
+<!-- markdownlint-enable MD007 -->
 
 ### Handling benchmark failures
 
@@ -301,7 +305,40 @@ On a graceful shutdown of the `ado` process running the operation
 (CTRL-C, SIGTERM, SIGINT) active deployments will be deleted
 before exit.
 On an uncontrolled shutdown (SIGKILL) you will need to manually
-clean up any k8s deployments that were running  at the time
+clean up any k8s deployments that were running  at the time.
+
+> [!IMPORTANT] PVC Deletion
+>
+> If a PVC was created for testing, clean-up does not delete it.
+> On next running the actuator in same namespace this PVC
+> can be reused.
+
+### Kubernetes resource templates
+
+The `vllm_performance` actuator creates Kubernetes resources
+based on a set of template YAML files by default
+that are distributed with the actuator and referenced
+by name in the `actuatorconfiguration`,
+
+If you want to use a different template, provide the
+**absolute** **path** to it in an `actuatorconfiguration`
+resource and use that when running operations with this
+actuator
+>[!IMPORTANT]
+>
+> The template path must be accessible where the actuator is running.
+> This is particularly important to consider when running in a
+> remote RayCluster
+
+#### PVC
+
+By default, the actuator first time the actuator runs it
+will create a PVC called `vllm_support` that is shared
+between all deployments (if `pvc_name` was not changed).
+This PVC will be reused by all deployments and persist
+after the tests end.
+If you want to use a different PVC or use one of your
+own you can change `pvc_name` appropriately.
 
 ### Grouped sampling for efficient deployment usage
 

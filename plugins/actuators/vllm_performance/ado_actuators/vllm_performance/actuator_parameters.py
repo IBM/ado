@@ -30,14 +30,14 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     node_selector: dict[str, str] = pydantic.Field(
         default={}, description="dictionary containing node selector key:value pairs"
     )
-    deployment_template: str = pydantic.Field(
-        default="deployment.yaml", description="name of deployment template"
+    deployment_template: str | None = pydantic.Field(
+        default=None, description="name of deployment template"
     )
-    service_template: str = pydantic.Field(
-        default="service.yaml", description="name of service template"
+    service_template: str | None = pydantic.Field(
+        default=None, description="name of service template"
     )
-    pvc_template: str = pydantic.Field(
-        default="pvc.yaml", description="name of pvc template"
+    pvc_template: str | None = pydantic.Field(
+        default=None, description="name of pvc template"
     )
     pvc_name: None | str = pydantic.Field(
         default=None, description="name of pvc to be created/attached"
@@ -66,10 +66,6 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         import json
         from json import JSONDecodeError
 
-        from orchestrator.core.actuatorconfiguration.config import (
-            warn_deprecated_actuator_parameters_model_in_use,
-        )
-
         if isinstance(values, dict):
             node_selector = values.get("node_selector", None)
             if node_selector is not None is isinstance(node_selector, str):
@@ -86,13 +82,6 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         elif isinstance(values, GenericActuatorParameters):
             try:
                 node_selector = values.node_selector
-                warn_deprecated_actuator_parameters_model_in_use(
-                    affected_actuator="my_actuator",
-                    deprecated_from_actuator_version="v1.2.2",
-                    removed_from_actuator_version="v1.3",
-                    deprecated_fields="node_selector",
-                    latest_format_documentation_url="https://example.com",
-                )
                 values.node_selector = (
                     {} if len(node_selector) == 0 else json.loads(values.node_selector)
                 )

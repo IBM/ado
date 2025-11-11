@@ -126,7 +126,6 @@ metadata:
   name: null
 parameters:
   benchmark_retries: 3
-  deployment_template: deployment.yaml
   hf_token: ""
   image_secret: ""
   in_cluster: true
@@ -134,9 +133,7 @@ parameters:
   max_environments: 1
   namespace: null
   node_selector: ""
-  pvc_template: pvc.yaml
   retries_timeout: 5
-  service_template: service.yaml
   verify_ssl: false
 ```
 

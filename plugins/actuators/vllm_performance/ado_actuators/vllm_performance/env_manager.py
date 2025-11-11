@@ -61,7 +61,7 @@ class EnvironmentManager:
         in_cluster: bool = True,
         verify_ssl: bool = False,
         pvc_name: str | None = None,
-        pvc_template: str = "pvc.yaml",
+        pvc_template: str | None = None,
     ):
         """
         Initialize
@@ -69,6 +69,8 @@ class EnvironmentManager:
         :param max_concurrent: maximum amount of concurrent environment
         :param in_cluster: flag in cluster
         :param verify_ssl: flag verify SSL
+        :param pvc_name: name of the PVC to be created / used
+        :param pvc_template: template of the PVC to be created
         """
         self.environments = {}
         self.namespace = namespace

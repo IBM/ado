@@ -105,7 +105,7 @@ class ComponentsManager:
 
         logger.debug(f"Deleted pvc {self.pvc_name} from namespace {self.namespace}")
 
-    def create_pvc(self, pvc_name: str, template: str = "pvc.yaml") -> None:
+    def create_pvc(self, pvc_name: str, template: None | str = None) -> None:
         """
         create service for model
         :param pvc_name: pvc name
@@ -149,7 +149,7 @@ class ComponentsManager:
             logger.error(f"error deleting service {e}")
 
     def create_service(
-        self, k8_name: str, template: str = "service.yaml", reuse: bool = False
+        self, k8_name: str, template: str | None = None, reuse: bool = False
     ) -> None:
         """
         create service for model
@@ -235,7 +235,7 @@ class ComponentsManager:
         dtype: VLLMDtype = VLLMDtype.AUTO,
         cpu_offload: int = 0,
         max_num_seq: int = 256,
-        template: str = "deployment.yaml",
+        template: str | None = None,
         claim_name: str | None = None,
         hf_token: str | None = None,
         reuse: bool = False,

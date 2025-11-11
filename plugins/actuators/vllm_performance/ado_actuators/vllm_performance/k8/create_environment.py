@@ -22,8 +22,8 @@ def create_test_environment(
     verify_ssl: bool = False,
     image: str = "vllm/vllm-openai:v0.6.3",
     image_secret: str = "",
-    deployment_template: str = "deployment.yaml",
-    service_template: str = "service.yaml",
+    deployment_template: None | str = None,
+    service_template: None | str = None,
     n_gpus: int = 1,
     gpu_type: str = "NVIDIA-A100-80GB-PCIe",
     node_selector: dict[str, str] = {},
@@ -44,6 +44,7 @@ def create_test_environment(
     :param k8_name: unique k8 name
     :param model: LLM model name
     :param namespace: namespace to use for deployment
+    :param pvc_name: name of the pvc to be used
     :param in_cluster: flag - running in cluster
     :param verify_ssl:  flag - verify ssl
     :param image: image to use in deployment
@@ -71,7 +72,7 @@ def create_test_environment(
     )
     logger.info(
         f"image_secret {image_secret}, deployment_template {deployment_template}, "
-        f"service_template {service_template}"
+        f"service_template {service_template}, pvc_name {pvc_name}"
     )
     logger.info(f"n_gpus {n_gpus}, gpu_type {gpu_type}, n_cpus {n_cpus}")
     logger.info(f"node selector {node_selector}")

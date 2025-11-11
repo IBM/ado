@@ -92,6 +92,7 @@ class VLLMPerformanceTest(ActuatorBase):
                     in_cluster=params.in_cluster,
                     verify_ssl=params.verify_ssl,
                     pvc_name=params.pvc_name,
+                    pvc_template=params.pvc_template,
                 )
             except Exception as error:
                 self.log.warning(

@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import os
-import sys
 import uuid
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -13,6 +12,10 @@ import yaml
 PVC_MOUNT_PATH = "/dev/cache"
 PVC_NAME = "vllm-support"
 logger = logging.getLogger(__name__)
+
+DEFAULT_PVC_TEMPLATE = "pvc.yaml"
+DEFAULT_DEPLOYMENT_TEMPLATE = "deployment.yaml"
+DEFAULT_SERVICE_TEMPLATE = "service.yaml"
 
 
 class VLLMDtype(Enum):
@@ -48,15 +51,22 @@ class ComponentsYaml:
         return f"vllm-{name_prefix.lower()}-{uuid.uuid4().hex}".replace(".", "-")
 
     @staticmethod
-    def _adjust_file_name(f: str) -> str:
+    def _adjust_file_name(f: str) -> Path:
         """
-        Adjust file name to local directory, if required
+        Adjust file name to local directory
         :param f: file name
-        :return: adjusted file name
+        :return: adjusted file name (Path)
         """
-        if os.path.isfile(f):
-            return f
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), f))
+        parent_path = Path(__file__).parents[0]
+        return parent_path / f
+
+    def _get_full_path_from_cwd(f: str) -> Path:
+        """
+        Adjust file name to cwd
+        :param f: file name
+        :return: adjusted file name (Path)
+        """
+        return Path.cwd() / f
 
     @staticmethod
     def deployment_yaml(
@@ -74,7 +84,7 @@ class ComponentsYaml:
         dtype: VLLMDtype = VLLMDtype.AUTO,
         cpu_offload: int = 0,
         max_num_seq: int = 256,
-        template: str = "deployment.yaml",
+        template: str | None = None,
         claim_name: str | None = None,
         hf_token: str | None = None,
     ) -> dict[str, Any]:
@@ -100,13 +110,24 @@ class ComponentsYaml:
         :return:
         """
         # read template
-        ComponentsYaml._adjust_file_name(template)
+        if template is None:
+            logger.debug("Using default Deployment template")
+            template_file = ComponentsYaml._adjust_file_name(
+                DEFAULT_DEPLOYMENT_TEMPLATE
+            )
+        else:
+            template_file = ComponentsYaml._get_full_path_from_cwd(template)
+        logger.debug(
+            f"Creating Deployment from template file: {template_file.absolute()}"
+        )
+
         try:
-            with open(ComponentsYaml._adjust_file_name(template)) as file:
-                deployment_yaml = yaml.safe_load(file)
+            template_data = template_file.read_text()
+            deployment_yaml = yaml.safe_load(template_data)
         except Exception as exception:
-            logger.error(f"Exception reading deployment yaml template {exception}")
-            sys.exit(1)
+            error_string = f"Exception reading deployment yaml template {exception}"
+            logger.error(error_string)
+            raise ValueError(error_string)
 
         # Update metadata
         metadata = deployment_yaml["metadata"]
@@ -191,7 +212,7 @@ class ComponentsYaml:
         return deployment_yaml
 
     @staticmethod
-    def service_yaml(k8_name: str, template: str = "service.yaml") -> dict[str, Any]:
+    def service_yaml(k8_name: str, template: str | None = None) -> dict[str, Any]:
         """
         Generate service yaml for a given model
         :param k8_name: k8 unique name
@@ -199,12 +220,20 @@ class ComponentsYaml:
         :return: service yaml
         """
         # read template
+        if template is None:
+            logger.debug("Using default Service template")
+            template_file = ComponentsYaml._adjust_file_name(DEFAULT_SERVICE_TEMPLATE)
+        else:
+            template_file = ComponentsYaml._get_full_path_from_cwd(template)
+        logger.debug(f"Creating Service from template file: {template_file.absolute()}")
+
         try:
-            with open(ComponentsYaml._adjust_file_name(template)) as file:
-                service_yaml = yaml.safe_load(file)
+            template_data = template_file.read_text()
+            service_yaml = yaml.safe_load(template_data)
         except Exception as exception:
-            logger.error(f"Exception reading service yaml template {exception}")
-            sys.exit(1)
+            error_string = f"Exception reading service yaml template {exception}"
+            logger.error(error_string)
+            raise ValueError(error_string)
 
         # Update metadata
         metadata = service_yaml["metadata"]
@@ -218,7 +247,7 @@ class ComponentsYaml:
         return service_yaml
 
     @staticmethod
-    def pvc_yaml(pvc_name: str, template: str = "pvc.yaml") -> dict[str, Any]:
+    def pvc_yaml(pvc_name: str, template: str | None = None) -> dict[str, Any]:
         """
         Generate pvc yaml
         :param pvc_name: name of the PVC claim
@@ -226,12 +255,20 @@ class ComponentsYaml:
         :return: pvc yaml
         """
         # read template
+        if template is None:
+            logger.debug("Using default PVC template")
+            template_file = ComponentsYaml._adjust_file_name(DEFAULT_PVC_TEMPLATE)
+        else:
+            template_file = ComponentsYaml._get_full_path_from_cwd(template)
+        logger.debug(f"Creating PVC from template file: {template_file.absolute()}")
+
         try:
-            with open(ComponentsYaml._adjust_file_name(template)) as file:
-                pvc_yaml = yaml.safe_load(file)
+            template_data = template_file.read_text()
+            pvc_yaml = yaml.safe_load(template_data)
         except Exception as exception:
-            logger.error(f"Exception reading pvc yaml template {exception}")
-            sys.exit(1)
+            error_string = f"Exception reading pvc yaml template {exception}"
+            logger.error(error_string)
+            raise ValueError(error_string)
 
         # Update metadata
         pvc_yaml["metadata"]["name"] = pvc_name

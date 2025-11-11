@@ -173,16 +173,27 @@ class ComponentsYaml:
         limits["cpu"] = str(n_cpus)
         limits["memory"] = memory
         limits["nvidia.com/gpu"] = str(n_gpus)
-        # env variables to to set parameters for docker execution
-        container["env"] = [
-            {"name": "MODEL", "value": model},
-            {"name": "GPU_MEMORY_UTILIZATION", "value": str(gpu_memory_utilization)},
-            {"name": "DTYPE", "value": dtype.value},
-            {"name": "CPU_OFFLOAD_GB", "value": str(cpu_offload)},
-            {"name": "MAX_NUM_BATCHED_TOKENS", "value": str(max_batch_tokens)},
-            {"name": "MAX_NUM_SEQ", "value": str(max_num_seq)},
-            {"name": "TENSOR_PARALLEL_SIZE", "value": str(n_gpus)},
+
+        # command
+        vllm_serve_args = [
+            model,
+            "--max-num-batched-tokens",
+            f"{max_batch_tokens}",
+            "--gpu-memory-utilization",
+            f"{gpu_memory_utilization}",
+            "--cpu-offload-gb",
+            f"{cpu_offload}",
+            "--max-num-seq",
+            f"{max_num_seq}",
+            "--tensor-parallel-size",
+            f"{n_gpus}",
+            "--dtype",
+            dtype.value,
         ]
+        container["command"] = ["vllm", "serve"]
+        container["args"] = vllm_serve_args
+
+        container["env"] = []
         if hf_token is not None:
             container["env"].extend([{"name": "HF_TOKEN", "value": hf_token}])
         if claim_name is not None:

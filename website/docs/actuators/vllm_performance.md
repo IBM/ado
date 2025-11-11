@@ -13,13 +13,13 @@
 ## Key Capabilities
 
 - **Automated LLM benchmarking:** Deploys vLLM serving endpoints
-on GPU-enabled Open/Shift Kubernetes clusters and runs
+on NVIDIA GPU-enabled OpenShift/Kubernetes clusters and runs
 standardized serving benchmarks.
 - **Cluster integration:** Handles deployments and clean-up of vLLM inference
 pods on  OpenShift/Kubernetes, with configurable resource selection via namespace,
 node selector,  and PVC/service templates.
-- **Scenario configurability:** Supports customizing models, GPU types, node selection,
-retry behavior, concurrent deployments, and more
+- **Scenario configurability:** Supports customizing models, NVIDIA GPU types,
+node selection, retry behavior, concurrent deployments, and more
 - **Efficient sampling:** Supports grouped sampling which maximises reuse
 of vLLM deployments, hence minimising time spent creating such deployments
 - **Endpoint benchmarking:** Can also be used to benchmark existing OpenAI
@@ -129,9 +129,9 @@ actuator configuration, run the benchmark, and print results.
 
 ## Configuring the vllm_performance actuator
 
-In order for the `vllm_performance` actuator to create,
+You can configure how the `vllm_performance` actuator creates,
 manage, and monitor vLLM deployments on a Kubernetes/OpenShift
-cluster, you must provide some configuration information
+cluster.
 This configuration covers several needs:
 
 - **Cluster targeting and permissions**: Specify the OpenShift/Kubernetes namespace
@@ -159,13 +159,14 @@ parameters:
   deployment_template: deployment.yaml  # k8s deployment spec template
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
   image_secret: ""                      # Optional image pull secret
-  in_cluster: true                      # Run from within the cluster
+  in_cluster: false                     # Set to true if running from within the cluster
   interpreter: python3                  # Language for test drivers/benchmarks
   max_environments: 1                   # Max concurrent vLLM deployments
   namespace: "mynamespace"              # OpenShift/K8s namespace to deploy into
-  node_selector: '{"kubernetes.io/hostname":"gpunode01"}' # Restricts GPU node
+  node_selector:                        # Can supply node selectors to restrict to specific nodes 
+    "kubernetes.io/hostname":"gpunode01"  
   pvc_template: pvc.yaml                # Persistent volume claim template
-  pvc_name: `vllm_support`              # Name of pvc to use - if it doesn't exist it is created
+  pvc_name: None                        # Name of existing PVC to use. If None/omitted a temporary PVC is created
   retries_timeout: 5                    # Seconds between retries (exponential backoff)
   service_template: service.yaml        # k8s service spec template
   verify_ssl: false                     # Whether to verify HTTPS endpoints
@@ -179,36 +180,18 @@ the configuration using
 ado create actuatorconfiguration -f vllm_config.yaml
 ```
 
-> [!TIP] Getting a default configuration
+> [!WARNING] namespace
 >
-> You can generate a default configuration via the ado CLI:
->
-> ```shell
-> ado template actuatorconfiguration --actuator-identifier vllm_performance -o actuatorconfiguration.yaml
-> ```
+> The critical parameter you must set in the configuration is `namespace`
+<!-- markdownlint-disable-next-line MD028 -->
 
-### Configuration option details
-<!-- markdownlint-disable MD007 -->
-- `actuatorIdentifier`: Always set to `vllm_performance` for this actuator.
-- `metadata`: Descriptive metadata for organization or tracking.
-- **parameters:**
-    - `benchmark_retries`: Number of times a benchmark can be retried if it fails
-    (see Handling benchmark failures)
-    - `deployment_template`, `service_template`, `pvc_template`: YAML templates for
-        k8s resources created by the actuator
-    - `hf_token`: [HuggingFace token](https://huggingface.co/settings/tokens)
-        for protected model downloads
-    - `image_secret`: Kubernetes secret name for private registry images
-    - `in_cluster`: Whether to execute inside the cluster for better network access
-    - `interpreter`: Python interpreter or path
-    - `max_environments`: Maximum number of deployments to create concurrently
-        (see Maximum number of deployments)
-    - `namespace`: Namespace to use for deployments
-    - `node_selector`: Kubernetes node label for targeting e.g. GPU nodes
-    - `retries_timeout`: Timeout in seconds for exponential backoff between retries
-    - `verify_ssl`: Toggle SSL certificate verification for endpoints
-<!-- markdownlint-enable MD007 -->
-> [!IMPORTANT] Further details
+> [!WARNING] GPU type
+>
+> The GPU type to use in an experiment is set via the experiment itself (performance-testing-full).
+> **Do not** set this via the `node_selector` parameter of the configuration.
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!TIP] Further details
 >
 > For further details on specific options and advanced behavior see:
 >
@@ -225,6 +208,14 @@ for the actuator to operate in a given environment.
 Each configuration will have a different id and you can choose the one to use
 when submitting an operation or single experiment that uses the `vllm_performance`
 actuator.
+
+> [!TIP] Getting a default configuration
+>
+> You can generate a default configuration via the ado CLI:
+>
+> ```shell
+> ado template actuatorconfiguration --actuator-identifier vllm_performance -o actuatorconfiguration.yaml
+> ```
 
 ---
 
@@ -296,11 +287,34 @@ Since vLLM bench itself waits 10mins for the endpoint to come up this means with
 `benchmark_retries=3` (the default) there is roughly 50mins-1hr timeout for the
 endpoint to become available.
 
+### PVCs
+
+#### `pvc_name` not given
+
+If no `pvc_name` is set in the `actuatorconfiguration`, when an actuator
+instance is created with this configuration, e.g., via `create operation` or `run_experiment`,
+it creates a PVC called `vllm_support-$UUID` that is shared by all deployments
+it creates.
+The `$UUID` is a randomly generated string that will vary each time the
+actuator is created.
+When the `operation` or `run_experiment` exits this PVC will be deleted.
+
+#### `pvc_name` given
+
+If a `pvc_name` is set in the `actuatorconfiguration`, when an actuator
+instance is created with this configuration, e.g., via `create operation`
+or `run_experiment`,
+it will look for an existing PVC with the given name.
+If the PVC exists it will be used for all deployments the actuator instance
+creates.
+When the `operation` or `run_experiment` exits this PVC will NOT be deleted.
+If the PVC does not exist the actuator will exit with an error.
+
 ### Deployment Clean-Up
 
 The `vllm_performance` actuator will automatically clean up
-vLLM deployments as it proceeds leaving at most `max_environments`
-active at a time.
+all Kubernetes resources associated with the vLLM deployments as it proceeds
+leaving at most `max_environments` active at a time.
 On a graceful shutdown of the `ado` process running the operation
 (CTRL-C, SIGTERM, SIGINT) active deployments will be deleted
 before exit.
@@ -309,36 +323,27 @@ clean up any k8s deployments that were running  at the time.
 
 > [!IMPORTANT] PVC Deletion
 >
-> If a PVC was created for testing, clean-up does not delete it.
-> On next running the actuator in same namespace this PVC
-> can be reused.
+> If the actuator created a PVC (i.e. `vllm-support-$UUID`) it will be deleted.
+>
+> If the actuator used an existing PVC it will not be deleted.
 
 ### Kubernetes resource templates
 
 The `vllm_performance` actuator creates Kubernetes resources
 based on a set of template YAML files by default
 that are distributed with the actuator and referenced
-by name in the `actuatorconfiguration`,
+by name in the `actuatorconfiguration`.
 
 If you want to use a different template, provide the
 **absolute** **path** to it in an `actuatorconfiguration`
 resource and use that when running operations with this
-actuator
+actuator.
+
 >[!IMPORTANT]
 >
 > The template path must be accessible where the actuator is running.
 > This is particularly important to consider when running in a
 > remote RayCluster
-
-#### PVC
-
-By default, the actuator first time the actuator runs it
-will create a PVC called `vllm_support` that is shared
-between all deployments (if `pvc_name` was not changed).
-This PVC will be reused by all deployments and persist
-after the tests end.
-If you want to use a different PVC or use one of your
-own you can change `pvc_name` appropriately.
 
 ### Grouped sampling for efficient deployment usage
 

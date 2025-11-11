@@ -51,41 +51,7 @@ It also provides access to the RayCluster resources.
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ray-deployer
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: ray-deployer
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: ray-deployer
-subjects:
-  - kind: ServiceAccount
-    name: ray-deployer
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: ray-deployer
-rules:
-  - apiGroups: ["ray.io"]
-    resources:
-      - rayclusters
-    verbs: ["get", "patch"]
-  - apiGroups: ["apps"]
-    resources:
-      - pods
-      - deployments
-    verbs: ["get", "create", "delete", "list", "watch", "update"]
-  - apiGroups: [""]
-    resources:
-      - services
-    verbs: ["get", "create", "delete", "list", "watch", "update"]
+{% include "./service-account.yaml" %}
 ```
 
 From the root of the ado project run the below command:

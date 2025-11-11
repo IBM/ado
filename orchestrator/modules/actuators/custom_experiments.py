@@ -335,6 +335,19 @@ def custom_experiment(
 
             return observed_property_values
 
+        # Set the wrapper's __signature__  so it is (entity,experiment)
+        # This is required for the wrapped function to be used with ray.remote
+        import inspect
+
+        wrapper.__signature__ = inspect.Signature(
+            [
+                inspect.Parameter("entity", inspect.Parameter.POSITIONAL_OR_KEYWORD),
+                inspect.Parameter(
+                    "experiment", inspect.Parameter.POSITIONAL_OR_KEYWORD
+                ),
+            ]
+        )
+
         # If we were not given information on required/optional properties
         # or parameterization try to infer it
         # This function will log a critical error message and raise exception

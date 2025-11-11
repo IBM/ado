@@ -91,9 +91,8 @@ This will create a file called `vllm_actuator_configuration.yaml`
 Edit the file and set correct values for (at least) the following fields:
 <!-- markdownlint-disable line-length -->
 ```yaml
-hf_token: <your HuggingFace access token>
+hf_token: <your HuggingFace access token> # If you need to access a gated model
 namespace: vllm-testing # OpenShift namespace you have write access to
-node_selector: '{"kubernetes.io/hostname":"<host-with-gpu>"}' # JSON string selecting a node that owns GPU
 ```
 <!-- markdownlint-enable line-length -->
 

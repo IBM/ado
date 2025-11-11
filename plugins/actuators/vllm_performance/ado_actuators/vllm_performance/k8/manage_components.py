@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import json
 import logging
 import math
 import time
@@ -278,29 +279,33 @@ class ComponentsManager:
             if deleting:
                 logger.error("Did not complete deployment deletion")
                 raise
+
         # create deployment
+        deployment_yaml = ComponentsYaml.deployment_yaml(
+            k8_name=k8_name,
+            model=model,
+            gpu_type=gpu_type,
+            node_selector=node_selector,
+            image=image,
+            image_secret=image_secret,
+            n_gpus=n_gpus,
+            n_cpus=n_cpus,
+            memory=memory,
+            max_batch_tokens=max_batch_tokens,
+            gpu_memory_utilization=gpu_memory_utilization,
+            dtype=dtype,
+            cpu_offload=cpu_offload,
+            max_num_seq=max_num_seq,
+            template=template,
+            claim_name=claim_name,
+            hf_token=hf_token,
+        )
+        logger.debug(json.dumps(deployment_yaml, indent=2))
+
         try:
             self.kube_client.create_namespaced_deployment(
                 namespace=self.namespace,
-                body=ComponentsYaml.deployment_yaml(
-                    k8_name=k8_name,
-                    model=model,
-                    gpu_type=gpu_type,
-                    node_selector=node_selector,
-                    image=image,
-                    image_secret=image_secret,
-                    n_gpus=n_gpus,
-                    n_cpus=n_cpus,
-                    memory=memory,
-                    max_batch_tokens=max_batch_tokens,
-                    gpu_memory_utilization=gpu_memory_utilization,
-                    dtype=dtype,
-                    cpu_offload=cpu_offload,
-                    max_num_seq=max_num_seq,
-                    template=template,
-                    claim_name=claim_name,
-                    hf_token=hf_token,
-                ),
+                body=deployment_yaml,
             )
         except ApiException as e:
             logger.error(f"error creating deployment  {e}")

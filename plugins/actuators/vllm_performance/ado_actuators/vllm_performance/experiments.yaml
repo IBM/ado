@@ -118,7 +118,7 @@ performance_testing-full:
       metadata:
         description: "(deployment) The GPU type to use"
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
   defaultParameterization:
     - property:

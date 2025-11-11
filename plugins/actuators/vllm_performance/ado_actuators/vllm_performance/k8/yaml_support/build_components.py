@@ -126,7 +126,8 @@ class ComponentsYaml:
         # update template spec
         spec = d_template["spec"]
         # node selector
-        spec["nodeSelector"]["nvidia.com/gpu.product"] = gpu_type
+        spec["nodeSelector"] = {"nvidia.com/gpu.product": gpu_type}
+
         if len(node_selector) > 0:
             spec["nodeSelector"].update(node_selector)
         # image pull secret
@@ -176,6 +177,8 @@ class ComponentsYaml:
                     },
                 ]
             )
+        if logging.root.level == logging.DEBUG:
+            container["env"].append({"name": "VLLM_LOGGING_LEVEL", "value": "DEBUG"})
         # volume mounts
         if claim_name is not None:
             container["volumeMounts"].extend(

@@ -1,6 +1,8 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+from typing import Any
+
 import pydantic
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
@@ -16,7 +18,7 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         description="k8 namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
     )
     in_cluster: bool = pydantic.Field(
-        default=True,
+        default=False,
         description="flag to determine whether we are running in k8 cluster or locally",
     )
     verify_ssl: bool = pydantic.Field(
@@ -25,8 +27,8 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     image_secret: str = pydantic.Field(
         default="", description="secret to use when loading image"
     )
-    node_selector: str = pydantic.Field(
-        default="", description="json string containing node selector (dictionary)"
+    node_selector: dict[str, str] = pydantic.Field(
+        default={}, description="dictionary containing node selector key:value pairs"
     )
     deployment_template: str = pydantic.Field(
         default="deployment.yaml", description="name of deployment template"
@@ -57,3 +59,47 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     max_environments: int = pydantic.Field(
         default=1, description="Maximum amount of concurrent environments"
     )
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def make_node_selector_dict(cls, values: Any):
+        import json
+        from json import JSONDecodeError
+
+        from orchestrator.core.actuatorconfiguration.config import (
+            warn_deprecated_actuator_parameters_model_in_use,
+        )
+
+        if isinstance(values, dict):
+            node_selector = values.get("node_selector", None)
+            if node_selector is not None is isinstance(node_selector, str):
+                try:
+                    values["node_selector"] = (
+                        {}
+                        if len(node_selector) == 0
+                        else json.loads(values.node_selector)
+                    )
+                except JSONDecodeError:
+                    raise ValueError(
+                        "The node_selector field does not contain a valid dict"
+                    )
+        elif isinstance(values, GenericActuatorParameters):
+            try:
+                node_selector = values.node_selector
+                warn_deprecated_actuator_parameters_model_in_use(
+                    affected_actuator="my_actuator",
+                    deprecated_from_actuator_version="v1.2.2",
+                    removed_from_actuator_version="v1.3",
+                    deprecated_fields="node_selector",
+                    latest_format_documentation_url="https://example.com",
+                )
+                values.node_selector = (
+                    {} if len(node_selector) == 0 else json.loads(values.node_selector)
+                )
+            except JSONDecodeError:
+                raise ValueError(
+                    "The node_selector field does not contain a valid dict"
+                )
+            except AttributeError:
+                pass
+        return values

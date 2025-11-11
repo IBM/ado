@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import json
 import logging
 import os
 import uuid
@@ -184,19 +183,6 @@ class VLLMPerformanceTest(ActuatorBase):
                     f"Experiment {experiment} requires a kubernetes environment manager to be executable."
                 )
 
-            if self.actuator_parameters.node_selector == "":
-                node_selector = {}
-            else:
-                try:
-                    node_selector = json.loads(self.actuator_parameters.node_selector)
-                except Exception as e:
-                    logger.error(
-                        f"Error loading node selector {self.actuator_parameters.node_selector} - {e}"
-                    )
-                    raise Exception(
-                        f"Error loading node selector {self.actuator_parameters.node_selector} - {e}"
-                    )
-
             # Execute experiment
             # Note: Here the experiment instance is just past for convenience since we retrieved it above
             run_resource_and_workload_experiment.remote(
@@ -204,7 +190,7 @@ class VLLMPerformanceTest(ActuatorBase):
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,
                 actuator_parameters=self.actuator_parameters,
-                node_selector=node_selector,
+                node_selector=self.actuator_parameters.node_selector,
                 env_manager=self.env_manager,
                 local_port=self.local_port,
             )

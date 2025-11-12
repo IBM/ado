@@ -7,7 +7,10 @@ import math
 import time
 import uuid
 
-from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
+from ado_actuators.vllm_performance.k8s import (
+    K8sConnectionError,
+)
+from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
     VLLMDtype,
 )
@@ -19,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class ComponentsManager:
     """
-    This class manages k8 operations
+    This class manages K8s operations
     """
 
     def __init__(
@@ -38,6 +41,7 @@ class ComponentsManager:
         :param verify_ssl: flag to verify SSL (self-signed certificate)
         :param init_pvc: flag to decide whether to initialize the PVC for the experiment
         :param pvc_name: the name of the pvc to be created
+        :param pvc_template: the name of the template file for creating PVCs
         """
         try:
             if in_cluster:
@@ -50,10 +54,22 @@ class ComponentsManager:
                 client.Configuration.set_default(configuration)
             self.kube_client_V1 = client.CoreV1Api()
             self.kube_client = client.AppsV1Api()
-            self.namespace = namespace
-        except Exception as exception:
-            logger.error(f"Exception connecting to kubernetes {exception}")
+            # this is just to make sure we are authenticated to the cluster
+            # and fail immediately otherwise.
+            self.kube_client_V1.list_namespaced_pod(namespace=namespace)
+        except ApiException:
+            error_message = "Error connecting to the Kubernetes cluster.\n"
+            if in_cluster:
+                error_message += "Make sure the service account used for the Ray cluster has sufficient permissions."
+            else:
+                error_message += "Make sure you are authenticated with the Kubernetes cluster or that you are using a valid kubeconfig."
+            logger.critical(error_message)
+            raise K8sConnectionError
+        except Exception as e:
+            logger.critical(f"Exception connecting to kubernetes {e}")
             raise
+
+        self.namespace = namespace
 
         # We do this only once when creating a ComponentsManager in the EnvironmentManager because
         # we want the PVC to be shared by all deployments we are testing with the same operation.
@@ -74,6 +90,26 @@ class ComponentsManager:
                 self.pvc_name = pvc_name
                 self.pvc_created = False
                 logger.debug(f"Reusing pvc {pvc_name} from namespace {namespace}")
+
+    @classmethod
+    def verify_k8s_auth(cls, namespace: str) -> bool:
+        try:
+            version_api = client.VersionApi()
+            # Fetch cluster version to verify we are connected to the cluster
+            version_info = version_api.get_code()
+            api = client.CoreV1Api()
+            api.list_namespaced_pod(namespace)
+            print("Connected to Kubernetes cluster!")
+            print(f"Cluster Version: {version_info.git_version}")
+            print(f"Platform: {version_info.platform}")
+
+            return True
+        except ApiException:
+            print("api exception")
+            return False
+        except Exception:
+            print("Failed connecting to the Kubernetes cluster")
+            raise K8sConnectionError
 
     def check_pvc_exists(self, pvc_name: str) -> bool:
         """
@@ -121,10 +157,10 @@ class ComponentsManager:
             logger.error(f"error creating pvc  {e}")
             raise
 
-    def check_service_exists(self, k8_name: str) -> bool:
+    def check_service_exists(self, k8s_name: str) -> bool:
         """
         Check if service for model exists
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :return: boolean
         """
         try:
@@ -132,43 +168,43 @@ class ComponentsManager:
         except ApiException as e:
             logger.error(f"error getting service list {e}")
             return False
-        return any(svc.metadata.name == k8_name for svc in svcs.items)
+        return any(svc.metadata.name == k8s_name for svc in svcs.items)
 
-    def delete_service(self, k8_name: str) -> None:
+    def delete_service(self, k8s_name: str) -> None:
         """
         Delete service for model
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :return: boolean
         """
         try:
             self.kube_client_V1.delete_namespaced_service(
                 namespace=self.namespace,
-                name=k8_name,
+                name=k8s_name,
             )
         except ApiException as e:
             logger.error(f"error deleting service {e}")
 
     def create_service(
-        self, k8_name: str, template: str | None = None, reuse: bool = False
+        self, k8s_name: str, template: str | None = None, reuse: bool = False
     ) -> None:
         """
         create service for model
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :param template service yaml template
         :param reuse: reuse if exists
         :return:
         """
         # try to reuse existing one if exists
-        exists = self.check_service_exists(k8_name=k8_name)
+        exists = self.check_service_exists(k8s_name=k8s_name)
         if exists and reuse:
             return
         if exists and not reuse:
             # delete it first
-            self.delete_service(k8_name=k8_name)
+            self.delete_service(k8s_name=k8s_name)
             # make sure that deletion is completed
             deleting = True
             for _ in range(150):
-                deleting = self.check_service_exists(k8_name=k8_name)
+                deleting = self.check_service_exists(k8s_name=k8s_name)
                 if not deleting:
                     break
                 time.sleep(1)
@@ -178,16 +214,16 @@ class ComponentsManager:
         try:
             self.kube_client_V1.create_namespaced_service(
                 namespace=self.namespace,
-                body=ComponentsYaml.service_yaml(k8_name=k8_name, template=template),
+                body=ComponentsYaml.service_yaml(k8s_name=k8s_name, template=template),
             )
         except ApiException as e:
             logger.error(f"error creating service  {e}")
             raise
 
-    def check_deployment_exist(self, k8_name: str) -> bool:
+    def check_deployment_exist(self, k8s_name: str) -> bool:
         """
         Check if deployment for model exists
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :return: boolean
         """
         try:
@@ -198,20 +234,20 @@ class ComponentsManager:
             logger.error(f"error getting deployment list {e}")
             return False
         for deployment in deployments.items:
-            if deployment.metadata.name == k8_name:
+            if deployment.metadata.name == k8s_name:
                 return True
         return False
 
-    def delete_deployment(self, k8_name: str) -> None:
+    def delete_deployment(self, k8s_name: str) -> None:
         """
         Delete service for model
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :return: boolean
         """
         try:
             self.kube_client.delete_namespaced_deployment(
                 namespace=self.namespace,
-                name=k8_name,
+                name=k8s_name,
                 body=client.V1DeleteOptions(
                     propagation_policy="Foreground", grace_period_seconds=5
                 ),
@@ -221,7 +257,7 @@ class ComponentsManager:
 
     def create_deployment(
         self,
-        k8_name: str,
+        k8s_name: str,
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
         node_selector: dict[str, str] = {},
@@ -242,7 +278,7 @@ class ComponentsManager:
     ) -> None:
         """
         create deployment for model
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :param model: LLM model name
         :param gpu_type: gpu type, for example NVIDIA-A100-80GB-PCIe, Tesla-V100-PCIE-16GB, etc.
         :param node_selector: optional node selector
@@ -263,16 +299,16 @@ class ComponentsManager:
         :return:
         """
         # try to reuse existing one if exists
-        exists = self.check_deployment_exist(k8_name=k8_name)
+        exists = self.check_deployment_exist(k8s_name=k8s_name)
         if exists and reuse:
             return
         if exists and not reuse:
             # delete it first
-            self.delete_deployment(k8_name=k8_name)
+            self.delete_deployment(k8s_name=k8s_name)
             # make sure that deletion is completed
             deleting = True
             for _ in range(150):
-                deleting = self.check_deployment_exist(k8_name=k8_name)
+                deleting = self.check_deployment_exist(k8s_name=k8s_name)
                 if not deleting:
                     break
                 time.sleep(1)
@@ -282,7 +318,7 @@ class ComponentsManager:
 
         # create deployment
         deployment_yaml = ComponentsYaml.deployment_yaml(
-            k8_name=k8_name,
+            k8s_name=k8s_name,
             model=model,
             gpu_type=gpu_type,
             node_selector=node_selector,
@@ -311,16 +347,16 @@ class ComponentsManager:
             logger.error(f"error creating deployment  {e}")
             raise
 
-    def _deployment_ready(self, k8_name: str) -> bool:
+    def _deployment_ready(self, k8s_name: str) -> bool:
         """
         Check whether deployment pod ready
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :return: boolean
         """
         try:
             deployment = self.kube_client.read_namespaced_deployment(
                 namespace=self.namespace,
-                name=k8_name,
+                name=k8s_name,
             )
         except ApiException as e:
             logger.error(f"error getting deployment  {e}")
@@ -330,11 +366,11 @@ class ComponentsManager:
         return deployment.status.available_replicas == 1
 
     def wait_deployment_ready(
-        self, k8_name: str, check_interval: int = 5, timeout: int = 1200
+        self, k8s_name: str, check_interval: int = 5, timeout: int = 1200
     ) -> None:
         """
         Wait for deployment to become ready
-        :param k8_name: kubernetes name
+        :param k8s_name: kubernetes name
         :param check_interval: wait interval
         :param timeout: timeout
         :return: None
@@ -342,7 +378,7 @@ class ComponentsManager:
         n_checks = math.ceil(timeout / check_interval)
         for _ in range(n_checks):
             time.sleep(check_interval)
-            if self._deployment_ready(k8_name=k8_name):
+            if self._deployment_ready(k8s_name=k8s_name):
                 return
         logger.error("Timed out waiting for deployment to get ready")
         raise Exception("Timed out waiting for deployment to get ready")
@@ -351,20 +387,20 @@ class ComponentsManager:
 if __name__ == "__main__":
     # model
     t_model = "meta-llama/Llama-3.1-8B-Instruct"
-    t_k8_name = ComponentsYaml.get_k8_name(model=t_model)
+    t_k8s_name = ComponentsYaml.get_k8s_name(model=t_model)
     # manager
     c_manager = ComponentsManager(in_cluster=False, verify_ssl=False)
     # pvc
     c_manager.check_pvc_exists(pvc_name="vllm-support")
     # service
-    c_manager.create_service(k8_name=t_k8_name, reuse=False)
+    c_manager.create_service(k8s_name=t_k8s_name, reuse=False)
     # deployment
     c_manager.create_deployment(
-        k8_name=t_k8_name,
+        k8s_name=t_k8s_name,
         model="meta-llama/Llama-3.1-8B-Instruct",
         claim_name="vllm-support",
         hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
-    c_manager.wait_deployment_ready(k8_name=t_k8_name)
+    c_manager.wait_deployment_ready(k8s_name=t_k8s_name)
     logger.info("environment is created")

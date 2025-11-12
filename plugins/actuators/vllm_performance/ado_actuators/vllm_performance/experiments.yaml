@@ -61,7 +61,7 @@ performance_testing-full:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ "quay.io/dataprep1/data-prep-kit/vllm_image:0.1" ]
+        values: [ "vllm/vllm-openai:v0.11.0" ]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -123,7 +123,7 @@ performance_testing-full:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/dataprep1/data-prep-kit/vllm_image:0.1"
+      value: "vllm/vllm-openai:v0.11.0"
     - property:
         identifier: n_cpus
       value: 8

@@ -3,10 +3,10 @@
 
 import logging
 
-from ado_actuators.vllm_performance.k8.manage_components import (
+from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
-from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
+from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
     VLLMDtype,
 )
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_test_environment(
-    k8_name: str,
+    k8s_name: str,
     model: str,
     pvc_name: str,
     in_cluster: bool = True,
@@ -41,7 +41,7 @@ def create_test_environment(
 ) -> None:
     """
     Create test deployment
-    :param k8_name: unique k8 name
+    :param k8s_name: unique K8s name
     :param model: LLM model name
     :param namespace: namespace to use for deployment
     :param pvc_name: name of the pvc to be used
@@ -92,7 +92,7 @@ def create_test_environment(
 
     # deployment
     c_manager.create_deployment(
-        k8_name=k8_name,
+        k8s_name=k8s_name,
         model=model,
         gpu_type=gpu_type,
         node_selector=node_selector,
@@ -112,11 +112,11 @@ def create_test_environment(
         reuse=reuse_deployment,
     )
     logger.debug("deployment created")
-    c_manager.wait_deployment_ready(k8_name=k8_name)
+    c_manager.wait_deployment_ready(k8s_name=k8s_name)
     logger.info("deployment ready")
     # service
     c_manager.create_service(
-        k8_name=k8_name, template=service_template, reuse=reuse_service
+        k8s_name=k8s_name, template=service_template, reuse=reuse_service
     )
     logger.info("service created")
 
@@ -124,7 +124,7 @@ def create_test_environment(
 if __name__ == "__main__":
     t_model = "meta-llama/Llama-3.1-8B-Instruct"
     create_test_environment(
-        k8_name=ComponentsYaml.get_k8_name(model=t_model),
+        k8s_name=ComponentsYaml.get_k8s_name(model=t_model),
         in_cluster=False,
         verify_ssl=False,
         model=t_model,

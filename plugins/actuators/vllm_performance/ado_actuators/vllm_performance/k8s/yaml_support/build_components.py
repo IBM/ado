@@ -37,11 +37,11 @@ class ComponentsYaml:
     """
 
     @staticmethod
-    def get_k8_name(model: str) -> str:
+    def get_k8s_name(model: str) -> str:
         """
         convert model for kubernetes usage
         :param model: LLM model
-        :return: k8 unique name for a given LLM model
+        :return: K8s unique name for a given LLM model
         """
         m_parts = model.split("/")
 
@@ -70,7 +70,7 @@ class ComponentsYaml:
 
     @staticmethod
     def deployment_yaml(
-        k8_name: str,
+        k8s_name: str,
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
         node_selector: dict[str, str] = {},
@@ -90,7 +90,7 @@ class ComponentsYaml:
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
-        :param k8_name: deployment name
+        :param k8s_name: deployment name
         :param model: model name
         :param gpu_type: gpu type, for example NVIDIA-A100-80GB-PCIe, Tesla-V100-PCIE-16GB, etc.
         :param node_selector: optional node selector
@@ -131,18 +131,18 @@ class ComponentsYaml:
 
         # Update metadata
         metadata = deployment_yaml["metadata"]
-        metadata["name"] = k8_name
-        metadata["labels"]["app.kubernetes.io/instance"] = k8_name
+        metadata["name"] = k8s_name
+        metadata["labels"]["app.kubernetes.io/instance"] = k8s_name
 
         # update spec
         spec = deployment_yaml["spec"]
         # selector
-        spec["selector"]["matchLabels"]["app.kubernetes.io/instance"] = k8_name
+        spec["selector"]["matchLabels"]["app.kubernetes.io/instance"] = k8s_name
 
         # update template
         d_template = spec["template"]
         # template metadata
-        d_template["metadata"]["labels"]["app.kubernetes.io/instance"] = k8_name
+        d_template["metadata"]["labels"]["app.kubernetes.io/instance"] = k8s_name
 
         # update template spec
         spec = d_template["spec"]
@@ -223,10 +223,10 @@ class ComponentsYaml:
         return deployment_yaml
 
     @staticmethod
-    def service_yaml(k8_name: str, template: str | None = None) -> dict[str, Any]:
+    def service_yaml(k8s_name: str, template: str | None = None) -> dict[str, Any]:
         """
         Generate service yaml for a given model
-        :param k8_name: k8 unique name
+        :param k8s_name: K8s unique name
         :param template: template for service yaml
         :return: service yaml
         """
@@ -248,11 +248,11 @@ class ComponentsYaml:
 
         # Update metadata
         metadata = service_yaml["metadata"]
-        metadata["name"] = k8_name
-        metadata["labels"]["app.kubernetes.io/instance"] = k8_name
+        metadata["name"] = k8s_name
+        metadata["labels"]["app.kubernetes.io/instance"] = k8s_name
 
         # update selector
-        service_yaml["spec"]["selector"]["app.kubernetes.io/instance"] = k8_name
+        service_yaml["spec"]["selector"]["app.kubernetes.io/instance"] = k8s_name
 
         # return
         return service_yaml
@@ -290,9 +290,9 @@ class ComponentsYaml:
 
 if __name__ == "__main__":
     t_model = "meta-llama/Llama-3.1-8B-Instruct"
-    t_k8_name = ComponentsYaml.get_k8_name(model=t_model)
+    t_k8s_name = ComponentsYaml.get_k8s_name(model=t_model)
     deployment = ComponentsYaml.deployment_yaml(
-        k8_name=t_k8_name,
+        k8s_name=t_k8s_name,
         model=t_model,
         claim_name="vllm-support",
         node_selector={"kubernetes.io/hostname": "cpu16"},
@@ -300,7 +300,7 @@ if __name__ == "__main__":
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
     print(f"Deployment YAML: \n{yaml.dump(deployment)}")
-    service = ComponentsYaml.service_yaml(k8_name=t_k8_name)
+    service = ComponentsYaml.service_yaml(k8s_name=t_k8s_name)
     print(f"Service YAML: \n{yaml.dump(service)}")
     pvc = ComponentsYaml.pvc_yaml(pvc_name="vllm-pvc")
     print(f"PVC YAML: \n{yaml.dump(pvc)}")

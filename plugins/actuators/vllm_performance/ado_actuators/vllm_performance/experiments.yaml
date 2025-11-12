@@ -295,10 +295,9 @@ test-endpoint-v1:
     - value: 128
       property:
         identifier: 'max_output_tokens'
-    - identifier: 'dataset'
-      metadata:
-        description: "The dataset to use for the benchmark"
-        values: [ 'random' ]
+    - value: 'random'
+      property:
+        identifier: "dataset"
   # measurements
   targetProperties:
     - identifier: "duration"

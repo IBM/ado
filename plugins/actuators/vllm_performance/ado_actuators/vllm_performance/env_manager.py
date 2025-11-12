@@ -7,10 +7,10 @@ import time
 from enum import Enum
 
 import ray
-from ado_actuators.vllm_performance.k8.manage_components import (
+from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
-from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
+from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
 )
 
@@ -37,7 +37,7 @@ class Environment:
         Defines an environment for a model
         :param model: LLM model name
         """
-        self.k8_name = ComponentsYaml.get_k8_name(model=model)
+        self.k8s_name = ComponentsYaml.get_k8s_name(model=model)
         self.state = EnvironmentState.NONE
         self.in_use = 0
 
@@ -60,6 +60,8 @@ class EnvironmentManager:
         max_concurrent: int,
         in_cluster: bool = True,
         verify_ssl: bool = False,
+        pvc_name: str | None = None,
+        pvc_template: str | None = None,
     ):
         """
         Initialize
@@ -67,17 +69,23 @@ class EnvironmentManager:
         :param max_concurrent: maximum amount of concurrent environment
         :param in_cluster: flag in cluster
         :param verify_ssl: flag verify SSL
+        :param pvc_name: name of the PVC to be created / used
+        :param pvc_template: template of the PVC to be created
         """
         self.environments = {}
         self.namespace = namespace
         self.max_concurrent = max_concurrent
         self.in_cluster = in_cluster
         self.verify_ssl = verify_ssl
+
         # component manager for cleanup
         self.manager = ComponentsManager(
             namespace=self.namespace,
             in_cluster=self.in_cluster,
             verify_ssl=self.verify_ssl,
+            init_pvc=True,
+            pvc_name=pvc_name,
+            pvc_template=pvc_template,
         )
 
     def get_environment(
@@ -104,11 +112,11 @@ class EnvironmentManager:
                     if env.in_use == 0:
                         available = True
                         start = time.time()
-                        self.manager.delete_service(k8_name=env.k8_name)
-                        self.manager.delete_deployment(k8_name=env.k8_name)
+                        self.manager.delete_service(k8s_name=env.k8s_name)
+                        self.manager.delete_deployment(k8s_name=env.k8s_name)
                         del self.environments[key]
                         print(
-                            f"deleted environment {env.k8_name} in {time.time() - start} sec. "
+                            f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
                             f"Environments length {len(self.environments)}"
                         )
                         time.sleep(3)
@@ -124,6 +132,9 @@ class EnvironmentManager:
             env.in_use += 1
             self.environments[definition] = env
         return env
+
+    def get_experiment_pvc_name(self):
+        return self.manager.pvc_name
 
     def done_creating(self, definition: str) -> None:
         """
@@ -157,5 +168,11 @@ class EnvironmentManager:
         print("Cleaning environment manager")
         for env in self.environments.values():
             if env.state == EnvironmentState.READY:
-                self.manager.delete_service(k8_name=env.k8_name)
-                self.manager.delete_deployment(k8_name=env.k8_name)
+                self.manager.delete_service(k8s_name=env.k8s_name)
+                self.manager.delete_deployment(k8s_name=env.k8s_name)
+        # We only delete the PVC if it was created by this actuator
+        if self.manager.pvc_created:
+            logger.debug("Deleting PVC")
+            self.manager.delete_pvc()
+        else:
+            logger.debug("No PVC was created. Nothing to delete!")

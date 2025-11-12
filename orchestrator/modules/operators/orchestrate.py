@@ -437,15 +437,16 @@ def _run_operation_harness(
         )
     except RayTaskError as error:
         sys.stdout.flush()
+        e = error.as_instanceof_cause()
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,
-            message=f"Operation exited due to the following error: {error}.",
+            message=f"Operation exited due to the following error from a Ray task: {e}.",
         )
         raise OperationException(
-            message=f"Error raised while executing operation {operation_resource.identifier}",
+            message=f"Error raised from Ray task while executing operation {operation_resource.identifier}",
             operation=operation_resource,
-        ) from error
+        ) from e
     except BaseException as error:
         import traceback
 
@@ -626,6 +627,7 @@ def orchestrate_explore_operation(
         ValueError: if the MeasurementSpace is not consistent with EntitySpace
         pydantic.ValidationError: if the operation parameters are not valid
         OperationException: If there is an error during the operation
+        ray.exceptions.ActorDiedError: If there was an error initializing the actuators
     """
 
     import orchestrator.modules.operators.setup
@@ -676,6 +678,8 @@ def orchestrate_explore_operation(
     #
     #  ACTUATORS
     #
+    # Will raise ray.exceptions.ActorDiedError if any actuator died
+    # during init
     actuators = orchestrator.modules.operators.setup.setup_actuators(
         namespace=namespace,
         actuator_configurations=actuator_configurations,
@@ -940,6 +944,18 @@ def orchestrate(
             )
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
+        raise
+    except OperationException as error:
+        moduleLog.critical(f"Error, {error}, detected during operation")
+        raise
+    except (
+        ValueError,
+        pydantic.ValidationError,
+        ray.exceptions.ActorDiedError,
+    ) as error:
+        moduleLog.critical(
+            f"Error, {error}, in operation setup. Operation resource not created - exiting"
+        )
         raise
     except BaseException as error:
         moduleLog.critical(

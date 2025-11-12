@@ -31,8 +31,16 @@ from orchestrator.modules.operators._cleanup import (
     graceful_operation_shutdown,
     initialize_resource_cleaner,
 )
+
+# Want explore_operation_function_wrapper function to be accessed via this module not the private module
 from orchestrator.modules.operators._explore_orchestration import (
+    explore_operation_function_wrapper,  # noqa: F401
     orchestrate_explore_operation,
+)
+
+# Want this function to be accessed via this module not the private module
+from orchestrator.modules.operators._general_orchestration import (
+    orchestrate_general_operation,  # noqa: F401
 )
 from orchestrator.utilities.logging import configure_logging
 

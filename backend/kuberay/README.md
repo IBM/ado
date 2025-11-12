@@ -35,7 +35,7 @@ helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 --values back
 Feel free to customize the example file provided to suit your cluster,
 such as uncommenting GPU-enabled workers.
 
-### Enabling ado actuators to create k8s resources
+### Enabling ado actuators to create K8s resources
 
 #### Configuring a ServiceAccount for the RayCluster
 

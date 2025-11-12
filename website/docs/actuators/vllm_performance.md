@@ -164,7 +164,7 @@ parameters:
   namespace: "mynamespace"              # OpenShift/K8s namespace to deploy into
   node_selector:                        # A dictionary of Kubernetes node_selector key:value pairs
     "kubernetes.io/hostname":"gpunode01"  
-  pvc_name: None                        # Name of existing PVC to use. If None/omitted a temporary PVC is created
+  pvc_name: null                        # Name of existing PVC to use. If null/omitted a temporary PVC is created
   retries_timeout: 5                    # Seconds between retries (exponential backoff)
   verify_ssl: false                     # Whether to verify HTTPS endpoints
 ```
@@ -287,13 +287,13 @@ Once deployments are created and the vLLM health endpoint is responding to reque
 `vllm bench serve` against it.
 The 20min timeout is so the wait won't pend forever in a case where something
 goes wrong
-in k8s that means the health check will never pass.
+in K8s that means the health check will never pass.
 
 When running the benchmark the actuator will try `benchmark_retries` times
 backing off exponentially based  on `retries_timeout` to run the benchmark successfully.
-The retries may be required as it can happen for large models that 20minutes is
+The retries may be required as it can happen for large models that 20 minutes is
 not sufficient for model download and load for serving.
-Since vLLM bench itself waits 10mins for the endpoint to come up this means with
+Since vLLM bench itself waits 10 minutes for the endpoint to come up this means with
 `benchmark_retries=3` (the default) there is roughly 50mins-1hr timeout for the
 endpoint to become available.
 
@@ -303,7 +303,7 @@ endpoint to become available.
 
 If no `pvc_name` is set in the `actuatorconfiguration`, when an actuator
 instance is created with this configuration, e.g., via `create operation` or `run_experiment`,
-it creates a PVC called `vllm_support-$UUID` that is shared by all deployments
+it creates a PVC called `vllm-support-$UUID` that is shared by all deployments
 it creates.
 The `$UUID` is a randomly generated string that will vary each time the
 actuator is created.
@@ -329,7 +329,7 @@ On a graceful shutdown of the `ado` process running the operation
 (CTRL-C, SIGTERM, SIGINT) active deployments will be deleted
 before exit.
 On an uncontrolled shutdown (SIGKILL) you will need to manually
-clean up any k8s deployments that were running  at the time.
+clean up any K8s deployments that were running  at the time.
 
 > [!IMPORTANT] PVC Deletion
 >

@@ -94,7 +94,7 @@ entitySpace:
       interval: 1
 experiments:
 - actuatorIdentifier: vllm_performance
-  experimentIdentifier: performance-testing-endpoint
+  experimentIdentifier: test-endpoint-v1
 ```
 
 Create the space with:

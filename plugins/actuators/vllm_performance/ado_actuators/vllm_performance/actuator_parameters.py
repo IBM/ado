@@ -6,6 +6,9 @@ from typing import Any
 import pydantic
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from orchestrator.modules.operators.base import (
+    warn_deprecated_operator_parameters_model_in_use,
+)
 
 
 # In case we need parameters for our actuator, we create a class
@@ -66,29 +69,38 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         import json
         from json import JSONDecodeError
 
+        updated = False
         if isinstance(values, dict):
             node_selector = values.get("node_selector", None)
-            if node_selector is not None is isinstance(node_selector, str):
+            if node_selector is not None and isinstance(node_selector, str):
                 try:
                     values["node_selector"] = (
-                        {}
-                        if len(node_selector) == 0
-                        else json.loads(values.node_selector)
+                        {} if len(node_selector) == 0 else json.loads(node_selector)
                     )
                 except JSONDecodeError:
                     raise ValueError(
                         "The node_selector field does not contain a valid dict"
                     )
+                updated = True
         elif isinstance(values, GenericActuatorParameters):
             try:
                 node_selector = values.node_selector
-                values.node_selector = (
-                    {} if len(node_selector) == 0 else json.loads(values.node_selector)
-                )
+                if isinstance(node_selector, str):
+                    values.node_selector = (
+                        {} if len(node_selector) == 0 else json.loads(node_selector)
+                    )
+                    updated = True
             except JSONDecodeError:
                 raise ValueError(
                     "The node_selector field does not contain a valid dict"
                 )
             except AttributeError:
                 pass
+        if updated:
+            warn_deprecated_operator_parameters_model_in_use(
+                affected_operator="vllm_performance",
+                deprecated_from_operator_version="v1.2.2",
+                removed_from_operator_version="v1.3",
+                latest_format_documentation_url="https://example.com",
+            )
         return values

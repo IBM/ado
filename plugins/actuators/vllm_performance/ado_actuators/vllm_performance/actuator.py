@@ -27,7 +27,7 @@ from orchestrator.modules.actuators.base import (
 )
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR
+from orchestrator.modules.operators._cleanup import CLEANER_ACTOR
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference

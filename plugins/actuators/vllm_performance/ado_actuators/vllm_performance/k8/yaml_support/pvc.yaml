@@ -1,0 +1,16 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: vllm-support
+  finalizers:
+    - kubernetes.io/pvc-protection
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 64Gi
+  volumeMode: Filesystem

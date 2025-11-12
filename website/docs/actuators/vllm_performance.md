@@ -153,7 +153,7 @@ metadata:
   name: demo-vllm-perf
 parameters:
   benchmark_retries: 3              # Number of benchmark attempts (see Failure Handling)
-  deployment_template: deployment.yaml  # K8s deployment spec template
+  deployment_template: deployment.yaml  # k8s deployment spec template
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>" # Required for pulling some models
   image_secret: ""                 # Optional image pull secret
   in_cluster: true                  # Run from within the cluster
@@ -163,7 +163,7 @@ parameters:
   node_selector: '{"kubernetes.io/hostname":"gpunode01"}' # Restricts GPU node
   pvc_template: pvc.yaml            # Persistent volume claim template
   retries_timeout: 5                # Seconds between retries (exponential backoff)
-  service_template: service.yaml    # K8s service spec template
+  service_template: service.yaml    # k8s service spec template
   verify_ssl: false                 # Whether to verify HTTPS endpoints
 ```
 
@@ -190,7 +190,7 @@ ado create actuatorconfiguration -f vllm_config.yaml
   - `benchmark_retries`: Number of times a benchmark can be retried if it fails
   (see Handling benchmark failures)
   - `deployment_template`, `service_template`, `pvc_template`: YAML templates for
-    K8s resources created by the actuator
+    k8s resources created by the actuator
   - `hf_token`: [HuggingFace token](https://huggingface.co/settings/tokens)
     for protected model downloads
   - `image_secret`: Kubernetes secret name for private registry images
@@ -279,7 +279,7 @@ Once deployments are created and the vLLM health endpoint is responding to reque
 `vllm bench serve` against it.
 The 20min timeout is so the wait won't pend forever in a case where something
 goes wrong
-in K8s that means the health check will never pass.
+in k8s that means the health check will never pass.
 
 When running the benchmark the actuator will try `benchmark_retries` times
 backing off exponentially based  on `retries_timeout` to run the benchmark successfully.

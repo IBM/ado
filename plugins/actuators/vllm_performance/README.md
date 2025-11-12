@@ -349,7 +349,7 @@ To use this approach it is necessary to:
   [build](docker_image), described [here](docker_image/README.md)
 - Create automation for vLLM deployment for running experiments. A simple
   implementation of such an automation is presented
-  [here](ado_actuators/vllm_performance/k8s)
+  [here](ado_actuators/vllm_performance/k8)
 - Create a vLLM performance test. Here we are directly reusing
   [performance test](https://github.com/vllm-project/vllm/blob/main/benchmarks/benchmark_serving.py)
   provided by the vLLM project. The required code is
@@ -397,7 +397,7 @@ The actuator is configured using
 
 You can customise `deployment_template`, `service_template` and `pvc_template`
 for your OpenShift/K8s cluster. Refer to the
-[default yamls](ado_actuators/vllm_performance/k8s/yaml_support) for the
+[default yamls](ado_actuators/vllm_performance/k8/yaml_support) for the
 templates referred to in [Configuring the actuator](#configuring-the-actuator)
 and modify them appropriately
 

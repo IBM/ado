@@ -97,7 +97,7 @@ class VLLMPerformanceTest(ActuatorBase):
             except Exception as error:
                 self.log.warning(
                     f"Unable to create kubernetes environment manager due to {error}. "
-                    f"Will not be able to execute experiments requiring deploying on K8s"
+                    f"Will not be able to execute experiments requiring deploying on k8s"
                 )
             else:
                 # add to clean up

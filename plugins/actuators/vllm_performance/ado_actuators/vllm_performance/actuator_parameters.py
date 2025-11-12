@@ -15,11 +15,11 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 class VLLMPerformanceTestParameters(GenericActuatorParameters):
     namespace: str | None = pydantic.Field(
         default=None,
-        description="K8s namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
+        description="k8 namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
     )
     in_cluster: bool = pydantic.Field(
         default=False,
-        description="flag to determine whether we are running in K8s cluster or locally",
+        description="flag to determine whether we are running in k8 cluster or locally",
     )
     verify_ssl: bool = pydantic.Field(
         default=False, description="flag to verify SLL when connecting to server"
@@ -51,8 +51,8 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     retries_timeout: int = pydantic.Field(
         default=5, description="initial timeout between retries"
     )
-    hf_token: str | None = pydantic.Field(
-        default=None,
+    hf_token: str = pydantic.Field(
+        default="",
         validate_default=True,
         description="Huggingface token - can be empty if you are accessing fully open models",
     )

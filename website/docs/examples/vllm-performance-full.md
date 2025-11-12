@@ -2,25 +2,29 @@
 
 > [!NOTE] The scenario
 >
-> **In this example, the _vllm_performance_ actuator is used to evaluate
+> **In this example,
+> the [_vllm_performance_ actuator](../actuators/vllm_performance.md)
+> is used to evaluate
 > different vLLM server deployment configurations on Kubernetes/OpenShift.**
 >
 > When deploying vLLM, you must choose values for parameters like GPU type, batch
 > size, and memory limits. These choices directly affect performance, cost, and
 > scalability. To find the best configuration for your workload, whether you are
-> optimizing for latency, throughput, or cost—you need to explore the deployment
+> optimizing for latency, throughput, or cost, you need to explore the deployment
 > parameter space. In this example:
 >
 > - We will define a space of vLLM deployment configurations to test with
 > the `vllm_performance` actuator's `performance_testing_full` experiment
 >       - This experiment can create and characterize a vLLM deployment on Kubernetes
-> - Use the `random_walk` operator to explore the space
+> - Use the [`random_walk` operator](../operators/random-walk.md) to
+>   explore the space
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!IMPORTANT] Prerequisites
 >
-> - Access to a k8s namespace where you can deploy vLLM
-> - Install the following Python packages:
+> - Be logged-in to your Kubernetes/OpenShift cluster
+> - Have access to a namespace where you can create vLLM deployments
+> - Install the following Python packages locally:
 >
 > ```bash
 > pip install ado-vllm-performance
@@ -35,19 +39,12 @@
 > [our repository](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls).
 > <!-- markdownlint-enable line-length -->
 >
-> - `vllm_deployment_space.yaml`: this file defines the deployment configurations
-> to explore
-> - `vllm_actuator_configuration.yaml`: Holds information about the Kubernetes/OpenShift
-> cluster the actuator will deploy vLLM to, along with how to manage the deployments.
-> - `random_walk_operation_grouped.yaml`: this file contains the optimization parameters.
->
-> **You must first edit `vllm_actuator_configuration.yaml` with your details.**
-> In particular the following three fields:
+> **You must edit `vllm_actuator_configuration.yaml` with your details.**
+> In particular the following two fields are important:
 > <!-- markdownlint-disable line-length -->
 > ```yaml
-> hf_token: <your HuggingFace access token>
-> namespace: vllm-testing # OpenShift namespace you have write access to
-> node_selector: '{"kubernetes.io/hostname":"<host-with-gpu>"}' # JSON string selecting a node that owns GPU
+> hf_token: <your HuggingFace access token> # Required to access gated models
+> namespace: vllm-testing # you MUST set this to a namespace where you can create vLLM deployments
 > ```
 >
 > Then, in a directory with these files, execute:
@@ -88,11 +85,12 @@ ado template actuatorconfiguration --actuator-identifier vllm_performance -o vll
 
 This will create a file called `vllm_actuator_configuration.yaml`
 
-Edit the file and set correct values for (at least) the following fields:
+Edit the file and set correct values for at least the `namespace` field.
+Also consider if you need to supply a value for `hf_token` :
 <!-- markdownlint-disable line-length -->
 ```yaml
-hf_token: <your HuggingFace access token> # If you need to access a gated model
-namespace: vllm-testing # OpenShift namespace you have write access to
+hf_token: <your HuggingFace access token> # Required to access gated models
+namespace: vllm-testing # you MUST set this to a namespace where you can create vLLM deployments
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -261,4 +259,5 @@ explore the impact on throughput.
 to optimise the hyper‑parameters of the benchmark.
 - Run [the exploration on the OpenShift/Kubernetes cluster](../actuators/vllm_performance.md#the-in_cluster-configuration-option)
 you create the deployments on, so you don't have to keep your laptop open.
+- Check the [`vllm_performance` actuator documentation](../actuators/vllm_performance.md)
 <!-- markdownlint-enable MD028 -->

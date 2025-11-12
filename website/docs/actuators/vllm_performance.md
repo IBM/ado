@@ -156,19 +156,16 @@ metadata:
   name: demo-vllm-perf
 parameters:
   benchmark_retries: 3                  # Number of benchmark attempts (see Failure Handling)
-  deployment_template: deployment.yaml  # k8s deployment spec template
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
   image_secret: ""                      # Optional image pull secret
   in_cluster: false                     # Set to true if running from within the cluster
   interpreter: python3                  # Language for test drivers/benchmarks
   max_environments: 1                   # Max concurrent vLLM deployments
   namespace: "mynamespace"              # OpenShift/K8s namespace to deploy into
-  node_selector:                        # Can supply node selectors to restrict to specific nodes 
+  node_selector:                        # A dictionary of Kubernetes node_selector key:value pairs
     "kubernetes.io/hostname":"gpunode01"  
-  pvc_template: pvc.yaml                # Persistent volume claim template
   pvc_name: None                        # Name of existing PVC to use. If None/omitted a temporary PVC is created
   retries_timeout: 5                    # Seconds between retries (exponential backoff)
-  service_template: service.yaml        # k8s service spec template
   verify_ssl: false                     # Whether to verify HTTPS endpoints
 ```
 <!-- markdownlint-enable line-length -->
@@ -244,6 +241,19 @@ and package setup, see [Running ado remotely](../getting-started/remote_run.md).
 > pods, and services.
 > For configuring the necessary ServiceAccount, roles, and permissions,
 > see our [documentation on deploying RayClusters for `ado`](../getting-started/installing-backend-services.md).
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!TIP] Installing the `vllm_performance` actuator on a remote RayCluster
+>
+> If the `ado-vllm-performance` actuator is not installed in the
+> image used by the RayCluster you can have [ray install it following
+> this guide](../getting-started/remote_run.md).
+>
+> In particular, if a compatible version of vLLM is not installed
+> in the image this step will require installing vLLM on each RayCluster node
+> (so `vllm bench serve` is available).
+> This can take some time so you may see the `ado` `operation` output "hang"
+> while this is happening.  
 
 ### Maximum number of deployments
 
@@ -330,20 +340,45 @@ clean up any k8s deployments that were running  at the time.
 ### Kubernetes resource templates
 
 The `vllm_performance` actuator creates Kubernetes resources
-based on a set of template YAML files by default
-that are distributed with the actuator and referenced
-by name in the `actuatorconfiguration`.
+based on a set of template YAML files
+that are distributed with the actuator.
+The templates are for:
 
-If you want to use a different template, provide the
-**absolute** **path** to it in an `actuatorconfiguration`
-resource and use that when running operations with this
-actuator.
+- vLLM deployment
+- PVC used by deployment pod
+- vLLM service
 
->[!IMPORTANT]
+You can use your own templates,
+by creating a vllm_performance
+`actuatorconfiguration` resource with the following
+fields set to the path to your templates.
+
+```yaml
+deployment_template: $PATH_RELATIVE_TO_WORKING_DIR
+service_template: $PATH_RELATIVE_TO_WORKING_DIR
+pvc_template: $PATH_RELATIVE_TO_WORKING_DIR
+```
+
+Then use this `actuatorconfiguration` resource
+when running operations with the actuator.
+
+The paths given are always interpreted relative to the
+working directory of process using the actuator
+(where `ado create operation` or `run_experiment` is executed).
+
+>[!IMPORTANT] Custom templates and executing on remote RayClusters
 >
 > The template path must be accessible where the actuator is running.
-> This is particularly important to consider when running in a
-> remote RayCluster
+> This is important to consider when running operation using
+> `vllm_performance` on a remote RayCluster.
+> To handle this we recommend:
+>
+> - Put custom templates in the working directory (or a subdirectory of it)
+>   that you will
+>   [send to the RayCluster](../getting-started/remote_run.md#other-options)
+> - Create an `actuatorconfiguration` with the relative paths to the
+>   templates from this working directory
+>
 
 ### Grouped sampling for efficient deployment usage
 

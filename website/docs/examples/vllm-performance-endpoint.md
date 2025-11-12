@@ -2,7 +2,9 @@
 
 > [!NOTE] The scenario
 >
-> **In this example, the _vllm_performance_ actuator is used to find
+> **In this example,
+> the [_vllm_performance_ actuator](../actuators/vllm_performance.md)
+> is used to find
 > the maximum requests per second a server can handle while maintaining
 > stable maximum throughput.**
 >
@@ -16,7 +18,8 @@
 > To explore this space, you will:
 >
 > - define an endpoint, model and range of requests per second to test
-> - use an optimizer to efficiently find the maximum requests per second
+> - use [an optimizer](../operators/optimisation-with-ray-tune.md)
+> to efficiently find the maximum requests per second
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!IMPORTANT] Prerequisites
@@ -227,4 +230,6 @@ them as dimensions of the `entityspace`, to explore their impact on throughput
        The previous runs will not influence new runs, but their results will
         be reused, speeding experimentation up
 - Measure the [performance of vLLM deployment configurations](vllm-performance-full.md)
+- Check the [`vllm_performance` actuator documentation](../actuators/vllm_performance.md)
+
 <!-- markdownlint-enable MD007 -->

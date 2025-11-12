@@ -16,10 +16,10 @@ from ado_actuators.vllm_performance.env_manager import (
     EnvironmentManager,
     EnvironmentState,
 )
-from ado_actuators.vllm_performance.k8.create_environment import (
+from ado_actuators.vllm_performance.k8s.create_environment import (
     create_test_environment,
 )
-from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
+from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     VLLMDtype,
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
@@ -40,11 +40,11 @@ from orchestrator.utilities.support import (
 logger = logging.getLogger(__name__)
 
 
-class K8EnvironmentCreationError(Exception):
+class K8sEnvironmentCreationError(Exception):
     """Error raised when K8 environment cannot be created for some reason"""
 
 
-class K8ConnectionError(Exception):
+class K8sConnectionError(Exception):
     """Error raised when there is an issue connecting to K8s or a service its hosting"""
 
 
@@ -106,7 +106,7 @@ def _create_environment(
      :param timeout: timeout
     :return: kubernetes environment name
 
-    :raises K8EnvironmentCreationError if there was an issue
+    :raises K8sEnvironmentCreationError if there was an issue
     - If the creation step fails after three attempts
     - If after creation the environment was not in ready state after timeout seconds (1200 default)
 
@@ -128,7 +128,7 @@ def _create_environment(
 
     error = None
     logger.debug(
-        f"Environment state {env.state}, name {env.k8_name}, definition {definition}"
+        f"Environment state {env.state}, name {env.k8s_name}, definition {definition}"
     )
 
     start = time.time()
@@ -139,12 +139,12 @@ def _create_environment(
     match env.state:
         case EnvironmentState.NONE:
             # Environment does not exist, create it
-            logger.debug(f"Environment {env.k8_name} does not exist. Creating it")
+            logger.debug(f"Environment {env.k8s_name} does not exist. Creating it")
             tmout = 1
             for attempt in range(3):
                 try:
                     create_test_environment(
-                        k8_name=env.k8_name,
+                        k8s_name=env.k8s_name,
                         model=model,
                         in_cluster=actuator.in_cluster,
                         verify_ssl=actuator.verify_ssl,
@@ -185,17 +185,17 @@ def _create_environment(
             # Check if error after three attempts
             if error is None:
                 logger.info(
-                    f"Created test environment {env.k8_name} in {time.time() - start} sec"
+                    f"Created test environment {env.k8s_name} in {time.time() - start} sec"
                 )
             else:
-                raise K8EnvironmentCreationError(
-                    f"Failed to create test environment {env.k8_name}: {error}"
+                raise K8sEnvironmentCreationError(
+                    f"Failed to create test environment {env.k8s_name}: {error}"
                 )
 
         case EnvironmentState.CREATING:
             # Someone is creating environment, wait till its ready
             logger.info(
-                f"Environment {env.k8_name} is being created. Waiting for it to be ready."
+                f"Environment {env.k8s_name} is being created. Waiting for it to be ready."
             )
             n_checks = math.ceil(timeout / check_interval)
             for _ in range(n_checks):
@@ -213,20 +213,20 @@ def _create_environment(
                 error = (
                     f"Timed out waiting for environment to get ready. Timeout {timeout}"
                 )
-                raise K8EnvironmentCreationError(
-                    f"Failed to create test environment {env.k8_name}: {error}"
+                raise K8sEnvironmentCreationError(
+                    f"Failed to create test environment {env.k8s_name}: {error}"
                 )
 
             logger.debug("Environment is created, using it")
         case _:
             # environment exists, use it
-            logger.debug(f"Environment {env.k8_name} already exists. Reusing it")
+            logger.debug(f"Environment {env.k8s_name} already exists. Reusing it")
 
-    return env.k8_name, definition
+    return env.k8s_name, definition
 
 
 def _connect_to_vllm_server(
-    k8_name: str,
+    k8s_name: str,
     actuator_parameters: VLLMPerformanceTestParameters,
     port: int,
 ) -> tuple[str, subprocess.Popen | None]:
@@ -236,7 +236,7 @@ def _connect_to_vllm_server(
     is not running on the cluster with the service
 
     Parameters:
-        k8_name: The name of the vLLM service
+        k8s_name: The name of the vLLM service
         actuator_parameters: VLLMPerformanceTestParameters instance containing
             namespace and test location (in_cluster or not) information
 
@@ -247,7 +247,7 @@ def _connect_to_vllm_server(
           Otherwise None
 
     Raise:
-        K8ConnectionError if a port-forward could not be created
+        K8sConnectionError if a port-forward could not be created
     """
 
     # create environment
@@ -262,20 +262,20 @@ def _connect_to_vllm_server(
     if actuator_parameters.in_cluster:
         # we are running in cluster, connect to service directly
         base_url = (
-            f"http://{k8_name}.{actuator_parameters.namespace}.svc.cluster.local:80"
+            f"http://{k8s_name}.{actuator_parameters.namespace}.svc.cluster.local:80"
         )
         pf = None
     else:
         # we are running locally. need to do port-forward and connect to the local one
-        pf_command = f"kubectl port-forward svc/{k8_name} -n {actuator_parameters.namespace} {port}:80"
+        pf_command = f"kubectl port-forward svc/{k8s_name} -n {actuator_parameters.namespace} {port}:80"
         try:
             pf = subprocess.Popen(pf_command, shell=True)
             # make sure that port forwarding is up
             time.sleep(5)
         except Exception as e:
-            logger.warning(f"failed to start port forward to service {k8_name} - {e}")
-            raise K8ConnectionError(
-                f"failed to start port forward to service {k8_name} - {e}"
+            logger.warning(f"failed to start port forward to service {k8s_name} - {e}")
+            raise K8sConnectionError(
+                f"failed to start port forward to service {k8s_name} - {e}"
             )
 
         base_url = f"http://localhost:{port}"
@@ -326,21 +326,21 @@ def run_resource_and_workload_experiment(
         try:
             values = experiment.propertyValuesFromEntity(entity=entity)
 
-            logger.info(f"Creating k8s environment for {entity.identifier}")
+            logger.info(f"Creating K8s environment for {entity.identifier}")
 
-            # Will raise an K8EnvironmentCreationError if the environment could not be created
-            k8_name, definition = _create_environment(
+            # Will raise an K8sEnvironmentCreationError if the environment could not be created
+            k8s_name, definition = _create_environment(
                 values=values,
                 actuator=actuator_parameters,
                 node_selector=node_selector,
                 env_manager=env_manager,
             )
 
-            # Will raise an K8ConnectionError if a port-forward was required
+            # Will raise an K8sConnectionError if a port-forward was required
             # but could not be created
             current_port += 1
             base_url, port_forward = _connect_to_vllm_server(
-                k8_name, actuator_parameters, current_port
+                k8s_name, actuator_parameters, current_port
             )
 
             logger.info(f"Will use vllm server at {base_url}")
@@ -372,8 +372,8 @@ def run_resource_and_workload_experiment(
                 port_forward.kill()
             env_manager.done_using.remote(definition=definition)
         except (
-            K8EnvironmentCreationError,
-            K8ConnectionError,
+            K8sEnvironmentCreationError,
+            K8sConnectionError,
             VLLMBenchmarkError,
         ) as error:
             logger.error(f"Error running tests for entity {entity.identifier}: {error}")

@@ -7,10 +7,10 @@ import time
 from enum import Enum
 
 import ray
-from ado_actuators.vllm_performance.k8.manage_components import (
+from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
-from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
+from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
 )
 
@@ -37,7 +37,7 @@ class Environment:
         Defines an environment for a model
         :param model: LLM model name
         """
-        self.k8_name = ComponentsYaml.get_k8_name(model=model)
+        self.k8s_name = ComponentsYaml.get_k8s_name(model=model)
         self.state = EnvironmentState.NONE
         self.in_use = 0
 
@@ -112,11 +112,11 @@ class EnvironmentManager:
                     if env.in_use == 0:
                         available = True
                         start = time.time()
-                        self.manager.delete_service(k8_name=env.k8_name)
-                        self.manager.delete_deployment(k8_name=env.k8_name)
+                        self.manager.delete_service(k8s_name=env.k8s_name)
+                        self.manager.delete_deployment(k8s_name=env.k8s_name)
                         del self.environments[key]
                         print(
-                            f"deleted environment {env.k8_name} in {time.time() - start} sec. "
+                            f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
                             f"Environments length {len(self.environments)}"
                         )
                         time.sleep(3)
@@ -168,8 +168,8 @@ class EnvironmentManager:
         print("Cleaning environment manager")
         for env in self.environments.values():
             if env.state == EnvironmentState.READY:
-                self.manager.delete_service(k8_name=env.k8_name)
-                self.manager.delete_deployment(k8_name=env.k8_name)
+                self.manager.delete_service(k8s_name=env.k8s_name)
+                self.manager.delete_deployment(k8s_name=env.k8s_name)
         # We only delete the PVC if it was created by this actuator
         if self.manager.pvc_created:
             logger.debug("Deleting PVC")

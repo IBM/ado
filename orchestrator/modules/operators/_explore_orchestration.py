@@ -20,7 +20,6 @@ from orchestrator.core.operation.config import (
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.actuators.base import ActuatorActor
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.module import load_module_class_or_function
@@ -32,13 +31,16 @@ from orchestrator.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
 )
-from orchestrator.modules.operators.base import OperatorActor
-from orchestrator.modules.operators.discovery_space_manager import (
-    DiscoverySpaceManager,
-    DiscoverySpaceManagerActor,
-)
+from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 
 moduleLog = logging.getLogger("explore_orchestration")
+
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.base import ActuatorActor
+    from orchestrator.modules.operators.base import OperatorActor
+    from orchestrator.modules.operators.discovery_space_manager import (
+        DiscoverySpaceManagerActor,
+    )
 
 
 def graceful_explore_operation_shutdown(

@@ -3,11 +3,21 @@
 <!-- markdownlint-disable line-length -->
 
 > [!TIP] Overview
+>
 > The `vllm_performance` actuator **can
 > automatically create and benchmark [vLLM](https://github.com/vllm-project/vllm) inference deployments on Kubernetes and OpenShift clusters**.
 >
 > It is designed for robust, repeatable, and configurable experiment execution.
 > It is suitable for both simple one-off benchmarks and large parameter sweeps.
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!NOTE] Installing
+>
+> Run:
+>
+> ```commandline
+> pip install ado-vllm-performance
+>```
 <!-- markdownlint-enable line-length -->
 
 ## Key Capabilities

@@ -1,7 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
-sampleStoreIdentifier: 2963a5
 entitySpace:
   - identifier: model
     propertyDomain:
@@ -11,36 +9,26 @@ entitySpace:
     propertyDomain:
       values:
         - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
-  - identifier: n_cpus
+  - identifier: "number_input_tokens"
     propertyDomain:
-      values: [8]
-  - identifier: memory
-    propertyDomain:
-      values: ["128Gi"]
-  - identifier: dtype
-    propertyDomain:
-      values: ["auto"]
-  - identifier: "num_prompts"
-    propertyDomain:
-      values: [500]
+      values: [1024, 2048, 4096]
   - identifier: "request_rate"
     propertyDomain:
-      values: [-1]
-  - identifier: "max_concurrency"
+      domainRange: [1,10]
+      interval: 1
+  - identifier: n_cpus
     propertyDomain:
-      values: [-1]
-  - identifier: "gpu_memory_utilization"
+      domainRange: [2,16]
+      interval: 2
+  - identifier: memory
     propertyDomain:
-      values: [.9]
-  - identifier: "cpu_offload"
-    propertyDomain:
-      values: [0]
+      values: ["128Gi", "256Gi"]
   - identifier: "max_batch_tokens"
     propertyDomain:
-      values: [16384]
+      values: [1024, 2048, 4096, 8192, 16384, 32768]
   - identifier: "max_num_seq"
     propertyDomain:
-      values: [256]
+      values: [16,32,64]
   - identifier: "n_gpus"
     propertyDomain:
       values: [1]
@@ -51,4 +39,5 @@ experiments:
   - actuatorIdentifier: vllm_performance
     experimentIdentifier: performance-testing-full
 metadata:
-  description: Parameters for VLLM performance testing
+  description: A space of vllm deployment configurations
+  name: vllm_deployments

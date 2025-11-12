@@ -191,6 +191,7 @@ nav:
       - Adding custom experiments: actuators/creating-custom-experiments.md
       - Running experiments on single entities: actuators/run_experiment.md
       - Using externally obtained data: actuators/replay.md
+      - vllm_performance - measure inference performance: actuators/vllm_performance.md
       #- ST4SD: actuators/st4sd.md
       - SFTTrainer - measure fine-tuning performance : actuators/sft-trainer.md
       #- Molformer: actuators/molformer.md

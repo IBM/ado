@@ -96,15 +96,16 @@ def _run_operation_harness(
         )
     except RayTaskError as error:
         sys.stdout.flush()
+        e = error.as_instanceof_cause()
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,
-            message=f"Operation exited due to the following error: {error}.",
+            message=f"Operation exited due to the following error from a Ray Task: {e}.",
         )
         raise OperationException(
             message=f"Error raised while executing operation {operation_resource.identifier}",
             operation=operation_resource,
-        ) from error
+        ) from e
     except BaseException as error:
         import traceback
 

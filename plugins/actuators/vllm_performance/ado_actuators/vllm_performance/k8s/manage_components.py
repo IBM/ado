@@ -15,9 +15,16 @@ from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     VLLMDtype,
 )
 from kubernetes import client, config
-from kubernetes.client import ApiException
+from kubernetes.client import ApiException, V1Deployment
 
 logger = logging.getLogger(__name__)
+
+# These are the most common reasons for a container failure.
+container_waiting_error_reasons = [
+    "CrashLoopBackOff",
+    "ImagePullBackOff",
+    "ErrImagePull",
+]
 
 
 class ComponentsManager:
@@ -176,13 +183,10 @@ class ComponentsManager:
         :param k8s_name: kubernetes name
         :return: boolean
         """
-        try:
-            self.kube_client_V1.delete_namespaced_service(
-                namespace=self.namespace,
-                name=k8s_name,
-            )
-        except ApiException as e:
-            logger.error(f"error deleting service {e}")
+        self.kube_client_V1.delete_namespaced_service(
+            namespace=self.namespace,
+            name=k8s_name,
+        )
 
     def create_service(
         self, k8s_name: str, template: str | None = None, reuse: bool = False
@@ -200,7 +204,10 @@ class ComponentsManager:
             return
         if exists and not reuse:
             # delete it first
-            self.delete_service(k8s_name=k8s_name)
+            try:
+                self.delete_service(k8s_name=k8s_name)
+            except ApiException as e:
+                logger.error(f"Error deleting service {e}")
             # make sure that deletion is completed
             deleting = True
             for _ in range(150):
@@ -244,16 +251,13 @@ class ComponentsManager:
         :param k8s_name: kubernetes name
         :return: boolean
         """
-        try:
-            self.kube_client.delete_namespaced_deployment(
-                namespace=self.namespace,
-                name=k8s_name,
-                body=client.V1DeleteOptions(
-                    propagation_policy="Foreground", grace_period_seconds=5
-                ),
-            )
-        except ApiException as e:
-            logger.error(f"error deleting deployment {e}")
+        self.kube_client.delete_namespaced_deployment(
+            namespace=self.namespace,
+            name=k8s_name,
+            body=client.V1DeleteOptions(
+                propagation_policy="Foreground", grace_period_seconds=5
+            ),
+        )
 
     def create_deployment(
         self,
@@ -304,7 +308,10 @@ class ComponentsManager:
             return
         if exists and not reuse:
             # delete it first
-            self.delete_deployment(k8s_name=k8s_name)
+            try:
+                self.delete_deployment(k8s_name=k8s_name)
+            except ApiException as e:
+                logger.error(f"Error deleting deployment {e}")
             # make sure that deletion is completed
             deleting = True
             for _ in range(150):
@@ -347,6 +354,36 @@ class ComponentsManager:
             logger.error(f"error creating deployment  {e}")
             raise
 
+    def _is_pod_failed(self, deployment: V1Deployment) -> bool:
+        label_selector = ",".join(
+            [f"{k}={v}" for k, v in deployment.spec.selector.match_labels.items()]
+        )
+        pods = self.kube_client_V1.list_namespaced_pod(
+            self.namespace, label_selector=label_selector
+        )
+        # There's really only one pod in our deployments
+        for pod in pods.items:
+            pod_name = pod.metadata.name
+            pod_phase = pod.status.phase
+
+            # Check if pod phase is Failed
+            if pod_phase == "Failed":
+                logger.warning(f"Pod {pod_name} is Failed")
+                return True
+
+            # Check container statuses for errors
+            if pod.status.container_statuses:
+                for cs in pod.status.container_statuses:
+                    if (
+                        cs.state.waiting
+                        and cs.state.waiting.reason in container_waiting_error_reasons
+                    ):
+                        logger.warning(
+                            f"Container {cs.name} in pod {pod_name} is in error ({cs.state.waiting.reason})"
+                        )
+                        return True
+        return False
+
     def _deployment_ready(self, k8s_name: str) -> bool:
         """
         Check whether deployment pod ready
@@ -360,6 +397,8 @@ class ComponentsManager:
             )
         except ApiException as e:
             logger.error(f"error getting deployment  {e}")
+            return False
+        if self._is_pod_failed(deployment=deployment):
             return False
         if deployment.status.available_replicas is None:
             return False

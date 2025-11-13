@@ -13,6 +13,7 @@ from ado_actuators.vllm_performance.k8s.manage_components import (
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
 )
+from kubernetes.client import ApiException
 
 logger = logging.getLogger(__name__)
 
@@ -112,8 +113,11 @@ class EnvironmentManager:
                     if env.in_use == 0:
                         available = True
                         start = time.time()
-                        self.manager.delete_service(k8s_name=env.k8s_name)
-                        self.manager.delete_deployment(k8s_name=env.k8s_name)
+                        try:
+                            self.manager.delete_service(k8s_name=env.k8s_name)
+                            self.manager.delete_deployment(k8s_name=env.k8s_name)
+                        except ApiException as e:
+                            logger.error(f"Error deleting deployment or service {e}")
                         del self.environments[key]
                         print(
                             f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
@@ -165,11 +169,18 @@ class EnvironmentManager:
         Clean up environment
         :return: None
         """
-        print("Cleaning environment manager")
+        logger.info("Cleaning environments")
         for env in self.environments.values():
-            if env.state == EnvironmentState.READY:
+            try:
                 self.manager.delete_service(k8s_name=env.k8s_name)
+            except ApiException as e:
+                if e.reason != "Not Found":
+                    raise e
+            try:
                 self.manager.delete_deployment(k8s_name=env.k8s_name)
+            except ApiException as e:
+                if e.reason != "Not Found":
+                    raise e
         # We only delete the PVC if it was created by this actuator
         if self.manager.pvc_created:
             logger.debug("Deleting PVC")

@@ -62,7 +62,13 @@ def setup_actuators(
         namespace: The namespace to set up in
         config: Configuration of the orchestrator
         queue: the update queue
+
+    Raises:
+        ray.exceptions.ActorDiedError if any actuator
+        raised an exception in init
     """
+
+    import ray
 
     import orchestrator.modules.actuators.base
     import orchestrator.modules.actuators.registry
@@ -116,6 +122,10 @@ def setup_actuators(
         )
 
         actuators[actuatorIdentifier] = actuator
+
+    # Check that are all ready - this will raise ray.exceptions.ActorDiedError
+    # if any died
+    ray.get([a.ready.remote() for a in actuators.values()])
 
     return actuators
 

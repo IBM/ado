@@ -68,6 +68,10 @@ class ActuatorBase(abc.ABC):
         self._parameters = params if params is not None else {}
         self._measurementSpace = None  # type: typing.Optional[MeasurementSpace]
 
+    def ready(self):
+        """This method is used to determine if the Actuator died on init"""
+        return True
+
     @abc.abstractmethod
     async def submit(
         self,

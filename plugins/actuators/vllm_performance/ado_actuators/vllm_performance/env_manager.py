@@ -169,7 +169,7 @@ class EnvironmentManager:
         Clean up environment
         :return: None
         """
-        print("Cleaning environment manager")
+        logger.info("Cleaning environments")
         for env in self.environments.values():
             try:
                 self.manager.delete_service(k8s_name=env.k8s_name)

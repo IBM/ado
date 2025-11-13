@@ -3,8 +3,8 @@
 
 # The input to an experiment is an Entity. For the Entity to be a valid input
 # it's properties which  match what is defined here
-performance_testing-full:
-  identifier: performance-testing-full
+test-deployment-v1:
+  identifier: test-deployment-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -120,6 +120,12 @@ performance_testing-full:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
+    - identifier: 'dataset'
+      metadata:
+        description: "(benchmark) The dataset to use for the benchmark"
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [ 'random' ]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -167,6 +173,9 @@ performance_testing-full:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'dataset'
+      value: 'random'
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -206,8 +215,8 @@ performance_testing-full:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
-performance_testing-endpoint:
-  identifier: performance-testing-endpoint
+test-endpoint-v1:
+  identifier: test-endpoint-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -264,6 +273,12 @@ performance_testing-endpoint:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [ -1, 500 ] # -1 means no concurrency control
         interval: 1
+    - identifier: 'dataset'
+      metadata:
+        description: "The dataset to use for the benchmark"
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [ 'random' ]
   defaultParameterization:
     - value: 1000
       property:
@@ -280,6 +295,9 @@ performance_testing-endpoint:
     - value: 128
       property:
         identifier: 'max_output_tokens'
+    - value: 'random'
+      property:
+        identifier: "dataset"
   # measurements
   targetProperties:
     - identifier: "duration"

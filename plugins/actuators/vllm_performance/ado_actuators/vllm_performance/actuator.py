@@ -177,7 +177,7 @@ class VLLMPerformanceTest(ActuatorBase):
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
-        if experiment.identifier == "performance-testing-full":
+        if experiment.identifier == "test-deployment-v1":
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(
                     f"Actuator configuration did not contain sufficient information for a kubernetes environment manager to be created. "

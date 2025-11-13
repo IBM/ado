@@ -3,11 +3,21 @@
 <!-- markdownlint-disable line-length -->
 
 > [!TIP] Overview
+>
 > The `vllm_performance` actuator **can
 > automatically create and benchmark [vLLM](https://github.com/vllm-project/vllm) inference deployments on Kubernetes and OpenShift clusters**.
 >
 > It is designed for robust, repeatable, and configurable experiment execution.
 > It is suitable for both simple one-off benchmarks and large parameter sweeps.
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!NOTE] Installing
+>
+> Run:
+>
+> ```commandline
+> pip install ado-vllm-performance
+>```
 <!-- markdownlint-enable line-length -->
 
 ## Key Capabilities
@@ -29,11 +39,11 @@ compatible endpoints
 
 The `vllm_performance` actuator implements two experiments
 
-- `performance-testing-full`: This experiment can test the full vLLM workload configuration,
+- `test-deployment-v1`: This experiment can test the full vLLM workload configuration,
 including resource requests and server deployment configuration. It deploys
 servers with given configuration on kubernetes and runs `vllm bench serve` on them
 with the given parameters
-- `performance-testing-endpoint`: This experiment is equivalent to running
+- `test-endpoint-v1`: This experiment is equivalent to running
 `vllm bench serve` against an endpoint.
 
 ---
@@ -59,7 +69,7 @@ entity:
   request_rate: 50
 experiments:
 - actuatorIdentifier: vllm_performance
-  experimentIdentifier: performance-testing-endpoint
+  experimentIdentifier: test-endpoint-v1
 ```
 
 Then run:
@@ -103,7 +113,7 @@ entity:
   n_gpus: 1
 experiments:
 - actuatorIdentifier: vllm_performance
-  experimentIdentifier: performance-testing-full
+  experimentIdentifier: test-deployment-v1
 ```
 
 Then run:
@@ -184,7 +194,7 @@ ado create actuatorconfiguration -f vllm_config.yaml
 
 > [!WARNING] GPU type
 >
-> The GPU type to use in an experiment is set via the experiment itself (performance-testing-full).
+> The GPU type to use in an experiment is set via the experiment itself (test-deployment-v1).
 > **Do not** set this via the `node_selector` parameter of the configuration.
 <!-- markdownlint-disable-next-line MD028 -->
 
@@ -222,7 +232,7 @@ actuator.
 
 The `in_cluster` option in your `actuatorconfiguration` tells the `vllm_performance`
 actuator how to communicate with the target Kubernetes or OpenShift cluster when
-running `performance-testing-full`.
+running `test-deployment-v1`.
 
 If running `ado` from outside the Kubernetes/OpenShift cluster where
 the deployments will be created, leave `in_cluster: false` (the default).

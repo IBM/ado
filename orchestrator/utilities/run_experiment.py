@@ -7,6 +7,7 @@ import pathlib
 import time
 from collections.abc import Callable
 
+import ray.exceptions
 import requests
 import typer
 import yaml
@@ -15,6 +16,10 @@ from ray.actor import ActorHandle
 from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
+from orchestrator.modules.operators.orchestrate import (
+    graceful_operation_shutdown,
+    initialize_resource_cleaner,
+)
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.reference import ExperimentReference
@@ -62,8 +67,6 @@ def local_execution_closure(
                 f"Loaded configuration {actuator_configuration_identifier} for actuator {actuator_configuration.actuatorIdentifier}"
             )
 
-    print(actuator_configurations)
-
     def execute_local(
         reference: ExperimentReference, entity: Entity
     ) -> MeasurementRequest | None:
@@ -85,19 +88,24 @@ def local_execution_closure(
         actuator = actuators[reference.actuatorIdentifier]
         # Submit the measurement request asynchronously, handle errors gracefully.
         try:
-            actuator.submit.remote(
+            ray.get(actuator.ready.remote())
+            future = actuator.submit.remote(
                 entities=[entity],
                 experimentReference=reference,
                 requesterid="run_experiment",
                 requestIndex=0,
             )
-        except Exception as e:
+            _ = ray.get(future)
+        except ray.exceptions.ActorDiedError as error:
             print(
-                f"[ERROR] Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}': {e}"
+                f"[ERROR] Failed to initialize actuator '{reference.actuatorIdentifier}': {error}"
             )
-            import traceback
-
-            traceback.print_exc()
+            return None
+        except ray.exceptions.RayTaskError as error:
+            e = error.as_instanceof_cause()
+            print(
+                f"[ERROR] Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}':\n {e}"
+            )
             # Either skip, or return None, or propagate. Let's return None.
             return None
 
@@ -239,27 +247,34 @@ def run(
         else remote_execution_closure(remote, timeout=timeout)
     )
 
-    for reference in point.experiments:
-        valid = True
-        if validate:
-            print("Validating entity ...")
-            experiment = registry.experimentForReference(reference)
-            valid = experiment.validate_entity(entity, verbose=True)
-        else:
-            print("Skipping validation")
+    if not remote:
+        initialize_resource_cleaner()
 
-        if valid:
-            print(f"Executing: {reference}")
-            request = execute(reference, entity)
-            if request is None:
-                print(
-                    "Measurement request failed unexpectedly. Skipping this experiment."
-                )
+    try:
+        for reference in point.experiments:
+            valid = True
+            if validate:
+                print("Validating entity ...")
+                experiment = registry.experimentForReference(reference)
+                valid = experiment.validate_entity(entity, verbose=True)
             else:
-                print("Result:")
-                print(f"{request.series_representation(output_format='target')}\n")
-        else:
-            print("Entity is not valid")
+                print("Skipping validation")
+
+            if valid:
+                print(f"Executing: {reference}")
+                request = execute(reference, entity)
+                if request is None:
+                    print(
+                        "Measurement request failed unexpectedly. Skipping this experiment."
+                    )
+                else:
+                    print("Result:")
+                    print(f"{request.series_representation(output_format='target')}\n")
+            else:
+                print("Entity is not valid")
+    finally:
+        if not remote:
+            graceful_operation_shutdown()
 
 
 def main():

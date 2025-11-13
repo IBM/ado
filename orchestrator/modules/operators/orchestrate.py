@@ -29,6 +29,8 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
+    CLEANER_ACTOR,  # noqa: F401
+    ResourceCleaner,  # noqa: F401
     graceful_operation_shutdown,
     initialize_resource_cleaner,
 )

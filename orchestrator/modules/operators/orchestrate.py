@@ -8,6 +8,7 @@ import os
 import pathlib
 import typing
 
+import pydantic
 import ray
 import ray.util.queue
 from ray.runtime_env import RuntimeEnv
@@ -22,7 +23,7 @@ from orchestrator.core.operation.config import (
     BaseOperationRunConfiguration,
     FunctionOperationInfo,
 )
-from orchestrator.core.operation.operation import OperationOutput
+from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.core.operation.resource import (
     OperationResource,
 )
@@ -209,6 +210,18 @@ def orchestrate(
             )
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
+        raise
+    except OperationException as error:
+        moduleLog.critical(f"Error, {error}, detected during operation")
+        raise
+    except (
+        ValueError,
+        pydantic.ValidationError,
+        ray.exceptions.ActorDiedError,
+    ) as error:
+        moduleLog.critical(
+            f"Error, {error}, in operation setup. Operation resource not created - exiting"
+        )
         raise
     except BaseException as error:
         moduleLog.critical(

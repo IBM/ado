@@ -104,13 +104,14 @@ Example `point.yaml`:
 
 ```yaml
 entity:
-  model: ibm-granite/granite-3.3-8b-instruct
+  model: ibm-granite/granite-3.3-2b-instruct
   n_cpus: 8
   memory: 128Gi
   gpu_type: NVIDIA-A100-80GB-PCIe
   max_batch_tokens: 8192
   max_num_seq: 32
   n_gpus: 1
+  request_rate: 10 
 experiments:
 - actuatorIdentifier: vllm_performance
   experimentIdentifier: test-deployment-v1

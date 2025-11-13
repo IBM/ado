@@ -97,7 +97,7 @@ class ResourceCleaner:
             done, not_done = ray.wait(
                 ray_waitables=handles, num_returns=len(handles), timeout=60.0
             )
-            print(f"cleaned {len(done)}, clean failed {len(not_done)}")
+            moduleLog.info(f"cleaned {len(done)}, clean failed {len(not_done)}")
 
 
 def log_space_details(discovery_space: "DiscoverySpace"):

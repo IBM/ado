@@ -108,6 +108,10 @@ class VLLMPerformanceTest(ActuatorBase):
                     logger.warning(
                         f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
                     )
+        else:
+            self.log.warning(
+                "No namespace set in acutator configuration - will not be able to create deployments"
+            )
 
         # initialize local port
         self.local_port = 10000

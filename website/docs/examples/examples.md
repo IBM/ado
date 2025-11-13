@@ -19,13 +19,16 @@ one example to another.
 
 ## Foundation Models Characterization
 
-The following examples illustrate using the vllm_performance and SFTTrainer
+The following examples illustrate using the
+[vllm_performance](../actuators/vllm_performance.md) and
+[SFTTrainer](../actuators/sft-trainer.md)
 actuators which offer benchmarking experiments for foundation model inference
 and fine-tuning respectively.
 
 - [Measure throughput of fine-tuning locally](finetune-locally.md)
 - [Measure throughput of fine-tuning on a RayCluster with GPUs](finetune-remotely.md)
 - [Find the request rate giving the highest stable throughput for an inference server](vllm-performance-endpoint.md)
+- [Evaluate different vLLM server deployment configurations on Kubernetes/OpenShift](vllm-performance-full.md)
 
 ## Adding experiments or analysis tools to `ado`
 

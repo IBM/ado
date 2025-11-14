@@ -293,7 +293,7 @@ still regular Python and can be called:
 
 ```python
 # Access the original function (undecorated)
-original = calculate_density._decorator_func
+original = calculate_density._original_func
 print(original(8, 4))  # {'density': 2}
 ```
 

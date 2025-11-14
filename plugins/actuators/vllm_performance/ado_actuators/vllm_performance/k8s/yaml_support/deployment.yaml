@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: vllm
-          image: "vllm/vllm-openai:v0.6.3"
+          image: "vllm/vllm-openai:v0.11.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -67,7 +67,3 @@ spec:
         - name: dshm
           emptyDir:
             medium: Memory
-      nodeSelector:
-        nvidia.com/gpu.product: NVIDIA-A100-80GB-PCIe
-        #nvidia.com/gpu.product: Tesla-V100-PCIE-16GB
-        #kubernetes.io/hostname: cpu15

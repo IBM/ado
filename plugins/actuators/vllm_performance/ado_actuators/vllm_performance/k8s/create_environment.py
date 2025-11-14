@@ -3,10 +3,10 @@
 
 import logging
 
-from ado_actuators.vllm_performance.k8.manage_components import (
+from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
-from ado_actuators.vllm_performance.k8.yaml_support.build_components import (
+from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
     VLLMDtype,
 )
@@ -15,15 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 def create_test_environment(
-    k8_name: str,
+    k8s_name: str,
     model: str,
+    pvc_name: str,
     in_cluster: bool = True,
     verify_ssl: bool = False,
     image: str = "vllm/vllm-openai:v0.6.3",
     image_secret: str = "",
-    deployment_template: str = "deployment.yaml",
-    service_template: str = "service.yaml",
-    pvc_template: str = "pvc.yaml",
+    deployment_template: None | str = None,
+    service_template: None | str = None,
     n_gpus: int = 1,
     gpu_type: str = "NVIDIA-A100-80GB-PCIe",
     node_selector: dict[str, str] = {},
@@ -37,22 +37,20 @@ def create_test_environment(
     hf_token: str | None = None,
     reuse_service: bool = True,
     reuse_deployment: bool = True,
-    reuse_pvc: bool = True,
-    pvc_name: str = "vllm-support",
     namespace: str = "vllm-testing",
 ) -> None:
     """
     Create test deployment
-    :param k8_name: unique k8 name
+    :param k8s_name: unique K8s name
     :param model: LLM model name
     :param namespace: namespace to use for deployment
+    :param pvc_name: name of the pvc to be used
     :param in_cluster: flag - running in cluster
     :param verify_ssl:  flag - verify ssl
     :param image: image to use in deployment
     :param image_secret: name of the image pull secret
     :param deployment_template: deployment template
     :param service_template: service template
-    :param pvc_template: pvc template
     :param n_gpus: number of GPUs
     :param gpu_type: type of the GPU to use
     :param node_selector: optional node selector
@@ -66,8 +64,6 @@ def create_test_environment(
     :param hf_token: huggingface token
     :param reuse_service: flag to reuse deployment
     :param reuse_deployment: flag to reuse deployment
-    :param reuse_pvc: flag to reuse VPC
-    :param pvc_name: PVC name
     :return:
     """
     logger.info(f"Creating environment in ns {namespace} with the parameters: ")
@@ -76,21 +72,15 @@ def create_test_environment(
     )
     logger.info(
         f"image_secret {image_secret}, deployment_template {deployment_template}, "
-        f"service_template {service_template}"
+        f"service_template {service_template}, pvc_name {pvc_name}"
     )
-    logger.info(
-        f"pvc_template {pvc_template}, n_gpus {n_gpus}, gpu_type {gpu_type}, n_cpus {n_cpus}"
-    )
+    logger.info(f"n_gpus {n_gpus}, gpu_type {gpu_type}, n_cpus {n_cpus}")
     logger.info(f"node selector {node_selector}")
     logger.info(
         f"memory {memory}, max_batch_tokens {max_batch_tokens}, gpu_memory_utilization {gpu_memory_utilization}"
     )
-    logger.info(
-        f"dtype {dtype}, cpu_offload {cpu_offload}, max_num_seq {max_num_seq}, pvc_name {pvc_name}"
-    )
-    logger.info(
-        f"reuse_service {reuse_service}, reuse_deployment {reuse_deployment}, reuse_pvc {reuse_pvc}"
-    )
+    logger.info(f"dtype {dtype}, cpu_offload {cpu_offload}, max_num_seq {max_num_seq}")
+    logger.info(f"reuse_service {reuse_service}, reuse_deployment {reuse_deployment}")
 
     # manager
     c_manager = ComponentsManager(
@@ -99,12 +89,10 @@ def create_test_environment(
         verify_ssl=verify_ssl,
     )
     logger.debug("component manager created")
-    # create PVC
-    c_manager.create_pvc(pvc_name=pvc_name, template=pvc_template, reuse=reuse_pvc)
-    logger.info("pvc created")
+
     # deployment
     c_manager.create_deployment(
-        k8_name=k8_name,
+        k8s_name=k8s_name,
         model=model,
         gpu_type=gpu_type,
         node_selector=node_selector,
@@ -124,11 +112,11 @@ def create_test_environment(
         reuse=reuse_deployment,
     )
     logger.debug("deployment created")
-    c_manager.wait_deployment_ready(k8_name=k8_name)
+    c_manager.wait_deployment_ready(k8s_name=k8s_name)
     logger.info("deployment ready")
     # service
     c_manager.create_service(
-        k8_name=k8_name, template=service_template, reuse=reuse_service
+        k8s_name=k8s_name, template=service_template, reuse=reuse_service
     )
     logger.info("service created")
 
@@ -136,7 +124,7 @@ def create_test_environment(
 if __name__ == "__main__":
     t_model = "meta-llama/Llama-3.1-8B-Instruct"
     create_test_environment(
-        k8_name=ComponentsYaml.get_k8_name(model=t_model),
+        k8s_name=ComponentsYaml.get_k8s_name(model=t_model),
         in_cluster=False,
         verify_ssl=False,
         model=t_model,

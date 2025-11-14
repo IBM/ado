@@ -46,7 +46,7 @@ def log_space_details(discovery_space: "DiscoverySpace"):
 
 
 def _run_operation_harness(
-    run_closure: typing.Callable[[], OperationOutput],
+    run_closure: typing.Callable[[], OperationOutput | None],
     base_operation_configuration: BaseOperationRunConfiguration,
     discovery_space: DiscoverySpace,
     operation_identifier: str | None = None,
@@ -85,7 +85,7 @@ def _run_operation_harness(
             OperationResourceStatus(event=OperationResourceEventEnum.STARTED)
         )
         discovery_space.metadataStore.updateResource(operation_resource)
-        operation_output = run_closure()
+        operation_output: OperationOutput | None = run_closure()
     except KeyboardInterrupt:
         sys.stdout.flush()
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")

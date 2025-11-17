@@ -102,7 +102,6 @@ def orchestrate(
     base_operation_configuration: BaseOperationRunConfiguration,
     project_context: ProjectContext,
     discovery_space_identifier: str,
-    queue: "ray.util.queue.Queue" = None,
     execid: str | None = None,
 ) -> OperationOutput:
     """orchestrate the execution of an operation defined as a function or a class (OperationModule)
@@ -173,7 +172,6 @@ def orchestrate(
                     base_operation_configuration=base_operation_configuration,
                     discovery_space=discovery_space,
                     namespace=execid,
-                    queue=queue,
                 )
             else:
                 raise ValueError(

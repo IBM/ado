@@ -249,7 +249,6 @@ def orchestrate_explore_operation(
     base_operation_configuration: BaseOperationRunConfiguration,
     discovery_space: DiscoverySpace,
     namespace: str,
-    queue: ray.util.queue.Queue,
 ) -> tuple[
     "DiscoverySpace",
     "OperationResource",
@@ -305,8 +304,7 @@ def orchestrate_explore_operation(
     # STATE
     # Create State actor
     #
-    if queue is None:
-        queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue.get_measurement_queue()
 
     # noinspection PyUnresolvedReferences
     state = DiscoverySpaceManager.options(namespace=namespace).remote(

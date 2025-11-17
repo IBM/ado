@@ -171,7 +171,6 @@ def orchestrate(
             ):
                 _, _, output = orchestrate_explore_operation(
                     base_operation_configuration=base_operation_configuration,
-                    project_context=project_context,
                     discovery_space=discovery_space,
                     namespace=execid,
                     queue=queue,

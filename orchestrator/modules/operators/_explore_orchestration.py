@@ -19,7 +19,6 @@ from orchestrator.core.operation.config import (
     FunctionOperationInfo,
 )
 from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.module import load_module_class_or_function
@@ -248,7 +247,6 @@ def run_explore_operation_core_closure(
 
 def orchestrate_explore_operation(
     base_operation_configuration: BaseOperationRunConfiguration,
-    project_context: ProjectContext,
     discovery_space: DiscoverySpace,
     namespace: str,
     queue: ray.util.queue.Queue,
@@ -274,6 +272,8 @@ def orchestrate_explore_operation(
     import orchestrator.modules.operators.setup
 
     initialize_resource_cleaner()
+
+    project_context = discovery_space.project_context
 
     # Check the space
     if not discovery_space.measurementSpace.isConsistent:
@@ -422,7 +422,6 @@ def explore_operation_function_wrapper(
 
     _, _, output = orchestrate_explore_operation(
         base_operation_configuration=base_operation_configuration,
-        project_context=discovery_space.project_context,
         discovery_space=discovery_space,
         namespace=namespace,
         queue=queue,

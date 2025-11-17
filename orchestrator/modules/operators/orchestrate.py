@@ -5,7 +5,6 @@
 
 import logging
 import os
-import pathlib
 import typing
 
 import pydantic
@@ -13,11 +12,6 @@ import ray
 import ray.util.queue
 from ray.runtime_env import RuntimeEnv
 
-import orchestrator.core
-import orchestrator.core.discoveryspace.config
-import orchestrator.core.operation.config
-import orchestrator.modules.operators._cleanup
-import orchestrator.utilities.output
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     BaseOperationRunConfiguration,
@@ -107,11 +101,7 @@ def orchestrate_operation_function(
 def orchestrate(
     base_operation_configuration: BaseOperationRunConfiguration,
     project_context: ProjectContext,
-    discovery_space_configuration: (
-        orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration | None
-    ),
-    discovery_space_identifier: str | None,
-    entities_output_file: str | pathlib.Path | None = None,
+    discovery_space_identifier: str,
     queue: "ray.util.queue.Queue" = None,
     execid: str | None = None,
 ) -> OperationOutput:
@@ -157,24 +147,10 @@ def orchestrate(
     #
     # GET SPACE
     #
-
-    if discovery_space_configuration:
-        discovery_space = DiscoverySpace.from_configuration(
-            conf=discovery_space_configuration,
-            project_context=project_context,
-            identifier=None,
-        )
-        print("Storing space (if backend storage configured)")
-        discovery_space.saveSpace()
-    elif discovery_space_identifier:
-        discovery_space = DiscoverySpace.from_stored_configuration(
-            project_context=project_context,
-            space_identifier=discovery_space_identifier,
-        )
-    else:
-        raise ValueError(
-            "You must provide a discovery space configuration or identifier"
-        )
+    discovery_space = DiscoverySpace.from_stored_configuration(
+        project_context=project_context,
+        space_identifier=discovery_space_identifier,
+    )
 
     if not discovery_space.measurementSpace.isConsistent:
         moduleLog.critical("The measurement space is inconsistent - aborting")

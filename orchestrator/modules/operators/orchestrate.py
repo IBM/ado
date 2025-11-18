@@ -26,7 +26,6 @@ from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
     ResourceCleaner,  # noqa: F401
     graceful_operation_shutdown,
-    initialize_resource_cleaner,
 )
 
 # Want explore_operation_function_wrapper function to be accessed via this module not the private module
@@ -67,23 +66,6 @@ def orchestrate_operation_function(
     """
 
     import orchestrator.modules.operators.collections  # noqa: F401
-
-    initialize_resource_cleaner()
-
-    # TODO: Check if this is necessary
-    # Because
-    # They are not passed
-    # if explore -> this is done again
-    # If general ??
-    actuator_configurations = (
-        operation_resource_configuration.validate_actuatorconfigurations_against_space(
-            project_context=discovery_space.project_context,
-            discoverySpaceConfiguration=discovery_space.config,
-        )
-    )
-
-    if actuator_configurations is None:
-        actuator_configurations = []
 
     output = operation_resource_configuration.operation.module.operationFunction()(
         discovery_space,

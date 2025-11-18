@@ -109,6 +109,19 @@ def orchestrate_general_operation(
 
     log_space_details(discovery_space)
 
+    # Get actuator configurations if necessary
+    actuator_configurations = (
+        operation_resource_configuration.validate_actuatorconfigurations_against_space(
+            project_context=discovery_space.project_context,
+            discoverySpaceConfiguration=discovery_space.config,
+        )
+    )
+
+    if actuator_configurations is None:
+        actuator_configurations = []
+
+    # TODO: We need to add this information to the function call
+
     operation_run_closure = run_general_operation_core_closure(
         operator_function,
         discovery_space=discovery_space,

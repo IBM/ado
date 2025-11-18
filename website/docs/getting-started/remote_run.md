@@ -106,10 +106,10 @@ There are three ways of installing ado and plugins on the remote cluster.
 Best in general case
 - [Dynamic installation from source](#dynamic-installation-from-source):
 Best for developers
-- [pre-install](#pre-install): Best when you are using the
+- [pre-install](#pre-installing-ado-packages): Best when you are using the
 same actuators and operator constantly
 
-### Pre-install
+### Pre-installing ado packages
 
 In this method `ado` and the required plugins are installed in the
 ray cluster base python environment e.g. in the image used for head and

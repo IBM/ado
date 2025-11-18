@@ -37,7 +37,7 @@ This will be usually be the following three YAML files:
 <!-- markdownlint-disable MD007 -->
 - A YAML file describing [the context](../resources/metastore.md) to use for the
   operation.
-  - You can use `ado get context -o yaml` to get this file for the context you
+    - You can use `ado get context -o yaml` to get this file for the context you
       want to use
 - A YAML file describing [the operation](../resources/operation.md) to create.
 - A YAML file describing [the environment of the ray job](#ray-runtime-environment-runtime-env)
@@ -129,11 +129,11 @@ python package download or build steps.
 > This is because:
 >
 > - The pre-installed `ado` command is tied to the base-environment
->   - It will not see new packages. You need to install it
+>     - It will not see new packages. You need to install it
 > into the job virtualenv
 > - The ado_actuators namespace package will be superseded by one created in
 > the job virtualenv
->   - Actuators in the same namespace package in the base environment
+>     - Actuators in the same namespace package in the base environment
 > will not be seen
 <!-- markdownlint-enable MD007 -->
 
@@ -141,11 +141,12 @@ python package download or build steps.
 
 The recommended method is to specify `ado-core` and the pypi package names
 of any plugins required in the `uv` section of the `runtime_env.yaml` as
-shown in[the quickstart example](#setting-the-ray-job-environment).
+shown in [the quickstart example](#setting-the-ray-job-environment).
 
 ### Dynamic installation from source
 
-If the ado plugins or `ado-core` version you need are not on pypi you can install
+If the `ado` plugins or `ado-core` version you need are not on pypi you can install
+If the `ado` plugins or `ado-core` version you need are not on pypi you can install
 them from source. There are two steps:
 
 1. Build python wheels for `ado` and/or the required plugins
@@ -205,16 +206,16 @@ env_vars: # See below
 ```
 <!-- markdownlint-enable line-length -->
 
-> [!NOTE] pypi packages
->
-> You can specify pypi packages along with wheels in the `uv` section
-<!-- markdownlint-disable-next-line MD028 -->
-
 > [!IMPORTANT] RAY_RUNTIME_ENV_CREATE_WORKING_DIR
 >
 > Do not remove or modify the string ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}
 > when specifying the wheel names. It is required before every wheel you want to
 > upload and if it is changed the wheel installation will fail.
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!NOTE] pypi packages
+>
+> You can specify pypi packages along with wheels in the `uv` section
 
 ## ray job submit options
 

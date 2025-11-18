@@ -400,7 +400,6 @@ def explore_operation_function_wrapper(
     parameters: dict,
     namespace: str,
     operation_info: typing.Optional["FunctionOperationInfo"] = None,
-    queue: typing.Optional["ray.util.queue.Queue"] = None,
 ) -> OperationOutput:
     """
     function implementations of explore operations must call this function.
@@ -422,7 +421,6 @@ def explore_operation_function_wrapper(
         base_operation_configuration=base_operation_configuration,
         discovery_space=discovery_space,
         namespace=namespace,
-        queue=queue,
     )
 
     return output

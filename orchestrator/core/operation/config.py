@@ -38,6 +38,89 @@ class DiscoveryOperationEnum(enum.Enum):
     EXPORT = "export"
 
 
+def get_actuator_configurations(
+    project_context: ProjectContext, actuator_configuration_identifiers: list[str]
+) -> list[ActuatorConfiguration]:
+    import orchestrator.metastore.sqlstore
+
+    sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
+
+    actuator_configurations = [
+        sql.getResource(
+            identifier=identifier,
+            kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+            raise_error_if_no_resource=True,
+        ).config
+        for identifier in actuator_configuration_identifiers
+    ]
+
+    actuator_identifiers = {conf.actuatorIdentifier for conf in actuator_configurations}
+    if len(actuator_identifiers) != len(actuator_configuration_identifiers):
+        raise ValueError("Only one ActuatorConfiguration is permitted per Actuator")
+
+    return actuator_configurations
+
+
+def validate_actuator_configurations_against_space_configuration(
+    actuator_configurations: list[ActuatorConfiguration],
+    discovery_space_configuration: DiscoverySpaceConfiguration,
+) -> list[ActuatorConfiguration]:
+    actuator_identifiers = {conf.actuatorIdentifier for conf in actuator_configurations}
+
+    # Check the actuators configurations refer to actuators used in the MeasurementSpace
+    # The experiment identifiers are in two different locations
+    if isinstance(
+        discovery_space_configuration.experiments, MeasurementSpaceConfiguration
+    ):
+        experiment_actuator_identifiers = {
+            experiment.actuatorIdentifier
+            for experiment in discovery_space_configuration.experiments.experiments
+        }
+    else:
+        experiment_actuator_identifiers = {
+            experiment.actuatorIdentifier
+            for experiment in discovery_space_configuration.experiments
+        }
+
+    if not experiment_actuator_identifiers.issuperset(actuator_identifiers):
+        raise ValueError(
+            f"Actuator Identifiers {actuator_identifiers} must appear in the experiments of its space"
+        )
+
+    return actuator_configurations
+
+
+def validate_actuator_configuration_ids_against_space_ids(
+    actuator_configuration_identifiers: list[str],
+    space_identifiers: list[str],
+    project_context: ProjectContext,
+):
+    import orchestrator.metastore.sqlstore
+
+    sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
+    space_configurations: list[DiscoverySpaceConfiguration] = [
+        sql.getResource(
+            identifier=identifier,
+            kind=CoreResourceKinds.DISCOVERYSPACE,
+            raise_error_if_no_resource=True,
+        ).config
+        for identifier in space_identifiers
+    ]
+
+    actuator_configurations = get_actuator_configurations(
+        project_context=project_context,
+        actuator_configuration_identifiers=actuator_configuration_identifiers,
+    )
+
+    for config in space_configurations:
+        validate_actuator_configurations_against_space_configuration(
+            actuator_configurations=actuator_configurations,
+            discovery_space_configuration=config,
+        )
+
+    return actuator_configurations
+
+
 class OperatorModuleConf(ModuleConf):
     moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.OPERATION)
 
@@ -175,86 +258,37 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
         Raises: ValueError if there is more than one ActuatorConfigurationResource references the same actuator
         """
 
-        import orchestrator.metastore.sqlstore
-
         if not self.actuatorConfigurationIdentifiers:
             return []
 
-        sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
-
-        actuator_configurations = [
-            sql.getResource(
-                identifier=identifier,
-                kind=CoreResourceKinds.ACTUATORCONFIGURATION,
-                raise_error_if_no_resource=True,
-            ).config
-            for identifier in self.actuatorConfigurationIdentifiers
-        ]
-
-        actuator_identifiers = {
-            conf.actuatorIdentifier for conf in actuator_configurations
-        }
-        if len(actuator_identifiers) != len(self.actuatorConfigurationIdentifiers):
-            raise ValueError("Only one ActuatorConfiguration is permitted per Actuator")
-
-        return actuator_configurations
-
-    def validate_actuatorconfigurations_against_space(
-        self,
-        project_context: ProjectContext,
-        discoverySpaceConfiguration: DiscoverySpaceConfiguration,
-    ) -> list[ActuatorConfiguration]:
-
-        actuator_configurations = self.get_actuatorconfigurations(
-            project_context=project_context
+        return get_actuator_configurations(
+            project_context=project_context,
+            actuator_configuration_identifiers=self.actuatorConfigurationIdentifiers,
         )
-        actuator_identifiers = {
-            conf.actuatorIdentifier for conf in actuator_configurations
-        }
-
-        # Check the actuators configurations refer to actuators used in the MeasurementSpace
-        # The experiment identifiers are in two different locations
-        if isinstance(
-            discoverySpaceConfiguration.experiments, MeasurementSpaceConfiguration
-        ):
-            experiment_actuator_identifiers = {
-                experiment.actuatorIdentifier
-                for experiment in discoverySpaceConfiguration.experiments.experiments
-            }
-        else:
-            experiment_actuator_identifiers = {
-                experiment.actuatorIdentifier
-                for experiment in discoverySpaceConfiguration.experiments
-            }
-
-        if not experiment_actuator_identifiers.issuperset(actuator_identifiers):
-            raise ValueError(
-                f"Actuator Identifiers {actuator_identifiers} must appear in the experiments of its space"
-            )
-
-        return actuator_configurations
 
     def validate_actuatorconfigurations(
         self, project_context: ProjectContext
     ) -> list[ActuatorConfiguration]:
+        """Gets and valdidates the actuator configuration resources referenced by actuatorConfigurationIdentifiers from the metastore if any
 
-        from orchestrator.core.discoveryspace.space import DiscoverySpace
+        This also requires getting the configuration of the discovery space
 
-        actuator_configurations: list[ActuatorConfiguration] = []
-        for space in self.spaces:
-            discovery_space = DiscoverySpace.from_stored_configuration(
-                project_context=project_context,
-                space_identifier=space,
-            )
+        Params:
+            project_context: Information for connection to the metastore
 
-            actuator_configurations.extend(
-                super().validate_actuatorconfigurations_against_space(
-                    project_context=project_context,
-                    discoverySpaceConfiguration=discovery_space.config,
-                )
-            )
+        Returns:
+            A list of ActuatorConfigurationResource instance. The list will be empty if
+            there are no actuatorConfigurationIdentifiers.
 
-        return actuator_configurations
+
+        Raises: ValueError if more than one ActuatorConfigurationResource references the same actuator
+        """
+
+        return validate_actuator_configuration_ids_against_space_ids(
+            actuator_configuration_identifiers=self.actuatorConfigurationIdentifiers,
+            space_identifiers=self.spaces,
+            project_context=project_context,
+        )
 
 
 class FunctionOperationInfo(pydantic.BaseModel):

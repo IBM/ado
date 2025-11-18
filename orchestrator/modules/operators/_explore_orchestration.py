@@ -17,6 +17,7 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
+    validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
@@ -294,9 +295,14 @@ def orchestrate_explore_operation(
     log_space_details(discovery_space)
 
     actuator_configurations = (
-        operation_resource_configuration.validate_actuatorconfigurations_against_space(
-            project_context=project_context,
-            discoverySpaceConfiguration=discovery_space.config,
+        operation_resource_configuration.get_actuatorconfigurations(
+            project_context=project_context
+        )
+    )
+    actuator_configurations = (
+        validate_actuator_configurations_against_space_configuration(
+            actuator_configurations=actuator_configurations,
+            discovery_space_configuration=discovery_space.config,
         )
     )
 

@@ -12,8 +12,8 @@ import orchestrator.modules
 import orchestrator.modules.operators._cleanup
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
     DiscoveryOperationConfiguration,
+    DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorFunctionConf,
 )
@@ -97,13 +97,14 @@ def orchestrate_general_operation(
         moduleLog.critical("Measurement space is inconsistent - aborting")
         raise ValueError("Measurement space is inconsistent")
 
-    base_configuration = BaseOperationRunConfiguration(
+    operation_resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(
             module=functionConf,
             parameters=operation_parameters,
         ),
         metadata=operation_info.metadata,
         actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
+        spaces=[discovery_space.resource.identifier],
     )
 
     log_space_details(discovery_space)
@@ -123,7 +124,7 @@ def orchestrate_general_operation(
 
     output = _run_operation_harness(
         run_closure=operation_run_closure,
-        base_operation_configuration=base_configuration,
+        operation_resource_configuration=operation_resource_configuration,
         discovery_space=discovery_space,
     )
 

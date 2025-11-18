@@ -128,10 +128,8 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     )
 
 
-class BaseOperationRunConfiguration(pydantic.BaseModel):
-    """Field shared by OrchestratorRunConfiguration and OperationResourceConfiguration
-
-    both are models used to run an operation"""
+class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
+    """Pydantic model used to define an operation"""
 
     operation: DiscoveryOperationConfiguration
     metadata: ConfigurationMetadata = pydantic.Field(
@@ -140,12 +138,26 @@ class BaseOperationRunConfiguration(pydantic.BaseModel):
         "Two optional keys that are used by convention are name and description",
     )
     actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])
+    spaces: list[str] = pydantic.Field(
+        description="List of ids of the spaces the operation will be applied to"
+    )
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={
             "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
+
+    @pydantic.field_validator("spaces")
+    def check_space_set(cls, value):
+        """Checks at least one space identifier has been given"""
+
+        if len(value) == 0:
+            raise ValueError(
+                "You must provide at least one space identifier to an operation"
+            )
+
+        return value
 
     def get_actuatorconfigurations(
         self, project_context: ProjectContext
@@ -221,24 +233,6 @@ class BaseOperationRunConfiguration(pydantic.BaseModel):
             )
 
         return actuator_configurations
-
-
-class DiscoveryOperationResourceConfiguration(BaseOperationRunConfiguration):
-
-    spaces: list[str] = pydantic.Field(
-        description="The spaces the operation will be applied to"
-    )
-
-    @pydantic.field_validator("spaces")
-    def check_space_set(cls, value):
-        """Checks at least one space identifier has been given"""
-
-        if len(value) == 0:
-            raise ValueError(
-                "You must provide at least one space identifier to an operation"
-            )
-
-        return value
 
     def validate_actuatorconfigurations(
         self, project_context: ProjectContext

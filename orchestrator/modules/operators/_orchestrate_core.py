@@ -11,7 +11,9 @@ from ray.exceptions import RayTaskError
 import orchestrator.utilities.output
 from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import BaseOperationRunConfiguration
+from orchestrator.core.operation.config import (
+    DiscoveryOperationResourceConfiguration,
+)
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.core.operation.resource import (
     OperationExitStateEnum,
@@ -20,7 +22,7 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.modules.operators._cleanup import shutdown
 from orchestrator.modules.operators.base import (
-    add_operation_from_base_config_to_metastore,
+    add_operation_from_configuration_to_metastore,
     add_operation_output_to_metastore,
 )
 
@@ -47,7 +49,7 @@ def log_space_details(discovery_space: "DiscoverySpace"):
 
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
-    base_operation_configuration: BaseOperationRunConfiguration,
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     discovery_space: DiscoverySpace,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
@@ -61,10 +63,9 @@ def _run_operation_harness(
     # Create and add OperationResource to metastore
     #
 
-    operation_resource = add_operation_from_base_config_to_metastore(
-        base_operation_configuration=base_operation_configuration,
+    operation_resource = add_operation_from_configuration_to_metastore(
+        operation_resource_configuration=operation_resource_configuration,
         metastore=discovery_space.metadataStore,
-        space_id=discovery_space.uri,
         operation_identifier=operation_identifier,
     )
 

@@ -14,7 +14,7 @@ from ray.runtime_env import RuntimeEnv
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
+    DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
@@ -49,8 +49,7 @@ moduleLog = logging.getLogger("orch")
 
 
 def orchestrate_operation_function(
-    base_operation_configuration: BaseOperationRunConfiguration,
-    project_configuration: ProjectContext,
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     discovery_space: DiscoverySpace,
 ) -> tuple[
     "DiscoverySpace",
@@ -77,8 +76,8 @@ def orchestrate_operation_function(
     # if explore -> this is done again
     # If general ??
     actuator_configurations = (
-        base_operation_configuration.validate_actuatorconfigurations_against_space(
-            project_context=project_configuration,
+        operation_resource_configuration.validate_actuatorconfigurations_against_space(
+            project_context=discovery_space.project_context,
             discoverySpaceConfiguration=discovery_space.config,
         )
     )
@@ -86,20 +85,20 @@ def orchestrate_operation_function(
     if actuator_configurations is None:
         actuator_configurations = []
 
-    output = base_operation_configuration.operation.module.operationFunction()(
+    output = operation_resource_configuration.operation.module.operationFunction()(
         discovery_space,
         operationInfo=FunctionOperationInfo(
-            metadata=base_operation_configuration.metadata,
-            actuatorConfigurationIdentifiers=base_operation_configuration.actuatorConfigurationIdentifiers,
+            metadata=operation_resource_configuration.metadata,
+            actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
         ),
-        **base_operation_configuration.operation.parameters,
+        **operation_resource_configuration.operation.parameters,
     )  # type: OperationOutput
 
     return discovery_space, output.operation, output
 
 
 def orchestrate(
-    base_operation_configuration: BaseOperationRunConfiguration,
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     project_context: ProjectContext,
     discovery_space_identifier: str,
     namespace: str | None = None,
@@ -161,15 +160,15 @@ def orchestrate(
     #
     try:
         if isinstance(
-            base_operation_configuration.operation.module,
+            operation_resource_configuration.operation.module,
             orchestrator.core.operation.config.OperatorModuleConf,
         ):
             if (
-                base_operation_configuration.operation.module.operationType
+                operation_resource_configuration.operation.module.operationType
                 == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
             ):
                 _, _, output = orchestrate_explore_operation(
-                    base_operation_configuration=base_operation_configuration,
+                    operation_resource_configuration=operation_resource_configuration,
                     discovery_space=discovery_space,
                     namespace=namespace,
                 )
@@ -179,8 +178,7 @@ def orchestrate(
                 )
         else:
             _, _, output = orchestrate_operation_function(
-                base_operation_configuration=base_operation_configuration,
-                project_configuration=project_context,
+                operation_resource_configuration=operation_resource_configuration,
                 discovery_space=discovery_space,
             )
     except KeyboardInterrupt:

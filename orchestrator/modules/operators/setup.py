@@ -12,7 +12,9 @@ from orchestrator.core.actuatorconfiguration.config import (
     ActuatorConfiguration,
 )
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import BaseOperationRunConfiguration
+from orchestrator.core.operation.config import (
+    DiscoveryOperationResourceConfiguration,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.utilities.logging import configure_logging
@@ -131,7 +133,7 @@ def setup_actuators(
 
 
 def setup_operator(
-    base_configuration: BaseOperationRunConfiguration,
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     discovery_space: DiscoverySpace,
     namespace: str,
     state,
@@ -149,14 +151,16 @@ def setup_operator(
 
     moduleLog.info("Creating operation")
 
-    operatorClass = load_module_class_or_function(base_configuration.operation.module)
-    operatorName = base_configuration.operation.module.moduleClass
+    operatorClass = load_module_class_or_function(
+        operation_resource_configuration.operation.module
+    )
+    operatorName = operation_resource_configuration.operation.module.moduleClass
 
     operator = operatorClass.options(name=operatorName, namespace=namespace).remote(
         operationActorName=operatorName,
         namespace=namespace,
         state=state,
-        params=base_configuration.operation.parameters,
+        params=operation_resource_configuration.operation.parameters,
         actuators=actuators,
     )
 
@@ -164,7 +168,7 @@ def setup_operator(
     print(f"Space ID: {discovery_space.uri}")
     print(f"Sample Store ID:  {discovery_space.sample_store.identifier}")
     print(
-        f"Operation Configuration:\n {orchestrator.utilities.output.pydantic_model_as_yaml(base_configuration, exclude_none=True)}"
+        f"Operation Configuration:\n {orchestrator.utilities.output.pydantic_model_as_yaml(operation_resource_configuration, exclude_none=True)}"
     )
 
     return operator

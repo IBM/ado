@@ -21,7 +21,6 @@ import orchestrator.modules
 import orchestrator.modules.actuators.replay
 import orchestrator.schema.reference
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
@@ -419,23 +418,12 @@ def add_operation_and_output_to_metastore(
     return operation
 
 
-def add_operation_from_base_config_to_metastore(
-    base_operation_configuration: BaseOperationRunConfiguration,
-    space_id: str,
+def add_operation_from_configuration_to_metastore(
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     metastore: SQLStore,
     operation_identifier: str | None = None,
 ) -> OperationResource:
-    """Creates an operation resource from a base operation configuration and adds it and its outputs to the resource store
-
-    The base configuration can be an DiscoveryOperationResourceConfiguration or a DiscoveryOrchestratorRunConfiguration model
-    """
-
-    operation_resource_configuration = DiscoveryOperationResourceConfiguration(
-        spaces=[space_id],
-        operation=base_operation_configuration.operation,
-        metadata=base_operation_configuration.metadata,
-        actuatorConfigurationIdentifiers=base_operation_configuration.actuatorConfigurationIdentifiers,
-    )
+    """Creates an operation resource from an operation resource configuration and adds it and its outputs to the resource store"""
 
     operation = OperationResource(
         identifier=operation_identifier,

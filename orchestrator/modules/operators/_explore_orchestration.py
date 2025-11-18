@@ -14,8 +14,8 @@ import orchestrator.modules.operators._cleanup
 from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
     DiscoveryOperationConfiguration,
+    DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
 )
 from orchestrator.core.operation.operation import OperationOutput
@@ -246,7 +246,7 @@ def run_explore_operation_core_closure(
 
 
 def orchestrate_explore_operation(
-    base_operation_configuration: BaseOperationRunConfiguration,
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     discovery_space: DiscoverySpace,
     namespace: str,
 ) -> tuple[
@@ -294,7 +294,7 @@ def orchestrate_explore_operation(
     log_space_details(discovery_space)
 
     actuator_configurations = (
-        base_operation_configuration.validate_actuatorconfigurations_against_space(
+        operation_resource_configuration.validate_actuatorconfigurations_against_space(
             project_context=project_context,
             discoverySpaceConfiguration=discovery_space.config,
         )
@@ -335,7 +335,7 @@ def orchestrate_explore_operation(
     operator = orchestrator.modules.operators.setup.setup_operator(
         actuators=actuators,
         discovery_space=discovery_space,
-        base_configuration=base_operation_configuration,
+        operation_resource_configuration=operation_resource_configuration,
         namespace=namespace,
         state=state,
     )  # type: "OperatorActor"
@@ -343,10 +343,10 @@ def orchestrate_explore_operation(
     # Validate the parameters for the operation
     #
     operator_class = load_module_class_or_function(
-        base_operation_configuration.operation.module
+        operation_resource_configuration.operation.module
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
     operator_class.validateOperationParameters(
-        base_operation_configuration.operation.parameters
+        operation_resource_configuration.operation.parameters
     )
 
     identifier = operator.operationIdentifier.remote()
@@ -379,7 +379,7 @@ def orchestrate_explore_operation(
 
     output = _run_operation_harness(
         run_closure=explore_run_closure,
-        base_operation_configuration=base_operation_configuration,
+        operation_resource_configuration=operation_resource_configuration,
         discovery_space=discovery_space,
         operation_identifier=identifier,
         finalize_callback=finalize_callback_closure(operator),
@@ -408,17 +408,18 @@ def explore_operation_function_wrapper(
     to those required to orchestrate an explore (class) operation.
     """
 
-    base_operation_configuration = BaseOperationRunConfiguration(
+    operation_resource_configuration = DiscoveryOperationResourceConfiguration(
         operation=DiscoveryOperationConfiguration(
             module=module,
             parameters=parameters,
         ),
         metadata=operation_info.metadata,
         actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
+        spaces=[discovery_space.resource.identifier],
     )
 
     _, _, output = orchestrate_explore_operation(
-        base_operation_configuration=base_operation_configuration,
+        operation_resource_configuration=operation_resource_configuration,
         discovery_space=discovery_space,
         namespace=namespace,
     )

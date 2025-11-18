@@ -102,7 +102,7 @@ def orchestrate(
     base_operation_configuration: BaseOperationRunConfiguration,
     project_context: ProjectContext,
     discovery_space_identifier: str,
-    execid: str | None = None,
+    namespace: str | None = None,
 ) -> OperationOutput:
     """orchestrate the execution of an operation defined as a function or a class (OperationModule)
 
@@ -125,7 +125,7 @@ def orchestrate(
         moduleLog.info(
             f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
         )
-        ray.init(namespace=execid, ignore_reinit_error=True)
+        ray.init(namespace=namespace, ignore_reinit_error=True)
     else:
         # In local mode we can read a set of envvars a then export them into the ray environment
         # Currently we don't use it but keeping the code to recall how to do so if necessary
@@ -135,7 +135,7 @@ def orchestrate(
         )
         ray.init(
             runtime_env=RuntimeEnv(env_vars=ray_env_vars),
-            namespace=execid,
+            namespace=namespace,
             ignore_reinit_error=True,
         )
 
@@ -171,7 +171,7 @@ def orchestrate(
                 _, _, output = orchestrate_explore_operation(
                     base_operation_configuration=base_operation_configuration,
                     discovery_space=discovery_space,
-                    namespace=execid,
+                    namespace=namespace,
                 )
             else:
                 raise ValueError(

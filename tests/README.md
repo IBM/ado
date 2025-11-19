@@ -6,7 +6,7 @@ i.e. the top directory of the `ado` repo.
 We recommend using `uv sync` to install all test requirements:
 
 ```commandline
-uv sync --group tests
+uv sync --group test
 ```
 
 Note: This will also remove all packages not required for testing and sync

@@ -71,7 +71,7 @@ env_vars: # These env_vars are recommended.
 
 >[!NOTE] Ray python package caching
 >
-> Ray will cache packages its asked to install so they are
+> Ray caches packages it is asked to install so they are
 > only downloaded, and potentially built, the first time
 > they are requested.
 

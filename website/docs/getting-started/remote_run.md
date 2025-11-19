@@ -32,7 +32,7 @@ First, create an empty directory to store the files that need to be
 uploaded to the remote Ray cluster for the `ado` command to run. In the
 following we will refer to this directory as `$RAY_JOB_DATA_DIR`.
 
-This will usually be the following three YAML files:
+This will usually contain the following three YAML files:
 
 <!-- markdownlint-disable MD007 -->
 - A YAML file describing [the context](../resources/metastore.md) to use for the
@@ -59,7 +59,7 @@ uv: # One line for each plugin (actuator, operator) to install
   - ado-ray-tune # If you aim to run a ray-tune operation
   - ado-vllm-performance # Substitute with whatever plugins you need
 env_vars: # These env_vars are recommended.
-  PYTHONUNBUFFERED: "x" # Turns of buffering of the jobs logs. Useful if there is some error
+  PYTHONUNBUFFERED: "x" # Turns off buffering of the jobs logs. Useful if there is some error
   OMP_NUM_THREADS: "1" # Restricts the number of threads started by the python process in the job. If this is not set it can cause the ray job to exceed OpenShift node thread limits.
   OPENBLAS_NUM_THREADS: "1" # Same as above
   RAY_AIR_NEW_PERSISTENCE_MODE: "0" # Required for using the ray_tune operator
@@ -82,14 +82,14 @@ The command for submitting the job looks like:
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
-ray job submit --no-wait --address http://localhost:8265  --working-dir . --runtime-env ray_runtime.yaml -v -- \
+ray job submit --no-wait --address http://localhost:8265  --working-dir $PWD --runtime-env ray_runtime.yaml -v -- \
   ado -c context.yaml create operation -f operation.yaml
 ```
 <!-- markdownlint-enable line-length -->
 
 This creates a detached Ray job that runs on the cluster.
 You can go to the ray dashboard (here at <http://localhost:8265>)
-to see the job status and logs etc.
+to see the job status, logs, and more.
 You can read more about [ray submit command line options here](#ray-job-submit-options).
 
 >[!NOTE] Specifying the context
@@ -102,12 +102,12 @@ You can read more about [ray submit command line options here](#ray-job-submit-o
 
 There are three ways of installing ado and plugins on the remote cluster.
 
+- [pre-install](#pre-installing-ado-packages): Best when you are using the
+same actuators and operator constantly
 - [Dynamic installation from pypi](#dynamic-installation-from-pypi):
 Best in general case
 - [Dynamic installation from source](#dynamic-installation-from-source):
 Best for developers
-- [pre-install](#pre-installing-ado-packages): Best when you are using the
-same actuators and operator constantly
 
 ### Pre-installing ado packages
 

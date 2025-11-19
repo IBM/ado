@@ -291,7 +291,7 @@ Otherwise, it stays connected until the job finishes.
 If you want the job to keep running when you close your laptop, or be immune to
 the port-forward deactivating, use this option.
 
-#### `--working-dr`
+#### `--working-dir`
 
 Use this to specify the data to copy over with the ray job. Everything in this
 directory and subdirectories is copied over and the ray job started in it. Here

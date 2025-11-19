@@ -11,10 +11,9 @@
 
 > [!TIP] Why run `ado` on a remote ray cluster?
 >
-> ado `operations` can benefit from running on a remote ray cluster when
-> they require (or can use) more compute resource
-> than is available on your laptop. This is usually because one or both of the
-> following is true:
+> ado `operations` can benefit from running on a remote ray cluster when they
+> require (or can use) more compute resources than they are available on your
+> laptop. This is usually because one or both of the following are true:
 >
 > - the operation can leverage the fact that `ado` is built on `Ray` to run large
 > numbers of distributed tasks

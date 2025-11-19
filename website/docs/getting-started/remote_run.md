@@ -1,4 +1,4 @@
-# Running `ado` on remote ray clusters
+# Running `ado` on remote Ray clusters
 
 <!-- markdownlint-disable-next-line first-line-h1 -->
 
@@ -29,10 +29,10 @@
 ### Getting ready
 
 First, create an empty directory to store the files that need to be
-uploaded to the remote ray cluster for the `ado` command to run. In the
+uploaded to the remote Ray cluster for the `ado` command to run. In the
 following we will refer to this directory as `$RAY_JOB_DATA_DIR`.
 
-This will be usually be the following three YAML files:
+This will usually be the following three YAML files:
 
 <!-- markdownlint-disable MD007 -->
 - A YAML file describing [the context](../resources/metastore.md) to use for the
@@ -40,17 +40,17 @@ This will be usually be the following three YAML files:
     - You can use `ado get context -o yaml` to get this file for the context you
       want to use
 - A YAML file describing [the operation](../resources/operation.md) to create.
-- A YAML file describing [the environment of the ray job](#ray-runtime-environment-runtime-env)
+- A YAML file describing [the environment of the Ray job](#ray-runtime-environment-runtime-env)
 <!-- markdownlint-enable MD007 -->
 
 We will refer to the first file as `context.yaml`, the second as
 `operation.yaml`, and the last as `runtime_env.yaml`, although they
 can have any names.
 
-### Setting the ray job environment
+### Setting the Ray job environment
 
-A example `runtime_env.yaml` which dynamically installs the last released `ado`
-and `ado` plugins versions is
+An example `runtime_env.yaml` which dynamically installs the latest release of ado
+and its plugins is:
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
@@ -58,7 +58,7 @@ uv: # One line for each plugin (actuator, operator) to install
   - ado-core
   - ado-ray-tune # If you aim to run a ray-tune operation
   - ado-vllm-performance # Substitute with whatever plugins you need
-env_vars: # These envars are recommend.
+env_vars: # These env_vars are recommended.
   PYTHONUNBUFFERED: "x" # Turns of buffering of the jobs logs. Useful if there is some error
   OMP_NUM_THREADS: "1" # Restricts the number of threads started by the python process in the job. If this is not set it can cause the ray job to exceed OpenShift node thread limits.
   OPENBLAS_NUM_THREADS: "1" # Same as above
@@ -87,7 +87,7 @@ ray job submit --no-wait --address http://localhost:8265  --working-dir . --runt
 ```
 <!-- markdownlint-enable line-length -->
 
-This creates a detached ray job that run on the cluster.
+This creates a detached Ray job that runs on the cluster.
 You can go to the ray dashboard (here at <http://localhost:8265>)
 to see the job status and logs etc.
 You can read more about [ray submit command line options here](#ray-job-submit-options).
@@ -96,7 +96,7 @@ You can read more about [ray submit command line options here](#ray-job-submit-o
 >
 > When you run remotely there is no active context.
 > Hence, you have to specify the context to use with the `-c` option to ado,
-> as well as sending the YAML file with the context to the ray cluster
+> as well as sending the YAML file with the context to the Ray cluster
 
 ## Installing ado and ado plugins
 
@@ -112,7 +112,7 @@ same actuators and operator constantly
 ### Pre-installing ado packages
 
 In this method `ado` and the required plugins are installed in the
-ray cluster base python environment e.g. in the image used for head and
+Ray cluster's base python environment e.g. in the image used for head and
 worker nodes.
 
 In this case you do not need to specify any packages in the `runtime_env.yaml`,
@@ -146,18 +146,17 @@ shown in [the quickstart example](#setting-the-ray-job-environment).
 ### Dynamic installation from source
 
 If the `ado` plugins or `ado-core` version you need are not on pypi you can install
-If the `ado` plugins or `ado-core` version you need are not on pypi you can install
 them from source. There are two steps:
 
 1. Build python wheels for `ado` and/or the required plugins
 you need to install from source
-2. Tell ray to install the wheels as part of ray-job submission
+2. Tell Ray to install the wheels as part of the Ray job submission
 
 #### Building python wheels
 
 > [!TIP]
 >
-> Repeat this step when the source code changes between ray jobs
+> Repeat this step when the source code changes between Ray jobs
 > and you want to include the changes.
 
 ##### Build the `ado` wheel
@@ -169,13 +168,13 @@ In the top-level of the `ado` repository:
   rm -rf dist/ 
   : # Creates  `dist/` directory with the wheel. It will have a name like `ado_core-$VERSION-py3-none.whl`
   uv build
-  # Copy the wheel to the ray job directory
+  # Copy the wheel to the Ray job directory
   mv dist/*.whl $RAY_JOB_DATA_DIR
   ```
 
 ##### Build the plugin wheels
 
-In the top-level of the plugins package e.g. in one of the orchestrator
+In the top-level of the plugins package e.g. in one of the `ado`
   repositories' `plugins/actuators/$ACTUATOR` directories, execute:
 
   ```bash

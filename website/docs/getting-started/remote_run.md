@@ -62,7 +62,7 @@ env_vars: # These env_vars are recommended.
   OMP_NUM_THREADS: "1" # Restricts the number of threads started by the python process in the job. If this is not set it can cause the ray job to exceed OpenShift node thread limits.
   OPENBLAS_NUM_THREADS: "1" # Same as above
   RAY_AIR_NEW_PERSISTENCE_MODE: "0" # Required for using the ray_tune operator
-  #The following envars may be required or useful depending
+  #The following envars may be required or useful depending on your specific needs
   HOME: "/tmp" # Optional: Use if python code used by operation assumes $HOME is writable which it may not be
   LOGLEVEL: "WARNING" # Optional: Set this to get more/less debug logs from ado
 ```
@@ -173,8 +173,8 @@ In the top-level of the `ado` repository:
 
 ##### Build the plugin wheels
 
-In the top-level of the plugins package e.g. in one of the `ado`
-  repositories' `plugins/actuators/$ACTUATOR` directories, execute:
+In the top-level of the plugins package, for example, one of the
+subdirectories of "plugins/actuators/" in the `ado` `repository, execute:
 
   ```bash
   : # Remove any previous wheel to avoid using wrong one
@@ -247,7 +247,7 @@ is restarted.
 > `ray job submit` communicates to the ray cluster using different protocols via
 > the given URL. This means if only http is allowed to be sent to the URL
 > `ray job submit` will not work. This is usually why you need a port-forward
-> compared to, say, an OpenShift route.
+> compared to, e.g. an OpenShift route.
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!TIP] Accessing the ray cluster dashboard

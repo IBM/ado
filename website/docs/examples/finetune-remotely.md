@@ -498,7 +498,7 @@ The operation will execute the measurements (i.e. apply the experiment
 > on participating GPU worker nodes, so expect the `operation`
 > to take around 10 minutes to complete.
 
-[Reference docs for submitting ado operations to remote RayClusters](../../getting-started/remote_run/#submitting-the-ado-operation).
+[Reference docs for submitting ado operations to remote RayClusters](../../getting-started/remote_run).
 
 ### Examine the results of the exploration
 

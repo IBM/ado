@@ -20,6 +20,7 @@ from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
 )
+from orchestrator.schema.entity import Entity
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 
@@ -49,14 +50,14 @@ def check_group_order(
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
         ids = [cp.identifier for cp in space.entitySpace.constitutiveProperties]
         entities = [
-            space.entity_for_point(dict(zip(ids, p)))
-            for p in space.entitySpace.sequential_point_iterator()
+            dict(zip(ids, p)) for p in space.entitySpace.sequential_point_iterator()
         ]
         groups = _build_groups_dict(entities=entities, group=group)
         expected_group_order = list(groups.keys())
         if sampler.mode == WalkModeEnum.RANDOM:
             assert group_order != expected_group_order
         else:
+
             assert group_order == expected_group_order
     else:
         entities = space.matchingEntities()
@@ -114,13 +115,23 @@ def test_group_sampler_local(
     for i, group in enumerate(sampler.entityGroupIterator(space)):
         count += len(group)
         for entity in group:
-            print(i, count, entity.identifier)
+            print(i, count, entity.identifier if isinstance(entity, Entity) else entity)
 
         node_value = {
-            e.valueForConstitutivePropertyIdentifier("nodes").value for e in group
+            (
+                e["nodes"]
+                if type(e) is dict
+                else e.valueForConstitutivePropertyIdentifier("nodes").value
+            )
+            for e in group
         }
         cpu_value = {
-            e.valueForConstitutivePropertyIdentifier("cpu_family").value for e in group
+            (
+                e["cpu_family"]
+                if type(e) is dict
+                else e.valueForConstitutivePropertyIdentifier("cpu_family").value
+            )
+            for e in group
         }
 
         assert (
@@ -215,10 +226,20 @@ async def test_group_sampler_remote(
         count += len(group)
         group_count += 1
         node_value = {
-            e.valueForConstitutivePropertyIdentifier("nodes").value for e in group
+            (
+                e["nodes"]
+                if type(e) is dict
+                else e.valueForConstitutivePropertyIdentifier("nodes").value
+            )
+            for e in group
         }
         cpu_value = {
-            e.valueForConstitutivePropertyIdentifier("cpu_family").value for e in group
+            (
+                e["cpu_family"]
+                if type(e) is dict
+                else e.valueForConstitutivePropertyIdentifier("cpu_family").value
+            )
+            for e in group
         }
 
         assert (

@@ -5,9 +5,6 @@
 
 fix: true
 
-globs:
-  - "**/*.md"
-
 ignores:
   - "CHANGELOG.md"
   - ".venv"
@@ -17,3 +14,6 @@ config:
   # MD046/code-block-style : Code block style : https://github.com/DavidAnson/markdownlint/blob/v0.39.0/doc/md046.md
   MD046:
     style: consistent
+  # MD007/unordered-list-indent - this is not compatible with mkdocs indented lists which require 4 spaces.
+  #It constantly de-dents 2 spaces leading lists to be flat
+  MD007: false

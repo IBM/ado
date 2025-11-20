@@ -79,9 +79,38 @@ docs = [
 resolution-helpers = [
     "urllib3>=2.5.0",
 ]
+test = [
+    "ado-ray-tune",
+    "ado-sfttrainer",
+    "anomalous-series",
+    "optimization-test-functions",
+    "pfas-custom-functions",
+    "profile-space",
+    "robotic-lab",
+]
 
 [tool.uv]
 default-groups = ["dev", "docs"]
+
+[tool.uv.workspace]
+members = [
+    "plugins/actuators/sfttrainer",
+    "plugins/operators/ray_tune",
+    "examples/optimization_test_functions/custom_experiments",
+    "examples/pfas-generative-models/custom_actuator_function",
+    "plugins/operators/profile_space",
+    "plugins/operators/anomalous_series",
+    "plugins/actuators/example_actuator",
+]
+
+[tool.uv.sources]
+ado-sfttrainer = { workspace = true }
+ado-ray-tune = { workspace = true }
+optimization-test-functions = { workspace = true }
+pfas-custom-functions = { workspace = true }
+profile-space = { workspace = true }
+anomalous-series = { workspace = true }
+robotic-lab = { workspace = true }
 
 [project.scripts]
 ado = "orchestrator.cli.core.cli:app"

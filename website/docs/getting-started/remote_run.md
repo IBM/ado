@@ -101,7 +101,7 @@ You can read more about [ray submit command line options here](#ray-job-submit-o
 
 There are three ways of installing ado and plugins on the remote cluster.
 
-- [pre-install](#pre-installing-ado-packages): Best when you are using the
+- [Pre-installing](#pre-installing-ado-packages): Best when you are using the
 same actuators and operator constantly
 - [Dynamic installation from pypi](#dynamic-installation-from-pypi):
 Best in general case
@@ -111,7 +111,7 @@ Best for developers
 ### Pre-installing ado packages
 
 In this method `ado` and the required plugins are installed in the
-Ray cluster's base python environment e.g. in the image used for head and
+Ray cluster's base python environment i.e. in the image used for head and
 worker nodes.
 
 In this case you do not need to specify any packages in the `runtime_env.yaml`,
@@ -129,9 +129,9 @@ python package download or build steps.
 >
 > - The pre-installed `ado` command is tied to the base-environment
 >     - It will not see new packages. You need to install it
-> into the job virtualenv
+> into the job's virtualenv
 > - The ado_actuators namespace package will be superseded by one created in
-> the job virtualenv
+> the job's virtualenv
 >     - Actuators in the same namespace package in the base environment
 > will not be seen
 <!-- markdownlint-enable MD007 -->
@@ -174,7 +174,7 @@ In the top-level of the `ado` repository:
 ##### Build the plugin wheels
 
 In the top-level of the plugins package, for example, one of the
-subdirectories of "plugins/actuators/" in the `ado` `repository, execute:
+subdirectories of "plugins/actuators/" in the `ado` repository, execute:
 
   ```bash
   : # Remove any previous wheel to avoid using wrong one
@@ -244,8 +244,8 @@ is restarted.
 
 > [!IMPORTANT]
 >
-> `ray job submit` communicates to the ray cluster using different protocols via
-> the given URL. This means if only http is allowed to be sent to the URL
+> `ray job submit` communicates to the ray cluster at the given URL using
+> multiple protocols. This means that if only http traffic is allowed,
 > `ray job submit` will not work. This is usually why you need a port-forward
 > compared to, e.g. an OpenShift route.
 <!-- markdownlint-disable-next-line MD028 -->
@@ -254,7 +254,7 @@ is restarted.
 >
 > You can navigate to the dashboard of the remote ray cluster by pasting the URL
 > into your browser. From the dashboard, you can view running jobs, browse the
-> logs of your job, see its workers etc. You may also be able to reach this
+> logs of your job, see its workers, etc. You may also be able to reach this
 > dashboard by a different URL that doesn't require port-forward to access.
 
 ### ray runtime environment: `runtime-env`
@@ -268,7 +268,7 @@ uv: # One line for each wheel/package to install, in this example there is two. 
   - ado-core
   - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_PLUGIN1.whl
 env_vars: # These envars are recommend. Some plugins may require others. Check plugin docs.
-  PYTHONUNBUFFERED: "x" # Turns of buffering of the jobs logs. Useful if there is some error
+  PYTHONUNBUFFERED: "x" # Turns off buffering of the jobs logs. Useful if there is some error
   OMP_NUM_THREADS: "1" # Restricts the number of threads started by the python process in the job. If this is not set it can cause the ray job to exceed OpenShift node thread limits.
   OPENBLAS_NUM_THREADS: "1" # Same as above
   RAY_AIR_NEW_PERSISTENCE_MODE: "0" # Required for using the ray_tune operator

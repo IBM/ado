@@ -2,26 +2,13 @@
 
 <!-- markdownlint-disable-next-line first-line-h1 -->
 
-> [!NOTE]  Summary
+> [!NOTE] Overview
 >
-> This page explains how to run an `ado` operation on a remote ray
-> cluster, enabling long-running operations that can utilize multiple nodes
-> and large amounts of compute-resource like GPUs
-<!-- markdownlint-disable-next-line MD028 -->
-
-> [!TIP] Why run `ado` on a remote ray cluster?
->
-> ado `operations` can benefit from running on a remote ray cluster when they
-> require (or can use) more compute resources than they are available on your
-> laptop. This is usually because one or both of the following are true:
->
-> - the operation can leverage the fact that `ado` is built on `Ray` to run large
-> numbers of distributed tasks
-> - the operation requires access to large amounts of compute resources, like
-> GPUs.
->
-> Another advantage of running an `ado operation` on a remote cluster
-> is you don't have to keep your laptop open and active.
+> Running `ado` on a remote ray cluster enables
+> long-running operations that can utilize multiple nodes
+> and large amounts of compute-resource like GPUs.
+> Such resources may also be a requirement for certain
+> experiments or actuators.
 
 ## Quickstart
 
@@ -48,8 +35,8 @@ can have any names.
 
 ### Setting the Ray job environment
 
-An example `runtime_env.yaml` which dynamically installs the latest release of ado
-and its plugins is:
+An example `runtime_env.yaml` which dynamically installs the latest release
+of `ado`, and some `ado` plugins, is:
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
@@ -88,7 +75,8 @@ ray job submit --no-wait --address http://localhost:8265 \
 <!-- markdownlint-enable line-length -->
 
 This creates a detached Ray job that runs on the cluster.
-You can go to the ray dashboard (here at <http://localhost:8265>)
+You can go to the ray dashboard
+(in this example at <http://localhost:8265>)
 to see the job status, logs, and more.
 You can read more about [ray submit command line options here](#ray-job-submit-options).
 
@@ -103,7 +91,7 @@ You can read more about [ray submit command line options here](#ray-job-submit-o
 There are three ways of installing ado and plugins on the remote cluster.
 
 - [Pre-installing](#pre-installing-ado-packages): Best when you are using the
-same actuators and operator constantly
+same actuators and operators constantly
 - [Dynamic installation from pypi](#dynamic-installation-from-pypi):
 Best in general case
 - [Dynamic installation from source](#dynamic-installation-from-source):

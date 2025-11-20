@@ -46,7 +46,7 @@ def log_space_details(discovery_space: "DiscoverySpace"):
 
 
 def _run_operation_harness(
-    run_closure: typing.Callable[[], OperationOutput],
+    run_closure: typing.Callable[[], OperationOutput | None],
     base_operation_configuration: BaseOperationRunConfiguration,
     discovery_space: DiscoverySpace,
     operation_identifier: str | None = None,
@@ -85,7 +85,7 @@ def _run_operation_harness(
             OperationResourceStatus(event=OperationResourceEventEnum.STARTED)
         )
         discovery_space.metadataStore.updateResource(operation_resource)
-        operation_output = run_closure()
+        operation_output: OperationOutput | None = run_closure()
     except KeyboardInterrupt:
         sys.stdout.flush()
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
@@ -124,12 +124,19 @@ def _run_operation_harness(
         time.sleep(1)
         sys.stdout.flush()
         if shutdown:
-            moduleLog.warning("Operation exited normally but a signal was sent")
-            operation_output = None
-            operationStatus = OperationResourceStatus(
-                event=OperationResourceEventEnum.FINISHED,
-                exit_state=OperationExitStateEnum.ERROR,
-                message="Operation exited due to SIGTERM)",
+            moduleLog.warning(
+                "Operation exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
+            )
+            if operation_output:
+                moduleLog.info("Operation returned output - will save")
+
+            operationStatus = (
+                OperationResourceStatus(
+                    event=OperationResourceEventEnum.FINISHED,
+                    exit_state=OperationExitStateEnum.ERROR,
+                    message="An external event e.g. SIGTERM, initiated shutdown. "
+                    "This may have caused the operation to exit early",
+                ),
             )
         else:
             if not operation_output:

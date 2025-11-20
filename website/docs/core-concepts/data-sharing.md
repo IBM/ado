@@ -8,8 +8,8 @@ data. For more general information about these databases see
 There are two key points that underpin data reuse in `ado`:
 
 - You can **share** a Sample Store between multiple Discovery Spaces
-  - This allows a Discovery Space to (re)use relevant Entities and Measurements
-    stored in the Sample Store by operations on other Discovery Spaces
+    - This allows a Discovery Space to (re)use relevant Entities and Measurements
+       stored in the Sample Store by operations on other Discovery Spaces
 - **Entities are always shared**. There is only one entry in a Sample Store for
   an Entity
 
@@ -65,13 +65,13 @@ consider:
 
 - **measured**: retrieve only Entities and measurements that were sampled via an
   operation on the given Discovery Space
-  - this can be considered the "no sharing" mode. If an Entity or measurement
-    exists in the Sample Store that's compatible with the Discovery Space, but
-    no operation on the Discovery Space ever visited it, the "measured" mode
-    will not show it
+    - this can be considered the "no sharing" mode. If an Entity or measurement
+      exists in the Sample Store that's compatible with the Discovery Space, but
+      no operation on the Discovery Space ever visited it, the "measured" mode
+      will not show it
 - **matching**: retrieve all Entities and measurements that match the Discovery
   Space
-  - this can be considered the "sharing" mode.
+    - this can be considered the "sharing" mode.
 
 ## Data sharing and memoization
 
@@ -93,10 +93,10 @@ sampling process is as follows:
 - The Entity's record is retrieved from the Sample Store if present (via its
   unique identifier)
 - If **memoization is on**
-  - for each experiment in the MeasurementSpace, `ado` checks if a result for it
-    already exists (via the experiment's unique identifier)
-    - if it does, the result is reused. If there is more than one result, they
-      are all reused
+    - for each experiment in the MeasurementSpace, `ado` checks if a result for it
+      already exists (via the experiment's unique identifier)
+        - if it does, the result is reused. If there is more than one result, they
+          are all reused
 - if **memoization is off**
-  - Existing results are ignored. Each experiment in the Measurement Space is
-    applied again to the Entity. The new results are added to any existing.
+     - Existing results are ignored. Each experiment in the Measurement Space is
+       applied again to the Entity. The new results are added to any existing.

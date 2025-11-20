@@ -141,7 +141,7 @@ def graceful_explore_operation_shutdown_handler(
 
 def run_explore_operation_core_closure(
     operator: "OperatorActor", state: "DiscoverySpaceManagerActor"
-) -> typing.Callable[[], OperationOutput]:
+) -> typing.Callable[[], OperationOutput | None]:
 
     def _run_explore_operation_core() -> OperationOutput:
         import numpy as np

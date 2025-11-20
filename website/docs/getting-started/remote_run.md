@@ -81,7 +81,8 @@ The command for submitting the job looks like:
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
-ray job submit --no-wait --address http://localhost:8265  --working-dir $PWD --runtime-env ray_runtime.yaml -v -- \
+ray job submit --no-wait --address http://localhost:8265 \
+  --working-dir $PWD --runtime-env ray_runtime.yaml -v -- \
   ado -c context.yaml create operation -f operation.yaml
 ```
 <!-- markdownlint-enable line-length -->
@@ -191,7 +192,16 @@ Once you have built the required wheels, change directory to
 `$RAY_JOB_DATA_DIR`.
 
 Now, create a `ray_runtime_env.yaml` with a `uv` section, as in [quickstart example](#setting-the-ray-job-environment).
-Here you can reference the wheels in the following format.
+Here you can reference the wheels with the following format.
+
+<!-- markdownlint-enable line-length -->
+
+> [!IMPORTANT] RAY_RUNTIME_ENV_CREATE_WORKING_DIR
+>
+> Do not remove or modify the string ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}
+> when specifying the wheel names. It is required before every wheel you want to
+> upload and if it is changed the wheel installation will fail.
+<!-- markdownlint-disable-next-line MD028 -->
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
@@ -202,14 +212,6 @@ pip: # One line for each wheel to install, in this example there is two. Be sure
 env_vars: # See below
   ...
 ```
-<!-- markdownlint-enable line-length -->
-
-> [!IMPORTANT] RAY_RUNTIME_ENV_CREATE_WORKING_DIR
->
-> Do not remove or modify the string ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}
-> when specifying the wheel names. It is required before every wheel you want to
-> upload and if it is changed the wheel installation will fail.
-<!-- markdownlint-disable-next-line MD028 -->
 
 > [!NOTE] pypi packages
 >
@@ -272,7 +274,7 @@ env_vars: # These envars are recommend. Some plugins may require others. Check p
   OMP_NUM_THREADS: "1" # Restricts the number of threads started by the python process in the job. If this is not set it can cause the ray job to exceed OpenShift node thread limits.
   OPENBLAS_NUM_THREADS: "1" # Same as above
   RAY_AIR_NEW_PERSISTENCE_MODE: "0" # Required for using the ray_tune operator
-  #The following envars may be required or useful depending
+  #The following envars may be required or useful depending on your specific needs
   HOME: "/tmp" # Optional: Use if python code used by operation assumes $HOME is writable which it may not be
   LOGLEVEL: "WARNING" # Optional: Set this to get more/less debug logs from ado
 ```

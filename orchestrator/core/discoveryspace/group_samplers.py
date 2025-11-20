@@ -20,7 +20,7 @@ from orchestrator.schema.entity import Entity
 moduleLog = logging.getLogger("groupsamplers")
 
 
-def _get_space_entities(discoverySpace: DiscoverySpace) -> list[dict]:
+def _get_space_points(discoverySpace: DiscoverySpace) -> list[dict]:
     """
     Building list of entities for a discovery space
 
@@ -33,22 +33,6 @@ def _get_space_entities(discoverySpace: DiscoverySpace) -> list[dict]:
         dict(zip(property_names, point))
         for point in entity_space.sequential_point_iterator()
     ]
-
-
-def _get_remote_space_entities(
-    remoteDiscoverySpace: DiscoverySpaceManager,
-) -> list[dict]:
-    """
-    Building list of entities for a discovery space
-
-    :param remoteDiscoverySpace: discovery space actor
-    :return: list of entities dict
-    """
-    # get discovery space
-    # noinspection PyUnresolvedReferences
-    dspace = ray.get(remoteDiscoverySpace.discoverySpace.remote())
-    # build list of entities
-    return _get_space_entities(discoverySpace=dspace)
 
 
 def _build_entity_group_values(
@@ -169,7 +153,8 @@ async def _random_iterator_async(
 
 
 def _random_iterator(
-    entities: list[dict], group: list[str]
+    entities: list[dict],
+    group: list[str],
 ) -> Generator[list[dict], None, None]:
     """
     Random iterator through discovery space with grouping
@@ -178,6 +163,7 @@ def _random_iterator(
     :return:
     """
     group_list = _build_groups_list(entities=entities, group=group)
+
     randomized = np.random.choice(
         a=range(len(group_list)), size=len(group_list), replace=False
     )
@@ -456,18 +442,18 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
                 f"Cannot use ExplicitEntitySpaceGroupedGridSampleGenerator with {entitySpace}"
             )
 
-        entities = _get_space_entities(discoverySpace=discoverySpace)
+        points = _get_space_points(discoverySpace=discoverySpace)
 
         def iterator_closure() -> Generator[list[Entity], None, None]:
             def sequential_iterator() -> Generator[list[Entity], None, None]:
-                return _sequential_iterator(entities=entities, group=self.group)
+                return _sequential_iterator(entities=points, group=self.group)
 
             def random_iterator() -> Generator[list[Entity], None, None]:
                 import time
 
                 now = time.perf_counter()
                 print(f"Getting all entities took {time.perf_counter() - now}")
-                return _random_iterator(entities=entities, group=self.group)
+                return _random_iterator(entities=points, group=self.group)
 
             if self.mode == WalkModeEnum.SEQUENTIAL:
                 return sequential_iterator()
@@ -486,6 +472,8 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
 
             # noinspection PyUnresolvedReferences
             entitySpace = await remoteDiscoverySpace.entitySpace.remote()
+            discoverySpace = await remoteDiscoverySpace.discoverySpace.remote()
+            points = _get_space_points(discoverySpace=discoverySpace)
 
             if not ExplicitEntitySpaceGroupedGridSampleGenerator.samplerCompatibleWithEntitySpace(
                 entitySpace=entitySpace
@@ -495,20 +483,14 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
                 )
 
             def sequential_iterator() -> AsyncGenerator[list[Entity], None]:
-                entities = _get_remote_space_entities(
-                    remoteDiscoverySpace=remoteDiscoverySpace
-                )
                 return _sequential_iterator_async(
-                    entities=entities,
+                    entities=points,
                     group=self.group,
                 )
 
             def random_iterator() -> AsyncGenerator[list[Entity], None]:
-                entities = _get_remote_space_entities(
-                    remoteDiscoverySpace=remoteDiscoverySpace
-                )
                 return _random_iterator_async(
-                    entities=entities,
+                    entities=points,
                     group=self.group,
                 )
 

@@ -270,7 +270,10 @@ def orchestrate_explore_operation(
 
     import orchestrator.modules.operators.setup
 
-    namespace = f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
+    if not operation_info.namespace:
+        operation_info.namespace = (
+            f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
+        )
 
     initialize_resource_cleaner()
 
@@ -314,8 +317,8 @@ def orchestrate_explore_operation(
     queue = MeasurementQueue.get_measurement_queue()
 
     # noinspection PyUnresolvedReferences
-    state = DiscoverySpaceManager.options(namespace=namespace).remote(
-        queue=queue, space=discovery_space, namespace=namespace
+    state = DiscoverySpaceManager.options(namespace=operation_info.namespace).remote(
+        queue=queue, space=discovery_space, namespace=operation_info.namespace
     )  # type: "InternalStateActor"
     moduleLog.debug(f"Waiting for discovery state actor to be ready: {state}")
     _ = ray.get(state.__ray_ready__.remote())

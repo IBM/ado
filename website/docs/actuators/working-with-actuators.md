@@ -75,7 +75,7 @@ documentation.
 If you are running `ado` operations on a remote ray cluster, as ray job, you may
 want, or need, to dynamically install an actuator plugin or its latest version.
 This is described in the
-[running ado on a remote ray cluster](../getting-started/remote_run.md#installing-ado-and-required-plugins-on-a-remote-ray-cluster-from-source).
+[running ado on a remote ray cluster](../getting-started/remote_run.md#dynamic-installation-from-pypi).
 
 Some additional notes about this process when you are developing an actuator:
 

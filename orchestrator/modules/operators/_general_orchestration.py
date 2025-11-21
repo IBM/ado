@@ -37,7 +37,7 @@ def run_general_operation_core_closure(
             FunctionOperationInfo,
             ...,
         ],
-        OperationOutput,
+        OperationOutput | None,
     ],
     discovery_space: DiscoverySpace,
     operationInfo: FunctionOperationInfo,
@@ -47,7 +47,7 @@ def run_general_operation_core_closure(
     def _run_general_operation_core() -> OperationOutput:
         return operation_function(
             discovery_space, operationInfo, **operation_parameters
-        )  # type: OperationOutput
+        )  # type: OperationOutput | None
 
     return _run_general_operation_core
 

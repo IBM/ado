@@ -12,9 +12,9 @@ import orchestrator.modules
 import orchestrator.modules.operators._cleanup
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorFunctionConf,
+    get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.core.operation.operation import OperationOutput
@@ -84,7 +84,14 @@ def orchestrate_general_operation(
         OperationException: If there is an error during the operation
     """
 
-    functionConf = OperatorFunctionConf(
+    import uuid
+
+    if not operation_info.namespace:
+        operation_info.namespace = (
+            f"{operator_function.__name__}-namespace-{str(uuid.uuid4())[:8]}"
+        )
+
+    operator_module = OperatorFunctionConf(
         operatorName=operator_function.__name__,
         operationType=operation_type,
     )
@@ -97,30 +104,18 @@ def orchestrate_general_operation(
         moduleLog.critical("Measurement space is inconsistent - aborting")
         raise ValueError("Measurement space is inconsistent")
 
-    operation_resource_configuration = (
-        DiscoveryOperationResourceConfiguration.configuration_from_components(
-            discovery_space=discovery_space,
-            module=functionConf,
-            parameters=operation_parameters,
-            operation_info=operation_info,
-        )
-    )
-
     log_space_details(discovery_space)
 
-    actuator_configurations = (
-        operation_resource_configuration.get_actuatorconfigurations(
-            project_context=discovery_space.project_context
-        )
+    # Validate the actuator configurations given
+    # before calling the operation
+    actuator_configurations = get_actuator_configurations(
+        actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
+        project_context=discovery_space.project_context,
     )
-    actuator_configurations = (
-        validate_actuator_configurations_against_space_configuration(
-            actuator_configurations=actuator_configurations,
-            discovery_space_configuration=discovery_space.config,
-        )
+    validate_actuator_configurations_against_space_configuration(
+        actuator_configurations=actuator_configurations,
+        discovery_space_configuration=discovery_space.config,
     )
-
-    # TODO: We need to add this information to the function call
 
     operation_run_closure = run_general_operation_core_closure(
         operator_function,
@@ -137,8 +132,10 @@ def orchestrate_general_operation(
 
     output = _run_operation_harness(
         run_closure=operation_run_closure,
-        operation_resource_configuration=operation_resource_configuration,
         discovery_space=discovery_space,
+        operator_module=operator_module,
+        operation_parameters=operation_parameters,
+        operation_info=operation_info,
     )
 
     graceful_operation_shutdown()

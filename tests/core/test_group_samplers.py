@@ -120,7 +120,7 @@ def test_group_sampler_local(
         node_value = {
             (
                 e["nodes"]
-                if type(e) is dict
+                if isinstance(e, dict)
                 else e.valueForConstitutivePropertyIdentifier("nodes").value
             )
             for e in group
@@ -128,7 +128,7 @@ def test_group_sampler_local(
         cpu_value = {
             (
                 e["cpu_family"]
-                if type(e) is dict
+                if isinstance(e, dict)
                 else e.valueForConstitutivePropertyIdentifier("cpu_family").value
             )
             for e in group
@@ -228,7 +228,7 @@ async def test_group_sampler_remote(
         node_value = {
             (
                 e["nodes"]
-                if type(e) is dict
+                if isinstance(e, dict)
                 else e.valueForConstitutivePropertyIdentifier("nodes").value
             )
             for e in group
@@ -236,7 +236,7 @@ async def test_group_sampler_remote(
         cpu_value = {
             (
                 e["cpu_family"]
-                if type(e) is dict
+                if isinstance(e, dict)
                 else e.valueForConstitutivePropertyIdentifier("cpu_family").value
             )
             for e in group

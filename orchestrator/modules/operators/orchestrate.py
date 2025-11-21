@@ -48,7 +48,6 @@ def orchestrate(
     operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     project_context: ProjectContext,
     discovery_space_identifier: str,
-    namespace: str | None = None,
 ) -> OperationOutput:
     """orchestrate the execution of an operation defined as a function or a class (OperationModule)
 

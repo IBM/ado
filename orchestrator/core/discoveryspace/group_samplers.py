@@ -497,13 +497,13 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
         return await iterator_closure(remoteDiscoverySpace)
 
     def entityIterator(
-        self, discovery_space: DiscoverySpace, batchsize=1
+        self, discoverySpace: DiscoverySpace, batchsize=1
     ) -> Generator[list[Entity], None, None]:
         """Returns an iterator over a sequence of entities ordered by group"""
-        grouped_iterator = self.entityGroupIterator(discoverySpace=discovery_space)
+        grouped_iterator = self.entityGroupIterator(discoverySpace=discoverySpace)
         return _sequential_group_iterator(
             generator=grouped_iterator,
-            discovery_space=discovery_space,
+            discovery_space=discoverySpace,
             batch_size=batchsize,
         )
 

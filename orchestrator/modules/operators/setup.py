@@ -13,7 +13,8 @@ from orchestrator.core.actuatorconfiguration.config import (
 )
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    DiscoveryOperationResourceConfiguration,
+    DiscoveryOperationConfiguration,
+    OperatorModuleConf,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import load_module_class_or_function
@@ -133,7 +134,8 @@ def setup_actuators(
 
 
 def setup_operator(
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
+    operator_module: OperatorModuleConf,
+    parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
     state,
@@ -141,35 +143,32 @@ def setup_operator(
 ) -> "OperatorActor":
     """
     Params:
-        actuators: List of actuators
-        config: configuration dictionary
-        namespace: Namespace to set up the actor in
-        state: State actor handle
+
     """
 
     import orchestrator.utilities.output
 
     moduleLog.info("Creating operation")
 
-    operatorClass = load_module_class_or_function(
-        operation_resource_configuration.operation.module
-    )
-    operatorName = operation_resource_configuration.operation.module.moduleClass
-
-    operator = operatorClass.options(name=operatorName, namespace=namespace).remote(
-        operationActorName=operatorName,
+    operatorClass = load_module_class_or_function(operator_module)
+    operator = operatorClass.options(
+        name=operator_module.moduleClass, namespace=namespace
+    ).remote(
+        operationActorName=operator_module.moduleClass,
         namespace=namespace,
         state=state,
-        params=operation_resource_configuration.operation.parameters,
+        params=parameters,
         actuators=actuators,
     )
 
     print("=========== Operation Details ============\n")
     print(f"Space ID: {discovery_space.uri}")
     print(f"Sample Store ID:  {discovery_space.sample_store.identifier}")
-    print(
-        f"Operation Configuration:\n {orchestrator.utilities.output.pydantic_model_as_yaml(operation_resource_configuration, exclude_none=True)}"
+    conf_string = orchestrator.utilities.output.pydantic_model_as_yaml(
+        DiscoveryOperationConfiguration(module=operator_module, parameters=parameters),
+        exclude_none=True,
     )
+    print(f"Operation Configuration:\n {conf_string}")
 
     return operator
 

@@ -21,7 +21,7 @@ following is true:
 
 - the operation can leverage the fact that `ado` is built on `Ray` to run large
   numbers of distributed tasks
-- the operation requires access to (large amounts) of compute resources, like
+- the operation requires access to large amounts of compute resources, like
   GPUs.
 
 Often it is [explore operations](../operators/explore_operators.md) that require
@@ -31,25 +31,25 @@ a remote ray cluster.
 
 ### Running `ado` remotely versus using an actuator that can run remotely
 
-Some actuators can spawn jobs on remote clusters, which may be remote ray
-clusters. This is different to running `ado` remotely as in this case the `ado`
-main process is still running on your laptop, and if you close your laptop the
-process will stop.
+Some actuators are capable of spawning jobs on remote clusters, which may be
+remote ray clusters. This is different to running `ado` remotely as in this case
+the `ado` main process is still running on your laptop, and if you close your
+laptop the process will stop.
 
 When running ado remotely the `ado` main process runs on the remote cluster.
 
 ## Getting ready
 
-First, create an empty directory to contain everything that needs to be uploaded
-to the remote ray cluster for the `ado` command to run. In the following we will
-refer to this directory as `$RAY_JOB_DATA_DIR`.
+First, create an empty directory to store all necessary files that need to be
+uploaded to the remote ray cluster for the `ado` command to run. In the
+following we will refer to this directory as `$RAY_JOB_DATA_DIR`.
 
 ## Installing `ado` and required plugins on a remote ray cluster (from source)
 
-If `ado`, or the plugins that the particular `ado` command, are not present on
-the remote ray cluster, then they can be installed as part of the ray job
-submission. The simplest approach is to do this from source. For this you need
-to have [cloned the ado repository](install.md#installing-ado) and
+If `ado` or the required plugins are not present on the remote ray cluster, then
+they can be installed as part of the ray job submission. The simplest approach
+is installing from source. For this you need to have
+[cloned the ado repository](install.md#installing-ado) and
 [cloned the plugin repositories](install.md#installing-plugins)(if they are not
 in the `ado` repository).
 
@@ -62,7 +62,7 @@ Then there are two steps:
 
 !!! info
 
-    You only need to repeat this step if the source code changes between ray jobs
+    Repeat this step only if the source code changes between ray jobs
     and you want to include the changes.
 
 === "Build `ado` wheel"
@@ -124,14 +124,14 @@ information on this file.
 
 !!! warning
 
-    Do not delete or substitute the string ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}
+    Do not remove or modify the string ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}
     when specifying the wheel names. It is required before every wheel you want to
     upload and if it is changed the wheel installation will fail.
 
 ## Submitting the `ado` operation
 
-Once you have completed the previous section you need to create the `ado` input
-files in `$RAY_JOB_DATA_DIR` (or copy them there).
+After completing the previous section, create the `ado` input files in
+`$RAY_JOB_DATA_DIR` (or copy them there).
 
 This will be usually the following two YAML files:
 
@@ -139,8 +139,8 @@ This will be usually the following two YAML files:
   operation.
 - A YAML file describing [the operation](../resources/operation.md) to create.
 
-Here we will call the first `context.yaml` and the second `operation.yaml`
-although they can have any names.
+We will refer to the first file as `context.yaml` and the second as
+`operation.yaml`, although they can have any names.
 
 Then the execution command will look like:
 
@@ -152,12 +152,11 @@ ray job submit --no-wait --address http://localhost:8265  --working-dir . --runt
 ```
 <!-- markdownlint-enable line-length -->
 
-The following sections describe the different flags and values in this command
-line
+The following sections explain the various flags and values in this command line
 
 ### Specifying the remote ray cluster to submit to: `--address`
 
-To submit a job to remote ray cluster you need the address (URL) of its
+To submit a job to a remote Ray cluster you need the address (URL) of its
 dashboard. If the ray cluster is running on kubernetes or OpenShift you will
 likely need to connect your laptop to this URL via a "port-forward".
 
@@ -173,9 +172,9 @@ You will need to find out the name of the $NAMESPACE and the $RAY_SERVICE_NAME
 from the administrator of the OpenShift cluster/the namespace. Once started the
 ray cluster address will be `http://localhost:8265`
 
-The port-forward command keeps running unless you kill it, or it dies due to
-inactivity. Once it stops you will not be able to get to the ray cluster until
-it is restarted.
+The port-forward command remains active until terminated, or until deemed
+inactive. Once it stops you will not be able to get to the ray cluster until it
+is restarted.
 
 !!! important
 
@@ -187,9 +186,9 @@ it is restarted.
 !!! note
 
     You can navigate to the dashboard of the remote ray cluster by pasting the URL
-    into your browser. From there you can see running jobs, browse the logs of your
-    job, see its workers etc. You may also be able to reach this dashboard by a
-    different URL that doesn't require port-forward to access.
+    into your browser. From the dashboard, you can view running jobs, browse the
+    logs of your job, see its workers etc. You may also be able to reach this
+    dashboard by a different URL that doesn't require port-forward to access.
 
 ### ray runtime environment: `runtime-env`
 

@@ -31,7 +31,7 @@ ado [--context | -c <context-file.yaml>] \
 
 - `--context | -c` allows overriding the active context with one loaded from a
   file. This feature should only be used when running on remote Ray clusters.
-- `--log-level | -l` allows configuring the level of logging to be used. This
+- `--log-level | -l` configures the logging level. This
   does not affect child processes.
 
 ### ado context
@@ -49,7 +49,7 @@ ado context [CONTEXT_NAME]
 
 ##### Getting the current context
 
-In a similar way to `oc project`, users can see the name of the currently active
+Similar to `oc project`, users can see the name of the currently active
 context by running:
 
 ```shell
@@ -58,7 +58,7 @@ ado context
 
 ##### Listing available contexts
 
-In a similar way to `oc projects`, users can see the available contexts by
+Similar to `oc projects`, users can list available contexts by
 running:
 
 ```shell
@@ -69,7 +69,7 @@ The default context will also be printed out.
 
 ##### Switching between contexts
 
-To switch between the available contexts, provide the name of the target context
+To switch between the available contexts, specify the target context name
 to the `ado context` command. In this example we assume that the `my-context`
 context exists:
 
@@ -88,7 +88,8 @@ The complete syntax of the `ado create` command is as follows:
 ```shell
 ado create RESOURCE_TYPE [--file | -f <FILE.yaml>] \
                          [--set <jsonpath=json-value>] \
-                         [--new-sample-store] [--dry-run]
+                         [--new-sample-store] \
+                         [--use-default-sample-store] [--dry-run]
 ```
 
 Where:
@@ -108,18 +109,22 @@ Where:
   `ado create samplestore --new-sample-store`.
 - `--set` allows overriding fields in the provided resource configuration. It
   supports using JSONPath syntax. See the examples section for more information.
-- `--with-latest` allows reusing the previous identifier of a certain resource
+- `--use-latest` allows reusing the previous identifier of a certain resource
   kind. It is only supported for spaces and operations. The latest identifiers
   are updated every time an `ado create` command is successful. The stored
   identifiers are not per-context, meaning that, for example running
   `ado create samplestore`, changing context, and running
-  `ado create --with-latest samplestore` will raise an error. Ignored if `--set`
+  `ado create --use-latest samplestore` will raise an error. Ignored if `--set`
   is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
-  `ado create space --new-sample-store`, the optional `sampleStoreIdentifier`
-  contained in the `DiscoverySpaceConfiguration` will be disregarded. It is
-  ignored if `--set` or `--with-latest` are used.
+  `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
+  in the `DiscoverySpaceConfiguration` will be disregarded. It is ignored if
+  `--set` or `--use-latest` are used.
+- `--use-default-sample-store` uses the default sample store. Only available
+  when running `ado create space`. Alias for
+  `--set sampleStoreIdentifier=default`. It is ignored if --set, --use-latest,
+  or --new-sample-store are used.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
 
@@ -153,7 +158,7 @@ ado create samplestore --new-sample-store
 ##### Creating a space with a new sample store
 
 Note that if the space definition `ds.yaml` contains an `sampleStoreIdentifier`,
-it will be disregarded, and a new one will be created.
+it will be ignored, and a new one will be created.
 
 ```shell
 ado create space -f ds.yaml --new-sample-store
@@ -168,7 +173,7 @@ ado create space -f ds.yaml --set "sampleStoreIdentifier=abcdef"
 ##### Create a space reusing the latest sample store identifier
 
 ```shell
-ado create space -f ds.yaml --with-latest samplestore
+ado create space -f ds.yaml --use-latest samplestore
 ```
 
 ##### Create a space renaming a property identifier in the space
@@ -203,7 +208,7 @@ Where:
     - _space_
 
 - `RESOURCE_ID` is the unique identifier of the resource to delete.
-- `--force` allows forcing deletion of resources in the following cases:
+- `--force` enables forced deletion of resources in the following cases:
     - When attempting to delete operations while other operations are executing.
     - When attempting to delete sample stores that still contain data.
 - When deleting a local context, users can specify the flags `--delete-local-db`
@@ -233,14 +238,14 @@ ado delete space space-abc123-456def
 
 ### ado describe
 
-**ado** provides the `describe` command to retrieve easy-to-read information
+**ado** provides the `describe` command to retrieve readable information
 about resources.
 
 The complete syntax of the `ado describe` command is as follows:
 
 ```shell
-ado describe RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>]\
-             [--actuator-id <actuator>]
+ado describe RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>] \
+             [--use-latest] [--actuator-id <actuator>]
 ```
 
 Where:
@@ -255,6 +260,8 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource to describe.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   allows getting a description of the space, given a space configuration file.
+- `--use-latest` flag is **currently only available for spaces** and allows
+  describing the latest space created locally. It is not context aware.
 - `--actuator-id` (**optional**) can be used only when the resource type is
   experiment and is used to indicate what actuator the experiment belongs to.
 
@@ -269,7 +276,7 @@ ado describe space space-abc123-456def
 ### ado edit
 
 **ado** automatically stores metadata in the backend for some of the resources
-you can create. The quickest way to make adjustments to these metadata is to use
+you can create. The fastest way to update these metadata is to use
 the `ado edit` command.
 
 The complete syntax of the `ado edit` command is as follows:
@@ -323,7 +330,7 @@ ADO_EDITOR=nano ado edit space space-abc123-456def
 
 **ado** allows getting resources in a similar way to `kubectl`. Users can choose
 to either get all resources of a given type or specify a resource identifier to
-limit the results to a single resource.
+restrict results to a single resource.
 
 The complete syntax of the `ado get` command is as follows:
 
@@ -385,7 +392,7 @@ Where:
   <https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax>.
   This flag is only supported when using the `yaml`, `json`, or `config` output
   format.
-- `--minimize` attempts to minimize the output. This might entail applying
+- `--minimize` minimizes the output. This might entail applying
   transformations on the model, changing it from the original. If set, it
   implies `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This
   option is ignored when the output type is `default` or `raw`.
@@ -536,7 +543,7 @@ resources.
 The complete syntax of the `ado show details` command is as follows:
 
 ```shell
-ado show details RESOURCE_TYPE RESOURCE_ID
+ado show details RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 ```
 
 Where:
@@ -548,6 +555,9 @@ Where:
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -555,6 +565,12 @@ Where:
 
 ```shell
 ado show details space space-abc123-456def
+```
+
+###### Show details for the latest space
+
+```shell
+ado show details space --use-latest
 ```
 
 #### ado show entities
@@ -565,7 +581,7 @@ operation.
 The complete syntax of the `ado show entities` command is as follows:
 
 ```shell
-ado show entities RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>] \
+ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
                   [--output-format {console | csv | json}] \
                   [--property <property-name>] \
@@ -582,6 +598,9 @@ Where:
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   enables showing entities that match the space defined in the configuration
   file. **NOTE**: using this flag forces `--include matching`.
@@ -650,11 +669,15 @@ The complete syntax of the `ado show requests` command is as follows:
 
 <!-- markdownlint-disable line-length -->
 ```shell
-ado show requests operation RESOURCE_ID [--output-format | -o <console | csv | json>] \
-                                        [--hide <field>]
+ado show requests operation [RESOURCE_ID] [--use-latest] \
+                            [--output-format | -o <console | csv | json>] \
+                            [--hide <field>]
 ```
 <!-- markdownlint-enable line-length -->
 
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation created locally. It is not context aware. It is ignored if a
+  RESOURCE_ID is provided.
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
 - `--hide` can be specified multiple times and allows hiding fields from the
@@ -685,11 +708,15 @@ The complete syntax of the `ado show results` command is as follows:
 
 <!-- markdownlint-disable line-length -->
 ```shell
-ado show results operation RESOURCE_ID [--output-format | -o <console | csv | json>] \
-                                       [--hide <field>]
+ado show results operation [RESOURCE_ID] [--use-latest] \
+                           [--output-format | -o <console | csv | json>] \
+                           [--hide <field>]
 ```
 <!-- markdownlint-enable line-length -->
 
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation created locally. It is not context aware. It is ignored if a
+  RESOURCE_ID is provided.
 - `--output-format` determines whether the output will be printed to console or
   saved to a file.
 - `--hide` can be specified multiple times and allows hiding fields from the
@@ -717,7 +744,7 @@ id is provided (e.g., operations run on a space).
 The complete syntax of the `ado show related` command is as follows:
 
 ```shell
-ado show related RESOURCE_TYPE RESOURCE_ID
+ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 ```
 
 - `RESOURCE_TYPE` is one of the supported resource types:
@@ -728,6 +755,9 @@ ado show related RESOURCE_TYPE RESOURCE_ID
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  resource of RESOURCE_TYPE created locally. It is not context aware. It is
+  ignored if a RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -749,7 +779,7 @@ can be provided in the following formats:
 The complete syntax of the `ado show summary` command is as follows:
 
 ```shell
-ado show summary RESOURCE_TYPE [RESOURCE_IDS...] \
+ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
                  [--query | -q <path=candidate>] \
                  [--label | -l <LABEL> ] \
                  [--with-property | -p <PROPERTY> ] \
@@ -760,6 +790,8 @@ Where:
 
 - `RESOURCE_TYPE` is always _space_
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
+- `--use-latest` will add the identifier of the latest (i.e. most recent) space
+  created locally to the RESOURCE_IDS. It is not context aware.
 - By using (optionally multiple times) the `--query` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the
@@ -770,7 +802,7 @@ Where:
   metadata. Labels must be specified in the `key=value` format. This flag can be
   specified multiple times (even in conjunction with `-q` to further filter
   results).
-- `--with-property | -p` can be used to display the values of a subset of the
+- `--with-property | -p` displays values for a subset of the
   constitutive properties. Cannot be used when the output format is `md`.
 - `--format | -o` allows choosing the output format in which the information
   should be displayed. Can be one of either:
@@ -831,9 +863,9 @@ ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["gran
 
 ### ado template
 
-To help us in the creation of a resource configuration file, we typically start
+To assist in creating a resource configuration file, we typically start
 from a reference file. The `ado template` command allows you to create template
-files that you can edit to speed up the process.
+files that you can edit to streamline the process.
 
 The complete syntax of the `ado template` command is as follows:
 
@@ -931,7 +963,7 @@ ado template operation --operator-name rifferla
 
 !!! tip
 
-    **`ado` will detect automatically when resources need to be upgraded**
+    **`ado` will detect automatically when resource upgrades are required**
     and will print the exact command to run as a warning. In all other cases, there
     is no need to run this command.
 

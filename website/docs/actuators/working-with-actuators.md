@@ -15,7 +15,7 @@ using the special actuator
 
 !!! info end
 
-    Most actuators are plugins. They are pieces of code that can be installed
+    Most actuators are plugins: pieces of code that can be installed
     independently from `ado` and that `ado` can dynamically discover. Custom
     experiments are also plugins.
 
@@ -67,7 +67,7 @@ The following actuators are distributed with `ado`:
 
 ## Installing actuator plugins
 
-See our [installing plugins](../getting-started/install.md#installing-plugins)
+Refer to our [installing plugins](../getting-started/install.md#installing-plugins)
 documentation.
 
 ### Dynamic installation of actuators on a remote Ray cluster
@@ -84,8 +84,8 @@ Some additional notes about this process when you are developing an actuator:
   - If they are not committed then the version of the built wheel will not
     change i.e. it will be same as for a wheel built before the changes
   - If a wheel with this version was already installed in ray cluster by a
-    previous job, ray will use the cached version, and not your new version
-- Make sure new files you want to package with the wheel are committed
+    previous job, Ray will use the cached version instead of your updated one
+- Ensure new files to be packaged with the wheel are committed
   - The setup.py for the plugins only adds committed non-python files
 
 ## What's next

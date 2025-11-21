@@ -188,7 +188,7 @@ def test_create_discovery_space_success_with_latest_samplestore(
             "space",
             "-f",
             space_configuration_file,
-            "--with-latest",
+            "--use-latest",
             "samplestore",
         ],
     )

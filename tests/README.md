@@ -3,14 +3,14 @@
 The tests assume you are running for the directory containing this directory
 i.e. the top directory of the `ado` repo.
 
-Before testing, install the following actuators which are used in the tests
+We recommend using `uv sync` to install all test requirements:
 
 ```commandline
-pip install plugins/actuators/sfttrainer
-pip install plugins/operators/ray_tune
-pip install examples/pfas-generative-models/custom_actuator_function/
-pip install examples/optimization_test_functions/custom_experiments/
+uv sync --group test
 ```
+
+Note: This will also remove all packages not required for testing and sync
+all package versions to the lockfile.
 
 To execute all tests run:
 

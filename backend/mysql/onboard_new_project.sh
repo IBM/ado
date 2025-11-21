@@ -87,7 +87,6 @@ echo
 # Save to file
 echo "
 metadataStore:
-  active: true
   database: $PROJECT_NAME
   host: $MYSQL_ADDRESS
   password: $USER_PWD

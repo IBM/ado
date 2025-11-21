@@ -21,6 +21,17 @@ def set_plugin():
     del os.environ["RAY_RUNTIME_ENV_PLUGINS"]
 
 
+def test_detect_support_pip_install_options():
+    import ray
+
+    version = tuple(int(x) for x in ray.__version__.split("."))
+    import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tv
+
+    supported = tv.semver_cmp(version, (2, 50, 0)) >= 0
+
+    assert supported == utils.ray_version_supports_pip_install_options()
+
+
 def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
@@ -36,22 +47,88 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
 
     assert utils.is_ordered_pip_available()
 
-    packages = ["torch==2.6.0", "flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"]
+    packages = [
+        "torch==2.6.0",
+        "flash_attn==2.7.4.post1",
+        "mamba-ssm==2.2.5",
+    ]
 
     runtime_env = utils.get_ray_environment(
         packages=packages,
-        packages_requiring_extra_phase=[["flash_attn", "mamba-ssm"]],
+        packages_requiring_extra_phase=[utils.packages_depending_on_torch()],
+        env_vars={},
     )
 
-    assert runtime_env == {
-        "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0", "PIP_NO_BUILD_ISOLATION": "0"},
-        "ordered_pip": {
-            "phases": [
-                {"packages": ["torch==2.6.0"]},
-                {"packages": ["flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"]},
-            ]
-        },
-    }
+    if utils.ray_version_supports_pip_install_options():
+        assert runtime_env == {
+            "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0"},
+            "ordered_pip": {
+                "phases": [
+                    {"packages": ["torch==2.6.0"]},
+                    {
+                        "packages": ["flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"],
+                        "pip_install_options": ["--no-build-isolation"],
+                    },
+                ]
+            },
+        }
+    else:
+        assert runtime_env == {
+            "env_vars": {
+                "AIM_UI_TELEMETRY_ENABLED": "0",
+                "PIP_NO_BUILD_ISOLATION": "0",
+            },
+            "ordered_pip": {
+                "phases": [
+                    {"packages": ["torch==2.6.0"]},
+                    {
+                        "packages": [
+                            "flash_attn==2.7.4.post1",
+                            "mamba-ssm==2.2.5",
+                        ]
+                    },
+                ]
+            },
+        }
+
+
+def test_pip_find_links_option():
+    if not utils.is_pip_available():
+        pytest.skip("pip is unavailable")
+
+    packages = ["mamba-ssm==2.2.5"]
+
+    wheelhouse = "file:///path/to/wheelhouse"
+    runtime_env = utils.get_ray_environment(
+        packages=packages,
+        packages_requiring_extra_phase=[utils.packages_depending_on_torch()],
+        env_vars={"PIP_FIND_LINKS": wheelhouse},
+    )
+
+    if utils.ray_version_supports_pip_install_options():
+        assert runtime_env == {
+            "env_vars": {
+                "AIM_UI_TELEMETRY_ENABLED": "0",
+                "PIP_FIND_LINKS": wheelhouse,
+            },
+            "pip": {
+                "packages": packages,
+                "pip_install_options": [
+                    "--no-build-isolation",
+                    "--find-links",
+                    wheelhouse,
+                ],
+            },
+        }
+    else:
+        assert runtime_env == {
+            "env_vars": {
+                "AIM_UI_TELEMETRY_ENABLED": "0",
+                "PIP_NO_BUILD_ISOLATION": "0",
+                "PIP_FIND_LINKS": wheelhouse,
+            },
+            "pip": {"packages": packages},
+        }
 
 
 def test_ray_runtime_env_with_vanilla_pip():
@@ -60,32 +137,57 @@ def test_ray_runtime_env_with_vanilla_pip():
 
     assert utils.is_ordered_pip_available() is False
 
-    packages = ["torch==2.6.0", "flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"]
+    packages = [
+        "torch==2.6.0",
+        "flash_attn==2.7.4.post1",
+        "mamba-ssm==2.2.5",
+    ]
 
     runtime_env = utils.get_ray_environment(
         packages=packages,
-        packages_requiring_extra_phase=[["flash_attn", "mamba-ssm"]],
+        packages_requiring_extra_phase=[utils.packages_depending_on_torch()],
+        env_vars={},
     )
 
-    assert runtime_env == {
-        "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0", "PIP_NO_BUILD_ISOLATION": "0"},
-        "pip": {
-            "packages": ["torch==2.6.0", "flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"]
-        },
-    }
+    if utils.ray_version_supports_pip_install_options():
+        assert runtime_env == {
+            "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0"},
+            "pip": {
+                "packages": [
+                    "torch==2.6.0",
+                    "flash_attn==2.7.4.post1",
+                    "mamba-ssm==2.2.5",
+                ],
+                "pip_install_options": ["--no-build-isolation"],
+            },
+        }
+    else:
+        assert runtime_env == {
+            "env_vars": {
+                "AIM_UI_TELEMETRY_ENABLED": "0",
+                "PIP_NO_BUILD_ISOLATION": "0",
+            },
+            "pip": {
+                "packages": [
+                    "torch==2.6.0",
+                    "flash_attn==2.7.4.post1",
+                    "mamba-ssm==2.2.5",
+                ]
+            },
+        }
 
 
 def test_ordered_pip_plugin(set_plugin):
-    if not utils.is_nvidia_smi_available():
-        pytest.skip("there's no NVIDIA gpu on this machine")
+    if not utils.is_pip_available():
+        pytest.skip("pip is unavailable")
 
     @ray.remote(
         runtime_env={
             "ordered_pip": {
                 "phases": [
-                    ["torch==2.6.0"],
+                    ["pyyaml"],
                     {
-                        "packages": ["mamba-ssm==2.2.5"],
+                        "packages": ["filelock"],
                         "pip_install_options": ["--no-build-isolation"],
                     },
                 ]
@@ -96,11 +198,23 @@ def test_ordered_pip_plugin(set_plugin):
             },
         },
     )
-    def try_import_torch():
-        import torch
+    def try_import_packages():
+        import yaml
 
-        print(torch.__file__)
-        assert torch.__version__ == "2.6.0"
+        _ = dir(yaml)
+
+        import filelock
+
+        _ = dir(filelock)
+
         return True
 
-    assert ray.get(try_import_torch.remote())
+    import importlib.metadata
+
+    installed_packages = importlib.metadata.distributions()
+    installed_packages = sorted([pkg.metadata["Name"] for pkg in installed_packages])
+
+    if ("pyyaml" in installed_packages) and ("filelock" in installed_packages):
+        pytest.skip("pyyaml and filelock are both already installed")
+
+    assert ray.get(try_import_packages.remote())

@@ -359,38 +359,6 @@ class RandomWalkParameters(pydantic.BaseModel):
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    @pydantic.model_validator(mode="before")
-    def upgrade_model(cls, parameters: typing.Any):
-
-        if isinstance(parameters, dict) and parameters.get("mode"):
-
-            from orchestrator.modules.operators.base import (
-                warn_deprecated_operator_parameters_model_in_use,
-            )
-
-            warn_deprecated_operator_parameters_model_in_use(
-                affected_operator="random_walk",
-                deprecated_from_operator_version="v1.0.1",
-                removed_from_operator_version="v1.2",
-                latest_format_documentation_url="https://ibm.github.io/ado/operators/random-walk/#configuring-a-randomwalk",
-            )
-
-            defaultSamplerConfig = BaseSamplerConfiguration()
-            samplerConfig = BaseSamplerConfiguration(
-                mode=parameters.get("mode", defaultSamplerConfig.mode),
-                grouping=parameters.get("grouping", defaultSamplerConfig.grouping),
-                samplerType=parameters.get(
-                    "samplerType", defaultSamplerConfig.samplerType
-                ),
-            )
-            parameters = parameters.copy()
-            parameters.pop("mode", None)
-            parameters.pop("grouping", None)
-            parameters.pop("samplerType", None)
-            parameters["samplerConfig"] = samplerConfig
-
-        return parameters
-
     @pydantic.field_validator("batchSize")
     def validate_runtime_config(cls, value, values: "pydantic.FieldValidationInfo"):
 

@@ -1,26 +1,21 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
-> [!NOTE]
->
-> We recommend to read about [Discovery Spaces](discovery-spaces.md) before
-> reading this document.
+# Shared Sample Stores
 
-In `ado` Entities and measurement results are stored in a database called
+In `ado` Entities and measurement results are stored in a database called a
 **Sample Store**. This document describes how Sample Stores enable sharing of
 data. For more general information about these databases see
 [their dedicated page](../resources/sample-stores.md).
 
-From the point-of-view of understanding data reuse in `ado`, the following
-points are key:
+There are two key points that underpin data reuse in `ado`:
 
 - You can **share** a Sample Store between multiple Discovery Spaces
-  - This allows a Discovery Space to (re)use relevant Entities and Measurements
-    placed in the Sample Store by operations on other Discovery Spaces
+    - This allows a Discovery Space to (re)use relevant Entities and Measurements
+       stored in the Sample Store by operations on other Discovery Spaces
 - **Entities are always shared**. There is only one entry in a Sample Store for
   an Entity
 
 > [!NOTE]
 >
-> To maximise the chance of data-reuse, similar Discovery Spaces should use the
+> To maximize the chance of data-reuse, similar Discovery Spaces should use the
 > same Sample Store. However, Discovery Spaces do not have to be similar to use
 > the same Sample Store.
 
@@ -32,7 +27,7 @@ There are two situations where data can be shared between Discovery Spaces in
 - **Data Retrieval**: retrieving data about entities and measurements from the
   Discovery Space e.g. `ado show entities space`
 - **Data Generation**: When performing an explore operation on a Discovery
-  Space - we call data reuse in this case `memoization`
+  Space - this type of data reuse is called `memoization`
 
 ## How `ado` determines what data can be shared
 
@@ -54,7 +49,7 @@ of the Entities.
 
 ### Measurements
 
-Each Experiment in a Measurement Space also has a unique identifier, determined
+Each experiment in a Measurement Space has a unique identifier, determined
 from its base name plus any optional properties that have been explicitly set.
 When an Entity is retrieved from the Sample Store, it contains results of all
 the experiments that have been applied to it. If the identifier of a result
@@ -70,13 +65,13 @@ consider:
 
 - **measured**: retrieve only Entities and measurements that were sampled via an
   operation on the given Discovery Space
-  - this can be considered the "no sharing" mode. If an Entity or measurement
-    exists in the Sample Store that's compatible with the Discovery Space, but
-    no operation on the Discovery Space ever visited it, the "measured" mode
-    will not show it
+    - this can be considered the "no sharing" mode. If an Entity or measurement
+      exists in the Sample Store that's compatible with the Discovery Space, but
+      no operation on the Discovery Space ever visited it, the "measured" mode
+      will not show it
 - **matching**: retrieve all Entities and measurements that match the Discovery
   Space
-  - this can be considered the "sharing" mode.
+    - this can be considered the "sharing" mode.
 
 ## Data sharing and memoization
 
@@ -98,10 +93,10 @@ sampling process is as follows:
 - The Entity's record is retrieved from the Sample Store if present (via its
   unique identifier)
 - If **memoization is on**
-  - for each experiment in the MeasurementSpace, `ado` checks if a result for it
-    already exists (via the experiment's unique identifier)
-    - if it does, the result is reused. If there is more than one result, they
-      are all reused
+    - for each experiment in the MeasurementSpace, `ado` checks if a result for it
+      already exists (via the experiment's unique identifier)
+        - if it does, the result is reused. If there is more than one result, they
+          are all reused
 - if **memoization is off**
-  - Existing results are ignored. Each experiment in the Measurement Space is
-    applied again to the Entity. The new results are added to any existing.
+     - Existing results are ignored. Each experiment in the Measurement Space is
+       applied again to the Entity. The new results are added to any existing.

@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import json
 import logging
 import os
 import uuid
@@ -92,11 +91,13 @@ class VLLMPerformanceTest(ActuatorBase):
                     max_concurrent=params.max_environments,
                     in_cluster=params.in_cluster,
                     verify_ssl=params.verify_ssl,
+                    pvc_name=params.pvc_name,
+                    pvc_template=params.pvc_template,
                 )
             except Exception as error:
                 self.log.warning(
                     f"Unable to create kubernetes environment manager due to {error}. "
-                    f"Will not be able to execute experiments requiring deploying on k8s"
+                    f"Will not be able to execute experiments requiring deploying on K8s"
                 )
             else:
                 # add to clean up
@@ -107,6 +108,10 @@ class VLLMPerformanceTest(ActuatorBase):
                     logger.warning(
                         f"Failed to register custom actors for clean up {e}. Make sure you clean it up"
                     )
+        else:
+            self.log.warning(
+                "No namespace set in acutator configuration - will not be able to create deployments"
+            )
 
         # initialize local port
         self.local_port = 10000
@@ -176,25 +181,12 @@ class VLLMPerformanceTest(ActuatorBase):
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
-        if experiment.identifier == "performance-testing-full":
+        if experiment.identifier == "test-deployment-v1":
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(
                     f"Actuator configuration did not contain sufficient information for a kubernetes environment manager to be created. "
                     f"Experiment {experiment} requires a kubernetes environment manager to be executable."
                 )
-
-            if self.actuator_parameters.node_selector == "":
-                node_selector = {}
-            else:
-                try:
-                    node_selector = json.loads(self.actuator_parameters.node_selector)
-                except Exception as e:
-                    logger.error(
-                        f"Error loading node selector {self.actuator_parameters.node_selector} - {e}"
-                    )
-                    raise Exception(
-                        f"Error loading node selector {self.actuator_parameters.node_selector} - {e}"
-                    )
 
             # Execute experiment
             # Note: Here the experiment instance is just past for convenience since we retrieved it above
@@ -203,7 +195,7 @@ class VLLMPerformanceTest(ActuatorBase):
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,
                 actuator_parameters=self.actuator_parameters,
-                node_selector=node_selector,
+                node_selector=self.actuator_parameters.node_selector,
                 env_manager=self.env_manager,
                 local_port=self.local_port,
             )

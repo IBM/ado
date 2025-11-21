@@ -8,8 +8,12 @@ import pytest
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
 )
+from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.entity import Entity
-from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+from orchestrator.schema.experiment import (
+    Experiment,
+    ParameterizedExperiment,
+)
 from orchestrator.schema.property import (
     AbstractProperty,
     ConstitutiveProperty,
@@ -814,4 +818,192 @@ def test_experiment_provides_requirements(
         not mock_parameterizable_experiment_no_required.experimentProvidesRequirements(
             mock_parameterizable_experiment
         )
+    )
+
+
+@pytest.fixture(scope="module")
+def nevergrad_opt_3d_test_func_experiment():
+    # Define required constitutive properties (x0, x1, x2, all continuous)
+    required_props = [
+        ConstitutiveProperty(
+            identifier="x0",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+            ),
+        ),
+        ConstitutiveProperty(
+            identifier="x1",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+            ),
+        ),
+        ConstitutiveProperty(
+            identifier="x2",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+            ),
+        ),
+    ]
+    # Optional property: name (categorical)
+    optional_props = (
+        ConstitutiveProperty(
+            identifier="name",
+            propertyDomain=PropertyDomain(
+                variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+                values=["rosenbrock", "griewank", "sphere"],
+            ),
+        ),
+    )
+    default_param = (
+        ConstitutivePropertyValue(
+            value="rosenbrock",
+            property=ConstitutivePropertyDescriptor(identifier="name"),
+        ),
+    )
+    return Experiment(
+        actuatorIdentifier="custom_experiments",
+        identifier="nevergrad_opt_3d_test_func",
+        targetProperties=[],
+        requiredProperties=tuple(required_props),
+        optionalProperties=optional_props,
+        defaultParameterization=default_param,
+    )
+
+
+def entity_with_props(props):
+    return Entity(constitutive_property_values=tuple(props))
+
+
+def test_validate_entity_required_only(nevergrad_opt_3d_test_func_experiment):
+    props = [
+        ConstitutivePropertyValue(
+            value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
+        ),
+        ConstitutivePropertyValue(
+            value=1.5, property=ConstitutivePropertyDescriptor(identifier="x1")
+        ),
+        ConstitutivePropertyValue(
+            value=2.5, property=ConstitutivePropertyDescriptor(identifier="x2")
+        ),
+    ]
+    entity = entity_with_props(props)
+    assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is True
+
+
+def test_validate_entity_with_optional_valid(nevergrad_opt_3d_test_func_experiment):
+    props = [
+        ConstitutivePropertyValue(
+            value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
+        ),
+        ConstitutivePropertyValue(
+            value=1.5, property=ConstitutivePropertyDescriptor(identifier="x1")
+        ),
+        ConstitutivePropertyValue(
+            value=2.5, property=ConstitutivePropertyDescriptor(identifier="x2")
+        ),
+        ConstitutivePropertyValue(
+            value="sphere", property=ConstitutivePropertyDescriptor(identifier="name")
+        ),
+    ]
+    entity = entity_with_props(props)
+    assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is True
+
+
+def test_validate_entity_with_optional_invalid(nevergrad_opt_3d_test_func_experiment):
+    props = [
+        ConstitutivePropertyValue(
+            value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
+        ),
+        ConstitutivePropertyValue(
+            value=1.5, property=ConstitutivePropertyDescriptor(identifier="x1")
+        ),
+        ConstitutivePropertyValue(
+            value=2.5, property=ConstitutivePropertyDescriptor(identifier="x2")
+        ),
+        ConstitutivePropertyValue(
+            value="foobar", property=ConstitutivePropertyDescriptor(identifier="name")
+        ),
+    ]
+    entity = entity_with_props(props)
+    assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is False
+
+
+def test_validate_entity_missing_required(nevergrad_opt_3d_test_func_experiment):
+    # missing x2
+    props = [
+        ConstitutivePropertyValue(
+            value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
+        ),
+        ConstitutivePropertyValue(
+            value=1.5, property=ConstitutivePropertyDescriptor(identifier="x1")
+        ),
+    ]
+    entity = entity_with_props(props)
+    assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is False
+
+
+def test_validate_entity_missing_required_with_optional_valid(
+    nevergrad_opt_3d_test_func_experiment,
+):
+    # missing x2 but valid name
+    props = [
+        ConstitutivePropertyValue(
+            value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
+        ),
+        ConstitutivePropertyValue(
+            value=1.5, property=ConstitutivePropertyDescriptor(identifier="x1")
+        ),
+        ConstitutivePropertyValue(
+            value="griewank", property=ConstitutivePropertyDescriptor(identifier="name")
+        ),
+    ]
+    entity = entity_with_props(props)
+    assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is False
+
+
+def test_validate_entity_additional_property_strict_optional_false(
+    nevergrad_opt_3d_test_func_experiment,
+):
+    props = [
+        ConstitutivePropertyValue(
+            value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
+        ),
+        ConstitutivePropertyValue(
+            value=1.5, property=ConstitutivePropertyDescriptor(identifier="x1")
+        ),
+        ConstitutivePropertyValue(
+            value=2.5, property=ConstitutivePropertyDescriptor(identifier="x2")
+        ),
+        ConstitutivePropertyValue(
+            value=10, property=ConstitutivePropertyDescriptor(identifier="test")
+        ),
+    ]
+    entity = entity_with_props(props)
+    # Default: strict_optional=False, extra property is fine
+    assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is True
+
+
+def test_validate_entity_additional_property_strict_optional_true(
+    nevergrad_opt_3d_test_func_experiment,
+):
+    props = [
+        ConstitutivePropertyValue(
+            value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
+        ),
+        ConstitutivePropertyValue(
+            value=1.5, property=ConstitutivePropertyDescriptor(identifier="x1")
+        ),
+        ConstitutivePropertyValue(
+            value=2.5, property=ConstitutivePropertyDescriptor(identifier="x2")
+        ),
+        ConstitutivePropertyValue(
+            value=10, property=ConstitutivePropertyDescriptor(identifier="test")
+        ),
+    ]
+    entity = entity_with_props(props)
+    assert (
+        nevergrad_opt_3d_test_func_experiment.validate_entity(
+            entity, disallow_extra_properties=True
+        )
+        is False
     )

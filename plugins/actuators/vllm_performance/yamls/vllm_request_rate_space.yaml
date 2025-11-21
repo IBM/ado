@@ -1,11 +1,10 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-sampleStoreIdentifier: ID
 entitySpace:
 - identifier: endpoint
   propertyDomain:
     values:  #You could have multiple endpoints here - or one endpoint that served multiple models
-    - "http://localhost:28015"
+    - "http://localhost:8000"
 - identifier: model
   propertyDomain:
     values:
@@ -16,7 +15,7 @@ entitySpace:
     interval: 1
 experiments:
 - actuatorIdentifier: vllm_performance
-  experimentIdentifier: performance-testing-endpoint
+  experimentIdentifier: test-endpoint-v1
 metadata:
   description: "Test space for request throughput of a vllm endpoint"
   name: "vllm_endpoint_performance_test_space"

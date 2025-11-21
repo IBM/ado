@@ -10,7 +10,7 @@ provides the capability to perform a random walk `operation` on a
 The `operator` defines the inputs arguments you can set for its `operations`.
 
 The [operators](../operators/working-with-operators.md) section contains more
-details about the available `operators`, what they do and how to use them. This
+details about the available `operators`, their functionality and usage them. This
 page covers how you create and work with `operations` using a given `operator`
 in general.
 
@@ -41,7 +41,7 @@ section for an entry for the particular $OPERATOR_NAME for more detail.
 
 ### The `operation` configuration YAML
 
-The configuration for all `operations` has three top-level fields
+All `operations` share a configuration structure with three top-level fields
 
 ```yaml
 spaces: # This list of spaces to operate on
@@ -54,7 +54,7 @@ actuatorConfigurationIdentifiers: # Optional
   - actuatorconfiguration-name-123
 ```
 
-Each `operator` has different input arguments. As a result the fields under
+Each `operator` defines its own input arguments. As a result the fields under
 `operation.parameters` of every operation will be different. To get an initial
 set of parameter values, use one of the following methods
 
@@ -145,7 +145,7 @@ Executing
 ado create operation -f OPERATION.YAML
 ```
 
-will create the `operation` resource in the active context and start performing
+creates the `operation` resource in the active context and initiates
 whatever that operation does. The operation executes synchronously with this
 command i.e. it will not return until the operation is complete.
 

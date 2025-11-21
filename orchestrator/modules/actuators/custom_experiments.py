@@ -26,7 +26,7 @@ from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
 )
-from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
@@ -106,15 +106,15 @@ def _infer_domain_and_property(
 
 
 def derive_required_properties_from_signature(
-    func: typing.Callable, optional_idents: list[str]
+    func: typing.Callable, optional_property_identifiers: list[str]
 ) -> list[ConstitutiveProperty]:
     """This function derives the required properties from the function signature.
 
-    The required properties are the positional parameters of the function that are not in optional_idents.
+    The required properties are the positional parameters of the function that are not in optional_property_identifiers.
 
     Parameters:
     - func: The function to derive the required properties from
-    - optional_idents: The identifiers of the optional properties
+    - optional_property_identifiers: The identifiers of the optional properties
     Returns:
     - A list of ConstitutiveProperty instances
     """
@@ -122,7 +122,7 @@ def derive_required_properties_from_signature(
     func_signature = inspect.signature(func)
     required_props = []
     for param in func_signature.parameters.values():
-        if param.name in optional_idents:
+        if param.name in optional_property_identifiers:
             continue
         if (
             param.kind
@@ -132,7 +132,6 @@ def derive_required_properties_from_signature(
             )
             and param.default is inspect.Parameter.empty
         ):
-            print(param)
             inferred_prop = _infer_domain_and_property(
                 param.name, param.annotation, None
             )
@@ -153,7 +152,7 @@ def get_parameterization(
     Returns:
     - A dictionary of property identifiers and their default values
     Exceptions:
-    - ValueError: If a parameterization cannot be"""
+    - ValueError: If a parameterization cannot be derived for a property"""
     param_map = {p.name: p for p in func_signature.parameters.values()}
     results = {}
     missing = []
@@ -204,10 +203,10 @@ def derive_optional_properties_and_parameterization(
 
 
 def check_parameters_and_infer(
-    _optional_properties: list[ConstitutiveProperty] | None,
-    _parameterization: dict | None,
-    _required_properties: list[ConstitutiveProperty] | None,
     func,
+    _required_properties: list[ConstitutiveProperty] | None,
+    _optional_properties: list[ConstitutiveProperty] | None = None,
+    _parameterization: dict | None = None,
 ):
     logger = logging.getLogger("custom_experiment_decorator")
 
@@ -250,7 +249,7 @@ def check_parameters_and_infer(
     return _optional_properties, _parameterization, _required_properties
 
 
-def check_parameters_valid(_optional_properties, _required_properties, func):
+def check_parameters_valid(func, _required_properties, _optional_properties):
     # Validate that the property identifiers match the function parameters
     func_signature = inspect.signature(func)
     func_param_names = set(func_signature.parameters.keys())
@@ -263,7 +262,8 @@ def check_parameters_valid(_optional_properties, _required_properties, func):
     experiment_prop_identifiers = req_property_identifiers | opt_property_identifiers
     if not experiment_prop_identifiers.issubset(func_param_names):
         raise ValueError(
-            f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. Missing identifiers: {experiment_prop_identifiers - func_param_names}"
+            f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. "
+            f"Missing identifiers: {experiment_prop_identifiers - func_param_names}"
         )
 
 
@@ -335,6 +335,19 @@ def custom_experiment(
 
             return observed_property_values
 
+        # Set the wrapper's __signature__  so it is (entity,experiment)
+        # This is required for the wrapped function to be used with ray.remote
+        import inspect
+
+        wrapper.__signature__ = inspect.Signature(
+            [
+                inspect.Parameter("entity", inspect.Parameter.POSITIONAL_OR_KEYWORD),
+                inspect.Parameter(
+                    "experiment", inspect.Parameter.POSITIONAL_OR_KEYWORD
+                ),
+            ]
+        )
+
         # If we were not given information on required/optional properties
         # or parameterization try to infer it
         # This function will log a critical error message and raise exception
@@ -342,12 +355,19 @@ def custom_experiment(
         # but it could not be done (missing annotation, invalid annotation etc.)
         _optional_properties, _parameterization, _required_properties = (
             check_parameters_and_infer(
-                optional_properties, parameterization, required_properties, func
+                func=func,
+                _required_properties=required_properties,
+                _optional_properties=optional_properties,
+                _parameterization=parameterization,
             )
         )
 
         try:
-            check_parameters_valid(_optional_properties, _required_properties, func)
+            check_parameters_valid(
+                func,
+                _required_properties=required_properties,
+                _optional_properties=_optional_properties,
+            )
         except ValueError as error:
             logger.critical(
                 f"Unable to generate custom function via decorator: {error}"
@@ -650,6 +670,12 @@ class CustomExperiments(ActuatorBase):
 
         self.log.debug(f"Create measurement request {request}")
         # TODO: Allow functions to specify if they should be remote
+
+        if experimentReference.parameterization:
+            targetExperiment = ParameterizedExperiment(
+                parameterization=experimentReference.parameterization,
+                **targetExperiment.model_dump(),
+            )
 
         await custom_experiment_wrapper(
             self._functionImplementations[

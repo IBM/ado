@@ -2,13 +2,13 @@
 ## Tutorial
 
 Our short tutorial, [Taking a random walk](random-walk.md), introduces core
-`ado` concepts and is the recommend place to start.
+`ado` concepts and is the recommended place to start.
 
 ## General Examples
 
 The following examples illustrate general features of `ado`. They build on the
 concepts learned in the tutorial and leverage pre-existing data and/or toy
-measurements so they run quickly.
+measurements allowing them to run quickly.
 
 - [Search a space with an optimizer](best-configuration-search.md)
 - [Search a space based on a custom objective function](search-custom-objective.md)
@@ -19,13 +19,16 @@ one example to another.
 
 ## Foundation Models Characterization
 
-The following examples illustrate using the vllm_performance and SFTTrainer
-actuators which provide benchmarking experiments for foundation model inference
+The following examples illustrate using the
+[vllm_performance](../actuators/vllm_performance.md) and
+[SFTTrainer](../actuators/sft-trainer.md)
+actuators which offer benchmarking experiments for foundation model inference
 and fine-tuning respectively.
 
 - [Measure throughput of fine-tuning locally](finetune-locally.md)
 - [Measure throughput of fine-tuning on a RayCluster with GPUs](finetune-remotely.md)
 - [Find the request rate giving the highest stable throughput for an inference server](vllm-performance-endpoint.md)
+- [Evaluate different vLLM server deployment configurations on Kubernetes/OpenShift](vllm-performance-full.md)
 
 ## Adding experiments or analysis tools to `ado`
 
@@ -38,12 +41,12 @@ documentation to illustrate a simple method for adding your own experiments to
 
 For adding actuators, we provide an
 [example template actuator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
-that can be used with our
+which can be used with our
 [documentation on writing actuators](../actuators/creating-actuator-classes.md).
 
 For adding operators, we have an
 [example template operator repository](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator)
-that can be used with our
+which can be used with our
 [documentation on writing operators](../operators/creating-operators.md).
 
 ## What's next

@@ -55,7 +55,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
             model=op_resource_configuration, override_values=parameters.override_values
         )
         validate_operation(op_resource_configuration)
-    elif parameters.with_latest:
+    elif parameters.use_latest:
         reuse_requested_latest_identifiers(
             resource_configuration=op_resource_configuration, parameters=parameters
         )
@@ -192,7 +192,7 @@ def reuse_requested_latest_identifiers(
 ):
     updated = False
 
-    if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_latest:
+    if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.use_latest:
         latest_recorded_actuator_configuration = (
             parameters.ado_configuration.latest_resource_ids.get(
                 CoreResourceKinds.ACTUATORCONFIGURATION
@@ -222,7 +222,7 @@ def reuse_requested_latest_identifiers(
             stderr=True,
         )
 
-    if CoreResourceKinds.DISCOVERYSPACE in parameters.with_latest:
+    if CoreResourceKinds.DISCOVERYSPACE in parameters.use_latest:
         latest_recorded_space = parameters.ado_configuration.latest_resource_ids.get(
             CoreResourceKinds.DISCOVERYSPACE
         )

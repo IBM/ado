@@ -28,6 +28,8 @@ from orchestrator.cli.resources.operation.show_related import (
 from orchestrator.cli.resources.sample_store.show_related import (
     show_resources_related_to_sample_store,
 )
+from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.output.prints import ERROR, console_print
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
@@ -49,13 +51,21 @@ def show_related_for_resources(
         ),
     ],
     resource_id: Annotated[
-        str,
+        str | None,
         typer.Argument(
-            ...,
             help="The id of the resource to show related resources for.",
             show_default=False,
         ),
-    ],
+    ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Show related resources for the latest identifier of the selected resource type. "
+            "Ignored if a resource identifier is also specified.",
+            show_default=False,
+        ),
+    ] = False,
 ):
     """
     Show resources directly (one-hop) related to the requested resource, grouped by type.
@@ -72,8 +82,29 @@ def show_related_for_resources(
     # Show the resources related to a space
 
     ado show related space <space-id>
+
+
+
+    # Show the resources related to the latest space
+
+    ado show related space --use-latest
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    if not resource_id and not use_latest:
+        console_print(
+            f"{ERROR}You must specify either a resource id or the --use-latest flag",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    if use_latest:
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            ado_configuration=ado_configuration,
+        )
+
     parameters = AdoShowRelatedCommandParameters(
         ado_configuration=ado_configuration, resource_id=resource_id
     )

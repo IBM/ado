@@ -7,7 +7,8 @@ from typing import Literal
 import pytest
 
 from orchestrator.modules.actuators import custom_experiments
-from orchestrator.schema.domain import VariableTypeEnum
+from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+from orchestrator.schema.property import ConstitutiveProperty
 
 
 def test_infer_domain_and_property_type():
@@ -43,7 +44,7 @@ def test_derive_required_properties_from_signature_basic():
         pass
 
     result = custom_experiments.derive_required_properties_from_signature(
-        f, optional_idents={}
+        f, optional_property_identifiers=[]
     )
     # a, b expected (no-domain), c skipped as optional
     ids = {r.identifier for r in result}
@@ -57,7 +58,7 @@ def test_derive_required_properties_from_signature_basic():
         ValueError, match=r"Unsupported annotation: <class 'inspect._empty'>"
     ):
         custom_experiments.derive_required_properties_from_signature(
-            f, optional_idents={}
+            f, optional_property_identifiers=[]
         )
 
 
@@ -142,3 +143,65 @@ def test_derive_optional_properties_and_parameterization_basic_types_and_unsuppo
         optionals, _ = (
             custom_experiments.derive_optional_properties_and_parameterization(fn, [])
         )
+
+
+def test_check_parameters_and_infer():
+
+    def fn(a: int, b: float, c: int = 1):
+        pass
+
+    optionals, parameterization, required_properties = (
+        custom_experiments.check_parameters_and_infer(fn, None, None, None)
+    )
+
+    assert len(optionals) == 1
+    assert optionals[0].identifier == "c"
+    assert (
+        optionals[0].propertyDomain.variableType
+        == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    )
+    assert optionals[0].propertyDomain.interval == 1
+
+    assert len(parameterization) == 1
+    assert parameterization["c"] == 1
+
+    assert len(required_properties) == 2
+    assert required_properties[0].identifier == "a"
+    assert (
+        required_properties[0].propertyDomain.variableType
+        == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+    )
+    assert required_properties[0].propertyDomain.interval == 1
+    assert required_properties[1].identifier == "b"
+    assert (
+        required_properties[1].propertyDomain.variableType
+        == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+    )
+    assert required_properties[1].propertyDomain.interval is None
+
+    # Check if we pass in optional properties the parameterization is derived from the function signature
+    # and the optional property returned is the same as the one passed in
+    optionals, parameterization, required_properties = (
+        custom_experiments.check_parameters_and_infer(
+            func=fn,
+            _required_properties=None,
+            _optional_properties=[
+                ConstitutiveProperty(
+                    identifier="c",
+                    propertyDomain=PropertyDomain(
+                        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+                        interval=2,
+                        domainRange=[0, 10],
+                    ),
+                )
+            ],
+            _parameterization=None,
+        )
+    )
+    assert len(optionals) == 1
+    assert optionals[0].propertyDomain == PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        interval=2,
+        domainRange=[0, 10],
+    )
+    assert parameterization["c"] == 1

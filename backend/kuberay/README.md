@@ -18,19 +18,67 @@ the
 
 ## Deploying a RayCluster
 
-> [!WARNING]
+> [!WARNING] Ray version compatibility
 >
-> The `ray` versions must be compatible. For a more in depth guide refer to the
-> [RayCluster configuration](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html)
+> The `ray` version set in KubeRay YAML and the one
+> used in the ray head and worker containers must be compatible.
+> For a more in depth guide refer to the [RayCluster configuration](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html)
 > page.
 
-!!! note
+We provide [an example set of values](vanilla-ray.yaml) for deploying a
+RayCluster via KubeRay. To deploy it run:
 
-    When running multi-node measurement make sure that
-    all nodes in your multi-node setup have read and write access
-    to your HuggingFace home directory. On Kubernetes with RayCluster,
-    avoid S3-like filesystems as that is known to cause failures
-    in **transformers**. Use a NFS or GPFS-backed PersistentVolumeClaim instead.
+``` commandline
+helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 --values backend/kuberay/vanilla-ray.yaml
+```
+
+Feel free to customize the example file provided to suit your cluster,
+such as uncommenting GPU-enabled workers.
+
+### Enabling ado actuators to create K8s resources
+
+#### Configuring a ServiceAccount for the RayCluster
+
+The default Kubernetes ServiceAccount created for a RayCluster does not
+have enough permissions for an ado actuator to create Kubernetes resources
+(e.g., deployments, pods, services, etc.) as part of its operations.
+Users are required to create a custom ServiceAccount bound to a Role with
+sufficient permissions, before creating the RayCluster, to avoid
+runtime errors.
+Below is an example ServiceAccount bound to a Role that allows
+monitoring, creating, deleting, and updating of pods, deployments and services.
+It also provides access to the RayCluster resources.
+
+<!-- markdownlint-disable-next-line code-block-style -->
+```yaml
+{% include "./service-account.yaml" %}
+```
+
+From the root of the ado project run the below command:
+
+```commandline
+kubectl apply -f backend/kuberay/service-account.yaml
+```
+
+This will create a ServiceAccount named `ray-deployer`.
+We will reference this name later when
+[deploying the RayCluster](#example-kubernetes-cluster-with-4-nodes-8-gpus-each).
+
+More information about ServiceAccount, Role, and RoleBinding objects can be found
+in the [official Kubernetes RBAC documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+
+#### Associating a RayCluster with the ServiceAccount
+
+The below command shows how to set the `serviceAccountName` property for head
+and worker nodes.
+
+<!-- markdownlint-disable-next-line code-block-style -->
+```bash
+helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 \
+  --values backend/kuberay/vanilla-ray-service-account.yaml \
+  --set head.serviceAccountName=ray-deployer \
+  --set worker.serviceAccountName=ray-deployer
+```
 
 ### Best Practices for Efficient GPU Resource Utilization
 
@@ -62,12 +110,13 @@ Recommended worker setup:
 - 4 replicas of a worker with **8 GPUs**
 
 <!-- markdownlint-disable no-inline-html -->
+
 <details>
 <summary>
 Example: The contents of the additionalWorkerGroups field of a RayCluster
 with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memory
 </summary>
-
+<!-- markdownlint-disable MD046 -->
     ```yaml
     one-A100-80G-gpu-WG:
       replicas: 0
@@ -226,20 +275,24 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
       # volumes: ...
       # volumeMounts: ....
     ```
-
+<!-- markdownlint-enable MD046 -->
 </details>
 <!-- markdownlint-enable no-inline-html -->
 
-!!! note
+> [!IMPORTANT] full-worker custom resource
+>
+> Notice that the only variant with a **full-worker** custom resource
+> is the one with 8 GPUs. Some actuators, like SFTTrainer, use this
+> custom resource for measurements that involve reserving an entire GPU node.
 
-    Notice that the only variant with a **full-worker** custom resource 
-    is the one with 8 GPUs. Some actuators, like SFTTrainer, use this 
-    custom resource for measurements that involve reserving an entire GPU node.
+### RayClusters and SFTTrainer
 
-We provide [an example set of values](vanilla-ray.yaml) for deploying a
-RayCluster via KubeRay. To deploy it, simply run:
-
-    helm upgrade --install ado-ray kuberay/ray-cluster --version 1.1.0 --values backend/kuberay/vanilla-ray.yaml
-
-Feel free to customize it to suit your cluster, such as uncommenting GPU-enabled
-workers.
+> [!IMPORTANT] HuggingFace home directory
+>
+> If you want to run multi-node measurements with
+> the SFTTrainer actuator make sure that
+> all nodes in your multi-node setup have read and write access
+> to your HuggingFace home directory. On Kubernetes with RayClusters,
+> avoid S3-like filesystems as that is known to cause failures
+> in **transformers**.
+> Use a NFS or GPFS-backed PersistentVolumeClaim instead.

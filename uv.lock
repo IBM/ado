@@ -144,6 +144,7 @@ dependencies = [
     { name = "nevergrad" },
     { name = "paretoset" },
     { name = "ray", extra = ["tune"] },
+    { name = "scipy" },
 ]
 
 [package.metadata]
@@ -152,6 +153,7 @@ requires-dist = [
     { name = "nevergrad", specifier = ">=1.0.12" },
     { name = "paretoset", specifier = ">=1.2.4" },
     { name = "ray", extras = ["tune"], specifier = ">=2.9" },
+    { name = "scipy", specifier = ">=1.15.3" },
 ]
 
 [[package]]

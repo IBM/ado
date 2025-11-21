@@ -18,9 +18,6 @@ from orchestrator.core.operation.config import (
     FunctionOperationInfo,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
-from orchestrator.core.operation.resource import (
-    OperationResource,
-)
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
@@ -45,38 +42,6 @@ if typing.TYPE_CHECKING:
 
 configure_logging()
 moduleLog = logging.getLogger("orch")
-
-
-def orchestrate_operation_function(
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
-    discovery_space: DiscoverySpace,
-) -> tuple[
-    "DiscoverySpace",
-    "OperationResource",
-    "OperationOutput",
-]:
-    """This functions orchestrate operations with function operators.
-
-    It gets the actuator configurations (if any) and calls the function
-    defined in base_operation_configuration.
-
-    This function will either call
-    - explore_operation_function_wrapper -> orchestrate_explore_operation -> _run_operation_harness
-    - orchestrate_general_operation -> _run_operation_harness
-    """
-
-    import orchestrator.modules.operators.collections  # noqa: F401
-
-    output = operation_resource_configuration.operation.module.operationFunction()(
-        discovery_space,
-        operationInfo=FunctionOperationInfo(
-            metadata=operation_resource_configuration.metadata,
-            actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
-        ),
-        **operation_resource_configuration.operation.parameters,
-    )  # type: OperationOutput
-
-    return discovery_space, output.operation, output
 
 
 def orchestrate(
@@ -106,7 +71,7 @@ def orchestrate(
         moduleLog.info(
             f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
         )
-        ray.init(namespace=namespace, ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True)
     else:
         # In local mode we can read a set of envvars a then export them into the ray environment
         # Currently we don't use it but keeping the code to recall how to do so if necessary
@@ -116,7 +81,6 @@ def orchestrate(
         )
         ray.init(
             runtime_env=RuntimeEnv(env_vars=ray_env_vars),
-            namespace=namespace,
             ignore_reinit_error=True,
         )
 
@@ -138,8 +102,13 @@ def orchestrate(
 
     #
     # RUN OPERATION
-    # How depends on if they are implemented as functions or classes
     #
+
+    operation_info = FunctionOperationInfo(
+        metadata=operation_resource_configuration.metadata,
+        actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
+    )
+
     try:
         if isinstance(
             operation_resource_configuration.operation.module,
@@ -149,20 +118,24 @@ def orchestrate(
                 operation_resource_configuration.operation.module.operationType
                 == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
             ):
-                _, _, output = orchestrate_explore_operation(
-                    operation_resource_configuration=operation_resource_configuration,
+                output = orchestrate_explore_operation(
+                    operator_module=operation_resource_configuration.operation.module,
                     discovery_space=discovery_space,
-                    namespace=namespace,
+                    parameters=operation_resource_configuration.operation.parameters,
+                    operation_info=operation_info,
                 )
             else:
                 raise ValueError(
                     "Implementing operations as classes is only supported for explore operations"
                 )
         else:
-            _, _, output = orchestrate_operation_function(
-                operation_resource_configuration=operation_resource_configuration,
-                discovery_space=discovery_space,
-            )
+            output = (
+                operation_resource_configuration.operation.module.operationFunction()(
+                    discovery_space,
+                    operationInfo=operation_info,
+                    **operation_resource_configuration.operation.parameters,
+                )
+            )  # type: OperationOutput
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
         raise

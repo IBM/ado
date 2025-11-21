@@ -292,10 +292,7 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 
 
 class FunctionOperationInfo(pydantic.BaseModel):
-    """Class for holding information for operations executed via operator functions
-
-    Operators implemented as functions may need additional information.
-    Rather that have these as multiple params we gather them in this model"""
+    """Class for providing information to operator functions"""
 
     metadata: ConfigurationMetadata = pydantic.Field(
         default=ConfigurationMetadata(),
@@ -303,3 +300,7 @@ class FunctionOperationInfo(pydantic.BaseModel):
         "Two optional keys that are used by convention are name and description",
     )
     actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])
+    namespace: str | None = pydantic.Field(
+        description="The namespace the operation should create ray workers/actors in",
+        default=None,
+    )

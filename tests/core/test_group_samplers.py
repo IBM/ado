@@ -10,6 +10,7 @@ from orchestrator.core.discoveryspace.group_samplers import (
     RandomGroupSampleSelector,
     SequentialGroupSampleSelector,
     _build_groups_dict,
+    _get_space_matching_points,
 )
 from orchestrator.core.discoveryspace.samplers import (
     GroupSampler,
@@ -20,7 +21,6 @@ from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
 )
-from orchestrator.schema.entity import Entity
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 
@@ -49,10 +49,10 @@ def check_group_order(
 
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
         ids = [cp.identifier for cp in space.entitySpace.constitutiveProperties]
-        entities = [
+        points = [
             dict(zip(ids, p)) for p in space.entitySpace.sequential_point_iterator()
         ]
-        groups = _build_groups_dict(entities=entities, group=group)
+        groups = _build_groups_dict(points=points, group=group)
         expected_group_order = list(groups.keys())
         if sampler.mode == WalkModeEnum.RANDOM:
             assert group_order != expected_group_order
@@ -60,8 +60,8 @@ def check_group_order(
 
             assert group_order == expected_group_order
     else:
-        entities = space.matchingEntities()
-        groups = _build_groups_dict(entities=entities, group=group)
+        points = _get_space_matching_points(discovery_space=space)
+        groups = _build_groups_dict(points=points, group=group)
         expected_group_order = list(groups.keys())
         if isinstance(sampler, SequentialGroupSampleSelector):
             assert group_order == expected_group_order
@@ -115,7 +115,7 @@ def test_group_sampler_local(
     for i, group in enumerate(sampler.entityGroupIterator(space)):
         count += len(group)
         for entity in group:
-            print(i, count, entity.identifier if isinstance(entity, Entity) else entity)
+            print(i, count, entity)
 
         node_value = {
             (

@@ -6,7 +6,6 @@ from collections.abc import AsyncGenerator, Generator
 from typing import Any
 
 import numpy as np
-import ray
 
 from orchestrator.core.discoveryspace.samplers import (
     ExplicitEntitySpaceGridSampleGenerator,
@@ -35,29 +34,64 @@ def _get_space_points(discovery_space: DiscoverySpace) -> list[dict]:
     ]
 
 
-def _build_entity_group_values(
-    entity: dict | Entity, group: list[str]
+def _get_space_matching_points(discovery_space: DiscoverySpace) -> list[dict]:
+    """
+    Building list of points from the matching entities for a discovery space
+
+    :param discovery_space: discovery space
+    :return: list of points
+    """
+    matching_entities = discovery_space.matchingEntities()
+    points = []
+    for entity in matching_entities:
+        point = {
+            v.property.identifier: v.value for v in entity.constitutive_property_values
+        }
+        # we save the entity identifier to retrieve the entity from the store at a later stage,
+        # assuming they are cached locally
+        point["entity_identifier"] = entity.identifier
+        points.append(point)
+
+    return points
+
+
+def _entity_for_point(point: dict, discovery_space: DiscoverySpace) -> list[Entity]:
+    if "entity_identifier" in point:
+        entity = discovery_space.sample_store.entityWithIdentifier(
+            entityIdentifier=point["entity_identifier"]
+        )
+    else:
+        entity = discovery_space.entity_for_point(point)
+
+    return entity
+
+
+async def _entity_for_point_async(
+    point: dict, remote_discovery_space: DiscoverySpaceManager
+) -> list[Entity]:
+    if "entity_identifier" in point:
+        entity = await remote_discovery_space.storedEntityWithIdentifier.remote(
+            entityIdentifier=point["entity_identifier"]
+        )
+    else:
+        entity = await remote_discovery_space.entity_for_point.remote(point)
+
+    return entity
+
+
+def _build_point_group_values(
+    point: dict, group: list[str]
 ) -> frozenset[tuple[str, Any]]:
     """
     :return: A frozen set of (key,value) pairs
     """
-    # build a dictionary of entity values given the group
-    if isinstance(entity, Entity):
-        return frozenset(
-            {
-                (v.property.identifier, v.value)
-                for v in entity.constitutive_property_values
-                if v.property.identifier in group
-            }
-        )
-    # We get a dict in case of generator type of samplers where we defer fetching the
-    # full entity from store until it is returned by the iterator.
-    return frozenset({(k, v) for k, v in entity.items() if k in group})
+
+    return frozenset({(k, v) for k, v in point.items() if k in group})
 
 
 def _build_groups_dict(
-    entities: list[dict | Entity], group: list[str]
-) -> dict[frozenset[tuple[str, Any]], list[dict | Entity]]:
+    points: list[dict], group: list[str]
+) -> dict[frozenset[tuple[str, Any]], list[Entity]]:
     """
     builds a dict of lists of entities, combining entities based on group definitions
     :param entities: list of entities
@@ -65,30 +99,28 @@ def _build_groups_dict(
     :return: A dictionary whose keys are groups and whose values are list of entities
     """
     groups = {}
-    for element in entities:
-        grp = _build_entity_group_values(entity=element, group=group)
+    for point in points:
+        grp = _build_point_group_values(point=point, group=group)
         lst = groups.get(grp, [])
-        lst.append(element)
+        lst.append(point)
         groups[grp] = lst
 
     return groups
 
 
-def _build_groups_list(
-    entities: list[dict | Entity], group: list[str]
-) -> list[list[dict | Entity]]:
+def _build_groups_list(points: list[dict], group: list[str]) -> list[list[dict]]:
     """
-    builds a list of lists of entities, combining entities based on group definitions
-    :param entities: list of entities
+    builds a list of lists of points, combining entities based on group definitions
+    :param points: list of points
     :param group: group definition
     :return:
     """
-    return list(_build_groups_dict(entities=entities, group=group).values())
+    return list(_build_groups_dict(points=points, group=group).values())
 
 
 async def _get_grouped_sample_async(
-    generator: AsyncGenerator[list[dict], None],
-) -> list[dict] | None:
+    generator: AsyncGenerator[list[Entity], None],
+) -> list[Entity] | None:
     try:
         return await anext(generator)
     except (StopAsyncIteration, StopIteration):
@@ -97,7 +129,7 @@ async def _get_grouped_sample_async(
 
 def _get_grouped_sample(
     generator: Generator[list[Entity], None, None],
-) -> list[dict] | None:
+) -> list[Entity] | None:
     try:
         return next(generator)
     except (StopAsyncIteration, StopIteration):
@@ -105,82 +137,104 @@ def _get_grouped_sample(
 
 
 async def _sequential_iterator_async(
-    entities: list[dict | Entity], group: list[str]
-) -> AsyncGenerator[list[dict | Entity], None]:
+    points: list[dict],
+    group: list[str],
+    remote_discovery_space=DiscoverySpaceManager,
+) -> AsyncGenerator[list[Entity], None]:
     """
     Sequential iterator through discovery space with grouping
-    :param entities: list of entities
+    :param points: list of points
     :param group: group definition
     :return:
     """
-    group_list = _build_groups_list(entities=entities, group=group)
+    group_list = _build_groups_list(points=points, group=group)
     for i in range(len(group_list)):
-        lst = group_list[i]
+        entity_list = [
+            await _entity_for_point_async(
+                point=point, remote_discovery_space=remote_discovery_space
+            )
+            for point in group_list[i]
+        ]
+        lst = entity_list
         yield lst
 
 
 def _sequential_iterator(
-    entities: list[dict | Entity], group: list[str]
-) -> Generator[list[dict | Entity], None, None]:
+    points: list[dict],
+    group: list[str],
+    discovery_space: DiscoverySpace,
+) -> Generator[list[Entity], None, None]:
     """
     Sequential iterator through discovery space with grouping
-    :param entities: list of entities
+    :param points: list of points
     :param group: group definition
     :return:
     """
-    group_list = _build_groups_list(entities=entities, group=group)
+    group_list = _build_groups_list(points=points, group=group)
     for i in range(len(group_list)):
-        lst = group_list[i]
-        yield lst
+        entity_list = [
+            _entity_for_point(point=point, discovery_space=discovery_space)
+            for point in group_list[i]
+        ]
+        yield entity_list
 
 
 async def _random_iterator_async(
-    entities: list[dict], group: list[str]
-) -> AsyncGenerator[list[dict], None]:
+    points: list[dict],
+    group: list[str],
+    remote_discovery_space: DiscoverySpaceManager,
+) -> AsyncGenerator[list[Entity], None]:
     """
     Random iterator through discovery space with grouping
-    :param entities: list of entities
+    :param points: list of points
     :param group: group definition
     :return:
     """
-    group_list = _build_groups_list(entities=entities, group=group)
+    group_list = _build_groups_list(points=points, group=group)
     randomized = np.random.choice(
         a=range(len(group_list)), size=len(group_list), replace=False
     )
     for i in range(len(randomized)):
-        lst = group_list[randomized[i]]
-        yield lst
+        entity_list = [
+            await _entity_for_point_async(
+                remote_discovery_space=remote_discovery_space, point=point
+            )
+            for point in group_list[randomized[i]]
+        ]
+        yield entity_list
 
 
 def _random_iterator(
-    entities: list[dict],
+    points: list[dict],
     group: list[str],
-) -> Generator[list[dict], None, None]:
+    discovery_space: DiscoverySpace,
+) -> Generator[list[Entity], None, None]:
     """
     Random iterator through discovery space with grouping
-    :param entities: list of entities
+    :param points: list of points
     :param group: group definition
     :return:
     """
-    group_list = _build_groups_list(entities=entities, group=group)
-
+    group_list = _build_groups_list(points=points, group=group)
     randomized = np.random.choice(
         a=range(len(group_list)), size=len(group_list), replace=False
     )
     for i in range(len(randomized)):
-        lst = group_list[randomized[i]]
-        yield lst
+        entity_list = [
+            _entity_for_point(point=point, discovery_space=discovery_space)
+            for point in group_list[randomized[i]]
+        ]
+        yield entity_list
 
 
 def _sequential_group_iterator(
     generator: Generator[list[dict], None, None],
-    discovery_space: DiscoverySpace,
     batch_size: int,
 ) -> Generator[list[Entity], None, None]:
     """
     Sequential group iterator
     :param generator: grouped iterator
-    :param batchsize: batch size
+    :param batch_size: batch size
     :return:
     """
     sample = []
@@ -198,16 +252,10 @@ def _sequential_group_iterator(
                     # mark that we are done and break
                     done = True
                     break
-            # Retrieve entity from the store
-            if isinstance(sample[0], dict):
-                entity = discovery_space.entity_for_point(sample[0])
-            else:
-                # The sample is already an Entity
-                entity = sample[0]
-            # append a new entity to batch
+
+            # append a new entity to the batch
+            entity = sample.pop(0)
             batch.append(entity)
-            # remove entity from samples
-            sample = sample[1:]
         # submit a batch and clean it up
         # The last batch may be empty - if so don't return it
         if batch:
@@ -217,13 +265,12 @@ def _sequential_group_iterator(
 
 async def _sequential_group_iterator_async(
     generator: AsyncGenerator[list[dict], None],
-    remote_discovery_space: DiscoverySpaceManager,
     batch_size: int,
 ) -> AsyncGenerator[list[Entity], None]:
     """
     Async sequential group iterator
     :param generator: grouped iterator
-    :param batchsize: batch size
+    :param batch_size: batch size
     :return:
     """
     sample = []
@@ -242,17 +289,10 @@ async def _sequential_group_iterator_async(
                     # mark that we are done
                     done = True
                     break
-            if isinstance(sample[0], dict):
-                # Retrieve entity from the store
-                entity = ray.get(
-                    remote_discovery_space.entity_for_point.remote(sample[0])
-                )
-            else:
-                entity = sample[0]
-            # append a new entity to batch
+
+            # append a new entity to the batch
+            entity = sample.pop(0)
             batch.append(entity)
-            # remove entity from samples
-            sample = sample[1:]
         # submit a batch and clean it up
         # The last batch may be empty - if so don't return it
         if batch:
@@ -282,7 +322,7 @@ class SequentialGroupSampleSelector(GroupSampler):
         self,
         discoverySpace: DiscoverySpace,
     ) -> Generator[list[Entity], None, None]:
-        """Returns an iterator  that samples groups of entities from a discovery space
+        """Returns an iterator that samples groups of entities from a discovery space
 
         The group definition should be specified on initializing an instance of a subclass of this class
 
@@ -292,17 +332,21 @@ class SequentialGroupSampleSelector(GroupSampler):
         Parameters:
             discovery_space: An orchestrator.model.space.DiscoverySpace instance
         """
-        entities = discoverySpace.matchingEntities()
-        return _sequential_iterator(entities=entities, group=self.group)
+        points = _get_space_matching_points(discovery_space=discoverySpace)
+        return _sequential_iterator(
+            points=points, group=self.group, discovery_space=discoverySpace
+        )
 
     async def remoteEntityGroupIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager
     ) -> AsyncGenerator[list[Entity], None]:
         async def iterator_closure():
-            entities = await remoteDiscoverySpace.matchingEntitiesInSource.remote()
+            discovery_space = await remoteDiscoverySpace.discoverySpace.remote()
+            points = _get_space_matching_points(discovery_space=discovery_space)
             return _sequential_iterator_async(
-                entities=entities,
+                points=points,
                 group=self.group,
+                remote_discovery_space=remoteDiscoverySpace,
             )
 
         return await iterator_closure()
@@ -313,7 +357,6 @@ class SequentialGroupSampleSelector(GroupSampler):
         grouped_iterator = self.entityGroupIterator(discoverySpace=discoverySpace)
         return _sequential_group_iterator(
             generator=grouped_iterator,
-            discovery_space=discoverySpace,
             batch_size=batchsize,
         )
 
@@ -325,7 +368,6 @@ class SequentialGroupSampleSelector(GroupSampler):
         )
         return _sequential_group_iterator_async(
             generator=grouped_iterator,
-            remote_discovery_space=remoteDiscoverySpace,
             batch_size=batchsize,
         )
 
@@ -352,7 +394,7 @@ class RandomGroupSampleSelector(GroupSampler):
         self,
         discoverySpace: DiscoverySpace,
     ) -> Generator[list[Entity], None, None]:
-        """Returns an iterator  that samples groups of entities from a discovery space
+        """Returns an iterator that samples groups of entities from a discovery space
 
         The group definition should be specified on initializing an instance of a subclass of this class
 
@@ -362,8 +404,10 @@ class RandomGroupSampleSelector(GroupSampler):
         Parameters:
             discovery_space: An orchestrator.model.space.DiscoverySpace instance
         """
-        entities = discoverySpace.matchingEntities()
-        return _random_iterator(entities=entities, group=self.group)
+        points = _get_space_matching_points(discovery_space=discoverySpace)
+        return _random_iterator(
+            points=points, group=self.group, discovery_space=discoverySpace
+        )
 
     async def remoteEntityGroupIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager
@@ -371,8 +415,13 @@ class RandomGroupSampleSelector(GroupSampler):
         async def iterator_closure(
             state_handle: DiscoverySpaceManager,
         ):
-            entities = await state_handle.matchingEntitiesInSource.remote()
-            return _random_iterator_async(entities=entities, group=self.group)
+            discovery_space = await state_handle.discoverySpace.remote()
+            points = _get_space_matching_points(discovery_space=discovery_space)
+            return _random_iterator_async(
+                points=points,
+                group=self.group,
+                remote_discovery_space=remoteDiscoverySpace,
+            )
 
         return await iterator_closure(state_handle=remoteDiscoverySpace)
 
@@ -382,7 +431,6 @@ class RandomGroupSampleSelector(GroupSampler):
         grouped_iterator = self.entityGroupIterator(discoverySpace=discoverySpace)
         return _sequential_group_iterator(
             generator=grouped_iterator,
-            discovery_space=discoverySpace,
             batch_size=batchsize,
         )
 
@@ -394,7 +442,6 @@ class RandomGroupSampleSelector(GroupSampler):
         )
         return _sequential_group_iterator_async(
             generator=grouped_iterator,
-            remote_discovery_space=remoteDiscoverySpace,
             batch_size=batchsize,
         )
 
@@ -423,8 +470,8 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
     def entityGroupIterator(
         self,
         discoverySpace: DiscoverySpace,
-    ) -> Generator[list[dict], None, None]:
-        """Returns an iterator  that samples groups of entities from a discovery space
+    ) -> Generator[list[Entity], None, None]:
+        """Returns an iterator that samples groups of entities from a discovery space
 
         Note: The number of entities returned on each call to the iterator can vary as it depends on
         the number of members of the associated group
@@ -446,10 +493,14 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
 
         def iterator_closure() -> Generator[list[Entity], None, None]:
             def sequential_iterator() -> Generator[list[Entity], None, None]:
-                return _sequential_iterator(entities=points, group=self.group)
+                return _sequential_iterator(
+                    points=points, group=self.group, discovery_space=discoverySpace
+                )
 
             def random_iterator() -> Generator[list[Entity], None, None]:
-                return _random_iterator(entities=points, group=self.group)
+                return _random_iterator(
+                    points=points, group=self.group, discovery_space=discoverySpace
+                )
 
             if self.mode == WalkModeEnum.SEQUENTIAL:
                 return sequential_iterator()
@@ -480,14 +531,16 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
 
             def sequential_iterator() -> AsyncGenerator[list[Entity], None]:
                 return _sequential_iterator_async(
-                    entities=points,
+                    points=points,
                     group=self.group,
+                    remote_discovery_space=remoteDiscoverySpace,
                 )
 
             def random_iterator() -> AsyncGenerator[list[Entity], None]:
                 return _random_iterator_async(
-                    entities=points,
+                    points=points,
                     group=self.group,
+                    remote_discovery_space=remoteDiscoverySpace,
                 )
 
             if self.mode == WalkModeEnum.SEQUENTIAL:
@@ -503,7 +556,6 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
         grouped_iterator = self.entityGroupIterator(discoverySpace=discoverySpace)
         return _sequential_group_iterator(
             generator=grouped_iterator,
-            discovery_space=discoverySpace,
             batch_size=batchsize,
         )
 
@@ -515,6 +567,5 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
         )
         return _sequential_group_iterator_async(
             generator=grouped_iterator,
-            remote_discovery_space=remoteDiscoverySpace,
             batch_size=batchsize,
         )

@@ -14,9 +14,9 @@ import orchestrator.modules.operators._cleanup
 from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    DiscoveryOperationConfiguration,
-    DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
+    OperatorModuleConf,
+    get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.core.operation.operation import OperationOutput
@@ -247,14 +247,11 @@ def run_explore_operation_core_closure(
 
 
 def orchestrate_explore_operation(
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
+    operator_module: OperatorModuleConf,
     discovery_space: DiscoverySpace,
-    namespace: str,
-) -> tuple[
-    "DiscoverySpace",
-    "OperationResource",
-    "orchestrator.modules.operators.base.OperationOutput",
-]:
+    parameters: dict,
+    operation_info: FunctionOperationInfo,
+) -> OperationOutput:
     """Orchestrates an explore operation
 
     In addition to the items handles by orchestrate_general_operation this function
@@ -269,7 +266,11 @@ def orchestrate_explore_operation(
         ray.exceptions.ActorDiedError: If there was an error initializing the actuators
     """
 
+    import uuid
+
     import orchestrator.modules.operators.setup
+
+    namespace = f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
 
     initialize_resource_cleaner()
 
@@ -294,11 +295,11 @@ def orchestrate_explore_operation(
 
     log_space_details(discovery_space)
 
-    actuator_configurations = (
-        operation_resource_configuration.get_actuatorconfigurations(
-            project_context=project_context
-        )
+    actuator_configurations = get_actuator_configurations(
+        actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
+        project_context=project_context,
     )
+
     actuator_configurations = (
         validate_actuator_configurations_against_space_configuration(
             actuator_configurations=actuator_configurations,
@@ -326,7 +327,7 @@ def orchestrate_explore_operation(
     # Will raise ray.exceptions.ActorDiedError if any actuator died
     # during init
     actuators = orchestrator.modules.operators.setup.setup_actuators(
-        namespace=namespace,
+        namespace=operation_info.namespace,
         actuator_configurations=actuator_configurations,
         discovery_space=discovery_space,
         queue=queue,
@@ -338,25 +339,23 @@ def orchestrate_explore_operation(
     #
     # OPERATOR
     #
-    operator = orchestrator.modules.operators.setup.setup_operator(
-        actuators=actuators,
-        discovery_space=discovery_space,
-        operation_resource_configuration=operation_resource_configuration,
-        namespace=namespace,
-        state=state,
-    )  # type: "OperatorActor"
 
     # Validate the parameters for the operation
-    #
     operator_class = load_module_class_or_function(
-        operation_resource_configuration.operation.module
+        operator_module
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
-    operator_class.validateOperationParameters(
-        operation_resource_configuration.operation.parameters
-    )
+    operator_class.validateOperationParameters(parameters)
 
-    identifier = operator.operationIdentifier.remote()
-    identifier = ray.get(identifier)
+    # Create operator actor
+    operator = orchestrator.modules.operators.setup.setup_operator(
+        operator_module=operator_module,
+        parameters=parameters,
+        discovery_space=discovery_space,
+        actuators=actuators,
+        namespace=operation_info.namespace,
+        state=state,
+    )  # type: "OperatorActor"
+    identifier = ray.get(operator.operationIdentifier.remote())
 
     explore_run_closure = run_explore_operation_core_closure(operator, state)
 
@@ -383,10 +382,12 @@ def orchestrate_explore_operation(
 
         return finalize_callback
 
-    output = _run_operation_harness(
+    operation_output = _run_operation_harness(
         run_closure=explore_run_closure,
-        operation_resource_configuration=operation_resource_configuration,
         discovery_space=discovery_space,
+        operator_module=operator_module,
+        operation_parameters=parameters,
+        operation_info=operation_info,
         operation_identifier=identifier,
         finalize_callback=finalize_callback_closure(operator),
     )
@@ -397,37 +398,4 @@ def orchestrate_explore_operation(
         actuators=list(actuators.values()),
     )
 
-    return discovery_space, output.operation, output
-
-
-def explore_operation_function_wrapper(
-    discovery_space: DiscoverySpace,
-    module: orchestrator.core.operation.config.OperatorModuleConf,
-    parameters: dict,
-    namespace: str,
-    operation_info: typing.Optional["FunctionOperationInfo"] = None,
-) -> OperationOutput:
-    """
-    function implementations of explore operations must call this function.
-
-    It is a small wrapper that converts the arguments passed to the explore function operation,
-    to those required to orchestrate an explore (class) operation.
-    """
-
-    operation_resource_configuration = DiscoveryOperationResourceConfiguration(
-        operation=DiscoveryOperationConfiguration(
-            module=module,
-            parameters=parameters,
-        ),
-        metadata=operation_info.metadata,
-        actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
-        spaces=[discovery_space.resource.identifier],
-    )
-
-    _, _, output = orchestrate_explore_operation(
-        operation_resource_configuration=operation_resource_configuration,
-        discovery_space=discovery_space,
-        namespace=namespace,
-    )
-
-    return output
+    return operation_output

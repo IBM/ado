@@ -291,7 +291,8 @@ async def test_group_sampler_sequential_remote(
     assert RandomGroupSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
 
     iterator = await sampler.remoteEntityIterator(
-        remoteDiscoverySpace=manager, batchsize=5
+        remoteDiscoverySpace=manager,
+        batchsize=5,
     )
 
     count = 0

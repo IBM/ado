@@ -194,7 +194,7 @@ Here you can reference the wheels with the following format.
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
-pip: # One line for each wheel to install, in this example there is two. Be sure to check spelling.
+uv: # One line for each wheel to install, in this example there is two. Be sure to check spelling.
   - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_CORE.whl
   - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_PLUGIN1.whl
 env_vars: # See below

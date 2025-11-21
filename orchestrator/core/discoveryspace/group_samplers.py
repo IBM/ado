@@ -307,7 +307,7 @@ class SequentialGroupSampleSelector(GroupSampler):
 
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
-        cls, remote_discovery_space: DiscoverySpaceManager
+        cls, remoteDiscoverySpace: DiscoverySpaceManager
     ):
         return True
 
@@ -330,7 +330,7 @@ class SequentialGroupSampleSelector(GroupSampler):
         the number of members of the associated group
 
         Parameters:
-            discovery_space: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
         """
         points = _get_space_matching_points(discovery_space=discoverySpace)
         return _sequential_iterator(
@@ -402,7 +402,7 @@ class RandomGroupSampleSelector(GroupSampler):
         the number of members of the associated group
 
         Parameters:
-            discovery_space: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
         """
         points = _get_space_matching_points(discovery_space=discoverySpace)
         return _random_iterator(
@@ -413,9 +413,9 @@ class RandomGroupSampleSelector(GroupSampler):
         self, remoteDiscoverySpace: DiscoverySpaceManager
     ) -> AsyncGenerator[list[Entity], None]:
         async def iterator_closure(
-            state_handle: DiscoverySpaceManager,
+            remote_discovery_space: DiscoverySpaceManager,
         ):
-            discovery_space = await state_handle.discoverySpace.remote()
+            discovery_space = await remote_discovery_space.discoverySpace.remote()
             points = _get_space_matching_points(discovery_space=discovery_space)
             return _random_iterator_async(
                 points=points,
@@ -423,7 +423,7 @@ class RandomGroupSampleSelector(GroupSampler):
                 remote_discovery_space=remoteDiscoverySpace,
             )
 
-        return await iterator_closure(state_handle=remoteDiscoverySpace)
+        return await iterator_closure(remote_discovery_space=remoteDiscoverySpace)
 
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize=1
@@ -477,7 +477,7 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
         the number of members of the associated group
 
         Parameters:
-            discovery_space: An orchestrator.model.space.DiscoverySpace instance
+            discoverySpace: An orchestrator.model.space.DiscoverySpace instance
         """
 
         entity_space = discoverySpace.entitySpace

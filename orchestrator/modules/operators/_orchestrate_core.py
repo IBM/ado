@@ -12,7 +12,9 @@ import orchestrator.utilities.output
 from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    DiscoveryOperationResourceConfiguration,
+    FunctionOperationInfo,
+    OperatorFunctionConf,
+    OperatorModuleConf,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.core.operation.resource import (
@@ -22,8 +24,8 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.modules.operators._cleanup import shutdown
 from orchestrator.modules.operators.base import (
-    add_operation_from_configuration_to_metastore,
     add_operation_output_to_metastore,
+    create_operation_and_add_to_metastore,
 )
 
 # Global variable to track if graceful shutdown was called
@@ -49,8 +51,10 @@ def log_space_details(discovery_space: "DiscoverySpace"):
 
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
-    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     discovery_space: DiscoverySpace,
+    operator_module: OperatorModuleConf | OperatorFunctionConf,
+    operation_parameters: dict,
+    operation_info: FunctionOperationInfo,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
 ) -> OperationOutput:
@@ -63,9 +67,12 @@ def _run_operation_harness(
     # Create and add OperationResource to metastore
     #
 
-    operation_resource = add_operation_from_configuration_to_metastore(
-        operation_resource_configuration=operation_resource_configuration,
+    operation_resource = create_operation_and_add_to_metastore(
+        discovery_space=discovery_space,
+        operator_module=operator_module,
+        operation_parameters=operation_parameters,
         metastore=discovery_space.metadataStore,
+        operation_info=operation_info,
         operation_identifier=operation_identifier,
     )
 

@@ -24,10 +24,7 @@ from orchestrator.modules.operators._cleanup import (
     ResourceCleaner,  # noqa: F401
     graceful_operation_shutdown,
 )
-
-# Want explore_operation_function_wrapper function to be accessed via this module not the private module
 from orchestrator.modules.operators._explore_orchestration import (
-    explore_operation_function_wrapper,  # noqa: F401
     orchestrate_explore_operation,
 )
 
@@ -49,13 +46,25 @@ def orchestrate(
     project_context: ProjectContext,
     discovery_space_identifier: str,
 ) -> OperationOutput:
-    """orchestrate the execution of an operation defined as a function or a class (OperationModule)
+    """Orchestrate the execution of an operation defined as a function or a class (OperationModule)
 
-    Supports
-    - running with either a discovery space id OR a discovery space configuration if the operation is implemented
-    as a class running ONLY with discovery space id if the operation is implemented as an OperationFunction
+    This function initializes Ray, loads the discovery space from the metastore, and executes
+    the operation based on its implementation type (class-based or function-based).
 
-    How the operation is implemented is given by base_operation_configuration.operation.module
+    Params:
+        operation_resource_configuration: Configuration for the operation including module,
+            parameters, metadata, actuator configurations, and target spaces
+        project_context: Project context for connecting to the metastore
+        discovery_space_identifier: Identifier of the discovery space to load from the metastore
+
+    Returns:
+        OperationOutput containing the results and status of the operation
+
+    Raises:
+        ValueError: If the measurement space is inconsistent
+        OperationException: If there is an error during the operation
+        pydantic.ValidationError: If the operation parameters are not valid
+        ray.exceptions.ActorDiedError: If there was an error initializing actors
     """
 
     import orchestrator.modules.operators.setup

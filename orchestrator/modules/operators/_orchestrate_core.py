@@ -60,7 +60,26 @@ def _run_operation_harness(
 ) -> OperationOutput:
     """Performs common orchestration for general and explore operations
 
-    Use run_closure and finalize_callback to contain differences"""
+    This function handles the common orchestration logic shared between general and explore
+    operations. It creates the operation resource, executes the operation via the run_closure,
+    handles exceptions, and stores the results.
+
+    Params:
+        run_closure: Callable that executes the operation and returns OperationOutput
+        discovery_space: The discovery space the operation is running on
+        operator_module: Configuration for the operator (either module or function-based)
+        operation_parameters: Dictionary of parameters for the operation
+        operation_info: Information about the operation including metadata and actuator configs
+        operation_identifier: Optional pre-existing identifier for the operation resource
+        finalize_callback: Optional callback to execute on the operation resource after
+            completion, before final status update
+
+    Returns:
+        OperationOutput containing the results and status of the operation
+
+    Raises:
+        OperationException: If there is an error during the operation execution
+    """
 
     #
     # OPERATION RESOURCE

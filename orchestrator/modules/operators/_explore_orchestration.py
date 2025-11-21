@@ -254,14 +254,31 @@ def orchestrate_explore_operation(
 ) -> OperationOutput:
     """Orchestrates an explore operation
 
-    In addition to the items handles by orchestrate_general_operation this function
+    This function sets up and executes an explore (search) operation. It handles:
+    - Initializing the resource cleaner
+    - Validating the measurement space consistency
+    - Validating actuator configurations against the space
+    - Setting up DiscoverySpaceManager, Actuators, and MeasurementQueue
+    - Creating and running the operator actor
+    - Handling graceful shutdown
 
-    - Sets up the state updating apparatus for explore operation:
-       - DiscoverySpaceManager, Actuators, MeasurementQueue etc.
+    It calls run_operation_harness to create, store, and update the operation resource,
+    execute the operation, handle exceptions, and store the operation results.
 
-    Exceptions:
-        ValueError: if the MeasurementSpace is not consistent with EntitySpace
-        pydantic.ValidationError: if the operation parameters are not valid
+    Params:
+        operator_module: Configuration for the operator module (class-based operation)
+        discovery_space: The discovery space to operate on
+        parameters: Dictionary of parameters for the operation
+        operation_info: Information about the operation including metadata, actuator
+            configuration identifiers, and namespace
+
+    Returns:
+        OperationOutput containing the results and status of the operation
+
+    Raises:
+        ValueError: If the MeasurementSpace is not consistent with EntitySpace or if
+            actuator configurations are invalid
+        pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
         ray.exceptions.ActorDiedError: If there was an error initializing the actuators
     """

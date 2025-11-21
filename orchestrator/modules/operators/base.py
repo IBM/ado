@@ -430,7 +430,25 @@ def create_operation_and_add_to_metastore(
     metastore: SQLStore,
     operation_identifier: str | None = None,
 ) -> OperationResource:
-    """Creates an operation resource and adds to the metastore"""
+    """Creates an operation resource and adds it to the metastore
+
+    This function creates an OperationResource from the provided operator module,
+    parameters, and operation info, then adds it to the metastore with relationships
+    to the discovery space and any actuator configurations.
+
+    Params:
+        discovery_space: The discovery space the operation will operate on
+        operator_module: Configuration for the operator (either module or function-based)
+        operation_parameters: Dictionary of parameters for the operation
+        operation_info: Information about the operation including metadata and actuator
+            configuration identifiers
+        metastore: The SQL store to add the operation resource to
+        operation_identifier: Optional pre-existing identifier for the operation resource.
+            If not provided, a new identifier will be generated
+
+    Returns:
+        OperationResource instance that was created and added to the metastore
+    """
 
     from orchestrator.core.operation.config import DiscoveryOperationConfiguration
 

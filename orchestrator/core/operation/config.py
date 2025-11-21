@@ -41,6 +41,22 @@ class DiscoveryOperationEnum(enum.Enum):
 def get_actuator_configurations(
     project_context: ProjectContext, actuator_configuration_identifiers: list[str]
 ) -> list[ActuatorConfiguration]:
+    """Retrieves actuator configurations from the metastore
+
+    Fetches ActuatorConfiguration resources from the metastore using the provided
+    identifiers and validates that each actuator has at most one configuration.
+
+    Params:
+        project_context: Project context for connecting to the metastore
+        actuator_configuration_identifiers: List of identifiers for actuator
+            configuration resources to retrieve
+
+    Returns:
+        List of ActuatorConfiguration instances retrieved from the metastore
+
+    Raises:
+        ValueError: If more than one ActuatorConfiguration references the same actuator
+    """
     import orchestrator.metastore.sqlstore
 
     sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
@@ -65,6 +81,22 @@ def validate_actuator_configurations_against_space_configuration(
     actuator_configurations: list[ActuatorConfiguration],
     discovery_space_configuration: DiscoverySpaceConfiguration,
 ) -> list[ActuatorConfiguration]:
+    """Validates that actuator configurations are compatible with a discovery space
+
+    Checks that all actuators referenced in the actuator configurations are used
+    in the experiments defined in the discovery space configuration.
+
+    Params:
+        actuator_configurations: List of actuator configurations to validate
+        discovery_space_configuration: The discovery space configuration to validate against
+
+    Returns:
+        The same list of actuator_configurations if validation passes
+
+    Raises:
+        ValueError: If any actuator identifier in actuator_configurations does not
+            appear in the experiments of the discovery space
+    """
     actuator_identifiers = {conf.actuatorIdentifier for conf in actuator_configurations}
 
     # Check the actuators configurations refer to actuators used in the MeasurementSpace
@@ -95,6 +127,26 @@ def validate_actuator_configuration_ids_against_space_ids(
     space_identifiers: list[str],
     project_context: ProjectContext,
 ):
+    """Validates actuator configuration identifiers against space identifiers
+
+    Retrieves actuator configurations and space configurations from the metastore,
+    then validates that all actuator configurations are compatible with all specified
+    discovery spaces.
+
+    Params:
+        actuator_configuration_identifiers: List of actuator configuration resource
+            identifiers to validate
+        space_identifiers: List of discovery space resource identifiers to validate against
+        project_context: Project context for connecting to the metastore
+
+    Returns:
+        List of ActuatorConfiguration instances that were validated
+
+    Raises:
+        ValueError: If any actuator configuration is not compatible with any of the
+            discovery spaces, or if more than one ActuatorConfiguration references
+            the same actuator
+    """
     import orchestrator.metastore.sqlstore
 
     sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)

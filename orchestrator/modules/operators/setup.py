@@ -141,9 +141,22 @@ def setup_operator(
     state,
     actuators: dict,
 ) -> "OperatorActor":
-    """
-    Params:
+    """Sets up and creates an operator actor for class-based operations
 
+    This function loads the operator class, creates a Ray actor instance with the
+    specified namespace, and initializes it with the provided parameters, state,
+    and actuators.
+
+    Params:
+        operator_module: Configuration for the operator module to load
+        parameters: Dictionary of parameters to pass to the operator
+        discovery_space: The discovery space the operator will operate on
+        namespace: Ray namespace to create the operator actor in
+        state: DiscoverySpaceManager actor handle for state management
+        actuators: Dictionary of actuator actor handles keyed by actuator identifier
+
+    Returns:
+        OperatorActor handle for the created operator actor
     """
 
     import orchestrator.utilities.output

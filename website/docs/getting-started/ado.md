@@ -98,11 +98,11 @@ Where:
   currently:
 
     - _actuator_
-    - _actuatorconfiguration_
-    - _context_
-    - _operation_
-    - _samplestore_
-    - _space_
+    - _actuatorconfiguration_ (_ac_)
+    - _context_ (_ctx_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
+    - _discoveryspace_ (_space_)
 
 - `--file` or `-f` is a path to the resource configuration file in YAML format.
   It is mandatory in all scenarios, except when running
@@ -200,12 +200,12 @@ Where:
 - `RESOURCE_TYPE` is the type of resource you want to delete. Currently, the
   only supported types are:
 
-    - _actuatorconfiguration_
-    - _context_
-    - _datacontainer_
-    - _operation_
-    - _samplestore_
-    - _space_
+    - _actuatorconfiguration_ (_ac_)
+    - _context_ (_ctx_)
+    - _datacontainer_ (_dcr_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
+    - _discoveryspace_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource to delete.
 - `--force` enables forced deletion of resources in the following cases:
@@ -254,8 +254,8 @@ Where:
   supported resource types are:
 
     - _experiment_
-    - _datacontainer_
-    - _space_
+    - _datacontainer_ (_dcr_)
+    - _discoveryspace_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource to describe.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
@@ -357,14 +357,14 @@ Where:
 - `RESOURCE_TYPE` is the type of resource you want to get. Currently, the only
   supported types are:
 
-    - _actuatorconfigurations_ (_ac_)
-    - _actuators_
-    - _contexts_ (_ctx_)
-    - _datacontainers_ (_dcr_)
-    - _operations_ (_op_)
-    - _operators_
-    - _samplestores_ (_store_)
-    - _discoveryspaces_ (_space_)
+    - _actuatorconfiguration_ (_ac_)
+    - _actuator_
+    - _context_ (_ctx_)
+    - _datacontainer_ (_dcr_)
+    - _operation_ (_op_)
+    - _operator_
+    - _samplestore_ (_store_)
+    - _discoveryspace_ (_space_)
 
 - `RESOURCE_ID` is the optional unique identifier of the resource to get.
 - `--output` or `-o` determine the type of output that will be displayed:
@@ -550,8 +550,8 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
-    - _operations_ (_op_)
-    - _discoveryspaces_ (_space_)
+    - _operation_ (_op_)
+    - _discoveryspace_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
@@ -593,8 +593,8 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
-    - _operations_ (_op_)
-    - _discoveryspaces_ (_space_)
+    - _operation_ (_op_)
+    - _discoveryspace_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
@@ -788,7 +788,7 @@ ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
 
 Where:
 
-- `RESOURCE_TYPE` is always _space_
+- `RESOURCE_TYPE` is always _discoveryspace_ (_space_)
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
 - `--use-latest` will add the identifier of the latest (i.e. most recent) space
   created locally to the RESOURCE_IDS. It is not context aware.
@@ -979,11 +979,11 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
-    - _actuatorconfigurations_ (_ac_)
-    - _datacontainers_ (_dcr_)
-    - _operations_ (_op_)
-    - _samplestores_ (_store_)
-    - _discoveryspaces_ (_space_)
+    - _actuatorconfiguration_ (_ac_)
+    - _datacontainer_ (_dcr_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
+    - _discoveryspace_ (_space_)
 
 #### Examples
 

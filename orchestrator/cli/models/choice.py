@@ -39,20 +39,3 @@ class HiddenPluralChoice(HiddenShorthandChoice):
     ) -> Any:
         value = value.removesuffix("s")
         return super().convert(value=value, param=param, ctx=ctx)
-
-
-class HiddenSingularChoice(GenericChoiceType):
-
-    def convert(
-        self, value: Any, param: Optional["Parameter"], ctx: Optional["Context"]
-    ) -> Any:
-        converted_value = resource_shorthands_to_full_names(value)
-        if not converted_value.endswith("s"):
-            converted_value += "s"
-
-        if converted_value not in self.choices:
-            ctx.fail(
-                f"Invalid value for {param.human_readable_name}: '{value}' is not one of {self.choices}"
-            )
-
-        return converted_value

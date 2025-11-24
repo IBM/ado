@@ -3,15 +3,17 @@
 
 from orchestrator.core import CoreResourceKinds
 
-cli_names_to_resource_kinds: dict[str, CoreResourceKinds] = {
-    r.value: r for r in CoreResourceKinds
+# Shorthands for CLI names
+cli_shorthands_to_cli_names: dict[str, str] = {
+    "ac": CoreResourceKinds.ACTUATORCONFIGURATION.value,
+    "ctx": "context",
+    "dcr": CoreResourceKinds.DATACONTAINER.value,
+    "op": CoreResourceKinds.OPERATION.value,
+    "space": CoreResourceKinds.DISCOVERYSPACE.value,
+    "spaces": CoreResourceKinds.DISCOVERYSPACE.value,
+    "store": CoreResourceKinds.SAMPLESTORE.value,
+    "stores": CoreResourceKinds.SAMPLESTORE.value,
 }
-cli_names_to_resource_kinds.update({"space": CoreResourceKinds.DISCOVERYSPACE})
-
-resource_kinds_to_cli: dict[CoreResourceKinds, str] = {
-    r: r.value for r in CoreResourceKinds
-}
-resource_kinds_to_cli.update({CoreResourceKinds.DISCOVERYSPACE: "space"})
 
 resource_kinds_to_human: dict[CoreResourceKinds, str] = {
     CoreResourceKinds.ACTUATORCONFIGURATION: "actuator configuration",

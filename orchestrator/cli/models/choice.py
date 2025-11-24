@@ -7,6 +7,8 @@ from typing import Any, Optional
 import click
 from click import Context, Parameter
 
+from orchestrator.cli.utils.input.parsers import resource_shorthands_to_full_names
+
 
 class GenericChoiceType(click.Choice):
     def __init__(self, enum_type: enum.EnumMeta, case_sensitive: bool = True):
@@ -16,12 +18,11 @@ class GenericChoiceType(click.Choice):
         self.name = enum_type
 
 
-class HiddenPluralChoice(GenericChoiceType):
-
+class HiddenShorthandChoice(GenericChoiceType):
     def convert(
         self, value: Any, param: Optional["Parameter"], ctx: Optional["Context"]
     ) -> Any:
-        value = value.removesuffix("s")
+        value = resource_shorthands_to_full_names(value)
 
         if value not in self.choices:
             ctx.fail(
@@ -29,6 +30,15 @@ class HiddenPluralChoice(GenericChoiceType):
             )
 
         return value
+
+
+class HiddenPluralChoice(HiddenShorthandChoice):
+
+    def convert(
+        self, value: Any, param: Optional["Parameter"], ctx: Optional["Context"]
+    ) -> Any:
+        value = value.removesuffix("s")
+        return super().convert(value=value, param=param, ctx=ctx)
 
 
 class HiddenSingularChoice(GenericChoiceType):
@@ -36,12 +46,13 @@ class HiddenSingularChoice(GenericChoiceType):
     def convert(
         self, value: Any, param: Optional["Parameter"], ctx: Optional["Context"]
     ) -> Any:
-        if not value.endswith("s"):
-            value += "s"
+        converted_value = resource_shorthands_to_full_names(value)
+        if not converted_value.endswith("s"):
+            converted_value += "s"
 
-        if value not in self.choices:
+        if converted_value not in self.choices:
             ctx.fail(
                 f"Invalid value for {param.human_readable_name}: '{value}' is not one of {self.choices}"
             )
 
-        return value
+        return converted_value

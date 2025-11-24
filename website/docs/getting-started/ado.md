@@ -289,11 +289,11 @@ Where:
 
 - `RESOURCE_TYPE` is the type of resource you want to edit. Supported types are:
 
-    - _actuatorconfiguration_
-    - _datacontainer_
-    - _operation_
-    - _samplestore_
-    - _space_
+    - _actuatorconfiguration_ (_ac_)
+    - _datacontainer_ (_dcr_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
+    - _discoveryspace_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
 - `--editor` is the name of the editor you want to use for editing metadata. It
@@ -357,14 +357,14 @@ Where:
 - `RESOURCE_TYPE` is the type of resource you want to get. Currently, the only
   supported types are:
 
-    - _actuatorconfigurations_
+    - _actuatorconfigurations_ (_ac_)
     - _actuators_
-    - _contexts_
-    - _datacontainers_
-    - _operations_
+    - _contexts_ (_ctx_)
+    - _datacontainers_ (_dcr_)
+    - _operations_ (_op_)
     - _operators_
-    - _samplestores_
-    - _spaces_
+    - _samplestores_ (_store_)
+    - _discoveryspaces_ (_space_)
 
 - `RESOURCE_ID` is the optional unique identifier of the resource to get.
 - `--output` or `-o` determine the type of output that will be displayed:
@@ -550,8 +550,8 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
-    - _operations_
-    - _spaces_
+    - _operations_ (_op_)
+    - _discoveryspaces_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
@@ -593,8 +593,8 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
-    - _operations_
-    - _spaces_
+    - _operations_ (_op_)
+    - _discoveryspaces_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
@@ -749,9 +749,9 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
-    - _operation_
-    - _samplestore_
-    - _space_
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
+    - _discoveryspace_ (_space_)
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
@@ -887,11 +887,10 @@ Where:
 - `RESOURCE_TYPE` is one of the supported resource types:
 
     - _actuator_
-    - _actuatorconfiguration_
-    - _context_
-    - _operation_
-    - _run_
-    - _space_
+    - _actuatorconfiguration_ (_ac_)
+    - _context_ (_ctx_)
+    - _operation_ (_op_)
+    - _discoveryspace_ (_space_)
 
 - `--output` or `-o` can be used to point to a location where to save the
   template. By default, the template will be saved in the current directory with
@@ -980,11 +979,11 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
-    - _actuatorconfigurations_
-    - _datacontainers_
-    - _operations_
-    - _samplestores_
-    - _spaces_
+    - _actuatorconfigurations_ (_ac_)
+    - _datacontainers_ (_dcr_)
+    - _operations_ (_op_)
+    - _samplestores_ (_store_)
+    - _discoveryspaces_ (_space_)
 
 #### Examples
 

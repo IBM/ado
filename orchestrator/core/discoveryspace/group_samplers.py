@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator, Generator
 from typing import Any
@@ -53,30 +54,6 @@ def _get_space_matching_points(discovery_space: DiscoverySpace) -> list[dict]:
         points.append(point)
 
     return points
-
-
-def _entity_for_point(point: dict, discovery_space: DiscoverySpace) -> list[Entity]:
-    if "entity_identifier" in point:
-        entity = discovery_space.sample_store.entityWithIdentifier(
-            entityIdentifier=point["entity_identifier"]
-        )
-    else:
-        entity = discovery_space.entity_for_point(point)
-
-    return entity
-
-
-async def _entity_for_point_async(
-    point: dict, remote_discovery_space: DiscoverySpaceManager
-) -> list[Entity]:
-    if "entity_identifier" in point:
-        entity = await remote_discovery_space.storedEntityWithIdentifier.remote(
-            entityIdentifier=point["entity_identifier"]
-        )
-    else:
-        entity = await remote_discovery_space.entity_for_point.remote(point)
-
-    return entity
 
 
 def _build_point_group_values(
@@ -149,14 +126,12 @@ async def _sequential_iterator_async(
     """
     group_list = _build_groups_list(points=points, group=group)
     for i in range(len(group_list)):
-        entity_list = [
-            await _entity_for_point_async(
-                point=point, remote_discovery_space=remote_discovery_space
-            )
+        entity_list_refs = [
+            remote_discovery_space.entity_for_point.remote(point)
             for point in group_list[i]
         ]
-        lst = entity_list
-        yield lst
+        entity_list = await asyncio.gather(*entity_list_refs)
+        yield entity_list
 
 
 def _sequential_iterator(
@@ -173,8 +148,7 @@ def _sequential_iterator(
     group_list = _build_groups_list(points=points, group=group)
     for i in range(len(group_list)):
         entity_list = [
-            _entity_for_point(point=point, discovery_space=discovery_space)
-            for point in group_list[i]
+            discovery_space.entity_for_point(point) for point in group_list[i]
         ]
         yield entity_list
 
@@ -195,12 +169,11 @@ async def _random_iterator_async(
         a=range(len(group_list)), size=len(group_list), replace=False
     )
     for i in range(len(randomized)):
-        entity_list = [
-            await _entity_for_point_async(
-                remote_discovery_space=remote_discovery_space, point=point
-            )
+        entity_list_refs = [
+            remote_discovery_space.entity_for_point.remote(point)
             for point in group_list[randomized[i]]
         ]
+        entity_list = await asyncio.gather(*entity_list_refs)
         yield entity_list
 
 
@@ -221,7 +194,7 @@ def _random_iterator(
     )
     for i in range(len(randomized)):
         entity_list = [
-            _entity_for_point(point=point, discovery_space=discovery_space)
+            discovery_space.entity_for_point(point)
             for point in group_list[randomized[i]]
         ]
         yield entity_list

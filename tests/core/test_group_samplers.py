@@ -118,19 +118,10 @@ def test_group_sampler_local(
             print(i, count, entity)
 
         node_value = {
-            (
-                e["nodes"]
-                if isinstance(e, dict)
-                else e.valueForConstitutivePropertyIdentifier("nodes").value
-            )
-            for e in group
+            (e.valueForConstitutivePropertyIdentifier("nodes").value) for e in group
         }
         cpu_value = {
-            (
-                e["cpu_family"]
-                if isinstance(e, dict)
-                else e.valueForConstitutivePropertyIdentifier("cpu_family").value
-            )
+            (e.valueForConstitutivePropertyIdentifier("cpu_family").value)
             for e in group
         }
 
@@ -226,19 +217,10 @@ async def test_group_sampler_remote(
         count += len(group)
         group_count += 1
         node_value = {
-            (
-                e["nodes"]
-                if isinstance(e, dict)
-                else e.valueForConstitutivePropertyIdentifier("nodes").value
-            )
-            for e in group
+            (e.valueForConstitutivePropertyIdentifier("nodes").value) for e in group
         }
         cpu_value = {
-            (
-                e["cpu_family"]
-                if isinstance(e, dict)
-                else e.valueForConstitutivePropertyIdentifier("cpu_family").value
-            )
+            (e.valueForConstitutivePropertyIdentifier("cpu_family").value)
             for e in group
         }
 

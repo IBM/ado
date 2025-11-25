@@ -113,10 +113,9 @@ class EnvironmentManager:
     async def wait_for_env(self):
         await self.environments_queue.wait()
 
-
     def get_environment(
         self, model: str, definition: str, increment_usage: bool = False
-    ) -> Environment:
+    ) -> Environment | None:
         """
         Get an environment for definition
         :param model: LLM model name

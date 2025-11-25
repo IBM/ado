@@ -150,7 +150,9 @@ def _create_environment(
                 )
             )
             break
-        time.sleep(check_interval)
+
+        # This is to guarantee that the request is next in line as soon as an environment is available
+        ray.get(env_manager.wait_for_env.remote())
 
     error = None
     logger.debug(

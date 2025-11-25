@@ -71,8 +71,12 @@ def execute_benchmark(
     # code = os.path.abspath(
     #    os.path.join(os.path.dirname(__file__), "benchmark_serving.py")
     # )
+    # get logger level and forward to subprocess
+    log_level = logging.getLevelName(logger.getEffectiveLevel())
     request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
+    # Propagate logger's log level to subprocess via env var (if supported)
+    request = f"export VLLM_BENCH_LOGLEVEL={log_level} && " + request
     request += (
         # changing from script invocation to cli invocation
         # f"{interpreter} {code} --backend openai --base-url {base_url} --dataset-name {data_set} "

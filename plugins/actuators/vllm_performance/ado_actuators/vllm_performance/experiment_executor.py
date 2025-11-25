@@ -29,6 +29,7 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark impo
 from ray.actor import ActorHandle
 
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
+from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.support import (
@@ -400,11 +401,14 @@ def run_resource_and_workload_experiment(
     # placeholder for measurements
     measurements = []
     current_port = local_port - 1
+    console = ray.get_actor(name="RichConsoleQueue")
+
     # For every entity
     for entity in request.entities:
 
         port_forward = None
         definition = None
+        started_benchmarking = False
         try:
             values = experiment.propertyValuesFromEntity(entity=entity)
 
@@ -434,7 +438,15 @@ def run_resource_and_workload_experiment(
             max_concurrency = int(values.get("max_concurrency"))
             if max_concurrency < 0:
                 max_concurrency = None
-            start = time.time()
+
+            started_benchmarking = True
+            console.put.remote(
+                message=RichConsoleSpinnerMessage(
+                    id=definition,
+                    label=f"({request.requestid}) Executing vllm bench serve",
+                    state="start",
+                )
+            )
             result = execute_random_benchmark(
                 base_url=base_url,
                 model=values.get("model"),
@@ -449,8 +461,6 @@ def run_resource_and_workload_experiment(
                 max_output_tokens=int(values.get("max_output_tokens")),
                 burstiness=float(values.get("burstiness")),
             )
-
-            logger.debug(f"benchmark executed in {time.time() - start} sec")
 
         except (
             K8EnvironmentCreationError,
@@ -489,6 +499,14 @@ def run_resource_and_workload_experiment(
                 )
             )
         finally:
+            if started_benchmarking:
+                console.put.remote(
+                    message=RichConsoleSpinnerMessage(
+                        id=definition,
+                        label=f"({request.requestid}) Completed benchmark",
+                        state="stop",
+                    )
+                )
             if port_forward is not None:
                 port_forward.kill()
             if definition is not None:

@@ -56,6 +56,7 @@ def get_actuator_configurations(
 
     Raises:
         ValueError: If more than one ActuatorConfiguration references the same actuator
+        ResourceDoesNotExistError: If any of the identifiers is not found in the project.
     """
     import orchestrator.metastore.sqlstore
 
@@ -80,7 +81,7 @@ def get_actuator_configurations(
 def validate_actuator_configurations_against_space_configuration(
     actuator_configurations: list[ActuatorConfiguration],
     discovery_space_configuration: DiscoverySpaceConfiguration,
-) -> list[ActuatorConfiguration]:
+):
     """Validates that actuator configurations are compatible with a discovery space
 
     Checks that all actuators referenced in the actuator configurations are used
@@ -90,8 +91,6 @@ def validate_actuator_configurations_against_space_configuration(
         actuator_configurations: List of actuator configurations to validate
         discovery_space_configuration: The discovery space configuration to validate against
 
-    Returns:
-        The same list of actuator_configurations if validation passes
 
     Raises:
         ValueError: If any actuator identifier in actuator_configurations does not
@@ -119,14 +118,12 @@ def validate_actuator_configurations_against_space_configuration(
             f"Actuator Identifiers {actuator_identifiers} must appear in the experiments of its space"
         )
 
-    return actuator_configurations
-
 
 def validate_actuator_configuration_ids_against_space_ids(
     actuator_configuration_identifiers: list[str],
     space_identifiers: list[str],
     project_context: ProjectContext,
-):
+) -> list[ActuatorConfiguration]:
     """Validates actuator configuration identifiers against space identifiers
 
     Retrieves actuator configurations and space configurations from the metastore,
@@ -146,6 +143,8 @@ def validate_actuator_configuration_ids_against_space_ids(
         ValueError: If any actuator configuration is not compatible with any of the
             discovery spaces, or if more than one ActuatorConfiguration references
             the same actuator
+        ResourceDoesNotExistError: If any of the identifiers is not found in the project.
+
     """
     import orchestrator.metastore.sqlstore
 
@@ -274,7 +273,8 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     )
     actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])
     spaces: list[str] = pydantic.Field(
-        description="List of ids of the spaces the operation will be applied to"
+        description="List of ids of the spaces the operation will be applied to",
+        min_length=1,
     )
     model_config = ConfigDict(
         extra="forbid",
@@ -282,17 +282,6 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
-
-    @pydantic.field_validator("spaces")
-    def check_space_set(cls, value):
-        """Checks at least one space identifier has been given"""
-
-        if len(value) == 0:
-            raise ValueError(
-                "You must provide at least one space identifier to an operation"
-            )
-
-        return value
 
     def get_actuatorconfigurations(
         self, project_context: ProjectContext
@@ -307,7 +296,9 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             there are no actuatorConfigurationIdentifiers.
 
 
-        Raises: ValueError if there is more than one ActuatorConfigurationResource references the same actuator
+        Raises:
+            ValueError if there is more than one ActuatorConfigurationResource references the same actuator
+            ResourceDoesNotExistError if any actuator configuration identifier cannot be found in the project
         """
 
         if not self.actuatorConfigurationIdentifiers:

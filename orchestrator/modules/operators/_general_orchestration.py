@@ -98,6 +98,8 @@ def orchestrate_general_operation(
             actuator configurations are invalid
         pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
+        ResourceDoesNotExistError: If an actuator configuration cannot be retrieved from the database
+
     """
 
     import uuid

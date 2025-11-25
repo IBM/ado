@@ -18,6 +18,7 @@ from orchestrator.core.operation.config import (
     FunctionOperationInfo,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
+from orchestrator.metastore.base import ResourceDoesNotExistError
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
@@ -154,6 +155,7 @@ def orchestrate(
         ValueError,
         pydantic.ValidationError,
         ray.exceptions.ActorDiedError,
+        ResourceDoesNotExistError,
     ) as error:
         moduleLog.critical(
             f"Error, {error}, in operation setup. Operation resource not created - exiting"

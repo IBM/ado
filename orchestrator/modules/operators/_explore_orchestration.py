@@ -281,6 +281,7 @@ def orchestrate_explore_operation(
         pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
         ray.exceptions.ActorDiedError: If there was an error initializing the actuators
+        ResourceDoesNotExistError: If an actuator configuration cannot be retrieved from the database
     """
 
     import uuid
@@ -320,11 +321,9 @@ def orchestrate_explore_operation(
         project_context=project_context,
     )
 
-    actuator_configurations = (
-        validate_actuator_configurations_against_space_configuration(
-            actuator_configurations=actuator_configurations,
-            discovery_space_configuration=discovery_space.config,
-        )
+    validate_actuator_configurations_against_space_configuration(
+        actuator_configurations=actuator_configurations,
+        discovery_space_configuration=discovery_space.config,
     )
 
     #

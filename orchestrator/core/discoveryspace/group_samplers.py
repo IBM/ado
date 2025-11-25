@@ -48,9 +48,6 @@ def _get_space_matching_points(discovery_space: DiscoverySpace) -> list[dict]:
         point = {
             v.property.identifier: v.value for v in entity.constitutive_property_values
         }
-        # we save the entity identifier to retrieve the entity from the store at a later stage,
-        # assuming they are cached locally
-        point["entity_identifier"] = entity.identifier
         points.append(point)
 
     return points

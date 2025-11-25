@@ -1,0 +1,16 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+actuatorIdentifier: vllm_performance
+metadata:
+  name: "Test actuator deployment"
+parameters:
+  benchmark_retries: 3
+  hf_token: 'test' # Set if you need to access a gated model
+  image_secret: ''
+  in_cluster: false
+  interpreter: python3
+  max_environments: 1
+  namespace: null # Must set to the namespace to create deployments
+  node_selector: {}
+  retries_timeout: 5
+  verify_ssl: false

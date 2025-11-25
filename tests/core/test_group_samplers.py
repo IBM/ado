@@ -10,6 +10,7 @@ from orchestrator.core.discoveryspace.group_samplers import (
     RandomGroupSampleSelector,
     SequentialGroupSampleSelector,
     _build_groups_dict,
+    _get_space_matching_points,
 )
 from orchestrator.core.discoveryspace.samplers import (
     GroupSampler,
@@ -48,19 +49,19 @@ def check_group_order(
 
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
         ids = [cp.identifier for cp in space.entitySpace.constitutiveProperties]
-        entities = [
-            space.entity_for_point(dict(zip(ids, p)))
-            for p in space.entitySpace.sequential_point_iterator()
+        points = [
+            dict(zip(ids, p)) for p in space.entitySpace.sequential_point_iterator()
         ]
-        groups = _build_groups_dict(entities=entities, group=group)
+        groups = _build_groups_dict(points=points, group=group)
         expected_group_order = list(groups.keys())
         if sampler.mode == WalkModeEnum.RANDOM:
             assert group_order != expected_group_order
         else:
+
             assert group_order == expected_group_order
     else:
-        entities = space.matchingEntities()
-        groups = _build_groups_dict(entities=entities, group=group)
+        points = _get_space_matching_points(discovery_space=space)
+        groups = _build_groups_dict(points=points, group=group)
         expected_group_order = list(groups.keys())
         if isinstance(sampler, SequentialGroupSampleSelector):
             assert group_order == expected_group_order
@@ -114,13 +115,14 @@ def test_group_sampler_local(
     for i, group in enumerate(sampler.entityGroupIterator(space)):
         count += len(group)
         for entity in group:
-            print(i, count, entity.identifier)
+            print(i, count, entity)
 
         node_value = {
-            e.valueForConstitutivePropertyIdentifier("nodes").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("nodes").value) for e in group
         }
         cpu_value = {
-            e.valueForConstitutivePropertyIdentifier("cpu_family").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("cpu_family").value)
+            for e in group
         }
 
         assert (
@@ -215,10 +217,11 @@ async def test_group_sampler_remote(
         count += len(group)
         group_count += 1
         node_value = {
-            e.valueForConstitutivePropertyIdentifier("nodes").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("nodes").value) for e in group
         }
         cpu_value = {
-            e.valueForConstitutivePropertyIdentifier("cpu_family").value for e in group
+            (e.valueForConstitutivePropertyIdentifier("cpu_family").value)
+            for e in group
         }
 
         assert (
@@ -270,7 +273,8 @@ async def test_group_sampler_sequential_remote(
     assert RandomGroupSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
 
     iterator = await sampler.remoteEntityIterator(
-        remoteDiscoverySpace=manager, batchsize=5
+        remoteDiscoverySpace=manager,
+        batchsize=5,
     )
 
     count = 0

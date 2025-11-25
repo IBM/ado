@@ -59,26 +59,28 @@ metastore.
 Here is a list of common `ado` CLI commands for interacting with resources. See
 the [ado CLI guide](../getting-started/ado.md) for more details
 
+<!-- markdownlint-disable MD007 -->
 - `ado get [resource type]`
-  - Lists all resources of the requested type
+    - Lists all resources of the requested type
 - `ado get [resource type] [$identifier] -o yaml`
-  - Outputs the YAML of resource `$identifier`
+    - Outputs the YAML of resource `$identifier`
 - `ado create [resource type] -f [YAMLFILE]`
-  - Creates the resource of the specified type from the definition in "YAMLFILE"
+    - Creates the resource of the specified type from the definition in "YAMLFILE"
 - `ado delete [resource type] [$identifier]`
-  - Deletes the resource of the specified type with the provided identifier from
+    - Deletes the resource of the specified type with the provided identifier from
       the database. See the [deleting resources](#deleting-resources) section for
       more information and considerations to keep in mind.
 - `ado describe [resource type] [$identifier]`
-  - Outputs a human-readable description of resource `$identifier`
+    - Outputs a human-readable description of resource `$identifier`
 - `ado show related [resource type] [$identifier]`
-  - List ids of resources related to resource `$identifier`
+    - List ids of resources related to resource `$identifier`
 - `ado show details [resource type] [$identifier]`
-  - Outputs some details on the resource. Usually these are quantities that have
+    - Outputs some details on the resource. Usually these are quantities that have
       to be computed.
 - `ado template [resource type] --include-schema`
-  - Outputs a default YAML for the given resource along with a schema file
+    - Outputs a default YAML for the given resource along with a schema file
       explaining the fields.`
+<!-- markdownlint-enable MD007 -->
 
 ### Deleting resources
 

@@ -9,6 +9,7 @@ import uuid
 from typing import Any
 
 from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results import (
+    VLLMBenchmarkResultReadError,
     get_results,
 )
 
@@ -18,6 +19,10 @@ default_geospatial_datasets_filenames = {
     "india_url_in_b64_out": "india_url_in_b64_out.jsonl",
     "valencia_url_in_b64_out": "valencia_url_in_b64_out.jsonl",
 }
+
+
+class VLLMBenchmarkError(Exception):
+    """Raised if there was an issue when running the benchmark"""
 
 
 def execute_benchmark(
@@ -55,6 +60,9 @@ def execute_benchmark(
     keys are vllm benchmark arguments. values are the values to pass to the arguments
 
     :return: results dictionary
+
+    :raises VLLMBenchmarkError if the benchmark failed to execute after
+        benchmark_retries attempts
     """
 
     logger.debug(
@@ -96,13 +104,23 @@ def execute_benchmark(
         except subprocess.CalledProcessError as e:
             logger.warning(f"Command failed with return code {e.returncode}")
             if i < benchmark_retries - 1:
+                logger.warning(
+                    f"Will try again after {timeout} seconds. {benchmark_retries - 1 - i} retries remaining"
+                )
                 time.sleep(timeout)
                 timeout *= 2
             else:
-                logger.warning("Failed to execute benchmark")
-                raise Exception(f"Failed to execute benchmark {e}")
+                logger.error(
+                    f"Failed to execute benchmark after {benchmark_retries} attempts"
+                )
+                raise VLLMBenchmarkError(f"Failed to execute benchmark {e}")
 
-    return get_results(f_name=f_name)
+    try:
+        retval = get_results(f_name=f_name)
+    except VLLMBenchmarkResultReadError:
+        raise VLLMBenchmarkError from VLLMBenchmarkResultReadError
+
+    return retval
 
 
 def execute_random_benchmark(

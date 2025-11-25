@@ -4,7 +4,7 @@
 # The input to an experiment is an Entity. For the Entity to be a valid input
 # it's properties which  match what is defined here
 performance_testing-geospatial-endpoint:
-  identifier: performance-testing-geospatial-endpoint
+  identifier: test-geospatial-endpoint-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -84,7 +84,7 @@ performance_testing-geospatial-endpoint:
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint across inference workload configurations'
 performance_testing-geospatial-full:
-  identifier: performance-testing-geospatial-full
+  identifier: test-geospatial-deployment-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -280,7 +280,7 @@ performance_testing-geospatial-full:
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
 performance_testing-geospatial-full-custom-dataset:
-  identifier: performance-testing-geospatial-full-custom-dataset
+  identifier: test-geospatial-deployment-custom-dataset-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'

@@ -3,8 +3,8 @@
 
 # The input to an experiment is an Entity. For the Entity to be a valid input
 # it's properties which  match what is defined here
-performance_testing-full:
-  identifier: performance-testing-full
+test-deployment-v1:
+  identifier: test-deployment-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -66,8 +66,8 @@ performance_testing-full:
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "quay.io/dataprep1/data-prep-kit/vllm_image:0.1" ]
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: [ "vllm/vllm-openai:v0.11.1" ]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -124,24 +124,18 @@ performance_testing-full:
       metadata:
         description: "(deployment) The GPU type to use"
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
-    - identifier: 'skip_tokenizer_init'
+    - identifier: 'dataset'
       metadata:
-        description: "(deployment) skip tokenizer initialization"
+        description: "(benchmark) The dataset to use for the benchmark"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE 
-        values: [True, False]
-    - identifier: 'enforce_eager'
-      metadata:
-        description: "(deployment) enforce PyTorch eager mode"
-      propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE 
-        values: [True, False]
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [ 'random' ]
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/dataprep1/data-prep-kit/vllm_image:0.1"
+      value: "vllm/vllm-openai:v0.11.1"
     - property:
         identifier: n_cpus
       value: 8
@@ -189,11 +183,8 @@ performance_testing-full:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
     - property:
-        identifier: 'skip_tokenizer_init'
-      value: False
-    - property:
-        identifier: 'enforce_eager'
-      value: False
+        identifier: 'dataset'
+      value: 'random'
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -233,8 +224,8 @@ performance_testing-full:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
-performance_testing-endpoint:
-  identifier: performance-testing-endpoint
+test-endpoint-v1:
+  identifier: test-endpoint-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -294,9 +285,9 @@ performance_testing-endpoint:
         interval: 1
     - identifier: 'dataset'
       metadata:
-        description: "(benchmark) The dataset to be used for the experiment"
+        description: "The dataset to use for the benchmark"
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
         values: [ 'random' ]
   defaultParameterization:
     - value: 1000
@@ -314,9 +305,9 @@ performance_testing-endpoint:
     - value: 128
       property:
         identifier: 'max_output_tokens'
-    - property:
-        identifier: 'dataset'
-      value: 'random'
+    - value: 'random'
+      property:
+        identifier: "dataset"
   # measurements
   targetProperties:
     - identifier: "duration"

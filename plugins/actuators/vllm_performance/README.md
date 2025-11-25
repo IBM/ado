@@ -85,8 +85,8 @@ You should see an output like below:
         ACTUATOR ID        CATALOG ID                 EXPERIMENT ID  SUPPORTED
 0              mock              mock               test-experiment       True
 1              mock              mock           test-experiment-two       True
-2  vllm_performance  vllm_performance      performance-testing-full       True
-3  vllm_performance  vllm_performance  performance-testing-endpoint       True
+2  vllm_performance  vllm_performance            test-deployment-v1       True
+3  vllm_performance  vllm_performance              test-endpoint-v1       True
 ```
 
 On the last two lines you can see the new actuator and the experiments. You can
@@ -97,7 +97,7 @@ and the
 measured by an experiment by running:
 
 ```commandline
-ado describe experiment performance-testing-full
+ado describe experiment test-deployment-v1
 ```
 
 The experiment protocol for the vLLM actuator is defined in
@@ -126,7 +126,6 @@ metadata:
   name: null
 parameters:
   benchmark_retries: 3
-  deployment_template: deployment.yaml
   hf_token: ""
   image_secret: ""
   in_cluster: true
@@ -134,9 +133,7 @@ parameters:
   max_environments: 1
   namespace: null
   node_selector: ""
-  pvc_template: pvc.yaml
   retries_timeout: 5
-  service_template: service.yaml
   verify_ssl: false
 ```
 

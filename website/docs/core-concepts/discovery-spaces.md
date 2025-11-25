@@ -154,8 +154,10 @@ in. You can choose to look at:
 ### Summary
 
 <!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable MD060 -->
 | Method          | Column Definition                                                                                                                   | Defines how to acquire missing data?       | Data Sharing                                                  |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------- |
 | DataFrame       | Ad-Hoc. The data-frame creator defines the columns when it is created. The meaning of the columns must be communicated separately, | Not defined. The DataFrame just holds data | Not possible. A DataFrame is a static object                  |
 | Discovery Space | Defined by the discovery space. A set of Entity Space columns and Measurement Space columns.                                        | Yes ,defined by the MeasurementSpace       | Yes, values are loaded from a distributed shared db on demand |
+<!-- markdownlint-enable MD060 -->
 <!-- markdownlint-enable line-length -->

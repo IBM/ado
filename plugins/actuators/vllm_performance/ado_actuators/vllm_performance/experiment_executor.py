@@ -347,6 +347,11 @@ def _connect_to_vllm_server(
             pf = subprocess.Popen(pf_command, shell=True)
             # make sure that port forwarding is up
             time.sleep(5)
+            # Check if there is a returncode- if there is it means port-forward exited
+            if pf.returncode:
+                raise K8ConnectionError(
+                    f"failed to start port forward to service {k8s_name} - port-forward command exited for unknown reason. Check logs."
+                )
         except Exception as e:
             logger.warning(f"failed to start port forward to service {k8s_name} - {e}")
             raise K8ConnectionError(

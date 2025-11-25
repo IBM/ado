@@ -3,7 +3,6 @@
 
 import json
 import logging
-import math
 import subprocess
 import time
 
@@ -191,36 +190,6 @@ def _create_environment(
                 raise K8EnvironmentCreationError(
                     f"Failed to create test environment {env.k8s_name}: {error}"
                 )
-
-        case EnvironmentState.CREATING:
-            # Someone is creating environment, wait till its ready
-            logger.info(
-                f"Environment {env.k8s_name} is being created. Waiting for it to be ready."
-            )
-            n_checks = math.ceil(timeout / check_interval)
-            for _ in range(n_checks):
-                time.sleep(check_interval)
-                env = ray.get(
-                    env_manager.get_environment.remote(
-                        model=model, definition=definition
-                    )
-                )
-                if env.state == EnvironmentState.READY:
-                    break
-
-            if env.state != EnvironmentState.READY:
-                # timed out waiting for environment creation
-                error = (
-                    f"Timed out waiting for environment to get ready. Timeout {timeout}"
-                )
-                raise K8EnvironmentCreationError(
-                    f"Failed to create test environment {env.k8s_name}: {error}"
-                )
-
-            logger.debug("Environment is created, using it")
-        case _:
-            # environment exists, use it
-            logger.debug(f"Environment {env.k8s_name} already exists. Reusing it")
 
     return env.k8s_name, definition
 

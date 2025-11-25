@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import copy
 import logging
 import time
 from enum import Enum
@@ -24,7 +23,6 @@ class EnvironmentState(Enum):
     """
 
     NONE = "None"
-    CREATING = "creating"
     READY = "ready"
 
 
@@ -40,13 +38,6 @@ class Environment:
         """
         self.k8s_name = ComponentsYaml.get_k8s_name(model=model)
         self.state = EnvironmentState.NONE
-        self.in_use = 0
-
-    def update_creating(self):
-        val = copy.deepcopy(self)
-        val.state = EnvironmentState.CREATING
-        val.in_use = 1
-        return val
 
 
 @ray.remote
@@ -73,7 +64,8 @@ class EnvironmentManager:
         :param pvc_name: name of the PVC to be created / used
         :param pvc_template: template of the PVC to be created
         """
-        self.environments = {}
+        self.in_use_environments = {}
+        self.free_environments = {}
         self.namespace = namespace
         self.max_concurrent = max_concurrent
         self.in_cluster = in_cluster
@@ -89,9 +81,7 @@ class EnvironmentManager:
             pvc_template=pvc_template,
         )
 
-    def get_environment(
-        self, model: str, definition: str, increment_usage: bool = False
-    ) -> Environment:
+    def get_environment(self, model: str, definition: str) -> Environment | None:
         """
         Get an environment for definition
         :param model: LLM model name
@@ -104,38 +94,47 @@ class EnvironmentManager:
         print(
             f"getting environment for model {model}, currently {len(self.environments)} deployments"
         )
-        env = self.environments.get(definition, None)
+
+        # check if there's an existing free environment satisfying the request
+        env = self.free_environments.pop(definition, None)
         if env is None:
-            if len(self.environments) >= self.max_concurrent:
+            if self.active_environments >= self.max_concurrent:
                 # can't create more environments now, need clean up
-                available = False
-                for key, env in self.environments.items():
-                    if env.in_use == 0:
-                        available = True
-                        start = time.time()
-                        try:
-                            self.manager.delete_service(k8s_name=env.k8s_name)
-                            self.manager.delete_deployment(k8s_name=env.k8s_name)
-                        except ApiException as e:
-                            logger.error(f"Error deleting deployment or service {e}")
-                        del self.environments[key]
-                        print(
-                            f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
-                            f"Environments length {len(self.environments)}"
-                        )
-                        time.sleep(3)
-                        break
-                if not available:
+                if len(self.free_environments) > 0:
+                    # There are unused environments, let's evict one
+
+                    # Gets the oldest env in the dict
+                    key, env = next(iter(self.free_environments))
+                    logger.debug(f"Evicting environment: {env.k8s_name}")
+                    start = time.time()
+                    try:
+                        self.manager.delete_service(k8s_name=env.k8s_name)
+                        self.manager.delete_deployment(k8s_name=env.k8s_name)
+                    except ApiException as e:
+                        logger.error(f"Error deleting deployment or service {e}")
+                    # If all the Kubernetes resources got deleted, let's remove this environment from our records
+                    del self.free_environments[key]
+                    print(
+                        f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
+                        f"Active environments {self.active_environments}"
+                    )
+                    time.sleep(3)
+                else:
+                    # No room for creating a new environment
+                    logger.debug(
+                        f"There are already {self.max_concurrent} actively in use, and I can't create a new one"
+                    )
                     return None
-            # mark new one
+            # We either made space or we had enough space already
             env = Environment(model=model)
-            self.environments[definition] = env.update_creating()
-            return env
-        if increment_usage:
-            env = self.environments.get(definition)
-            env.in_use += 1
-            self.environments[definition] = env
+            logger.debug(f"New environment created for definition {definition}")
+
+        self.in_use_environments[definition] = env
         return env
+
+    @property
+    def active_environments(self):
+        return len(self.in_use_environments) + len(self.free_environments)
 
     def get_experiment_pvc_name(self):
         return self.manager.pvc_name
@@ -146,11 +145,7 @@ class EnvironmentManager:
         :param definition: environment definition
         :return: None
         """
-        env = self.environments.get(definition, None)
-        if env is None:
-            return
-        env.state = EnvironmentState.READY
-        self.environments[definition] = env
+        self.in_use_environments[definition].state = EnvironmentState.READY
 
     def done_using(self, definition: str) -> None:
         """
@@ -158,11 +153,8 @@ class EnvironmentManager:
         :param definition: environment definition
         :return: None
         """
-        env = self.environments.get(definition)
-        if env is None:
-            return
-        env.in_use -= 1
-        self.environments[definition] = env
+        env = self.in_use_environments.pop(definition)
+        self.free_environments[definition] = env
 
     def cleanup(self) -> None:
         """

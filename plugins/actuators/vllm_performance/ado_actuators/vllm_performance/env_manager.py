@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import asyncio
 import copy
 import logging
 import time
@@ -49,6 +50,21 @@ class Environment:
         return val
 
 
+class EnvironmentsQueue:
+    def __init__(self):
+        self.environments_queue = []
+
+    async def wait(self):
+        wait_event = asyncio.Event()
+        self.environments_queue.append(wait_event)
+        await wait_event.wait()
+
+    def signal_next(self):
+        if len(self.environments_queue) > 0:
+            event = self.environments_queue.pop(0)
+            event.set()
+
+
 @ray.remote
 class EnvironmentManager:
     """
@@ -74,6 +90,7 @@ class EnvironmentManager:
         :param pvc_template: template of the PVC to be created
         """
         self.environments = {}
+        self.environments_queue = EnvironmentsQueue()
         self.namespace = namespace
         self.max_concurrent = max_concurrent
         self.in_cluster = in_cluster
@@ -88,6 +105,9 @@ class EnvironmentManager:
             pvc_name=pvc_name,
             pvc_template=pvc_template,
         )
+
+    async def wait_for_env(self):
+        await self.environments_queue.wait()
 
     def get_environment(
         self, model: str, definition: str, increment_usage: bool = False
@@ -163,6 +183,9 @@ class EnvironmentManager:
             return
         env.in_use -= 1
         self.environments[definition] = env
+
+        # If another measurement is waiting in queue we wake it up
+        self.environments_queue.signal_next()
 
     def cleanup(self) -> None:
         """

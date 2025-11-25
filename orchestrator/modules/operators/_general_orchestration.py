@@ -104,8 +104,8 @@ def orchestrate_general_operation(
 
     import uuid
 
-    if not operation_info.namespace:
-        operation_info.namespace = (
+    if not operation_info.ray_namespace:
+        operation_info.ray_namespace = (
             f"{operator_function.__name__}-namespace-{str(uuid.uuid4())[:8]}"
         )
 

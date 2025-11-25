@@ -343,7 +343,7 @@ class FunctionOperationInfo(pydantic.BaseModel):
         "Two optional keys that are used by convention are name and description",
     )
     actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])
-    namespace: str | None = pydantic.Field(
+    ray_namespace: str | None = pydantic.Field(
         description="The namespace the operation should create ray workers/actors in",
         default=None,
     )

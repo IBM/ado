@@ -288,8 +288,8 @@ def orchestrate_explore_operation(
 
     import orchestrator.modules.operators.setup
 
-    if not operation_info.namespace:
-        operation_info.namespace = (
+    if not operation_info.ray_namespace:
+        operation_info.ray_namespace = (
             f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
         )
 
@@ -333,8 +333,10 @@ def orchestrate_explore_operation(
     queue = MeasurementQueue.get_measurement_queue()
 
     # noinspection PyUnresolvedReferences
-    state = DiscoverySpaceManager.options(namespace=operation_info.namespace).remote(
-        queue=queue, space=discovery_space, namespace=operation_info.namespace
+    state = DiscoverySpaceManager.options(
+        namespace=operation_info.ray_namespace
+    ).remote(
+        queue=queue, space=discovery_space, namespace=operation_info.ray_namespace
     )  # type: "InternalStateActor"
     moduleLog.debug(f"Waiting for discovery state actor to be ready: {state}")
     _ = ray.get(state.__ray_ready__.remote())
@@ -346,7 +348,7 @@ def orchestrate_explore_operation(
     # Will raise ray.exceptions.ActorDiedError if any actuator died
     # during init
     actuators = orchestrator.modules.operators.setup.setup_actuators(
-        namespace=operation_info.namespace,
+        namespace=operation_info.ray_namespace,
         actuator_configurations=actuator_configurations,
         discovery_space=discovery_space,
         queue=queue,
@@ -371,7 +373,7 @@ def orchestrate_explore_operation(
         parameters=parameters,
         discovery_space=discovery_space,
         actuators=actuators,
-        namespace=operation_info.namespace,
+        namespace=operation_info.ray_namespace,
         state=state,
     )  # type: "OperatorActor"
     identifier = ray.get(operator.operationIdentifier.remote())

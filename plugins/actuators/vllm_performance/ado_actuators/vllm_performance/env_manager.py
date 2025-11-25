@@ -101,9 +101,7 @@ class EnvironmentManager:
         :param increment_usage: increment usage flag
         :return: environment state
         """
-        print(
-            f"getting environment for model {model}, currently {len(self.environments)} deployments"
-        )
+
         env = self.environments.get(definition, None)
         if env is None:
             if len(self.environments) >= self.max_concurrent:
@@ -119,7 +117,7 @@ class EnvironmentManager:
                         except ApiException as e:
                             logger.error(f"Error deleting deployment or service {e}")
                         del self.environments[key]
-                        print(
+                        logging.info(
                             f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
                             f"Environments length {len(self.environments)}"
                         )

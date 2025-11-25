@@ -89,6 +89,10 @@ class EnvironmentManager:
             pvc_template=pvc_template,
         )
 
+    def environment_usage(self) -> dict:
+
+        return {"max": self.max_concurrent, "in_use": len(self.environments)}
+
     def get_environment(
         self, model: str, definition: str, increment_usage: bool = False
     ) -> Environment:

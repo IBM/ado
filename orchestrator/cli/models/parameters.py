@@ -54,6 +54,7 @@ class AdoCreateCommandParameters(pydantic.BaseModel):
     resource_type: AdoCreateSupportedResourceTypes
     use_default_sample_store: bool
     use_latest: list[CoreResourceKinds] | None
+    with_resources: dict[CoreResourceKinds, pathlib.Path | str] | None
 
 
 class AdoDeleteCommandParameters(pydantic.BaseModel):

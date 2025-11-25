@@ -53,6 +53,12 @@ class AdoCreateSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
+class AdoCreateWithResourceSupportedResourceTypes(Enum):
+    ACTUATOR_CONFIGURATION = _ACTUATOR_CONFIGURATION_SINGULAR
+    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
+
+
 #################### ado delete ####################
 class AdoDeleteSupportedResourceTypes(Enum):
     ACTUATOR_CONFIGURATION = _ACTUATOR_CONFIGURATION_SINGULAR

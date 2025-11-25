@@ -30,14 +30,20 @@ from orchestrator.metastore.base import ResourceDoesNotExistError
 
 def create_discovery_space(parameters: AdoCreateCommandParameters):
 
-    if (
-        parameters.new_sample_store
-        and parameters.use_latest
-        and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
-    ):
+    # Fail early if there is an invalid combination of parameters
+    mutually_exclusive_options = [
+        parameters.new_sample_store,
+        parameters.use_latest
+        and CoreResourceKinds.SAMPLESTORE in parameters.use_latest,
+        parameters.with_resources
+        and CoreResourceKinds.SAMPLESTORE in parameters.with_resources,
+    ]
+
+    if sum(mutually_exclusive_options) >= 2:
         console_print(
-            f"{ERROR}You can only set one of --new-sample-store "
-            f"and --use-latest {CoreResourceKinds.SAMPLESTORE.value}",
+            f"{ERROR}You can only set one of --new-sample-store, "
+            f"--use-latest {CoreResourceKinds.SAMPLESTORE.value}, "
+            f"--with {CoreResourceKinds.SAMPLESTORE.value}=path/id",
             stderr=True,
         )
         raise typer.Exit(1)

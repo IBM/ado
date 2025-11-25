@@ -102,7 +102,7 @@ def _create_environment(
      :param values: experiment values
      :param actuator: actuator parameters
      :param node_selector: node selector
-     :param request_id the request associated with this environments
+     :param request_id the request associated with this environment
      :param env_manager: environment manager
      :param check_interval: wait interval
      :param timeout: timeout
@@ -247,7 +247,7 @@ def _create_environment(
             console.put.remote(
                 message=RichConsoleProgressMessage(
                     id=definition,
-                    label=f"({request_id}) vLLM deployment, {env.k8s_name} is starting. Waiting for it to be ready ...",
+                    label=f"({request_id}) vLLM deployment {env.k8s_name} is starting. Waiting for it to be ready ...",
                     progress=0,
                 )
             )

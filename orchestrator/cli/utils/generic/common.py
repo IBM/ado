@@ -4,7 +4,6 @@
 import typer
 
 from orchestrator.cli.core.config import AdoConfiguration
-from orchestrator.cli.utils.input.parsers import parse_core_resource_kinds
 from orchestrator.cli.utils.output.prints import (
     WARN,
     console_print,
@@ -44,7 +43,7 @@ def get_effective_resource_id(
         )
         return explicit_resource_id
 
-    resource_kind = CoreResourceKinds(parse_core_resource_kinds(resource_type))
+    resource_kind = CoreResourceKinds(resource_type)
     resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
     if not resource_id:
         console_print(

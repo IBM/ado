@@ -12,7 +12,7 @@ from orchestrator.cli.exceptions.handlers import (
     handle_resource_does_not_exist,
     handle_unknown_experiment_error,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
+from orchestrator.cli.models.choice import HiddenPluralChoice, HiddenShorthandChoice
 from orchestrator.cli.models.parameters import AdoCreateCommandParameters
 from orchestrator.cli.models.types import AdoCreateSupportedResourceTypes
 from orchestrator.cli.resources.actuator_configuration.create import (
@@ -23,7 +23,6 @@ from orchestrator.cli.resources.discovery_space.create import create_discovery_s
 from orchestrator.cli.resources.operation.create import create_operation
 from orchestrator.cli.resources.sample_store.create import create_sample_store
 from orchestrator.cli.utils.input.parsers import (
-    parse_core_resource_kinds,
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import (
@@ -115,7 +114,7 @@ def create_resource(
         list[CoreResourceKinds] | None,
         typer.Option(
             show_default=False,
-            parser=parse_core_resource_kinds,
+            click_type=HiddenShorthandChoice(CoreResourceKinds),
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 

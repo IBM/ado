@@ -26,9 +26,7 @@ class VectorPropertyDomain(BaseModel):
 
     def valueInDomain(self, value: list) -> bool:
         """Check that all elements in the vector are in the element_domain."""
-        if not isinstance(
-            value, (list, tuple)
-        ):  # or len(value) != self.number_elements:
+        if not isinstance(value, (list, tuple)) or len(value) != self.number_elements:
             return False
 
         return all(self.element_domain.valueInDomain(v) for v in value)
@@ -63,7 +61,7 @@ class VectorPropertyDomain(BaseModel):
     def size(self) -> int:
         """Returns the size (number of possible vectors) if countable."""
 
-        n_elem_values = len(self.element_domain.domain_values)
+        n_elem_values = self.element_domain.size
         return n_elem_values**self.number_elements
 
     def __eq__(self, other):

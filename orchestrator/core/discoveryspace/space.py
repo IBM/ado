@@ -667,7 +667,7 @@ class DiscoverySpace:
                     p for p in requestedProperties if p not in definedProperties
                 ]
 
-                if len(filtered) > 1:
+                if len(filtered) > 0:
                     raise ValueError(
                         f"Requested match against constitutive properties not in entity space definition: {filtered}"
                     )

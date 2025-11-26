@@ -158,7 +158,6 @@ def rich_console_progress_bar_update_from_message(
 ) -> bool:
     """
     Update an existing Rich Progress bar with the given progress message state.
-    Safely adds a new task if needed.
 
     Args:
         bar (Progress): Progress bar object to update.

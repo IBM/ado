@@ -59,13 +59,13 @@ def _internal_range_values(lower, upper, interval) -> list:
     """
 
     if not is_float_range(interval=interval, domain_range=[lower, upper]):
-        return list(np.arange(lower, upper, interval))
+        return [int(el) for el in np.arange(lower, upper, interval)]
     num = int(np.floor((upper - lower) / interval)) + 1
     values = [lower + i * interval for i in range(num)]
     if values[-1] == upper:
         values = values[:-1]
     # values = np.linspace(lower, upper, num)[:-1]
-    return list(np.round(values, 10))
+    return [float(el) for el in np.round(values, 10)]
 
 
 def is_subdomain_of_unknown_domain(unknownDomain, testDomain):

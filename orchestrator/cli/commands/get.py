@@ -11,7 +11,7 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenSingularChoice
+from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoGetCommandParameters
 from orchestrator.cli.models.types import (
     AdoGetSupportedOutputFormats,
@@ -59,7 +59,7 @@ def get_resource(
         typer.Argument(
             help="The kind of the resource(s) to get.",
             show_default=False,
-            click_type=HiddenSingularChoice(AdoGetSupportedResourceTypes),
+            click_type=HiddenPluralChoice(AdoGetSupportedResourceTypes),
         ),
     ],
     resource_id: Annotated[
@@ -278,12 +278,12 @@ def get_resource(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE_PLURAL and (
+    if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE and (
         matching_point or matching_space or matching_space_id
     ):
         console_print(
             f"{ERROR}--matching-point, --matching-space-id and --matching-space can only be used with "
-            f"{AdoGetSupportedResourceTypes.DISCOVERY_SPACE_PLURAL.value}",
+            f"{AdoGetSupportedResourceTypes.DISCOVERY_SPACE.value}",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -356,15 +356,15 @@ def get_resource(
     )
 
     method_mapping = {
-        AdoGetSupportedResourceTypes.ACTUATOR_PLURAL: get_actuator,
-        AdoGetSupportedResourceTypes.ACTUATOR_CONFIGURATION_PLURAL: get_actuator_configuration,
-        AdoGetSupportedResourceTypes.CONTEXT_PLURAL: get_context,
-        AdoGetSupportedResourceTypes.DATA_CONTAINER_PLURAL: get_data_container,
-        AdoGetSupportedResourceTypes.DISCOVERY_SPACE_PLURAL: get_discovery_space,
-        AdoGetSupportedResourceTypes.SAMPLE_STORE_PLURAL: get_sample_store,
-        AdoGetSupportedResourceTypes.MEASUREMENT_REQUEST_PLURAL: get_measurement_request,
-        AdoGetSupportedResourceTypes.OPERATION_PLURAL: get_operation,
-        AdoGetSupportedResourceTypes.OPERATOR_PLURAL: get_operator,
+        AdoGetSupportedResourceTypes.ACTUATOR: get_actuator,
+        AdoGetSupportedResourceTypes.ACTUATOR_CONFIGURATION: get_actuator_configuration,
+        AdoGetSupportedResourceTypes.CONTEXT: get_context,
+        AdoGetSupportedResourceTypes.DATA_CONTAINER: get_data_container,
+        AdoGetSupportedResourceTypes.DISCOVERY_SPACE: get_discovery_space,
+        AdoGetSupportedResourceTypes.SAMPLE_STORE: get_sample_store,
+        AdoGetSupportedResourceTypes.MEASUREMENT_REQUEST: get_measurement_request,
+        AdoGetSupportedResourceTypes.OPERATION: get_operation,
+        AdoGetSupportedResourceTypes.OPERATOR: get_operator,
     }
 
     try:

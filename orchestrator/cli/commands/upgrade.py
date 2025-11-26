@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.choice import HiddenSingularChoice
+from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import (
     AdoUpgradeCommandParameters,
 )
@@ -33,7 +33,7 @@ def upgrade_resource(
             ...,
             help="The kind of the resource to upgrade.",
             show_default=False,
-            click_type=HiddenSingularChoice(AdoUpgradeSupportedResourceTypes),
+            click_type=HiddenPluralChoice(AdoUpgradeSupportedResourceTypes),
         ),
     ],
 ):
@@ -61,11 +61,11 @@ def upgrade_resource(
     )
 
     method_mapping = {
-        AdoUpgradeSupportedResourceTypes.ACTUATOR_CONFIGURATION_PLURAL: upgrade_actuator_configuration,
-        AdoUpgradeSupportedResourceTypes.DATA_CONTAINER_PLURAL: upgrade_data_container,
-        AdoUpgradeSupportedResourceTypes.DISCOVERY_SPACE_PLURAL: upgrade_discovery_space,
-        AdoUpgradeSupportedResourceTypes.SAMPLE_STORE_PLURAL: upgrade_sample_store,
-        AdoUpgradeSupportedResourceTypes.OPERATION_PLURAL: upgrade_operation,
+        AdoUpgradeSupportedResourceTypes.ACTUATOR_CONFIGURATION: upgrade_actuator_configuration,
+        AdoUpgradeSupportedResourceTypes.DATA_CONTAINER: upgrade_data_container,
+        AdoUpgradeSupportedResourceTypes.DISCOVERY_SPACE: upgrade_discovery_space,
+        AdoUpgradeSupportedResourceTypes.SAMPLE_STORE: upgrade_sample_store,
+        AdoUpgradeSupportedResourceTypes.OPERATION: upgrade_operation,
     }
 
     method_mapping[resource_type](parameters=parameters)

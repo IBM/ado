@@ -124,7 +124,9 @@ def _create_environment(
         )
         if env is not None:
             break
-        time.sleep(check_interval)
+
+        # This is to guarantee that the request is next in line as soon as an environment is available
+        ray.get(env_manager.wait_for_env.remote())
 
     error = None
     logger.debug(
@@ -323,6 +325,8 @@ def run_resource_and_workload_experiment(
     # For every entity
     for entity in request.entities:
 
+        port_forward = None
+        definition = None
         try:
             values = experiment.propertyValuesFromEntity(entity=entity)
 
@@ -368,9 +372,7 @@ def run_resource_and_workload_experiment(
             )
 
             logger.debug(f"benchmark executed in {time.time() - start} sec")
-            if port_forward is not None:
-                port_forward.kill()
-            env_manager.done_using.remote(definition=definition)
+
         except (
             K8EnvironmentCreationError,
             K8ConnectionError,
@@ -407,6 +409,11 @@ def run_resource_and_workload_experiment(
                     reference=request.experimentReference,
                 )
             )
+        finally:
+            if port_forward is not None:
+                port_forward.kill()
+            if definition is not None:
+                env_manager.done_using.remote(definition=definition)
 
     # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
     if len(measurements) > 0:

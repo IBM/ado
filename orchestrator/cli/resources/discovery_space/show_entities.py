@@ -29,7 +29,6 @@ from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.schema.property import ConstitutiveProperty
 
 if typing.TYPE_CHECKING:
     from orchestrator.schema.entity import Entity
@@ -237,11 +236,7 @@ def entities_to_dataframe(
     if constitutive_properties_only:
         return pd.DataFrame(
             [
-                {
-                    p.property.identifier: p.value
-                    for p in e.propertyValues
-                    if isinstance(p.property, ConstitutiveProperty)
-                }
+                {p.property.identifier: p.value for p in e.constitutive_property_values}
                 for e in entities
             ]
         )

@@ -5,7 +5,6 @@ import typing
 from rich.console import Console
 
 from orchestrator.cli.utils.resources.mappings import (
-    resource_kinds_to_cli,
     resource_kinds_to_human,
 )
 from orchestrator.core.resources import CoreResourceKinds
@@ -153,17 +152,16 @@ def latest_identifier_for_resource_not_found(
     resource_kind: CoreResourceKinds, hide_resource_in_flag: bool = False
 ) -> str:
     resource_human_readable_name = resource_kinds_to_human[resource_kind]
-    resource_cli_name = resource_kinds_to_cli[resource_kind]
     flag = (
         cyan("--use-latest")
         if hide_resource_in_flag
-        else cyan(f"--use-latest {resource_kinds_to_cli[resource_kind]}")
+        else cyan(f"--use-latest {resource_kind.value}")
     )
 
     return (
         f"{ERROR}Unable to find the identifier of the latest {resource_human_readable_name}.\n\t"
         f"This means that the {flag} flag cannot be used.\n"
-        f"{HINT}Try creating a new {resource_human_readable_name} with {cyan(f'ado create {resource_cli_name}')}"
+        f"{HINT}Try creating a new {resource_human_readable_name} with {cyan(f'ado create {resource_kind.value}')}"
     )
 
 

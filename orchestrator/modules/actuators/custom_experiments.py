@@ -328,6 +328,12 @@ def custom_experiment(
                 observed_property = experiment.observedPropertyForTargetIdentifier(
                     property_identifier
                 )
+                if not observed_property:
+                    raise ValueError(
+                        f"{experiment.identifier} returned a property called {property_identifier}, however "
+                        f"the experiment definition does not define an output property with this name"
+                    )
+
                 observed_property_value = ObservedPropertyValue(
                     property=observed_property, value=value
                 )

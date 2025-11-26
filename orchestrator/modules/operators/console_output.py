@@ -13,6 +13,7 @@ import ray.util.queue
 from pydantic import BaseModel
 from rich.console import Console, Group
 from rich.live import Live
+from rich.panel import Panel
 from rich.progress import (
     BarColumn,
     Progress,
@@ -263,20 +264,17 @@ def output_operation_results(
     return table
 
 
-def render_group_table(progress_items: dict):
+def render_progress_indicators(progress_items: dict) -> Panel:
     """
-    Render a rich.Table containing all currently active spinner/progress renderables as rows.
+    Render a rich.Panel containing all currently active spinner/progress renderables.
     Used to visually group multiple progress/spinner items in the UI.
 
     Args:
         progress_items (dict): Mapping from string id to Progress or Spinner objects.
     Returns:
-        Table: Table with renderable rows for each live progress/spinner.
+        Panel: Panel with all renderables grouped together, one per row.
     """
-    group_table = Table(title="", show_lines=False, show_edge=False, show_header=False)
-    for iid, obj in progress_items.items():
-        group_table.add_row(obj)
-    return group_table
+    return Panel(Group(*progress_items.values()))
 
 
 def run_operation_live_updates(
@@ -302,7 +300,7 @@ def run_operation_live_updates(
     table_height = max(int(Console().height / 2) - 4, 4)
     with Live(
         Group(
-            render_group_table(progress_items=progress_items),
+            render_progress_indicators(progress_items=progress_items),
             output_operation_results(
                 discovery_space=discovery_space,
                 operation_id=operation_id,
@@ -320,7 +318,10 @@ def run_operation_live_updates(
             )
             # Update results table now in case there are no progress items
             live.update(
-                Group(render_group_table(progress_items=progress_items), results_table)
+                Group(
+                    render_progress_indicators(progress_items=progress_items),
+                    results_table,
+                )
             )
             # 2. Fetch all pending messages (FIFO)
             while True:
@@ -361,7 +362,8 @@ def run_operation_live_updates(
                 # Update live view after every change
                 live.update(
                     Group(
-                        render_group_table(progress_items=progress_items), results_table
+                        render_progress_indicators(progress_items=progress_items),
+                        results_table,
                     )
                 )
 
@@ -369,7 +371,7 @@ def run_operation_live_updates(
         # Final whole-table output
         live.update(
             Group(
-                render_group_table(progress_items=progress_items),
+                render_progress_indicators(progress_items=progress_items),
                 output_operation_results(
                     discovery_space=discovery_space,
                     operation_id=operation_id,

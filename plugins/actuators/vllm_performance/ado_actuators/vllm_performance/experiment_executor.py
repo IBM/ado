@@ -222,8 +222,8 @@ def _create_environment(
             if error is None:
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
-                        id=definition,
-                        label=f"({request_id}) Created vLLM deployment {env.k8s_name}",
+                        id=request_id,
+                        label=f"({request_id})  Created vLLM deployment {env.k8s_name}",
                         state="stop",
                     )
                 )

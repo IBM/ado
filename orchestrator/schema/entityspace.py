@@ -97,7 +97,7 @@ class EntitySpaceRepresentation:
     def __str__(self):
 
         return (
-            f"Explicit entity-space defined by {len(self._constitutiveProperties)}"
+            f"entityspace defined by {len(self._constitutiveProperties)}"
             f" constitutive properties: {[cp.identifier for cp in self._constitutiveProperties]}"
         )
 

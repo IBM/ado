@@ -82,8 +82,6 @@ def setup_actuators(
     actuator_configurations = actuator_configurations if actuator_configurations else []
     for actuatorConfig in actuator_configurations:
         actuatorIdentifier = actuatorConfig.actuatorIdentifier
-        print(f"\t{actuatorConfig.actuatorIdentifier}")
-
         actuator: ActuatorActor = (
             registry.actuatorForIdentifier(actuatorIdentifier)
             .options(name=actuatorIdentifier, namespace=namespace)

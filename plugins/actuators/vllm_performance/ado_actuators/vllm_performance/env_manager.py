@@ -106,12 +106,16 @@ class EnvironmentManager:
             pvc_template=pvc_template,
         )
 
+    def environment_usage(self) -> dict:
+
+        return {"max": self.max_concurrent, "in_use": len(self.environments)}
+
     async def wait_for_env(self):
         await self.environments_queue.wait()
 
     def get_environment(
         self, model: str, definition: str, increment_usage: bool = False
-    ) -> Environment:
+    ) -> Environment | None:
         """
         Get an environment for definition
         :param model: LLM model name
@@ -121,9 +125,7 @@ class EnvironmentManager:
         :param increment_usage: increment usage flag
         :return: environment state
         """
-        print(
-            f"getting environment for model {model}, currently {len(self.environments)} deployments"
-        )
+
         env = self.environments.get(definition, None)
         if env is None:
             if len(self.environments) >= self.max_concurrent:
@@ -139,7 +141,7 @@ class EnvironmentManager:
                         except ApiException as e:
                             logger.error(f"Error deleting deployment or service {e}")
                         del self.environments[key]
-                        print(
+                        logging.info(
                             f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
                             f"Environments length {len(self.environments)}"
                         )

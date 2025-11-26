@@ -71,11 +71,10 @@ class RichConsoleQueue:
     """
     Ray-distributed FIFO queue actor for rich console output messages.
     Used to pass spinner/progress update messages from multiple Ray actors/processes to a single UI
-    updating process in a thread-safe way (Semaphore-protected).
+    updating process in a thread-safe way.
     """
 
     def __init__(self):
-        # Use Python list for the queue, Semaphore for thread safety
         self._queue = queue.Queue()
 
     def put(self, message: RichConsoleMessageType):
@@ -109,7 +108,7 @@ class RichConsoleQueue:
             RichConsoleSpinnerMessage | RichConsoleProgressMessage | None: The next message, or None if empty.
         """
         try:
-            msg = self._queue.get(block=False)
+            msg = self._queue.get_nowait()
         except queue.Empty:
             msg = None
         return msg
@@ -168,7 +167,7 @@ def rich_console_progress_bar_update_from_message(
         bool: True if progress is complete (progress >= 100), False otherwise.
     """
     # Assumes single task, always 0th index
-    # We know the spinner must have one task from creation
+    # We know the progress bar must have one task from creation
     task_id = bar.task_ids[0]
     bar.update(task_id, description=msg.label, completed=(msg.progress))
     return bar.tasks[0].finished or msg.progress >= 100

@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 import logging
 
 import pandas as pd
@@ -114,9 +117,6 @@ def validate_as_jobconfig(config_to_test):
     return job
 
 
-from typing import Union
-
-
 class MinGpuRecommender:
     def __init__(self, predictor, valid_n_gpu: list[int] | None = None):
         if valid_n_gpu is None:
@@ -138,7 +138,7 @@ class MinGpuRecommender:
         # No fitting needed, but included for compatibility
         return self
 
-    def predict(self, job_config: Union[JobConfig, pd.DataFrame]):
+    def predict(self, job_config: JobConfig | pd.DataFrame):
         if isinstance(job_config, pd.DataFrame):
             # Convert DataFrame rows to JobConfig instances
             job_configs = [
@@ -148,11 +148,10 @@ class MinGpuRecommender:
             job_configs = [job_config]
 
         # Run prediction for each config
-        predictions = [
+        return [
             recommend_min_gpu(config, self.predictor, self.valid_n_gpu)[0]
             for config in job_configs
         ]
-        return predictions
 
 
 class NoRecommendationError(ValueError):

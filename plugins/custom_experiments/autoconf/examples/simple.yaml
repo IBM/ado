@@ -1,3 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 entity:
   model_name: llama-7b
   method: lora

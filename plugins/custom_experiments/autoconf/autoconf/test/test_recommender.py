@@ -1,4 +1,8 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+
 from unittest.mock import MagicMock, patch
+
 import pandas as pd
 import pytest
 

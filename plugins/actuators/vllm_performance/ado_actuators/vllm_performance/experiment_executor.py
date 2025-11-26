@@ -129,7 +129,7 @@ def _create_environment(
     definition = _build_entity_env(values=values)
     console.put.remote(
         message=RichConsoleSpinnerMessage(
-            id=definition,
+            id=request_id,
             label=f"({request_id}) Waiting for deployment environment slot to be available - total slots {environment_usage.get('max')}",
             state="start",
         )
@@ -144,7 +144,7 @@ def _create_environment(
         if env is not None:
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
-                    id=definition,
+                    id=request_id,
                     label=f"{request_id} Got environment slot {env.k8s_name}",
                     state="stop",
                 )
@@ -173,7 +173,7 @@ def _create_environment(
             for attempt in range(3):
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
-                        id=definition,
+                        id=request_id,
                         label=f"({request_id}) Creating vLLM deployment {env.k8s_name} (attempt {attempt+1}/3)...",
                         state="start",
                     )
@@ -223,7 +223,7 @@ def _create_environment(
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
                         id=definition,
-                        label=f"({request_id})  Created vLLM deployment {env.k8s_name}",
+                        label=f"({request_id}) Created vLLM deployment {env.k8s_name}",
                         state="stop",
                     )
                 )
@@ -233,7 +233,7 @@ def _create_environment(
             else:
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
-                        id=definition,
+                        id=request_id,
                         label=f"({request_id}) Failed to create {env.k8s_name}. Aborting.",
                         state="stop",
                     )
@@ -249,7 +249,7 @@ def _create_environment(
             )
             console.put.remote(
                 message=RichConsoleProgressMessage(
-                    id=definition,
+                    id=request_id,
                     label=f"({request_id}) vLLM deployment {env.k8s_name} is starting. Waiting for it to be ready ...",
                     progress=0,
                 )
@@ -267,7 +267,7 @@ def _create_environment(
 
                 console.put.remote(
                     message=RichConsoleProgressMessage(
-                        id=definition,
+                        id=request_id,
                         label=f"({request_id}) vLLM deployment, {env.k8s_name} is starting. Waiting for it to be ready ...",
                         progress=i * int(100 / n_checks),
                     )
@@ -277,7 +277,7 @@ def _create_environment(
                 # timed out waiting for environment creation
                 console.put.remote(
                     message=RichConsoleProgressMessage(
-                        id=definition,
+                        id=request_id,
                         label=f"({request_id}) Timed out waiting for {env.k8s_name} to be ready. Aborting",
                         progress=100,
                     )
@@ -289,7 +289,7 @@ def _create_environment(
 
             console.put.remote(
                 message=RichConsoleProgressMessage(
-                    id=definition,
+                    id=request_id,
                     label=f"vLLM deployment, {env.k8s_name} is ready",
                     progress=100,
                 )
@@ -444,7 +444,7 @@ def run_resource_and_workload_experiment(
             started_benchmarking = True
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
-                    id=definition,
+                    id=request.requestid,
                     label=f"({request.requestid}) Executing vllm bench serve",
                     state="start",
                 )
@@ -504,7 +504,7 @@ def run_resource_and_workload_experiment(
             if started_benchmarking:
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
-                        id=definition,
+                        id=request.requestid,
                         label=f"({request.requestid}) Completed benchmark",
                         state="stop",
                     )

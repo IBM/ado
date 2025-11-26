@@ -6,8 +6,7 @@ Module providing Rich Console output helpers for live operation progress, spinne
 Designed to be used for real-time visualization of long-running Discovery operations using Ray actors and the rich library for advanced command line UI.
 Contains message definitions, FIFO Ray actor queue for cross-process safe messaging, and utilities for rendering and updating progress/spinner views as well as result tables from DiscoverySpace data.
 """
-
-from threading import Semaphore
+import queue
 from typing import Literal
 
 import ray.util.queue
@@ -76,8 +75,7 @@ class RichConsoleQueue:
 
     def __init__(self):
         # Use Python list for the queue, Semaphore for thread safety
-        self._queue = []
-        self._sempahore = Semaphore()
+        self._queue = queue.Queue()
 
     def put(self, message: RichConsoleMessageType):
         """
@@ -94,8 +92,8 @@ class RichConsoleQueue:
             message, (RichConsoleSpinnerMessage, RichConsoleProgressMessage)
         ):
             raise ValueError("Unsupported message type for RichConsoleQueue.put")
-        with self._sempahore:
-            self._queue.append(message)
+
+        self._queue.put(message)
 
     def get(
         self, timeout=None
@@ -110,9 +108,8 @@ class RichConsoleQueue:
             RichConsoleSpinnerMessage | RichConsoleProgressMessage | None: The next message, or None if empty.
         """
         try:
-            with self._sempahore:
-                msg = self._queue.pop(0)
-        except IndexError:
+            msg = self._queue.get(block=False)
+        except queue.Empty:
             msg = None
         return msg
 
@@ -170,10 +167,8 @@ def rich_console_progress_bar_update_from_message(
         bool: True if progress is complete (progress >= 100), False otherwise.
     """
     # Assumes single task, always 0th index
-    if len(bar.task_ids) == 0:
-        task_id = bar.add_task(msg.label, total=100, completed=msg.progress)
-    else:
-        task_id = next(iter(bar.task_ids))
+    # We know the spinner must have one task from creation
+    task_id = bar.task_ids[0]
     bar.update(task_id, description=msg.label, completed=(msg.progress))
     return bar.tasks[0].finished or msg.progress >= 100
 
@@ -323,45 +318,53 @@ def run_operation_live_updates(
                 operation_id=operation_id,
                 row_limit=table_height,
             )
+            # Update results table now in case there are no progress items
+            live.update(
+                Group(render_group_table(progress_items=progress_items), results_table)
+            )
             # 2. Fetch all pending messages (FIFO)
             while True:
                 try:
                     msg = ray.get(console_queue.get.remote(timeout=0))
                 except Exception:
                     break
+
                 if msg is None:
                     break
+
+                if msg.id in progress_items:
+                    renderable = progress_items[msg.id]
+
                 # Update spinner or progress item in the group
                 if isinstance(msg, RichConsoleSpinnerMessage):
                     if msg.id not in progress_items:
-                        spinner = rich_console_spinner_from_message(msg)
-                        progress_items[msg.id] = spinner
-                    else:
-                        spinner = progress_items[msg.id]
-                    should_remove = rich_console_spinner_update_from_message(
-                        spinner, msg
+                        renderable = rich_console_spinner_from_message(msg)
+                        progress_items[msg.id] = renderable
+
+                    renderable_is_complete = rich_console_spinner_update_from_message(
+                        renderable, msg
                     )
-                    if should_remove:
-                        del progress_items[msg.id]
+
                 elif isinstance(msg, RichConsoleProgressMessage):
                     if msg.id not in progress_items:
-                        progress = rich_console_progress_bar_from_message(msg)
-                        progress._task_label = msg.label
-                        progress_items[msg.id] = progress
-                    else:
-                        progress = progress_items[msg.id]
-                    done = rich_console_progress_bar_update_from_message(progress, msg)
-                    if done:
-                        del progress_items[msg.id]
+                        renderable = rich_console_progress_bar_from_message(msg)
+                        renderable._task_label = msg.label
+                        progress_items[msg.id] = renderable
+
+                    renderable_is_complete = (
+                        rich_console_progress_bar_update_from_message(renderable, msg)
+                    )
+
+                if renderable_is_complete:
+                    del progress_items[msg.id]
+
                 # Update live view after every change
                 live.update(
                     Group(
                         render_group_table(progress_items=progress_items), results_table
                     )
                 )
-            live.update(
-                Group(render_group_table(progress_items=progress_items), results_table)
-            )
+
             finished, _ = ray.wait(ray_waitables=[operation_future], timeout=2)
         # Final whole-table output
         live.update(

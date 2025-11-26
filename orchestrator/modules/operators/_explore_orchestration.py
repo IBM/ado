@@ -153,12 +153,9 @@ def run_explore_operation_core_closure(
         # Create RichConsoleQueue
         # this needs to be created before operation starts
         # so operators and actuators can put messages
-        try:
-            queue_handle = ray.get_actor("RichConsoleQueue")
-        except Exception:
-            queue_handle = RichConsoleQueue.options(
-                name="RichConsoleQueue", lifetime="detached"
-            ).remote()
+        queue_handle = RichConsoleQueue.options(
+            name="RichConsoleQueue", lifetime="detached", get_if_exists=True
+        ).remote()
 
         discovery_space = ray.get(state.discoverySpace.remote())
         operation_id = ray.get(operator.operationIdentifier.remote())

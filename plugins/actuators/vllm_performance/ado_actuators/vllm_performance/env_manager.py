@@ -98,6 +98,10 @@ class EnvironmentManager:
             pvc_template=pvc_template,
         )
 
+    def environment_usage(self) -> dict:
+
+        return {"max": self.max_concurrent, "in_use": len(self.environments)}
+
     async def wait_for_env(self):
         await self.environments_queue.wait()
 

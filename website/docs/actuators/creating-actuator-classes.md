@@ -561,6 +561,78 @@ except Exception as e:
 Once the registration is in place, the `cleanup` method of this actor is invoked
 at the end of execution
 
+## Signaling progress from your actuator
+
+Actuator developers can provide rich, real-time progress output
+to users running experiments, using utilities available in
+`orchestrator.modules.operators.console_output.py`.
+This is critical for long-running operations (such as deployment,
+environment setup, or benchmarking),
+and helps users visually associate progress with specific requests.
+
+### How progress signaling works
+
+When performing asynchronous tasks inside your actuator
+(or its experiment executor),
+emit progress or spinner messages to a centralized console queue
+using provided Rich message helpers:
+
+- **RichConsoleSpinnerMessage**: Shows an animated spinner with a label
+(for things like environment creation or deployment in progress)
+- **RichConsoleProgressMessage**: Shows a progress bar reflecting integer percentage
+(for measurable steps such as data transfer, job startup, etc)
+
+You should send these messages to the `RichConsoleQueue` actor
+and update or stop them when state changes.
+
+!!! tip end
+
+    Use the `request id` of the MeasurementRequest you're operating on 
+    as the message `id` (and include it in the message `label`).
+    This allows your actuator to support progress for multiple experiments
+    running concurrently, and the UI will clearly indicate which progress
+    output is tied to which experiment request. 
+
+### Example usage
+
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable-next-line code-block-style -->
+```python
+from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage, RichConsoleProgressMessage
+# Get the console queue where you post progress messages to show
+console = ray.get_actor(name="RichConsoleQueue") 
+request_id = request.requestid  # or similar
+
+# Start a spinner
+console.put.remote(message=RichConsoleSpinnerMessage(
+    id=request_id,
+    label=f"({request_id}) Waiting for environment...",
+    state="start",
+))
+# ... do work ...
+# Stop the spinner (replace with progress or mark complete)
+console.put.remote(message=RichConsoleSpinnerMessage(
+    id=request_id,
+    label=f"({request_id}) Environment ready.",
+    state="stop",
+))
+# Start a bar showing progress
+console.put.remote(message=RichConsoleProgressMessage(
+    id=request_id,
+    label=f"({request_id}) Uploading data...",
+    progress=0,  # percent
+))
+# ... sleep then calculate how much upload is complete ...
+console.put.remote(message=RichConsoleProgressMessage(
+    id=request_id,
+    label=f"({request_id}) Uploading data...",
+    progress=35,  # percent
+))
+```
+<!-- markdownlint-enable line-length -->
+
+---
+
 ## Experiment executor
 
 The actuator submit method invokes a Ray remote function `run_experiment`

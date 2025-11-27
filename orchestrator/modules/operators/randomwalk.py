@@ -473,6 +473,10 @@ class RandomWalk(Characterize):
 
     async def run(self):
 
+        from orchestrator.modules.operators.console_output import (
+            RichConsoleProgressMessage,
+        )
+
         self.log.debug(
             f"Starting random walk. Sampler config is: {self.params.samplerConfig}"
         )
@@ -563,6 +567,14 @@ class RandomWalk(Characterize):
         # STEP ONE: Send Initial Batch
         #
 
+        console = ray.get_actor(name="RichConsoleQueue")
+        console.put.remote(
+            RichConsoleProgressMessage(
+                id=self.operationIdentifier(),
+                label=f"({self.operationIdentifier()}) 0/{number_entities}",
+                progress=0,
+            )
+        )
         number_experiments = len(measurement_space.experiments)
         print(f"Submitting initial batch of size {self.params.batchSize} entities")
         print(
@@ -595,9 +607,7 @@ class RandomWalk(Characterize):
                 )
                 independent_experiments = measurement_space.independentExperiments
                 for experiment in independent_experiments:
-                    print(
-                        f"Submitting experiment {EXPERIMENT}{experiment}{RESET} for {ENTITY}{entities[0].identifier}{RESET}"
-                    )
+
                     experiment_identifiers = await measure_or_replay_async(
                         requestIndex=self._entitiesSampled,
                         requesterid=self.operationIdentifier(),
@@ -606,6 +616,10 @@ class RandomWalk(Characterize):
                         actuators=self.actuators,
                         measurement_queue=measurement_queue,
                         memoize=self.params.singleMeasurement,
+                    )
+                    print(
+                        f"Submitted experiment {EXPERIMENT}{experiment}{RESET} for {ENTITY}{entities[0].identifier}{RESET}. "
+                        f"Request identifier: {REQUEST}{experiment_identifiers[0]}{RESET}",
                     )
 
                     # This is for the number of experiments submitted in total
@@ -670,6 +684,14 @@ class RandomWalk(Characterize):
             #  Only process experiments we submitted.
             if measurement_request.operation_id == self.operationIdentifier():
                 finished_requests += 1
+
+                console.put.remote(
+                    RichConsoleProgressMessage(
+                        id=self.operationIdentifier(),
+                        label=f"({self.operationIdentifier()}) {finished_requests}/{number_entities}",
+                        progress=int(100 * finished_requests / number_entities),
+                    )
+                )
 
                 # Process the finished measurement
                 # If there are dependent experiments they will be added to the queue here
@@ -824,10 +846,7 @@ class RandomWalk(Characterize):
             experiment_reference = next_experiment_and_entity["experimentReference"]
             entities = next_experiment_and_entity["entities"]
             request_index = next_experiment_and_entity["requestIndex"]
-            print(
-                f"Continuous batching: {SUBMIT}SUBMIT EXPERIMENT{RESET}. Submitting experiment {EXPERIMENT}{experiment_reference}{RESET} "
-                f"for {ENTITY}{entities[0].identifier}{RESET}"
-            )
+
             experiment_identifiers = await measure_or_replay_async(
                 requestIndex=request_index,
                 requesterid=self.operationIdentifier(),
@@ -836,6 +855,11 @@ class RandomWalk(Characterize):
                 actuators=self.actuators,
                 measurement_queue=updateQueue,
                 memoize=self.params.singleMeasurement,
+            )
+            print(
+                f"Continuous batching: {SUBMIT}SUBMIT EXPERIMENT{RESET}. Submitted experiment {EXPERIMENT}{experiment_reference}{RESET} "
+                f"for {ENTITY}{entities[0].identifier}{RESET}. "
+                f"Request identifier: {REQUEST}{experiment_identifiers[0]}{RESET}"
             )
 
             self._experimentsRequested += len(experiment_identifiers)

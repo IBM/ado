@@ -273,6 +273,7 @@ def custom_experiment(
     optional_properties: list[ConstitutiveProperty] | None = None,
     parameterization: dict[str, typing.Any] | None = None,
     metadata: dict[str, typing.Any] | None = None,
+    use_ray: bool = True,
 ):
     """
     Decorator for custom experiment functions.
@@ -403,6 +404,7 @@ def custom_experiment(
         validated_func._original_func = func
         validated_func._is_custom_experiment = True
         validated_func._experiment = experiment
+        validated_func._use_ray = use_ray
 
         return validated_func
 
@@ -717,19 +719,32 @@ class CustomExperiments(ActuatorBase):
                 **targetExperiment.model_dump(),
             )
 
-        await custom_experiment_executor(
-            self._functionImplementations[
-                request.experimentReference.experimentIdentifier
-            ],
-            self._catalog.experimentForReference(
-                request.experimentReference
-            ).metadata.get("parameters", {}),
-            request,  # The request - contains experiment reference
-            targetExperiment,  # Experiment to execute
-            self._stateUpdateQueue,
-        )
-
-        # We only send one request
+        # Fetch custom_experiment function for this identifier
+        fn = self._functionImplementations[
+            request.experimentReference.experimentIdentifier
+        ]
+        use_ray = getattr(fn, "_use_ray", True)
+        if use_ray:
+            # Dispatch as Ray task. Do NOT await in asyncio.
+            ray.remote(custom_experiment_executor).remote(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+            )
+        else:
+            await custom_experiment_executor(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+            )
         return [requestid]
 
     @classmethod

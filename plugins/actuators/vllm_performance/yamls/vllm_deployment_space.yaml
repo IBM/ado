@@ -25,10 +25,10 @@ entitySpace:
       values: ["128Gi", "256Gi"]
   - identifier: "max_batch_tokens"
     propertyDomain:
-      values: [1024, 2048, 4096, 8192, 16384, 32768]
+      values: [8192, 16384, 32768]
   - identifier: "max_num_seq"
     propertyDomain:
-      values: [16,32,64]
+      values: [32,64]
   - identifier: "n_gpus"
     propertyDomain:
       values: [1]

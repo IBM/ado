@@ -1,6 +1,8 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-from orchestrator.cli.utils.resources.mappings import cli_names_to_resource_kinds
+from orchestrator.cli.utils.resources.mappings import (
+    cli_shorthands_to_cli_names,
+)
 
 
 def parse_key_value_pairs(
@@ -46,19 +48,15 @@ def parse_key_value_pairs(
     return result
 
 
-def parse_core_resource_kinds(value: str) -> str:
+def resource_shorthands_to_full_names(value: str) -> str:
     """
-    Parses the core resource kind from a CLI name and returns its enum value.
+    Resolves a resource shorthand to its full CLI name.
 
     Args:
-        value (str): The CLI name of the CoreResourceKind.
+        value (str): The shorthand or full CLI name of a resource.
 
     Returns:
-        str: The enum value associated with the CLI name.
-
-    Raises:
-        ValueError: If ``value`` is not a valid CoreResourceKind name.
+        str: The full CLI name corresponding to the shorthand if found;
+        otherwise, returns the original value.
     """
-    if value not in cli_names_to_resource_kinds:
-        raise ValueError(f"{value} is not a valid CoreResourceKind")
-    return cli_names_to_resource_kinds[value].value
+    return cli_shorthands_to_cli_names.get(value, value)

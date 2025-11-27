@@ -120,7 +120,7 @@ def list_contexts(
         minimize_output=True,
         output_format=AdoGetSupportedOutputFormats.DEFAULT,
         resource_id=None,
-        resource_type=AdoGetSupportedResourceTypes.CONTEXT_PLURAL,
+        resource_type=AdoGetSupportedResourceTypes.CONTEXT,
         show_deprecated=False,
         show_details=False,
     )

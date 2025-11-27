@@ -16,7 +16,6 @@ from orchestrator.cli.resources.discovery_space.show_summary import (
     show_discovery_space_summary,
 )
 from orchestrator.cli.utils.input.parsers import (
-    parse_core_resource_kinds,
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import (
@@ -176,7 +175,7 @@ def show_summary_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    resource_kind = CoreResourceKinds(parse_core_resource_kinds(resource_type.value))
+    resource_kind = CoreResourceKinds(resource_type.value)
     resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
     if not resource_id:
         console_print(

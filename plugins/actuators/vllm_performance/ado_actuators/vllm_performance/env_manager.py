@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import asyncio
 import copy
 import logging
 import time
@@ -49,6 +50,21 @@ class Environment:
         return val
 
 
+class EnvironmentsQueue:
+    def __init__(self):
+        self.environments_queue = []
+
+    async def wait(self):
+        wait_event = asyncio.Event()
+        self.environments_queue.append(wait_event)
+        await wait_event.wait()
+
+    def signal_next(self):
+        if len(self.environments_queue) > 0:
+            event = self.environments_queue.pop(0)
+            event.set()
+
+
 @ray.remote
 class EnvironmentManager:
     """
@@ -74,6 +90,7 @@ class EnvironmentManager:
         :param pvc_template: template of the PVC to be created
         """
         self.environments = {}
+        self.environments_queue = EnvironmentsQueue()
         self.namespace = namespace
         self.max_concurrent = max_concurrent
         self.in_cluster = in_cluster
@@ -89,9 +106,16 @@ class EnvironmentManager:
             pvc_template=pvc_template,
         )
 
+    def environment_usage(self) -> dict:
+
+        return {"max": self.max_concurrent, "in_use": len(self.environments)}
+
+    async def wait_for_env(self):
+        await self.environments_queue.wait()
+
     def get_environment(
         self, model: str, definition: str, increment_usage: bool = False
-    ) -> Environment:
+    ) -> Environment | None:
         """
         Get an environment for definition
         :param model: LLM model name
@@ -101,9 +125,7 @@ class EnvironmentManager:
         :param increment_usage: increment usage flag
         :return: environment state
         """
-        print(
-            f"getting environment for model {model}, currently {len(self.environments)} deployments"
-        )
+
         env = self.environments.get(definition, None)
         if env is None:
             if len(self.environments) >= self.max_concurrent:
@@ -119,7 +141,7 @@ class EnvironmentManager:
                         except ApiException as e:
                             logger.error(f"Error deleting deployment or service {e}")
                         del self.environments[key]
-                        print(
+                        logging.info(
                             f"deleted environment {env.k8s_name} in {time.time() - start} sec. "
                             f"Environments length {len(self.environments)}"
                         )
@@ -163,6 +185,9 @@ class EnvironmentManager:
             return
         env.in_use -= 1
         self.environments[definition] = env
+
+        # If another measurement is waiting in queue we wake it up
+        self.environments_queue.signal_next()
 
     def cleanup(self) -> None:
         """

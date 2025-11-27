@@ -150,7 +150,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     if space_configuration.sampleStoreIdentifier == "default":
         info_message = (
@@ -218,3 +218,5 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
     console_print(
         f"{SUCCESS}Created space with identifier: {magenta(space.uri)}", stderr=True
     )
+
+    return space.uri

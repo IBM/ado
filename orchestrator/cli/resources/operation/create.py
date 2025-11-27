@@ -81,7 +81,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     try:
         operation_output = orchestrator.modules.operators.orchestrate.orchestrate(
@@ -130,7 +130,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
         operation_output.operation.identifier
     )
 
-    output_operation_result(result=operation_output)
+    return output_operation_result(result=operation_output)
 
 
 def validate_operation(
@@ -280,3 +280,5 @@ def output_operation_result(result: OperationOutput):
                 stderr=True,
             )
             raise typer.Exit(1)
+
+    return result.operation.identifier

@@ -29,6 +29,7 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark impo
 from ray.actor import ActorHandle
 
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
+from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.support import (
@@ -86,6 +87,7 @@ def _create_environment(
     values: dict[str, str],
     actuator: VLLMPerformanceTestParameters,
     node_selector: dict[str, str],
+    request_id: str,
     env_manager: ActorHandle[EnvironmentManager],
     check_interval: int = 5,
     timeout: int = 1200,
@@ -101,6 +103,7 @@ def _create_environment(
      :param values: experiment values
      :param actuator: actuator parameters
      :param node_selector: node selector
+     :param request_id the request associated with this environment
      :param env_manager: environment manager
      :param check_interval: wait interval
      :param timeout: timeout
@@ -111,18 +114,41 @@ def _create_environment(
     - If after creation the environment was not in ready state after timeout seconds (1200 default)
 
     """
+    from orchestrator.modules.operators.console_output import (
+        RichConsoleProgressMessage,
+        RichConsoleSpinnerMessage,
+    )
+
+    console = ray.get_actor(name="RichConsoleQueue")
+    environment_usage = ray.get(env_manager.environment_usage.remote())
+
     # get model for experiment
     model = values.get("model")
 
     # create environment definition
     definition = _build_entity_env(values=values)
+    console.put.remote(
+        message=RichConsoleSpinnerMessage(
+            id=request_id,
+            label=f"({request_id}) Waiting for deployment environment slot to be available - total slots {environment_usage.get('max')}",
+            state="start",
+        )
+    )
     while True:
+
         env: Environment = ray.get(
             env_manager.get_environment.remote(
                 model=model, definition=definition, increment_usage=True
             )
         )
         if env is not None:
+            console.put.remote(
+                message=RichConsoleSpinnerMessage(
+                    id=request_id,
+                    label=f"{request_id} Got environment slot {env.k8s_name}",
+                    state="stop",
+                )
+            )
             break
 
         # This is to guarantee that the request is next in line as soon as an environment is available
@@ -140,10 +166,18 @@ def _create_environment(
 
     match env.state:
         case EnvironmentState.NONE:
+
             # Environment does not exist, create it
             logger.debug(f"Environment {env.k8s_name} does not exist. Creating it")
             tmout = 1
             for attempt in range(3):
+                console.put.remote(
+                    message=RichConsoleSpinnerMessage(
+                        id=request_id,
+                        label=f"({request_id}) Creating vLLM deployment {env.k8s_name} (attempt {attempt+1}/3)...",
+                        state="start",
+                    )
+                )
                 try:
                     create_test_environment(
                         k8s_name=env.k8s_name,
@@ -186,10 +220,24 @@ def _create_environment(
 
             # Check if error after three attempts
             if error is None:
+                console.put.remote(
+                    message=RichConsoleSpinnerMessage(
+                        id=request_id,
+                        label=f"({request_id})  Created vLLM deployment {env.k8s_name}",
+                        state="stop",
+                    )
+                )
                 logger.info(
                     f"Created test environment {env.k8s_name} in {time.time() - start} sec"
                 )
             else:
+                console.put.remote(
+                    message=RichConsoleSpinnerMessage(
+                        id=request_id,
+                        label=f"({request_id}) Failed to create {env.k8s_name}. Aborting.",
+                        state="stop",
+                    )
+                )
                 raise K8EnvironmentCreationError(
                     f"Failed to create test environment {env.k8s_name}: {error}"
                 )
@@ -199,8 +247,15 @@ def _create_environment(
             logger.info(
                 f"Environment {env.k8s_name} is being created. Waiting for it to be ready."
             )
+            console.put.remote(
+                message=RichConsoleProgressMessage(
+                    id=request_id,
+                    label=f"({request_id}) vLLM deployment {env.k8s_name} is starting. Waiting for it to be ready ...",
+                    progress=0,
+                )
+            )
             n_checks = math.ceil(timeout / check_interval)
-            for _ in range(n_checks):
+            for i in range(n_checks):
                 time.sleep(check_interval)
                 env = ray.get(
                     env_manager.get_environment.remote(
@@ -210,14 +265,35 @@ def _create_environment(
                 if env.state == EnvironmentState.READY:
                     break
 
+                console.put.remote(
+                    message=RichConsoleProgressMessage(
+                        id=request_id,
+                        label=f"({request_id}) vLLM deployment, {env.k8s_name} is starting. Waiting for it to be ready ...",
+                        progress=i * int(100 / n_checks),
+                    )
+                )
+
             if env.state != EnvironmentState.READY:
                 # timed out waiting for environment creation
-                error = (
-                    f"Timed out waiting for environment to get ready. Timeout {timeout}"
+                console.put.remote(
+                    message=RichConsoleProgressMessage(
+                        id=request_id,
+                        label=f"({request_id}) Timed out waiting for {env.k8s_name} to be ready. Aborting",
+                        progress=100,
+                    )
                 )
+                error = f"({request_id}) Timed out waiting for environment to get ready. Timeout {timeout}"
                 raise K8EnvironmentCreationError(
                     f"Failed to create test environment {env.k8s_name}: {error}"
                 )
+
+            console.put.remote(
+                message=RichConsoleProgressMessage(
+                    id=request_id,
+                    label=f"vLLM deployment, {env.k8s_name} is ready",
+                    progress=100,
+                )
+            )
 
             logger.debug("Environment is created, using it")
         case _:
@@ -269,11 +345,16 @@ def _connect_to_vllm_server(
         pf = None
     else:
         # we are running locally. need to do port-forward and connect to the local one
-        pf_command = f"kubectl port-forward svc/{k8s_name} -n {actuator_parameters.namespace} {port}:80"
+        pf_command = f"kubectl port-forward svc/{k8s_name} -n {actuator_parameters.namespace} {port}:80  2>&1 >/dev/null"
         try:
             pf = subprocess.Popen(pf_command, shell=True)
             # make sure that port forwarding is up
             time.sleep(5)
+            # Check if there is a returncode- if there is it means port-forward exited
+            if pf.returncode:
+                raise K8ConnectionError(
+                    f"failed to start port forward to service {k8s_name} - port-forward command exited for unknown reason. Check logs."
+                )
         except Exception as e:
             logger.warning(f"failed to start port forward to service {k8s_name} - {e}")
             raise K8ConnectionError(
@@ -322,11 +403,14 @@ def run_resource_and_workload_experiment(
     # placeholder for measurements
     measurements = []
     current_port = local_port - 1
+    console = ray.get_actor(name="RichConsoleQueue")
+
     # For every entity
     for entity in request.entities:
 
         port_forward = None
         definition = None
+        started_benchmarking = False
         try:
             values = experiment.propertyValuesFromEntity(entity=entity)
 
@@ -338,6 +422,7 @@ def run_resource_and_workload_experiment(
                 actuator=actuator_parameters,
                 node_selector=node_selector,
                 env_manager=env_manager,
+                request_id=request.requestid,
             )
 
             # Will raise an K8ConnectionError if a port-forward was required
@@ -355,7 +440,15 @@ def run_resource_and_workload_experiment(
             max_concurrency = int(values.get("max_concurrency"))
             if max_concurrency < 0:
                 max_concurrency = None
-            start = time.time()
+
+            started_benchmarking = True
+            console.put.remote(
+                message=RichConsoleSpinnerMessage(
+                    id=request.requestid,
+                    label=f"({request.requestid}) Executing vllm bench serve",
+                    state="start",
+                )
+            )
             result = execute_random_benchmark(
                 base_url=base_url,
                 model=values.get("model"),
@@ -370,8 +463,6 @@ def run_resource_and_workload_experiment(
                 max_output_tokens=int(values.get("max_output_tokens")),
                 burstiness=float(values.get("burstiness")),
             )
-
-            logger.debug(f"benchmark executed in {time.time() - start} sec")
 
         except (
             K8EnvironmentCreationError,
@@ -410,6 +501,14 @@ def run_resource_and_workload_experiment(
                 )
             )
         finally:
+            if started_benchmarking:
+                console.put.remote(
+                    message=RichConsoleSpinnerMessage(
+                        id=request.requestid,
+                        label=f"({request.requestid}) Completed benchmark",
+                        state="stop",
+                    )
+                )
             if port_forward is not None:
                 port_forward.kill()
             if definition is not None:

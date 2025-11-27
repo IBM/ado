@@ -34,15 +34,6 @@ def log_space_details(discovery_space: "DiscoverySpace"):
 
     print("=========== Discovery Space ===========\n")
     print(pretty.pretty(discovery_space))
-    numberEntities = discovery_space.sample_store.numberOfEntities
-    if numberEntities > 0:
-        e = discovery_space.sample_store.entities[0]
-
-        print("Example entity (first retrieved from sample store):\n")
-        print(
-            orchestrator.utilities.output.pydantic_model_as_yaml(e, exclude_unset=True)
-        )
-        print("\n")
 
 
 def _run_operation_harness(
@@ -72,7 +63,9 @@ def _run_operation_harness(
     # START THE OPERATION
     #
 
-    print("\n=========== Starting Discovery Operation ===========\n")
+    print(
+        f"\n=========== Starting Operation {operation_resource.identifier} ===========\n"
+    )
 
     operation_output = None
     operationStatus = OperationResourceStatus(

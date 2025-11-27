@@ -89,36 +89,38 @@ def create_operation(parameters: AdoCreateCommandParameters):
                     )
                 )
 
-            if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
-                if isinstance(
-                    parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
-                ):
-                    op_resource_configuration.spaces.append(
-                        parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
-                    )
-                else:
-                    op_resource_configuration.spaces = [
-                        create_discovery_space(
-                            AdoCreateCommandParameters(
-                                ado_configuration=parameters.ado_configuration,
-                                dry_run=False,
-                                new_sample_store=False,
-                                override_values=[],
-                                resource_configuration_file=parameters.with_resources[
-                                    CoreResourceKinds.DISCOVERYSPACE
-                                ],
-                                resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
-                                use_default_sample_store=False,
-                                with_resources={},
-                                use_latest=[],
-                            )
+        if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
+            if isinstance(
+                parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
+            ):
+                op_resource_configuration.spaces.append(
+                    parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
+                )
+            else:
+                op_resource_configuration.spaces = [
+                    create_discovery_space(
+                        AdoCreateCommandParameters(
+                            ado_configuration=parameters.ado_configuration,
+                            dry_run=False,
+                            new_sample_store=False,
+                            override_values=[],
+                            resource_configuration_file=parameters.with_resources[
+                                CoreResourceKinds.DISCOVERYSPACE
+                            ],
+                            resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
+                            use_default_sample_store=False,
+                            with_resources={},
+                            use_latest=[],
                         )
-                    ]
+                    )
+                ]
 
     elif parameters.use_latest:
         reuse_requested_latest_identifiers(
             resource_configuration=op_resource_configuration, parameters=parameters
         )
+
+    validate_operation(op_resource_configuration)
 
     if len(op_resource_configuration.spaces) > 1:
         console_print(

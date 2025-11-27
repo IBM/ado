@@ -507,8 +507,7 @@ def _call_legacy_custom_experiment(
 ) -> list[ObservedPropertyValue]:
     # For legacy case or other functions, check for parameters kwarg else pass entity/experiment
     func_signature = inspect.signature(function)
-    func_param_names = set(func_signature.parameters.keys())
-    if "parameters" in func_param_names:
+    if "parameters" in func_signature.parameters:
         values = function(entity, target_experiment, parameters=parameters)
     else:
         values = function(entity, target_experiment)
@@ -537,9 +536,7 @@ async def custom_experiment_executor(
     for entity in measurement_request.entities:
         try:
             # Check if this is a custom experiment decorated function
-            if hasattr(function, "_is_custom_experiment") and getattr(
-                function, "_is_custom_experiment", False
-            ):
+            if getattr(function, "_is_custom_experiment", False):
                 values = _call_decorated_custom_experiment(
                     function=function,
                     target_experiment=target_experiment,

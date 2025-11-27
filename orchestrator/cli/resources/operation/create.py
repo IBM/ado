@@ -60,6 +60,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
             model=op_resource_configuration, override_values=parameters.override_values
         )
         validate_operation(op_resource_configuration)
+
     if parameters.with_resources:
 
         if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_resources:
@@ -220,7 +221,7 @@ def validate_operation(
             resource_configuration.operation.parameters
         )
 
-    # AP: it is an OperationFunctionConf
+    # AP: it is an OperatorFunctionConf
     else:
 
         import orchestrator.modules.operators.collections

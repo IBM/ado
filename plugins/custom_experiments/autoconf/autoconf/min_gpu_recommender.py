@@ -9,16 +9,15 @@ import traceback
 from typing import NamedTuple
 
 from autogluon.tabular import TabularPredictor
-from orchestrator.modules.actuators.custom_experiments import custom_experiment
-from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
-from orchestrator.schema.property import ConstitutiveProperty
 
 from autoconf.utils.pydantic_models import JobConfig
 from autoconf.utils.recommender import (
     NoRecommendationError,
     recommend_min_gpu,
 )
-from autoconf.utils.config_mapper import map_to_valid
+from orchestrator.modules.actuators.custom_experiments import custom_experiment
+from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+from orchestrator.schema.property import ConstitutiveProperty
 
 moduleLog = logging.getLogger()
 
@@ -39,19 +38,7 @@ def load_model(model_version: str) -> TabularPredictor:
     Returns:
         The predictor
     """
-    if model_version == "1.0.0":
-        path_weights = str(
-            importlib.resources.files("autoconf")
-            / "AutoGluonModels"
-            / "v1-0-0_ag-20251024_100825-refit-clone-opt"
-        )
-    elif model_version == "0.0.0":
-        path_weights = str(
-            importlib.resources.files("autoconf")
-            / "AutoGluonModels"
-            / "v0-0-0_20251024_100825-refit-clone-opt"
-        )
-    elif model_version == "1.1.0":
+    if model_version == "1.1.0":
         path_weights = str(
             importlib.resources.files("autoconf")
             / "AutoGluonModels"
@@ -73,7 +60,7 @@ ModelVersion = ConstitutiveProperty(
     identifier="model_version",
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-        values=["0.0.0", "1.0.0", "1.1.0", "2.0.0"],
+        values=["1.1.0", "2.0.0"],
     ),
 )
 
@@ -82,36 +69,36 @@ ModelName = ConstitutiveProperty(
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
         values=[
-        'allam-1-13b',
-        'granite-13b-v2',
-        'granite-20b-v2',
-        'granite-3-8b',
-        'granite-3.1-2b',
-        'granite-3.1-3b-a800m-instruct',
-        'granite-3.1-8b-instruct',
-        'granite-34b-code-base',
-        'granite-3b-code-base-128k',
-        'granite-4.0-1b',
-        'granite-4.0-350m',
-        'granite-4.0-h-1b',
-        'granite-4.0-h-micro',
-        'granite-4.0-h-small',
-        'granite-4.0-h-tiny',
-        'granite-4.0-micro',
-        'granite-7b-base',
-        'granite-8b-code-base',
-        'granite-8b-japanese',
-        'llama-13b',
-        'llama-7b',
-        'llama2-70b',
-        'llama3-70b',
-        'llama3-8b',
-        'llama3.1-405b',
-        'llama3.1-70b',
-        'llama3.1-8b',
-        'mistral-123b-v2',
-        'mistral-7b-v0.1',
-        'mixtral-8x7b-instruct-v0.1'
+            "allam-1-13b",
+            "granite-13b-v2",
+            "granite-20b-v2",
+            "granite-3-8b",
+            "granite-3.1-2b",
+            "granite-3.1-3b-a800m-instruct",
+            "granite-3.1-8b-instruct",
+            "granite-34b-code-base",
+            "granite-3b-code-base-128k",
+            "granite-4.0-1b",
+            "granite-4.0-350m",
+            "granite-4.0-h-1b",
+            "granite-4.0-h-micro",
+            "granite-4.0-h-small",
+            "granite-4.0-h-tiny",
+            "granite-4.0-micro",
+            "granite-7b-base",
+            "granite-8b-code-base",
+            "granite-8b-japanese",
+            "llama-13b",
+            "llama-7b",
+            "llama2-70b",
+            "llama3-70b",
+            "llama3-8b",
+            "llama3.1-405b",
+            "llama3.1-70b",
+            "llama3.1-8b",
+            "mistral-123b-v2",
+            "mistral-7b-v0.1",
+            "mixtral-8x7b-instruct-v0.1",
         ],
     ),
 )
@@ -212,11 +199,11 @@ def min_gpu_recommender(
 
             config = JobConfig.model_validate(
                 {
-                    "model_name": parameters['model_name'],
-                    "gpu_model": parameters['gpu_model'],
-                    "method": parameters['method'],
-                    "tokens_per_sample": parameters['tokens_per_sample'],
-                    "batch_size": parameters['batch_size'],
+                    "model_name": parameters["model_name"],
+                    "gpu_model": parameters["gpu_model"],
+                    "method": parameters["method"],
+                    "tokens_per_sample": parameters["tokens_per_sample"],
+                    "batch_size": parameters["batch_size"],
                 }
             )
             print(config)

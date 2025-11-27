@@ -9,7 +9,6 @@ build-backend = "hatchling.build"
 # ado-core is not listed here so that we can install versions that are not live on Pypi
 [project]
 dynamic = ['version']
-requires-python = '>= 3.12.7'
 name = "autoconf"
 description="An AutoConf plugin that suggests the minimum number of gpus necessary to execute a Tuning job"
 dependencies = ["pandas",

@@ -21,8 +21,7 @@ class JobConfig(BaseModel):
         default=None, ge=1, description="Number of GPUs used"
     )
 
-    # TODO(srikumarv): the below is using validator for the mapping but
-    # it needs debugging. Turning off for now
+    # TODO(srikumarv): the below is using validator for the mapping
     @field_validator("model_name", mode="wrap")
     @classmethod
     def map_to_valid_model(cls, model_name: str, info: ValidationInfo) -> str:

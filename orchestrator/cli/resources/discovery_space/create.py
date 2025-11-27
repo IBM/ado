@@ -33,9 +33,10 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
     # Fail early if there is an invalid combination of parameters
     mutually_exclusive_options = [
         parameters.new_sample_store,
-        parameters.use_latest
+        parameters.use_latest is not None
+        and len(parameters.use_latest) >= 0
         and CoreResourceKinds.SAMPLESTORE in parameters.use_latest,
-        parameters.with_resources
+        parameters.with_resources is not None
         and CoreResourceKinds.SAMPLESTORE in parameters.with_resources,
     ]
 

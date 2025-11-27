@@ -306,6 +306,18 @@ print(exp_obj.optionalProperties)
 print(exp_obj.targetProperties)
 ```
 
+When you call the decorated function, its arguments are
+automatically validated against the required and optional inputs
+specified in the decorator, including domain constraints.
+If you call it with missing, extra, or out-of-domain arguments,
+the function will raise a `ValueError` describing what was invalid and why.
+For example:
+
+```python
+# Value outside domain - an error will be raised
+result = calculate_density(mass=0, volume=10)  
+```
+
 ## Next Steps
 
 See  

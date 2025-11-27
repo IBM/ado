@@ -30,6 +30,7 @@ from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
+from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
@@ -378,7 +379,39 @@ def custom_experiment(
         # Add the experiment to the module-level catalog
         _custom_experiments_catalog.addExperiment(experiment)
 
-        return func
+        from functools import wraps
+
+        @wraps(func)
+        def validated_func(*args, **kwargs):
+            # Build property dict from either kwargs or args
+            # Prefer kwargs, but support positional for backwards compatibility
+            import inspect
+
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            param_dict = dict(bound_args.arguments)
+
+            # Validate using SpacePoint and Experiment.validate_entity
+            spoint = SpacePoint(entity=param_dict)
+            entity = spoint.to_entity()
+            if not experiment.validate_entity(entity, verbose=True):
+                raise ValueError(
+                    f"Arguments {param_dict} do not match required/optional properties for experiment '{experiment.identifier}'. "
+                    f"See logs/stderr for reasons, or check experiment.requiredProperties/optionalProperties."
+                )
+            # Call the original with the unpacked arguments
+            return func(*args, **kwargs)
+
+        # Attach metadata to validated_func not func, so end users get the right attributes
+        validated_func._decorator_required_properties = _required_properties
+        validated_func._decorator_optional_properties = _optional_properties
+        validated_func._decorator_parameterization = _parameterization
+        validated_func._original_func = func
+        validated_func._is_custom_experiment = True
+        validated_func._experiment = experiment
+
+        return validated_func
 
     return decorator
 

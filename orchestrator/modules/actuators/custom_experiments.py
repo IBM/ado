@@ -339,13 +339,6 @@ def custom_experiment(
             )
             raise
 
-        # Store decorator arguments as function attributes (on func itself)
-        func._decorator_required_properties = _required_properties
-        func._decorator_optional_properties = _optional_properties
-        func._decorator_parameterization = _parameterization
-        func._original_func = func
-        func._is_custom_experiment = True
-
         # Create an ExperimentModuleConf instance describing where the function is
         metadata["module"] = ExperimentModuleConf(
             moduleType=ModuleTypeEnum.EXPERIMENT,

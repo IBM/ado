@@ -1,4 +1,5 @@
 # Copyright (c) IBM Corporation
+
 # SPDX-License-Identifier: MIT
 
 from unittest.mock import MagicMock, patch
@@ -13,6 +14,7 @@ from autoconf.utils.recommender import (
 )
 
 # Example configurations
+
 valid_config_dict = {
     "model_name": "llama-7b",
     "method": "lora",
@@ -34,10 +36,12 @@ invalid_config_dict = {
 }
 
 # Convert to JobConfig instances
+
 valid_job_config = JobConfig(**valid_config_dict)
 invalid_job_config = JobConfig(**invalid_config_dict)
 
 # Mock return values
+
 mock_prediction_valid = [1]
 mock_prediction_invalid = [0]
 mock_rbc_valid = (1, [])

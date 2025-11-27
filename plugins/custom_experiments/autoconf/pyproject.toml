@@ -5,8 +5,8 @@ my_experiment = "autoconf.min_gpu_recommender"
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
 build-backend = "hatchling.build"
 
-
 # ado-core is not listed here so that we can install versions that are not live on Pypi
+
 [project]
 dynamic = ['version']
 name = "autoconf"
@@ -18,7 +18,6 @@ dependencies = ["pandas",
                 "fastai",
                 "ado-core>1.2.1",
                 ]
-
 
 [project.optional-dependencies]
 libomp = [

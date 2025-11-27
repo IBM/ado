@@ -1,4 +1,5 @@
 # Copyright (c) IBM Corporation
+
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -10,6 +11,7 @@ from autoconf.utils.pydantic_models import JobConfig
 from autoconf.utils.rule_based_classifier import is_row_valid
 
 # Configure logging
+
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
@@ -19,6 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # NOTE: this list will not be used if the user provides one
+
 VALID_N_GPUS = [1, 2, 4, 8, 16, 32]
 
 

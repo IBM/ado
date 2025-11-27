@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
-# SPDX-License-Identifier: MIT
 
+# SPDX-License-Identifier: MIT
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator
 

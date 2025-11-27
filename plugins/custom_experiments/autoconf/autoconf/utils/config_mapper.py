@@ -1,9 +1,11 @@
 # Copyright (c) IBM Corporation
+
 # SPDX-License-Identifier: MIT
 
 """
 Module for mapping between categorical variable values in the production data to the training data derived from benchmarking.
 """
+
 # TODO(srikumarv): Need to make this formal somewhere so that it is resilient and adaptable to model and training data updates
 
 import re
@@ -18,6 +20,7 @@ model_patterns = {
 }
 
 # Models that we have chosen to map to
+
 mapped_models = {
     "GRANITE_3_1_2B": "granite-3.1-2b",
     "GRANITE_3_1_8B": "granite-3.1-8b-instruct",

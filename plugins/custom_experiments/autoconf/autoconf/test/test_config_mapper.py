@@ -1,4 +1,5 @@
 # Copyright (c) IBM Corporation
+
 # SPDX-License-Identifier: MIT
 
 from autoconf.utils.config_mapper import (

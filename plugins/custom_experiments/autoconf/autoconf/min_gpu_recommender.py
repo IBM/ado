@@ -1,4 +1,5 @@
 # Copyright (c) IBM Corporation
+
 # SPDX-License-Identifier: MIT
 
 import functools
@@ -123,7 +124,6 @@ GPUModel = ConstitutiveProperty(
     ),
 )
 
-
 TokensPerSample = ConstitutiveProperty(
     identifier="tokens_per_sample",
     propertyDomain=PropertyDomain(
@@ -182,7 +182,7 @@ def min_gpu_recommender(
     model_version: str,
     gpus_per_worker: int = 8,
     max_gpus: int = 8,
-):
+) -> dict[str, int | bool]:
     try:
         parameters = {
             "model_name": model_name,
@@ -206,7 +206,7 @@ def min_gpu_recommender(
                     "batch_size": parameters["batch_size"],
                 }
             )
-            print(config)
+            moduleLog.debug(f"Configuration supplied is {config}")
             valid_n_gpus = []
             i = 1
             while i <= max_gpus:
@@ -234,7 +234,6 @@ def min_gpu_recommender(
                 f"recommend_min_gpus_and_workers() for {parameters} failed with error {e}"
             )
             moduleLog.debug(f"Traceback {traceback.format_exc()}")
-
             return {}
         else:
             return {
@@ -243,5 +242,4 @@ def min_gpu_recommender(
                 "workers": ret.workers,
             }
     except Exception as e:
-
-        print(e)
+        moduleLog.warning(e)

@@ -1,12 +1,17 @@
 # AutoConf
 
-This is a repository for the models used in automated configuration of resources for GenAI workloads. At the moment, there is only one model available called `min_gpu_recommender`
+This is a repository for the models used in automated configuration of resources
+for GenAI workloads. At the moment, there is only one model available called
+`min_gpu_recommender`
 
-## min_gpu_recommender 
+## min_gpu_recommender
 
-**min_gpu_recommender** recommends the minimum number of GPUs per worker and the number of workers required to run a tuning job without triggering a GPU Out Of Memory exception.
+**min_gpu_recommender** recommends the minimum number of GPUs per worker and the
+number of workers required to run a tuning job without triggering a GPU Out Of
+Memory exception.
 
-It combines rule-based logic with an [AutoGluon](https://auto.gluon.ai/stable/index.html) tabular model.
+It combines rule-based logic with an
+[AutoGluon](https://auto.gluon.ai/stable/index.html) tabular model.
 
 ### Model Information
 
@@ -20,23 +25,32 @@ The classifier operates on the following features:
 - `is_valid`
 
 and outputs 3 parameters:
+
 - `can_recommend` with values [0,1]
 - `workers` with an integer value
 - `gpus` with an integer value
 
-Please see [models README](min_gpu_recommender/AutoGluonModels/README.md) for information on model versions
+Please see [models README](min_gpu_recommender/AutoGluonModels/README.md) for
+information on model versions
 
 ### Installation
 
-Install the package e.g. from the root directory of this git repository run `pip install ".[torch]"`. 
-You may be required to install versions of ado-core that are not available on pypi or install optional dipendencies based on the model you want to run (please, refer to [the changelog](min_gpu_recommender/AutoGluonModels/changelog.md)).
+Install the package e.g. from the root directory of this git repository run
+`pip install ".[torch]"`. You may be required to install versions of ado-core
+that are not available on pypi or install optional dipendencies based on the
+model you want to run (please, refer to
+[the changelog](min_gpu_recommender/AutoGluonModels/changelog.md)).
 
 ### Usage
 
-The min_gpu_recommender is exposed via an [`ado`](ibm.github.io/ado/) [custom experiment](https://ibm.github.io/ado/actuators/creating-custom-experiments/) and can be invoked in multiple ways:
+The min_gpu_recommender is exposed via an [`ado`](ibm.github.io/ado/)
+[custom experiment](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
+and can be invoked in multiple ways:
 
 #### 1. CLI
-Via ado's `run_experiment` CLI command. Here's an example YAML file (which you can find under [examples/simple.yaml](examples/simple.yaml).
+
+Via ado's `run_experiment` CLI command. Here's an example YAML file (which you
+can find under [examples/simple.yaml](examples/simple.yaml).
 
 ```yaml
 entity:
@@ -52,13 +66,15 @@ experiments:
     experimentIdentifier: min_gpu_recommender
 ```
 
-To use it, from the root directory of this repository run `run_experiment examples/simple.yaml`:
+To use it, from the root directory of this repository run
+`run_experiment examples/simple.yaml`:
 
 After a few seconds you should see:
 
+<!-- markdownlint-disable line-length -->
 ```bash
 Point: {'model_name': 'llama-7b', 'method': 'lora', 'gpu_model': 'NVIDIA-A100-80GB-PCIe', 'tokens_per_sample': 8192, 'batch_size': 16, 'model_version': '1.1.0'}
-2025-11-13 13:26:24,925 INFO worker.py:2003 -- Started a local Ray instance. View the dashboard at http://127.0.0.1:8265 
+2025-11-13 13:26:24,925 INFO worker.py:2003 -- Started a local Ray instance. View the dashboard at http://127.0.0.1:8265
 /Users/username/projects/orchestrator/autoconf/.venv/lib/python3.12/site-packages/ray/_private/worker.py:2051: FutureWarning: Tip: In future versions of Ray, Ray will no longer override accelerator visible devices env var if num_gpus=0 or num_gpus=None (default). To enable this behavior and turn off this error message, set RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
   warnings.warn(
 {}
@@ -85,6 +101,7 @@ can_recommend                                                        1
 gpus                                                                 2
 workers                                                              1
 ```
+<!-- markdownlint-enable line-length -->
 
 The output of the experiment are the lines:
 
@@ -94,12 +111,15 @@ workers                                                              1
 can_recommend                                                        1
 ```
 
-It reports that the recommender can make a suggestion (can_recommend=1). 
-The suggestion comes in the form of number of workers and GPUs per worker. In the above example, you should use 1 worker with 2 GPUs.
- 
+It reports that the recommender can make a suggestion (can_recommend=1). The
+suggestion comes in the form of number of workers and GPUs per worker. In the
+above example, you should use 1 worker with 2 GPUs.
+
 #### 2. Example programmatic usage with validation
+
 Calling decorated `min_gpu_recommender` custom experiment directly
 
+<!-- markdownlint-disable line-length -->
 ```python
 from orchestrator.schema.reference import (
     ExperimentReference,
@@ -131,19 +151,27 @@ assert experiment.validate_entity(entity, verbose=False) is True
 measured_properties=min_gpu_recommender(entity=entity, experiment=experiment))
 print(measured_properties)
 ```
+<!-- markdownlint-enable line-length -->
 
 This will print a similar text to:
+
+<!-- markdownlint-disable line-length -->
 ```bash
-2025-11-13 13:44:48,566 INFO worker.py:2003 -- Started a local Ray instance. View the dashboard at http://127.0.0.1:8265 
+2025-11-13 13:44:48,566 INFO worker.py:2003 -- Started a local Ray instance. View the dashboard at http://127.0.0.1:8265
 /Users/username/projects/orchestrator/autoconf/.venv/lib/python3.12/site-packages/ray/_private/worker.py:2051: FutureWarning: Tip: In future versions of Ray, Ray will no longer override accelerator visible devices env var if num_gpus=0 or num_gpus=None (default). To enable this behavior and turn off this error message, set RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
   warnings.warn(
 (min_gpu_recommender pid=82241) Found 1 mismatches between original and current metadata:
 (min_gpu_recommender pid=82241)         INFO: AutoGluon Python micro version mismatch (original=3.12.7, current=3.12.11)
 [value-op-min_gpu_recommender-can_recommend:1, value-op-min_gpu_recommender-gpus:2, value-op-min_gpu_recommender-workers:1]
 ```
+<!-- markdownlint-enable line-length -->
 
-#### 3. Calling decorated `min_gpu_recommender` custom experiment fully via `ado` with validation. 
-This will use ray, the `custom_experiment` actuator and return results in `ado` format (MeasurementRequest)
+#### 3. Calling `min_gpu_recommender` custom experiment via `ado` with validation
+
+This will use ray, the `custom_experiment` actuator and return results in `ado`
+format (MeasurementRequest)
+
+<!-- markdownlint-disable line-length -->
 ```python
 from orchestrator.schema.reference import (
     ExperimentReference,
@@ -173,8 +201,11 @@ assert experiment.validate_entity(entity, verbose=False) is True
 request=local_execution_closure(registry=ActuatorRegistry())(reference=experiment.reference, entity=entity)
 print(request.measurements[0].series_representation(output_format="target"))
 ```
+<!-- markdownlint-enable line-length -->
 
-#### 4. Example calling `min_gpu_recommender` function directly, no validation.
+#### 4. Example calling `min_gpu_recommender` function directly, no validation
+
+<!-- markdownlint-disable line-length -->
 ```python
 from min_gpu_recommender.experiment_runner import (
     min_gpu_recommender,
@@ -192,10 +223,13 @@ configuration = {
 measured_properties = min_gpu_recommender._original_func(**configuration)
 print(measured_properties)
 ```
+<!-- markdownlint-enable line-length -->
 
 ### Example run a large sweep
 
-You can also execute a large sweep. This example uses the space in [sweep/examples/space.yaml](sweep/examples/space.yaml) which applies the `min_gpu_recommender` experiment on 3960 configurations.
+You can also execute a large sweep. This example uses the space in
+[sweep/examples/space.yaml](sweep/examples/space.yaml) which applies the
+`min_gpu_recommender` experiment on 3960 configurations.
 
 The space looks like this:
 
@@ -252,6 +286,7 @@ entitySpace:
 
 To execute this run:
 
+<!-- markdownlint-disable line-length -->
 ```bash
 ado create space -f examples/sweep/space.yaml
 ado create operation -f examples/sweep/operation.yaml --use-latest space
@@ -260,7 +295,9 @@ ado create operation -f examples/sweep/operation.yaml --use-latest space
 ado show entities --use-latest space --output-format csv
 open space-*.csv
 ```
+<!-- markdownlint-enable line-length -->
 
 Look for the `can_recommend`, `gpus`, and `workers` columns in the CSV file.
 
-Learn more about exploring spaces in the ado documentation for taking a [RandomWalk on a space](https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace).
+Learn more about exploring spaces in the ado documentation for taking a
+[RandomWalk on a space](https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace).

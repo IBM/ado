@@ -1,11 +1,13 @@
 # Copyright (c) IBM Corporation
+
 # SPDX-License-Identifier: MIT
 
-
 import logging
+
 import pandas as pd
 
 # Configure logging
+
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
@@ -49,17 +51,15 @@ def is_row_valid(
             errors.append(
                 err_prefix + "batch_size must be evenly divisible by number_gpus."
             )
-    except:
+    except Exception as e:
         except_string = """Rule based on divisibility of 'batch_size' by 'number_gpus'
                     cannot be applied, probably because number_gpus has not been specified on the config"""
-        logger.info(except_string)
-        return False, errors
-    
-    if errors:
+        logger.info(f"{e}:{except_string}")
         return False, errors
 
-    else:
-        return True, errors
+    if errors:
+        return False, errors
+    return True, errors
 
 
 def filter_valid_with_hard_logic(df: pd.DataFrame):
@@ -67,7 +67,7 @@ def filter_valid_with_hard_logic(df: pd.DataFrame):
     valid_indeces = []
     for i, config in df.iterrows():
         # Add other logics here
-        if is_row_valid(config)[0] == True:
+        if is_row_valid[config](0):
             valid_indeces.append(i)
     df_filtered = df.loc[valid_indeces].copy()
     print(f"l after {len(df_filtered)}")

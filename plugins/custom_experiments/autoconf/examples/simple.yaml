@@ -1,4 +1,5 @@
 # Copyright (c) IBM Corporation
+
 # SPDX-License-Identifier: MIT
 
 entity:
@@ -10,5 +11,6 @@ entity:
   model_version: 2.0.0
 
 experiments:
+
   - actuatorIdentifier: custom_experiments
     experimentIdentifier: min_gpu_recommender

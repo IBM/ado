@@ -114,9 +114,9 @@ def validate_as_jobconfig(config_to_test):
 
     try:
         job = JobConfig(**config_to_test)
-        print("Validation successful:", job)
+        logger.debug("Validation successful:", job)
     except ValidationError as e:
-        print("Validation error:", e)
+        logger.warning("Validation error:", e)
     return job
 
 

@@ -148,7 +148,7 @@ experiment = ActuatorRegistry().experimentForReference(
 )
 
 assert experiment.validate_entity(entity, verbose=False) is True
-measured_properties=min_gpu_recommender(entity=entity, experiment=experiment))
+measured_properties=min_gpu_recommender(entity=entity, experiment=experiment)
 print(measured_properties)
 ```
 <!-- markdownlint-enable line-length -->
@@ -220,7 +220,7 @@ configuration = {
     "model_version": "1.1.0",
 }
 
-measured_properties = min_gpu_recommender._original_func(**configuration)
+measured_properties = min_gpu_recommender(**configuration)
 print(measured_properties)
 ```
 <!-- markdownlint-enable line-length -->

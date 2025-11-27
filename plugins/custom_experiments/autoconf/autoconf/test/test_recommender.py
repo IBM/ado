@@ -16,23 +16,23 @@ from autoconf.utils.recommender import (
 # Example configurations
 
 valid_config_dict = {
-    "model_name": "llama-7b",
+    "model_name": "granite-3.2-8b-instruct",
     "method": "lora",
-    "number_gpus": 2.0,
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 8192.0,
     "batch_size": 16.0,
-    "is_valid": 1.0,
+    "number_gpus": 2,
+    "model_version": "2.0.0",
 }
 
 invalid_config_dict = {
     "model_name": "llama-13b",
     "method": "full",
-    "number_gpus": 4.0,
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 4096.0,
     "batch_size": 128.0,
-    "is_valid": 0.0,
+    "number_gpus": 8,
+    "model_version": "2.0.0",
 }
 
 # Convert to JobConfig instances
@@ -53,7 +53,8 @@ def mock_predictor_valid():
     mock = MagicMock()
 
     def mock_predict(df):
-        # Simulate prediction logic based on number_gpus
+        # Simulate prediction logic based on gpus_per_worker
+        print(df)
         val = 1 if int(df["number_gpus"].values[0]) == 2 else 0
         return pd.Series([val])  # Mimics .values[0] behavior
 
@@ -80,6 +81,7 @@ def mock_predictor_invalid():
 def test_get_model_prediction_and_metadata_valid(
     mock_is_row_valid, mock_predictor_valid
 ):
+    print(valid_job_config)
     pred, metadata = get_model_prediction_and_metadata(
         valid_job_config, predictor=mock_predictor_valid
     )

@@ -19,6 +19,7 @@ invalid_model_names_no_transform = {
     "gb_tuned_model_fw0u3wim_checkpoint-32637": "gb_tuned_model_fw0u3wim_checkpoint-32637",
     "granite-8b-code-instruct-128k": "granite-8b-code-instruct-128k",
     "devstral-small-182a9e3_24b": "devstral-small-182a9e3_24b",
+    "granite-5.0-d453da": "granite-5.0-d453da",
 }
 
 valid_model_names_no_transform = {

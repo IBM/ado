@@ -3,6 +3,7 @@
 
 import asyncio
 import logging
+from collections import defaultdict
 from collections.abc import AsyncGenerator, Generator
 from typing import Any
 
@@ -42,15 +43,11 @@ def _get_space_matching_points(discovery_space: DiscoverySpace) -> list[dict]:
     :param discovery_space: discovery space
     :return: list of points
     """
-    matching_entities = discovery_space.matchingEntities()
-    points = []
-    for entity in matching_entities:
-        point = {
-            v.property.identifier: v.value for v in entity.constitutive_property_values
-        }
-        points.append(point)
 
-    return points
+    return [
+        {v.property.identifier: v.value for v in entity.constitutive_property_values}
+        for entity in discovery_space.matchingEntities()
+    ]
 
 
 def _build_point_group_values(
@@ -65,19 +62,16 @@ def _build_point_group_values(
 
 def _build_groups_dict(
     points: list[dict], group: list[str]
-) -> dict[frozenset[tuple[str, Any]], list[Entity]]:
+) -> dict[frozenset[tuple[str, Any]], list[dict]]:
     """
     builds a dict of lists of entities, combining entities based on group definitions
-    :param entities: list of entities
     :param group: group definition
     :return: A dictionary whose keys are groups and whose values are list of entities
     """
-    groups = {}
+    groups = defaultdict(list)
     for point in points:
         grp = _build_point_group_values(point=point, group=group)
-        lst = groups.get(grp, [])
-        lst.append(point)
-        groups[grp] = lst
+        groups[grp].append(point)
 
     return groups
 

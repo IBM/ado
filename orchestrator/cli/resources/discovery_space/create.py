@@ -65,7 +65,8 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         space_configuration = override_values_in_pydantic_model(
             model=space_configuration, override_values=parameters.override_values
         )
-    elif (
+
+    if (
         parameters.with_resources
         and CoreResourceKinds.SAMPLESTORE in parameters.with_resources
     ):
@@ -118,6 +119,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             stderr=True,
         )
         space_configuration.sampleStoreIdentifier = latest_recorded_sample_store
+
     elif parameters.new_sample_store:
 
         # Replay experiments cannot use --new-sample-store
@@ -175,6 +177,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         parameters.ado_configuration.latest_resource_ids[
             CoreResourceKinds.SAMPLESTORE
         ] = sample_store_resource.identifier
+
     elif parameters.use_default_sample_store:
         space_configuration.sampleStoreIdentifier = "default"
 

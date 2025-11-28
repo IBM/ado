@@ -90,6 +90,41 @@ def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path):
     assert result.output == expected_output
 
 
+# 28/11/2025
+# AP: It's important to have this test early on before successful tests because
+# they will populate the global ActuatorRegistry with the replay.benchmark_performance
+# experiment, causing this test to be able to succeed.
+def test_create_discovery_space_fail_with_default_sample_store_with_replay_actuator(
+    tmp_path: pathlib.Path,
+):
+
+    space_configuration_file = pathlib.Path(
+        "examples/ml-multi-cloud/ml_multicloud_space.yaml"
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "space",
+            "-f",
+            space_configuration_file,
+            "--with",
+            "store=default",
+        ],
+    )
+
+    assert result.exit_code == 1, result.output
+    assert "The default sample store was requested to be used." in result.output
+    assert (
+        "The following experiment was not found: replay.benchmark_performance"
+        in result.output
+    )
+
+
 def test_create_discovery_space_success(
     tmp_path: pathlib.Path,
     valid_ado_project_context,
@@ -300,34 +335,3 @@ def test_create_discovery_space_success_with_sample_store_from_file_with_replay_
     assert result.exit_code == 0, result.output
     assert "Success! Created sample store with identifier" in result.output
     assert "Success! Created space with identifier" in result.output
-
-
-def test_create_discovery_space_fail_with_default_sample_store_with_replay_actuator(
-    tmp_path: pathlib.Path,
-):
-
-    space_configuration_file = pathlib.Path(
-        "examples/ml-multi-cloud/ml_multicloud_space.yaml"
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        ado,
-        [
-            "--override-ado-app-dir",
-            tmp_path,
-            "create",
-            "space",
-            "-f",
-            space_configuration_file,
-            "--with",
-            "store=default",
-        ],
-    )
-
-    assert result.exit_code == 1, result.output
-    assert "The default sample store was requested to be used." in result.output
-    assert (
-        "The following experiment was not found: replay.benchmark_performance"
-        in result.output
-    )

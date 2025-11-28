@@ -129,7 +129,7 @@ from orchestrator.schema.reference import (
 )
 from orchestrator.schema.point import SpacePoint
 from orchestrator.modules.actuators.registry import ActuatorRegistry
-from min_gpu_recommender.experiment_runner import (
+from autoconf.min_gpu_recommender import (
     min_gpu_recommender,
 )
 
@@ -142,16 +142,7 @@ configuration = {
     "model_version": "1.1.0",
 }
 
-entity = SpacePoint.model_validate({"entity":configuration}).to_entity()
-experiment = ActuatorRegistry().experimentForReference(
-    ExperimentReference(
-        actuatorIdentifier="custom_experiments",
-        experimentIdentifier="min_gpu_recommender",
-    )
-)
-
-assert experiment.validate_entity(entity, verbose=False) is True
-measured_properties=min_gpu_recommender(entity=entity, experiment=experiment)
+measured_properties=min_gpu_recommender(**configuration)
 print(measured_properties)
 ```
 
@@ -169,7 +160,7 @@ Found 1 mismatches between original and current metadata:
 
 <!-- markdownlint-enable line-length -->
 
-#### 3. Calling `min_gpu_recommender` custom experiment via `ado` with validation
+#### 3. Calling `min_gpu_recommender` custom experiment via `ado`
 
 This will use ray, the `custom_experiment` actuator and return results in `ado`
 format (MeasurementRequest)
@@ -201,10 +192,11 @@ experiment = ActuatorRegistry().experimentForReference(
     )
 )
 
-assert experiment.validate_entity(entity, verbose=False) is True
 request=local_execution_closure(registry=ActuatorRegistry())(reference=experiment.reference, entity=entity)
 print(request.measurements[0].series_representation(output_format="target"))
 ```
+
+#### 4
 
 <!-- markdownlint-enable line-length -->
 

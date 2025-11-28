@@ -117,17 +117,6 @@ def create_resource(
             "Ignored if --set or --use-latest are used.",
         ),
     ] = False,
-    use_latest: Annotated[
-        list[CoreResourceKinds] | None,
-        typer.Option(
-            show_default=False,
-            click_type=HiddenShorthandChoice(CoreResourceKinds),
-            help="""
-            Reuse the latest identifier of a resource kind. Can be used multiple times.
-
-            Only supported for spaces and operations. Ignored if --set is used.""",
-        ),
-    ] = None,
     set_values: Annotated[
         list[str] | None,
         typer.Option(
@@ -141,6 +130,33 @@ def create_resource(
             See https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax
             for more detailed information.
             """,
+        ),
+    ] = None,
+    with_resources: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--with",
+            help="""Create and reference additional resources when creating this resource.
+
+            The option must be provided in key=value form, where the key represents a
+            resource type or its valid shorthand, and the value is either the identifier
+            of an existing resource or a configuration for a resource that should be created.
+
+            This currently supports creating spaces together with sample stores,
+            as well as creating operations together with spaces and actuator configurations.
+
+            The option can be specified multiple times.""",
+        ),
+    ] = None,
+    use_latest: Annotated[
+        list[CoreResourceKinds] | None,
+        typer.Option(
+            show_default=False,
+            click_type=HiddenShorthandChoice(CoreResourceKinds),
+            help="""
+            Reuse the latest identifier of a resource kind. Can be used multiple times.
+
+            Only supported for spaces and operations. Ignored if --set is used.""",
         ),
     ] = None,
     use_default_sample_store: Annotated[
@@ -160,7 +176,6 @@ def create_resource(
             help="Validate the resource configuration file without creating the associated resource.",
         ),
     ] = False,
-    with_resources: Annotated[list[str] | None, typer.Option("--with")] = None,
 ):
     """
     Create resources, contexts, and start operations.

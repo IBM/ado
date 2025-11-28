@@ -306,7 +306,7 @@ until it is finished
 
 > [!NOTE]
 >
-> If `use_ray` is False the value of this parameter is ignored
+> If `use_ray` is False, the value of this parameter is ignored
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!WARNING]
@@ -317,7 +317,7 @@ until it is finished
 This optional parameter allows controlling how Ray schedules
 your custom experiment and its execution environment.
 Its value is a dict with one or more of the
-following keys,
+following keys:
 
 - `num_cpus` (float): Number of CPUs to allocate to this experiment.
 - `num_gpus` (float): Number of GPUs to allocate.

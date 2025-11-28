@@ -135,9 +135,7 @@ def _create_environment(
     while True:
 
         env: Environment = ray.get(
-            env_manager.get_environment.remote(
-                model=model, definition=definition, increment_usage=True
-            )
+            env_manager.get_environment.remote(model=model, definition=definition)
         )
         if env is not None:
             console.put.remote(
@@ -168,6 +166,14 @@ def _create_environment(
             # Environment does not exist, create it
             logger.debug(f"Environment {env.k8s_name} does not exist. Creating it")
             tmout = 1
+
+            # To avoid data corruption we wait if another environment is concurrently downloading the same model for the first time
+            ray.get(
+                env_manager.wait_deployment_before_starting.remote(
+                    env=env, request_id=request_id
+                )
+            )
+
             for attempt in range(3):
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
@@ -203,9 +209,11 @@ def _create_environment(
                         reuse_deployment=False,
                         namespace=actuator.namespace,
                         pvc_name=pvc_name,
+                        check_interval=check_interval,
+                        timeout=timeout,
                     )
                     # Update manager
-                    env_manager.done_creating.remote(definition=definition)
+                    env_manager.done_creating.remote(identifier=env.k8s_name)
                     error = None
                     break
                 except Exception as e:
@@ -236,6 +244,16 @@ def _create_environment(
                         state="stop",
                     )
                 )
+
+                # In case of failure creating the environment deployment we must release any
+                # other request with a deployment conflicting with this request's deployment
+                # We also need to release the slot for this environment
+                ray.get(
+                    env_manager.cleanup_failed_deployment.remote(
+                        identifier=env.k8s_name
+                    )
+                )
+
                 raise K8EnvironmentCreationError(
                     f"Failed to create test environment {env.k8s_name}: {error}"
                 )
@@ -452,7 +470,7 @@ def run_resource_and_workload_experiment(
             if port_forward is not None:
                 port_forward.kill()
             if definition is not None:
-                env_manager.done_using.remote(definition=definition)
+                env_manager.done_using.remote(identifier=k8s_name)
 
     # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
     if len(measurements) > 0:

@@ -12,10 +12,10 @@ import orchestrator.modules
 import orchestrator.modules.operators._cleanup
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
-    DiscoveryOperationConfiguration,
     FunctionOperationInfo,
     OperatorFunctionConf,
+    get_actuator_configurations,
+    validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.operators._cleanup import (
@@ -69,22 +69,47 @@ def orchestrate_general_operation(
 ) -> OperationOutput:
     """Orchestrates a general operation (non-explore)
 
-    * Checks params and space
-    * creates OperationResource and adds to metastore
-    * updates OperationResource with status updates,
-    * stores any OperationOutput
-    * insert graceful shutdown handler for keyboard interrupts
-    * catches exceptions from the operation and handles them
+    This function handles the orchestration of non-explore operations (characterize, compare,
+    modify, fuse, learn, etc.). It performs the following:
+    - Validates operation parameters if a parameters model is provided
+    - Checks measurement space consistency
+    - Validates actuator configurations against the space
+    - Inserts graceful shutdown handler for keyboard interrupts
 
-    Used for all Operation types except Explore which requires a different setup
+    It calls run_operation_harness to create, store, and update the operation resource,
+    execute the operation, handle exceptions, and stores the operation results.
 
-    Exceptions:
-        ValueError: if the MeasurementSpace is not consistent with EntitySpace
-        pydantic.ValidationError: if the operation parameters are not valid
+    Params:
+        operator_function: The function that implements the operation. Must accept
+            DiscoverySpace and FunctionOperationInfo as first two arguments, followed
+            by operation-specific parameters
+        operation_parameters: Dictionary of parameters to pass to the operator function
+        parameters_model: Optional Pydantic model to validate operation_parameters against
+        discovery_space: The discovery space to operate on
+        operation_info: Information about the operation including metadata, actuator
+            configuration identifiers, and namespace
+        operation_type: The type of operation being executed
+
+    Returns:
+        OperationOutput containing the results and status of the operation
+
+    Raises:
+        ValueError: If the MeasurementSpace is not consistent with EntitySpace or if
+            actuator configurations are invalid
+        pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
+        ResourceDoesNotExistError: If an actuator configuration cannot be retrieved from the database
+
     """
 
-    functionConf = OperatorFunctionConf(
+    import uuid
+
+    if not operation_info.ray_namespace:
+        operation_info.ray_namespace = (
+            f"{operator_function.__name__}-namespace-{str(uuid.uuid4())[:8]}"
+        )
+
+    operator_module = OperatorFunctionConf(
         operatorName=operator_function.__name__,
         operationType=operation_type,
     )
@@ -97,16 +122,18 @@ def orchestrate_general_operation(
         moduleLog.critical("Measurement space is inconsistent - aborting")
         raise ValueError("Measurement space is inconsistent")
 
-    base_configuration = BaseOperationRunConfiguration(
-        operation=DiscoveryOperationConfiguration(
-            module=functionConf,
-            parameters=operation_parameters,
-        ),
-        metadata=operation_info.metadata,
-        actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
-    )
-
     log_space_details(discovery_space)
+
+    # Validate the actuator configurations given
+    # before calling the operation
+    actuator_configurations = get_actuator_configurations(
+        actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
+        project_context=discovery_space.project_context,
+    )
+    validate_actuator_configurations_against_space_configuration(
+        actuator_configurations=actuator_configurations,
+        discovery_space_configuration=discovery_space.config,
+    )
 
     operation_run_closure = run_general_operation_core_closure(
         operator_function,
@@ -123,8 +150,10 @@ def orchestrate_general_operation(
 
     output = _run_operation_harness(
         run_closure=operation_run_closure,
-        base_operation_configuration=base_configuration,
         discovery_space=discovery_space,
+        operator_module=operator_module,
+        operation_parameters=operation_parameters,
+        operation_info=operation_info,
     )
 
     graceful_operation_shutdown()

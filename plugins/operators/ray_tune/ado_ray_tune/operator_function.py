@@ -11,7 +11,7 @@ from orchestrator.core.operation.config import FunctionOperationInfo
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.orchestrate import (
-    explore_operation_function_wrapper,
+    orchestrate_explore_operation,
 )
 
 
@@ -31,8 +31,6 @@ def ray_tune(
 
     """
 
-    import uuid
-
     module = orchestrator.core.operation.config.OperatorModuleConf(
         moduleName="ado_ray_tune.operator",
         moduleClass="RayTune",
@@ -42,10 +40,9 @@ def ray_tune(
     # validate parameters
     RayTuneConfiguration.model_validate(kwargs)
 
-    return explore_operation_function_wrapper(
+    return orchestrate_explore_operation(
         discovery_space=discoverySpace,
-        module=module,
+        operator_module=module,
         parameters=kwargs,
-        namespace=f"namespace-{str(uuid.uuid4())[:8]}",
         operation_info=operationInfo,
     )

@@ -20,10 +20,13 @@ import orchestrator.metastore.project
 import orchestrator.modules
 import orchestrator.modules.actuators.replay
 import orchestrator.schema.reference
+from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    FunctionOperationInfo,
+    OperatorFunctionConf,
+    OperatorModuleConf,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.operation.resource import OperationResource
@@ -419,22 +422,44 @@ def add_operation_and_output_to_metastore(
     return operation
 
 
-def add_operation_from_base_config_to_metastore(
-    base_operation_configuration: BaseOperationRunConfiguration,
-    space_id: str,
+def create_operation_and_add_to_metastore(
+    discovery_space: DiscoverySpace,
+    operator_module: OperatorModuleConf | OperatorFunctionConf,
+    operation_parameters: dict,
+    operation_info: FunctionOperationInfo,
     metastore: SQLStore,
     operation_identifier: str | None = None,
 ) -> OperationResource:
-    """Creates an operation resource from a base operation configuration and adds it and its outputs to the resource store
+    """Creates an operation resource and adds it to the metastore
 
-    The base configuration can be an DiscoveryOperationResourceConfiguration or a DiscoveryOrchestratorRunConfiguration model
+    This function creates an OperationResource from the provided operator module,
+    parameters, and operation info, then adds it to the metastore with relationships
+    to the discovery space and any actuator configurations.
+
+    Params:
+        discovery_space: The discovery space the operation will operate on
+        operator_module: Configuration for the operator (either module or function-based)
+        operation_parameters: Dictionary of parameters for the operation
+        operation_info: Information about the operation including metadata and actuator
+            configuration identifiers
+        metastore: The SQL store to add the operation resource to
+        operation_identifier: Optional pre-existing identifier for the operation resource.
+            If not provided, a new identifier will be generated
+
+    Returns:
+        OperationResource instance that was created and added to the metastore
     """
 
+    from orchestrator.core.operation.config import DiscoveryOperationConfiguration
+
     operation_resource_configuration = DiscoveryOperationResourceConfiguration(
-        spaces=[space_id],
-        operation=base_operation_configuration.operation,
-        metadata=base_operation_configuration.metadata,
-        actuatorConfigurationIdentifiers=base_operation_configuration.actuatorConfigurationIdentifiers,
+        operation=DiscoveryOperationConfiguration(
+            module=operator_module,
+            parameters=operation_parameters,
+        ),
+        metadata=operation_info.metadata,
+        actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
+        spaces=[discovery_space.resource.identifier],
     )
 
     operation = OperationResource(

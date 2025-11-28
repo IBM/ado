@@ -10,7 +10,6 @@ import yaml
 
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
     DiscoveryOperationResourceConfiguration,
 )
 
@@ -96,17 +95,6 @@ def test_ml_multi_cloud_operation_base_get(
             ).read_text()
         )
     )
-
-    base_configuration = BaseOperationRunConfiguration(
-        operation=operation_configuration.operation,
-        metadata=operation_configuration.metadata,
-        actuatorConfigurationIdentifiers=operation_configuration.actuatorConfigurationIdentifiers,
-    )
-
-    # Overrides
-    base_configuration.actuatorConfigurationIdentifiers = [
-        ml_multi_cloud_correct_actuatorconfiguration.identifier
-    ]
 
     operation_configuration.get_actuatorconfigurations(
         project_context=valid_ado_project_context

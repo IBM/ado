@@ -85,10 +85,9 @@ def create_operation(parameters: AdoCreateCommandParameters):
 
     try:
         operation_output = orchestrator.modules.operators.orchestrate.orchestrate(
-            base_operation_configuration=op_resource_configuration,
+            operation_resource_configuration=op_resource_configuration,
             project_context=parameters.ado_configuration.project_context,
             discovery_space_identifier=op_resource_configuration.spaces[0],
-            discovery_space_configuration=None,
         )
 
     except MeasurementError as e:

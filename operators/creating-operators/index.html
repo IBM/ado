@@ -170,29 +170,22 @@ HINT:   Run ado upgrade operations to upgrade the stored operations.
 <span class=sd>    &quot;&quot;&quot;</span>
 
     <span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.core.operation.config</span><span class=w> </span><span class=kn>import</span> <span class=n>OperatorModuleConf</span>
-    <span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.module.operator.orchestrate</span><span class=w> </span><span class=kn>import</span> <span class=n>explore_operation_function_wrapper</span>
+    <span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.module.operator.orchestrate</span><span class=w> </span><span class=kn>import</span> <span class=n>orchestrate_explore_operation</span>
 
 
-    <span class=c1>## This describes where the class the implements your explore operation is</span>
+    <span class=c1>## This describes where the class that implements your explore operation is</span>
     <span class=n>module</span> <span class=o>=</span> <span class=n>OperatorModuleConf</span><span class=p>(</span>
         <span class=n>moduleName</span><span class=o>=</span><span class=s2>&quot;ado_ray_tune.operator&quot;</span><span class=p>,</span>  <span class=c1># The name of the package containing your explore actor</span>
         <span class=n>moduleClass</span><span class=o>=</span><span class=s2>&quot;RayTune&quot;</span><span class=p>,</span>  <span class=c1># The name of your explore actor class</span>
-        <span class=n>moduleType</span><span class=o>=</span><span class=n>orchestrator</span><span class=o>.</span><span class=n>modules</span><span class=o>.</span><span class=n>module</span><span class=o>.</span><span class=n>ModuleTypeEnum</span><span class=o>.</span><span class=n>OPERATION</span><span class=p>,</span>
     <span class=p>)</span>
 
-    <span class=c1># validate parameters</span>
-    <span class=n>RayTuneConfiguration</span><span class=o>.</span><span class=n>model_validate</span><span class=p>(</span><span class=n>kwargs</span><span class=p>)</span>
-
     <span class=c1># Tell ado to execute your class</span>
-    <span class=n>output</span> <span class=o>=</span> <span class=n>explore_operation_function_wrapper</span><span class=p>(</span>
+    <span class=k>return</span> <span class=n>orchestrate_explore_operation</span><span class=p>(</span>
         <span class=n>discovery_space</span><span class=o>=</span><span class=n>discoverySpace</span><span class=p>,</span>
         <span class=n>module</span><span class=o>=</span><span class=n>module</span><span class=p>,</span>
         <span class=n>parameters</span><span class=o>=</span><span class=n>kwargs</span><span class=p>,</span>
-        <span class=n>namespace</span><span class=o>=</span><span class=sa>f</span><span class=s2>&quot;namespace-</span><span class=si>{</span><span class=nb>str</span><span class=p>(</span><span class=n>uuid</span><span class=o>.</span><span class=n>uuid4</span><span class=p>())[:</span><span class=mi>8</span><span class=p>]</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>,</span>  <span class=c1>#</span>
         <span class=n>operation_info</span><span class=o>=</span><span class=n>operationInfo</span><span class=p>,</span>  <span class=c1># Important: This is where you must pass the operationInfo parameter to ado</span>
     <span class=p>)</span>
-
-    <span class=k>return</span> <span class=n>output</span>
 </code></pre></div> <h3 id=explore-operator-classes>Explore operator classes<a class=headerlink href=#explore-operator-classes title="Permanent link">&para;</a></h3> <p>TBA</p> <h2 id=operator-plugin-packages>Operator plugin packages<a class=headerlink href=#operator-plugin-packages title="Permanent link">&para;</a></h2> <p>Operator plugin packages follow a standard python structure</p> <div class=highlight><pre><span></span><code>$YOUR_REPO_NAME
 │  └── $YOUR_PLUGIN_PACKAGE        # Your plugin
 │      ├── __init__.py

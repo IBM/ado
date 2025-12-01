@@ -159,7 +159,7 @@ def create_resource(
             "--use-default-sample-store",
             rich_help_panel=CREATE_SPACE_PANEL_NAME,
             help="Request and use the default sample store. Available only for spaces. "
-            "Ignored if --with, --use-latest, or --new-sample-store are used."
+            "Ignored if --with, --use-latest, or --new-sample-store are used. "
             "Alias for --set sampleStoreIdentifier=default.",
         ),
     ] = False,

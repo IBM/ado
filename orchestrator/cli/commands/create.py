@@ -114,7 +114,7 @@ def create_resource(
         typer.Option(
             "--new-sample-store",
             help="Request and use a new, empty sample store. Available only for space and sample store. "
-            "Ignored if --set or --use-latest are used.",
+            "Ignored if --with or --use-latest are used.",
         ),
     ] = False,
     set_values: Annotated[
@@ -150,7 +150,7 @@ def create_resource(
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 
-            Only supported for spaces and operations. Ignored if --set is used.""",
+            Only supported for spaces and operations. Ignored if --with is used.""",
         ),
     ] = None,
     use_default_sample_store: Annotated[
@@ -159,7 +159,7 @@ def create_resource(
             "--use-default-sample-store",
             rich_help_panel=CREATE_SPACE_PANEL_NAME,
             help="Request and use the default sample store. Available only for spaces. "
-            "Ignored if --set, --use-latest, or --new-sample-store are used."
+            "Ignored if --with, --use-latest, or --new-sample-store are used."
             "Alias for --set sampleStoreIdentifier=default.",
         ),
     ] = False,

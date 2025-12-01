@@ -36,4 +36,4 @@ Please record the following for each model:
   uv pip install ".[torch]"
   ```
 
-## **Location:`v1-1-0_ag-20251112_155927-refit-clone-opt`**
+**Location:`v1-1-0_ag-20251112_155927-refit-clone-opt`**

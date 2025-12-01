@@ -136,16 +136,10 @@ def create_resource(
         list[str] | None,
         typer.Option(
             "--with",
-            help="""Create and reference additional resources when creating this resource.
+            help="""Specify additional resources to use or create via key=value pairs,
+            where the key is a resource type and the value is a resource ID or a resource configuration file.
 
-            The option must be provided in key=value form, where the key represents a
-            resource type or its valid shorthand, and the value is either the identifier
-            of an existing resource or a configuration for a resource that should be created.
-
-            This currently supports creating spaces together with sample stores,
-            as well as creating operations together with spaces and actuator configurations.
-
-            The option can be specified multiple times.""",
+            Supports creating spaces with sample stores and operations with spaces and actuator configurations.""",
         ),
     ] = None,
     use_latest: Annotated[

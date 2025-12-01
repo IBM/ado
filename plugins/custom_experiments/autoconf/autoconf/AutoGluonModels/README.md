@@ -10,10 +10,9 @@ under
 
 ## Versioning Information
 
-All model subfolders in the `AutoGluonModels` repositories (e.g.,
-[`min_gpu_recommender/AutoGluonModels/`](min_gpu_recommender/AutoGluonModels/))
-must follow the naming convention: `vX.Y.Z`, where `X`, `Y` and `Z` are
-integers.
+All models in `AutoGluonModels` subfolders (i.e.,
+[`autoconf/AutoGluonModels/`](autoconf/AutoGluonModels/)) must follow the naming
+convention: `vX.Y.Z`, where `X`, `Y` and `Z` are integers.
 
 - **Major version (X):** Incremented when changes are made to:
 

@@ -1,4 +1,4 @@
-# min_gpu_recommender Model Information
+# autoconf Model Information
 
 This repository contains the models developed for `autoconf`
 

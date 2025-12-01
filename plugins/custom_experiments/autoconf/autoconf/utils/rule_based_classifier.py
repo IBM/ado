@@ -57,9 +57,7 @@ def is_row_valid(
         logger.info(f"{e}:{except_string}")
         return False, errors
 
-    if errors:
-        return False, errors
-    return True, errors
+    return len(errors) == 0, errors
 
 
 def filter_valid_with_hard_logic(df: pd.DataFrame):
@@ -67,7 +65,7 @@ def filter_valid_with_hard_logic(df: pd.DataFrame):
     valid_indeces = []
     for i, config in df.iterrows():
         # Add other logics here
-        if is_row_valid[config](0):
+        if is_row_valid(config)[0]:
             valid_indeces.append(i)
     df_filtered = df.loc[valid_indeces].copy()
     print(f"l after {len(df_filtered)}")

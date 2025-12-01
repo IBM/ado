@@ -235,11 +235,11 @@ def min_gpu_recommender(
             )
             moduleLog.debug(f"Traceback {traceback.format_exc()}")
             return {}
-        else:
-            return {
-                "can_recommend": True,
-                "gpus": ret.gpus,
-                "workers": ret.workers,
-            }
+
+        return {
+            "can_recommend": True,
+            "gpus": ret.gpus,
+            "workers": ret.workers,
+        }
     except Exception as e:
         moduleLog.warning(e)

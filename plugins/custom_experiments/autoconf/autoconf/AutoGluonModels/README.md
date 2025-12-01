@@ -1,6 +1,6 @@
 # min_gpu_recommender Model Information
 
-This repository contains the models developed for `min_gpu_recommender`
+This repository contains the models developed for `autoconf`
 
 The current model is trained on ~15500 rows of data stored in
 <https://lake-llm.cash.sl.cloud9.ibm.com/superset/dashboard/136/> (accessed on

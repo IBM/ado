@@ -1,3 +1,24 @@
+## [1.2.4](https://github.com/ibm/ado/compare/1.2.3..1.2.4) - 2025-12-01
+#### Features
+- (**cli**) support shorthands for resources (#245) - ([39d4931](https://github.com/ibm/ado/commit/39d49315bbf1a5d41a836fb7dffc57ca6ce5922f)) - Alessandro Pomponio
+- (**core**) enable actuators and operators to use Rich progress indicators (#248) - ([d930308](https://github.com/ibm/ado/commit/d9303082db39579b822e882dab3f4a8fada7b235)) - Michael Johnston
+- (**group_samplers**) improve performance for group generator sampler type (#229) - ([7a79a23](https://github.com/ibm/ado/commit/7a79a23e2e62d9ef57ac70eaf146b4b015297f0c)) - Christian Pinto
+#### Bug Fixes
+- (**core**) show entities missing/unmeasured (#254) - ([f14ea2b](https://github.com/ibm/ado/commit/f14ea2b24a49b942590c9eeaac2c1de71c1d9d8e)) - Michael Johnston
+- (**custom_experiments**) detect if custom experiment returns unexpected properties (#250) - ([89375e2](https://github.com/ibm/ado/commit/89375e21987d1de98e64f2b14b4504a12d248abb)) - Michael Johnston
+- (**vllm_performance**) Avoid starvation of measurements requests (#249) - ([cd99105](https://github.com/ibm/ado/commit/cd991054ea66d6f6e92e424961dec00d7e88bb31)) - Christian Pinto
+- (**vllm_performance**) example entity space was incompatible with measurement space (#240) - ([fe43998](https://github.com/ibm/ado/commit/fe43998d67f871a5eff15e7489006ce8706ab5d6)) - Michael Johnston
+#### Documentation
+- (**changelog**) update changelog (#267) - ([c7e1ee7](https://github.com/ibm/ado/commit/c7e1ee748eb6436d3d0171bdc034cda39c342ea6)) - Alessandro Pomponio
+#### Build system
+- (**deps**) update dependencies (#258) - ([abe438b](https://github.com/ibm/ado/commit/abe438b814708d2040685bcff0bfe2a5cd7937a0)) - Alessandro Pomponio
+#### Refactoring
+- (**cli**) remove HiddenSingularChoice (#246) - ([6edcc47](https://github.com/ibm/ado/commit/6edcc47d503adcecb7d1d5b11d09681ad51536f2)) - Alessandro Pomponio
+- (**core**) unify operation execution pathways and remove unused logic (#220) - ([13f2259](https://github.com/ibm/ado/commit/13f2259cf70f1240b1c65682716e20a2c70d1710)) - Michael Johnston
+- (**core**) do not change signature of functions decorated with custom_experiment (#261) - ([ece2f7d](https://github.com/ibm/ado/commit/ece2f7de62b68e20992e90cdc2244084b907a239)) - Michael Johnston
+
+- - -
+
 ## [1.2.3](https://github.com/ibm/ado/compare/1.2.2..1.2.3) - 2025-11-21
 #### Bug Fixes
 - (**build**) regenerate lockfile (#239) - ([427bae4](https://github.com/ibm/ado/commit/427bae4ee1d3e397046578706088a7413f83fa3a)) - Alessandro Pomponio

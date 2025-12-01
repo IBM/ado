@@ -21,6 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # NOTE: this list will not be used if the user provides them
+
 VALID_N_GPUS = [1, 2, 4, 8, 16, 32]
 
 
@@ -35,18 +36,18 @@ def get_model_prediction_and_metadata(
 
     metadata = {}
     pred = None
-    C_err = None
-    b, rule_based_classifier_error = is_row_valid(config)
-    if int(b) == 1:
+    machine_learning_classifier_error = None
+    is_row_valid_boolean, rule_based_classifier_error = is_row_valid(config)
+    if int(is_row_valid_boolean) == 1:
         try:
             pred = predictor.predict(config).values[0]
             logger.debug("Prediction succeeded")
         except Exception as e:
             logger.debug("Prediction FAILED")
-            C_err = str(e)
+            machine_learning_classifier_error = str(e)
 
     metadata["Rule-Based Classifier error"] = " ".join(rule_based_classifier_error)
-    metadata["Predictive Model Classifier error"] = C_err
+    metadata["Predictive Model Classifier error"] = machine_learning_classifier_error
 
     # NOTE:  is added here to account for invalid by rule based classifier
     pred = int(pred) if pred else 0

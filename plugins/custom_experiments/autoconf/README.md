@@ -37,7 +37,7 @@ information on model versions
 
 Install the package e.g. from the root directory of this git repository run
 `pip install ".[torch]"`. You may be required to install versions of ado-core
-that are not available on pypi or install optional dipendencies based on the
+that are not available on pypi or install optional dependencies based on the
 model you want to run (please, refer to
 [the changelog](min_gpu_recommender/AutoGluonModels/changelog.md)).
 

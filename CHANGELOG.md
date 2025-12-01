@@ -1,4 +1,4 @@
-## [1.2.4](https://github.com/ibm/ado/compare/fe43998d67f871a5eff15e7489006ce8706ab5d6..1.2.4) - 2025-12-01
+## [1.2.4](https://github.com/ibm/ado/compare/1.2.3..1.2.4) - 2025-12-01
 #### Features
 - (**cli**) support shorthands for resources (#245) - ([39d4931](https://github.com/ibm/ado/commit/39d49315bbf1a5d41a836fb7dffc57ca6ce5922f)) - Alessandro Pomponio
 - (**core**) enable actuators and operators to use Rich progress indicators (#248) - ([d930308](https://github.com/ibm/ado/commit/d9303082db39579b822e882dab3f4a8fada7b235)) - Michael Johnston

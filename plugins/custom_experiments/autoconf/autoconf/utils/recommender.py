@@ -37,8 +37,8 @@ def get_model_prediction_and_metadata(
     metadata = {}
     pred = None
     machine_learning_classifier_error = None
-    is_row_valid_boolean, rule_based_classifier_error = is_row_valid(config)
-    if int(is_row_valid_boolean) == 1:
+    row_is_valid, rule_based_classifier_error = is_row_valid(config)
+    if int(row_is_valid) == 1:
         try:
             pred = predictor.predict(config).values[0]
             logger.debug("Prediction succeeded")

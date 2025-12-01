@@ -67,11 +67,11 @@ def create_operation(parameters: AdoCreateCommandParameters):
             if isinstance(
                 parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION], str
             ):
-                op_resource_configuration.actuatorConfigurationIdentifiers.append(
+                op_resource_configuration.actuatorConfigurationIdentifiers = [
                     parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION]
-                )
+                ]
             else:
-                op_resource_configuration.actuatorConfigurationIdentifiers.append(
+                op_resource_configuration.actuatorConfigurationIdentifiers = [
                     create_actuator_configuration(
                         AdoCreateCommandParameters(
                             ado_configuration=parameters.ado_configuration,
@@ -87,15 +87,15 @@ def create_operation(parameters: AdoCreateCommandParameters):
                             use_latest=[],
                         )
                     )
-                )
+                ]
 
         if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
             if isinstance(
                 parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
             ):
-                op_resource_configuration.spaces.append(
+                op_resource_configuration.spaces = [
                     parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
-                )
+                ]
             else:
                 op_resource_configuration.spaces = [
                     create_discovery_space(

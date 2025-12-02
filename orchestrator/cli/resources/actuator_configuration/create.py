@@ -44,7 +44,7 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters):
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     resource_to_be_created = ActuatorConfigurationResource(
         config=actuatorconfig_configuration
@@ -65,3 +65,5 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters):
         f"{magenta(resource_to_be_created.identifier)}",
         stderr=True,
     )
+
+    return resource_to_be_created.identifier

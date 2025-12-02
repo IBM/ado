@@ -57,6 +57,8 @@ def graceful_explore_operation_shutdown(
     if not orchestrator.modules.operators._cleanup.shutdown:
         import time
 
+        from rich.console import Console
+
         moduleLog.info("Shutting down gracefully")
 
         orchestrator.modules.operators._cleanup.shutdown = True
@@ -68,58 +70,69 @@ def graceful_explore_operation_shutdown(
         # 3. Send graceful __ray_terminate__ to metric_server, operation and actuators
 
         # This should not return until the metric server has processed all updates.
-        moduleLog.debug("Shutting down state")
-        promise = state.shutdown.remote()
-        ray.get(promise)
 
-        moduleLog.debug("Cleanup custom actors")
-        try:
-            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
-            ray.get(cleaner_handle.cleanup.remote())
-            # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
-            ray.kill(cleaner_handle)
-        except Exception as e:
-            moduleLog.warning(f"Failed to cleanup custom actors {e}")
+        console = Console()
+        with console.status(
+            "Shutdown - waiting on all samples to be stored", spinner="dots"
+        ) as status:
 
-        wait_graceful = [
-            operator.__ray_terminate__.remote(),
-            state.__ray_terminate__.remote(),
-        ]
-        # __ray_terminate allows atexit handlers of actors to run
-        # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
-        wait_graceful.extend([a.__ray_terminate__.remote() for a in actuators])
-        n_actors = len(wait_graceful)
-        moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
+            moduleLog.debug("Shutting down state")
+            promise = state.shutdown.remote()
+            ray.get(promise)
 
-        actors = [operator]
-        actors.extend(actuators)
+            status.update("Shutdown - cleanup")
 
-        lookup = dict(zip(wait_graceful, actors))
+            moduleLog.debug("Cleanup custom actors")
+            try:
+                cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+                ray.get(cleaner_handle.cleanup.remote())
+                # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
+                ray.kill(cleaner_handle)
+            except Exception as e:
+                moduleLog.warning(f"Failed to cleanup custom actors {e}")
 
-        moduleLog.debug(f"Shutdown waiting on {lookup}")
-        moduleLog.debug(
-            f"Gracefully stopping actors - will wait {timeout} seconds  ..."
-        )
-        terminated, active = ray.wait(
-            ray_waitables=wait_graceful, num_returns=n_actors, timeout=60.0
-        )
+            status.update("Shutdown - waiting for actors to terminate")
 
-        moduleLog.debug(f"Terminated: {terminated}")
-        moduleLog.debug(f"Active: {active}")
+            wait_graceful = [
+                operator.__ray_terminate__.remote(),
+                state.__ray_terminate__.remote(),
+            ]
+            # __ray_terminate allows atexit handlers of actors to run
+            # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
+            wait_graceful.extend([a.__ray_terminate__.remote() for a in actuators])
+            n_actors = len(wait_graceful)
+            moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
 
-        if active:
-            moduleLog.warning(
-                f"Some actors have not completed after {timeout} grace period - killing"
+            actors = [operator]
+            actors.extend(actuators)
+
+            lookup = dict(zip(wait_graceful, actors))
+
+            moduleLog.debug(f"Shutdown waiting on {lookup}")
+            moduleLog.debug(
+                f"Gracefully stopping actors - will wait {timeout} seconds  ..."
             )
-            for actor_ref in active:
-                print(f"... {lookup[actor_ref]}")
-                ray.kill(lookup[actor_ref])
+            terminated, active = ray.wait(
+                ray_waitables=wait_graceful, num_returns=n_actors, timeout=60.0
+            )
 
-        moduleLog.info("Shutting down Ray...")
-        ray.shutdown()
-        moduleLog.info("Waiting for logs to flush ...")
-        time.sleep(10)
-        moduleLog.info("Graceful shutdown complete")
+            moduleLog.debug(f"Terminated: {terminated}")
+            moduleLog.debug(f"Active: {active}")
+
+            if active:
+                moduleLog.warning(
+                    f"Some actors have not completed after {timeout} grace period - killing"
+                )
+                for actor_ref in active:
+                    print(f"... {lookup[actor_ref]}")
+                    ray.kill(lookup[actor_ref])
+
+            moduleLog.info("Shutting down Ray...")
+            ray.shutdown()
+            status.update("Shutdown - waiting for logs to flush")
+            moduleLog.info("Waiting for logs to flush ...")
+            time.sleep(10)
+            moduleLog.info("Graceful shutdown complete")
     else:
         moduleLog.info("Graceful shutdown already completed")
 

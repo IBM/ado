@@ -73,7 +73,7 @@ class ActuatorBase(abc.ABC):
         return True
 
     @abc.abstractmethod
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,

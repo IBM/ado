@@ -67,7 +67,7 @@ class MockActuator(ActuatorBase):
         self._catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog()
         self.running_tasks = set()
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,

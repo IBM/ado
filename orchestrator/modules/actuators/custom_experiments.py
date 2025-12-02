@@ -561,7 +561,7 @@ def _call_legacy_custom_experiment(
     return values
 
 
-async def custom_experiment_executor(
+def custom_experiment_executor(
     function: typing.Callable,
     parameters: dict,
     measurement_request: MeasurementRequest,
@@ -615,7 +615,7 @@ async def custom_experiment_executor(
     else:
         measurement_request.status = MeasurementRequestStateEnum.FAILED
 
-    await queue.put_async(measurement_request, block=False)
+    queue.put(measurement_request, block=False)
 
 
 @ray.remote
@@ -680,7 +680,7 @@ class CustomExperiments(ActuatorBase):
             is not None
         )
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
@@ -760,7 +760,7 @@ class CustomExperiments(ActuatorBase):
                 self._stateUpdateQueue,
             )
         else:
-            await custom_experiment_executor(
+            custom_experiment_executor(
                 fn,
                 self._catalog.experimentForReference(
                     request.experimentReference

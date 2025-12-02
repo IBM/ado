@@ -66,8 +66,8 @@ def create_test_environment(
     :param hf_token: huggingface token
     :param reuse_service: flag to reuse deployment
     :param reuse_deployment: flag to reuse deployment
-    :param check_interval: wait interval
-    :param timeout: timeout
+    :param check_interval: wait interval in seconds
+    :param timeout: timeout in seconds
     :return:
     """
     logger.info(f"Creating environment in ns {namespace} with the parameters: ")

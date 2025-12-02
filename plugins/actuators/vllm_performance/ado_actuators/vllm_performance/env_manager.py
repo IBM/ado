@@ -147,29 +147,31 @@ class EnvironmentManager:
         if env is None:
             if self.active_environments >= self.max_concurrent:
                 # can't create more environments now, need clean up
-                if len(self.free_environments) > 0:
-                    # There are unused environments, let's evict one
-
-                    # Gets the oldest env in the dict
-                    venv_to_evict = self.free_environments[0]
-                    try:
-                        self.manager.delete_service(k8s_name=venv_to_evict.k8s_name)
-                        self.manager.delete_deployment(k8s_name=venv_to_evict.k8s_name)
-                        logger.info(
-                            f"deleted environment {venv_to_evict.k8s_name}. "
-                            f"Active environments {self.active_environments}"
-                        )
-                    except ApiException as e:
-                        logger.error(f"Error deleting deployment or service {e}")
-                    # If all the Kubernetes resources got deleted, let's remove this environment from our records
-                    self.free_environments.pop(0)
-                    time.sleep(3)
-                else:
+                if len(self.free_environments) == 0:
                     # No room for creating a new environment
                     logger.debug(
                         f"There are already {self.max_concurrent} actively in use, and I can't create a new one"
                     )
                     return None
+                    # There are unused environments, let's evict one
+
+                # Gets the oldest env in the list
+                environment_to_evict = self.free_environments[0]
+                try:
+                    self.manager.delete_service(k8s_name=environment_to_evict.k8s_name)
+                    self.manager.delete_deployment(
+                        k8s_name=environment_to_evict.k8s_name
+                    )
+                    logger.info(
+                        f"deleted environment {environment_to_evict.k8s_name}. "
+                        f"Active environments {self.active_environments}"
+                    )
+                except ApiException as e:
+                    logger.error(f"Error deleting deployment or service {e}")
+                # If all the Kubernetes resources got deleted, let's remove this environment from our records
+                self.free_environments.pop(0)
+                time.sleep(3)
+
             # We either made space or we had enough space already
             env = Environment(model=model, configuration=definition)
             logger.debug(f"New environment created for definition {definition}")
@@ -182,7 +184,7 @@ class EnvironmentManager:
         # Once the very first download of a model is done we let any number of deployments using the same model to start
         # in parallel as they would only read the model from the cache.
         self.deployment_conflict_manager.maybe_add_deployment(
-            identifier=env.k8s_name, model=model
+            k8s_name=env.k8s_name, model=model
         )
 
         self.in_use_environments[env.k8s_name] = env
@@ -205,14 +207,14 @@ class EnvironmentManager:
         self.in_use_environments[identifier].state = EnvironmentState.READY
         model = self.in_use_environments[identifier].model
 
-        self.deployment_conflict_manager.signal(identifier=identifier, model=model)
+        self.deployment_conflict_manager.signal(k8s_name=identifier, model=model)
 
     def cleanup_failed_deployment(self, identifier: str) -> None:
         env = self.in_use_environments[identifier]
         self._wipe_deployment(identifier=identifier)
-        self.done_using(identifier=identifier, wipe=True)
+        self.done_using(identifier=identifier, reclaim_on_completion=True)
         self.deployment_conflict_manager.signal(
-            identifier=identifier, model=env.model, error=True
+            k8s_name=identifier, model=env.model, error=True
         )
 
     def get_matching_free_environment(self, configuration: str) -> Environment | None:
@@ -231,18 +233,18 @@ class EnvironmentManager:
         self, env: Environment, request_id: str
     ) -> None:
         await self.deployment_conflict_manager.wait(
-            request_id=request_id, identifier=env.k8s_name, model=env.model
+            request_id=request_id, k8s_name=env.k8s_name, model=env.model
         )
 
-    def done_using(self, identifier: str, wipe: bool = False) -> None:
+    def done_using(self, identifier: str, reclaim_on_completion: bool = False) -> None:
         """
         Report test completion
         :param definition: environment definition
-        :param wipe: flag to indicate the environment iis to be completely removed and not freed for later use
+        :param wipe: flag to indicate the environment is to be completely removed and not freed for later use
         :return: None
         """
         env = self.in_use_environments.pop(identifier)
-        if not wipe:
+        if not reclaim_on_completion:
             self.free_environments.append(env)
 
         # Wake up any other deployment waiting in the queue for a

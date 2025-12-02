@@ -4,8 +4,6 @@
 import logging
 import typing
 
-from nevergrad.functions import ArtificialFunction
-
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.property import (
@@ -66,6 +64,7 @@ def nevergrad_opt_3d_test_func(
 ) -> dict[str, typing.Any]:
 
     import numpy as np
+    from nevergrad.functions import ArtificialFunction
 
     # Get the function from nevergrad.functions.ArtificialFunction
     func = ArtificialFunction(

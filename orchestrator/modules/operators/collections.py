@@ -134,12 +134,6 @@ operationCollectionMap = {
     orchestrator.core.operation.config.DiscoveryOperationEnum.FUSE: fuse,
 }
 
-
-#
-# Operation Function Wrappers
-#
-
-
 #
 # Decorators for registering operation functions
 #

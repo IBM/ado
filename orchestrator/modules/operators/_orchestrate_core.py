@@ -11,7 +11,11 @@ from ray.exceptions import RayTaskError
 import orchestrator.utilities.output
 from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import BaseOperationRunConfiguration
+from orchestrator.core.operation.config import (
+    FunctionOperationInfo,
+    OperatorFunctionConf,
+    OperatorModuleConf,
+)
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.core.operation.resource import (
     OperationExitStateEnum,
@@ -20,8 +24,8 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.modules.operators._cleanup import shutdown
 from orchestrator.modules.operators.base import (
-    add_operation_from_base_config_to_metastore,
     add_operation_output_to_metastore,
+    create_operation_and_add_to_metastore,
 )
 
 # Global variable to track if graceful shutdown was called
@@ -37,25 +41,48 @@ def log_space_details(discovery_space: "DiscoverySpace"):
 
 
 def _run_operation_harness(
-    run_closure: typing.Callable[[], OperationOutput | None],
-    base_operation_configuration: BaseOperationRunConfiguration,
+    run_closure: typing.Callable[[], OperationOutput],
     discovery_space: DiscoverySpace,
+    operator_module: OperatorModuleConf | OperatorFunctionConf,
+    operation_parameters: dict,
+    operation_info: FunctionOperationInfo,
     operation_identifier: str | None = None,
     finalize_callback: typing.Callable[[OperationResource], None] | None = None,
 ) -> OperationOutput:
     """Performs common orchestration for general and explore operations
 
-    Use run_closure and finalize_callback to contain differences"""
+    This function handles the common orchestration logic shared between general and explore
+    operations. It creates the operation resource, executes the operation via the run_closure,
+    handles exceptions, and stores the results.
+
+    Params:
+        run_closure: Callable that executes the operation and returns OperationOutput
+        discovery_space: The discovery space the operation is running on
+        operator_module: Configuration for the operator (either module or function-based)
+        operation_parameters: Dictionary of parameters for the operation
+        operation_info: Information about the operation including metadata and actuator configs
+        operation_identifier: Optional pre-existing identifier for the operation resource
+        finalize_callback: Optional callback to execute on the operation resource after
+            completion, before final status update
+
+    Returns:
+        OperationOutput containing the results and status of the operation
+
+    Raises:
+        OperationException: If there is an error during the operation execution
+    """
 
     #
     # OPERATION RESOURCE
     # Create and add OperationResource to metastore
     #
 
-    operation_resource = add_operation_from_base_config_to_metastore(
-        base_operation_configuration=base_operation_configuration,
+    operation_resource = create_operation_and_add_to_metastore(
+        discovery_space=discovery_space,
+        operator_module=operator_module,
+        operation_parameters=operation_parameters,
         metastore=discovery_space.metadataStore,
-        space_id=discovery_space.uri,
+        operation_info=operation_info,
         operation_identifier=operation_identifier,
     )
 

@@ -64,31 +64,42 @@ def recommend_min_gpu(
     if valid_n_gpu_list is None:
         valid_n_gpu_list = list(VALID_N_GPUS)
 
-    res_dict = {}
     if isinstance(predictor, str):
         predictor = TabularPredictor.load(predictor, require_py_version_match=False)
 
     metadata = {"default": "User config was not provided"}
-    for n in valid_n_gpu_list:
-        logger.info(f"Testing number_gpus={n}")
-        if job_config.number_gpus and n == job_config.number_gpus:
+
+    # VV: Find the minimum number of GPUs that the recommender predicts will successfully run this tuning job.
+    # Start from the lowest candidate and stop when the recommender predicts that the workload will successfully
+    # run with that GPU count.
+
+    min_number_gpus = -1
+
+    valid_n_gpu_list = sorted(valid_n_gpu_list)
+    for candidate_number_gpus in valid_n_gpu_list:
+        logger.info(f"Testing number_gpus={candidate_number_gpus}")
+        if job_config.number_gpus and candidate_number_gpus == job_config.number_gpus:
             logger.info(
                 "This is the value provided by the user, for this configuration the recommender will provide additional metadata"
             )
-            p, m = get_model_prediction_and_metadata(job_config, predictor=predictor)
-            res_dict[n] = p
-            metadata = m
+            gpus_can_support_run, m = get_model_prediction_and_metadata(
+                job_config, predictor=predictor
+            )
         else:
-            new_job_config = job_config.model_copy(update={"number_gpus": n})
-            p, m = get_model_prediction_and_metadata(
+            new_job_config = job_config.model_copy(
+                update={"number_gpus": candidate_number_gpus}
+            )
+            gpus_can_support_run, metadata = get_model_prediction_and_metadata(
                 new_job_config, predictor=predictor
             )
-            res_dict[n] = p
-            metadata = m
 
         logger.info(
-            f"Prediction for ngpu={n}\t:\t{p}\t(note:0 is not valid, 1 is Valid)"
+            f"Prediction for ngpu={candidate_number_gpus}\t:\t{gpus_can_support_run}\t(note:0 is not valid, 1 is Valid)"
         )
+
+        if gpus_can_support_run == 1:
+            min_number_gpus = candidate_number_gpus
+            break
 
     logger.info(
         f"""Metadata related to the model prediction
@@ -96,17 +107,16 @@ def recommend_min_gpu(
         :{metadata}"""
     )
 
-    min_key = min((k for k, v in res_dict.items() if int(v) == 1), default=-1)
-    if min_key == -1:
+    if min_number_gpus == -1:
         logger.info(
             f"""A recommendation for 'number_gpus' cannot be provided because
             no values for 'number_gpus' of the list {valid_n_gpu_list} would result
             in a valid run according to the predictive model."""
         )
     else:
-        logger.info(f"The recommended number_gpus={min_key}.")
+        logger.info(f"The recommended number_gpus={min_number_gpus}.")
 
-    return min_key, metadata
+    return min_number_gpus, metadata
 
 
 def validate_as_jobconfig(config_to_test):

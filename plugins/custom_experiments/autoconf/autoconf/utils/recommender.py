@@ -119,23 +119,9 @@ def recommend_min_gpu(
     return min_number_gpus, metadata
 
 
-def validate_as_jobconfig(config_to_test):
-    from pydantic import ValidationError
-
-    try:
-        job = JobConfig(**config_to_test)
-        logger.debug("Validation successful:", job)
-    except ValidationError as e:
-        logger.warning("Validation error:", e)
-    return job
-
-
 class MinGpuRecommender:
     def __init__(self, predictor, valid_n_gpu: list[int] | None = None):
-        if valid_n_gpu is None:
-            valid_n_gpu = VALID_N_GPUS
-
-        self.valid_n_gpu = valid_n_gpu
+        self.valid_n_gpu = valid_n_gpu or list(VALID_N_GPUS)
 
         if isinstance(predictor, str):
             self.predictor = TabularPredictor.load(
@@ -155,7 +141,8 @@ class MinGpuRecommender:
         if isinstance(job_config, pd.DataFrame):
             # Convert DataFrame rows to JobConfig instances
             job_configs = [
-                JobConfig(**row.dropna().to_dict()) for _, row in job_config.iterrows()
+                JobConfig.model_validate(row.dropna().to_dict())
+                for _, row in job_config.iterrows()
             ]
         else:
             job_configs = [job_config]

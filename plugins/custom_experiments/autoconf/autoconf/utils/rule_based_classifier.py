@@ -61,12 +61,12 @@ def is_row_valid(
 
 
 def filter_valid_with_hard_logic(df: pd.DataFrame):
-    print(f"l before {len(df)}")
-    valid_indeces = []
+    logger.debug(f"l before {len(df)}")
+    valid_indices = []
     for i, config in df.iterrows():
         # Add other logics here
         if is_row_valid(config)[0]:
-            valid_indeces.append(i)
-    df_filtered = df.loc[valid_indeces].copy()
-    print(f"l after {len(df_filtered)}")
+            valid_indices.append(i)
+    df_filtered = df.loc[valid_indices].copy()
+    logger.debug(f"l after {len(df_filtered)}")
     return df_filtered

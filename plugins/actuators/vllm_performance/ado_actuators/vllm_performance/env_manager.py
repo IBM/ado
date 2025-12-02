@@ -7,6 +7,9 @@ import time
 from enum import Enum
 
 import ray
+from ado_actuators.vllm_performance.deployment_management import (
+    DeploymentConflictManager,
+)
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -14,10 +17,6 @@ from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
 )
 from kubernetes.client import ApiException
-
-from plugins.actuators.vllm_performance.ado_actuators.vllm_performance.deployment_management import (
-    DeploymentConflictManager,
-)
 
 logger = logging.getLogger(__name__)
 

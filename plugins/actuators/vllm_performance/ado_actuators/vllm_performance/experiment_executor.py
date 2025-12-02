@@ -3,6 +3,7 @@
 
 import json
 import logging
+import shlex
 import subprocess
 import time
 
@@ -303,9 +304,13 @@ def _connect_to_vllm_server(
         pf = None
     else:
         # we are running locally. need to do port-forward and connect to the local one
-        pf_command = f"kubectl port-forward svc/{k8s_name} -n {actuator_parameters.namespace} {port}:80  2>&1 >/dev/null"
+        pf_command = f"kubectl port-forward svc/{k8s_name} -n {actuator_parameters.namespace} {port}:80"
         try:
-            pf = subprocess.Popen(pf_command, shell=True)
+            pf = subprocess.Popen(
+                shlex.split(pf_command),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             # make sure that port forwarding is up
             time.sleep(5)
             # Check if there is a returncode- if there is it means port-forward exited

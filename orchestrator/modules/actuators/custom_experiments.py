@@ -327,7 +327,7 @@ def custom_experiment(
     ray_options_model = None
     if ray_options is not None:
         try:
-            ray_options_model = RayRemoteOptions(**ray_options)
+            ray_options_model = RayRemoteOptions.model_validate(ray_options)
         except pydantic.ValidationError as e:
             raise ValueError("Invalid ray_options") from e
 

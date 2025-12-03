@@ -9,9 +9,9 @@ The current model is trained on ~15500 rows of data stored in
 
 ## Versioning Information
 
-All models in `AutoGluonModels` subfolders (i.e.,
+All model subfolders in
 [`autoconf/AutoGluonModels/`](autoconf/AutoGluonModels/)) must follow the naming
-convention: `vX.Y.Z`, where `X`, `Y` and `Z` are integers.
+convention: `vX-Y-Z`, where `X`, `Y` and `Z` are integers.
 
 - **Major version (X):** Incremented when changes are made to:
 

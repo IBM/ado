@@ -16,19 +16,15 @@ dependencies = ["pandas",
                 "pydantic",
                 "cloudpickle",
                 "fastai",
-                "ado-core>1.2.1",
+                "torch",
+                "ado-core>=1.2.3",
                 ]
 
 [project.optional-dependencies]
 libomp = [
   "autogluon.tabular[lightgbm]"
 ]
-fastai = [
-  "fastai"
-]
-torch = [
-  "torch"
-]
+
 
 [tool.setuptools.packages.find]
 where = ["."]

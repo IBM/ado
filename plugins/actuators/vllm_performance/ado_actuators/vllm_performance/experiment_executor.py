@@ -3,7 +3,6 @@
 
 import json
 import logging
-import math
 import subprocess
 import time
 
@@ -15,6 +14,10 @@ from ado_actuators.vllm_performance.env_manager import (
     Environment,
     EnvironmentManager,
     EnvironmentState,
+)
+from ado_actuators.vllm_performance.k8s import (
+    K8sConnectionError,
+    K8sEnvironmentCreationError,
 )
 from ado_actuators.vllm_performance.k8s.create_environment import (
     create_test_environment,
@@ -39,14 +42,6 @@ from orchestrator.utilities.support import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class K8EnvironmentCreationError(Exception):
-    """Error raised when K8 environment cannot be created for some reason"""
-
-
-class K8ConnectionError(Exception):
-    """Error raised when there is an issue connecting to K8s or a service its hosting"""
 
 
 def _build_entity_env(values: dict[str, str]) -> str:
@@ -109,13 +104,12 @@ def _create_environment(
      :param timeout: timeout
     :return: kubernetes environment name
 
-    :raises K8EnvironmentCreationError if there was an issue
+    :raises K8sEnvironmentCreationError if there was an issue
     - If the creation step fails after three attempts
     - If after creation the environment was not in ready state after timeout seconds (1200 default)
 
     """
     from orchestrator.modules.operators.console_output import (
-        RichConsoleProgressMessage,
         RichConsoleSpinnerMessage,
     )
 
@@ -136,11 +130,12 @@ def _create_environment(
     )
     while True:
 
-        env: Environment = ray.get(
-            env_manager.get_environment.remote(
-                model=model, definition=definition, increment_usage=True
+        try:
+            env: Environment = ray.get(
+                env_manager.get_environment.remote(model=model, definition=definition)
             )
-        )
+        except Exception as e:
+            raise e
         if env is not None:
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
@@ -170,6 +165,14 @@ def _create_environment(
             # Environment does not exist, create it
             logger.debug(f"Environment {env.k8s_name} does not exist. Creating it")
             tmout = 1
+
+            # To avoid data corruption we wait if another environment is concurrently downloading the same model for the first time
+            ray.get(
+                env_manager.wait_deployment_before_starting.remote(
+                    env=env, request_id=request_id
+                )
+            )
+
             for attempt in range(3):
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
@@ -205,9 +208,11 @@ def _create_environment(
                         reuse_deployment=False,
                         namespace=actuator.namespace,
                         pvc_name=pvc_name,
+                        check_interval=check_interval,
+                        timeout=timeout,
                     )
                     # Update manager
-                    env_manager.done_creating.remote(definition=definition)
+                    env_manager.done_creating.remote(identifier=env.k8s_name)
                     error = None
                     break
                 except Exception as e:
@@ -238,67 +243,19 @@ def _create_environment(
                         state="stop",
                     )
                 )
-                raise K8EnvironmentCreationError(
+
+                # In case of failure creating the environment deployment we must release any
+                # other request with a deployment conflicting with this request's deployment
+                # We also need to release the slot for this environment
+                ray.get(
+                    env_manager.cleanup_failed_deployment.remote(
+                        identifier=env.k8s_name
+                    )
+                )
+
+                raise K8sEnvironmentCreationError(
                     f"Failed to create test environment {env.k8s_name}: {error}"
                 )
-
-        case EnvironmentState.CREATING:
-            # Someone is creating environment, wait till its ready
-            logger.info(
-                f"Environment {env.k8s_name} is being created. Waiting for it to be ready."
-            )
-            console.put.remote(
-                message=RichConsoleProgressMessage(
-                    id=request_id,
-                    label=f"({request_id}) vLLM deployment {env.k8s_name} is starting. Waiting for it to be ready ...",
-                    progress=0,
-                )
-            )
-            n_checks = math.ceil(timeout / check_interval)
-            for i in range(n_checks):
-                time.sleep(check_interval)
-                env = ray.get(
-                    env_manager.get_environment.remote(
-                        model=model, definition=definition
-                    )
-                )
-                if env.state == EnvironmentState.READY:
-                    break
-
-                console.put.remote(
-                    message=RichConsoleProgressMessage(
-                        id=request_id,
-                        label=f"({request_id}) vLLM deployment, {env.k8s_name} is starting. Waiting for it to be ready ...",
-                        progress=i * int(100 / n_checks),
-                    )
-                )
-
-            if env.state != EnvironmentState.READY:
-                # timed out waiting for environment creation
-                console.put.remote(
-                    message=RichConsoleProgressMessage(
-                        id=request_id,
-                        label=f"({request_id}) Timed out waiting for {env.k8s_name} to be ready. Aborting",
-                        progress=100,
-                    )
-                )
-                error = f"({request_id}) Timed out waiting for environment to get ready. Timeout {timeout}"
-                raise K8EnvironmentCreationError(
-                    f"Failed to create test environment {env.k8s_name}: {error}"
-                )
-
-            console.put.remote(
-                message=RichConsoleProgressMessage(
-                    id=request_id,
-                    label=f"vLLM deployment, {env.k8s_name} is ready",
-                    progress=100,
-                )
-            )
-
-            logger.debug("Environment is created, using it")
-        case _:
-            # environment exists, use it
-            logger.debug(f"Environment {env.k8s_name} already exists. Reusing it")
 
     return env.k8s_name, definition
 
@@ -345,19 +302,30 @@ def _connect_to_vllm_server(
         pf = None
     else:
         # we are running locally. need to do port-forward and connect to the local one
-        pf_command = f"kubectl port-forward svc/{k8s_name} -n {actuator_parameters.namespace} {port}:80  2>&1 >/dev/null"
+        pf_command_args = [
+            "kubectl",
+            "port-forward",
+            f"svc/{k8s_name}",
+            "-n",
+            f"{actuator_parameters.namespace}",
+            f"{port}:80",
+        ]
         try:
-            pf = subprocess.Popen(pf_command, shell=True)
+            pf = subprocess.Popen(
+                pf_command_args,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             # make sure that port forwarding is up
             time.sleep(5)
             # Check if there is a returncode- if there is it means port-forward exited
             if pf.returncode:
-                raise K8ConnectionError(
+                raise K8sConnectionError(
                     f"failed to start port forward to service {k8s_name} - port-forward command exited for unknown reason. Check logs."
                 )
         except Exception as e:
             logger.warning(f"failed to start port forward to service {k8s_name} - {e}")
-            raise K8ConnectionError(
+            raise K8sConnectionError(
                 f"failed to start port forward to service {k8s_name} - {e}"
             )
 
@@ -416,7 +384,7 @@ def run_resource_and_workload_experiment(
 
             logger.info(f"Creating K8s environment for {entity.identifier}")
 
-            # Will raise an K8EnvironmentCreationError if the environment could not be created
+            # Will raise an K8sEnvironmentCreationError if the environment could not be created
             k8s_name, definition = _create_environment(
                 values=values,
                 actuator=actuator_parameters,
@@ -425,7 +393,7 @@ def run_resource_and_workload_experiment(
                 request_id=request.requestid,
             )
 
-            # Will raise an K8ConnectionError if a port-forward was required
+            # Will raise an K8sConnectionError if a port-forward was required
             # but could not be created
             current_port += 1
             base_url, port_forward = _connect_to_vllm_server(
@@ -465,8 +433,8 @@ def run_resource_and_workload_experiment(
             )
 
         except (
-            K8EnvironmentCreationError,
-            K8ConnectionError,
+            K8sEnvironmentCreationError,
+            K8sConnectionError,
             VLLMBenchmarkError,
         ) as error:
             logger.error(f"Error running tests for entity {entity.identifier}: {error}")
@@ -512,7 +480,7 @@ def run_resource_and_workload_experiment(
             if port_forward is not None:
                 port_forward.kill()
             if definition is not None:
-                env_manager.done_using.remote(definition=definition)
+                env_manager.done_using.remote(identifier=k8s_name)
 
     # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
     if len(measurements) > 0:

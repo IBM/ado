@@ -6,11 +6,12 @@ i.e. the top directory of the `ado` repo.
 We recommend using `uv sync` to install all test requirements:
 
 ```commandline
-uv sync --group test
+uv sync --group test --reinstall
 ```
 
 Note: This will also remove all packages not required for testing and sync
 all package versions to the lockfile.
+Local packages will be rebuilt.
 
 To execute all tests run:
 

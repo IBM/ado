@@ -667,7 +667,7 @@ class DiscoverySpace:
                     p for p in requestedProperties if p not in definedProperties
                 ]
 
-                if len(filtered) > 1:
+                if len(filtered) > 0:
                     raise ValueError(
                         f"Requested match against constitutive properties not in entity space definition: {filtered}"
                     )
@@ -705,6 +705,21 @@ class DiscoverySpace:
             Raise ValueError if the point is not in the discovery space
         """
 
+        property_identifiers = {
+            cp.identifier for cp in self.entitySpace.constitutiveProperties
+        }
+        point_identifiers = set(point.keys())
+        if diff := point_identifiers - property_identifiers:
+            raise ValueError(
+                f"Point {point} is not in space. It has values for additional properties, {diff}"
+            )
+
+        if diff := property_identifiers - point_identifiers:
+            raise ValueError(
+                f"Point {point} is not in space. It is missing values for properties, {diff}"
+            )
+
+        # Note if point contains additional properties this will just ignore them
         property_values = constitutive_property_values_from_point(
             point=point, properties=self.entitySpace.constitutiveProperties
         )

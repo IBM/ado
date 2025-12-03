@@ -88,6 +88,7 @@ The complete syntax of the `ado create` command is as follows:
 ```shell
 ado create RESOURCE_TYPE [--file | -f <FILE.yaml>] \
                          [--set <jsonpath=json-value>] \
+                         [--with <resource=value>] \
                          [--new-sample-store] \
                          [--use-default-sample-store] [--dry-run]
 ```
@@ -109,21 +110,26 @@ Where:
   `ado create samplestore --new-sample-store`.
 - `--set` allows overriding fields in the provided resource configuration. It
   supports using JSONPath syntax. See the examples section for more information.
+- `--with` enables you to create resources together with other resources they
+  depend on, or to reference existing resource identifiers during creation. For
+  example, you can create a space along with a sample store definition, or
+  create an operation together with an actuator configuration and a space
+  definition. See the Examples section for more details.
 - `--use-latest` allows reusing the previous identifier of a certain resource
   kind. It is only supported for spaces and operations. The latest identifiers
   are updated every time an `ado create` command is successful. The stored
   identifiers are not per-context, meaning that, for example running
   `ado create samplestore`, changing context, and running
-  `ado create --use-latest samplestore` will raise an error. Ignored if `--set`
+  `ado create --use-latest samplestore` will raise an error. Ignored if `--with`
   is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
   in the `DiscoverySpaceConfiguration` will be disregarded. It is ignored if
-  `--set` or `--use-latest` are used.
+  `--with` or `--use-latest` are used.
 - `--use-default-sample-store` uses the default sample store. Only available
   when running `ado create space`. Alias for
-  `--set sampleStoreIdentifier=default`. It is ignored if --set, --use-latest,
+  `--set sampleStoreIdentifier=default`. It is ignored if --with, --use-latest,
   or --new-sample-store are used.
 - `--dry-run` is an **optional** flag to only validate the resource
   configuration file provided and not actually creating the resource.
@@ -168,6 +174,18 @@ ado create space -f ds.yaml --new-sample-store
 
 ```shell
 ado create space -f ds.yaml --set "sampleStoreIdentifier=abcdef"
+```
+
+Another option is to use:
+
+```shell
+ado create space -f ds.yaml --with store=abcdef
+```
+
+##### Create a space while providing a sample store definition
+
+```shell
+ado create space -f ds.yaml --with store=store_definition.yaml
 ```
 
 ##### Create a space reusing the latest sample store identifier

@@ -40,12 +40,10 @@ from orchestrator.modules.module import (
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from orchestrator.modules.operators.base import Characterize, measure_or_replay_async
+from orchestrator.modules.operators.base import Characterize, measure_or_replay
 from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.modules.operators.orchestrate import (
-    explore_operation_function_wrapper,
-)
+from orchestrator.modules.operators.orchestrate import orchestrate_explore_operation
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
@@ -608,7 +606,7 @@ class RandomWalk(Characterize):
                 independent_experiments = measurement_space.independentExperiments
                 for experiment in independent_experiments:
 
-                    experiment_identifiers = await measure_or_replay_async(
+                    experiment_identifiers = measure_or_replay(
                         requestIndex=self._entitiesSampled,
                         requesterid=self.operationIdentifier(),
                         experimentReference=experiment.reference,
@@ -847,7 +845,7 @@ class RandomWalk(Characterize):
             entities = next_experiment_and_entity["entities"]
             request_index = next_experiment_and_entity["requestIndex"]
 
-            experiment_identifiers = await measure_or_replay_async(
+            experiment_identifiers = measure_or_replay(
                 requestIndex=request_index,
                 requesterid=self.operationIdentifier(),
                 experimentReference=experiment_reference,
@@ -965,8 +963,6 @@ def random_walk(
 
     """
 
-    import uuid
-
     import orchestrator.modules.module
 
     module = orchestrator.core.operation.config.OperatorModuleConf(
@@ -975,10 +971,9 @@ def random_walk(
         moduleType=orchestrator.modules.module.ModuleTypeEnum.OPERATION,
     )
 
-    return explore_operation_function_wrapper(
+    return orchestrate_explore_operation(
         discovery_space=discoverySpace,
-        module=module,
+        operator_module=module,
         parameters=kwargs,
-        namespace=f"namespace-{str(uuid.uuid4())[:8]}",
         operation_info=operationInfo,
     )

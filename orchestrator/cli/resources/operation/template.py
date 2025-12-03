@@ -108,7 +108,7 @@ def template_operation(parameters: AdoTemplateCommandParameters):
     ].default_configuration_model_for_operation(parameters.operator_name)
 
     # Certain operators may not have a default configuration model
-    # Set use an OperationFunctionConf and set the values we have
+    # Use an OperatorFunctionConf and set the values we have
     if not default_operation_parameters:
 
         console_print(

@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+import os
 import pathlib
 from typing import Annotated
 
@@ -14,7 +14,10 @@ from orchestrator.cli.exceptions.handlers import (
 )
 from orchestrator.cli.models.choice import HiddenPluralChoice, HiddenShorthandChoice
 from orchestrator.cli.models.parameters import AdoCreateCommandParameters
-from orchestrator.cli.models.types import AdoCreateSupportedResourceTypes
+from orchestrator.cli.models.types import (
+    AdoCreateSupportedResourceTypes,
+    AdoCreateWithResourceSupportedResourceTypes,
+)
 from orchestrator.cli.resources.actuator_configuration.create import (
     create_actuator_configuration,
 )
@@ -24,10 +27,14 @@ from orchestrator.cli.resources.operation.create import create_operation
 from orchestrator.cli.resources.sample_store.create import create_sample_store
 from orchestrator.cli.utils.input.parsers import (
     parse_key_value_pairs,
+    resource_shorthands_to_full_names,
 )
 from orchestrator.cli.utils.output.prints import (
     ERROR,
+    HINT,
+    bold,
     console_print,
+    magenta,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.base import (
@@ -107,20 +114,9 @@ def create_resource(
         typer.Option(
             "--new-sample-store",
             help="Request and use a new, empty sample store. Available only for space and sample store. "
-            "Ignored if --set or --use-latest are used.",
+            "Ignored if --with or --use-latest are used.",
         ),
     ] = False,
-    use_latest: Annotated[
-        list[CoreResourceKinds] | None,
-        typer.Option(
-            show_default=False,
-            click_type=HiddenShorthandChoice(CoreResourceKinds),
-            help="""
-            Reuse the latest identifier of a resource kind. Can be used multiple times.
-
-            Only supported for spaces and operations. Ignored if --set is used.""",
-        ),
-    ] = None,
     set_values: Annotated[
         list[str] | None,
         typer.Option(
@@ -136,13 +132,34 @@ def create_resource(
             """,
         ),
     ] = None,
+    with_resources: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--with",
+            help="""Specify additional resources to use or create via key=value pairs,
+            where the key is a resource type and the value is a resource ID or a resource configuration file.
+
+            Supports creating spaces with sample stores and operations with spaces and actuator configurations.""",
+        ),
+    ] = None,
+    use_latest: Annotated[
+        list[CoreResourceKinds] | None,
+        typer.Option(
+            show_default=False,
+            click_type=HiddenShorthandChoice(CoreResourceKinds),
+            help="""
+            Reuse the latest identifier of a resource kind. Can be used multiple times.
+
+            Only supported for spaces and operations. Ignored if --with is used.""",
+        ),
+    ] = None,
     use_default_sample_store: Annotated[
         bool,
         typer.Option(
             "--use-default-sample-store",
             rich_help_panel=CREATE_SPACE_PANEL_NAME,
             help="Request and use the default sample store. Available only for spaces. "
-            "Ignored if --set, --use-latest, or --new-sample-store are used."
+            "Ignored if --with, --use-latest, or --new-sample-store are used. "
             "Alias for --set sampleStoreIdentifier=default.",
         ),
     ] = False,
@@ -212,6 +229,7 @@ def create_resource(
 
     ado_configuration: AdoConfiguration = ctx.obj
     override_values = parse_key_value_pairs(set_values)
+    with_resources = parse_with_resource_options(with_resources)
 
     parameters = AdoCreateCommandParameters(
         ado_configuration=ado_configuration,
@@ -222,6 +240,7 @@ def create_resource(
         resource_type=resource_type,
         use_default_sample_store=use_default_sample_store,
         use_latest=use_latest,
+        with_resources=with_resources,
     )
 
     method_mapping = {
@@ -255,3 +274,63 @@ def register_create_command(app: typer.Typer):
         options_metavar="[-f | --file <configuration>] [--set <path=document> ...] "
         "[--new-sample-store] [--dry-run]",
     )(create_resource)
+
+
+def parse_with_resource_options(
+    user_provided_options: list[str] | None,
+) -> dict[CoreResourceKinds, pathlib.Path | str]:
+
+    parsed_options = {}
+    if not user_provided_options:
+        return parsed_options
+
+    # To simplify checking whether the resource type is supported
+    supported_resource_types = {
+        v.value for v in AdoCreateWithResourceSupportedResourceTypes
+    }
+
+    for with_option in parse_key_value_pairs(user_provided_options):
+        for resource_type, value in with_option.items():
+
+            resource_type = resource_shorthands_to_full_names(resource_type)
+            if resource_type not in supported_resource_types:
+                console_print(
+                    f"{ERROR}{bold(resource_type)} is not a supported resource type "
+                    f"for the {magenta('--with')} option.\n"
+                    f"{HINT}The only supported resource types are "
+                    f"[b cyan]{', '.join(supported_resource_types)}[/b cyan] and their shorthands.",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
+
+            # Now we know the resource_type can be parsed as a CoreResourceKinds
+            resource_type = CoreResourceKinds(resource_type)
+
+            # Since we are dealing with a dictionary, we can only support one --with option per resource type
+            if resource_type in parsed_options:
+                console_print(
+                    f"{ERROR}The {resource_type.value} resource type was specified more than once.",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
+
+            # We allow users to provide either paths to a resource configuration file or a resource identifier.
+            # In this function we only check whether it's one or the other (with validation on the path). Both
+            # schema validation for configuration files and resource retrieval for ids will be performed in the
+            # resource-specific create functions.
+            #
+            # If a dot or a path separator character is present in the value, we assume it must be a path and
+            # fail if it doesn't exist, or it's not a file.
+            value_must_be_path = "." in value or os.sep in value
+            value_as_path = pathlib.Path(value)
+            if value_as_path.exists() and value_as_path.is_file():
+                parsed_options[resource_type] = value_as_path
+            elif value_must_be_path:
+                console_print(
+                    f"{ERROR}{value} does not exist or is not a file.", stderr=True
+                )
+                raise typer.Exit(1)
+            else:
+                parsed_options[resource_type] = value
+
+    return parsed_options

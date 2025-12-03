@@ -40,7 +40,7 @@ def create_context(parameters: AdoCreateCommandParameters):
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     destination = parameters.ado_configuration.project_context_path_for_context(
         context_configuration.project
@@ -80,3 +80,5 @@ def create_context(parameters: AdoCreateCommandParameters):
             f"\t{cyan('ado context ' + context_configuration.project)}",
             stderr=True,
         )
+
+    return context_configuration.project

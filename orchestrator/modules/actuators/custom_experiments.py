@@ -5,7 +5,6 @@ import inspect
 import logging
 import typing
 import uuid
-from functools import wraps
 
 import pydantic
 import ray
@@ -31,6 +30,7 @@ from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
+from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
     ConstitutiveProperty,
@@ -49,6 +49,13 @@ configure_logging()
 _custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
     catalogIdentifier="CustomExperiments"
 )
+
+
+class RayRemoteOptions(pydantic.BaseModel):
+    num_cpus: float | None = None
+    num_gpus: float | None = None
+    resources: dict | None = None
+    runtime_env: dict | None = None
 
 
 class ExperimentModuleConf(ModuleConf):
@@ -273,6 +280,8 @@ def custom_experiment(
     optional_properties: list[ConstitutiveProperty] | None = None,
     parameterization: dict[str, typing.Any] | None = None,
     metadata: dict[str, typing.Any] | None = None,
+    use_ray: bool = True,
+    ray_options: dict | None = None,
 ):
     """
     Decorator for custom experiment functions.
@@ -283,9 +292,12 @@ def custom_experiment(
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
         parameterization: Tuple of parameters for default parameterization.
         metadata: Metadata for the experiment
+        use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task
+        ray_options: A dictionary containing ray remote task options.
+            The keys and allowed values are defined by RayRemoteOptions
 
     Returns:
-        A decorator that wraps a function to work with ADO's custom experiment system
+        A decorator that wraps a function to work with ado's custom experiment system
 
     Example:
 
@@ -312,48 +324,14 @@ def custom_experiment(
     metadata = metadata if metadata else {}
     logger = logging.getLogger("custom_experiment_decorator")
 
+    ray_options_model = None
+    if ray_options is not None:
+        try:
+            ray_options_model = RayRemoteOptions.model_validate(ray_options)
+        except pydantic.ValidationError as e:
+            raise ValueError("Invalid ray_options") from e
+
     def decorator(func):
-
-        @wraps(func)
-        def wrapper(
-            entity: Entity, experiment: Experiment
-        ) -> list[ObservedPropertyValue]:
-            """
-            Wrapper function that converts Entity+Experiment to dict and calls the wrapped function.
-            """
-            input_values = experiment.propertyValuesFromEntity(entity)
-            result_dict = func(**input_values)
-            observed_property_values = []
-            for property_identifier, value in result_dict.items():
-                observed_property = experiment.observedPropertyForTargetIdentifier(
-                    property_identifier
-                )
-                if not observed_property:
-                    raise ValueError(
-                        f"{experiment.identifier} returned a property called {property_identifier}, however "
-                        f"the experiment definition does not define an output property with this name"
-                    )
-
-                observed_property_value = ObservedPropertyValue(
-                    property=observed_property, value=value
-                )
-                observed_property_values.append(observed_property_value)
-
-            return observed_property_values
-
-        # Set the wrapper's __signature__  so it is (entity,experiment)
-        # This is required for the wrapped function to be used with ray.remote
-        import inspect
-
-        wrapper.__signature__ = inspect.Signature(
-            [
-                inspect.Parameter("entity", inspect.Parameter.POSITIONAL_OR_KEYWORD),
-                inspect.Parameter(
-                    "experiment", inspect.Parameter.POSITIONAL_OR_KEYWORD
-                ),
-            ]
-        )
-
         # If we were not given information on required/optional properties
         # or parameterization try to infer it
         # This function will log a critical error message and raise exception
@@ -379,13 +357,6 @@ def custom_experiment(
                 f"Unable to generate custom function via decorator: {error}"
             )
             raise
-
-        # Store decorator arguments as function attributes
-        wrapper._decorator_required_properties = _required_properties
-        wrapper._decorator_optional_properties = _optional_properties
-        wrapper._decorator_parameterization = _parameterization
-        wrapper._original_func = func
-        wrapper._is_custom_experiment = True
 
         # Create an ExperimentModuleConf instance describing where the function is
         metadata["module"] = ExperimentModuleConf(
@@ -415,12 +386,45 @@ def custom_experiment(
             deprecated=False,
             metadata=metadata,
         )
-        wrapper._experiment = experiment
+        func._experiment = experiment
 
         # Add the experiment to the module-level catalog
         _custom_experiments_catalog.addExperiment(experiment)
 
-        return wrapper
+        from functools import wraps
+
+        @wraps(func)
+        def validated_func(*args, **kwargs):
+            # Build property dict from either kwargs or args
+            # Prefer kwargs, but support positional for backwards compatibility
+            import inspect
+
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            param_dict = dict(bound_args.arguments)
+
+            # Validate using SpacePoint and Experiment.validate_entity
+            spoint = SpacePoint(entity=param_dict)
+            entity = spoint.to_entity()
+            if not experiment.validate_entity(entity, verbose=True):
+                raise ValueError(
+                    f"Arguments {param_dict} do not match required/optional properties for experiment '{experiment.identifier}'. "
+                    f"See logs/stderr for reasons, or check experiment.requiredProperties/optionalProperties."
+                )
+            # Call the original with the unpacked arguments
+            return func(*args, **kwargs)
+
+        # Attach metadata to validated_func not func, so end users get the right attributes
+        validated_func._decorator_required_properties = _required_properties
+        validated_func._decorator_optional_properties = _optional_properties
+        validated_func._decorator_parameterization = _parameterization
+        validated_func._original_func = func
+        validated_func._is_custom_experiment = True
+        validated_func._experiment = experiment
+        validated_func._use_ray = use_ray
+        validated_func._ray_options = ray_options_model
+        return validated_func
 
     return decorator
 
@@ -513,7 +517,51 @@ def get_custom_experiments_catalog() -> (
     return _custom_experiments_catalog
 
 
-async def custom_experiment_wrapper(
+def _call_decorated_custom_experiment(
+    function: typing.Callable, target_experiment: Experiment, entity: Entity
+) -> list[ObservedPropertyValue]:
+
+    # Build input dict using experiment values from entity
+    input_values = target_experiment.propertyValuesFromEntity(entity)
+    # Call function with unpacked parameters
+    result_dict = function(**input_values)
+
+    # Create observed property values
+    observed_property_values = []
+    for property_identifier, value in result_dict.items():
+        observed_property = target_experiment.observedPropertyForTargetIdentifier(
+            property_identifier
+        )
+        if not observed_property:
+            raise ValueError(
+                f"{target_experiment.identifier} returned a property called {property_identifier}, however "
+                f"the experiment definition does not define an output property with this name"
+            )
+        observed_property_value = ObservedPropertyValue(
+            property=observed_property, value=value
+        )
+        observed_property_values.append(observed_property_value)
+
+    return observed_property_values
+
+
+def _call_legacy_custom_experiment(
+    function: typing.Callable,
+    target_experiment: Experiment,
+    entity: Entity,
+    parameters: dict | None = None,
+) -> list[ObservedPropertyValue]:
+    # For legacy case or other functions, check for parameters kwarg else pass entity/experiment
+    func_signature = inspect.signature(function)
+    if "parameters" in func_signature.parameters:
+        values = function(entity, target_experiment, parameters=parameters)
+    else:
+        values = function(entity, target_experiment)
+
+    return values
+
+
+def custom_experiment_executor(
     function: typing.Callable,
     parameters: dict,
     measurement_request: MeasurementRequest,
@@ -532,16 +580,22 @@ async def custom_experiment_wrapper(
 
     measurement_results = []
     for entity in measurement_request.entities:
-        # Inspect function to see if it has a keyword parameter "parameters"
-        func_signature = inspect.signature(function)
-        func_param_names = set(func_signature.parameters.keys())
         try:
-            if "parameters" in func_param_names:
-                values = function(entity, target_experiment, parameters=parameters)
+            # Check if this is a custom experiment decorated function
+            if getattr(function, "_is_custom_experiment", False):
+                values = _call_decorated_custom_experiment(
+                    function=function,
+                    target_experiment=target_experiment,
+                    entity=entity,
+                )
             else:
-                values = function(entity, target_experiment)
+                values = _call_legacy_custom_experiment(
+                    function=function,
+                    target_experiment=target_experiment,
+                    entity=entity,
+                    parameters=parameters,
+                )
 
-            # Record the results in the entity
             if len(values) > 0:
                 measurement_result = ValidMeasurementResult(
                     entityIdentifier=entity.identifier, measurements=values
@@ -561,7 +615,7 @@ async def custom_experiment_wrapper(
     else:
         measurement_request.status = MeasurementRequestStateEnum.FAILED
 
-    await queue.put_async(measurement_request, block=False)
+    queue.put(measurement_request, block=False)
 
 
 @ray.remote
@@ -626,7 +680,7 @@ class CustomExperiments(ActuatorBase):
             is not None
         )
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
@@ -683,19 +737,38 @@ class CustomExperiments(ActuatorBase):
                 **targetExperiment.model_dump(),
             )
 
-        await custom_experiment_wrapper(
-            self._functionImplementations[
-                request.experimentReference.experimentIdentifier
-            ],
-            self._catalog.experimentForReference(
-                request.experimentReference
-            ).metadata.get("parameters", {}),
-            request,  # The request - contains experiment reference
-            targetExperiment,  # Experiment to execute
-            self._stateUpdateQueue,
-        )
-
-        # We only send one request
+        # Fetch custom_experiment function for this identifier
+        fn = self._functionImplementations[
+            request.experimentReference.experimentIdentifier
+        ]
+        use_ray = getattr(fn, "_use_ray", True)
+        ray_options_model = getattr(fn, "_ray_options", None)
+        if use_ray:
+            remote_kwargs = (
+                ray_options_model.model_dump(exclude_none=True)
+                if getattr(fn, "_ray_options", None)
+                else {}
+            )
+            # Dispatch as Ray task. Pass ray options if present.
+            ray.remote(custom_experiment_executor, **remote_kwargs).remote(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+            )
+        else:
+            custom_experiment_executor(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+            )
         return [requestid]
 
     @classmethod

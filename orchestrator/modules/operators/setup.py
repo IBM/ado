@@ -12,7 +12,10 @@ from orchestrator.core.actuatorconfiguration.config import (
     ActuatorConfiguration,
 )
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.operation.config import BaseOperationRunConfiguration
+from orchestrator.core.operation.config import (
+    DiscoveryOperationConfiguration,
+    OperatorModuleConf,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.utilities.logging import configure_logging
@@ -129,41 +132,54 @@ def setup_actuators(
 
 
 def setup_operator(
-    base_configuration: BaseOperationRunConfiguration,
+    operator_module: OperatorModuleConf,
+    parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
     state,
     actuators: dict,
 ) -> "OperatorActor":
-    """
+    """Sets up and creates an operator actor for class-based operations
+
+    This function loads the operator class, creates a Ray actor instance with the
+    specified namespace, and initializes it with the provided parameters, state,
+    and actuators.
+
     Params:
-        actuators: List of actuators
-        config: configuration dictionary
-        namespace: Namespace to set up the actor in
-        state: State actor handle
+        operator_module: Configuration for the operator module to load
+        parameters: Dictionary of parameters to pass to the operator
+        discovery_space: The discovery space the operator will operate on
+        namespace: Ray namespace to create the operator actor in
+        state: DiscoverySpaceManager actor handle for state management
+        actuators: Dictionary of actuator actor handles keyed by actuator identifier
+
+    Returns:
+        OperatorActor handle for the created operator actor
     """
 
     import orchestrator.utilities.output
 
     moduleLog.info("Creating operation")
 
-    operatorClass = load_module_class_or_function(base_configuration.operation.module)
-    operatorName = base_configuration.operation.module.moduleClass
-
-    operator = operatorClass.options(name=operatorName, namespace=namespace).remote(
-        operationActorName=operatorName,
+    operatorClass = load_module_class_or_function(operator_module)
+    operator = operatorClass.options(
+        name=operator_module.moduleClass, namespace=namespace
+    ).remote(
+        operationActorName=operator_module.moduleClass,
         namespace=namespace,
         state=state,
-        params=base_configuration.operation.parameters,
+        params=parameters,
         actuators=actuators,
     )
 
     print("=========== Operation Details ============\n")
     print(f"Space ID: {discovery_space.uri}")
     print(f"Sample Store ID:  {discovery_space.sample_store.identifier}")
-    print(
-        f"Operation Configuration:\n {orchestrator.utilities.output.pydantic_model_as_yaml(base_configuration, exclude_none=True)}"
+    conf_string = orchestrator.utilities.output.pydantic_model_as_yaml(
+        DiscoveryOperationConfiguration(module=operator_module, parameters=parameters),
+        exclude_none=True,
     )
+    print(f"Operation Configuration:\n {conf_string}")
 
     return operator
 

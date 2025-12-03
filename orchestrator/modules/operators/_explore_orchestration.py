@@ -14,12 +14,12 @@ import orchestrator.modules.operators._cleanup
 from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
-    DiscoveryOperationConfiguration,
     FunctionOperationInfo,
+    OperatorModuleConf,
+    get_actuator_configurations,
+    validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.module import load_module_class_or_function
@@ -57,6 +57,8 @@ def graceful_explore_operation_shutdown(
     if not orchestrator.modules.operators._cleanup.shutdown:
         import time
 
+        from rich.console import Console
+
         moduleLog.info("Shutting down gracefully")
 
         orchestrator.modules.operators._cleanup.shutdown = True
@@ -68,58 +70,69 @@ def graceful_explore_operation_shutdown(
         # 3. Send graceful __ray_terminate__ to metric_server, operation and actuators
 
         # This should not return until the metric server has processed all updates.
-        moduleLog.debug("Shutting down state")
-        promise = state.shutdown.remote()
-        ray.get(promise)
 
-        moduleLog.debug("Cleanup custom actors")
-        try:
-            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
-            ray.get(cleaner_handle.cleanup.remote())
-            # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
-            ray.kill(cleaner_handle)
-        except Exception as e:
-            moduleLog.warning(f"Failed to cleanup custom actors {e}")
+        console = Console()
+        with console.status(
+            "Shutdown - waiting on all samples to be stored", spinner="dots"
+        ) as status:
 
-        wait_graceful = [
-            operator.__ray_terminate__.remote(),
-            state.__ray_terminate__.remote(),
-        ]
-        # __ray_terminate allows atexit handlers of actors to run
-        # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
-        wait_graceful.extend([a.__ray_terminate__.remote() for a in actuators])
-        n_actors = len(wait_graceful)
-        moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
+            moduleLog.debug("Shutting down state")
+            promise = state.shutdown.remote()
+            ray.get(promise)
 
-        actors = [operator]
-        actors.extend(actuators)
+            status.update("Shutdown - cleanup")
 
-        lookup = dict(zip(wait_graceful, actors))
+            moduleLog.debug("Cleanup custom actors")
+            try:
+                cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+                ray.get(cleaner_handle.cleanup.remote())
+                # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
+                ray.kill(cleaner_handle)
+            except Exception as e:
+                moduleLog.warning(f"Failed to cleanup custom actors {e}")
 
-        moduleLog.debug(f"Shutdown waiting on {lookup}")
-        moduleLog.debug(
-            f"Gracefully stopping actors - will wait {timeout} seconds  ..."
-        )
-        terminated, active = ray.wait(
-            ray_waitables=wait_graceful, num_returns=n_actors, timeout=60.0
-        )
+            status.update("Shutdown - waiting for actors to terminate")
 
-        moduleLog.debug(f"Terminated: {terminated}")
-        moduleLog.debug(f"Active: {active}")
+            wait_graceful = [
+                operator.__ray_terminate__.remote(),
+                state.__ray_terminate__.remote(),
+            ]
+            # __ray_terminate allows atexit handlers of actors to run
+            # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
+            wait_graceful.extend([a.__ray_terminate__.remote() for a in actuators])
+            n_actors = len(wait_graceful)
+            moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
 
-        if active:
-            moduleLog.warning(
-                f"Some actors have not completed after {timeout} grace period - killing"
+            actors = [operator]
+            actors.extend(actuators)
+
+            lookup = dict(zip(wait_graceful, actors))
+
+            moduleLog.debug(f"Shutdown waiting on {lookup}")
+            moduleLog.debug(
+                f"Gracefully stopping actors - will wait {timeout} seconds  ..."
             )
-            for actor_ref in active:
-                print(f"... {lookup[actor_ref]}")
-                ray.kill(lookup[actor_ref])
+            terminated, active = ray.wait(
+                ray_waitables=wait_graceful, num_returns=n_actors, timeout=60.0
+            )
 
-        moduleLog.info("Shutting down Ray...")
-        ray.shutdown()
-        moduleLog.info("Waiting for logs to flush ...")
-        time.sleep(10)
-        moduleLog.info("Graceful shutdown complete")
+            moduleLog.debug(f"Terminated: {terminated}")
+            moduleLog.debug(f"Active: {active}")
+
+            if active:
+                moduleLog.warning(
+                    f"Some actors have not completed after {timeout} grace period - killing"
+                )
+                for actor_ref in active:
+                    print(f"... {lookup[actor_ref]}")
+                    ray.kill(lookup[actor_ref])
+
+            moduleLog.info("Shutting down Ray...")
+            ray.shutdown()
+            status.update("Shutdown - waiting for logs to flush")
+            moduleLog.info("Waiting for logs to flush ...")
+            time.sleep(10)
+            moduleLog.info("Graceful shutdown complete")
     else:
         moduleLog.info("Graceful shutdown already completed")
 
@@ -177,33 +190,55 @@ def run_explore_operation_core_closure(
 
 
 def orchestrate_explore_operation(
-    base_operation_configuration: BaseOperationRunConfiguration,
-    project_context: ProjectContext,
+    operator_module: OperatorModuleConf,
     discovery_space: DiscoverySpace,
-    namespace: str,
-    queue: ray.util.queue.Queue,
-) -> tuple[
-    "DiscoverySpace",
-    "OperationResource",
-    "orchestrator.modules.operators.base.OperationOutput",
-]:
+    parameters: dict,
+    operation_info: FunctionOperationInfo,
+) -> OperationOutput:
     """Orchestrates an explore operation
 
-    In addition to the items handles by orchestrate_general_operation this function
+    This function sets up and executes an explore (search) operation. It handles:
+    - Initializing the resource cleaner
+    - Validating the measurement space consistency
+    - Validating actuator configurations against the space
+    - Setting up DiscoverySpaceManager, Actuators, and MeasurementQueue
+    - Creating and running the operator actor
+    - Handling graceful shutdown
 
-    - Sets up the state updating apparatus for explore operation:
-       - DiscoverySpaceManager, Actuators, MeasurementQueue etc.
+    It calls run_operation_harness to create, store, and update the operation resource,
+    execute the operation, handle exceptions, and store the operation results.
 
-    Exceptions:
-        ValueError: if the MeasurementSpace is not consistent with EntitySpace
-        pydantic.ValidationError: if the operation parameters are not valid
+    Params:
+        operator_module: Configuration for the operator module (class-based operation)
+        discovery_space: The discovery space to operate on
+        parameters: Dictionary of parameters for the operation
+        operation_info: Information about the operation including metadata, actuator
+            configuration identifiers, and namespace
+
+    Returns:
+        OperationOutput containing the results and status of the operation
+
+    Raises:
+        ValueError: If the MeasurementSpace is not consistent with EntitySpace or if
+            actuator configurations are invalid
+        pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
         ray.exceptions.ActorDiedError: If there was an error initializing the actuators
+        ResourceDoesNotExistError: If an actuator configuration cannot be retrieved from the database
     """
+
+    import uuid
 
     import orchestrator.modules.operators.setup
 
+    if not operation_info.ray_namespace:
+        operation_info.ray_namespace = (
+            f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
+        )
+
     initialize_resource_cleaner()
+
+    project_context = discovery_space.project_context
 
     # Check the space
     if not discovery_space.measurementSpace.isConsistent:
@@ -224,23 +259,27 @@ def orchestrate_explore_operation(
 
     log_space_details(discovery_space)
 
-    actuator_configurations = (
-        base_operation_configuration.validate_actuatorconfigurations_against_space(
-            project_context=project_context,
-            discoverySpaceConfiguration=discovery_space.config,
-        )
+    actuator_configurations = get_actuator_configurations(
+        actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
+        project_context=project_context,
+    )
+
+    validate_actuator_configurations_against_space_configuration(
+        actuator_configurations=actuator_configurations,
+        discovery_space_configuration=discovery_space.config,
     )
 
     #
     # STATE
     # Create State actor
     #
-    if queue is None:
-        queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue.get_measurement_queue()
 
     # noinspection PyUnresolvedReferences
-    state = DiscoverySpaceManager.options(namespace=namespace).remote(
-        queue=queue, space=discovery_space, namespace=namespace
+    state = DiscoverySpaceManager.options(
+        namespace=operation_info.ray_namespace
+    ).remote(
+        queue=queue, space=discovery_space, namespace=operation_info.ray_namespace
     )  # type: "InternalStateActor"
     moduleLog.debug(f"Waiting for discovery state actor to be ready: {state}")
     _ = ray.get(state.__ray_ready__.remote())
@@ -252,7 +291,7 @@ def orchestrate_explore_operation(
     # Will raise ray.exceptions.ActorDiedError if any actuator died
     # during init
     actuators = orchestrator.modules.operators.setup.setup_actuators(
-        namespace=namespace,
+        namespace=operation_info.ray_namespace,
         actuator_configurations=actuator_configurations,
         discovery_space=discovery_space,
         queue=queue,
@@ -264,25 +303,23 @@ def orchestrate_explore_operation(
     #
     # OPERATOR
     #
-    operator = orchestrator.modules.operators.setup.setup_operator(
-        actuators=actuators,
-        discovery_space=discovery_space,
-        base_configuration=base_operation_configuration,
-        namespace=namespace,
-        state=state,
-    )  # type: "OperatorActor"
 
     # Validate the parameters for the operation
-    #
     operator_class = load_module_class_or_function(
-        base_operation_configuration.operation.module
+        operator_module
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
-    operator_class.validateOperationParameters(
-        base_operation_configuration.operation.parameters
-    )
+    operator_class.validateOperationParameters(parameters)
 
-    identifier = operator.operationIdentifier.remote()
-    identifier = ray.get(identifier)
+    # Create operator actor
+    operator = orchestrator.modules.operators.setup.setup_operator(
+        operator_module=operator_module,
+        parameters=parameters,
+        discovery_space=discovery_space,
+        actuators=actuators,
+        namespace=operation_info.ray_namespace,
+        state=state,
+    )  # type: "OperatorActor"
+    identifier = ray.get(operator.operationIdentifier.remote())
 
     explore_run_closure = run_explore_operation_core_closure(operator, state)
 
@@ -309,10 +346,12 @@ def orchestrate_explore_operation(
 
         return finalize_callback
 
-    output = _run_operation_harness(
+    operation_output = _run_operation_harness(
         run_closure=explore_run_closure,
-        base_operation_configuration=base_operation_configuration,
         discovery_space=discovery_space,
+        operator_module=operator_module,
+        operation_parameters=parameters,
+        operation_info=operation_info,
         operation_identifier=identifier,
         finalize_callback=finalize_callback_closure(operator),
     )
@@ -323,39 +362,4 @@ def orchestrate_explore_operation(
         actuators=list(actuators.values()),
     )
 
-    return discovery_space, output.operation, output
-
-
-def explore_operation_function_wrapper(
-    discovery_space: DiscoverySpace,
-    module: orchestrator.core.operation.config.OperatorModuleConf,
-    parameters: dict,
-    namespace: str,
-    operation_info: typing.Optional["FunctionOperationInfo"] = None,
-    queue: typing.Optional["ray.util.queue.Queue"] = None,
-) -> OperationOutput:
-    """
-    function implementations of explore operations must call this function.
-
-    It is a small wrapper that converts the arguments passed to the explore function operation,
-    to those required to orchestrate an explore (class) operation.
-    """
-
-    base_operation_configuration = BaseOperationRunConfiguration(
-        operation=DiscoveryOperationConfiguration(
-            module=module,
-            parameters=parameters,
-        ),
-        metadata=operation_info.metadata,
-        actuatorConfigurationIdentifiers=operation_info.actuatorConfigurationIdentifiers,
-    )
-
-    _, _, output = orchestrate_explore_operation(
-        base_operation_configuration=base_operation_configuration,
-        project_context=discovery_space.project_context,
-        discovery_space=discovery_space,
-        namespace=namespace,
-        queue=queue,
-    )
-
-    return output
+    return operation_output

@@ -60,8 +60,8 @@ the actuator you want to install_ : in this case
 
 2. `python -m build`
 
-   This creates a `dist/` directory under the root of this git repository that contains the wheel. It will have a name like
-   `ado_sfttrainer-XXXX.whl`
+   This creates a `dist/` directory under the root of this git repository that
+   contains the wheel. Its name will have the format `ado_sfttrainer-XXXX.whl`
 
 3. `mv ../../../dist/*.whl` .
 

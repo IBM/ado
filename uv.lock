@@ -16,6 +16,7 @@ members = [
     "ado-ray-tune",
     "ado-sfttrainer",
     "anomalous-series",
+    "density-test",
     "optimization-test-functions",
     "pfas-custom-functions",
     "profile-space",
@@ -76,6 +77,7 @@ test = [
     { name = "ado-ray-tune" },
     { name = "ado-sfttrainer" },
     { name = "anomalous-series" },
+    { name = "density-test" },
     { name = "optimization-test-functions" },
     { name = "pfas-custom-functions" },
     { name = "profile-space" },
@@ -131,6 +133,7 @@ test = [
     { name = "ado-ray-tune", editable = "plugins/operators/ray_tune" },
     { name = "ado-sfttrainer", editable = "plugins/actuators/sfttrainer" },
     { name = "anomalous-series", editable = "plugins/operators/anomalous_series" },
+    { name = "density-test", editable = "examples/density_example" },
     { name = "optimization-test-functions", editable = "examples/optimization_test_functions/custom_experiments" },
     { name = "pfas-custom-functions", editable = "examples/pfas-generative-models/custom_actuator_function" },
     { name = "profile-space", editable = "plugins/operators/profile_space" },
@@ -1164,6 +1167,10 @@ sdist = { url = "https://files.pythonhosted.org/packages/0f/d5/c66da9b79e5bdb124
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61", size = 25604, upload-time = "2021-03-08T10:59:24.45Z" },
 ]
+
+[[package]]
+name = "density-test"
+source = { editable = "examples/density_example" }
 
 [[package]]
 name = "directsearch"

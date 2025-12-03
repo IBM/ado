@@ -26,6 +26,9 @@ libomp = [
 ]
 
 
+[tool.hatch.build.targets.wheel]
+packages = ["autoconf"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["build", "build.*", "yamls"]

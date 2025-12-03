@@ -39,17 +39,16 @@ def map_valid_model_name(model_name: str) -> str:
     return model_name if len(mapped) == 0 else mapped[0]
 
 
-def map_to_valid(X: dict) -> dict:
-    Y = {}
-    for k, v in X.items():
-        match k:
-            case "model_name":
-                Y["model_name"] = map_valid_model_name(v)
-            case "gpu_model":
-                if v == "NVIDIA A100-SXM4-80GB":
-                    Y["gpu_model"] = "NVIDIA-A100-SXM4-80GB"
-                else:
-                    Y["gpu_model"] = v
-            case _:
-                Y[k] = v
-    return Y
+def map_to_valid(input_dict: dict) -> dict:
+    from copy import deepcopy
+
+    mapped_dict = deepcopy(input_dict)
+    key = "model_name"
+    if key in mapped_dict:
+        mapped_dict[key] = map_valid_model_name(mapped_dict[key])
+
+    key = "gpu_model"
+    if mapped_dict.get(key, None) == "NVIDIA A100-SXM4-80GB":
+        mapped_dict[key] = "NVIDIA-A100-SXM4-80GB"
+
+    return mapped_dict

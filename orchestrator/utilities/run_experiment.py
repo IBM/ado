@@ -17,9 +17,9 @@ from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.operators._cleanup import (
-    graceful_operation_shutdown,
-    initialize_resource_cleaner,
+    initialize_ray_resource_cleaner,
 )
+from orchestrator.modules.operators.orchestrate import graceful_orchestrate_shutdown
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.reference import ExperimentReference
@@ -248,7 +248,7 @@ def run(
     )
 
     if not remote:
-        initialize_resource_cleaner()
+        initialize_ray_resource_cleaner()
 
     try:
         for reference in point.experiments:
@@ -274,7 +274,7 @@ def run(
                 print("Entity is not valid")
     finally:
         if not remote:
-            graceful_operation_shutdown()
+            graceful_orchestrate_shutdown()
 
 
 def main():

@@ -5,6 +5,7 @@
 
 import logging
 import os
+import signal
 import typing
 
 import pydantic
@@ -23,7 +24,8 @@ from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
     ResourceCleaner,  # noqa: F401
-    graceful_operation_shutdown,
+    graceful_operation_shutdown_signal_handler,
+    signal_cleanup_callbacks,
 )
 from orchestrator.modules.operators._explore_orchestration import (
     orchestrate_explore_operation,
@@ -40,6 +42,37 @@ if typing.TYPE_CHECKING:
 
 configure_logging()
 moduleLog = logging.getLogger("orch")
+
+
+def graceful_orchestrate_shutdown():
+    """Clean resources set up by orchestrate()
+
+    This includes the cleaner actor and ray"""
+
+    import time
+
+    from rich.console import Console
+
+    console = Console()
+    with console.status("Shutdown - cleanup", spinner="dots") as status:
+
+        moduleLog.debug("Cleanup custom actors")
+        try:
+            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+            ray.get(cleaner_handle.cleanup.remote())
+            # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
+            ray.kill(cleaner_handle)
+        except Exception as e:
+            moduleLog.warning(f"Failed to cleanup custom actors {e}")
+
+        status.update("Shutdown - waiting for actors to terminate")
+
+        moduleLog.info("Shutting down Ray...")
+        ray.shutdown()
+        status.update("Shutdown - waiting for logs to flush")
+        moduleLog.info("Waiting for logs to flush ...")
+        time.sleep(10)
+        moduleLog.info("Graceful shutdown complete")
 
 
 def orchestrate(
@@ -96,6 +129,14 @@ def orchestrate(
         moduleLog.debug("Ensuring envvars are set the main process environment")
         for key, value in ray_env_vars.items():
             os.environ[key] = value
+
+    #
+    # Register signal handler
+    #
+    signal.signal(
+        signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_signal_handler()
+    )
+    signal_cleanup_callbacks["orchestrate"] = graceful_orchestrate_shutdown
 
     #
     # GET SPACE
@@ -167,10 +208,8 @@ def orchestrate(
         )
         raise
     finally:
-        if not orchestrator.modules.operators._cleanup.shutdown:
-            # If we get here the exception must have been raised before the operation started.
-            # Therefore, we don't need to wait in DiscoverySpaceManager, Actuators etc. to shut down
-            # as they never processed any date.
-            graceful_operation_shutdown()
+        if not orchestrator.modules.operators._cleanup.shutdown_signal_received:
+            graceful_orchestrate_shutdown()
+            signal_cleanup_callbacks.pop("orchestrate")
 
     return output

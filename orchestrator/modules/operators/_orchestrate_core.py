@@ -22,7 +22,7 @@ from orchestrator.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.modules.operators._cleanup import shutdown
+from orchestrator.modules.operators._cleanup import shutdown_signal_received
 from orchestrator.modules.operators.base import (
     add_operation_output_to_metastore,
     create_operation_and_add_to_metastore,
@@ -143,7 +143,7 @@ def _run_operation_harness(
     else:
         time.sleep(1)
         sys.stdout.flush()
-        if shutdown:
+        if shutdown_signal_received:
             moduleLog.warning(
                 "Operation exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
             )
@@ -194,7 +194,7 @@ def _run_operation_harness(
         # Add the final status to the operation resource
         operation_resource.status.append(operation_output.exitStatus)
 
-        if not shutdown and finalize_callback:
+        if not shutdown_signal_received and finalize_callback:
             finalize_callback(operation_resource)
 
         discovery_space.metadataStore.updateResource(operation_resource)

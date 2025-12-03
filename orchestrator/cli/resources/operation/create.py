@@ -7,6 +7,11 @@ import yaml
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoCreateCommandParameters
+from orchestrator.cli.models.types import AdoCreateSupportedResourceTypes
+from orchestrator.cli.resources.actuator_configuration.create import (
+    create_actuator_configuration,
+)
+from orchestrator.cli.resources.discovery_space.create import create_discovery_space
 from orchestrator.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
     ERROR,
@@ -55,10 +60,67 @@ def create_operation(parameters: AdoCreateCommandParameters):
             model=op_resource_configuration, override_values=parameters.override_values
         )
         validate_operation(op_resource_configuration)
+
+    if parameters.with_resources:
+
+        if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.with_resources:
+            if isinstance(
+                parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION], str
+            ):
+                op_resource_configuration.actuatorConfigurationIdentifiers = [
+                    parameters.with_resources[CoreResourceKinds.ACTUATORCONFIGURATION]
+                ]
+            else:
+                op_resource_configuration.actuatorConfigurationIdentifiers = [
+                    create_actuator_configuration(
+                        AdoCreateCommandParameters(
+                            ado_configuration=parameters.ado_configuration,
+                            dry_run=False,
+                            new_sample_store=False,
+                            override_values=[],
+                            resource_configuration_file=parameters.with_resources[
+                                CoreResourceKinds.ACTUATORCONFIGURATION
+                            ],
+                            resource_type=AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION,
+                            use_default_sample_store=False,
+                            with_resources={},
+                            use_latest=[],
+                        )
+                    )
+                ]
+
+        if CoreResourceKinds.DISCOVERYSPACE in parameters.with_resources:
+            if isinstance(
+                parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE], str
+            ):
+                op_resource_configuration.spaces = [
+                    parameters.with_resources[CoreResourceKinds.DISCOVERYSPACE]
+                ]
+            else:
+                op_resource_configuration.spaces = [
+                    create_discovery_space(
+                        AdoCreateCommandParameters(
+                            ado_configuration=parameters.ado_configuration,
+                            dry_run=False,
+                            new_sample_store=False,
+                            override_values=[],
+                            resource_configuration_file=parameters.with_resources[
+                                CoreResourceKinds.DISCOVERYSPACE
+                            ],
+                            resource_type=AdoCreateSupportedResourceTypes.DISCOVERY_SPACE,
+                            use_default_sample_store=False,
+                            with_resources={},
+                            use_latest=[],
+                        )
+                    )
+                ]
+
     elif parameters.use_latest:
         reuse_requested_latest_identifiers(
             resource_configuration=op_resource_configuration, parameters=parameters
         )
+
+    validate_operation(op_resource_configuration)
 
     if len(op_resource_configuration.spaces) > 1:
         console_print(
@@ -81,7 +143,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     try:
         operation_output = orchestrator.modules.operators.orchestrate.orchestrate(
@@ -129,7 +191,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
         operation_output.operation.identifier
     )
 
-    output_operation_result(result=operation_output)
+    return output_operation_result(result=operation_output)
 
 
 def validate_operation(
@@ -160,7 +222,7 @@ def validate_operation(
             resource_configuration.operation.parameters
         )
 
-    # AP: it is an OperationFunctionConf
+    # AP: it is an OperatorFunctionConf
     else:
 
         import orchestrator.modules.operators.collections
@@ -279,3 +341,5 @@ def output_operation_result(result: OperationOutput):
                 stderr=True,
             )
             raise typer.Exit(1)
+
+    return result.operation.identifier

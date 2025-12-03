@@ -7,6 +7,7 @@ import yaml
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoCreateCommandParameters
+from orchestrator.cli.resources.sample_store.create import create_sample_store
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
     ADO_CREATE_DRY_RUN_CONFIG_VALID,
@@ -30,14 +31,21 @@ from orchestrator.metastore.base import ResourceDoesNotExistError
 
 def create_discovery_space(parameters: AdoCreateCommandParameters):
 
-    if (
-        parameters.new_sample_store
-        and parameters.use_latest
-        and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
-    ):
+    # Fail early if there is an invalid combination of parameters
+    mutually_exclusive_options = [
+        parameters.new_sample_store,
+        parameters.use_latest is not None
+        and len(parameters.use_latest) >= 0
+        and CoreResourceKinds.SAMPLESTORE in parameters.use_latest,
+        parameters.with_resources is not None
+        and CoreResourceKinds.SAMPLESTORE in parameters.with_resources,
+    ]
+
+    if sum(mutually_exclusive_options) >= 2:
         console_print(
-            f"{ERROR}You can only set one of --new-sample-store "
-            f"and --use-latest {CoreResourceKinds.SAMPLESTORE.value}",
+            f"{ERROR}You can only set one of --new-sample-store, "
+            f"--use-latest {CoreResourceKinds.SAMPLESTORE.value}, "
+            f"--with {CoreResourceKinds.SAMPLESTORE.value}=path/id",
             stderr=True,
         )
         raise typer.Exit(1)
@@ -57,6 +65,35 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         space_configuration = override_values_in_pydantic_model(
             model=space_configuration, override_values=parameters.override_values
         )
+
+    if (
+        parameters.with_resources
+        and CoreResourceKinds.SAMPLESTORE in parameters.with_resources
+    ):
+
+        if isinstance(parameters.with_resources[CoreResourceKinds.SAMPLESTORE], str):
+            space_configuration.sampleStoreIdentifier = parameters.with_resources[
+                CoreResourceKinds.SAMPLESTORE
+            ]
+        else:
+            from orchestrator.cli.models.types import AdoCreateSupportedResourceTypes
+
+            space_configuration.sampleStoreIdentifier = create_sample_store(
+                AdoCreateCommandParameters(
+                    ado_configuration=parameters.ado_configuration,
+                    dry_run=False,
+                    new_sample_store=False,
+                    override_values=[],
+                    resource_configuration_file=parameters.with_resources[
+                        CoreResourceKinds.SAMPLESTORE
+                    ],
+                    use_default_sample_store=False,
+                    use_latest=[],
+                    with_resources={},
+                    resource_type=AdoCreateSupportedResourceTypes.SAMPLE_STORE,
+                )
+            )
+
     elif (
         parameters.use_latest and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
     ):
@@ -82,6 +119,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             stderr=True,
         )
         space_configuration.sampleStoreIdentifier = latest_recorded_sample_store
+
     elif parameters.new_sample_store:
 
         # Replay experiments cannot use --new-sample-store
@@ -139,12 +177,13 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
         parameters.ado_configuration.latest_resource_ids[
             CoreResourceKinds.SAMPLESTORE
         ] = sample_store_resource.identifier
+
     elif parameters.use_default_sample_store:
         space_configuration.sampleStoreIdentifier = "default"
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     if space_configuration.sampleStoreIdentifier == "default":
         info_message = (
@@ -212,3 +251,5 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
     console_print(
         f"{SUCCESS}Created space with identifier: {magenta(space.uri)}", stderr=True
     )
+
+    return space.uri

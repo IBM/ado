@@ -149,3 +149,40 @@ def test_create_operation_success_set_spaces(
         ],
     )
     assert result.exit_code == 0, result.output
+
+
+def test_create_operation_success_with_discovery_space(
+    tmp_path: pathlib.Path,
+    mysql_test_instance,
+    valid_ado_project_context,
+    create_active_ado_context,
+):
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    space_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/space.yaml"
+    )
+
+    operation_configuration_file = pathlib.Path(
+        "examples/optimization_test_functions/operation_bayesopt.yaml"
+    )
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "operation",
+            "-f",
+            operation_configuration_file,
+            "--set",
+            "operation.parameters.tuneConfig.num_samples=2",
+            "--with",
+            f"space={space_configuration_file}",
+        ],
+    )
+    assert result.exit_code == 0, result.output

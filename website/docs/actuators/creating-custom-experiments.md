@@ -284,6 +284,66 @@ This is illustrated in the above example.
 
 ---
 
+### Configuring execution
+
+The `custom_experiment` decorator exposes two parameters
+for controlling how a custom experiment is executed by `ado`:
+
+#### `use_ray`
+
+If `True` (the default), the custom experiment will be run
+as a Ray remote function.
+This allows multiple instances to execute in parallel
+across a Ray cluster.
+
+If `False`, only one instance of the custom
+experiment can execute at a time.
+In addition, once an instance of the custom experiment
+is started no _other_ custom experiments can run
+until it is finished
+
+#### `ray_options`
+
+> [!NOTE]
+>
+> If `use_ray` is False, the value of this parameter is ignored
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!WARNING]
+>
+> If the values given via `ray_options` don't match the expected types,
+> or additional keys are specified, the decorator will raise an exception.
+
+This optional parameter allows controlling how Ray schedules
+your custom experiment and its execution environment.
+Its value is a dict with one or more of the
+following keys:
+
+- `num_cpus` (float): Number of CPUs to allocate to this experiment.
+- `num_gpus` (float): Number of GPUs to allocate.
+- `resources` (dict): Custom Ray resource assignments.
+- `runtime_env` (dict): Ray runtime environment configuration.
+
+For example,
+
+```python
+@custom_experiment(
+    output_property_identifiers=["loss"],
+    use_ray=True, 
+    ray_options={"num_cpus": 2, 
+                 "num_gpus": 0.5, 
+                 "runtime_env": 
+                     {"env_vars": {"OMP_NUM_THREADS": "2"}}}
+)
+def my_heavy_exp(x, y):
+    # ...
+    pass
+```
+
+See the
+[ray remote docs](https://docs.ray.io/en/latest/ray-core/api/doc/ray.remote.html)
+for more information on these parameters.
+
 ## Using your decorated function in code
 
 The decorated function can be called

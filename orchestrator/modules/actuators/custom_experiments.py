@@ -51,6 +51,13 @@ _custom_experiments_catalog = orchestrator.modules.actuators.catalog.ExperimentC
 )
 
 
+class RayRemoteOptions(pydantic.BaseModel):
+    num_cpus: float | None = None
+    num_gpus: float | None = None
+    resources: dict | None = None
+    runtime_env: dict | None = None
+
+
 class ExperimentModuleConf(ModuleConf):
     moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.EXPERIMENT)
 
@@ -273,6 +280,8 @@ def custom_experiment(
     optional_properties: list[ConstitutiveProperty] | None = None,
     parameterization: dict[str, typing.Any] | None = None,
     metadata: dict[str, typing.Any] | None = None,
+    use_ray: bool = True,
+    ray_options: dict | None = None,
 ):
     """
     Decorator for custom experiment functions.
@@ -283,9 +292,12 @@ def custom_experiment(
         optional_properties: List of ConstitutiveProperty instances that are optional input values.
         parameterization: Tuple of parameters for default parameterization.
         metadata: Metadata for the experiment
+        use_ray: If True the CustomExperiments actuator will launch the experiment as a ray remote task
+        ray_options: A dictionary containing ray remote task options.
+            The keys and allowed values are defined by RayRemoteOptions
 
     Returns:
-        A decorator that wraps a function to work with ADO's custom experiment system
+        A decorator that wraps a function to work with ado's custom experiment system
 
     Example:
 
@@ -311,6 +323,13 @@ def custom_experiment(
 
     metadata = metadata if metadata else {}
     logger = logging.getLogger("custom_experiment_decorator")
+
+    ray_options_model = None
+    if ray_options is not None:
+        try:
+            ray_options_model = RayRemoteOptions.model_validate(ray_options)
+        except pydantic.ValidationError as e:
+            raise ValueError("Invalid ray_options") from e
 
     def decorator(func):
         # If we were not given information on required/optional properties
@@ -338,13 +357,6 @@ def custom_experiment(
                 f"Unable to generate custom function via decorator: {error}"
             )
             raise
-
-        # Store decorator arguments as function attributes (on func itself)
-        func._decorator_required_properties = _required_properties
-        func._decorator_optional_properties = _optional_properties
-        func._decorator_parameterization = _parameterization
-        func._original_func = func
-        func._is_custom_experiment = True
 
         # Create an ExperimentModuleConf instance describing where the function is
         metadata["module"] = ExperimentModuleConf(
@@ -410,7 +422,8 @@ def custom_experiment(
         validated_func._original_func = func
         validated_func._is_custom_experiment = True
         validated_func._experiment = experiment
-
+        validated_func._use_ray = use_ray
+        validated_func._ray_options = ray_options_model
         return validated_func
 
     return decorator
@@ -548,7 +561,7 @@ def _call_legacy_custom_experiment(
     return values
 
 
-async def custom_experiment_executor(
+def custom_experiment_executor(
     function: typing.Callable,
     parameters: dict,
     measurement_request: MeasurementRequest,
@@ -602,7 +615,7 @@ async def custom_experiment_executor(
     else:
         measurement_request.status = MeasurementRequestStateEnum.FAILED
 
-    await queue.put_async(measurement_request, block=False)
+    queue.put(measurement_request, block=False)
 
 
 @ray.remote
@@ -667,7 +680,7 @@ class CustomExperiments(ActuatorBase):
             is not None
         )
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
@@ -724,19 +737,38 @@ class CustomExperiments(ActuatorBase):
                 **targetExperiment.model_dump(),
             )
 
-        await custom_experiment_executor(
-            self._functionImplementations[
-                request.experimentReference.experimentIdentifier
-            ],
-            self._catalog.experimentForReference(
-                request.experimentReference
-            ).metadata.get("parameters", {}),
-            request,  # The request - contains experiment reference
-            targetExperiment,  # Experiment to execute
-            self._stateUpdateQueue,
-        )
-
-        # We only send one request
+        # Fetch custom_experiment function for this identifier
+        fn = self._functionImplementations[
+            request.experimentReference.experimentIdentifier
+        ]
+        use_ray = getattr(fn, "_use_ray", True)
+        ray_options_model = getattr(fn, "_ray_options", None)
+        if use_ray:
+            remote_kwargs = (
+                ray_options_model.model_dump(exclude_none=True)
+                if getattr(fn, "_ray_options", None)
+                else {}
+            )
+            # Dispatch as Ray task. Pass ray options if present.
+            ray.remote(custom_experiment_executor, **remote_kwargs).remote(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+            )
+        else:
+            custom_experiment_executor(
+                fn,
+                self._catalog.experimentForReference(
+                    request.experimentReference
+                ).metadata.get("parameters", {}),
+                request,
+                targetExperiment,
+                self._stateUpdateQueue,
+            )
         return [requestid]
 
     @classmethod

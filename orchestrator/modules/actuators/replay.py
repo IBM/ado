@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import asyncio
 import logging
 import uuid
 
@@ -113,7 +112,7 @@ class Replay(ActuatorBase):
 
         self._catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog()
 
-    async def submit(
+    def submit(
         self,
         entities: list[Entity],
         experimentReference: ExperimentReference,
@@ -144,8 +143,6 @@ class Replay(ActuatorBase):
 
         self._stateUpdateQueue.put_nowait(request)
 
-        # Because actuator interface expects this method to be async
-        await asyncio.sleep(0.000001)
         return [request.requestid]
 
     @classmethod

@@ -230,11 +230,12 @@ def min_gpu_recommender(
             )
             return {"can_recommend": False}
         except ValueError as e:
+            # Handling the case when the validation of pydantic model fails
             moduleLog.warning(
                 f"recommend_min_gpus_and_workers() for {parameters} failed with error {e}"
             )
             moduleLog.debug(f"Traceback {traceback.format_exc()}")
-            return {}
+            return {"can_recommend": False}
 
         return {
             "can_recommend": True,
@@ -242,4 +243,7 @@ def min_gpu_recommender(
             "workers": ret.workers,
         }
     except Exception as e:
+        # General failure due to recommender model not loading.. autogluon environment issues
+        # should result in InvalidMeasurements
         moduleLog.warning(e)
+        raise Exception(e)

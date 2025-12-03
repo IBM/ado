@@ -61,6 +61,7 @@ def recommend_min_gpu(
     Returns
         min_n_gpu: the minimum number of valid gpus
         -1 if no gpu number in the valid_n_gpu list is predicted to be valid"""
+    # We use list() here to copy VALID_N_GPUS and thus avoid any unintentional update to VALID_N_GPUS.
     if valid_n_gpu_list is None:
         valid_n_gpu_list = list(VALID_N_GPUS)
 
@@ -82,7 +83,7 @@ def recommend_min_gpu(
             logger.info(
                 "This is the value provided by the user, for this configuration the recommender will provide additional metadata"
             )
-            gpus_can_support_run, m = get_model_prediction_and_metadata(
+            gpus_can_support_run, _ = get_model_prediction_and_metadata(
                 job_config, predictor=predictor
             )
         else:

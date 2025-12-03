@@ -207,7 +207,7 @@ models.
 
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
     - model_max_length: Maximum sequence length. Sequences will be right padded
       (and possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
@@ -469,7 +469,7 @@ configurations.
     
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
     - model_max_length: Maximum sequence length. Sequences will be right padded (and
       possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
@@ -754,7 +754,7 @@ adaptation.
 
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
     - model_max_length: Maximum sequence length. Sequences will be right padded (and
       possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to
@@ -914,6 +914,7 @@ adaptation.
     - `mistral-123b-v2`: `["q_proj", "v_proj"]`
     - `mixtral-8x7b-instruct-v0.1`: `["q_proj", "v_proj"]`
     - `granite-3-8b`: `["q_proj", "v_proj"]`
+    - `granite-3.3-8b`: `["q_proj", "v_proj"]`
     - `granite-3.1-2b`: `["q_proj", "v_proj"]`
     - `granite-3.1-8b-instruct`: `["q_proj", "v_proj"]`
     - `granite-4.0-micro`: `["q_proj", "v_proj"]`
@@ -1080,7 +1081,7 @@ memory constrained environments.
 
     - model_name: Supported models:
       <!-- markdownlint-disable-next-line line-length -->
-      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny"]`
+      `["granite-3b-1.5", "hf-tiny-model-private/tiny-random-BloomForCausalLM", "llama-7b", "granite-13b-v2", "llama-13b", "granite-20b-v2", "granite-7b-base", "granite-8b-japanese", "granite-8b-code-base", "granite-34b-code-base", "mistral-7b-v0.1", "llama3-8b", "llama3-70b", "mixtral-8x7b-instruct-v0.1", "llama2-70b", "llama3.1-8b", "llama3.1-70b", "llama3.1-405b", "granite-3b-code-base-128k", "granite-8b-code-base-128k", "allam-1-13b", "granite-3-8b", "granite-3.1-2b", "granite-3.1-8b-instruct", "mistral-123b-v2", "granite-3.1-3b-a800m-instruct", "granite-vision-3.2-2b", "smollm2-135m", "llava-v1.6-mistral-7b", "granite-4.0-micro", "granite-4.0-h-1b", "granite-4.0-350m", "granite-4.0-h-small", "granite-4.0-h-micro", "granite-4.0-h-tiny", "granite-3.3-8b"]`
     - model_max_length: Maximum sequence length. Sequences will be right padded (and
       possibly truncated)
     - number_gpus: The effective number of GPUs (to be evenly distributed to

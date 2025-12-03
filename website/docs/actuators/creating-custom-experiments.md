@@ -41,10 +41,10 @@ my_experiment = "my_custom_package.experiments"
 
 In the simplest case:
 
-- type the parameters (using python `typing`)
+- type your parameters using python `typing`
 - return the output in a dictionary of key value pairs
-- define the keys of this dictionary in the `output_property_identifiers`
-parameter of the decorator
+- define the set of output property keys in the
+`output_property_identifiers` parameter of the decorator
 
 ```python
 from typing import Dict, Any
@@ -284,17 +284,98 @@ This is illustrated in the above example.
 
 ---
 
-## Using your decorated function in code
+### Configuring execution
 
-The decorated function is wrapped to take `ado` internal
-data structures, and you would not typically need to
-call it directly. However, the decorated experiment function is
-still regular Python and can be called:
+The `custom_experiment` decorator exposes two parameters
+for controlling how a custom experiment is executed by `ado`:
+
+#### `use_ray`
+
+If `True` (the default), the custom experiment will be run
+as a Ray remote function.
+This allows multiple instances to execute in parallel
+across a Ray cluster.
+
+If `False`, only one instance of the custom
+experiment can execute at a time.
+In addition, once an instance of the custom experiment
+is started no _other_ custom experiments can run
+until it is finished
+
+#### `ray_options`
+
+> [!NOTE]
+>
+> If `use_ray` is False, the value of this parameter is ignored
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!WARNING]
+>
+> If the values given via `ray_options` don't match the expected types,
+> or additional keys are specified, the decorator will raise an exception.
+
+This optional parameter allows controlling how Ray schedules
+your custom experiment and its execution environment.
+Its value is a dict with one or more of the
+following keys:
+
+- `num_cpus` (float): Number of CPUs to allocate to this experiment.
+- `num_gpus` (float): Number of GPUs to allocate.
+- `resources` (dict): Custom Ray resource assignments.
+- `runtime_env` (dict): Ray runtime environment configuration.
+
+For example,
 
 ```python
-# Access the original function (undecorated)
-original = calculate_density._original_func
-print(original(8, 4))  # {'density': 2}
+@custom_experiment(
+    output_property_identifiers=["loss"],
+    use_ray=True, 
+    ray_options={"num_cpus": 2, 
+                 "num_gpus": 0.5, 
+                 "runtime_env": 
+                     {"env_vars": {"OMP_NUM_THREADS": "2"}}}
+)
+def my_heavy_exp(x, y):
+    # ...
+    pass
+```
+
+See the
+[ray remote docs](https://docs.ray.io/en/latest/ray-core/api/doc/ray.remote.html)
+for more information on these parameters.
+
+## Using your decorated function in code
+
+The decorated function can be called
+directly in Python as normal e.g.,
+
+```python
+result = calculate_density(8, 4)  # {'density': 2}
+```
+
+The `custom_experiment` decorator attaches the
+ado `Experiment` object generated from the decoration as an attribute e.g.
+
+```python
+from orchestrator.schema.experiment import Experiment
+
+exp_obj: Experiment = calculate_density._experiment
+print(exp_obj.identifier)  # e.g., 'calculate_density'
+print(exp_obj.requiredProperties)
+print(exp_obj.optionalProperties)
+print(exp_obj.targetProperties)
+```
+
+When you call the decorated function, its arguments are
+automatically validated against the required and optional inputs
+specified in the decorator, including domain constraints.
+If you call it with missing, extra, or out-of-domain arguments,
+the function will raise a `ValueError` describing what was invalid and why.
+For example:
+
+```python
+# Value outside domain - an error will be raised
+result = calculate_density(mass=0, volume=10)  
 ```
 
 ## Next Steps

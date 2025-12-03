@@ -73,7 +73,7 @@ def create_sample_store(parameters: AdoCreateCommandParameters):
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
-        return
+        return None
 
     from orchestrator.core.samplestore.utils import create_sample_store_resource
 
@@ -94,3 +94,5 @@ def create_sample_store(parameters: AdoCreateCommandParameters):
         f"{SUCCESS}Created sample store with identifier {magenta(sample_store.identifier)}",
         stderr=True,
     )
+
+    return sample_store.identifier

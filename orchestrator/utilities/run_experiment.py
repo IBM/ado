@@ -16,7 +16,7 @@ from ray.actor import ActorHandle
 from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
-from orchestrator.modules.operators.orchestrate import (
+from orchestrator.modules.operators._cleanup import (
     graceful_operation_shutdown,
     initialize_resource_cleaner,
 )

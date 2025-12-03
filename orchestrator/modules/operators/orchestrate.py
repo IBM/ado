@@ -5,7 +5,6 @@
 
 import logging
 import os
-import pathlib
 import typing
 
 import pydantic
@@ -13,31 +12,20 @@ import ray
 import ray.util.queue
 from ray.runtime_env import RuntimeEnv
 
-import orchestrator.core
-import orchestrator.core.discoveryspace.config
-import orchestrator.core.operation.config
-import orchestrator.modules.operators._cleanup
-import orchestrator.utilities.output
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    BaseOperationRunConfiguration,
+    DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
-from orchestrator.core.operation.resource import (
-    OperationResource,
-)
+from orchestrator.metastore.base import ResourceDoesNotExistError
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
     ResourceCleaner,  # noqa: F401
     graceful_operation_shutdown,
-    initialize_resource_cleaner,
 )
-
-# Want explore_operation_function_wrapper function to be accessed via this module not the private module
 from orchestrator.modules.operators._explore_orchestration import (
-    explore_operation_function_wrapper,  # noqa: F401
     orchestrate_explore_operation,
 )
 
@@ -54,74 +42,30 @@ configure_logging()
 moduleLog = logging.getLogger("orch")
 
 
-def orchestrate_operation_function(
-    base_operation_configuration: BaseOperationRunConfiguration,
-    project_configuration: ProjectContext,
-    discovery_space: DiscoverySpace,
-) -> tuple[
-    "DiscoverySpace",
-    "OperationResource",
-    "OperationOutput",
-]:
-    """This functions orchestrate operations with function operators.
-
-    It gets the actuator configurations (if any) and calls the function
-    defined in base_operation_configuration.
-
-    This function will either call
-    - explore_operation_function_wrapper -> orchestrate_explore_operation -> _run_operation_harness
-    - orchestrate_general_operation -> _run_operation_harness
-    """
-
-    import orchestrator.modules.operators.collections  # noqa: F401
-
-    initialize_resource_cleaner()
-
-    # TODO: Check if this is necessary
-    # Because
-    # They are not passed
-    # if explore -> this is done again
-    # If general ??
-    actuator_configurations = (
-        base_operation_configuration.validate_actuatorconfigurations_against_space(
-            project_context=project_configuration,
-            discoverySpaceConfiguration=discovery_space.config,
-        )
-    )
-
-    if actuator_configurations is None:
-        actuator_configurations = []
-
-    output = base_operation_configuration.operation.module.operationFunction()(
-        discovery_space,
-        operationInfo=FunctionOperationInfo(
-            metadata=base_operation_configuration.metadata,
-            actuatorConfigurationIdentifiers=base_operation_configuration.actuatorConfigurationIdentifiers,
-        ),
-        **base_operation_configuration.operation.parameters,
-    )  # type: OperationOutput
-
-    return discovery_space, output.operation, output
-
-
 def orchestrate(
-    base_operation_configuration: BaseOperationRunConfiguration,
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
     project_context: ProjectContext,
-    discovery_space_configuration: (
-        orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration | None
-    ),
-    discovery_space_identifier: str | None,
-    entities_output_file: str | pathlib.Path | None = None,
-    queue: "ray.util.queue.Queue" = None,
-    execid: str | None = None,
+    discovery_space_identifier: str,
 ) -> OperationOutput:
-    """orchestrate the execution of an operation defined as a function or a class (OperationModule)
+    """Orchestrate the execution of an operation defined as a function or a class (OperationModule)
 
-    Supports
-    - running with either a discovery space id OR a discovery space configuration if the operation is implemented
-    as a class running ONLY with discovery space id if the operation is implemented as an OperationFunction
+    This function initializes Ray, loads the discovery space from the metastore, and executes
+    the operation based on its implementation type (class-based or function-based).
 
-    How the operation is implemented is given by base_operation_configuration.operation.module
+    Params:
+        operation_resource_configuration: Configuration for the operation including module,
+            parameters, metadata, actuator configurations, and target spaces
+        project_context: Project context for connecting to the metastore
+        discovery_space_identifier: Identifier of the discovery space to load from the metastore
+
+    Returns:
+        OperationOutput containing the results and status of the operation
+
+    Raises:
+        ValueError: If the measurement space is inconsistent
+        OperationException: If there is an error during the operation
+        pydantic.ValidationError: If the operation parameters are not valid
+        ray.exceptions.ActorDiedError: If there was an error initializing actors
     """
 
     import orchestrator.modules.operators.setup
@@ -136,7 +80,7 @@ def orchestrate(
         moduleLog.info(
             f"Runtime environment variables are set based on provided ray runtime environment - {ray_runtime_config}"
         )
-        ray.init(namespace=execid, ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True)
     else:
         # In local mode we can read a set of envvars a then export them into the ray environment
         # Currently we don't use it but keeping the code to recall how to do so if necessary
@@ -146,7 +90,6 @@ def orchestrate(
         )
         ray.init(
             runtime_env=RuntimeEnv(env_vars=ray_env_vars),
-            namespace=execid,
             ignore_reinit_error=True,
         )
 
@@ -157,24 +100,10 @@ def orchestrate(
     #
     # GET SPACE
     #
-
-    if discovery_space_configuration:
-        discovery_space = DiscoverySpace.from_configuration(
-            conf=discovery_space_configuration,
-            project_context=project_context,
-            identifier=None,
-        )
-        print("Storing space (if backend storage configured)")
-        discovery_space.saveSpace()
-    elif discovery_space_identifier:
-        discovery_space = DiscoverySpace.from_stored_configuration(
-            project_context=project_context,
-            space_identifier=discovery_space_identifier,
-        )
-    else:
-        raise ValueError(
-            "You must provide a discovery space configuration or identifier"
-        )
+    discovery_space = DiscoverySpace.from_stored_configuration(
+        project_context=project_context,
+        space_identifier=discovery_space_identifier,
+    )
 
     if not discovery_space.measurementSpace.isConsistent:
         moduleLog.critical("The measurement space is inconsistent - aborting")
@@ -182,34 +111,40 @@ def orchestrate(
 
     #
     # RUN OPERATION
-    # How depends on if they are implemented as functions or classes
     #
+
+    operation_info = FunctionOperationInfo(
+        metadata=operation_resource_configuration.metadata,
+        actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
+    )
+
     try:
         if isinstance(
-            base_operation_configuration.operation.module,
+            operation_resource_configuration.operation.module,
             orchestrator.core.operation.config.OperatorModuleConf,
         ):
             if (
-                base_operation_configuration.operation.module.operationType
+                operation_resource_configuration.operation.module.operationType
                 == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
             ):
-                _, _, output = orchestrate_explore_operation(
-                    base_operation_configuration=base_operation_configuration,
-                    project_context=project_context,
+                output = orchestrate_explore_operation(
+                    operator_module=operation_resource_configuration.operation.module,
                     discovery_space=discovery_space,
-                    namespace=execid,
-                    queue=queue,
+                    parameters=operation_resource_configuration.operation.parameters,
+                    operation_info=operation_info,
                 )
             else:
                 raise ValueError(
                     "Implementing operations as classes is only supported for explore operations"
                 )
         else:
-            _, _, output = orchestrate_operation_function(
-                base_operation_configuration=base_operation_configuration,
-                project_configuration=project_context,
-                discovery_space=discovery_space,
-            )
+            output = (
+                operation_resource_configuration.operation.module.operationFunction()(
+                    discovery_space,
+                    operationInfo=operation_info,
+                    **operation_resource_configuration.operation.parameters,
+                )
+            )  # type: OperationOutput
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
         raise
@@ -220,6 +155,7 @@ def orchestrate(
         ValueError,
         pydantic.ValidationError,
         ray.exceptions.ActorDiedError,
+        ResourceDoesNotExistError,
     ) as error:
         moduleLog.critical(
             f"Error, {error}, in operation setup. Operation resource not created - exiting"

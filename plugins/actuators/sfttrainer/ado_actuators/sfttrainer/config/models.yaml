@@ -10,6 +10,8 @@ granite-20b-v2:
   Vanilla: /hf-models-pvc/granite-20b-code-base-v2/step_280000_ckpt/
 granite-3-8b:
   Vanilla: ibm-granite/granite-3.0-8b-base
+granite-3.3-8b:
+  Vanilla: ibm-granite/granite-3.3-8b-base
 granite-3.1-2b:
   Vanilla: ibm-granite/granite-3.1-2b-base
 granite-3.1-3b-a800m-instruct:

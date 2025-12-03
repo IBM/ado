@@ -75,8 +75,12 @@ def execute_benchmark(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
 
+    # get logger level and forward to subprocess
+    log_level = logging.getLevelName(logger.getEffectiveLevel())
     request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
     f_name = f"{uuid.uuid4().hex}.json"
+    # Propagate logger's log level to subprocess via env var (if supported)
+    request = f"export VLLM_BENCH_LOGLEVEL={log_level} && " + request
     request += (
         f"vllm bench serve --backend {backend} --base-url {base_url} --dataset-name {dataset} "
         f"--model {model} --seed 12345 --num-prompts 10 --save-result --metric-percentiles "

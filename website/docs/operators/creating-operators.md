@@ -470,30 +470,22 @@ def ray_tune(
     """
 
     from orchestrator.core.operation.config import OperatorModuleConf
-    from orchestrator.module.operator.orchestrate import explore_operation_function_wrapper
+    from orchestrator.module.operator.orchestrate import orchestrate_explore_operation
 
 
-    ## This describes where the class the implements your explore operation is
+    ## This describes where the class that implements your explore operation is
     module = OperatorModuleConf(
         moduleName="ado_ray_tune.operator",  # The name of the package containing your explore actor
         moduleClass="RayTune",  # The name of your explore actor class
-        moduleType=orchestrator.modules.module.ModuleTypeEnum.OPERATION,
     )
 
-    # validate parameters
-    RayTuneConfiguration.model_validate(kwargs)
-
     # Tell ado to execute your class
-    output = explore_operation_function_wrapper(
+    return orchestrate_explore_operation(
         discovery_space=discoverySpace,
         module=module,
         parameters=kwargs,
-        namespace=f"namespace-{str(uuid.uuid4())[:8]}",  #
         operation_info=operationInfo,  # Important: This is where you must pass the operationInfo parameter to ado
     )
-
-    return output
-
 ```
 
 ### Explore operator classes

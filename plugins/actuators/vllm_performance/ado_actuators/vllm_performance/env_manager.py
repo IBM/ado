@@ -267,7 +267,7 @@ class EnvironmentManager:
         """
         Report test completion
         :param definition: environment definition
-        :param wipe: flag to indicate the environment is to be completely removed and not freed for later use
+        :param reclaim_on_completion: flag to indicate the environment is to be completely removed and not freed for later use
         :return: None
         """
         env = self.in_use_environments.pop(identifier)

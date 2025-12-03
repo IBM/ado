@@ -33,7 +33,7 @@ and outputs 3 parameters:
 The min_gpu_recommender is exposed via an [`ado`](ibm.github.io/ado/)
 [custom experiment](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
 This enables validation of parameters provided for invocation against the domain
-accepted by the recommender mode. This ensures that, as expected, the model
+accepted by the recommender model. This ensures that, as expected, the model
 returns `can_recommend==0` for configuration domain values (e.g. model names
 that were absent in its training set.)
 

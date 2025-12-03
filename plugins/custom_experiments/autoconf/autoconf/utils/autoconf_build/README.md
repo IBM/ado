@@ -21,18 +21,31 @@ macOS machines.
 
 ### Current Setting
 
-* **Preset:** `medium_quality`
+* **Preset:** `medium_quality` + `optimize_for_deployment`
 * **Excluded Models:** `GBM`
-* **Training Time:** ~2 minutes on ~12,000 samples
+* **Training Time:** ~1 minutes on ~12,000 samples
 * **Model Size:** ~5 MB
+
+```python
+fit_params = {"presets":["medium_quality",
+"optimize_for_deployment"],
+"excluded_model_types": "GBM"}
+```
+
+---
+
+### Option 1: Medium Quality Only
+
+* **Preset:** `good_quality`
+* **Excluded Models:** `GBM`
+* **Training Time:** equal to current setting
+* **Model Size:** ~300 MB
 
 ```python
 fit_params = {"presets": ["medium_quality"], "excluded_model_types": "GBM"}
 ```
 
----
-
-### Option 1: Good Quality + Optimize for Deployment
+### Option 2: Good Quality + Optimize for Deployment
 
 * **Preset:** `good_quality`, `optimize_for_deployment`
 * **Excluded Models:** `GBM`
@@ -46,31 +59,12 @@ fit_params = {
 }
 ```
 
----
-
-### Option 2: Medium Quality + Optimize for Deployment
-
-* **Preset:** `medium_quality`, `optimize_for_deployment`
-* **Excluded Models:** `GBM`
-* **Model Size:** ~315 MB
-
-```python
-fit_params = {
-    "presets": ["medium_quality", "optimize_for_deployment"],
-    "excluded_model_types": "GBM"
-}
-```
-
----
-
 ### Option 3: Good Quality Only
 
 * **Preset:** `good_quality`
 * **Excluded Models:** `GBM`
-* **Training Time:** ~15 minutes
-* **Size Before Optimization:** ~600 MB
-* **Size After Optimization (predictor.clone_for_deployment):** ~260 MB
-* **Disk Usage Reduction:** ~59.1%
+* **Training Time:** ~30× longer than current setting
+* **Model Size:** ~600 MB
 
 ```python
 fit_params = {"presets": ["good_quality"], "excluded_model_types": "GBM"}

@@ -1,6 +1,8 @@
 # Copyright (c) IBM Corporation
 
 # SPDX-License-Identifier: MIT
+
+# %% Run this script with IPython
 import glob
 import logging
 import os
@@ -10,19 +12,6 @@ import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
 from autoconf.utils.rule_based_classifier import filter_valid_with_hard_logic
-
-# Configure logging
-
-logging.basicConfig(
-    level=logging.INFO,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",  # Log format
-    handlers=[logging.StreamHandler()],  # Output to console
-)
-
-
-# %% TODO (?) Remove python cells references (?), make this script usable as a standalone script from the cli?
-# where should I look for data files?
-
 
 logger = logging.getLogger(__name__)
 logger.info("These are the available csvs")

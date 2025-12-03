@@ -104,8 +104,8 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
     #  - examples/optimization_test_functions/custom_experiments
     # Locally this may not work because we might have more or less of these.
     assert (
-        len(catalog.experiments) == 2
-    ), "Expected 2 experiments in the custom_experiments catalog for testing "
+        len(catalog.experiments) == 3
+    ), "Expected 3 experiments in the custom_experiments catalog for testing "
 
     identifiers = {e.identifier for e in catalog.experiments}
     assert {

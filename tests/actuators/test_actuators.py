@@ -110,6 +110,7 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
     identifiers = {e.identifier for e in catalog.experiments}
     assert {
         "acid_test",
+        "calculate_density",
         "nevergrad_opt_3d_test_func",
     } == identifiers, f"Expected the experiments to be called - acid_test and nevergrad_opt_3d_test_func but they are called {identifiers}"
     loaded = custom_experiments.loadedExperiment.remote(

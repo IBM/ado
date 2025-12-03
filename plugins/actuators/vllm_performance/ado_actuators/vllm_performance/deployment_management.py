@@ -46,7 +46,7 @@ class DeploymentConflictManager:
                     )
                 )
                 await waiter.model_downloaded_event.wait()
-                # If after we got awaken the model is not among the downloaded models, it means that
+                # If after we got awoken the model is not among the downloaded models, it means that
                 # something has gone wrong, such as the deployment we were waiting for has failed.
                 # If am the first to wake up let me add myself as the deployment to be waited for and stop waiting.
                 if (
@@ -54,7 +54,7 @@ class DeploymentConflictManager:
                     and not self.maybe_add_deployment(k8s_name=k8s_name, model=model)
                 ):
                     # If I am not the first to wake up, I get the new waiter object and continue waiting
-                    waiter = self.deployments_to_wait_for.get(model, None)
+                    waiter = self.deployments_to_wait_for.get(model)
                     continue
 
                 console.put.remote(
@@ -67,11 +67,14 @@ class DeploymentConflictManager:
                 break
 
     def signal(self, k8s_name: str, model: str, error: bool = False) -> None:
-        if model in self.deployments_to_wait_for:
-            waiter = self.deployments_to_wait_for.pop(model)
-            assert (
-                waiter.k8s_name == k8s_name
-            ), f"This environment deployment ({k8s_name}) shouldn't have been created because it is conflicting with deployment {waiter.k8s_name}"
-            if not error:
-                self.model_already_downloaded.add(model)
-            waiter.model_downloaded_event.set()
+        if model not in self.deployments_to_wait_for:
+            return
+
+        waiter = self.deployments_to_wait_for.pop(model)
+        if waiter.k8s_name != k8s_name:
+            raise ValueError(
+                f"This environment deployment ({k8s_name}) shouldn't have been created because it is conflicting with deployment {waiter.k8s_name}"
+            )
+        if not error:
+            self.model_already_downloaded.add(model)
+        waiter.model_downloaded_event.set()

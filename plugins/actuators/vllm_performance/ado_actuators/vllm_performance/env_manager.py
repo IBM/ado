@@ -3,13 +3,13 @@
 
 import asyncio
 import logging
-import time
 from enum import Enum
 
 import ray
 from ado_actuators.vllm_performance.deployment_management import (
     DeploymentConflictManager,
 )
+from ado_actuators.vllm_performance.k8s import K8sEnvironmentCreationError
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -105,18 +105,18 @@ class EnvironmentManager:
             pvc_template=pvc_template,
         )
 
-    def _wipe_deployment(self, identifier: str) -> None:
+    def _delete_environment_k8s_resources(self, k8s_name: str) -> None:
         """
         Deletes a deployment. Intended to be used for cleanup or error recovery
         param: identifier: the deployment identifier
         """
         try:
-            self.manager.delete_service(k8s_name=identifier)
+            self.manager.delete_service(k8s_name=k8s_name)
         except ApiException as e:
             if e.reason != "Not Found":
                 raise e
         try:
-            self.manager.delete_deployment(k8s_name=identifier)
+            self.manager.delete_deployment(k8s_name=k8s_name)
         except ApiException as e:
             if e.reason != "Not Found":
                 raise e
@@ -138,9 +138,6 @@ class EnvironmentManager:
         :param increment_usage: increment usage flag
         :return: environment state
         """
-        print(
-            f"getting environment for model {model}, currently {self.active_environments} deployments"
-        )
 
         # check if there's an existing free environment satisfying the request
         env = self.get_matching_free_environment(definition)
@@ -153,24 +150,54 @@ class EnvironmentManager:
                         f"There are already {self.max_concurrent} actively in use, and I can't create a new one"
                     )
                     return None
-                    # There are unused environments, let's evict one
 
-                # Gets the oldest env in the list
-                environment_to_evict = self.free_environments[0]
-                try:
-                    self.manager.delete_service(k8s_name=environment_to_evict.k8s_name)
-                    self.manager.delete_deployment(
-                        k8s_name=environment_to_evict.k8s_name
-                    )
+                # There are unused environments, let's try to evict one
+                environment_evicted = False
+                eviction_index = 0
+                # Continue looping until we find one environment that can be successfully evicted or we have gone through them all
+                while not environment_evicted and eviction_index < len(
+                    self.free_environments
+                ):
+                    environment_to_evict = self.free_environments[eviction_index]
+                    try:
+                        # _delete_environment_k8s_resources will not raise an error if for whatever the reason the service
+                        # or the deployment we are trying to delete does not exist anymore, and we assume
+                        # the deployment was properly deleted.
+                        self._delete_environment_k8s_resources(
+                            k8s_name=environment_to_evict.k8s_name
+                        )
+                    except ApiException as e:
+                        # If we can't delete this environment we try with the next one, but we do not
+                        # delete the current env from the free list. This is to avoid spawning more pods than the maximum configured
+                        # in the case the failing ones are still running.
+                        # Since the current eviction candidate environment will stay in the free ones, some other measurement might
+                        # try to evict again and perhaps succeed (e.g., connection restored to the cluster).
+                        logger.critical(
+                            f"Error deleting deployment or service {environment_to_evict.k8s_name}: {e}"
+                        )
+                        eviction_index += 1
+                        continue
+
                     logger.info(
                         f"deleted environment {environment_to_evict.k8s_name}. "
                         f"Active environments {self.active_environments}"
                     )
-                except ApiException as e:
-                    logger.error(f"Error deleting deployment or service {e}")
-                # If all the Kubernetes resources got deleted, let's remove this environment from our records
-                self.free_environments.pop(0)
-                time.sleep(3)
+                    environment_evicted = True
+
+                if environment_evicted:
+                    # successfully deleted an environment
+                    self.free_environments.pop(eviction_index)
+                elif len(self.in_use_environments) > 0:
+                    # all the free ones have failed deleting but there is one or more in use that
+                    # might make room for waiting measurements. In this case we just behave as if there
+                    # are no free available environments and we wait.
+                    return None
+                else:
+                    # None of the free environments could be evicted due to errors and none are in use
+                    # To avoid a deadlock of the operation we fail the measurement
+                    raise K8sEnvironmentCreationError(
+                        "All free environments failed deleting and none are currently in use."
+                    )
 
             # We either made space or we had enough space already
             env = Environment(model=model, configuration=definition)
@@ -211,7 +238,7 @@ class EnvironmentManager:
 
     def cleanup_failed_deployment(self, identifier: str) -> None:
         env = self.in_use_environments[identifier]
-        self._wipe_deployment(identifier=identifier)
+        self._delete_environment_k8s_resources(k8s_name=identifier)
         self.done_using(identifier=identifier, reclaim_on_completion=True)
         self.deployment_conflict_manager.signal(
             k8s_name=identifier, model=env.model, error=True
@@ -259,7 +286,7 @@ class EnvironmentManager:
         logger.info("Cleaning environments")
         all_envs = list(self.in_use_environments.values()) + self.free_environments
         for env in all_envs:
-            self._wipe_deployment(identifier=env.k8s_name)
+            self._delete_environment_k8s_resources(k8s_name=env.k8s_name)
 
         # We only delete the PVC if it was created by this actuator
         if self.manager.pvc_created:

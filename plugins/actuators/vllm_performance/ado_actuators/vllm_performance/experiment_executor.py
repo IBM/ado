@@ -16,6 +16,10 @@ from ado_actuators.vllm_performance.env_manager import (
     EnvironmentManager,
     EnvironmentState,
 )
+from ado_actuators.vllm_performance.k8s import (
+    K8sConnectionError,
+    K8sEnvironmentCreationError,
+)
 from ado_actuators.vllm_performance.k8s.create_environment import (
     create_test_environment,
 )
@@ -39,14 +43,6 @@ from orchestrator.utilities.support import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class K8EnvironmentCreationError(Exception):
-    """Error raised when K8 environment cannot be created for some reason"""
-
-
-class K8ConnectionError(Exception):
-    """Error raised when there is an issue connecting to K8s or a service its hosting"""
 
 
 def _build_entity_env(values: dict[str, str]) -> str:
@@ -109,7 +105,7 @@ def _create_environment(
      :param timeout: timeout
     :return: kubernetes environment name
 
-    :raises K8EnvironmentCreationError if there was an issue
+    :raises K8sEnvironmentCreationError if there was an issue
     - If the creation step fails after three attempts
     - If after creation the environment was not in ready state after timeout seconds (1200 default)
 
@@ -135,9 +131,12 @@ def _create_environment(
     )
     while True:
 
-        env: Environment = ray.get(
-            env_manager.get_environment.remote(model=model, definition=definition)
-        )
+        try:
+            env: Environment = ray.get(
+                env_manager.get_environment.remote(model=model, definition=definition)
+            )
+        except Exception as e:
+            raise e
         if env is not None:
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
@@ -255,7 +254,7 @@ def _create_environment(
                     )
                 )
 
-                raise K8EnvironmentCreationError(
+                raise K8sEnvironmentCreationError(
                     f"Failed to create test environment {env.k8s_name}: {error}"
                 )
 
@@ -315,12 +314,12 @@ def _connect_to_vllm_server(
             time.sleep(5)
             # Check if there is a returncode- if there is it means port-forward exited
             if pf.returncode:
-                raise K8ConnectionError(
+                raise K8sConnectionError(
                     f"failed to start port forward to service {k8s_name} - port-forward command exited for unknown reason. Check logs."
                 )
         except Exception as e:
             logger.warning(f"failed to start port forward to service {k8s_name} - {e}")
-            raise K8ConnectionError(
+            raise K8sConnectionError(
                 f"failed to start port forward to service {k8s_name} - {e}"
             )
 
@@ -379,7 +378,7 @@ def run_resource_and_workload_experiment(
 
             logger.info(f"Creating K8s environment for {entity.identifier}")
 
-            # Will raise an K8EnvironmentCreationError if the environment could not be created
+            # Will raise an K8sEnvironmentCreationError if the environment could not be created
             k8s_name, definition = _create_environment(
                 values=values,
                 actuator=actuator_parameters,
@@ -388,7 +387,7 @@ def run_resource_and_workload_experiment(
                 request_id=request.requestid,
             )
 
-            # Will raise an K8ConnectionError if a port-forward was required
+            # Will raise an K8sConnectionError if a port-forward was required
             # but could not be created
             current_port += 1
             base_url, port_forward = _connect_to_vllm_server(
@@ -428,8 +427,8 @@ def run_resource_and_workload_experiment(
             )
 
         except (
-            K8EnvironmentCreationError,
-            K8ConnectionError,
+            K8sEnvironmentCreationError,
+            K8sConnectionError,
             VLLMBenchmarkError,
         ) as error:
             logger.error(f"Error running tests for entity {entity.identifier}: {error}")

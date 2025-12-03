@@ -246,4 +246,4 @@ def min_gpu_recommender(
         # General failure due to recommender model not loading.. autogluon environment issues
         # should result in InvalidMeasurements
         moduleLog.warning(e)
-        raise Exception(e)
+        raise e

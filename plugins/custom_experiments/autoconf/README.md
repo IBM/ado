@@ -1,21 +1,21 @@
 # AutoConf
 
-This is a repository for the models used in automated configuration of resources
-for GenAI workloads. At the moment, there is only one model available called
-`min_gpu_recommender`
+This package contains ado custom experiments for use in automated configuration
+of workload resources requirements for GenAI workloads.
 
 ## min_gpu_recommender
 
-**min_gpu_recommender** recommends the minimum number of GPUs per worker and the
-number of workers required to run a tuning job without triggering a GPU Out Of
-Memory exception.
+**min_gpu_recommender** is a predictive model that recommends the minimum number
+of GPUs per worker and the number of workers required to run a tuning job
+without triggering a GPU Out Of number of workers required to run a fine-tuning
+job without triggering a GPU Out Of
 
-It combines rule-based logic with an
-[AutoGluon](https://auto.gluon.ai/stable/index.html) tabular model.
+This model combines rule-based logic with an
+[AutoGluon](https://auto.gluon.ai/stable/index.html) tabular classifier.
 
-### Model Information
+### Model Details
 
-The classifier operates on the following features:
+The model operates on the following features:
 
 - `model_name`
 - `method` (e.g., `lora`, `full`)
@@ -30,22 +30,26 @@ and outputs 3 parameters:
 - `workers` with an integer value
 - `gpus` with an integer value
 
-Please see [models README](min_gpu_recommender/AutoGluonModels/README.md) for
-information on model versions
-
-### Installation
-
-Install the package e.g. from the root directory of this git repository run
-`pip install ".[torch]"`. You may be required to install versions of ado-core
-that are not available on pypi or install optional dependencies based on the
-model you want to run (please, refer to
-[the changelog](min_gpu_recommender/AutoGluonModels/changelog.md)).
-
-### Usage
-
 The min_gpu_recommender is exposed via an [`ado`](ibm.github.io/ado/)
 [custom experiment](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
-and can be invoked in multiple ways:
+This enables validation of parameters provided for invocation against the domain
+accepted by the recommender mode. This ensures that, as expected, the model
+returns `can_recommend==0` for configuration domain values (e.g. model names
+that were absent in its training set.)
+
+Please note that the accepted domains of the models are updated with every
+version of the model. Please see
+[models README](autoconf/AutoGluonModels/README.md) for information on the
+different model versions available. Please refer to
+[the changelog](autoconf/AutoGluonModels/changelog.md) for more details on model
+updates
+
+### Installation and Usage
+
+Install the package e.g. from the root directory of this custom experiment
+(`ado/plugins/custom_experiments/autoconf/`) to run `pip install ".[torch]"`.
+
+The mmin_gpu_recommender model can be invoked in multiple ways:
 
 #### 1. CLI
 
@@ -113,13 +117,13 @@ workers                                                              1
 can_recommend                                                        1
 ```
 
-It reports that the recommender can make a suggestion (can_recommend=1). The
+It reports that the recommender can make a suggestion (`can_recommend=1`). The
 suggestion comes in the form of number of workers and GPUs per worker. In the
 above example, you should use 1 worker with 2 GPUs.
 
 #### 2. Example programmatic usage with validation
 
-Calling decorated `min_gpu_recommender` custom experiment directly
+Calling decorated `min_gpu_recommender` custom experiment directly .
 
 <!-- markdownlint-disable line-length -->
 
@@ -196,13 +200,17 @@ request=local_execution_closure(registry=ActuatorRegistry())(reference=experimen
 print(request.measurements[0].series_representation(output_format="target"))
 ```
 
-#### 4
+### Downstream Example: Parameter Sweep over a configuration space
 
 <!-- markdownlint-enable line-length -->
 
-### Example run a large sweep
+This example demonstrates the use case where `ado` is used to obtain predictions
+for points in a large configuration space. This avoids the time and resource
+overheads of having to benchmark each point to determine if: a) the
+configuration represented by the point is feasible; and b) the minimum number of
+GPUs required for this configuration.
 
-You can also execute a large sweep. This example uses the space in
+This example uses the space in
 [sweep/examples/space.yaml](sweep/examples/space.yaml) which applies the
 `min_gpu_recommender` experiment on 3960 configurations.
 

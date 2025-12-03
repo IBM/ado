@@ -21,7 +21,8 @@ uv<span class=w> </span>build
 mv<span class=w> </span>dist/*.whl<span class=w> </span><span class=nv>$RAY_JOB_DATA_DIR</span>
 </code></pre></div> <h5 id=build-the-plugin-wheels>Build the plugin wheels<a class=headerlink href=#build-the-plugin-wheels title="Permanent link">&para;</a></h5> <p>In the top-level of the plugins package, for example, one of the subdirectories of "plugins/actuators/" in the <code>ado</code> repository, execute:</p> <div class=highlight><pre><span></span><code>:<span class=w> </span><span class=c1># Remove any previous wheel to avoid using wrong one</span>
 rm<span class=w> </span>-rf<span class=w> </span>dist/<span class=w> </span>
-:<span class=w> </span><span class=c1># Creates  `dist/` directory with the wheel. It will have a name like `$PLUGIN-NAME-$VERSION-py3-none.whl`</span>
+:<span class=w> </span><span class=c1># Creates `dist/` directory in the root of ado with the wheel. </span>
+:<span class=w> </span><span class=c1># It will have a name like `$PLUGIN-NAME-$VERSION-py3-none.whl`</span>
 uv<span class=w> </span>build
 <span class=c1># Copy the wheel to the ray job directory</span>
 mv<span class=w> </span>dist/*.whl<span class=w> </span><span class=nv>$RAY_JOB_DATA_DIR</span>

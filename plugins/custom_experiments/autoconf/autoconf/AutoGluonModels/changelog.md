@@ -16,11 +16,6 @@ Please record the following for each model:
 - Trained on updated lakehouse data (includes `granite-4.0` models, data up to
   30th October 2025).
 - Same dependencies as previous version.
-- Requires PyTorch, install this package from `root` using:
-
-  ```bash
-  uv pip install ".[torch]"
-  ```
 
 **Location : `v2-0-0_ag-20251113_154241-refit-clone-opt`**
 
@@ -30,10 +25,6 @@ Please record the following for each model:
 
 - Removed dependencies on `limbomp` and `fastai`.
 - No changes to model size, datasets, or performance.
-- Requires PyTorch, install this package from `root` using:
-
-  ```bash
-  uv pip install ".[torch]"
-  ```
+- Requires PyTorch
 
 **Location:`v1-1-0_ag-20251112_155927-refit-clone-opt`**

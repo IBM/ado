@@ -49,7 +49,7 @@ updates
 Install the package e.g. from the root directory of this custom experiment
 (`ado/plugins/custom_experiments/autoconf/`) to run `pip install ".[torch]"`.
 
-The mmin_gpu_recommender model can be invoked in multiple ways:
+The min_gpu_recommender model can be invoked in multiple ways:
 
 #### 1. CLI
 
@@ -161,6 +161,8 @@ Found 1 mismatches between original and current metadata:
  WARNING: AutoGluon Python version mismatch (original=3.12, current=3.10)
 [value-op-min_gpu_recommender-can_recommend:1, value-op-min_gpu_recommender-gpus:2, value-op-min_gpu_recommender-workers:1]
 ```
+
+Note: This warning can be safely ignored for now.
 
 <!-- markdownlint-enable line-length -->
 

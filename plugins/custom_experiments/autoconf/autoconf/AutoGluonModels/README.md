@@ -4,9 +4,8 @@ This repository contains the models developed for `autoconf`
 
 The current model is trained on ~15500 rows of data stored in
 <https://lake-llm.cash.sl.cloud9.ibm.com/superset/dashboard/136/> (accessed on
-30th October), achieving approximately 90% accuracy. You can find the models
-under
-[min_gpu_recommender/AutoGluonModels/](min_gpu_recommender/AutoGluonModels/).
+30th October), achieving approximately 90% accuracy. You can find the models in
+[the directory with this README](./).
 
 ## Versioning Information
 
@@ -37,12 +36,14 @@ convention: `vX.Y.Z`, where `X`, `Y` and `Z` are integers.
 The current available model versions are:
 
 <!-- markdownlint-disable line-length -->
+
 | Version | Folder                                                    | Comments                                                               | Author  | Status     |
 | ------- | --------------------------------------------------------- | ---------------------------------------------------------------------- | ------- | ---------- |
 | v2.0.0  | AutoGluonModels/v2-0-0_ag-20251113_154241-refit-clone-opt | Trained on Lakehouse data in Nov 2025 (Including `granite-4.0` models) | Daniele | Active     |
 | v1.1.0  | AutoGluonModels/v1-1-0_ag-20251112_155927-refit-clone-opt | Removes LightGBM, fixes issues with `libomp` on macOS                  | Daniele | Active     |
 | v1.0.0  | AutoGluonModels/v1-0-0_ag-20251024_100825-refit-clone-opt | Trained on Lakehouse data in Oct 2025                                  | Daniele | Deprecated |
 | v0.0.0  | AutoGluonModels/v0-0-0_20251024_100825-refit-clone-opt    | Trained on Lakehouse data in Sept 2024                                 | Daniele | Deprecated |
+
 <!-- markdownlint-enable line-length -->
 
 For more details, read the [changelog](changelog.md)

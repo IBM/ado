@@ -168,10 +168,10 @@ subdirectories of "plugins/actuators/" in the `ado` repository, execute:
   ```bash
   : # Remove any previous wheel to avoid using wrong one
   rm -rf dist/ 
-  : # Creates  `dist/` directory with the wheel. It will have a name like `$PLUGIN-NAME-$VERSION-py3-none.whl`
+  : # Creates `dist/` directory in the root of ado with the wheel. It will have a name like `$PLUGIN-NAME-$VERSION-py3-none.whl`
   uv build
-  # Copy the wheel to the ray job directory
-  mv dist/*.whl $RAY_JOB_DATA_DIR
+  # Copy the wheel from the dist directory at the root of ado to the ray job directory
+  mv ../../../dist/*.whl $RAY_JOB_DATA_DIR
   ```
 
 #### Configuring installation of the wheels

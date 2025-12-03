@@ -240,7 +240,7 @@ In this section, we’ll focus on the second approach.
 
     ```bash
     python -m build -w plugins/actuators/sfttrainer
-    mv plugins/actuators/sfttrainer/dist/*.whl ${path to my-remote-measurements}
+    mv dist/ado_sfttrainer-*.whl ${path to my-remote-measurements}
     ```
 
     Then create a `ray_runtime_env.yaml` file under `my-remote-measurements` with

@@ -24,8 +24,8 @@ from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
     ResourceCleaner,  # noqa: F401
-    cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
+    signal_cleanup_callbacks,
 )
 from orchestrator.modules.operators._explore_orchestration import (
     orchestrate_explore_operation,
@@ -47,14 +47,27 @@ moduleLog = logging.getLogger("orch")
 def graceful_orchestrate_shutdown():
     """Clean resources set up by orchestrate()
 
-    This includes ray.shutdown and waiting for logs to flush."""
+    This includes the cleaner actor and ray"""
 
     import time
 
     from rich.console import Console
 
     console = Console()
-    with console.status("Shutdown - shutting down Ray", spinner="dots") as status:
+    with console.status("Shutdown - cleanup", spinner="dots") as status:
+
+        moduleLog.debug("Cleanup custom actors")
+        try:
+            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+            ray.get(cleaner_handle.cleanup.remote())
+            # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
+            ray.kill(cleaner_handle)
+        except Exception as e:
+            moduleLog.warning(f"Failed to cleanup custom actors {e}")
+
+        status.update("Shutdown - waiting for actors to terminate")
+
+        moduleLog.info("Shutting down Ray...")
         ray.shutdown()
         status.update("Shutdown - waiting for logs to flush")
         moduleLog.info("Waiting for logs to flush ...")
@@ -123,7 +136,7 @@ def orchestrate(
     signal.signal(
         signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_signal_handler()
     )
-    cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
+    signal_cleanup_callbacks["orchestrate"] = graceful_orchestrate_shutdown
 
     #
     # GET SPACE
@@ -199,6 +212,6 @@ def orchestrate(
     finally:
         if not orchestrator.modules.operators._cleanup.shutdown_signal_received:
             graceful_orchestrate_shutdown()
-            cleanup_callback_functions.pop("orchestrate")
+            signal_cleanup_callbacks.pop("orchestrate")
 
     return output

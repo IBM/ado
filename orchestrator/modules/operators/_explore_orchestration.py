@@ -18,11 +18,10 @@ from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.modules.operators._cleanup import (
-    CLEANER_ACTOR,
-    cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
     initialize_ray_resource_cleaner,
     shutdown_signal_received,
+    signal_cleanup_callbacks,
 )
 from orchestrator.modules.operators._orchestrate_core import (
     _run_operation_harness,
@@ -57,7 +56,9 @@ def graceful_explore_operation_shutdown(
 
     from rich.console import Console
 
-    moduleLog.info(f"Shutting down operation {identifier} gracefully")
+    moduleLog.info("Shutting down gracefully")
+
+    orchestrator.modules.operators._cleanup.shutdown_signal_received = True
 
     #
     # Shutdown process
@@ -69,48 +70,38 @@ def graceful_explore_operation_shutdown(
 
     console = Console()
     with console.status(
-        f"Shutdown ({identifier}) - waiting on all samples to be stored", spinner="dots"
+        f"Shutdown ({identifier})- waiting on all samples to be stored", spinner="dots"
     ) as status:
 
         moduleLog.debug("Shutting down state")
-        ray.get(state.shutdown.remote())
-
-        status.update(f"Shutdown ({identifier}) - cleaning up custom actors")
-
-        # ResourceCleaner cleanup before killing actors
-        try:
-            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR, namespace=namespace)
-            moduleLog.debug(f"Calling cleanup on {cleaner_handle}")
-            ray.get(cleaner_handle.cleanup.remote())
-            ray.kill(cleaner_handle)
-        except Exception as e:
-            moduleLog.warning(f"Failed to cleanup custom actors {e}")
+        promise = state.shutdown.remote()
+        ray.get(promise)
 
         status.update(
             f"Shutdown ({identifier}) - waiting for actors to terminate (max 60s)"
         )
 
-        terminating_actors = [
+        wait_graceful = [
             operator.__ray_terminate__.remote(),
             state.__ray_terminate__.remote(),
         ]
         # __ray_terminate allows atexit handlers of actors to run
         # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
-        terminating_actors.extend([a.__ray_terminate__.remote() for a in actuators])
-        n_actors = len(terminating_actors)
+        wait_graceful.extend([a.__ray_terminate__.remote() for a in actuators])
+        n_actors = len(wait_graceful)
         moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
 
         actors = [operator]
         actors.extend(actuators)
 
-        lookup = dict(zip(terminating_actors, actors))
+        lookup = dict(zip(wait_graceful, actors))
 
         moduleLog.debug(f"Shutdown waiting on {lookup}")
         moduleLog.debug(
             f"Gracefully stopping actors - will wait {timeout} seconds  ..."
         )
         terminated, active = ray.wait(
-            ray_waitables=terminating_actors, num_returns=n_actors, timeout=timeout
+            ray_waitables=wait_graceful, num_returns=n_actors, timeout=60.0
         )
 
         moduleLog.debug(f"Terminated: {terminated}")
@@ -118,7 +109,7 @@ def graceful_explore_operation_shutdown(
 
         if active:
             status.update(
-                f"Some actors have not completed after the {timeout}s grace period - killing"
+                f"Some actors have not completed after {timeout} grace period - killing"
             )
             for actor_ref in active:
                 ray.kill(lookup[actor_ref])
@@ -204,6 +195,10 @@ def orchestrate_explore_operation(
             f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
         )
 
+    initialize_ray_resource_cleaner()
+
+    project_context = discovery_space.project_context
+
     # Check the space
     if not discovery_space.measurementSpace.isConsistent:
         moduleLog.critical("Measurement space is inconsistent - aborting")
@@ -274,23 +269,18 @@ def orchestrate_explore_operation(
     )  # type: "OperatorActor"
     identifier = ray.get(operator.operationIdentifier.remote())
 
-    explore_run_closure = run_explore_operation_core_closure(
-        operator, discovery_space_manager
-    )
+    explore_run_closure = run_explore_operation_core_closure(operator, state)
 
     # Handling SIGTERM
-    # First register a callback which will clean up if SIGTERM is sent
+    # First register a callback which will cleanup if SIGTERM is sent
     # and the handler is in place
     # Note we can't register the callback until the actors are created so there
     # is a short window where graceful cleanup is not possible on SIGTERM
-    cleanup_callback_functions[identifier] = (
-        lambda: graceful_explore_operation_shutdown(
-            identifier=identifier,
-            operator=operator,
-            state=discovery_space_manager,
-            actuators=list(actuators.values()),
-            namespace=operation_info.ray_namespace,
-        )
+    signal_cleanup_callbacks[identifier] = lambda: graceful_explore_operation_shutdown(
+        identifier=identifier,
+        operator=operator,
+        state=state,
+        actuators=list(actuators.values()),
     )
     # Next  register the handler in case it was not registered already
     # Since all operations register the same stateless handler, setting
@@ -320,27 +310,23 @@ def orchestrate_explore_operation(
 
         return finalize_callback
 
-    try:
-        operation_output = _run_operation_harness(
-            run_closure=explore_run_closure,
-            discovery_space=discovery_space,
-            operator_module=operator_module,
-            operation_parameters=parameters,
-            operation_info=operation_info,
-            operation_identifier=identifier,
-            finalize_callback=finalize_callback_closure(operator),
+    operation_output = _run_operation_harness(
+        run_closure=explore_run_closure,
+        discovery_space=discovery_space,
+        operator_module=operator_module,
+        operation_parameters=parameters,
+        operation_info=operation_info,
+        operation_identifier=identifier,
+        finalize_callback=finalize_callback_closure(operator),
+    )
+
+    if not shutdown_signal_received:
+        graceful_explore_operation_shutdown(
+            identifier=identifier,
+            operator=operator,
+            state=state,
+            actuators=list(actuators.values()),
         )
-    finally:
-        # Need to ensure shutdown is processed if an exception
-        # is raised
-        if not shutdown_signal_received:
-            graceful_explore_operation_shutdown(
-                identifier=identifier,
-                operator=operator,
-                state=discovery_space_manager,
-                actuators=list(actuators.values()),
-                namespace=operation_info.ray_namespace,
-            )
-            cleanup_callback_functions.pop(identifier)
+        signal_cleanup_callbacks.pop(identifier)
 
     return operation_output

@@ -10,8 +10,8 @@ operation:
     tuneConfig:
       metric: "function_value" # The metric that the test function measure
       mode: 'min'
-      num_samples: 40
-      max_concurrent_trials: 4 # This is set for debugging. Increase if you want multiple measurements at once.
+      num_samples: 10
+      max_concurrent_trials: 4  # This is set for debugging. Increase if you want multiple measurements at once.
       search_alg:
         name: nevergrad
         params:

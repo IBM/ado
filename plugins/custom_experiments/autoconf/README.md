@@ -7,8 +7,7 @@ of workload resources requirements for GenAI workloads.
 
 **min_gpu_recommender** is a predictive model that recommends the minimum number
 of GPUs per worker and the number of workers required to run a tuning job
-without triggering a GPU Out Of number of workers required to run a fine-tuning
-job without triggering a GPU Out Of
+without triggering a GPU Out Of Memory exception.
 
 This model combines rule-based logic with an
 [AutoGluon](https://auto.gluon.ai/stable/index.html) tabular classifier.

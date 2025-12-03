@@ -123,7 +123,7 @@ above example, you should use 1 worker with 2 GPUs.
 
 #### 2. Example programmatic usage with validation
 
-Calling decorated `min_gpu_recommender` custom experiment directly .
+Calling decorated `min_gpu_recommender` custom experiment directly.
 
 <!-- markdownlint-disable line-length -->
 

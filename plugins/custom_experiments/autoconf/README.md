@@ -45,8 +45,11 @@ updates
 
 ### Installation and Usage
 
-Install the package e.g. from the root directory of this custom experiment
-(`ado/plugins/custom_experiments/autoconf/`) to run `pip install ".[torch]"`.
+Install the package e.g. from the root of the ado repository, run:
+
+```bash
+pip install plugins/custom_experiments/autoconf
+```
 
 The min_gpu_recommender model can be invoked in multiple ways:
 
@@ -69,8 +72,11 @@ experiments:
     experimentIdentifier: min_gpu_recommender
 ```
 
-To use it, from the root directory of this repository run
-`run_experiment examples/simple.yaml`:
+To use it, from the root directory of ado repository, run
+
+```bash
+run_experiment plugins/custom_experiments/autoconf/examples/simple.yaml
+```
 
 After a few seconds you should see:
 

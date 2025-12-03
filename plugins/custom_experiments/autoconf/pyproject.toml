@@ -1,11 +1,9 @@
 [project.entry-points."ado.custom_experiments"]
-my_experiment = "autoconf.min_gpu_recommender"
+min_gpu_experiment = "autoconf.min_gpu_recommender"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
 build-backend = "hatchling.build"
-
-# ado-core is not listed here so that we can install versions that are not live on Pypi
 
 [project]
 dynamic = ['version']

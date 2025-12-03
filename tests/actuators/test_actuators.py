@@ -125,7 +125,7 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
         "custom_experiments"
     )
 
-    assert len(c.experiments) == 2
+    assert len(c.experiments) == 3
 
     for e in c.experiments:
         assert catalog.experimentForReference(e.reference) is not None

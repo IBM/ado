@@ -1,8 +1,9 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from pydantic import BaseModel, Field, BeforeValidator
 from typing import Annotated
+
+from pydantic import BaseModel, BeforeValidator, Field
 
 from autoconf.utils.config_mapper import map_valid_model_name
 

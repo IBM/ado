@@ -45,7 +45,7 @@ def filter_valid_with_hard_logic(df: pd.DataFrame):
     logger.debug(f"l before {len(df)}")
     valid_indices = [i for i, config in df.iterrows() if is_row_valid(config)[0]]
     df_filtered = df.loc[valid_indices].copy()
-    print(f"l after {len(df_filtered)}")
+    logger.debug(f"l after {len(df_filtered)}")
     return df_filtered
 
 

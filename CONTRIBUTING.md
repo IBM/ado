@@ -148,6 +148,7 @@ namely:
 - [Ruff](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
 - [Copywrite](https://ibm.github.io/ado/getting-started/developing#copyright-and-license-headers)
 - [Markdownlint-cli2](https://ibm.github.io/ado/getting-started/developing#linting-markdown-with-markdownlint-cli2)
+- [Yamlfmt](https://github.com/google/yamlfmt)
 
 To verify that your code conforms to these rules you can run the following
 commands:
@@ -159,6 +160,7 @@ copywrite headers --plan
 markdownlint-cli2 "**/*.md" "#.venv"
 detect-secrets scan --update .secrets.baseline
 detect-secrets audit .secrets.baseline --fail-on-unaudited --fail-on-live --fail-on-audited-real
+yamlfmt -lint .
 ```
 
 ## Website checks

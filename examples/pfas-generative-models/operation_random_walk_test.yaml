@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 spaces:
   - 'space-91c4f8-174914' # Replace with space from applying space_transformer_simple.yaml or space_molgx_simple.yaml
 operation:

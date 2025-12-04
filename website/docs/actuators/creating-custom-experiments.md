@@ -47,16 +47,9 @@ In the simplest case:
 `output_property_identifiers` parameter of the decorator
 
 ```python
-from typing import Dict, Any
-from orchestrator.modules.actuators.custom_experiments import custom_experiment
-
-
-@custom_experiment(
-    output_property_identifiers=["density"]
-)
-def calculate_density(mass: float, volume: float) -> Dict[str, Any]:
-    density_value = mass / volume if volume else None
-    return {"density": density_value}
+{%
+   include "../../../examples/density_example/density/density.py"
+%}
 ```
 
 **Experiment Naming:**  
@@ -113,7 +106,7 @@ To add your experiments to `ado`:
 2. Run:
 
    ```shell
-   ado describe actuators --details
+   ado get actuators --details
    ```
 
 All custom experiments are made available in `ado` through
@@ -127,13 +120,11 @@ You can test your custom experiment
 using the [`run_experiment`](run_experiment.md) command line tool.
 Save the following YAML to a file `point.yaml`
 
+<!-- markdownlint-disable-next-line first-line-h1 -->
 ```yaml
-entity:
-  mass:8
-  volume:4
-experiments:
-- actuatorIdentifier: custom_experiments
-  experimentIdentifier: calculate_density
+{%
+   include "../../../examples/density_example/point.yaml"
+%}
 ```
 
 then execute:

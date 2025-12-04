@@ -134,10 +134,6 @@ class MinGpuRecommender:
     def recommend_min_gpu(self, job_config):
         return recommend_min_gpu(job_config, self.predictor, self.valid_n_gpu)
 
-    def fit(self, X=None, y=None):
-        # No fitting needed, but included for compatibility
-        return self
-
     def predict(self, job_config: JobConfig | pd.DataFrame):
         if isinstance(job_config, pd.DataFrame):
             # Convert DataFrame rows to JobConfig instances

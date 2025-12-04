@@ -11,7 +11,7 @@ import shutil
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
-from autoconf.utils.rule_based_classifier import filter_valid_with_hard_logic
+from autoconf.utils.rule_based_classifier import is_row_valid
 
 logger = logging.getLogger(__name__)
 logger.info("These are the available csvs")
@@ -39,6 +39,15 @@ logger.info(set(df_original["model_name"].values))
 # %%
 fit_params = {"presets": ["medium_quality"], "excluded_model_types": "GBM"}
 target = "is_valid"
+
+
+def filter_valid_with_hard_logic(df: pd.DataFrame):
+    logger.debug(f"l before {len(df)}")
+    valid_indices = [i for i, config in df.iterrows() if is_row_valid(config)[0]]
+    df_filtered = df.loc[valid_indices].copy()
+    print(f"l after {len(df_filtered)}")
+    return df_filtered
+
 
 # Our default is filtering valid rows with hard logic first
 df = filter_valid_with_hard_logic(df_original)

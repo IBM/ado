@@ -1,5 +1,4 @@
 # Copyright (c) IBM Corporation
-
 # SPDX-License-Identifier: MIT
 experiments:
   - experimentIdentifier: min_gpu_recommender

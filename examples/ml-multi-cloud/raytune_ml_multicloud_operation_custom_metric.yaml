@@ -1,11 +1,10 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 metadata:
   name: 'ml-multi-cloud-optimization-custom'
   description: 'Perform an optimization on custom metric total_cost'
 spaces:
-- 'space-f36fd9-edd052'
+  - 'space-f36fd9-edd052'
 operation:
   module:
     operatorName: "ray_tune"
@@ -37,4 +36,3 @@ operation:
             min_trials: 5 # Will run at least this many trials before applying stopping criteria
             buffer_states: 5 # If it sees no improvement in buffer_states trails it will stop
             # stop_on_repeat: true  # Stops if same experiment is repeated
-

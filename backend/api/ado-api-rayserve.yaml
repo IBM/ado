@@ -1,13 +1,12 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 apiVersion: ray.io/v1alpha1
 kind: RayService
 metadata:
   name: ado-api
 spec:
   serveConfigV2: |
-    applications: 
+    applications:
       - import_path: orchestrator.api.rest:ado_rest_api
         name: orchestrator_api
         deployments:
@@ -73,7 +72,7 @@ spec:
                 lifecycle:
                   preStop:
                     exec:
-                      command: [ "/bin/sh", "-c", "ray stop" ]
+                      command: ["/bin/sh", "-c", "ray stop"]
                 resources:
                   limits:
                     cpu: 4

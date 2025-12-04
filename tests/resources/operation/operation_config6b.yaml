@@ -1,9 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 spaces:
   - 'space-d1f737-fcb7d1'
-
 operation:
   module:
     moduleClass: "RayTune"
@@ -15,6 +13,6 @@ operation:
       metric: 'custom_cost' # Comes from the my_cost_function experiment
       mode: 'min'
       num_samples: 10
-      max_concurrent_trials: 1  # This is set for debugging. Increase if you want multiple measurements at once.
+      max_concurrent_trials: 1 # This is set for debugging. Increase if you want multiple measurements at once.
     runtimeConfig:
-      storage_path: "/data/ray_results"  #Stop raytune using root (/) for ray_results on a RayCluster
+      storage_path: "/data/ray_results" #Stop raytune using root (/) for ray_results on a RayCluster

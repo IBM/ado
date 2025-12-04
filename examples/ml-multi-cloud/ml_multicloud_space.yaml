@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 sampleStoreIdentifier: "d976ee" # Replace with correct id
 entitySpace:
   - identifier: "provider"

@@ -1,15 +1,11 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 # Reference: https://github.com/DavidAnson/markdownlint-cli2/blob/v0.19.0/README.md#markdownlint-cli2jsonc
-
 fix: true
-
 ignores:
   - "CHANGELOG.md"
   - ".venv"
   - "toxenv"
-
 config:
   # MD046/code-block-style : Code block style : https://github.com/DavidAnson/markdownlint/blob/v0.39.0/doc/md046.md
   MD046:

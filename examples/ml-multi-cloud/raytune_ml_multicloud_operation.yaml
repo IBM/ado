@@ -1,18 +1,17 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 metadata:
   name: 'ml-multi-cloud-optimization-wallclock'
   description: 'Perform an optimization on the metric wallClockRuntime'
 spaces:
-- 'space-630588-bfebfe'
+  - 'space-630588-bfebfe'
 operation:
   module:
     operatorName: "ray_tune"
     operationType: "search"
   parameters:
     tuneConfig:
-      search_alg: 
+      search_alg:
         name: nevergrad
         params:
           optimizer: "CMA"
@@ -37,4 +36,3 @@ operation:
             min_trials: 5 # Will run at least this many trials before applying stopping criteria
             buffer_states: 5 # If it sees no improvement in buffer_states trails it will stop
             # stop_on_repeat: true  # Stops if same experiment is repeated
-

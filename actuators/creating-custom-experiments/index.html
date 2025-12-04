@@ -26,8 +26,8 @@
 <span class=w>  </span><span class=nt>mass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
 <span class=w>  </span><span class=nt>volume</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
 <span class=nt>experiments</span><span class=p>:</span>
-<span class="p p-Indicator">-</span><span class=w> </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">custom_experiments</span>
-<span class=w>  </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">calculate_density</span>
+<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">custom_experiments</span>
+<span class=w>    </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">calculate_density</span>
 </code></pre></div> <p>then execute:</p> <div class=highlight><pre><span></span><code>run_experiment point.yaml
 </code></pre></div> <h3 id=using-your-custom-experiment-in-a-discoveryspace>Using your custom experiment in a <code>discoveryspace</code><a class=headerlink href=#using-your-custom-experiment-in-a-discoveryspace title="Permanent link">&para;</a></h3> <p>To use a custom experiment in <code>discoveryspace</code> you specify it in its <code>measurementspace</code> - exactly like other experiments.</p> <p>Here is a toy example using the <code>calculate_density</code> custom experiment defined above:</p> <div class=highlight><pre><span></span><code><span class=nt>sampleStoreIdentifier</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">dfe035</span>
 <span class=nt>entitySpace</span><span class=p>:</span>

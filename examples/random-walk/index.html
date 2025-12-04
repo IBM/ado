@@ -41,11 +41,12 @@ Measurement Space:
 Sample Store identifier: &#39;a8df39&#39;
 </code></pre></div> <div class="admonition note"> <p class=admonition-title>Note</p> <p>The set of points is defined by the properties in the <code>Entity Space</code> - here '<em>cpu_family</em>', '<em>provider</em>', '<em>vcpu_size</em>' and '<em>nodes</em>' - and the values those properties can take.</p> </div> <div class="admonition tip"> <p class=admonition-title>Tip</p> <p>Consider why the size of the entityspace is 48. Compare this to the number of rows in <code>ml_export.csv</code>.</p> </div> <h2 id=exploring-the-discoveryspace>Exploring the <code>discoveryspace</code><a class=headerlink href=#exploring-the-discoveryspace title="Permanent link">&para;</a></h2> <p>Next we will run an operation that will "explore" the <code>discoveryspace</code> we just created. Since we already have the data, <code>ado</code> will transparently identify and reuse it. An example operation file is given in <code>randomwalk_ml_multicloud_operation.yaml</code>. The contents are:</p> <div class=highlight><pre><span></span><code><span class=c1># Copyright (c) IBM Corporation</span>
 <span class=c1># SPDX-License-Identifier: MIT</span>
+
 <span class=nt>metadata</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=s>&#39;randomwalk-all&#39;</span>
 <span class=w>  </span><span class=nt>description</span><span class=p>:</span><span class=w> </span><span class=s>&#39;Perform</span><span class=nv> </span><span class=s>a</span><span class=nv> </span><span class=s>random</span><span class=nv> </span><span class=s>walk</span><span class=nv> </span><span class=s>on</span><span class=nv> </span><span class=s>all</span><span class=nv> </span><span class=s>points</span><span class=nv> </span><span class=s>in</span><span class=nv> </span><span class=s>a</span><span class=nv> </span><span class=s>space&#39;</span>
 <span class=nt>spaces</span><span class=p>:</span>
-<span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=s>&#39;space-630588-bfebfe&#39;</span>
+<span class="p p-Indicator">-</span><span class=w> </span><span class=s>&#39;space-630588-bfebfe&#39;</span>
 <span class=nt>operation</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>module</span><span class=p>:</span>
 <span class=w>    </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class=s>&quot;random_walk&quot;</span>

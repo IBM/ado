@@ -1,0 +1,8 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+entity:
+  mass: 8
+  volume: 4
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: calculate_density

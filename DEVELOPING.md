@@ -201,6 +201,23 @@ Once installed, run
 copywrite headers
 ```
 
+## YAML file formatting
+
+> [!NOTE]
+>
+> See the
+> [Automating checks with pre-commit](#automating-checks-with-pre-commit)
+> section to automate this.
+
+We require YAML files to be properly formatted. This can be automated with
+yamlfmt: <https://github.com/google/yamlfmt>.
+
+Once installed, run
+
+```shell
+yamlfmt .
+```
+
 ## Website link checking
 
 To make it less likely for us to push commits with broken links, we use

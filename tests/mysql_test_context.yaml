@@ -1,10 +1,9 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 project: "testing"
 metadataStore:
-    scheme: "mysql+pymysql"
-    host: "a-host"
-    user: "a-testing-user"
-    database: "testing"
-    password: "anpassw0rd"
+  scheme: "mysql+pymysql"
+  host: "a-host"
+  user: "a-testing-user"
+  database: "testing"
+  password: "anpassw0rd"

@@ -275,8 +275,8 @@ def check_parameters_valid(func, _required_properties, _optional_properties):
 
 
 def custom_experiment(
-    required_properties: list[ConstitutiveProperty | ObservedProperty],
     output_property_identifiers: list[str],
+    required_properties: list[ConstitutiveProperty | ObservedProperty] | None = None,
     optional_properties: list[ConstitutiveProperty] | None = None,
     parameterization: dict[str, typing.Any] | None = None,
     metadata: dict[str, typing.Any] | None = None,
@@ -323,6 +323,7 @@ def custom_experiment(
 
     metadata = metadata if metadata else {}
     logger = logging.getLogger("custom_experiment_decorator")
+    required_properties = required_properties if required_properties else []
 
     ray_options_model = None
     if ray_options is not None:

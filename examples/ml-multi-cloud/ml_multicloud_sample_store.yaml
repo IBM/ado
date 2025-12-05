@@ -22,7 +22,7 @@ copyFrom:
         - nodes
         - provider
       experiments:
-          - experimentIdentifier: 'benchmark_performance'
-            propertyMap:
-              wallClockRuntime: 'wallClockRuntime'
-              status:   'status' 
+        - experimentIdentifier: 'benchmark_performance'
+          propertyMap:
+            wallClockRuntime: 'wallClockRuntime'
+            status: 'status'

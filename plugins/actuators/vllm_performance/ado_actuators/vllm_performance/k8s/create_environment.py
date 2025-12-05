@@ -38,6 +38,8 @@ def create_test_environment(
     reuse_service: bool = True,
     reuse_deployment: bool = True,
     namespace: str = "vllm-testing",
+    check_interval: int = 5,
+    timeout: int = 1200,
 ) -> None:
     """
     Create test deployment
@@ -64,6 +66,8 @@ def create_test_environment(
     :param hf_token: huggingface token
     :param reuse_service: flag to reuse deployment
     :param reuse_deployment: flag to reuse deployment
+    :param check_interval: wait interval in seconds
+    :param timeout: timeout in seconds
     :return:
     """
     logger.info(f"Creating environment in ns {namespace} with the parameters: ")
@@ -112,7 +116,11 @@ def create_test_environment(
         reuse=reuse_deployment,
     )
     logger.debug("deployment created")
-    c_manager.wait_deployment_ready(k8s_name=k8s_name)
+    c_manager.wait_deployment_ready(
+        k8s_name=k8s_name,
+        check_interval=check_interval,
+        timeout=timeout,
+    )
     logger.info("deployment ready")
     # service
     c_manager.create_service(

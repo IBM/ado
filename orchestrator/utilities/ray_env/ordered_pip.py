@@ -333,6 +333,20 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         if not len(phases):
             return
 
+        env_dir = self.get_path_to_pip_venv(uris[0])
+
+        if not os.path.isdir(env_dir):
+            logger.warning(
+                f"The pip environment at {env_dir} has been garbage collected - recreating it"
+            )
+            import asyncio
+
+            asyncio.run(
+                self.create(
+                    uris[0], runtime_env=runtime_env, context=context, logger=logger
+                )
+            )
+
         self._pip_plugin.modify_context(
             uris=uris,
             runtime_env=RuntimeEnv(pip=phases[0]),

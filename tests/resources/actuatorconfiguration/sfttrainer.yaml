@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 actuatorIdentifier: SFTTrainer
 parameters:
   cache: /tmp/ado-sft-trainer-hello-world/cache

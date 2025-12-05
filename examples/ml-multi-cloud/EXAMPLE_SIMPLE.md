@@ -1,40 +1,56 @@
 # Taking a random walk
 
-> [!NOTE]
+> [!NOTE] The scenario
+>
+> When you deploy a workload you have to choose values
+> for workload parameters  like the number of CPUs or the node type.
+> **In this example `ado` is used to explore how performance
+> varies across the workload parameter space for a cloud application.**
+>
+> Exploring a workload parameter space requires:
+>
+> - defining the values of the parameters to test - the parameter space
+> - defining what to test them with - the experiment
+> - selecting points from the parameter space and perform the test - the sampling
+>    method
 >
 > This example illustrates:
 >
 > 1. Describing a set of points and how to measure them using a `discoveryspace`
->
 > 2. Exploring the `discoveryspace` by creating an operation that samples and
 >    measures the points
->
 > 3. Getting the results of an operation
 
-## The scenario
+<!-- markdownlint-disable-next-line MD028 -->
 
-When you deploy a workload you have to choose values for workload parameters
-like the number of CPUs or the node type. To choose a combination of parameters
-that, for example, maximizes performance, a common strategy is to measure
-changes in performance by **exploring the workload parameter space**. This
-pattern applies to many domains where there is a parameter space to explore.
-
-**In this example `ado` is used to explore the workload parameter space for a
-cloud application.** To explore a workload parameter space you have to:
-
-- define the values of the parameters to test - the parameter space
-- define what to test them with - the experiment
-- select points from the parameter space and perform the test - the sampling
-  method
-
-Here, we will use the simplest sampling method, random walk, where some number
-of points are randomly selected without replacement.
-
-> [!CAUTION]
+> [!IMPORTANT] Prerequisites
 >
-> The commands below assume you are in the directory `examples/ml-multi-cloud`
-> in **the ado source repository**. See
-> [the instructions for cloning the repository](/ado/getting-started/install/#__tabbed_1_3).
+> - Get the example files
+>
+> ```commandline
+> git clone https://github.com/IBM/ado.git
+> cd ado/examples/ml-multi-cloud
+> ```
+>
+> - Install the following Python package locally:
+>
+> ```bash
+> pip install ado-core
+> ```
+<!-- markdownlint-disable-next-line MD028 -->
+
+:<!-- markdownlint-disable line-length -->
+> [!TIP] TL;DR
+>
+> To create the `discoveryspace` and explore it with a random walk execute:
+>
+> ```bash
+> : # Note: this will create samplestore and discoveryspace resources you can reuse subsequently
+> ado create op -f randomwalk_ml_multicloud_operation.yaml \
+>    --with samplestore=ml_multicloud_sample_store.yaml --with space=ml_multicloud_space.yaml 
+> ```
+>
+:<!-- markdownlint-enable line-length -->
 
 ## Using pre-existing data with `ado`
 
@@ -51,7 +67,7 @@ in `ml_export.csv` into a new `samplestore`.
 To do this execute,
 
 ```commandline
-ado create samplestore -f ml_multicloud_sample_store.yaml --set "copyFrom[0].storageLocation.path"=ml_export.csv
+ado create samplestore -f ml_multicloud_sample_store.yaml
 ```
 
 and it will report that a `samplestore` has been created:

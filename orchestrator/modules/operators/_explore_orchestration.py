@@ -73,7 +73,7 @@ def graceful_explore_operation_shutdown(
 
     console = Console()
     with console.status(
-        f"Shutdown ({identifier})- waiting on all samples to be stored", spinner="dots"
+        f"Shutdown ({identifier}) - waiting on all samples to be stored", spinner="dots"
     ) as status:
 
         moduleLog.debug("Shutting down state")

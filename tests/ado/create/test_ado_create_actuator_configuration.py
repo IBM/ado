@@ -11,7 +11,7 @@ from orchestrator.cli.core.cli import app as ado
 
 def test_create_actuator_configuration_dry_run_success(tmp_path: pathlib.Path):
     actuator_configuration_file = (
-        "tests/resources/actuatorconfiguration/sfttrainer.yaml"
+        "tests/resources/actuatorconfiguration/robotic_lab.yaml"
     )
     runner = CliRunner()
     result = runner.invoke(
@@ -36,12 +36,12 @@ def test_create_actuator_configuration_dry_run_success(tmp_path: pathlib.Path):
 
 def test_create_actuator_configuration_dry_run_failure(tmp_path: pathlib.Path):
     actuator_configuration_file = pathlib.Path(
-        "tests/resources/actuatorconfiguration/sfttrainer.yaml"
+        "tests/resources/actuatorconfiguration/robotic_lab.yaml"
     )
 
     invalid_actuator_configuration_file = tmp_path / "invalid.yaml"
     actuator_configuration = yaml.safe_load(actuator_configuration_file.read_text())
-    actuator_configuration["actuatorIdentifier"] = "SFTTrainer-fake"
+    actuator_configuration["actuatorIdentifier"] = "robotic-lab-fake"
     invalid_actuator_configuration_file.write_text(
         yaml.safe_dump(actuator_configuration)
     )
@@ -70,7 +70,7 @@ def test_create_actuator_configuration(
     tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
 ):
     actuator_configuration_file = (
-        "tests/resources/actuatorconfiguration/sfttrainer.yaml"
+        "tests/resources/actuatorconfiguration/robotic_lab.yaml"
     )
 
     runner = CliRunner()

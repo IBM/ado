@@ -24,8 +24,8 @@ from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
     ResourceCleaner,  # noqa: F401
+    cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
-    signal_cleanup_callbacks,
 )
 from orchestrator.modules.operators._explore_orchestration import (
     orchestrate_explore_operation,
@@ -136,7 +136,7 @@ def orchestrate(
     signal.signal(
         signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_signal_handler()
     )
-    signal_cleanup_callbacks["orchestrate"] = graceful_orchestrate_shutdown
+    cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
 
     #
     # GET SPACE
@@ -210,6 +210,6 @@ def orchestrate(
     finally:
         if not orchestrator.modules.operators._cleanup.shutdown_signal_received:
             graceful_orchestrate_shutdown()
-            signal_cleanup_callbacks.pop("orchestrate")
+            cleanup_callback_functions.pop("orchestrate")
 
     return output

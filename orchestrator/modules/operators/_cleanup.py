@@ -13,7 +13,7 @@ shutdown_signal_received = False
 CLEANER_ACTOR = "resource_cleaner"
 
 moduleLog = logging.getLogger("orchestration_cleanup")
-signal_cleanup_callbacks: dict[str, Callable[[], None]] = OrderedDict()
+cleanup_callback_functions: dict[str, Callable[[], None]] = OrderedDict()
 
 
 def graceful_operation_shutdown_signal_handler() -> (
@@ -25,7 +25,7 @@ def graceful_operation_shutdown_signal_handler() -> (
 
         moduleLog.warning(f"Got signal {sig}")
         global shutdown_signal_received
-        global signal_cleanup_callbacks
+        global cleanup_callback_functions
 
         if not shutdown_signal_received:
             shutdown_signal_received = True
@@ -41,9 +41,9 @@ def graceful_operation_shutdown_signal_handler() -> (
                 moduleLog.warning(f"Failed to cleanup custom actors {e}")
 
             moduleLog.warning("Calling cleanup callbacks")
-            for subscriber in signal_cleanup_callbacks:
-                moduleLog.warning(f"Cleaning {subscriber}")
-                signal_cleanup_callbacks[subscriber]()
+            for entry in cleanup_callback_functions:
+                moduleLog.warning(f"Cleaning {entry}")
+                cleanup_callback_functions[entry]()
         else:
             moduleLog.info("Graceful shutdown already completed")
 

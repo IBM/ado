@@ -93,27 +93,17 @@ test = [
 [tool.uv]
 default-groups = ["dev", "docs"]
 
-[tool.uv.workspace]
-members = [
-    "plugins/actuators/sfttrainer",
-    "plugins/operators/ray_tune",
-    "examples/optimization_test_functions/custom_experiments",
-    "examples/pfas-generative-models/custom_actuator_function",
-    "plugins/operators/profile_space",
-    "plugins/operators/anomalous_series",
-    "plugins/actuators/example_actuator",
-    "examples/density_example",
-]
-
 [tool.uv.sources]
-ado-sfttrainer = { workspace = true }
-ado-ray-tune = { workspace = true }
-optimization-test-functions = { workspace = true }
-pfas-custom-functions = { workspace = true }
-profile-space = { workspace = true }
-anomalous-series = { workspace = true }
-robotic-lab = { workspace = true }
-density-test = { workspace = true }
+ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
+ado-ray-tune = { path = "plugins/operators/ray_tune", editable = true }
+ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
+ado-vllm-performance = { path = "plugins/actuators/vllm_performance", editable = true }
+anomalous-series = { path = "plugins/operators/anomalous_series", editable = true }
+density-test = { path = "examples/density_example", editable = true }
+optimization-test-functions = { path = "examples/optimization_test_functions/custom_experiments", editable = true }
+pfas-custom-functions = { path = "examples/pfas-generative-models/custom_actuator_function", editable = true }
+profile-space = { path = "plugins/operators/profile_space", editable = true }
+robotic-lab = { path = "plugins/actuators/example_actuator", editable = true }
 
 [project.scripts]
 ado = "orchestrator.cli.core.cli:app"

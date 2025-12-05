@@ -33,10 +33,10 @@ def graceful_operation_shutdown_signal_handler() -> (
             try:
                 cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
                 ray.get(cleaner_handle.cleanup.remote())
-                # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
+                # The cleaner actor is detached, so it requires explicit deletion
                 ray.kill(cleaner_handle)
             except ValueError:
-                moduleLog.debug("No ray actor")
+                moduleLog.debug("No Ray cleaner actors were found")
             except Exception as e:
                 moduleLog.warning(f"Failed to cleanup custom actors {e}")
 

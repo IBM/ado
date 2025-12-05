@@ -65,7 +65,7 @@ def test_create_discovery_space_dry_run_failure(tmp_path: pathlib.Path):
 
 
 def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path):
-    space_configuration_file = "tests/resources/ml_multicloud_space.yaml"
+    space_configuration_file = "examples/ml-multi-cloud/ml_multicloud_space.yaml"
 
     runner = CliRunner()
     result = runner.invoke(
@@ -77,6 +77,8 @@ def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path):
             "space",
             "-f",
             space_configuration_file,
+            "--set",
+            "sampleStoreIdentifier=d976ee",
         ],
     )
 
@@ -314,7 +316,7 @@ def test_create_discovery_space_success_with_sample_store_from_file_with_replay_
     )
 
     sample_store_configuration_file = pathlib.Path(
-        "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
+        "tests/resources/ml_multicloud_sample_store.yaml"
     )
 
     runner = CliRunner()

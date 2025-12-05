@@ -13,6 +13,7 @@ import typer
 import yaml
 from ray.actor import ActorHandle
 
+from orchestrator.cli.utils.output.prints import ERROR, WARN, console_print
 from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
@@ -63,7 +64,7 @@ def local_execution_closure(
             actuator_configurations[actuator_configuration.actuatorIdentifier] = (
                 actuator_configuration
             )
-            print(
+            console_print(
                 f"Loaded configuration {actuator_configuration_identifier} for actuator {actuator_configuration.actuatorIdentifier}"
             )
 
@@ -97,14 +98,16 @@ def local_execution_closure(
             )
             _ = ray.get(future)
         except ray.exceptions.ActorDiedError as error:
-            print(
-                f"[ERROR] Failed to initialize actuator '{reference.actuatorIdentifier}': {error}"
+            console_print(
+                f"{ERROR}Failed to initialize actuator '{reference.actuatorIdentifier}': {error}",
+                stderr=True,
             )
             return None
         except ray.exceptions.RayTaskError as error:
             e = error.as_instanceof_cause()
-            print(
-                f"[ERROR] Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}':\n {e}"
+            console_print(
+                f"{ERROR}Failed to submit measurement request for {reference} to actuator '{reference.actuatorIdentifier}':\n {e}",
+                stderr=True,
             )
             # Either skip, or return None, or propagate. Let's return None.
             return None
@@ -235,7 +238,7 @@ def run(
     point = SpacePoint.model_validate(yaml.safe_load(point_file.read_text()))
 
     entity = point.to_entity()
-    print(f"Point: {point.entity}")
+    console_print(f"Point: {point.entity}")
 
     registry = ActuatorRegistry()
     execute = (
@@ -254,24 +257,26 @@ def run(
         for reference in point.experiments:
             valid = True
             if validate:
-                print("Validating entity ...")
+                console_print("Validating entity ...")
                 experiment = registry.experimentForReference(reference)
                 valid = experiment.validate_entity(entity, verbose=True)
             else:
-                print("Skipping validation")
+                console_print("Skipping validation")
 
             if valid:
-                print(f"Executing: {reference}")
+                console_print(f"Executing: {reference}")
                 request = execute(reference, entity)
                 if request is None:
-                    print(
-                        "Measurement request failed unexpectedly. Skipping this experiment."
+                    console_print(
+                        f"{WARN}Measurement request failed unexpectedly. Skipping this experiment."
                     )
                 else:
-                    print("Result:")
-                    print(f"{request.series_representation(output_format='target')}\n")
+                    console_print("Result:")
+                    console_print(
+                        f"{request.series_representation(output_format='target')}\n"
+                    )
             else:
-                print("Entity is not valid")
+                console_print(f"{ERROR}Entity is not valid")
     finally:
         if not remote:
             graceful_operation_shutdown()
@@ -281,7 +286,7 @@ def main():
     try:
         app()
     except Exception as e:
-        typer.echo(f"Error: {e}", err=True)
+        console_print(f"{ERROR}{e}", stderr=True)
         raise typer.Exit(code=1)
 
 

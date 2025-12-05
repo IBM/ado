@@ -24,6 +24,7 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.modules.operators._cleanup import shutdown_signal_received
 from orchestrator.modules.operators.base import (
+    InterruptedOperationError,
     add_operation_output_to_metastore,
     create_operation_and_add_to_metastore,
 )
@@ -106,7 +107,7 @@ def _run_operation_harness(
         )
         discovery_space.metadataStore.updateResource(operation_resource)
         operation_output: OperationOutput | None = run_closure()
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as error:
         sys.stdout.flush()
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
         operationStatus = OperationResourceStatus(
@@ -114,6 +115,7 @@ def _run_operation_harness(
             exit_state=OperationExitStateEnum.ERROR,
             message="Operation exited due to SIGINT",
         )
+        raise InterruptedOperationError(operation_resource.identifier) from error
     except RayTaskError as error:
         sys.stdout.flush()
         e = error.as_instanceof_cause()

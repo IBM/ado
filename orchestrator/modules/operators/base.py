@@ -440,5 +440,17 @@ def warn_deprecated_operator_parameters_model_in_use(
     )
 
 
+class InterruptedOperationError(KeyboardInterrupt):
+    """Exception raised when an operation is interrupted (e.g., by SIGINT)
+
+    This exception inherits from KeyboardInterrupt and includes the operation identifier
+    to provide context about which operation was interrupted.
+    """
+
+    def __init__(self, operation_identifier: str):
+        self.operation_identifier = operation_identifier
+        super().__init__(f"Operation {operation_identifier} was interrupted")
+
+
 if typing.TYPE_CHECKING:
     OperatorActor = type[ActorHandle[DiscoverySpaceSubscribingDiscoveryOperation]]

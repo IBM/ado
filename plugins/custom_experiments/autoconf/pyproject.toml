@@ -23,7 +23,6 @@ libomp = [
   "autogluon.tabular[lightgbm]"
 ]
 
-
 [tool.hatch.build.targets.wheel]
 packages = ["autoconf"]
 
@@ -33,6 +32,9 @@ exclude = ["build", "build.*", "yamls"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
+
+[tool.uv.sources]
+ado-core = { workspace = true }
 
 [tool.uv-dynamic-versioning]
 vcs = "git"

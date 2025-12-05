@@ -65,7 +65,7 @@ def test_create_discovery_space_dry_run_failure(tmp_path: pathlib.Path):
 
 
 def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path):
-    space_configuration_file = "examples/ml-multi-cloud/ml_multicloud_space.yaml"
+    space_configuration_file = "tests/resources/ml_multicloud_space.yaml"
 
     runner = CliRunner()
     result = runner.invoke(

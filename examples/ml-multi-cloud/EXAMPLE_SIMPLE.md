@@ -39,7 +39,7 @@
 > ```
 <!-- markdownlint-disable-next-line MD028 -->
 
-:<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable line-length -->
 > [!TIP] TL;DR
 >
 > To create the `discoveryspace` and explore it with a random walk execute:
@@ -50,7 +50,7 @@
 >    --with samplestore=ml_multicloud_sample_store.yaml --with space=ml_multicloud_space.yaml 
 > ```
 >
-:<!-- markdownlint-enable line-length -->
+<!-- markdownlint-enable line-length -->
 
 ## Using pre-existing data with `ado`
 

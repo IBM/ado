@@ -104,15 +104,16 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
     #  - examples/optimization_test_functions/custom_experiments
     # Locally this may not work because we might have more or less of these.
     assert (
-        len(catalog.experiments) == 3
-    ), "Expected 3 experiments in the custom_experiments catalog for testing "
+        len(catalog.experiments) == 4
+    ), "Expected 4 experiments in the custom_experiments catalog for testing "
 
     identifiers = {e.identifier for e in catalog.experiments}
     assert {
         "acid_test",
         "calculate_density",
+        "min_gpu_recommender",
         "nevergrad_opt_3d_test_func",
-    } == identifiers, f"Expected the experiments to be called - acid_test and nevergrad_opt_3d_test_func but they are called {identifiers}"
+    } == identifiers, f"Expected the experiments to be called - acid_test, calculate_density, min_gpu_recommender, and nevergrad_opt_3d_test_func but they are called {identifiers}"
     loaded = custom_experiments.loadedExperiment.remote(
         orchestrator.schema.reference.ExperimentReference(
             actuatorIdentifier="custom_experiments", experimentIdentifier="acid_test"
@@ -125,7 +126,7 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
         "custom_experiments"
     )
 
-    assert len(c.experiments) == 3
+    assert len(c.experiments) == 4
 
     for e in c.experiments:
         assert catalog.experimentForReference(e.reference) is not None

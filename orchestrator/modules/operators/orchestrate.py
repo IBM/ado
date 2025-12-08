@@ -26,6 +26,7 @@ from orchestrator.modules.operators._cleanup import (
     ResourceCleaner,  # noqa: F401
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
+    initialize_ray_resource_cleaner,
 )
 from orchestrator.modules.operators._explore_orchestration import (
     orchestrate_explore_operation,
@@ -129,6 +130,8 @@ def orchestrate(
         moduleLog.debug("Ensuring envvars are set the main process environment")
         for key, value in ray_env_vars.items():
             os.environ[key] = value
+
+    initialize_ray_resource_cleaner()
 
     #
     # Register signal handler

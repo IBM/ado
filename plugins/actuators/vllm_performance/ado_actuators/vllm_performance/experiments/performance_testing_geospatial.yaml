@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 # The input to an experiment is an Entity. For the Entity to be a valid input
 # it's properties which  match what is defined here
 performance_testing-geospatial-endpoint:
@@ -24,36 +23,36 @@ performance_testing-geospatial-endpoint:
         description: "The number of requests to send per second"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [-1,1000]
-        interval: 1  # -1 means send all requests at time 0
+        domainRange: [-1, 1000]
+        interval: 1 # -1 means send all requests at time 0
   optionalProperties:
     - identifier: 'num_prompts'
       metadata:
         description: "The number of prompts to send (total number of requests)"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1,10001]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'burstiness'
       metadata:
         description: "The burstiness of the requests - 1.0 is a Poisson distribution with rate = request_rate. Others are gamma distributions with lambda = request_rate and shape = burstiness."
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 0, 10 ]
+        domainRange: [0, 10]
         interval: 1
     - identifier: 'max_concurrency'
       metadata:
         description: "The maximum number of concurrent requests to send"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ -1, 500 ] # -1 means no concurrency control
+        domainRange: [-1, 500] # -1 means no concurrency control
         interval: 1
     - identifier: 'dataset'
       metadata:
         description: "The dataset to be used for the experiment"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ 'india_url_in_b64_out', 'valencia_url_in_b64_out' ]
+        values: ['india_url_in_b64_out', 'valencia_url_in_b64_out']
   defaultParameterization:
     - value: 100
       property:
@@ -90,135 +89,134 @@ performance_testing-geospatial-full:
         description: 'model to use for testing. Assumed to be served by all endpoints tested. Required to obtain correct tokenizer for benchmarking metrics calculation'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11" ]
+        values: ["ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"]
     - identifier: 'request_rate'
       metadata:
         description: "(benchmark) The number of requests to send per second"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [-1,1000]
-        interval: 1  # -1 means send all requests at time 0
+        domainRange: [-1, 1000]
+        interval: 1 # -1 means send all requests at time 0
   optionalProperties:
     - identifier: 'num_prompts'
       metadata:
         description: "(benchmark) The number of prompts to send (total number of requests)"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1,10001]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'max_concurrency'
       metadata:
         description: "(benchmark) The maximum number of concurrent requests to send"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ -1, 500 ] # -1 means no concurrency control
+        domainRange: [-1, 500] # -1 means no concurrency control
         interval: 1
     - identifier: 'burstiness'
       metadata:
         description: "(benchmark) The burstiness of the requests - 1.0 is a Poisson distribution with rate = request_rate. Others are gamma distributions with lambda = request_rate and shape = burstiness."
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 0, 10 ]
+        domainRange: [0, 10]
         interval: 1
     - identifier: 'dataset'
       metadata:
         description: "(benchmark) The dataset to be used for the experiment"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ 'india_url_in_b64_out', 'valencia_url_in_b64_out' ]
+        values: ['india_url_in_b64_out', 'valencia_url_in_b64_out']
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ "quay.io/dataprep1/data-prep-kit/vllm_image:0.1" ]
+        values: ["your/image/with/vllm/and/terratorch:0.1"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 1,17 ]
+        domainRange: [1, 17]
         interval: 1
     - identifier: memory
       metadata:
         description: "(deployment) the amount of memory to allocate to vLLM pod"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "64Gi", "128Gi", "256Gi" ]
+        values: ["64Gi", "128Gi", "256Gi"]
     - identifier: dtype
       metadata:
         description: "(deployment) data type for model weights and activations. “auto” will use FP16 precision for FP32 and FP16 models, and BF16 precision for BF16 models."
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "auto", "half", "float16",  "bfloat16", "float", "float32" ]
+        values: ["auto", "half", "float16", "bfloat16", "float", "float32"]
     - identifier: 'gpu_memory_utilization'
       metadata:
         description: "(deployment) The fraction of GPU memory to be used for the model executor,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [ .5, .75, .9 ]
+        values: [.5, .75, .9]
     - identifier: 'cpu_offload'
       metadata:
         description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [ 0, 8, 16, 24, 32 ]
+        values: [0, 8, 16, 24, 32]
     - identifier: 'max_num_seq'
       metadata:
         description: "(deployment) Maximum number of sequences per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [32,2049]
+        domainRange: [32, 2049]
         interval: 32
     - identifier: 'max_batch_tokens'
       metadata:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 8192, 32769]
+        domainRange: [8192, 32769]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:
         description: "(deployment) Number of GPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1,9]
+        domainRange: [1, 9]
         interval: 1
     - identifier: 'gpu_type'
       metadata:
         description: "(deployment) The GPU type to use"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
+        values: ['NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB']
     - identifier: 'skip_tokenizer_init'
       metadata:
         description: "(deployment) skip tokenizer initialization"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE 
+        variableType: BINARY_VARIABLE_TYPE
         values: [True, False]
     - identifier: 'enforce_eager'
       metadata:
         description: "(deployment) enforce pytorch eager mode"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE 
+        variableType: BINARY_VARIABLE_TYPE
         values: [True, False]
     - identifier: 'io_processor_plugin'
       metadata:
         description: 'IO Processor plugin to load for the model'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ None, "terratorch_segmentation" ]
+        values: [None, "terratorch_segmentation"]
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/dataprep1/data-prep-kit/vllm_image:0.1"
+      value: "your/image/with/vllm/and/terratorch:0.1"
     - property:
         identifier: n_cpus
       value: 8
     - property:
-        identifier:
-          memory
-      value:  "128Gi"
+        identifier: memory
+      value: "128Gi"
     - property:
         identifier: dtype
       value: "auto"
@@ -284,14 +282,14 @@ performance_testing-geospatial-full-custom-dataset:
         description: 'model to use for testing. Assumed to be served by all endpoints tested. Required to obtain correct tokenizer for benchmarking metrics calculation'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11" ]
+        values: ["ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"]
     - identifier: 'request_rate'
       metadata:
         description: "(benchmark) The number of requests to send per second"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [-1,1000]
-        interval: 1  # -1 means send all requests at time 0
+        domainRange: [-1, 1000]
+        interval: 1 # -1 means send all requests at time 0
     - identifier: 'dataset'
       metadata:
         description: "(benchmark) The dataset to be used for the experiment"
@@ -304,115 +302,114 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(benchmark) The number of prompts to send (total number of requests)"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1,10001]
+        domainRange: [1, 10001]
         interval: 1
     - identifier: 'max_concurrency'
       metadata:
         description: "(benchmark) The maximum number of concurrent requests to send"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ -1, 500 ] # -1 means no concurrency control
+        domainRange: [-1, 500] # -1 means no concurrency control
         interval: 1
     - identifier: 'burstiness'
       metadata:
         description: "(benchmark) The burstiness of the requests - 1.0 is a Poisson distribution with rate = request_rate. Others are gamma distributions with lambda = request_rate and shape = burstiness."
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 0, 10 ]
+        domainRange: [0, 10]
         interval: 1
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ "quay.io/dataprep1/data-prep-kit/vllm_image:0.1" ]
+        values: ["your/image/with/vllm/and/terratorch:0.1"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 1,17 ]
+        domainRange: [1, 17]
         interval: 1
     - identifier: memory
       metadata:
         description: "(deployment) the amount of memory to allocate to vLLM pod"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "64Gi", "128Gi", "256Gi" ]
+        values: ["64Gi", "128Gi", "256Gi"]
     - identifier: dtype
       metadata:
         description: "(deployment) data type for model weights and activations. “auto” will use FP16 precision for FP32 and FP16 models, and BF16 precision for BF16 models."
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ "auto", "half", "float16",  "bfloat16", "float", "float32" ]
+        values: ["auto", "half", "float16", "bfloat16", "float", "float32"]
     - identifier: 'gpu_memory_utilization'
       metadata:
         description: "(deployment) The fraction of GPU memory to be used for the model executor,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [ .5, .75, .9 ]
+        values: [.5, .75, .9]
     - identifier: 'cpu_offload'
       metadata:
         description: "(deployment) The amount of model weights in GB to offload to the CPU per GPU. 0 means all weights are on GPU,"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        values: [ 0, 8, 16, 24, 32 ]
+        values: [0, 8, 16, 24, 32]
     - identifier: 'max_num_seq'
       metadata:
         description: "(deployment) Maximum number of sequences per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [32,2049]
+        domainRange: [32, 2049]
         interval: 32
     - identifier: 'max_batch_tokens'
       metadata:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [ 8192, 32769]
+        domainRange: [8192, 32769]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:
         description: "(deployment) Number of GPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1,9]
+        domainRange: [1, 9]
         interval: 1
     - identifier: 'gpu_type'
       metadata:
         description: "(deployment) The GPU type to use"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
+        values: ['NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB']
     - identifier: 'skip_tokenizer_init'
       metadata:
         description: "(deployment) skip tokenizer initialization"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE 
+        variableType: BINARY_VARIABLE_TYPE
         values: [True, False]
     - identifier: 'enforce_eager'
       metadata:
         description: "(deployment) enforce PyTorch eager mode"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE 
+        variableType: BINARY_VARIABLE_TYPE
         values: [True, False]
     - identifier: 'io_processor_plugin'
       metadata:
         description: 'IO Processor plugin to load for the model'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: [ "terratorch_segmentation" ]
+        values: ["terratorch_segmentation"]
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "quay.io/dataprep1/data-prep-kit/vllm_image:0.1"
+      value: "your/image/with/vllm/and/terratorch:0.1"
     - property:
         identifier: n_cpus
       value: 8
     - property:
-        identifier:
-          memory
-      value:  "128Gi"
+        identifier: memory
+      value: "128Gi"
     - property:
         identifier: dtype
       value: "auto"

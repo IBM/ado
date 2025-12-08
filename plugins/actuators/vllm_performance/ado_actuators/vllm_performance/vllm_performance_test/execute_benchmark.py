@@ -45,7 +45,7 @@ def execute_benchmark(
     Execute benchmark
     :param base_url: url for vllm endpoint
     :param model: model
-    :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param dataset: data set name ["random"]
     :param backend: name of the vLLM benchmark backend to be used ["vllm", "openai", "openai-chat", "openai-audio", "openai-embeddings"]
     :param interpreter: name of Python interpreter
     :param num_prompts: number of prompts
@@ -83,7 +83,7 @@ def execute_benchmark(
     request = f"export VLLM_BENCH_LOGLEVEL={log_level} && " + request
     request += (
         f"vllm bench serve --backend {backend} --base-url {base_url} --dataset-name {dataset} "
-        f"--model {model} --seed 12345 --num-prompts 10 --save-result --metric-percentiles "
+        f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
         f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
         f"--burstiness {burstiness} "
     )
@@ -146,7 +146,7 @@ def execute_random_benchmark(
     Execute benchmark with random dataset
     :param base_url: url for vllm endpoint
     :param model: model
-    :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param dataset: data set name ["random"]
     :param num_prompts: number of prompts
     :param request_rate: request rate
     :param max_concurrency: maximum number of concurrent requests
@@ -197,7 +197,7 @@ def execute_geospatial_benchmark(
     Execute benchmark with random dataset
     :param base_url: url for vllm endpoint
     :param model: model
-    :param dataset: data set name ["sharegpt", "sonnet", "random", "hf"]
+    :param dataset: data set name ["random"]
     :param num_prompts: number of prompts
     :param request_rate: request rate
     :param max_concurrency: maximum number of concurrent requests

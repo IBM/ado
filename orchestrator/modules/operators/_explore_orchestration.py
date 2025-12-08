@@ -23,7 +23,6 @@ from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.modules.operators._cleanup import (
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
-    initialize_ray_resource_cleaner,
     shutdown_signal_received,
 )
 from orchestrator.modules.operators._orchestrate_core import (
@@ -191,8 +190,6 @@ def orchestrate_explore_operation(
         operation_info.ray_namespace = (
             f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
         )
-
-    initialize_ray_resource_cleaner()
 
     project_context = discovery_space.project_context
 

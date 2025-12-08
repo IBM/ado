@@ -71,8 +71,6 @@ performance_testing-geospatial-endpoint:
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
-    - identifier: "total_input_tokens"
-    - identifier: "total_output_tokens"
     - identifier: "request_throughput"
     - identifier: "mean_e2el_ms"
     - identifier: "median_e2el_ms"
@@ -267,8 +265,6 @@ performance_testing-geospatial-full:
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
-    - identifier: "total_input_tokens"
-    - identifier: "total_output_tokens"
     - identifier: "request_throughput"
     - identifier: "mean_e2el_ms"
     - identifier: "median_e2el_ms"
@@ -460,8 +456,6 @@ performance_testing-geospatial-full-custom-dataset:
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
-    - identifier: "total_input_tokens"
-    - identifier: "total_output_tokens"
     - identifier: "request_throughput"
     - identifier: "mean_e2el_ms"
     - identifier: "median_e2el_ms"

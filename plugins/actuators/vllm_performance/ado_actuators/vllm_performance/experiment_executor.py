@@ -210,8 +210,8 @@ def _create_environment(
                         reuse_deployment=False,
                         namespace=actuator.namespace,
                         pvc_name=pvc_name,
-                        skip_tokenizer_init=values.get("skip_tokenizer_init"),
-                        enforce_eager=values.get("enforce_eager"),
+                        skip_tokenizer_init=values.get("skip_tokenizer_init", 0) == 1,
+                        enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
                         check_interval=check_interval,
                         timeout=timeout,
@@ -415,6 +415,13 @@ def run_resource_and_workload_experiment(
             if max_concurrency < 0:
                 max_concurrency = None
             started_benchmarking = True
+            console.put.remote(
+                message=RichConsoleSpinnerMessage(
+                    id=request.requestid,
+                    label=f"({request.requestid}) Executing vllm bench serve",
+                    state="start",
+                )
+            )
             if experiment.identifier in [
                 "test-geospatial-deployment-v1",
                 "test-geospatial-deployment-custom-dataset-v1",

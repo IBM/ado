@@ -86,7 +86,7 @@ class ComponentsManager:
                 self.pvc_name = f"vllm-support-{uuid.uuid4().hex!s}"
                 self.create_pvc(pvc_name=self.pvc_name, template=pvc_template)
                 self.pvc_created = True
-                logger.debug(f"Created pvc {pvc_name} in namespace {namespace}")
+                logger.debug(f"Created pvc {self.pvc_name} in namespace {namespace}")
             else:
                 if not self.check_pvc_exists(pvc_name=pvc_name):
                     error_message = (
@@ -345,6 +345,9 @@ class ComponentsManager:
             template=template,
             claim_name=claim_name,
             hf_token=hf_token,
+            skip_tokenizer_init=skip_tokenizer_init,
+            io_processor_plugin=io_processor_plugin,
+            enforce_eager=enforce_eager,
         )
         logger.debug(json.dumps(deployment_yaml, indent=2))
 

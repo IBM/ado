@@ -126,12 +126,6 @@ test-deployment-v1:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [ 'NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB' ]
-    - identifier: 'dataset'
-      metadata:
-        description: "(benchmark) The dataset to use for the benchmark"
-      propertyDomain:
-        variableType: 'CATEGORICAL_VARIABLE_TYPE'
-        values: [ 'random' ]
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -182,9 +176,6 @@ test-deployment-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
-    - property:
-        identifier: 'dataset'
-      value: 'random'
   # measurements
   targetProperties:
     - identifier: "duration"

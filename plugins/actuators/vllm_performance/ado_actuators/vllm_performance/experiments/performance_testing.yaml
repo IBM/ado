@@ -55,12 +55,6 @@ test-deployment-v1:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1, 10000]
         interval: 1
-    - identifier: 'dataset'
-      metadata:
-        description: "(benchmark) The dataset to be used for the experiment"
-      propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: ['random']
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"

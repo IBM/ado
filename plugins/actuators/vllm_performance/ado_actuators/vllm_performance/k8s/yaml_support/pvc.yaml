@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:

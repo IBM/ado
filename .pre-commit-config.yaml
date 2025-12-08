@@ -30,9 +30,9 @@ repos:
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:
-    - id: codespell
-      additional_dependencies: ['tomli']
-      args: ['--toml', 'pyproject.toml']
+      - id: codespell
+        additional_dependencies: ['tomli']
+        args: ['--toml', 'pyproject.toml']
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.9.7
     hooks:
@@ -46,4 +46,8 @@ repos:
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.18.1
     hooks:
-    - id: markdownlint-cli2
+      - id: markdownlint-cli2
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.19.0
+    hooks:
+      - id: yamlfmt

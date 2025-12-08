@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 sampleStoreIdentifier: 'abc123-source' # Replace with id of source created from gen_models_transformer_test_sample_store
 entitySpace:
   - identifier: 'smiles'

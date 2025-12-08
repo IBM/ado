@@ -17,7 +17,7 @@ operation:
             consider_pareto_front_convergence: True
     tuneConfig:
       metric: wallClockRuntime
-      max_concurrent_trials: 1  # This is set for debugging. Increase if you want multiple measurements at once.
+      max_concurrent_trials: 1 # This is set for debugging. Increase if you want multiple measurements at once.
       mode: min
       num_samples: 32
       search_alg:

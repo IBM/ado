@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 sampleStoreIdentifier: '174914' # Replace with id from creating gen_models_molgx_test_sample_store
 entitySpace:
   - identifier: 'smiles'

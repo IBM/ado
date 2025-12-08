@@ -1,5 +1,4 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 - moduleName: ado_actuators.sfttrainer.actuators
   moduleClass: SFTTrainer

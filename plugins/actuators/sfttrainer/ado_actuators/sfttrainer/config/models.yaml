@@ -1,6 +1,5 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
 allam-1-13b:
   Vanilla: /hf-models-pvc/allam-1-13b-instruct-20240607
 granite-13b-v2:

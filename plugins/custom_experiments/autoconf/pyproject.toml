@@ -1,0 +1,49 @@
+[project.entry-points."ado.custom_experiments"]
+min_gpu_experiment = "autoconf.min_gpu_recommender"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
+[project]
+dynamic = ['version']
+name = "ado-autoconf"
+description="An AutoConf plugin that suggests the minimum number of gpus necessary to execute a Tuning job"
+dependencies = ["pandas",
+                "autogluon.tabular[catboost,xgboost]",
+                "pydantic",
+                "cloudpickle",
+                "fastai",
+                "torch",
+                "ado-core>=1.2.3",
+                ]
+
+[project.optional-dependencies]
+libomp = [
+  "autogluon.tabular[lightgbm]"
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["autoconf"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["build", "build.*", "yamls"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+fallback-version = "0.0.0"
+tagged-metadata = true
+dirty = true
+bump = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+]

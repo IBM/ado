@@ -1,0 +1,15 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+spaces:
+  - this will be rewritten
+operation:
+  module:
+    moduleClass: "RandomWalk"
+  parameters:
+    batchSize: 4
+    numberEntities: all
+    singleMeasurement: true
+    maxRetries: 0
+    samplerConfig:
+      mode: sequential
+      samplerType: generator

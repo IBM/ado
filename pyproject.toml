@@ -82,6 +82,7 @@ test = [
     "ado-ray-tune",
     "ado-sfttrainer",
     "anomalous-series",
+    "density-test",
     "optimization-test-functions",
     "pfas-custom-functions",
     "profile-space",
@@ -100,6 +101,7 @@ members = [
     "plugins/operators/profile_space",
     "plugins/operators/anomalous_series",
     "plugins/actuators/example_actuator",
+    "examples/density_example",
 ]
 
 [tool.uv.sources]
@@ -110,6 +112,7 @@ pfas-custom-functions = { workspace = true }
 profile-space = { workspace = true }
 anomalous-series = { workspace = true }
 robotic-lab = { workspace = true }
+density-test = { workspace = true }
 
 [project.scripts]
 ado = "orchestrator.cli.core.cli:app"

@@ -1,0 +1,47 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+experiments:
+  - experimentIdentifier: min_gpu_recommender
+    actuatorIdentifier: custom_experiments
+entitySpace:
+  - identifier: "model_name"
+    propertyDomain:
+      values:
+        - "granite-3.1-2b"
+        - "granite-20b-v2"
+        - "granite-13b-v2"
+        - "granite-3-8b"
+        - "granite-3.1-3b-a800m-instruct"
+        - "granite-3.1-8b-instruct"
+        - "granite-34b-code-base"
+        - "granite-3b-code-base-128k"
+        - "granite-7b-base"
+        - "granite-8b-code-base"
+        - "granite-8b-japanese"
+        - "llama-13b"
+        - "llama-7b"
+        - "llama2-70b"
+        - "llama3-70b"
+        - "llama3-8b"
+        - "llama3.1-405b"
+        - "llama3.1-70b"
+        - "llama3.1-8b"
+        - "mistral-123b-v2"
+        - "mistral-7b-v0.1"
+        - "mixtral-8x7b-instruct-v0.1"
+  - identifier: "tokens_per_sample"
+    propertyDomain:
+      values: [512, 1024, 2048, 4096, 8192]
+  - identifier: "batch_size"
+    propertyDomain:
+      values: [1, 2, 4, 8, 32, 64]
+  - identifier: "gpu_model"
+    propertyDomain:
+      values: ["NVIDIA-A100-SXM4-80GB", "NVIDIA-A100-80GB-PCIe", "L40S"]
+  - identifier: method
+    propertyDomain:
+      values: ["full", "lora"]
+  - identifier: model_version
+    propertyDomain:
+      values:
+        - "1.1.0"

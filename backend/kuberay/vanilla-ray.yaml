@@ -1,12 +1,9 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
-
 image:
   repository: rayproject/ray
   tag: 2.46.0-py310-cpu
   pullPolicy: Always
-
 head:
   rayVersion: 2.46.0
   enableInTreeAutoscaling: true
@@ -24,7 +21,7 @@ head:
   lifecycle: #https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html#pod-and-container-lifecyle-prestophook
     preStop:
       exec:
-        command: [ "/bin/sh","-c","ray stop" ]
+        command: ["/bin/sh", "-c", "ray stop"]
   rayStartParams:
     dashboard-host: '0.0.0.0'
     num-cpus: "0"
@@ -36,7 +33,6 @@ head:
     requests:
       cpu: 4
       memory: 16Gi
-
 worker:
   groupName: cpuWG
   replicas: 1
@@ -52,8 +48,7 @@ worker:
   lifecycle: #https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html#pod-and-container-lifecyle-prestophook
     preStop:
       exec:
-        command: [ "/bin/sh","-c","ray stop" ]
-
+        command: ["/bin/sh", "-c", "ray stop"]
   resources:
     limits:
       cpu: 10

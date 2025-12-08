@@ -1,0 +1,12 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+entity:
+  model_name: llama-7b
+  method: lora
+  gpu_model: NVIDIA-A100-80GB-PCIe
+  tokens_per_sample: 8192
+  batch_size: 16
+  model_version: 2.0.0
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: min_gpu_recommender

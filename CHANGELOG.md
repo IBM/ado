@@ -1,3 +1,21 @@
+## [1.3.0](https://github.com/ibm/ado/compare/6de12d6c25d9ecd9685919b9192e9c0ddc6bbee7..1.3.0) - 2025-12-04
+#### Features
+- (**autoconf**) introduce autoconf custom experiments (#255) - ([3c1fd87](https://github.com/ibm/ado/commit/3c1fd87ac13d067d31499701031da537b7428cc3)) - Srikumar Venugopal
+- (**cli**) support --with in ado create (#262) - ([6de12d6](https://github.com/ibm/ado/commit/6de12d6c25d9ecd9685919b9192e9c0ddc6bbee7)) - Alessandro Pomponio
+- (**core**) allow custom_experiments to execute with or without Ray (#263) - ([ea4cab7](https://github.com/ibm/ado/commit/ea4cab720cdf89023c1d176da3a4336f24fb5d98)) - Michael Johnston
+- (**sfttrainer**) support granite-3.3-8b (#276) - ([3d1733c](https://github.com/ibm/ado/commit/3d1733c7b429c4f3ba3efe1f2a03a3c1abd500ef)) - Vassilis Vassiliadis
+#### Bug Fixes
+- (**custom_experiments**) required_properties parameter of decorator was required instead of optional (#278) - ([bec1a19](https://github.com/ibm/ado/commit/bec1a19277204b0d5f80292802ac5eba70261e00)) - Michael Johnston
+- (**ordered_pip**) re-create venv if it has been garbage collected (#285) - ([b327f16](https://github.com/ibm/ado/commit/b327f16ee988ed2027b0dac4ac824d732905031d)) - Vassilis Vassiliadis
+- (**vllm_performance**) Avoid multiple experiments using the same kubernetes deployment at the same time (#268) - ([34a64af](https://github.com/ibm/ado/commit/34a64aff6ab900486d35c922b2b83431212f714b)) - Christian Pinto
+#### Documentation
+- (**changelog**) update changelog (#270) - ([c768436](https://github.com/ibm/ado/commit/c7684361b90e6d2e500665339a256007cc6b6ac5)) - Alessandro Pomponio
+- (**test**) Add --reinstall flag to uv sync command (#274) - ([40ce0b0](https://github.com/ibm/ado/commit/40ce0b02d6601568a8b4e2125f8eaf02b6c772eb)) - Michael Johnston
+- (**website**) more robust custom experiment docs (#284) - ([30f0eb3](https://github.com/ibm/ado/commit/30f0eb3af68d8c46b74dc9a42e3cfccd7cc80274)) - Michael Johnston
+- (**website**) clarify wheel build output location (#277) - ([07d0061](https://github.com/ibm/ado/commit/07d0061d6596d4529f3ac3988be680af1f7a0329)) - Vassilis Vassiliadis
+#### Build system
+- (**deps**) update dependencies (#282) - ([4b4d8c2](https://github.com/ibm/ado/commit/4b4d8c2f0643be4a11ab5cbb64a0da03df26e63c)) - Alessandro Pomponio
+
 ## [1.2.4](https://github.com/ibm/ado/compare/1.2.3..1.2.4) - 2025-12-01
 #### Features
 - (**cli**) support shorthands for resources (#245) - ([39d4931](https://github.com/ibm/ado/commit/39d49315bbf1a5d41a836fb7dffc57ca6ce5922f)) - Alessandro Pomponio

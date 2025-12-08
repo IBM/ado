@@ -35,6 +35,7 @@ Hence `ado get datacontainer $ID` will output it. However, depending on what is
 stored this may not be the best way to view it. Instead, you can try
 `ado describe datacontainer` which will format the contents e.g.
 
+<!-- markdownlint-disable line-length -->
 ```commandline
 Identifier: datacontainer-532d8b6d
 Basic Data:
@@ -131,6 +132,7 @@ Location Data:
 
   mysql+pymysql://admin:somepass@localhost:3306/sql_sample_store_aaa123
 ```
+<!-- markdownlint-enable line-length -->
 
 ### programmatically
 

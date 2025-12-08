@@ -31,8 +31,8 @@ ado [--context | -c <context-file.yaml>] \
 
 - `--context | -c` allows overriding the active context with one loaded from a
   file. This feature should only be used when running on remote Ray clusters.
-- `--log-level | -l` configures the logging level. This
-  does not affect child processes.
+- `--log-level | -l` configures the logging level. This does not affect child
+  processes.
 
 ### ado context
 
@@ -49,8 +49,8 @@ ado context [CONTEXT_NAME]
 
 ##### Getting the current context
 
-Similar to `oc project`, users can see the name of the currently active
-context by running:
+Similar to `oc project`, users can see the name of the currently active context
+by running:
 
 ```shell
 ado context
@@ -58,8 +58,7 @@ ado context
 
 ##### Listing available contexts
 
-Similar to `oc projects`, users can list available contexts by
-running:
+Similar to `oc projects`, users can list available contexts by running:
 
 ```shell
 ado contexts
@@ -69,9 +68,9 @@ The default context will also be printed out.
 
 ##### Switching between contexts
 
-To switch between the available contexts, specify the target context name
-to the `ado context` command. In this example we assume that the `my-context`
-context exists:
+To switch between the available contexts, specify the target context name to the
+`ado context` command. In this example we assume that the `my-context` context
+exists:
 
 ```shell
 ado context my-context
@@ -256,8 +255,8 @@ ado delete space space-abc123-456def
 
 ### ado describe
 
-**ado** provides the `describe` command to retrieve readable information
-about resources.
+**ado** provides the `describe` command to retrieve readable information about
+resources.
 
 The complete syntax of the `ado describe` command is as follows:
 
@@ -294,8 +293,8 @@ ado describe space space-abc123-456def
 ### ado edit
 
 **ado** automatically stores metadata in the backend for some of the resources
-you can create. The fastest way to update these metadata is to use
-the `ado edit` command.
+you can create. The fastest way to update these metadata is to use the
+`ado edit` command.
 
 The complete syntax of the `ado edit` command is as follows:
 
@@ -353,6 +352,7 @@ restrict results to a single resource.
 The complete syntax of the `ado get` command is as follows:
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
 ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
                                     [--exclude-default | --no-exclude-default] \
@@ -368,6 +368,7 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
                                     [--from-sample-store <sample-store-id>] \
                                     [--from-space <space-id>] [--from-operation <operation-id>]
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Where:
@@ -410,10 +411,10 @@ Where:
   <https://github.com/h2non/jsonpath-ng?tab=readme-ov-file#jsonpath-syntax>.
   This flag is only supported when using the `yaml`, `json`, or `config` output
   format.
-- `--minimize` minimizes the output. This might entail applying
-  transformations on the model, changing it from the original. If set, it
-  implies `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This
-  option is ignored when the output type is `default` or `raw`.
+- `--minimize` minimizes the output. This might entail applying transformations
+  on the model, changing it from the original. If set, it implies
+  `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
+  ignored when the output type is `default` or `raw`.
 - The `--from-sample-store`, `--from-space`, `--from-operation` flags are
   available **only for `ado get measurementrequests`** and allow specifying what
   samplestore/space/operation the measurement request belongs to.
@@ -461,7 +462,9 @@ ado get spaces
 ado get spaces --details
 ```
 
+<!-- markdownlint-disable line-length -->
 ##### Getting all Discovery Spaces that include granite-7b-base in the property domain
+<!-- markdownlint-enable line-length -->
 
 !!! info
 
@@ -508,7 +511,9 @@ ado get space space-df8077-7535f9 -o yaml \
   --exclude-field "config.entitySpace[*].propertyDomain.domainRange"
 ```
 
+<!-- markdownlint-disable line-length -->
 ##### Getting an actuator configuration and hiding the status for the "created" event
+<!-- markdownlint-enable line-length -->
 
 ```shell
 ado get actuatorconfiguration actuatorconfiguration-myactuator-123456 -o yaml \
@@ -542,9 +547,11 @@ ado get actuator st4sd --details --show-deprecated
 ##### Getting the yaml of a MeasurementRequest from an operation
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
 ado get measurementrequest measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ### ado show
@@ -625,10 +632,10 @@ Where:
 - `--property-format` defines the naming format used for measured properties in
   the output, one of:
 
-    - `observed`: properties are named `$experimentid.$property_id`. There will be
-      one row per entity.
-    - `target`: properties are named `$property_id`. There will be one row per
-      (entity, experiment) pair.
+    - `observed`: properties are named `$experimentid.$property_id`.
+      There will be one row per entity.
+    - `target`: properties are named `$property_id`.
+      There will be one row per (entity, experiment) pair.
 
 - `--output-format` is the format in which to display the entity data. One of:
 
@@ -643,8 +650,8 @@ Where:
 
     - `sampled`: Entities that have been measured by explore operations on the
       `discoveryspace`
-    - `unsampled`: Entities that have not been measured by an explore operation on
-      the `discoveryspace`
+    - `unsampled`: Entities that have not been measured by an explore operation
+      on the `discoveryspace`
     - `matching`: Entities in the `samplestore` the `discoveryspace` uses, that
       match the `discoveryspace`'s description
     - `missing`: Entities in the `discoveryspace` that are not in the
@@ -686,11 +693,13 @@ an operation.
 The complete syntax of the `ado show requests` command is as follows:
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
 ado show requests operation [RESOURCE_ID] [--use-latest] \
                             [--output-format | -o <console | csv | json>] \
                             [--hide <field>]
 ```
+
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
@@ -712,9 +721,11 @@ ado show requests operation randomwalk-0.5.0-123abc -o csv
 ###### Show measurement requests for an operation and hide certain fields
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
 ado show requests operation randomwalk-0.5.0-123abc --hide type --hide "experiment id"
 ```
+
 <!-- markdownlint-enable line-length -->
 
 #### ado show results
@@ -725,11 +736,13 @@ operation.
 The complete syntax of the `ado show results` command is as follows:
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
 ado show results operation [RESOURCE_ID] [--use-latest] \
                            [--output-format | -o <console | csv | json>] \
                            [--hide <field>]
 ```
+
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
@@ -820,8 +833,8 @@ Where:
   metadata. Labels must be specified in the `key=value` format. This flag can be
   specified multiple times (even in conjunction with `-q` to further filter
   results).
-- `--with-property | -p` displays values for a subset of the
-  constitutive properties. Cannot be used when the output format is `md`.
+- `--with-property | -p` displays values for a subset of the constitutive
+  properties. Cannot be used when the output format is `md`.
 - `--format | -o` allows choosing the output format in which the information
   should be displayed. Can be one of either:
     - `md` - for Markdown text.
@@ -836,8 +849,9 @@ Where:
 ado show summary space space-abc123-456def
 ```
 
-<!-- markdownlint-disable-next-line line-length -->
+<!-- markdownlint-disable line-length -->
 ###### Get the summary of a space as a Markdown table and include the constitutive property MY_PROPERTY
+<!-- markdownlint-enable line-length -->
 
 ```shell
 ado show summary space space-abc123-456def -p MY_PROPERTY
@@ -881,13 +895,14 @@ ado show summary space -q 'config.entitySpace={"propertyDomain":{"values":["gran
 
 ### ado template
 
-To assist in creating a resource configuration file, we typically start
-from a reference file. The `ado template` command allows you to create template
-files that you can edit to streamline the process.
+To assist in creating a resource configuration file, we typically start from a
+reference file. The `ado template` command allows you to create template files
+that you can edit to streamline the process.
 
 The complete syntax of the `ado template` command is as follows:
 
 <!-- markdownlint-disable line-length -->
+
 ```shell
 ado template RESOURCE_TYPE [--output | -o <PATH>] \
                            [--include-schema] \
@@ -898,6 +913,7 @@ ado template RESOURCE_TYPE [--output | -o <PATH>] \
                            [--local-context] \
                            [--no-parameters-only-schema]
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Where:

@@ -8,7 +8,7 @@
 >
 > ```commandline
 > pip install ado-ray-tune
->```
+> ```
 
 ### What does the `ray_tune` operator do?
 
@@ -111,17 +111,18 @@ consider:
 
 - [Tuning Configuration](#tune-config): general optimization parameters
   - This includes specific
-         [Optimizer Parameters](#optimizer-parameters-search_algparams)
+    [Optimizer Parameters](#optimizer-parameters-search_algparams)
 - [Runtime Configuration](#run-config): parameters related to RayTune, for
   example where its stores data
   - This includes the [Stopper Configuration](#stoppers) that determines if an
-         optimization should stop
+    optimization should stop
 - [Orchestrator Configuration](#orchestrator-config): parameters related to
   `ado`
 
 For example, the default parameters and values for a `ray_tune` operation are:
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 orchestratorConfig:
   failed_metric_value: None # This will be used for the value of "metric' for any entities where it could not be measured (for any reason)
@@ -137,6 +138,7 @@ tuneConfig:
     name: ax # The name of the optimization algorithm to use
     params: {} # The parameters for the optimizer
 ```
+
 <!-- markdownlint-enable line-length -->
 
 The following sections describe each of these parameter sets in more detail. As
@@ -164,6 +166,7 @@ The `orchestratorConfig` section currently supports the following parameters,
 which are all optional:
 
 <!-- markdownlint-disable MD007 -->
+
 - `failed_metric_value` (default None)
     - This will be used for the value of "metric' for any entities where it could
     not be measured (for any reason)
@@ -185,19 +188,19 @@ The `tuneConfig` section supports many of the
 
 - `metric` (required)
   - The
-        [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
-        to optimize.
+    [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
+    to optimize.
 - `mode` (required)
   - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
   - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in
-        RayTune it would be an optimizer instance
+    RayTune it would be an optimizer instance
 - `num_samples` (defaults to 1)
   - **Note**: The exact interpretation of `num_samples` is optimizer dependent
-        e.g. some do not count "warm-up" samples as part of this.
+    e.g. some do not count "warm-up" samples as part of this.
 - `max_concurrent_trials`
   - **Note**: this can also be controlled via most optimizers parameters. If not
-        set, the default value depends on the optimizer
+    set, the default value depends on the optimizer
 - `time_budget_s`: How many second to run the optimizer for
 
 **Unsupported parameters:**
@@ -308,7 +311,7 @@ disk. Since `ado` automatically stores the results and operation details in
 - `stop` - see [Stoppers](#stoppers)
 - `storage_path`:
   - `ado` defaults this to "/tmp/ray_results" as this directory is writable in
-      the default `ado` image used in ray clusters.
+    the default `ado` image used in ray clusters.
     - If you change this path, ensure it is writable
 
 **Other supported parameters:**
@@ -381,8 +384,10 @@ stopper, cannot currently be used with `ado`.
   are related to the target property.
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 Each of these are described in more detail, along with their parameters,
 [here](#ado-additions-to-raytune).
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 #### Example
@@ -436,6 +441,7 @@ SFTTrainer actuator:
 - specifying [initial point to sample](#common-parameters)
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 runtimeConfig:
   stop:
@@ -463,6 +469,7 @@ tuneConfig:
           model_max_length: 2048
           gpu_model: A100-SXM4-80GB
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ## `ray_tune` operation output
@@ -589,11 +596,13 @@ The following YAML describes the stoppers parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: MaxSamplesStopper
 keywordParams:
   max_samples: 10 # Will stop the optimization when this number of samples have been measured. Required
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ### SimpleStopper
@@ -606,6 +615,7 @@ The following YAML describes the stopper's parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: SimpleStopper
 keywordParams:
@@ -616,13 +626,14 @@ keywordParams:
   stop_on_repeat: True # If True, the stopper will stop the optimization if it sees the same sample twice.
   count_nan: True # If True, samples measuring 'nan' count towards the steps to wait before declaring no improvement.
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! important end
 
     `buffer_states` does not reset if the metric is observed to improve in a step.
-    That is, it is the _total_ number of samples allowed that do not improve on the
-    best found sample.
+    That is, it is the _total_ number of samples allowed that do not improve
+    on the best found sample.
 
 ### GrowthStopper
 
@@ -638,6 +649,7 @@ The following YAML describes the stopper's parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: GrowthStopper
 keywordParams:
@@ -646,6 +658,7 @@ keywordParams:
   growth_threshold: 1.0 # If the difference in two samples is less than this threshold the optimization is considered to be not improving
   grace_trials: 2 # The number of samples/optimization steps to wait before declaring the metric is not improving. Same as buffer_states for SimpleStopper.
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! important end
@@ -685,6 +698,7 @@ The following YAML describes the stoppers parameters. Parameters without values
 are required.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 name: InformationGainStopper
 keywordParams:
@@ -692,6 +706,7 @@ keywordParams:
   samples_below_limit: # # The number of samples/optimization steps to wait before declaring the mutual information is not increasing. Similar to buffer_states for SimpleStopper.
   consider_pareto_front_convergence: # If True the stopper considers convergence of the set of important properties (2.2 above). If False it considers the ranking (2.1 above)
 ```
+
 <!-- markdownlint-enable line-length -->
 
 !!! important end

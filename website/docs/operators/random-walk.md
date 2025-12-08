@@ -8,8 +8,8 @@
 
 ### What does the `random_walk` operator do?
 
-The `random_walk` operator provides different ways to randomly sample and measure
-points from a `discoveryspace`. Despite its name, it can also perform
+The `random_walk` operator provides different ways to randomly sample and
+measure points from a `discoveryspace`. Despite its name, it can also perform
 deterministic sampling.
 
 `random_walk` is an `explore` type operator.
@@ -64,12 +64,12 @@ When a `random_walk` operation encounters an unmeasured entity in the
 Depending on the experiments, you may want to control how many concurrent
 experiments are being executed.
 
-`random_walk` uses continuous batching to set the number of
-concurrent **requested** experiments and ensure that, as far as possible, there
-is always this number of experiments in flight.
+`random_walk` uses continuous batching to set the number of concurrent
+**requested** experiments and ensure that, as far as possible, there is always
+this number of experiments in flight.
 
-This approach maximizes throughput compared to standard batch-wise submission. In
-the normal case the time to finish measuring batch of N entities is, at a
+This approach maximizes throughput compared to standard batch-wise submission.
+In the normal case the time to finish measuring batch of N entities is, at a
 minimum, the time taken for the longest experiment to complete. This means if
 one experiment is very long and the others short, there can be capacity in the
 system for (N-1) additional entities to be measured but it will not be used.
@@ -81,9 +81,10 @@ The next section explains more about configuring continuous batching
 The parameters for a `random_walk` operation are (default values shown):
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
-numberEntities: 1 # The maximum number of entities to sample. Can also be the string "all" - see "Sampling all Entities". 
-batchSize: 1  # The Number of entities in the initial batch. For more on this see "Batch Size and Concurrent Experiments" below
+numberEntities: 1 # The maximum number of entities to sample. Can also be the string "all" - see "Sampling all Entities".
+batchSize: 1 # The Number of entities in the initial batch. For more on this see "Batch Size and Concurrent Experiments" below
 samplerConfig:
   mode: random # How to sample - can be random, sequential, sequentialgrouped or randomgrouped. sequential requires the sampling supports sequencing entities
   samplerType: selector # How to sample entities. Can be selector or generator. For more see Sampling Types and Modes below
@@ -95,6 +96,7 @@ filter:
     nofilter # Sets filters on the entities in the space that should be sampled. Entities not matching the filter will not be sampled or measured.
     # See "Filtering Entities" below for more details
 ```
+
 <!-- markdownlint-enable line-length -->
 
 An example `operation` YAML with a sequential selector:
@@ -132,10 +134,10 @@ spaces:
 When it comes to managing resources during an exploration, the key variable one
 wants to control is the number of concurrent experiments.
 
-For the `random_walk` operator, this number is its `batchSize` parameter (the number
-of initial entities submitted) multiplied by the number of experiments in the
-`measurementspace` of the `discoveryspace` it is operating on. For example, if
-the `batchSize` is 2 and there are 2 experiments defined in the
+For the `random_walk` operator, this number is its `batchSize` parameter (the
+number of initial entities submitted) multiplied by the number of experiments in
+the `measurementspace` of the `discoveryspace` it is operating on. For example,
+if the `batchSize` is 2 and there are 2 experiments defined in the
 `measurementspace` there will be 4 (2\*2) experiments requested. Each experiment
 will be measuring one entity. The continuous batching will endeavour to keep
 this many concurrent experiment requests during the operation.
@@ -144,7 +146,7 @@ this many concurrent experiment requests during the operation.
 
     The `random_walk` operator only knows how many experiments it has requested,
     not how many are actually executing.
-    Hence, continuous batching can only maintain that there are 
+    Hence, continuous batching can only maintain that there are
     N experiments requested at any time.
 
 ### Base Sampling Types and Modes
@@ -154,9 +156,9 @@ operation. The base `samplerConfig` is shown in the examples above and has the
 following fields and defaults:
 
 ```yaml
- mode: random 
- samplerType: selector 
- grouping: [] 
+mode: random
+samplerType: selector
+grouping: []
 ```
 
 #### Sampling Types
@@ -175,7 +177,9 @@ The `selector` sampling type draws _existing matching entities_ from the
 
 Both sampling types support four modes, which can be categorised as flat or
 grouped:
+
 <!-- markdownlint-disable ul-indent -->
+
 - flat
     - sequential
     - random
@@ -196,16 +200,16 @@ is `generator` or `selector`.
 
 - `sequential`
   - `generator`: The entities are generated by iterating over the constitutive
-      properties values with the first property being innermost and last outermost
-      (see below for more details)
+    properties values with the first property being innermost and last outermost
+    (see below for more details)
   - `selector`: The entities are iterated in the order they are returned by the
-      `samplestore`
+    `samplestore`
 - `random`
   - For both samplers the entities are sampled in a random order.
 - `sequentialgrouped`
   - The entities are grouped by a user defined condition. Either all the
-      entities in space (`generator`) or the entities in the `samplestore`
-      (`selector`)
+    entities in space (`generator`) or the entities in the `samplestore`
+    (`selector`)
     - The groups are iterated in order
     - The group members are iterated in order
 - `randomgrouped`
@@ -276,40 +280,45 @@ spaces:
 ### Custom Samplers
 
 It is also possible to specify that `random_walk` uses a custom sampler. This is
-a class that inherits from `orchestrator.core.discoveryspace.samplers.BaseSampler`.
-This is useful for implementing more complex sampling schemes. For example, for
-developers who want to use random_walk to drive an exploration but have custom
-logic to execute before choosing each sample/entity.
+a class that inherits from
+`orchestrator.core.discoveryspace.samplers.BaseSampler`. This is useful for
+implementing more complex sampling schemes. For example, for developers who want
+to use random_walk to drive an exploration but have custom logic to execute
+before choosing each sample/entity.
 
 For custom samplers the `samplerConfig` field has the following structure:
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 module:
   moduleClass: #The name of the custom sampler class
   moduleName: #The name of the python module containing the sampler
-parameters: # A dictionary of key value pairs with the values for the custom samplers input parameters 
+parameters: # A dictionary of key value pairs with the values for the custom samplers input parameters
   ...
 ```
+
 <!-- markdownlint-enable line-length -->
 
 #### Implementing a Custom Sampler
 
-To implement a custom sampler create a sub-class of `orchestrator.core.discovery.samplers.BaseSampler`
-and implement all required methods
+To implement a custom sampler create a sub-class of
+`orchestrator.core.discovery.samplers.BaseSampler` and implement all required
+methods
 
-The `BaseSampler` class does not specify any `__init__` parameters.
-If your custom class requires initialization parameters then
+The `BaseSampler` class does not specify any `__init__` parameters. If your
+custom class requires initialization parameters then
 
 - define a pydantic model for them
 - override the `parameters_model` class method to return this model
-- add a non keyword parameter to your custom classes `__init__` that is this type.
+- add a non keyword parameter to your custom classes `__init__` that is this
+  type.
 
 For example:
 
 ```python
 # Class for the custom samplers parameters
-class MySamplerParams(BaseModel): 
+class MySamplerParams(BaseModel):
    ...
 
 # Subclass of BaseSampler implementing the custom sampling logic
@@ -317,10 +326,10 @@ class MySampler(BaseSampler):
 
     @classmethod
     def parameters_model(cls) -> Optional[Type[BaseModel]]:
-        
+
         # Return the custom samplers parameters model
         return MySamplerParams
-    
+
     # Add an init arg to take the parameters model
     def __init__(self, parameters: MySamplerParams):
          ...
@@ -394,20 +403,20 @@ more details.
 
 ### Retrying Failed Measurements
 
-If the measurement of an entity by an experiment fails `random_walk` can retry it.
-The parameter controlling this is `maxRetries` which by default is 0 - no
+If the measurement of an entity by an experiment fails `random_walk` can retry
+it. The parameter controlling this is `maxRetries` which by default is 0 - no
 retries. If `maxRetries` is N then failing measurements will be retried up to
 `N` times.
 
 #### Experiment request index v number of experiments requested
 
-To understand a `random_walk` operations logs when maxRetries is greater than 0 its
-necessary to understand how it tracks the entity+experiment combinations it
+To understand a `random_walk` operations logs when maxRetries is greater than 0
+it's necessary to understand how it tracks the entity+experiment combinations it
 wants to measure versus the number of experiments it has requested to do these
 measurements.
 
-`random_walk` assigns an integer to each entity+experiment combination it wants to
-measure. This is called the request index - the Nth entity+experiment
+`random_walk` assigns an integer to each entity+experiment combination it wants
+to measure. This is called the request index - the Nth entity+experiment
 combination will have request index N-1.
 
 `random_walk` tracks retries based on request index. For example, it tracks that
@@ -415,10 +424,10 @@ request index 5 has been retried 2 times.
 
 !!! info end
 
-    At the end of an `random_walk` operation, a summary of each request 
-    index that was retried is output. 
+    At the end of an `random_walk` operation, a summary of each request
+    index that was retried is output.
     This includes how many times it was retried and what the
-    final status was - either it performed maxRetries and still was FAILED 
+    final status was - either it performed maxRetries and still was FAILED
     or one of the retries indicated SUCCESS
 
     Example summary output. Here `Request 8` means request index 8.

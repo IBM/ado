@@ -5,7 +5,7 @@
 > [search a space with an optimizer](../examples/best-configuration-search.md)
 
 `ado` enables you to use Python functions as experiments by registering
- them as custom experiments using a decorator.
+them as custom experiments using a decorator.
 
 ## The structure of a custom experiment package
 
@@ -17,7 +17,7 @@ $YOUR_REPO_NAME/
   my_custom_experiment/ # Change to whatever name you like
     __init__.py
     # Python file with your decorated function(s) - can have any name
-    experiments.py  
+    experiments.py
 ```
 
 In addition, you must register an entry-point to the group `ado.custom_experiments`
@@ -26,14 +26,14 @@ in your `pyproject.toml` so `ado` can find your custom_experiment automatically:
 ```toml
 [project.entry-points."ado.custom_experiments"]
 #This should be python file with your decorated function(s).
-my_experiment = "my_custom_package.experiments" 
+my_experiment = "my_custom_package.experiments"
 ```
 
->[!NOTE]
+> [!NOTE]
 >
 > 1. You can have more than one decorated function in a module.
 > 2. If you want to have functions in different modules you
-> need to register each module as an entrypoint.
+>    need to register each module as an entrypoint.
 
 ## Decorating your custom experiment function
 
@@ -44,7 +44,7 @@ In the simplest case:
 - type your parameters using python `typing`
 - return the output in a dictionary of key value pairs
 - define the set of output property keys in the
-`output_property_identifiers` parameter of the decorator
+  `output_property_identifiers` parameter of the decorator
 
 ```python
 {%
@@ -52,7 +52,7 @@ In the simplest case:
 %}
 ```
 
-**Experiment Naming:**  
+**Experiment Naming:**
 
 The experiment will be registered with the name of the decorated
 Python function (e.g., `calculate_density`).
@@ -121,6 +121,7 @@ using the [`run_experiment`](run_experiment.md) command line tool.
 Save the following YAML to a file `point.yaml`
 
 <!-- markdownlint-disable-next-line first-line-h1 -->
+
 ```yaml
 {%
    include "../../../examples/density_example/point.yaml"
@@ -144,16 +145,16 @@ defined above:
 ```yaml
 sampleStoreIdentifier: dfe035
 entitySpace:
-- identifier: mass
-  propertyDomain:
-    domainRange: [1,10]
-    interval: 1
-- identifier: volume
-  propertyDomain:
-    domainRange: [1,10]
+  - identifier: mass
+    propertyDomain:
+      domainRange: [1, 10]
+      interval: 1
+  - identifier: volume
+    propertyDomain:
+      domainRange: [1, 10]
 experiments:
-- actuatorIdentifier: custom_experiments
-  experimentIdentifier: calculate_density
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: calculate_density
 ```
 
 ---
@@ -182,10 +183,10 @@ Defining the domain explicitly enables:
 - Automated construction of relevant discovery spaces (via `ado template`)
 - Control of what are considered required and optional properties
 - Finer grained control of the domain (e.g. you can have a float
-parameter but make the domain discrete)
+  parameter but make the domain discrete)
 
 In the following example, we explicitly indicate that the mass and volume parameters
-of our `calculate_density` function are  positive numbers.
+of our `calculate_density` function are positive numbers.
 
 ```python
 from typing import Dict, Any
@@ -226,12 +227,12 @@ def calculate_density(mass, volume) -> Dict[str, Any]:
 
 ### Defining the domains of optional properties
 
-Similarly to required properties you can define domains for
-the **optional properties** via the `optional_properties` parameter to the decorator.
-This is also a list of `ConstitutiveProperty` instances
-which define the parameters domains.
-Default values for the optional properties must be given either in the function signature
-i.e. as keyword args, or via the `parameterization` parameter to the decorator.
+Similarly to required properties you can define domains for the **optional
+properties** via the `optional_properties` parameter to the decorator. This is
+also a list of `ConstitutiveProperty` instances which define the parameters
+domains. Default values for the optional properties must be given either in the
+function signature i.e. as keyword args, or via the `parameterization` parameter
+to the decorator.
 
 > [!IMPORTANT]
 >
@@ -252,7 +253,7 @@ round_result = ConstitutiveProperty(
 @custom_experiment(
     required_properties=[mass, volume],
     #round_result will get its default value from the keyword arg
-    optional_properties=[round_result], 
+    optional_properties=[round_result],
     output_property_identifiers=["density"],
     metadata={"description": "Calculates density from mass and volume"}
 )
@@ -264,7 +265,7 @@ def calculate_density(mass, volume, round_result: bool = False):
 ```
 
 The above registers `round_result` as an optional properties
-of the experiment,  with its value in the function signature as the default parameterization.
+of the experiment, with its value in the function signature as the default parameterization.
 
 ### Supplying metadata
 
@@ -298,6 +299,7 @@ until it is finished
 > [!NOTE]
 >
 > If `use_ray` is False, the value of this parameter is ignored
+
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!WARNING]
@@ -320,10 +322,10 @@ For example,
 ```python
 @custom_experiment(
     output_property_identifiers=["loss"],
-    use_ray=True, 
-    ray_options={"num_cpus": 2, 
-                 "num_gpus": 0.5, 
-                 "runtime_env": 
+    use_ray=True,
+    ray_options={"num_cpus": 2,
+                 "num_gpus": 0.5,
+                 "runtime_env":
                      {"env_vars": {"OMP_NUM_THREADS": "2"}}}
 )
 def my_heavy_exp(x, y):
@@ -366,7 +368,7 @@ For example:
 
 ```python
 # Value outside domain - an error will be raised
-result = calculate_density(mass=0, volume=10)  
+result = calculate_density(mass=0, volume=10)
 ```
 
 ## Next Steps

@@ -8,9 +8,6 @@ import typing
 import ray
 import ray.util.queue
 
-import orchestrator.core
-import orchestrator.modules
-import orchestrator.modules.operators._cleanup
 from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
@@ -59,9 +56,7 @@ def graceful_explore_operation_shutdown(
 
     from rich.console import Console
 
-    moduleLog.info("Shutting down gracefully")
-
-    orchestrator.modules.operators._cleanup.shutdown_signal_received = True
+    moduleLog.info(f"Shutting down operation {identifier} gracefully")
 
     #
     # Shutdown process

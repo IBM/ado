@@ -52,7 +52,7 @@ foundation-models:
 
 ## Requirements
 
-A basic installation of `ado` only requires a recent Python version (3.10+).
+A basic installation of `ado` only requires a recent Python version (3.10 to 3.13).
 This will allow you to run [many of our examples](examples/examples.md) and
 explore ado features.
 

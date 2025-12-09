@@ -49,9 +49,7 @@ from orchestrator.schema.result import (
 def ml_multi_cloud_sample_store(create_sample_store) -> SQLSampleStore:
     sample_store_configuration = SampleStoreConfiguration.model_validate(
         yaml.safe_load(
-            pathlib.Path(
-                "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
-            ).read_text()
+            pathlib.Path("tests/resources/ml_multicloud_sample_store.yaml").read_text()
         )
     )
     return create_sample_store(sample_store_configuration)
@@ -61,9 +59,7 @@ def ml_multi_cloud_sample_store(create_sample_store) -> SQLSampleStore:
 def ml_multi_cloud_csv_sample_store() -> CSVSampleStore:
     sample_store_configuration = SampleStoreConfiguration.model_validate(
         yaml.safe_load(
-            pathlib.Path(
-                "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
-            ).read_text()
+            pathlib.Path("tests/resources/ml_multicloud_sample_store.yaml").read_text()
         )
     )
 

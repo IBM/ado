@@ -2,17 +2,17 @@
 
 > [!NOTE] The scenario
 >
-> When you deploy a workload you have to choose values
-> for workload parameters  like the number of CPUs or the GPU type.
-> **In this example `ado` is used to explore how performance
-> varies across the workload parameter space for a cloud application.**
+> When deploying a workload, you need to configure parameters such as the number
+> of CPUs or the type of GPU. **In this example, `ado` is used to explore how
+> performance varies across the workload parameter space for a cloud
+> application.**
 >
 > Exploring a workload parameter space with `ado` involves:
 >
-> 1. Defining the values of the workload parameters to test
-> and how to measure them using a `discoveryspace`
+> 1. Defining the values of the workload parameters to test and how to measure
+>    them using a `discoveryspace`
 > 2. Exploring the `discoveryspace` by creating an `operation` that samples
-> points and measures them
+>    points and measures them
 > 3. Getting the results of the `operation`
 
 <!-- markdownlint-disable-next-line MD028 -->

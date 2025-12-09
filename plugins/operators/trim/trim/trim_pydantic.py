@@ -179,7 +179,9 @@ class TrimParameters(BaseModel):
     @model_validator(mode="after")
     def set_no_priors_target_output(self):
         if self.noPriorParameters.targetOutput != self.targetOutput:
-            logging.error(
+            logging.debug(
+                f"A call to the model has been done. It probably retrieved the model with default options,"
+                f"this triggered the output of this message. Note the following:"
                 f"No priors characterization target output = {self.noPriorParameters.targetOutput }"
                 f"Trim target output = {self.targetOutput }"
                 f"Setting them equal to '{self.targetOutput }'."

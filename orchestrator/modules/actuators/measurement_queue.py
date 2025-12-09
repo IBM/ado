@@ -1,25 +1,27 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import logging
-
 import ray.util.queue
 
 
 class MeasurementQueue(ray.util.queue.Queue):
-    """Actuators place completed MeasurementRequests in the singleton instance of this queue for addition to the active DiscoverySpace"""
+    """Class used to relay measurements for an explore operation
 
-    # stateUpdateQueue = None
+    The DiscoverySpaceManager and all Actuators in an explore operation MUST
+    use the same MeasurementQueue instance."""
 
-    @classmethod
-    def get_measurement_queue(cls, maxsize=0):
-        """This returns the singleton measurement queue for the current explore operation
+    def __init__(self, maxsize=0, ray_namespace: str | None = None):
+        """Parameters:
 
-        However, its only singleton in the process that creates it.
-        i.e. if you execute locally and in a remote actor you will get different objects.
-        Solution: Pass the queue to any remote objects that need it"""
+        ray_namespace: The namespace of the operation this queue is for.
+        Can be None in which case this indicates it is the default ray namespace for the job
+        (get_runtime_context().namespace).
+        """
 
-        log = logging.getLogger()
-        log.debug(f"Getting measurement queue via {cls}")
+        super().__init__(maxsize=maxsize)
+        self._ray_namespace = ray_namespace
 
-        return cls(maxsize=maxsize)
+    def ray_namespace(self) -> str:
+        """Returns the ray namespace the operation actors are using"""
+
+        return self._ray_namespace

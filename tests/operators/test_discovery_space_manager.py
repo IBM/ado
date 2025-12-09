@@ -15,7 +15,7 @@ def test_internal_state_direct_init(
 ):
     """Tests InternalState actor can be initialised with a DiscoverySpace instance"""
 
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     state = DiscoverySpaceManager.remote(queue=queue, space=pfas_space)
 
     try:
@@ -50,7 +50,7 @@ def test_internal_state_conf_init(
 
     pfas_space_configuration.sampleStoreIdentifier = pfas_space.sample_store.identifier
 
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     state = DiscoverySpaceManager.fromConfiguration(
         queue=queue,
         name="State",

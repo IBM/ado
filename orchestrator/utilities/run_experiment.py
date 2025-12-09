@@ -43,7 +43,7 @@ def local_execution_closure(
         A callable that submits a local measurement request.
     """
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
 
     actuator_configurations = {}
     if actuator_configuration_identifiers:

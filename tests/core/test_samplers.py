@@ -132,7 +132,7 @@ async def test_explicit_space_grid_sampler_async_entity_iterator(
         sampler = ExplicitEntitySpaceGridSampleGenerator(mode=walk_mode)
         count = 0
         entity = None
-        queue = MeasurementQueue.get_measurement_queue()
+        queue = MeasurementQueue()
         manager = DiscoverySpaceManager.remote(space=space, queue=queue)
 
         assert (
@@ -282,7 +282,7 @@ async def test_random_sample_selector(
         space.matchingEntities()
     ), "Expected the number of entities iterated was equal to number matching entities in source"
 
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
     assert RandomSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
 
@@ -326,7 +326,7 @@ async def test_sequential_sample_selector(
         space.matchingEntities()
     ), "Expected the number of entities iterated was equal to number matching entities in source"
 
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
     assert SequentialSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
 

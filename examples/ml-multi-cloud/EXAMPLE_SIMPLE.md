@@ -3,23 +3,17 @@
 > [!NOTE] The scenario
 >
 > When you deploy a workload you have to choose values
-> for workload parameters  like the number of CPUs or the node type.
+> for workload parameters  like the number of CPUs or the GPU type.
 > **In this example `ado` is used to explore how performance
 > varies across the workload parameter space for a cloud application.**
 >
-> Exploring a workload parameter space requires:
+> Exploring a workload parameter space with `ado` involves:
 >
-> - defining the values of the parameters to test - the parameter space
-> - defining what to test them with - the experiment
-> - selecting points from the parameter space and perform the test - the sampling
->    method
->
-> This example illustrates:
->
-> 1. Describing a set of points and how to measure them using a `discoveryspace`
-> 2. Exploring the `discoveryspace` by creating an operation that samples and
->    measures the points
-> 3. Getting the results of an operation
+> 1. Defining the values of the workload parameters to test
+> and how to measure them using a `discoveryspace`
+> 2. Exploring the `discoveryspace` by creating an `operation` that samples
+> points and measures them
+> 3. Getting the results of the `operation`
 
 <!-- markdownlint-disable-next-line MD028 -->
 
@@ -45,9 +39,10 @@
 > To create the `discoveryspace` and explore it with a random walk execute:
 >
 > ```bash
-> : # Note: this will create samplestore and discoveryspace resources you can reuse subsequently
-> ado create op -f randomwalk_ml_multicloud_operation.yaml \
->    --with samplestore=ml_multicloud_sample_store.yaml --with space=ml_multicloud_space.yaml 
+> : # Create the space to explore
+> ado create space -f ml_multicloud_space.yaml --with samplestore=ml_multicloud_sample_store.yaml
+> : # Explore!
+> ado create op -f randomwalk_ml_multicloud_operation.yaml --use-latest space
 > ```
 >
 <!-- markdownlint-enable line-length -->

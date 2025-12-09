@@ -50,12 +50,9 @@
 > Then, in a directory with these files, execute:
 >
 > ```bash
-> : # Define the configurations to explore
-> ado create space -f vllm_deployment_space.yaml
-> : # Create a configuration for the actuator - normally just once as it can be reused
-> ado create actuatorconfiguration -f vllm_actuator_configuration.yaml
-> : # Explore!
-> ado create operation -f random_walk_operation_grouped.yaml --use-latest space --use-latest actuatorconfiguration
+> : # Note: this will create space and actuator conf resources you can reuse subsequently
+> ado create op -f random_walk_operation_grouped.yaml \
+>    --with space=vllm_deployment_space.yaml --with ac=vllm_actuator_configuration.yaml
 > ```
 > <!-- markdownlint-enable line-length -->
 >

@@ -143,7 +143,6 @@ Here is a toy example using the `calculate_density` custom experiment
 defined above:
 
 ```yaml
-sampleStoreIdentifier: dfe035
 entitySpace:
   - identifier: mass
     propertyDomain:

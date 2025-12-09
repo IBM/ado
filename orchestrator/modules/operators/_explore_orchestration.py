@@ -13,12 +13,9 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
     OperatorModuleConf,
-    get_actuator_configurations,
-    validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,
@@ -205,70 +202,54 @@ def orchestrate_explore_operation(
             f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
         )
 
-    # create cleaner for this namespace
-    initialize_ray_resource_cleaner(namespace=operation_info.ray_namespace)
-
-    project_context = discovery_space.project_context
-
     # Check the space
     if not discovery_space.measurementSpace.isConsistent:
         moduleLog.critical("Measurement space is inconsistent - aborting")
         raise ValueError("Measurement space is inconsistent")
 
-    if issues := ActuatorRegistry.globalRegistry().checkMeasurementSpaceSupported(
-        discovery_space.measurementSpace
-    ):
-        moduleLog.critical(
-            "The measurement space is not supported by the known actuators - aborting"
-        )
-        for issue in issues:
-            moduleLog.critical(issue)
-        raise ValueError(
-            "The measurement space is not supported by the known actuators"
-        )
-
     log_space_details(discovery_space)
 
-    actuator_configurations = get_actuator_configurations(
-        actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
-        project_context=project_context,
-    )
-
-    validate_actuator_configurations_against_space_configuration(
-        actuator_configurations=actuator_configurations,
-        discovery_space_configuration=discovery_space.config,
-    )
+    # create cleaner for this namespace
+    initialize_ray_resource_cleaner(namespace=operation_info.ray_namespace)
 
     #
-    # STATE
-    # Create State actor
+    # MEASUREMENT QUEUE
     #
-    queue = MeasurementQueue.get_measurement_queue()
-
-    # noinspection PyUnresolvedReferences
-    state = DiscoverySpaceManager.options(
-        namespace=operation_info.ray_namespace
-    ).remote(
-        queue=queue, space=discovery_space, namespace=operation_info.ray_namespace
-    )  # type: "InternalStateActor"
-    moduleLog.debug(f"Waiting for discovery state actor to be ready: {state}")
-    _ = ray.get(state.__ray_ready__.remote())
-    moduleLog.debug("Discovery state actor is ready")
+    # For communication between actuators -> discovery space manager -> operator
+    measurement_queue = MeasurementQueue(ray_namespace=operation_info.ray_namespace)
 
     #
     #  ACTUATORS
     #
-    # Will raise ray.exceptions.ActorDiedError if any actuator died
-    # during init
+    # Will raise ray.exceptions.ActorDiedError if any actuator died during init
+    # Will raise ValueError if there is a mismatch between  the Actuators and
+    # the actuator configurations
     actuators = orchestrator.modules.operators.setup.setup_actuators(
-        namespace=operation_info.ray_namespace,
-        actuator_configurations=actuator_configurations,
+        actuator_configuration_identifiers=operation_info.actuatorConfigurationIdentifiers,
         discovery_space=discovery_space,
-        queue=queue,
+        measurement_queue=measurement_queue,
     )
     # FIXME: This is only necessary for mock actuator - but does it actually need to use it?
     for actuator in actuators.values():
         actuator.setMeasurementSpace.remote(discovery_space.measurementSpace)
+
+    #
+    # DISCOVERY SPACE MANAGER
+    #
+
+    # noinspection PyUnresolvedReferences
+    discovery_space_manager = DiscoverySpaceManager.options(
+        namespace=operation_info.ray_namespace
+    ).remote(
+        queue=measurement_queue,
+        space=discovery_space,
+        namespace=operation_info.ray_namespace,
+    )  # type: "InternalStateActor"
+    moduleLog.debug(
+        f"Waiting for discovery space manager to be ready: {discovery_space_manager}"
+    )
+    _ = ray.get(discovery_space_manager.__ray_ready__.remote())
+    moduleLog.debug("Discovery space manager is ready")
 
     #
     # OPERATOR
@@ -287,11 +268,13 @@ def orchestrate_explore_operation(
         discovery_space=discovery_space,
         actuators=actuators,
         namespace=operation_info.ray_namespace,
-        state=state,
+        state=discovery_space_manager,
     )  # type: "OperatorActor"
     identifier = ray.get(operator.operationIdentifier.remote())
 
-    explore_run_closure = run_explore_operation_core_closure(operator, state)
+    explore_run_closure = run_explore_operation_core_closure(
+        operator, discovery_space_manager
+    )
 
     # Handling SIGTERM
     # First register a callback which will clean up if SIGTERM is sent
@@ -302,7 +285,7 @@ def orchestrate_explore_operation(
         lambda: graceful_explore_operation_shutdown(
             identifier=identifier,
             operator=operator,
-            state=state,
+            state=discovery_space_manager,
             actuators=list(actuators.values()),
             namespace=operation_info.ray_namespace,
         )
@@ -340,7 +323,7 @@ def orchestrate_explore_operation(
         graceful_explore_operation_shutdown(
             identifier=identifier,
             operator=operator,
-            state=state,
+            state=discovery_space_manager,
             actuators=list(actuators.values()),
             namespace=operation_info.ray_namespace,
         )

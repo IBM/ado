@@ -26,7 +26,6 @@ from orchestrator.modules.operators._cleanup import (
     ResourceCleaner,  # noqa: F401
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
-    initialize_ray_resource_cleaner,
 )
 from orchestrator.modules.operators._explore_orchestration import (
     orchestrate_explore_operation,
@@ -48,27 +47,14 @@ moduleLog = logging.getLogger("orch")
 def graceful_orchestrate_shutdown():
     """Clean resources set up by orchestrate()
 
-    This includes the cleaner actor and ray"""
+    This includes ray.shutdown and waiting for logs to flush."""
 
     import time
 
     from rich.console import Console
 
     console = Console()
-    with console.status("Shutdown - cleanup", spinner="dots") as status:
-
-        moduleLog.debug("Cleanup custom actors")
-        try:
-            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
-            ray.get(cleaner_handle.cleanup.remote())
-            # The cleaner actor is detached, so it requires explicit deletion
-            ray.kill(cleaner_handle)
-        except Exception as e:
-            moduleLog.warning(f"Failed to cleanup custom actors {e}")
-
-        status.update("Shutdown - waiting for actors to terminate")
-
-        moduleLog.info("Shutting down Ray...")
+    with console.status("Shutdown - shutting down Ray", spinner="dots") as status:
         ray.shutdown()
         status.update("Shutdown - waiting for logs to flush")
         moduleLog.info("Waiting for logs to flush ...")
@@ -130,8 +116,6 @@ def orchestrate(
         moduleLog.debug("Ensuring envvars are set the main process environment")
         for key, value in ray_env_vars.items():
             os.environ[key] = value
-
-    initialize_ray_resource_cleaner()
 
     #
     # Register signal handler
@@ -211,6 +195,9 @@ def orchestrate(
         )
         raise
     finally:
+        logging.critical(
+            f"Shutting down - shutdown signal is {orchestrator.modules.operators._cleanup.shutdown_signal_received}"
+        )
         if not orchestrator.modules.operators._cleanup.shutdown_signal_received:
             graceful_orchestrate_shutdown()
             cleanup_callback_functions.pop("orchestrate")

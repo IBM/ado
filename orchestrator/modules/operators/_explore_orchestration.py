@@ -21,8 +21,10 @@ from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.modules.operators._cleanup import (
+    CLEANER_ACTOR,
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
+    initialize_ray_resource_cleaner,
     shutdown_signal_received,
 )
 from orchestrator.modules.operators._orchestrate_core import (
@@ -50,6 +52,7 @@ def graceful_explore_operation_shutdown(
     operator: "OperatorActor",
     state: "DiscoverySpaceManagerActor",
     actuators: list["ActuatorActor"],
+    namespace: str,
     timeout=60,
 ):
 
@@ -72,6 +75,17 @@ def graceful_explore_operation_shutdown(
 
         moduleLog.debug("Shutting down state")
         ray.get(state.shutdown.remote())
+
+        status.update(f"Shutdown ({identifier}) - cleaning up custom actors")
+
+        # ResourceCleaner cleanup before killing actors
+        try:
+            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR, namespace=namespace)
+            moduleLog.critical(f"Calling cleanup on {cleaner_handle}")
+            ray.get(cleaner_handle.cleanup.remote())
+            ray.kill(cleaner_handle)
+        except Exception as e:
+            moduleLog.warning(f"Failed to cleanup custom actors {e}")
 
         status.update(
             f"Shutdown ({identifier}) - waiting for actors to terminate (max 60s)"
@@ -191,6 +205,9 @@ def orchestrate_explore_operation(
             f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
         )
 
+    # create cleaner for this namespace
+    initialize_ray_resource_cleaner(namespace=operation_info.ray_namespace)
+
     project_context = discovery_space.project_context
 
     # Check the space
@@ -277,7 +294,7 @@ def orchestrate_explore_operation(
     explore_run_closure = run_explore_operation_core_closure(operator, state)
 
     # Handling SIGTERM
-    # First register a callback which will cleanup if SIGTERM is sent
+    # First register a callback which will clean up if SIGTERM is sent
     # and the handler is in place
     # Note we can't register the callback until the actors are created so there
     # is a short window where graceful cleanup is not possible on SIGTERM
@@ -287,6 +304,7 @@ def orchestrate_explore_operation(
             operator=operator,
             state=state,
             actuators=list(actuators.values()),
+            namespace=operation_info.ray_namespace,
         )
     )
     # Next  register the handler in case it was not registered already
@@ -324,6 +342,7 @@ def orchestrate_explore_operation(
             operator=operator,
             state=state,
             actuators=list(actuators.values()),
+            namespace=operation_info.ray_namespace,
         )
         cleanup_callback_functions.pop(identifier)
 

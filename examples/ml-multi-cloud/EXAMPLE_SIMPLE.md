@@ -40,7 +40,7 @@
 >
 > ```bash
 > : # Create the space to explore
-> ado create space -f ml_multicloud_space.yaml --with samplestore=ml_multicloud_sample_store.yaml
+> ado create space -f ml_multicloud_space.yaml --with store=ml_multicloud_sample_store.yaml
 > : # Explore!
 > ado create op -f randomwalk_ml_multicloud_operation.yaml --use-latest space
 > ```
@@ -62,7 +62,7 @@ in `ml_export.csv` into a new `samplestore`.
 To do this execute,
 
 ```commandline
-ado create samplestore -f ml_multicloud_sample_store.yaml
+ado create store -f ml_multicloud_sample_store.yaml
 ```
 
 and it will report that a `samplestore` has been created:

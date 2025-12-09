@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import typing
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -53,7 +54,13 @@ class TrimSampleSelector(BaseSampler):
             logger_trim.info("Trim sampler initialized. Iterative modeling starts.\n")
             logger_trim.info(f"PARAMETERS ARE:\n{self.params}\n\n")
 
-            # raise ValueError
+            if logger_trim.isEnabledFor(logging.DEBUG):
+                # I create the folder at self.params.debugDirectory if not present
+                debug_dir = Path(self.params.debugDirectory).expanduser().resolve()
+                logger_trim.debug(
+                    f"Creating a folder to save intermediate files:\n{debug_dir}\n\n"
+                )
+                debug_dir.mkdir(parents=True, exist_ok=True)  # creates if missing
 
             discoverySpace = await stateHandle.discoverySpace.remote()
             list_of_entities, df_ordered_to_sample = (
@@ -65,14 +72,17 @@ class TrimSampleSelector(BaseSampler):
 
             async def iterator() -> typing.AsyncGenerator[list[Entity], None]:  # type: ignore[name-defined][name-defined]
                 await asyncio.sleep(0.001)
-
                 source_df, _target_df = get_source_and_target(
                     discoverySpace, self.params.targetOutput
                 )
                 previous_iteration_source_df = source_df
-                previous_iteration_source_df.to_csv(
-                    os.path.join(self.params.debugDirectory, "initial_source_df.csv")
-                )
+
+                if logger_trim.isEnabledFor(logging.DEBUG):
+                    previous_iteration_source_df.to_csv(
+                        os.path.join(
+                            self.params.debugDirectory, "initial_source_df.csv"
+                        )
+                    )
 
                 train_cols = [
                     cp.identifier
@@ -94,6 +104,8 @@ class TrimSampleSelector(BaseSampler):
                     entities = list_of_entities[i : i + batchsize]
 
                     if len(entities) == 0:
+                        logger_trim.warning("No Entities remaining.")
+                        _ = self.finalize_model(discoverySpace)
                         break
 
                     logger_trim.info(
@@ -293,68 +305,25 @@ class TrimSampleSelector(BaseSampler):
                         )
 
                     if should_stop:
-                        hardcoded_folder_name = "trim_models/"
                         # Stopping info
+                        self.params.finalModelAutoGluonArgs.tabularPredictorArgs[
+                            "path"
+                        ] = self.params.finalModelAutoGluonArgs.tabularPredictorArgs.get(
+                            "path", self.params.outputDirectory
+                        )
+                        final_model_path = (
+                            self.params.finalModelAutoGluonArgs.tabularPredictorArgs[
+                                "path"
+                            ]
+                        )
+
                         stop_info = f"""Stopping criteria hit after measuring {i} entities.
                                         On a iteration of batch size {self.params.iterationSize}.
                                         Performance of the model on the holdout set
-                                        {training_metric}:\nmean: {_best_score_val}\t\tstd: {std_ratio}\n.
+                                        {final_model_path}:\nmean: {_best_score_val}\t\tstd: {std_ratio}\n.
                                         """
                         logger_trim.info(stop_info)
-
-                        # FIT ON FULL SOURCE SPACE DATA
-                        source_df, _target_df = get_source_and_target(
-                            discoverySpace, self.params.targetOutput
-                        )
-                        logger_trim.info(
-                            f"Fitting AutoGluon TabularPredictor on full Source Space data,  {i}..."
-                        )
-
-                        train_df = source_df[train_target_cols]
-                        # think about replicating here the guardrail about NaN in target
-                        if logger_trim.isEnabledFor(logging.DEBUG):
-                            train_df.to_csv(
-                                os.path.join(
-                                    self.params.debugDirectory,
-                                    "final_model_training_data.csv",
-                                ),
-                                index=False,
-                            )
-
-                        train_data = TabularDataset(train_df)
-                        # Now, train a model on new_source_df and get performance
-                        predictor = TabularPredictor(
-                            label=self.params.targetOutput,
-                            # problem_type="regression", # it is inferred atm
-                            **(
-                                self.params.finalModelAutoGluonArgs.tabularPredictorArgs
-                                or {}
-                            ),
-                        )
-                        fit_kwargs = (
-                            getattr(
-                                getattr(self.params, "finalModelautoGluonArgs", None),
-                                "fitArgs",
-                                None,
-                            )
-                            or {}
-                        )
-                        predictor.fit(train_data=train_data, **fit_kwargs)
-
-                        # metric metric used in training
-                        # TODO: put this in the operation metadata at the end
-                        final_lb = predictor.leaderboard(silent=True)
-                        final_model_metric = (
-                            final_lb.iloc[0].get("score_val", None)
-                            if final_lb is not None and not final_lb.empty
-                            else None
-                        )
-
-                        save_info = f"""Model finalized using as training set all sampled points, of len {len(train_data)}.\n
-                                        Final model {training_metric}={final_model_metric}.
-                                        Saving predicted model to: {hardcoded_folder_name}.
-                                        """
-                        logger_trim.info(save_info)
+                        _predictor = self.finalize_model(discoverySpace=discoverySpace)
                         break
 
                     else:
@@ -392,6 +361,66 @@ class TrimSampleSelector(BaseSampler):
 
         # Returning an async generator object # Ready to iterate on with async for ...
         return retval()
+
+    def finalize_model(self, discoverySpace):
+        # FIT ON FULL SOURCE SPACE DATA
+        source_df, _target_df = get_source_and_target(
+            discoverySpace, self.params.targetOutput
+        )
+        logger_trim.info(
+            f"Finalizing the predictive model:"
+            f"Fitting AutoGluon TabularPredictor on full Source Space data."
+            f"Model will be saved in: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}"
+        )
+
+        train_cols = [
+            cp.identifier for cp in discoverySpace.entitySpace.constitutiveProperties
+        ]
+        train_target_cols = [*train_cols, self.params.targetOutput]
+
+        train_df = source_df[train_target_cols]
+        # think about replicating here the guardrail about NaN in target
+        if logger_trim.isEnabledFor(logging.DEBUG):
+            train_df.to_csv(
+                os.path.join(
+                    self.params.debugDirectory,
+                    "final_model_training_data.csv",
+                ),
+                index=False,
+            )
+
+        train_data = TabularDataset(train_df)
+        # Now, train a model on new_source_df and get performance
+        predictor = TabularPredictor(
+            label=self.params.targetOutput,
+            # problem_type="regression", # it is inferred atm
+            **(self.params.finalModelAutoGluonArgs.tabularPredictorArgs or {}),
+        )
+        fit_kwargs = (
+            getattr(
+                getattr(self.params, "finalModelautoGluonArgs", None),
+                "fitArgs",
+                None,
+            )
+            or {}
+        )
+        predictor.fit(train_data=train_data, **fit_kwargs)
+
+        # metric metric used in training
+        # TODO: put this in the operation metadata at the end
+        final_lb = predictor.leaderboard(silent=True)
+        final_model_metric = (
+            final_lb.iloc[0].get("score_val", None)
+            if final_lb is not None and not final_lb.empty
+            else None
+        )
+        training_metric = getattr(predictor, "eval_metric", None)
+        save_info = f"""Model finalized using as training set all sampled points, of len {len(train_data)}.\n
+                        Final model {training_metric}={final_model_metric}.
+                        Saving predicted model to: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}.
+                        """
+        logger_trim.info(save_info)
+        return predictor
 
     def entities_for_iterative_modeling_from_discovery_space(
         self,

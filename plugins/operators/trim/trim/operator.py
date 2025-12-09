@@ -136,7 +136,6 @@ def trim(
             log_and_save_characterization(source_df, target_df, logger_trim)
 
     # Continuing with TRIM Iterative Modeling
-
     trim_module = SamplerModuleConf(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
         moduleName="trim.trim_sampler",  ### If CustomSequentialSampleSelector is imported as "from trim.trim_sampler import TrimSampleSelector" then this is correct
@@ -155,6 +154,7 @@ def trim(
         numberEntities=params.samplingBudget.maxPoints,
         singleMeasurement=True,
     )
+
     op_output_iterative_modeling = random_walk(
         discoverySpace=discoverySpace,
         operationInfo=FunctionOperationInfo.model_validate(
@@ -162,6 +162,11 @@ def trim(
         ),
         **trim_rwparams.model_dump(),
     )
+
+    logger_trim.info(
+        f"op_output_iterative_modeling.operation = {op_output_iterative_modeling.operation} "
+    )
+    return OperationOutput(other=[], resources=[op_output_iterative_modeling.operation])
 
     # THIS DID NOT WORK
     if op_output_characterization_no_prior:
@@ -172,6 +177,7 @@ def trim(
                 op_output_iterative_modeling.operation,
             ],
         )
+
     return OperationOutput(other=[], resources=[op_output_iterative_modeling.operation])
     # WITH ERROR:
     # message: "Operation exited due to the following error: 1 validation error for OperationOutput\n\
@@ -195,10 +201,6 @@ def trim(
     # - event: updated
     #   recorded_at: '2025-12-01T16:53:01.958590Z'
     # version: v1
-    logger_trim.info(
-        f"op_output_iterative_modeling.operation = {op_output_iterative_modeling.operation} "
-    )
-    return OperationOutput(other=[], resources=[op_output_iterative_modeling.operation])
 
 
 # def main():
@@ -227,3 +229,49 @@ def trim(
 
 # if __name__ == "__main__":
 #     main()
+
+
+# same error
+
+# message: "Operation exited due to the following error: 1 validation error for OperationOutput\n\
+#     resources.0\n  Input should be a valid dictionary or instance of ADOResource [type=model_type,\
+#     \ input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type.\n\
+#     \nTraceback (most recent call last):\n  File \"/Users/danielelotito/Documents/github/ad-orchestrator/orchestrator/modules/operators/_orchestrate_core.py\"\
+#     , line 109, in _run_operation_harness\n    operation_output: OperationOutput |\
+#     \ None = run_closure()\n                                               ^^^^^^^^^^^^^\n\
+#     \  File \"/Users/danielelotito/Documents/github/ad-orchestrator/orchestrator/modules/operators/_general_orchestration.py\"\
+#     , line 43, in _run_general_operation_core\n    return operation_function(\n  \
+#     \         ^^^^^^^^^^^^^^^^^^^\n  File \"/Users/danielelotito/Documents/github/ad-orchestrator/plugins/operators/trim/trim/operator.py\"\
+#     , line 169, in trim\n    return OperationOutput(\n           ^^^^^^^^^^^^^^^^\n\
+#     \  File \"/Users/danielelotito/Documents/github/ad-orchestrator/.venv/lib/python3.12/site-packages/pydantic/main.py\"\
+#     , line 250, in __init__\n    validated_self = self.__pydantic_validator__.validate_python(data,\
+#     \ self_instance=self)\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
+#     pydantic_core._pydantic_core.ValidationError: 1 validation error for OperationOutput\n\
+#     resources.0\n  Input should be a valid dictionary or instance of ADOResource [type=model_type,\
+#     \ input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.12/v/model_type\n"
+#   recorded_at: '2025-12-09T12:04:22.294136Z'
+# - event: updated
+#   recorded_at: '2025-12-09T12:04:22.294181Z'
+# version: v1
+# ERROR:  An unexpected error occurred. Operation operation-trim-v0.1-9dfab90c did not run successfully:
+# Operation exited due to the following error: 1 validation error for OperationOutput
+# resources.0
+#   Input should be a valid dictionary or instance of ADOResource
+#     For further information visit https://errors.pydantic.dev/2.12/v/model_type.
+# Traceback (most recent call last):
+#   File "/Users/danielelotito/Documents/github/ad-orchestrator/orchestrator/modules/operators/_orchestrate_core.py", line 109, in _run_operation_harness
+#     operation_output: OperationOutput | None = run_closure()
+#                                                ^^^^^^^^^^^^^
+#   File "/Users/danielelotito/Documents/github/ad-orchestrator/orchestrator/modules/operators/_general_orchestration.py", line 43, in _run_general_operation_core
+#     return operation_function(
+#            ^^^^^^^^^^^^^^^^^^^
+#   File "/Users/danielelotito/Documents/github/ad-orchestrator/plugins/operators/trim/trim/operator.py", line 169, in trim
+#     return OperationOutput(
+#            ^^^^^^^^^^^^^^^^
+#   File "/Users/danielelotito/Documents/github/ad-orchestrator/.venv/lib/python3.12/site-packages/pydantic/main.py", line 250, in __init__
+#     validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+#                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# pydantic_core._pydantic_core.ValidationError: 1 validation error for OperationOutput
+# resources.0
+#   Input should be a valid dictionary or instance of ADOResource
+#     For further information visit https://errors.pydantic.dev/2.12/v/model_type

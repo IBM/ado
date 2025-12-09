@@ -222,7 +222,9 @@ def order_df_for_sampling_with_no_priors(
 
     # Generate sampling orders
     orders_to_sample = get_order_list_nn_high_dimensional(
-        dims=dims, space=space_dict, n=n, refined=refined
+        dims=dims,
+        space=space_dict,
+        n=n,
     )
 
     # Map orders to DataFrame indices

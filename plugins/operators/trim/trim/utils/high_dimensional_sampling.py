@@ -24,7 +24,105 @@ def unique_in_order_list_of_lists(lists):
     return out
 
 
-def refined_high_dimensional_sampling(dims, orders, n):
+def random_shifts_high_dimensional_sampling(dims, orders, n):
+
+    maximum_n = 1
+    for d in dims:
+        maximum_n *= d
+    lcm = math.lcm(*dims)
+
+    number_repetitons = maximum_n / lcm
+    logging.info(
+        f"After {lcm} points you will encounter periodicity,\
+                We use the shift strategy to avoid periodicity. \
+                If no action is taken instead, the set of {lcm} numbers will be repeated {number_repetitons} times"
+    )
+
+    logging.info(
+        f"The greatest cardinality is {max(dims)}, multeplicity is {len([d for d in dims if d == max(dims)])}"
+    )
+
+    sampled_list = []
+    pointer = 0  # Tracks position across dimensions
+
+    while len(sampled_list) < n:
+        logging.debug(
+            f"Sampling point number (starting from 0),\t{len(sampled_list)+1}"
+        )
+        el = []
+        inner_indeces = []
+        for i, order in enumerate(orders):
+            index_inner = pointer % len(order)  # len(order) == dim by construction
+            inner_indeces.append(index_inner)
+
+        # how many inner_indexes are 0?
+        zeros = inner_indeces.count(0)
+        zeros_indeces = [i for i, e in enumerate(inner_indeces) if e == 0]
+        if zeros > 1 and len(sampled_list) > 0:
+            logging.info(f"Detected periodicity on the following {zeros} dimensions:")
+            for shift, z in enumerate(zeros_indeces):
+                logging.info(f"dims_{z} = {dims[z]}, shifting related order by {shift}")
+                for _ in range(shift):
+                    orders[z].insert(0, orders[z].pop(-1))
+
+        # Now that I shifted the orders I continue as before
+        for i, order in enumerate(orders):
+            index_inner = pointer % len(order)  # len(order) == dim by construction
+            logging.debug(
+                f"From order_{i}={order},\tAdding order_{i}[{index_inner}]={order[index_inner]}\n"
+            )
+            el.append(order[index_inner])
+
+        # NOTE: I am accumulating technical debt here because some times you do not need to shift, see 3x3x3 example on tablet
+        logging.debug(f"\nAppending element {el}")
+        sampled_list.append(el)
+        pointer = pointer + 1
+
+    logging.debug(
+        f"Updating pointer to pointer+1={pointer}, len(sampled_list) = {len(sampled_list)}\n"
+    )
+
+    # TODO: think about a look up, you associate a number from 0 to (len(maximum_n), - 1)
+    #  so that you can give directly the indexes of the ordered according to the dataframe
+    # wrt this
+    # USe
+    import itertools
+    import random
+
+    filtered_list = unique_in_order_list_of_lists(sampled_list)
+    if len(filtered_list) != n:
+        logging.warning(
+            f"""Warning! Sample list contains duplicates, they will be filtered.
+            The high-dimensional LHS-like algorithm detects {len(filtered_list)} points instead of {n}."""
+        )
+
+        points_to_add = n - len(filtered_list)
+        points_added = []
+        logging.info(
+            f"Adding {points_to_add} points. These additions may make the sample unbalanced."
+        )
+
+        # Generate all possible configurations using Cartesian product
+        # Each configuration is a tuple where element i ranges from 0 to dims[i]
+        all_configs = list(itertools.product(*[range(d + 1) for d in dims]))
+
+        # Remove configurations already present in filtered_list
+        existing_set = {tuple(x) for x in filtered_list}
+        available_configs = [cfg for cfg in all_configs if cfg not in existing_set]
+
+        # Randomly sample the required number of unique configurations
+        while len(points_added) < points_to_add and available_configs:
+            candidate = random.choice(available_configs)
+            points_added.append(list(candidate))
+            available_configs.remove(candidate)
+
+        # Merge newly added points into the filtered list
+        filtered_list.extend(points_added)
+
+    return filtered_list
+
+
+def one_shift_then_random_points_high_dimensional_sampling(dims, orders, n):
 
     sampled_list = []
     pointer = 0  # Tracks position across dimensions
@@ -110,7 +208,7 @@ def get_order_list_nn_high_dimensional(
     dims: list[int],
     n: int | str = "all",
     space: dict[str, int] | None = None,
-    refined: bool = True,
+    strategy: str = "one_shift",
 ) -> list[list[int]]:
     """
     Generate sampling indices for a high-dimensional space using `get_index_list_nn` for each dimension.
@@ -181,9 +279,12 @@ def get_order_list_nn_high_dimensional(
 
     logging.debug("Preparing to sample %d out of %d possible points.", n, maximum_n)
 
-    # TODO: fix the function and make this the default behavior
-    if refined:
-        return refined_high_dimensional_sampling(dims, orders, n)
+    # TODO: fix the function and make one of these the default behavior
+    if strategy == "one_shift":
+        return one_shift_then_random_points_high_dimensional_sampling(dims, orders, n)
+
+    if strategy == "random_shifts":
+        return random_shifts_high_dimensional_sampling(dims, orders, n)
 
     index_of_first_max = int(dims.index(max(dims)))
     sampled_list = []

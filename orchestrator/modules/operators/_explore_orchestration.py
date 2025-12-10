@@ -80,7 +80,7 @@ def graceful_explore_operation_shutdown(
         # ResourceCleaner cleanup before killing actors
         try:
             cleaner_handle = ray.get_actor(name=CLEANER_ACTOR, namespace=namespace)
-            moduleLog.critical(f"Calling cleanup on {cleaner_handle}")
+            moduleLog.debug(f"Calling cleanup on {cleaner_handle}")
             ray.get(cleaner_handle.cleanup.remote())
             ray.kill(cleaner_handle)
         except Exception as e:

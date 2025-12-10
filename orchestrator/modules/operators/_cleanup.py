@@ -23,7 +23,7 @@ def graceful_operation_shutdown_signal_handler() -> (
 
     def handler(sig, frame):
 
-        moduleLog.warning(f"Got signal {sig}")
+        moduleLog.critical(f"Got signal {sig}")
         global shutdown_signal_received
         global cleanup_callback_functions
 
@@ -33,7 +33,7 @@ def graceful_operation_shutdown_signal_handler() -> (
         shutdown_signal_received = True
         moduleLog.warning("Calling cleanup callbacks")
         for entry in cleanup_callback_functions:
-            moduleLog.warning(f"Cleaning {entry}")
+            moduleLog.info(f"Cleaning {entry}")
             cleanup_callback_functions[entry]()
 
     return handler

@@ -195,9 +195,6 @@ def orchestrate(
         )
         raise
     finally:
-        logging.critical(
-            f"Shutting down - shutdown signal is {orchestrator.modules.operators._cleanup.shutdown_signal_received}"
-        )
         if not orchestrator.modules.operators._cleanup.shutdown_signal_received:
             graceful_orchestrate_shutdown()
             cleanup_callback_functions.pop("orchestrate")

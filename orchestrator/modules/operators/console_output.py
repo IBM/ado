@@ -194,7 +194,7 @@ def rich_console_spinner_update_from_message(
 
 
 def output_operation_results(
-    discovery_space: DiscoverySpace, operation_id: str, row_limit: int | None
+    discovery_space: DiscoverySpace, operation_id: str, row_limit: int | None = None
 ) -> Table:
     """
     Generate and return a Rich Table summarizing the most recent measurements for a DiscoverySpace operation.
@@ -217,20 +217,25 @@ def output_operation_results(
             output_format="target",
         )
     )
+
     table_title = (
         f"Latest measurements - {operation_id}"
         if row_limit
         else f"Measurements - {operation_id}"
     )
+
     table = Table(title=table_title)
+
     if df.empty:
         return table
+
     # Remove unnecessary columns and setup index
     df = df.drop(
         columns=["result_index", "generatorid", "identifier"],
         errors="ignore",
     )
     df.insert(0, "index", np.arange(len(df)))
+
     # Optionally drop/convert experiment column
     if len(discovery_space.measurementSpace.experiments) == 1:
         df = df.drop(columns=["experiment_id"], errors="ignore")
@@ -238,27 +243,66 @@ def output_operation_results(
         df["experiment_id"] = df["experiment_id"].apply(
             lambda x: x.experimentIdentifier
         )
-    # Show only as many columns as fit on screen
+
+    # AP 09/12/2025:
+    # rich does not really give us tools to dynamically determine the height
+    # of a renderable. Since we can't/don't want to use Panels to determine
+    # height ratios, we try to calculate how many rows our table should have.
+    #
+    # NOTE: This calculation assumes that each table row is only 1-2 terminal
+    # rows and there is only 1 spinner active.
+
+    # We need to remove lines for:
+    # - The table title
+    # - The 3 table border segments (2 header, 1 bottom)
+    # - The column names
+    # - 3 more to take into account a spinner and the panel borders
+    # Total: 8
     console = Console()
+    if not row_limit:
+        row_limit = max(int(console.height / 2) - 8, 3)
+
+    # Determine the amount of columns the screen can fit
+    # We create a support Table where we add column by column and
+    # if the terminal wouldn't fit another column of minimum width
+    # (based on the current size of the table), we stop adding them.
+    #
+    # NOTE: This is very conservative, as rich can squeeze columns
+    # a bit to decrease their size.
     terminal_width = console.width
-    min_col_width = 12  # Minimum width per column (estimate)
-    max_columns = max(1, terminal_width // min_col_width)
+    measurement_table = Table(title=table_title)
+    measurement_table.add_column("... (+XX more)")
+    for column in df.columns:
+        if (
+            terminal_width - console.measure(measurement_table).maximum
+        ) < console.measure(measurement_table).minimum:
+            break
+        measurement_table.add_column(column)
+
+    max_columns = len(measurement_table.columns)
     visible_columns = list(df.columns[:max_columns])
     hidden_columns = len(df.columns) - max_columns
     if hidden_columns > 0:
         visible_columns.append(f"... (+{hidden_columns} more)")
+
     for col in visible_columns:
         table.add_column(col, overflow="fold")
+
+    # We add the rows in descending order
     for row_number, (_, row) in enumerate(df[::-1].iterrows()):
+
         if row_limit and row_number == row_limit:
             break
+
         row_data = [
             (f"{row[col]:.2f}" if isinstance(row[col], float) else str(row[col]))
             for col in df.columns[:max_columns]
         ]
+
         if hidden_columns > 0:
             row_data.append("...")
         table.add_row(*row_data)
+
     return table
 
 
@@ -295,14 +339,13 @@ def run_operation_live_updates(
     finished = []
     # Dict of message.id --> renderable (Spinner or Progress)
     progress_items = {}
-    table_height = max(int(Console().height / 2) - 4, 4)
+
     with Live(
         Group(
             render_progress_indicators(progress_items=progress_items),
             output_operation_results(
                 discovery_space=discovery_space,
                 operation_id=operation_id,
-                row_limit=table_height,
             ),
         ),
         refresh_per_second=10,
@@ -312,7 +355,6 @@ def run_operation_live_updates(
             results_table = output_operation_results(
                 discovery_space=discovery_space,
                 operation_id=operation_id,
-                row_limit=table_height,
             )
             # Update results table now in case there are no progress items
             live.update(
@@ -373,7 +415,6 @@ def run_operation_live_updates(
                 output_operation_results(
                     discovery_space=discovery_space,
                     operation_id=operation_id,
-                    row_limit=table_height,
                 ),
             )
         )

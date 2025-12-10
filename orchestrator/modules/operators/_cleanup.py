@@ -27,14 +27,14 @@ def graceful_operation_shutdown_signal_handler() -> (
         global shutdown_signal_received
         global cleanup_callback_functions
 
-        if not shutdown_signal_received:
-            shutdown_signal_received = True
-            moduleLog.warning("Calling cleanup callbacks")
-            for entry in cleanup_callback_functions:
-                moduleLog.warning(f"Cleaning {entry}")
-                cleanup_callback_functions[entry]()
-        else:
+        if shutdown_signal_received:
             moduleLog.info("Graceful shutdown already completed")
+
+        shutdown_signal_received = True
+        moduleLog.warning("Calling cleanup callbacks")
+        for entry in cleanup_callback_functions:
+            moduleLog.warning(f"Cleaning {entry}")
+            cleanup_callback_functions[entry]()
 
     return handler
 
@@ -74,11 +74,11 @@ class ResourceCleaner:
             moduleLog.info(f"cleaned {len(done)}, clean failed {len(not_done)}")
 
 
-def initialize_ray_resource_cleaner():
+def initialize_ray_resource_cleaner(namespace=None):
     # create a cleaner actor.
     # We are creating Named detached actor (https://docs.ray.io/en/latest/ray-core/actors/named-actors.html)
     # so that we do not need to pass its handle (can get it by name) and it does not go out of scope, until
     # we explicitly kill it
     ResourceCleaner.options(
-        name=CLEANER_ACTOR, get_if_exists=True, lifetime="detached"
+        name=CLEANER_ACTOR, get_if_exists=True, lifetime="detached", namespace=namespace
     ).remote()

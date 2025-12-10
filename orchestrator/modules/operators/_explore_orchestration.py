@@ -38,7 +38,9 @@ moduleLog = logging.getLogger("explore_orchestration")
 
 if typing.TYPE_CHECKING:
     from orchestrator.modules.actuators.base import ActuatorActor
-    from orchestrator.modules.operators.base import OperatorActor
+    from orchestrator.modules.operators.base import (
+        OperatorActor,
+    )
     from orchestrator.modules.operators.discovery_space_manager import (
         DiscoverySpaceManagerActor,
     )
@@ -309,24 +311,27 @@ def orchestrate_explore_operation(
 
         return finalize_callback
 
-    operation_output = _run_operation_harness(
-        run_closure=explore_run_closure,
-        discovery_space=discovery_space,
-        operator_module=operator_module,
-        operation_parameters=parameters,
-        operation_info=operation_info,
-        operation_identifier=identifier,
-        finalize_callback=finalize_callback_closure(operator),
-    )
-
-    if not shutdown_signal_received:
-        graceful_explore_operation_shutdown(
-            identifier=identifier,
-            operator=operator,
-            state=discovery_space_manager,
-            actuators=list(actuators.values()),
-            namespace=operation_info.ray_namespace,
+    try:
+        operation_output = _run_operation_harness(
+            run_closure=explore_run_closure,
+            discovery_space=discovery_space,
+            operator_module=operator_module,
+            operation_parameters=parameters,
+            operation_info=operation_info,
+            operation_identifier=identifier,
+            finalize_callback=finalize_callback_closure(operator),
         )
-        cleanup_callback_functions.pop(identifier)
+    finally:
+        # Need to ensure shutdown is processed if an exception
+        # is raised
+        if not shutdown_signal_received:
+            graceful_explore_operation_shutdown(
+                identifier=identifier,
+                operator=operator,
+                state=discovery_space_manager,
+                actuators=list(actuators.values()),
+                namespace=operation_info.ray_namespace,
+            )
+            cleanup_callback_functions.pop(identifier)
 
     return operation_output

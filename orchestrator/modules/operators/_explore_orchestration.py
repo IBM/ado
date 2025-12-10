@@ -110,7 +110,7 @@ def graceful_explore_operation_shutdown(
             f"Gracefully stopping actors - will wait {timeout} seconds  ..."
         )
         terminated, active = ray.wait(
-            ray_waitables=terminating_actors, num_returns=n_actors, timeout=60.0
+            ray_waitables=terminating_actors, num_returns=n_actors, timeout=timeout
         )
 
         moduleLog.debug(f"Terminated: {terminated}")
@@ -118,7 +118,7 @@ def graceful_explore_operation_shutdown(
 
         if active:
             status.update(
-                f"Some actors have not completed after {timeout} grace period - killing"
+                f"Some actors have not completed after the {timeout}s grace period - killing"
             )
             for actor_ref in active:
                 ray.kill(lookup[actor_ref])

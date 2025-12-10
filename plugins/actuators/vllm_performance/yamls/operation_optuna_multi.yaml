@@ -1,0 +1,22 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+metadata:
+  name: min_latency_max_throughput
+spaces:
+  - space-ccf2bf-a50274 #substitute with your space id
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    tuneConfig:
+      metric:
+        - p75_e2el_ms
+        - total_token_throughput
+      mode:
+        - 'min'
+        - 'max'
+      num_samples: 30
+      max_concurrent_trials: 3
+      search_alg:
+        name: optuna

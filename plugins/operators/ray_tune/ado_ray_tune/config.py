@@ -85,8 +85,12 @@ class OrchTuneConfig(pydantic.BaseModel):
     """
 
     # The following fields are required
-    mode: str = pydantic.Field(default="min")
-    metric: str = pydantic.Field(description="The metric to optimize")
+    mode: str | list[str] = pydantic.Field(
+        default="min", description="Mode(s) to use for optimization"
+    )
+    metric: str | list[str] = pydantic.Field(
+        description="Metric(s) to optimize (str or list[str])"
+    )
     max_concurrent_trials: int = pydantic.Field(
         default=1,
         description="The maximum number of trials to have running at a time. Default 1",
@@ -97,19 +101,32 @@ class OrchTuneConfig(pydantic.BaseModel):
     model_config = ConfigDict(extra="allow")
 
     def rayTuneConfig(self):
-        # Get all values passed
         tune_options = self.model_dump()
+        # optuna can perform multi-objective optimization which requires special handling
+        # as we cannot use ray.tune.search.create_searcher with multiple metrics/modes
+        if self.search_alg.name.lower() == "optuna":
+            try:
+                from ray.tune.search.optuna import OptunaSearch
+            except ImportError:
+                raise ImportError("Optuna must be installed! Run `pip install optuna`.")
 
-        # To make the API of 'BasicVariantGenerator' compatible to all others
-        if (
-            hasattr(self, "max_concurrent_trials")
-            and self.search_alg.name == "variant_generator"
-        ):
-            self.search_alg.params["max_concurrent"] = self.max_concurrent_trials
-            del self.max_concurrent_trials  # suppress warning
-        # For the special fields we need to deal with like search_alg do it and replace them
-        # TODO: Do we need to pass "mode" and "metric" to the search algorithm?
-        # Since we are also passing them to TuneConfig three lines below this.
+            search_alg = OptunaSearch(
+                metric=self.metric, mode=self.mode, **self.search_alg.params
+            )
+            tune_options["search_alg"] = search_alg
+            tune_options["metric"] = (
+                self.metric[0] if isinstance(self.metric, list) else self.metric
+            )
+            tune_options["mode"] = (
+                self.mode[0] if isinstance(self.mode, list) else self.mode
+            )
+            return ray.tune.TuneConfig(**tune_options)
+
+        if isinstance(self.metric, list) or isinstance(self.mode, list):
+            raise Exception(
+                f"Multi-objective optimization with {self.search_alg.name} is not supported in ado_ray_tune."
+            )
+
         if self.search_alg.name == "lhu_sampler":
             search_alg = LhuSampler(
                 mode=self.mode, metric=self.metric, **self.search_alg.params
@@ -121,7 +138,11 @@ class OrchTuneConfig(pydantic.BaseModel):
                 metric=self.metric,
                 **self.search_alg.params,
             )
+
         tune_options["search_alg"] = search_alg
+        # LhuSampler supports custom metric/mode handling
+        tune_options["metric"] = self.metric
+        tune_options["mode"] = self.mode
         return ray.tune.TuneConfig(**tune_options)
 
 
@@ -233,7 +254,15 @@ class RayTuneConfiguration(pydantic.BaseModel):
 
     @pydantic.field_validator("tuneConfig")
     def validate_tune_config(cls, value):
+        # If BOTH metric/mode are lists, ensure they have the same length
+        if (
+            isinstance(value.metric, list)
+            and isinstance(value.mode, list)
+            and len(value.metric) != len(value.mode)
+        ):
+            raise ValueError(
+                "If metric and mode are both lists, they must have the same length."
+            )
         # Check we can create the tune config
         _ = value.rayTuneConfig()
-
         return value

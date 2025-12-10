@@ -10,7 +10,7 @@ dynamic = ['version']
 name = "ado-autoconf"
 description="An AutoConf plugin that suggests the minimum number of gpus necessary to execute a Tuning job"
 dependencies = ["pandas",
-                "autogluon.tabular[catboost,xgboost]",
+                "autogluon.tabular[catboost,xgboost]==1.4.0",
                 "pydantic",
                 "cloudpickle",
                 "fastai",

@@ -152,10 +152,8 @@ you need to install from source
 In the top-level of the `ado` repository:
 
   ```bash
-  : # Remove any previous wheel to avoid using wrong one
-  rm -rf dist/ 
-  : # Creates  `dist/` directory with the wheel. It will have a name like `ado_core-$VERSION-py3-none.whl`
-  uv build
+  # Creates  `dist/` directory with the wheel. It will have a name like `ado_core-$VERSION-py3-none.whl`
+  uv build -o dist --clear
   # Copy the wheel to the Ray job directory
   mv dist/*.whl $RAY_JOB_DATA_DIR
   ```
@@ -166,11 +164,9 @@ In the top-level of the plugins package, for example, one of the
 subdirectories of "plugins/actuators/" in the `ado` repository, execute:
 
   ```bash
-  : # Remove any previous wheel to avoid using wrong one
-  rm -rf dist/ 
-  : # Creates `dist/` directory in the root of ado with the wheel. 
+  : # Creates `dist/` directory in plugin directory with the wheel file. 
   : # It will have a name like `$PLUGIN-NAME-$VERSION-py3-none.whl`
-  uv build
+  uv build -o dist --clear
   # Copy the wheel to the ray job directory
   mv dist/*.whl $RAY_JOB_DATA_DIR
   ```

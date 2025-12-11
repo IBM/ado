@@ -494,20 +494,16 @@ tuneConfig:
 ## Multi-Objective Optimization
 
 RayTune via `ado` supports multi-objective optimization via the `optuna` optimizer.
-To configure this, set both `metric` and `mode` as lists in your `tuneConfig`,
-for example:
+To configure this, set both `metric` and `mode` as lists in your `tuneConfig`.
+For example to search for
+[vLLM deployment configurations](../examples/vllm-performance-full.md) that
+minimise latency while maximising token throughput:
 
 ```yaml
-tuneConfig:
-  metric:
-    - objective1
-    - objective2
-  mode:
-    - min
-    - max
-  search_alg:
-    name: optuna
-    params: {}
+```python
+{%
+   include "../../../plugins/actuators/vllm_performance/yamls/operation_optuna_multi.yaml"
+%}
 ```
 
 The entries in `metric` and `mode` should correspond (order matters).

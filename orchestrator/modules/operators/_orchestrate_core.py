@@ -109,7 +109,9 @@ def _run_operation_harness(
         operation_output: OperationOutput | None = run_closure()
     except KeyboardInterrupt as error:
         sys.stdout.flush()
-        moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
+        moduleLog.warning(
+            f"Caught keyboard interrupt during operation {operation_identifier} - initiating graceful shutdown"
+        )
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,
@@ -147,7 +149,7 @@ def _run_operation_harness(
         sys.stdout.flush()
         if shutdown_signal_received:
             moduleLog.warning(
-                "Operation exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
+                f"Operation {operation_identifier} exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
             )
             if operation_output:
                 moduleLog.info("Operation returned output - will save")
@@ -171,7 +173,7 @@ def _run_operation_harness(
                 )
             else:
                 moduleLog.debug(
-                    f"Operation exited normally with status {operation_output.exitStatus}"
+                    f"Operation {operation_identifier} exited normally with status {operation_output.exitStatus}"
                 )
     finally:
         if operation_output:
@@ -180,7 +182,9 @@ def _run_operation_harness(
                 operation_output.operation = operation_resource
 
             # Add it to metastore
-            moduleLog.info("Adding operation output to metastore")
+            moduleLog.info(
+                f"Adding output for operation {operation_identifier} to metastore"
+            )
             add_operation_output_to_metastore(
                 operation=operation_resource,
                 output=operation_output,
@@ -194,6 +198,9 @@ def _run_operation_harness(
             )
 
         # Add the final status to the operation resource
+        moduleLog.info(
+            f"Sending final status for operation {operation_identifier} to metastore"
+        )
         operation_resource.status.append(operation_output.exitStatus)
 
         if not shutdown_signal_received and finalize_callback:

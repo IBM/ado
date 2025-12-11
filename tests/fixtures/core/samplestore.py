@@ -162,7 +162,7 @@ def csv_sample_store(
 @pytest.fixture
 def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
 
-    with open("examples/ml-multi-cloud/ml_multicloud_sample_store.yaml") as f:
+    with open("tests/resources/ml_multicloud_sample_store.yaml") as f:
         d = yaml.safe_load(f)
 
     return SampleStoreConfiguration.model_validate(d)
@@ -212,7 +212,7 @@ def sample_store_resource(
     )
 
 
-valid_sample_store_configs = ["examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"]
+valid_sample_store_configs = ["tests/resources/ml_multicloud_sample_store.yaml"]
 
 
 @pytest.fixture(params=valid_sample_store_configs)

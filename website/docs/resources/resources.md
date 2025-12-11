@@ -1,26 +1,26 @@
+# Resources
+
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable-next-line first-line-h1 -->
-!!! info end
 
-    We recommend first familiarizing yourself with the
-    [core-concepts](../core-concepts/concepts.md) before reading about resources.
-
-`ado` manages resources related to discovery, for example descriptions of spaces
-to explore, exploration and analysis operations, and actuator configurations. It
-allows you to create resources, which it stores in a database (the
+`ado` manages resources related to discovery, such as descriptions of spaces to
+explore, operations for exploration and analysis, and actuator configurations.
+With `ado`, you can create these resources, which are stored in a database (the
 [metastore](metastore.md)) along with their relationships to other resources.
-You can then describe, list or delete those resources.
+You can then describe, list, or delete these resources as needed.
 
-The resources are (use side panel to find out more about each type):
+The resources are:
 
-- **samplestore**: A bucket used to store entities
-- **discoveryspace**: Describes a set of entities along with the experiment
-  protocols that should be applied to them
-- **operation**: An instance of applying an operator to a DiscoverySpace. For
-  example, running an optimization
-- **datacontainer**: A collection of string, tabular or location data. Used to
-  store arbitrary output from operations.
-- **actuatorconfigurations**: A configuration for an actuator.
+- **[samplestore](sample-stores.md)**: A database for storing entities and
+  measurement results
+- **[discoveryspace](discovery-spaces.md)**: Describes a set of entities along
+  with the experiment protocols that should be applied to them
+- **[operation](operation.md)**: An instance of applying an operator to a
+  `discoveryspace`. For example, running an optimization
+- **[datacontainer](datacontainer.md)**: A collection of string, tabular or
+  location data. Used to store arbitrary output from `operation`s.
+- **[actuatorconfigurations](actuatorconfig.md)**: A configuration for an
+  actuator.
 
 > [!NOTE]
 >

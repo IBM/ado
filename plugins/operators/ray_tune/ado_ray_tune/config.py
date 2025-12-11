@@ -14,6 +14,57 @@ from orchestrator.modules.module import (
 )
 
 
+def create_optuna_ray_tune_config(
+    metric: str | list, mode: str | list, parameters: dict, tune_options: dict
+) -> ray.tune.TuneConfig:
+    try:
+        from ray.tune.search.optuna import OptunaSearch
+    except ImportError:
+        raise ImportError("Optuna must be installed! Run `pip install optuna`.")
+
+    # Params dict is already preprocessed (sampler class instantiated) by model validator
+    search_alg = OptunaSearch(metric=metric, mode=mode, **parameters)
+    tune_options["search_alg"] = search_alg
+    tune_options["metric"] = metric[0] if isinstance(metric, list) else metric
+    tune_options["mode"] = mode[0] if isinstance(mode, list) else mode
+    return ray.tune.TuneConfig(**tune_options)
+
+
+def create_lhc_ray_tune_config(
+    metric: str | list,
+    mode: str | list,
+    parameters: dict,
+    tune_options: dict,
+) -> ray.tune.TuneConfig:
+    search_alg = LhuSampler(mode=mode, metric=metric, **parameters)
+
+    tune_options["search_alg"] = search_alg
+    tune_options["metric"] = metric
+    tune_options["mode"] = mode
+    return ray.tune.TuneConfig(**tune_options)
+
+
+def create_general_ray_tune_config(
+    name: str,
+    metric: str | list,
+    mode: str | list,
+    parameters: dict,
+    tune_options: dict,
+) -> ray.tune.TuneConfig:
+
+    search_alg = ray.tune.search.create_searcher(
+        name,
+        mode=mode,
+        metric=metric,
+        **parameters,
+    )
+
+    tune_options["search_alg"] = search_alg
+    tune_options["metric"] = metric
+    tune_options["mode"] = mode
+    return ray.tune.TuneConfig(**tune_options)
+
+
 class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
     """Model for specific orchestrator options related to ray tune"""
 
@@ -40,6 +91,38 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
     params: dict = pydantic.Field(
         default={}, description="The params of the search alg"
     )
+
+    @pydantic.model_validator(mode="after")
+    def map_optuna_sampler_name_to_instance(self):
+
+        if self.name.lower() != "optuna":
+            return self
+
+        sampler_parameters = self.params.get("sampler_parameters")
+        if not (optuna_sampler := self.params.get("sampler")):
+            if sampler_parameters:
+                raise ValueError(
+                    "Optuna sampler parameters specified but no sampler specified"
+                )
+            return self
+
+        try:
+            import optuna.samplers
+
+            sampler_cls = getattr(optuna.samplers, optuna_sampler)
+        except (ImportError, AttributeError) as ex:
+            raise ImportError(
+                f"Optuna sampler '{optuna_sampler}' not found in optuna.samplers. Original error: {ex}"
+            )
+        # instantiate the sampler with any provided parameters
+        sampler_instance = (
+            sampler_cls(**sampler_parameters) if sampler_parameters else sampler_cls()
+        )
+        self.params["sampler"] = sampler_instance
+        # delete sampler_parameters
+        self.params.pop("sampler_parameters", None)
+
+        return self
 
     @pydantic.model_validator(mode="after")
     def map_nevergrad_optimizer_name_to_type(self):
@@ -102,48 +185,32 @@ class OrchTuneConfig(pydantic.BaseModel):
 
     def rayTuneConfig(self):
         tune_options = self.model_dump()
-        # optuna can perform multi-objective optimization which requires special handling
-        # as we cannot use ray.tune.search.create_searcher with multiple metrics/modes
         if self.search_alg.name.lower() == "optuna":
-            try:
-                from ray.tune.search.optuna import OptunaSearch
-            except ImportError:
-                raise ImportError("Optuna must be installed! Run `pip install optuna`.")
-
-            search_alg = OptunaSearch(
-                metric=self.metric, mode=self.mode, **self.search_alg.params
+            return create_optuna_ray_tune_config(
+                metric=self.metric,
+                mode=self.mode,
+                parameters=self.search_alg.params,
+                tune_options=tune_options,
             )
-            tune_options["search_alg"] = search_alg
-            tune_options["metric"] = (
-                self.metric[0] if isinstance(self.metric, list) else self.metric
-            )
-            tune_options["mode"] = (
-                self.mode[0] if isinstance(self.mode, list) else self.mode
-            )
-            return ray.tune.TuneConfig(**tune_options)
 
         if isinstance(self.metric, list) or isinstance(self.mode, list):
             raise Exception(
                 f"Multi-objective optimization with {self.search_alg.name} is not supported in ado_ray_tune."
             )
-
         if self.search_alg.name == "lhu_sampler":
-            search_alg = LhuSampler(
-                mode=self.mode, metric=self.metric, **self.search_alg.params
-            )
-        else:
-            search_alg = ray.tune.search.create_searcher(
-                self.search_alg.name,
+            return create_lhc_ray_tune_config(
                 mode=self.mode,
                 metric=self.metric,
-                **self.search_alg.params,
+                tune_options=tune_options,
+                parameters=self.search_alg.params,
             )
-
-        tune_options["search_alg"] = search_alg
-        # LhuSampler supports custom metric/mode handling
-        tune_options["metric"] = self.metric
-        tune_options["mode"] = self.mode
-        return ray.tune.TuneConfig(**tune_options)
+        return create_general_ray_tune_config(
+            self.search_alg.name,
+            mode=self.mode,
+            metric=self.metric,
+            tune_options=tune_options,
+            parameters=self.search_alg.params,
+        )
 
 
 class OrchRunConfig(pydantic.BaseModel):

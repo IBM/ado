@@ -60,7 +60,7 @@ class LhuSampler(ray.tune.search.Searcher):
             self._setup_experiment()
 
     def _setup_experiment(self):
-        from ray_tune.doe import LatinHypercubeSampler
+        from .doe import LatinHypercubeSampler
 
         self._num_samples = 0
         self._samples_generated_so_far = 0

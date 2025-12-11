@@ -4,8 +4,6 @@
 
 import orchestrator.core
 import orchestrator.modules.module
-from ado_ray_tune.config import RayTuneConfiguration
-from ado_ray_tune.operator import RayTune
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import FunctionOperationInfo
 from orchestrator.core.operation.operation import OperationOutput
@@ -13,6 +11,9 @@ from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.orchestrate import (
     orchestrate_explore_operation,
 )
+
+from .config import RayTuneConfiguration
+from .operator import RayTune
 
 
 @explore_operation(

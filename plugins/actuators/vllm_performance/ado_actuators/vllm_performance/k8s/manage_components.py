@@ -188,35 +188,14 @@ class ComponentsManager:
             name=k8s_name,
         )
 
-    def create_service(
-        self, k8s_name: str, template: str | None = None, reuse: bool = False
-    ) -> None:
+    def create_service(self, k8s_name: str, template: str | None = None) -> None:
         """
         create service for model
         :param k8s_name: kubernetes name
         :param template service yaml template
-        :param reuse: reuse if exists
         :return:
         """
-        # try to reuse existing one if exists
-        exists = self.check_service_exists(k8s_name=k8s_name)
-        if exists and reuse:
-            return
-        if exists and not reuse:
-            # delete it first
-            try:
-                self.delete_service(k8s_name=k8s_name)
-            except ApiException as e:
-                logger.error(f"Error deleting service {e}")
-            # make sure that deletion is completed
-            deleting = True
-            for _ in range(150):
-                deleting = self.check_service_exists(k8s_name=k8s_name)
-                if not deleting:
-                    break
-                time.sleep(1)
-            if deleting:
-                logger.error("Did not complete Service deletion")
+
         # create service
         try:
             self.kube_client_V1.create_namespaced_service(
@@ -278,7 +257,6 @@ class ComponentsManager:
         template: str | None = None,
         claim_name: str | None = None,
         hf_token: str | None = None,
-        reuse: bool = False,
         enforce_eager: bool = False,
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
@@ -302,29 +280,11 @@ class ComponentsManager:
         :param template: template for deployment yaml
         :param claim_name: PVC name
         :param hf_token: huggingface token
-        :param reuse: reuse if exists
+        :param enforce_eager: flag to enforce using Pytorch eager mode
+        :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
+        :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :return:
         """
-        # try to reuse existing one if exists
-        exists = self.check_deployment_exist(k8s_name=k8s_name)
-        if exists and reuse:
-            return
-        if exists and not reuse:
-            # delete it first
-            try:
-                self.delete_deployment(k8s_name=k8s_name)
-            except ApiException as e:
-                logger.error(f"Error deleting deployment {e}")
-            # make sure that deletion is completed
-            deleting = True
-            for _ in range(150):
-                deleting = self.check_deployment_exist(k8s_name=k8s_name)
-                if not deleting:
-                    break
-                time.sleep(1)
-            if deleting:
-                logger.error("Did not complete deployment deletion")
-                raise
 
         # create deployment
         deployment_yaml = ComponentsYaml.deployment_yaml(

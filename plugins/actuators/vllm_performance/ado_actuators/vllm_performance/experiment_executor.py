@@ -206,8 +206,6 @@ def _create_environment(
                         cpu_offload=int(values.get("cpu_offload")),
                         max_num_seq=int(values.get("max_num_seq")),
                         hf_token=actuator.hf_token,
-                        reuse_service=False,
-                        reuse_deployment=False,
                         namespace=actuator.namespace,
                         pvc_name=pvc_name,
                         skip_tokenizer_init=values.get("skip_tokenizer_init", 0) == 1,

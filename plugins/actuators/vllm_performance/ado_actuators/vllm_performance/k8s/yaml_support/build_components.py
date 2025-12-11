@@ -111,6 +111,9 @@ class ComponentsYaml:
         :param template: template for deployment yaml
         :param claim_name: PVC name
         :param hf_token: huggingface token
+        :param enforce_eager: flag to enforce using Pytorch eager mode
+        :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
+        :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :return:
         """
         # read template

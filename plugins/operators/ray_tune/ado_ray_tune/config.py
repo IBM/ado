@@ -31,8 +31,8 @@ def create_optuna_ray_tune_config(
 
 
 def create_lhc_ray_tune_config(
-    metric: str | list,
-    mode: str | list,
+    metric: str,
+    mode: str,
     parameters: dict,
     tune_options: dict,
 ) -> ray.tune.TuneConfig:
@@ -46,8 +46,8 @@ def create_lhc_ray_tune_config(
 
 def create_general_ray_tune_config(
     name: str,
-    metric: str | list,
-    mode: str | list,
+    metric: str,
+    mode: str,
     parameters: dict,
     tune_options: dict,
 ) -> ray.tune.TuneConfig:

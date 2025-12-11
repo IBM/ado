@@ -30,6 +30,7 @@ An example `discoveryspace` is given below. Note, the values in this YAML are
 for illustrative purposes and need to be changed to define a valid space.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 sampleStoreIdentifier: source_abc123 # The id of the sample store to use
 entitySpace: #A list of constitutive properties
@@ -42,6 +43,7 @@ metadata:
   description: "This is an example discovery space"
   name: exampleSpace
 ```
+
 <!-- markdownlint-enable line-length -->
 
 The
@@ -97,8 +99,8 @@ contents, filtering just the `entities` that match its description.
 To be more rigorous, given a `discoveryspace` you can apply this filter in two
 ways:
 
-1. Filter `entities` that were placed in the `samplestore` via an operation
-   on the `discoveryspace`
+1. Filter `entities` that were placed in the `samplestore` via an operation on
+   the `discoveryspace`
 2. Filter `entities` in the `samplestore` that match the `discoveryspace`
 
 To understand the difference in these two methods imagine two overlapping
@@ -193,8 +195,9 @@ property names.
 
     With `property-format=target` if the measurement space contains multiple
     experiments measuring _different_ target properties, this will result in many
-    empty fields in the table. This is because the column for a given target of one
-    experiment will not have values in the rows corresponding to other experiments.
+    empty fields in the table. This is because the column for a given target
+    of one experiment will not have values in the rows corresponding
+    to other experiments.
 
 ## Defining the domains of constitutive properties in the entityspace
 
@@ -202,6 +205,7 @@ The YAML for the constitutive properties in the `entityspace` has the following
 structure
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 identifier: model_name # The name of the property
 propertyDomain: # The domain describes the values the property can take
@@ -214,6 +218,7 @@ propertyDomain: # The domain describes the values the property can take
   interval:# If the variable is DISCRETE_VARIABLE_TYPE this is the interval between the values.
     # If given domainRange is required and values cannot be given
 ```
+
 <!-- markdownlint-enable line-length -->
 
 As long as all constitutive properties are not "UNKNOWN_VARIABLE_TYPE" there is
@@ -241,6 +246,7 @@ ado describe experiment finetune-full-fsdp-v1.6.0 --actuator-id SFTTrainer
 you will get output like
 
 <!-- markdownlint-disable line-length -->
+
 ```terminaloutput
 Identifier: SFTTrainer.finetune_full_benchmark-v1.0.0
 
@@ -482,6 +488,7 @@ Outputs:
   finetune_full_benchmark-v1.0.0-dataset_tokens_per_second_per_gpu
   finetune_full_benchmark-v1.0.0-is_valid
 ```
+
 <!-- markdownlint-enable line-length -->
 
 You can see the required inputs under the section `Required Inputs` and the

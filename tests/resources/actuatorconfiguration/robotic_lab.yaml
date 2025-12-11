@@ -1,0 +1,9 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+actuatorIdentifier: robotic_lab
+metadata:
+  description: null
+  labels: null
+  name: null
+parameters:
+  my_parameter: hello world

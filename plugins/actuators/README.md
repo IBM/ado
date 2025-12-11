@@ -58,12 +58,12 @@ the actuator you want to install_ : in this case
    This removes any previous build artifacts and wheels. This prevents issues
    with old files being included in the new wheel.
 
-2. `python -m build`
+2. `python -m build -o dist`
 
-   This creates a `dist/` directory under the root of this git repository that
-   contains the wheel. Its name will have the format `ado_sfttrainer-XXXX.whl`
+   This creates a `dist/` directory with the wheel. It will have a name like
+   `ado_sfttrainer-XXXX.whl`
 
-3. `mv ../../../dist/*.whl` .
+3. `mv dist/*.whl` .
 
    Required if the plugins is in the ado repo as `dist/` is in `.gitignore` and
    will not be uploaded by `ray job submit`

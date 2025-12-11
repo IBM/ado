@@ -152,8 +152,8 @@ def process_metric(
     """
     Processes a single metric for a given entity.
 
-    If the metric is in allResults, it returns the last result.
-    If the metric is not in the allResults, it checks if it is a virtual property.
+    If the metric is in all_results, it returns the last result.
+    If the metric is not in the all_results, it checks if it is a virtual property.
     If it is, it returns the value of the virtual property.
     If it is not, it returns the failed metric value.
 
@@ -167,7 +167,7 @@ def process_metric(
     Returns:
         Any: The processed metric value, or the failed metric value if the metric could not be found or computed.
 
-    Exceptions:
+    Raises:
         ValueError: If the metric is a virtual property and there are multiple observed properties with the same identifier.
     """
 

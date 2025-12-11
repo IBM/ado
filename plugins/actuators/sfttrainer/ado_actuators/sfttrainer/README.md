@@ -37,6 +37,8 @@ features.
 <!-- markdownlint-disable-next-line no-duplicate-heading -->
 ### Requirements
 
+The SFTTrainer actuator currently **supports only Python 3.10, 3.11, 3.12**.
+
 [fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
 packages like `flash-attn` and `mamba-ssm`, which import `torch` during their  
 build phase. This means the base virtual environment of your Ray workers must  

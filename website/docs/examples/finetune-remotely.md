@@ -65,6 +65,10 @@ To explore this space, you will:
 
 ## Install and Configure the SFTTrainer actuator
 
+> [!WARNING]
+>
+> The SFTTrainer actuator currently **supports only Python 3.10, 3.11, 3.12**.
+
 ### Install the SFTTrainer actuator
 
 <!-- markdownlint-disable code-block-style -->
@@ -239,8 +243,8 @@ In this section, we’ll focus on the second approach.
     Briefly, if you are in the top level of the `ado` repository execute:
 
     ```bash
-    python -m build -w plugins/actuators/sfttrainer
-    mv dist/ado_sfttrainer-*.whl ${path to my-remote-measurements}
+    python -m build -w plugins/actuators/sfttrainer -o plugins/actuators/sfttrainer/dist
+    mv plugins/actuators/sfttrainer/dist/*.whl ${path to my-remote-measurements}
     ```
 
     Then create a `ray_runtime_env.yaml` file under `my-remote-measurements` with

@@ -10,9 +10,7 @@ from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
 def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path):
-    sample_store_configuration_file = (
-        "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
-    )
+    sample_store_configuration_file = "tests/resources/ml_multicloud_sample_store.yaml"
     runner = CliRunner()
     result = runner.invoke(
         ado,
@@ -36,7 +34,7 @@ def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path):
 
 def test_create_sample_store_dry_run_failure(tmp_path: pathlib.Path):
     sample_store_configuration_file = pathlib.Path(
-        "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
+        "tests/resources/ml_multicloud_sample_store.yaml"
     )
     invalid_sample_store_configuration_file = tmp_path / "invalid_sample_store.yaml"
     invalid_sample_store_configuration_file.write_text(
@@ -69,7 +67,7 @@ def test_create_sample_store_success(
     tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
 ):
     sample_store_configuration_file = pathlib.Path(
-        "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
+        "tests/resources/ml_multicloud_sample_store.yaml"
     )
 
     runner = CliRunner()

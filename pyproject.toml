@@ -20,11 +20,12 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 # Deps/Build-related section
 dynamic = ["version"]
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "build>=1.3.0",
     "colorlog>=6.9.0",
@@ -78,9 +79,18 @@ docs = [
 resolution-helpers = [
     "urllib3>=2.5.0",
 ]
+
+# AP 2025-12-05:
+# ado-sfttrainer is currently incompatible with Python 3.13
+#   due to a dependency on aim/aimrocks
+# ado-vllm-performance is currently incompatible with macOS
+#   due to a new requirement in vllm>=0.11.1 which brings in
+#   cuda dependencies.
 test = [
+    "ado-autoconf",
     "ado-ray-tune",
-    "ado-sfttrainer",
+    "ado-sfttrainer; python_version < '3.13'",
+    "ado-vllm-performance; sys_platform != 'darwin'",
     "anomalous-series",
     "density-test",
     "optimization-test-functions",
@@ -92,27 +102,37 @@ test = [
 [tool.uv]
 default-groups = ["dev", "docs"]
 
+# Having our plugins in the workspace section makes it so
+# that dependencies are resolved considering them as well.
+# ref: https://docs.astral.sh/uv/concepts/projects/workspaces
+# Plugins that we know are incompatible for certain reasons
+# (e.g., Python version requirements) are commented out and
+# added as path-based sources.
 [tool.uv.workspace]
 members = [
-    "plugins/actuators/sfttrainer",
+    "plugins/custom_experiments/autoconf",
     "plugins/operators/ray_tune",
+#    "plugins/actuators/sfttrainer",
+    "plugins/actuators/vllm_performance",
+    "plugins/operators/anomalous_series",
+    "examples/density_example",
     "examples/optimization_test_functions/custom_experiments",
     "examples/pfas-generative-models/custom_actuator_function",
     "plugins/operators/profile_space",
-    "plugins/operators/anomalous_series",
     "plugins/actuators/example_actuator",
-    "examples/density_example",
 ]
 
 [tool.uv.sources]
-ado-sfttrainer = { workspace = true }
-ado-ray-tune = { workspace = true }
-optimization-test-functions = { workspace = true }
-pfas-custom-functions = { workspace = true }
-profile-space = { workspace = true }
-anomalous-series = { workspace = true }
-robotic-lab = { workspace = true }
-density-test = { workspace = true }
+ado-autoconf = { workspace = true, editable = true }
+ado-ray-tune = { workspace = true, editable = true }
+ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
+ado-vllm-performance = { workspace = true, editable = true }
+anomalous-series = { workspace = true, editable = true }
+density-test = { workspace = true, editable = true }
+optimization-test-functions = { workspace = true, editable = true }
+pfas-custom-functions = { workspace = true, editable = true }
+profile-space = { workspace = true, editable = true }
+robotic-lab = { workspace = true, editable = true }
 
 [project.scripts]
 ado = "orchestrator.cli.core.cli:app"

@@ -5,13 +5,13 @@ An `operator` is a code module that provides a capability to perform an
 provides the capability to perform a random walk `operation` on a
 `discoveryspace`.
 
-The pages in this section (see left hand nav menu) give details about some of
+The pages in this section give details about some of
 the operators available in `ado`: what they are for, what they do and how to use
 them.
 
 !!! info end
 
-    In addition, the [examples](../examples/examples.md) section contains worked
+    The [examples](../examples/examples.md) section contains worked
     examples of using some of these operators.
 
 ## `operator` types

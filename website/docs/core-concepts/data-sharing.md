@@ -49,12 +49,12 @@ of the Entities.
 
 ### Measurements
 
-Each experiment in a Measurement Space has a unique identifier, determined
-from its base name plus any optional properties that have been explicitly set.
-When an Entity is retrieved from the Sample Store, it contains results of all
-the experiments that have been applied to it. If the identifier of a result
-matches the identifier of an Experiment in the Measurement Space, `ado`
-determines it can be reused.
+Each experiment in a Measurement Space has a unique identifier, determined from
+its base name plus any optional properties that have been explicitly set. When
+an Entity is retrieved from the Sample Store, it contains results of all the
+experiments that have been applied to it. If the identifier of a result matches
+the identifier of an Experiment in the Measurement Space, `ado` determines it
+can be reused.
 
 ## Data sharing and data retrieval
 
@@ -77,8 +77,8 @@ consider:
 
 > [!IMPORTANT]
 >
-> Each explore operator should provide a way to turn memoization on
-> and off. Check the operator documentation.
+> Each explore operator should provide a way to turn memoization on and off.
+> Check the operator documentation.
 
 This section explains how data sharing and reuse works during an explore
 operation - a feature called _memoization_. It's recommended you check the
@@ -93,8 +93,8 @@ sampling process is as follows:
 - The Entity's record is retrieved from the Sample Store if present (via its
   unique identifier)
 - If **memoization is on**
-    - for each experiment in the MeasurementSpace, `ado` checks if a result for it
-      already exists (via the experiment's unique identifier)
+    - for each experiment in the MeasurementSpace, `ado` checks
+      if a result for it already exists (via the experiment's unique identifier)
         - if it does, the result is reused. If there is more than one result, they
           are all reused
 - if **memoization is off**

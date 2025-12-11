@@ -77,6 +77,8 @@ def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path):
             "space",
             "-f",
             space_configuration_file,
+            "--set",
+            "sampleStoreIdentifier=d976ee",
         ],
     )
 
@@ -166,7 +168,9 @@ def test_create_discovery_space_success(
 def test_create_discovery_space_success_new_sample_store(
     tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
 ):
-    space_configuration_file = pathlib.Path("tests/resources/space/sfttrainer.yaml")
+    space_configuration_file = pathlib.Path(
+        "plugins/actuators/example_actuator/yamls/discoveryspace.yaml"
+    )
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -187,7 +191,7 @@ def test_create_discovery_space_success_new_sample_store(
     assert result.exit_code == 0
     expected_output = (
         "INFO:   A new sample store was requested.\n"
-        "        Sample store replace-me referenced in the space definition will be ignored.\n"
+        "        Sample store a267f0 referenced in the space definition will be ignored.\n"
         "Success! Created space with identifier:"
     )
     assert result.output.startswith(expected_output)
@@ -196,7 +200,9 @@ def test_create_discovery_space_success_new_sample_store(
 def test_create_discovery_space_success_with_latest_samplestore(
     tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
 ):
-    space_configuration_file = pathlib.Path("tests/resources/space/sfttrainer.yaml")
+    space_configuration_file = pathlib.Path(
+        "plugins/actuators/example_actuator/yamls/discoveryspace.yaml"
+    )
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -314,7 +320,7 @@ def test_create_discovery_space_success_with_sample_store_from_file_with_replay_
     )
 
     sample_store_configuration_file = pathlib.Path(
-        "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
+        "tests/resources/ml_multicloud_sample_store.yaml"
     )
 
     runner = CliRunner()

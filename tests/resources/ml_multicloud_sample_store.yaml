@@ -12,7 +12,7 @@ copyFrom:
       moduleClass: CSVSampleStore
       moduleName: orchestrator.core.samplestore.csv
     storageLocation:
-      path: 'ml_export.csv'
+      path: 'examples/ml-multi-cloud/ml_export.csv'
     parameters:
       generatorIdentifier: 'multi-cloud-ml'
       identifierColumn: 'config'

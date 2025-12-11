@@ -53,10 +53,8 @@
 > Then, in a directory with these files, execute:
 >
 > ```bash
-> : # Define the set of request rates to explore
-> ado create space -f vllm_request_rate_space.yaml
-> : # Run the optimization!
-> ado create operation -f operation_hyperopt.yaml --use-latest space
+> : # Note: this will create a discoveryspace resource you can reuse subsequently
+> ado create operation -f operation_hyperopt.yaml --with space=vllm_request_rate_space.yaml
 > ```
 
 ## Verify the installation

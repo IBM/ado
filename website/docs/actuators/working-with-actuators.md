@@ -72,7 +72,7 @@ documentation.
 
 ### Dynamic installation of actuators on a remote Ray cluster
 
-If you are running `ado` operations on a remote ray cluster, as ray job, you may
+If you are running `ado` operations on a remote Ray cluster, as Ray jobs, you may
 want, or need, to dynamically install an actuator plugin or its latest version.
 This is described in the
 [running ado on a remote ray cluster](../getting-started/remote_run.md#dynamic-installation-from-pypi).
@@ -81,12 +81,12 @@ Some additional notes about this process when you are developing an actuator:
 
 - Make sure plugin code changes are committed (if using `setuptools_scm` for
   versioning)
-  - If they are not committed then the version of the built wheel will not
+    - If they are not committed then the version of the built wheel will not
     change i.e. it will be same as for a wheel built before the changes
-  - If a wheel with this version was already installed in ray cluster by a
+    - If a wheel with this version was already installed in ray cluster by a
     previous job, Ray will use the cached version instead of your updated one
 - Ensure new files to be packaged with the wheel are committed
-  - The setup.py for the plugins only adds committed non-python files
+    - The setup.py for the plugins only adds committed non-python files
 
 ## What's next
 

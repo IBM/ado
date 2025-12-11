@@ -63,8 +63,19 @@ def set_pandas_display_options():
 
 
 def console_print(*args, stderr: bool = False, use_markup: bool = True):
+    import sys
+
+    import pandas as pd
 
     set_pandas_display_options()
+
+    # AP: 08-12-2025
+    # rich has issues when printing large dataframes using overflow="ignore"
+    # ref: https://github.com/IBM/ado/issues/296
+    if all(isinstance(item, pd.DataFrame) for item in args):
+        print(*args, file=sys.stderr if stderr else sys.stdout)
+        return
+
     if stderr:
         stderr_console.print(*args, overflow="ignore", crop=False, markup=use_markup)
     else:

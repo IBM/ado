@@ -11,7 +11,7 @@
 
     Before proceeding ensure you are using a supported Python version: run
     `python --version` in your terminal and check that you are on either **Python**
-    **3.10**, **3.11**, or **3.12**.
+    **3.10**, **3.11**, **3.12**, or **3.13**.
 
     It is also highly recommended to create a **virtual environment** for ado, to
     avoid dependency conflicts with other packages. You can do so with:

@@ -87,7 +87,7 @@ def graceful_explore_operation_shutdown(
             moduleLog.warning(f"Failed to cleanup custom actors {e}")
 
         status.update(
-            f"Shutdown ({identifier}) - waiting for actors to terminate (max 60s)"
+            f"Shutdown ({identifier}) - waiting for actors to terminate (max {timeout}s)"
         )
 
         terminating_actors = [

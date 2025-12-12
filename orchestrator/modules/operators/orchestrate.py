@@ -175,7 +175,7 @@ def orchestrate(
             )  # type: OperationOutput
     except KeyboardInterrupt:
         moduleLog.warning(
-            "Caught keyboard interrupt at top level - initiating graceful shutdown"
+            "Caught keyboard interrupt - initiating graceful shutdown"
         )
         raise
     except OperationException as error:

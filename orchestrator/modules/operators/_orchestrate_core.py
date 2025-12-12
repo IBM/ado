@@ -117,9 +117,6 @@ def _run_operation_harness(
             exit_state=OperationExitStateEnum.ERROR,
             message="Operation exited due to SIGINT",
         )
-        moduleLog.warning(
-            f"Raising InterruptedOperationError for {operation_identifier}"
-        )
         raise InterruptedOperationError(operation_resource.identifier) from error
     except RayTaskError as error:
         sys.stdout.flush()

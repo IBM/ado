@@ -55,7 +55,7 @@ def graceful_explore_operation_shutdown(
     timeout=60,
 ):
 
-    from rich.console import Console
+    from rich.status import Status
 
     moduleLog.info(f"Shutting down operation {identifier} gracefully")
 
@@ -66,9 +66,7 @@ def graceful_explore_operation_shutdown(
     # 3. Send graceful __ray_terminate__ to metric_server, operation and actuators
 
     # This should not return until the metric server has processed all updates.
-
-    console = Console()
-    with console.status(
+    with Status(
         f"Shutdown ({identifier}) - waiting on all samples to be stored", spinner="dots"
     ) as status:
 

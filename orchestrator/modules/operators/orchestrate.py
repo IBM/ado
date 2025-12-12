@@ -51,10 +51,9 @@ def graceful_orchestrate_shutdown():
 
     import time
 
-    from rich.console import Console
+    from rich.status import Status
 
-    console = Console()
-    with console.status("Shutdown - shutting down Ray", spinner="dots") as status:
+    with Status("Shutdown - shutting down Ray", spinner="dots") as status:
         ray.shutdown()
         status.update("Shutdown - waiting for logs to flush")
         moduleLog.info("Waiting for logs to flush ...")

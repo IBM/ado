@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import json
 import logging
 import uuid
 from enum import Enum
@@ -87,6 +88,9 @@ class ComponentsYaml:
         template: str | None = None,
         claim_name: str | None = None,
         hf_token: str | None = None,
+        enforce_eager: bool = False,
+        skip_tokenizer_init: bool = False,
+        io_processor_plugin: str | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -107,6 +111,9 @@ class ComponentsYaml:
         :param template: template for deployment yaml
         :param claim_name: PVC name
         :param hf_token: huggingface token
+        :param enforce_eager: flag to enforce using Pytorch eager mode
+        :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
+        :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :return:
         """
         # read template
@@ -160,21 +167,6 @@ class ComponentsYaml:
                 [{"name": PVC_NAME, "persistentVolumeClaim": {"claimName": claim_name}}]
             )
 
-        # container
-        container = spec["containers"][0]
-        # image
-        container["image"] = image
-        # resources
-        requests = container["resources"]["requests"]
-        requests["cpu"] = str(n_cpus)
-        requests["memory"] = memory
-        requests["nvidia.com/gpu"] = str(n_gpus)
-        limits = container["resources"]["limits"]
-        limits["cpu"] = str(n_cpus)
-        limits["memory"] = memory
-        limits["nvidia.com/gpu"] = str(n_gpus)
-
-        # command
         vllm_serve_args = [
             model,
             "--max-num-batched-tokens",
@@ -190,13 +182,48 @@ class ComponentsYaml:
             "--dtype",
             dtype.value,
         ]
+
+        if enforce_eager:
+            vllm_serve_args.append("--enforce-eager")
+        if skip_tokenizer_init:
+            vllm_serve_args.append("--skip-tokenizer-init")
+        if io_processor_plugin is not None:
+            vllm_serve_args.append("--io-processor-plugin")
+            vllm_serve_args.append(io_processor_plugin)
+
+        # container
+        container = spec["containers"][0]
+        # command + args
         container["command"] = ["vllm", "serve"]
         container["args"] = vllm_serve_args
+        # image
+        container["image"] = image
+        # resources
+        requests = container["resources"]["requests"]
+        requests["cpu"] = str(n_cpus)
+        requests["memory"] = memory
+        requests["nvidia.com/gpu"] = str(n_gpus)
+        limits = container["resources"]["limits"]
+        limits["cpu"] = str(n_cpus)
+        limits["memory"] = memory
+        limits["nvidia.com/gpu"] = str(n_gpus)
+        # env variables to to set parameters for docker execution
+        container["env"] = [
+            {"name": "MODEL", "value": model},
+            {"name": "GPU_MEMORY_UTILIZATION", "value": str(gpu_memory_utilization)},
+            {"name": "DTYPE", "value": dtype.value},
+            {"name": "CPU_OFFLOAD_GB", "value": str(cpu_offload)},
+            {"name": "MAX_NUM_BATCHED_TOKENS", "value": str(max_batch_tokens)},
+            {"name": "MAX_NUM_SEQ", "value": str(max_num_seq)},
+            {"name": "TENSOR_PARALLEL_SIZE", "value": str(n_gpus)},
+        ]
 
         container["env"] = []
         if hf_token is not None:
-            container["env"].extend([{"name": "HF_TOKEN", "value": hf_token}])
+            container["env"] = [{"name": "HF_TOKEN", "value": hf_token}]
         if claim_name is not None:
+            if "env" not in container:
+                container["env"] = []
             container["env"].extend(
                 [
                     {
@@ -219,7 +246,7 @@ class ComponentsYaml:
                 ]
             )
 
-        # return
+        logger.debug(json.dumps(deployment_yaml, indent=2))
         return deployment_yaml
 
     @staticmethod

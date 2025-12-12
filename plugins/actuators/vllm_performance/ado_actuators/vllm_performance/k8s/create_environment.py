@@ -35,9 +35,10 @@ def create_test_environment(
     cpu_offload: int = 0,
     max_num_seq: int = 256,
     hf_token: str | None = None,
-    reuse_service: bool = True,
-    reuse_deployment: bool = True,
     namespace: str = "vllm-testing",
+    enforce_eager: bool = False,
+    skip_tokenizer_init: bool = False,
+    io_processor_plugin: str | None = None,
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> None:
@@ -64,8 +65,9 @@ def create_test_environment(
     :param cpu_offload: VLLM parameter - the space in GiB to offload to CPU, per GPU
     :param max_num_seq: VLLM parameter - Maximum number of sequences per iteration.
     :param hf_token: huggingface token
-    :param reuse_service: flag to reuse deployment
-    :param reuse_deployment: flag to reuse deployment
+    :param enforce_eager: flag to enforce using Pytorch eager mode
+    :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
+    :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
     :param check_interval: wait interval in seconds
     :param timeout: timeout in seconds
     :return:
@@ -84,7 +86,6 @@ def create_test_environment(
         f"memory {memory}, max_batch_tokens {max_batch_tokens}, gpu_memory_utilization {gpu_memory_utilization}"
     )
     logger.info(f"dtype {dtype}, cpu_offload {cpu_offload}, max_num_seq {max_num_seq}")
-    logger.info(f"reuse_service {reuse_service}, reuse_deployment {reuse_deployment}")
 
     # manager
     c_manager = ComponentsManager(
@@ -105,15 +106,12 @@ def create_test_environment(
         n_gpus=n_gpus,
         n_cpus=n_cpus,
         memory=memory,
-        max_batch_tokens=max_batch_tokens,
-        gpu_memory_utilization=gpu_memory_utilization,
-        dtype=dtype,
-        cpu_offload=cpu_offload,
-        max_num_seq=max_num_seq,
         template=deployment_template,
         claim_name=pvc_name,
         hf_token=hf_token,
-        reuse=reuse_deployment,
+        enforce_eager=enforce_eager,
+        skip_tokenizer_init=skip_tokenizer_init,
+        io_processor_plugin=io_processor_plugin,
     )
     logger.debug("deployment created")
     c_manager.wait_deployment_ready(
@@ -123,9 +121,7 @@ def create_test_environment(
     )
     logger.info("deployment ready")
     # service
-    c_manager.create_service(
-        k8s_name=k8s_name, template=service_template, reuse=reuse_service
-    )
+    c_manager.create_service(k8s_name=k8s_name, template=service_template)
     logger.info("service created")
 
 

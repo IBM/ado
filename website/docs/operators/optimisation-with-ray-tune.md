@@ -110,12 +110,12 @@ When configuring a `ray_tune` operation there are three groups of parameters to
 consider:
 
 - [Tuning Configuration](#tune-config): general optimization parameters
-  - This includes specific
-    [Optimizer Parameters](#optimizer-parameters-search_algparams)
+    - This includes specific
+         [Optimizer Parameters](#optimizer-parameters-search_algparams)
 - [Runtime Configuration](#run-config): parameters related to RayTune, for
   example where its stores data
-  - This includes the [Stopper Configuration](#stoppers) that determines if an
-    optimization should stop
+    - This includes the [Stopper Configuration](#stoppers) that determines if an
+         optimization should stop
 - [Orchestrator Configuration](#orchestrator-config): parameters related to
   `ado`
 
@@ -165,8 +165,6 @@ measurements of those points. They are related to `ado` concepts of `entities`
 The `orchestratorConfig` section currently supports the following parameters,
 which are all optional:
 
-<!-- markdownlint-disable MD007 -->
-
 - `failed_metric_value` (default None)
     - This will be used for the value of "metric' for any entities where it could
     not be measured (for any reason)
@@ -177,7 +175,6 @@ which are all optional:
      [memoization](#what-happens-if-i-apply-multiple-ray_tune-operations-to-a-space)
      is used.
     - If false already measured entities will be re-measured.
-<!-- markdownlint-enable MD007 -->
 
 ### Tune Config
 
@@ -187,20 +184,20 @@ The `tuneConfig` section supports many of the
 **Supported parameters:**
 
 - `metric` (required)
-  - The
-    [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
-    to optimize.
+    - The
+        [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
+        to optimize.
 - `mode` (required)
-  - `min` or `max`: Whether to search for min or max of the target property
+    - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
-  - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in
-    RayTune it would be an optimizer instance
+    - **Note**: This must be an [optimizer name](#available-optimizers) c.f. in
+        RayTune it would be an optimizer instance
 - `num_samples` (defaults to 1)
-  - **Note**: The exact interpretation of `num_samples` is optimizer dependent
-    e.g. some do not count "warm-up" samples as part of this.
+    - **Note**: The exact interpretation of `num_samples` is optimizer dependent
+        e.g. some do not count "warm-up" samples as part of this.
 - `max_concurrent_trials`
-  - **Note**: this can also be controlled via most optimizers parameters. If not
-    set, the default value depends on the optimizer
+    - **Note**: this can also be controlled via most optimizers parameters. If not
+        set, the default value depends on the optimizer
 - `time_budget_s`: How many second to run the optimizer for
 
 **Unsupported parameters:**
@@ -295,6 +292,34 @@ import nevergrad
 print(list(nevergrad.optimizers.registry.keys()))
 ```
 
+#### optuna parameters
+
+The optuna optimizer allows fine-grained control over its sampling algorithm via
+the `sampler` parameter.
+To specify which sampler to use with optuna,
+provide its class name as a string (as defined in
+[optuna.samplers](https://optuna.readthedocs.io/en/stable/reference/samplers/index.html)).
+You may also provide a dictionary of parameters for the sampler class via the
+`sampler_parameters` key.
+These will be used to instantiate the sampler.
+
+Example:
+
+```yaml
+tuneConfig:
+  search_alg:
+    name: optuna
+    params:
+      sampler: TPESampler
+      sampler_parameters:
+        multivariate: true
+        group: true
+```
+
+This will use the optuna `TPESampler` with the provided keyword arguments.
+For a complete list of samplers and their available parameters,
+see the [Optuna samplers documentation](https://optuna.readthedocs.io/en/stable/reference/samplers/index.html).
+
 ### Run Config
 
 The `runConfig` section supports many of the
@@ -310,9 +335,9 @@ disk. Since `ado` automatically stores the results and operation details in
 
 - `stop` - see [Stoppers](#stoppers)
 - `storage_path`:
-  - `ado` defaults this to "/tmp/ray_results" as this directory is writable in
-    the default `ado` image used in ray clusters.
-    - If you change this path, ensure it is writable
+    - `ado` defaults this to "/tmp/ray_results" as this directory is writable in
+      the default `ado` image used in ray clusters.
+      - If you change this path, ensure it is writable
 
 **Other supported parameters:**
 
@@ -470,6 +495,35 @@ tuneConfig:
           gpu_model: A100-SXM4-80GB
 ```
 
+<!-- markdownlint-enable line-length -->
+
+## Multi-Objective Optimization
+
+RayTune via `ado` supports multi-objective optimization via the `optuna` optimizer.
+To configure this, set both `metric` and `mode` as lists in your `tuneConfig`.
+For example to search for
+[vLLM deployment configurations](../examples/vllm-performance-full.md) that
+minimise latency while maximising token throughput:
+
+```yaml
+```python
+{%
+   include "../../../plugins/actuators/vllm_performance/yamls/operation_optuna_multi.yaml"
+%}
+```
+
+The entries in `metric` and `mode` should correspond (order matters).
+Optuna will attempt to optimize for all objectives using its multi-objective capabilities.
+
+If you specify multiple metrics or modes with an optimizer other than optuna,
+`ado` will raise an error and explain that multi-objective optimization is only
+supported with optuna.
+
+For more details, see:
+
+<!-- markdownlint-disable line-length -->
+- [Optuna multi-objective optimization documentation](https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/003_multi_objective.html)
+- [Ray Tune OptunaSearch documentation](https://docs.ray.io/en/latest/tune/api/doc/ray.tune.search.optuna.OptunaSearch.html#multi-objective-optimization)
 <!-- markdownlint-enable line-length -->
 
 ## `ray_tune` operation output

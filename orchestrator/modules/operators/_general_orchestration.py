@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import signal
 import typing
 
 import pydantic
@@ -18,10 +17,6 @@ from orchestrator.core.operation.config import (
     validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.operators._cleanup import (
-    graceful_operation_shutdown,
-    graceful_operation_shutdown_handler,
-)
 from orchestrator.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
@@ -104,6 +99,10 @@ def orchestrate_general_operation(
 
     import uuid
 
+    # Note on signals: Since there is no specific cleanup logic
+    # for general operations it makes no difference
+    # if a signal handler for SIGTERM is in place or not
+
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (
             f"{operator_function.__name__}-namespace-{str(uuid.uuid4())[:8]}"
@@ -142,20 +141,10 @@ def orchestrate_general_operation(
         operation_parameters=operation_parameters,
     )
 
-    orchestrator.modules.operators._cleanup.shutdown = False
-
-    signal.signal(
-        signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_handler()
-    )
-
-    output = _run_operation_harness(
+    return _run_operation_harness(
         run_closure=operation_run_closure,
         discovery_space=discovery_space,
         operator_module=operator_module,
         operation_parameters=operation_parameters,
         operation_info=operation_info,
     )
-
-    graceful_operation_shutdown()
-
-    return output

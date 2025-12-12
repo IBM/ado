@@ -5,6 +5,7 @@
 
 import logging
 import os
+import signal
 import typing
 
 import pydantic
@@ -23,7 +24,8 @@ from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,  # noqa: F401
     ResourceCleaner,  # noqa: F401
-    graceful_operation_shutdown,
+    cleanup_callback_functions,
+    graceful_operation_shutdown_signal_handler,
 )
 from orchestrator.modules.operators._explore_orchestration import (
     orchestrate_explore_operation,
@@ -40,6 +42,23 @@ if typing.TYPE_CHECKING:
 
 configure_logging()
 moduleLog = logging.getLogger("orch")
+
+
+def graceful_orchestrate_shutdown():
+    """Clean resources set up by orchestrate()
+
+    This includes ray.shutdown and waiting for logs to flush."""
+
+    import time
+
+    from rich.status import Status
+
+    with Status("Shutdown - shutting down Ray", spinner="dots") as status:
+        ray.shutdown()
+        status.update("Shutdown - waiting for logs to flush")
+        moduleLog.info("Waiting for logs to flush ...")
+        time.sleep(10)
+        moduleLog.info("Graceful shutdown complete")
 
 
 def orchestrate(
@@ -96,6 +115,14 @@ def orchestrate(
         moduleLog.debug("Ensuring envvars are set the main process environment")
         for key, value in ray_env_vars.items():
             os.environ[key] = value
+
+    #
+    # Register signal handler
+    #
+    signal.signal(
+        signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_signal_handler()
+    )
+    cleanup_callback_functions["orchestrate"] = graceful_orchestrate_shutdown
 
     #
     # GET SPACE
@@ -167,10 +194,8 @@ def orchestrate(
         )
         raise
     finally:
-        if not orchestrator.modules.operators._cleanup.shutdown:
-            # If we get here the exception must have been raised before the operation started.
-            # Therefore, we don't need to wait in DiscoverySpaceManager, Actuators etc. to shut down
-            # as they never processed any date.
-            graceful_operation_shutdown()
+        if not orchestrator.modules.operators._cleanup.shutdown_signal_received:
+            graceful_orchestrate_shutdown()
+            cleanup_callback_functions.pop("orchestrate")
 
     return output

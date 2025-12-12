@@ -40,6 +40,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
 
     import orchestrator.modules.operators.orchestrate
     from orchestrator.modules.actuators.base import MeasurementError
+    from orchestrator.modules.operators.base import InterruptedOperationError
 
     try:
         op_resource_configuration = (
@@ -164,6 +165,13 @@ def create_operation(parameters: AdoCreateCommandParameters):
             stderr=True,
         )
         raise typer.Exit(1) from e
+    except InterruptedOperationError as e:
+        console_print(
+            f"{ERROR}Created operation with identifier {magenta(e.operation_identifier)} "
+            "but it was interrupted.",
+            stderr=True,
+        )
+        raise typer.Exit(3) from None
     except KeyboardInterrupt as e:
         console_print(
             f"{INFO}Operation creation has been stopped due to a keyboard interrupt.",

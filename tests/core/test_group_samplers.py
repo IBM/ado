@@ -203,7 +203,7 @@ async def test_group_sampler_remote(
     ), "Expected 42 entities in ml cloud sample store"
 
     # Test Remote Sequential Iterator
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
     assert sampler.samplerCompatibleWithDiscoverySpaceRemote(manager)
 
@@ -268,7 +268,7 @@ async def test_group_sampler_sequential_remote(
     ), "Expected 42 entities in ml cloud sample store"
 
     # Test Remote Sequential Iterator
-    queue = MeasurementQueue.get_measurement_queue()
+    queue = MeasurementQueue()
     manager = DiscoverySpaceManager.remote(space=space, queue=queue)
     assert RandomGroupSampleSelector.samplerCompatibleWithDiscoverySpaceRemote(manager)
 

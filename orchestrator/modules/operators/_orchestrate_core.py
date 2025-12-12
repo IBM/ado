@@ -22,8 +22,9 @@ from orchestrator.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.modules.operators._cleanup import shutdown
+from orchestrator.modules.operators._cleanup import shutdown_signal_received
 from orchestrator.modules.operators.base import (
+    InterruptedOperationError,
     add_operation_output_to_metastore,
     create_operation_and_add_to_metastore,
 )
@@ -106,14 +107,17 @@ def _run_operation_harness(
         )
         discovery_space.metadataStore.updateResource(operation_resource)
         operation_output: OperationOutput | None = run_closure()
-    except KeyboardInterrupt:
+    except KeyboardInterrupt as error:
         sys.stdout.flush()
-        moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
+        moduleLog.warning(
+            f"Caught keyboard interrupt during operation {operation_identifier} - initiating graceful shutdown"
+        )
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,
             message="Operation exited due to SIGINT",
         )
+        raise InterruptedOperationError(operation_resource.identifier) from error
     except RayTaskError as error:
         sys.stdout.flush()
         e = error.as_instanceof_cause()
@@ -143,9 +147,9 @@ def _run_operation_harness(
     else:
         time.sleep(1)
         sys.stdout.flush()
-        if shutdown:
+        if shutdown_signal_received:
             moduleLog.warning(
-                "Operation exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
+                f"Operation {operation_identifier} exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
             )
             if operation_output:
                 moduleLog.info("Operation returned output - will save")
@@ -169,7 +173,7 @@ def _run_operation_harness(
                 )
             else:
                 moduleLog.debug(
-                    f"Operation exited normally with status {operation_output.exitStatus}"
+                    f"Operation {operation_identifier} exited normally with status {operation_output.exitStatus}"
                 )
     finally:
         if operation_output:
@@ -178,7 +182,9 @@ def _run_operation_harness(
                 operation_output.operation = operation_resource
 
             # Add it to metastore
-            moduleLog.info("Adding operation output to metastore")
+            moduleLog.info(
+                f"Adding output for operation {operation_identifier} to metastore"
+            )
             add_operation_output_to_metastore(
                 operation=operation_resource,
                 output=operation_output,
@@ -192,9 +198,12 @@ def _run_operation_harness(
             )
 
         # Add the final status to the operation resource
+        moduleLog.info(
+            f"Sending final status for operation {operation_identifier} to metastore"
+        )
         operation_resource.status.append(operation_output.exitStatus)
 
-        if not shutdown and finalize_callback:
+        if not shutdown_signal_received and finalize_callback:
             finalize_callback(operation_resource)
 
         discovery_space.metadataStore.updateResource(operation_resource)

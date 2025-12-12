@@ -115,7 +115,9 @@ class VLLMPerformanceTest(ActuatorBase):
             else:
                 # add to clean up
                 try:
-                    cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
+                    cleaner_handle = ray.get_actor(
+                        name=CLEANER_ACTOR, namespace=queue.ray_namespace()
+                    )
                     cleaner_handle.add_to_cleanup.remote(handle=self.env_manager)
                 except Exception as e:
                     logger.warning(

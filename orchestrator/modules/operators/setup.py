@@ -8,13 +8,12 @@ import typing
 
 import pydantic
 
-from orchestrator.core.actuatorconfiguration.config import (
-    ActuatorConfiguration,
-)
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
     OperatorModuleConf,
+    get_actuator_configurations,
+    validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import load_module_class_or_function
@@ -55,16 +54,17 @@ def load_secrets_from_env(vars_to_load, env_var_dict):
 
 
 def setup_actuators(
-    namespace: str,
-    actuator_configurations: list[ActuatorConfiguration],
+    actuator_configuration_identifiers: list[str],
     discovery_space: DiscoverySpace,
-    queue: MeasurementQueue,
+    measurement_queue: MeasurementQueue,
 ) -> dict[str, "ActuatorActor"]:
     """
+    Creates all the actuators required by discovery_space
+
     Params:
-        namespace: The namespace to set up in
-        config: Configuration of the orchestrator
-        queue: the update queue
+        discovery_space: The discovery space to create the actuators for
+        actuator_configuration_identifiers: A set of (optional) identifiers of configurations for actuators in the discoveryspace
+        queue: the measurement queue
 
     Raises:
         ray.exceptions.ActorDiedError if any actuator
@@ -79,6 +79,29 @@ def setup_actuators(
     moduleLog.info("Initialising requested actuators")
     registry = orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
     actuators = {}
+    namespace = measurement_queue.ray_namespace()
+
+    if issues := registry.checkMeasurementSpaceSupported(
+        discovery_space.measurementSpace
+    ):
+        moduleLog.critical(
+            "The measurement space is not supported by the known actuators - aborting"
+        )
+        for issue in issues:
+            moduleLog.critical(issue)
+        raise ValueError(
+            "The measurement space is not supported by the known actuators"
+        )
+
+    actuator_configurations = get_actuator_configurations(
+        actuator_configuration_identifiers=actuator_configuration_identifiers,
+        project_context=discovery_space.project_context,
+    )
+
+    validate_actuator_configurations_against_space_configuration(
+        actuator_configurations=actuator_configurations,
+        discovery_space_configuration=discovery_space.config,
+    )
 
     # First instantiate any actuators passed in actuatorConfigurations
 
@@ -88,7 +111,7 @@ def setup_actuators(
         actuator: ActuatorActor = (
             registry.actuatorForIdentifier(actuatorIdentifier)
             .options(name=actuatorIdentifier, namespace=namespace)
-            .remote(queue=queue, params=actuatorConfig.parameters)
+            .remote(queue=measurement_queue, params=actuatorConfig.parameters)
         )
 
         actuators[actuatorIdentifier] = actuator
@@ -118,7 +141,7 @@ def setup_actuators(
         actuator: ActuatorActor = cls.options(
             name=actuatorIdentifier, namespace=namespace
         ).remote(
-            queue=queue,
+            queue=measurement_queue,
             params=default_actuator_parameters,
         )
 

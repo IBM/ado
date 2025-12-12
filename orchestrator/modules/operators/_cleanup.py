@@ -2,56 +2,39 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import signal
 import typing
+from collections import OrderedDict
+from collections.abc import Callable
 
 import ray
 from ray.actor import ActorHandle
 
-shutdown = False
+shutdown_signal_received = False
 CLEANER_ACTOR = "resource_cleaner"
 
 moduleLog = logging.getLogger("orchestration_cleanup")
+cleanup_callback_functions: dict[str, Callable[[], None]] = OrderedDict()
 
 
-def graceful_operation_shutdown():
-
-    global shutdown
-
-    if not shutdown:
-        import time
-
-        moduleLog.info("Shutting down gracefully")
-
-        shutdown = True
-
-        moduleLog.debug("Cleanup custom actors")
-        try:
-            cleaner_handle = ray.get_actor(name=CLEANER_ACTOR)
-            ray.get(cleaner_handle.cleanup.remote())
-            # deleting a cleaner actor. It is detached one, so has to be deleted explicitly
-            ray.kill(cleaner_handle)
-        except Exception as e:
-            moduleLog.warning(f"Failed to cleanup custom actors {e}")
-
-        moduleLog.info("Shutting down Ray...")
-        ray.shutdown()
-        moduleLog.info("Waiting for logs to flush ...")
-        time.sleep(10)
-        moduleLog.info("Graceful shutdown complete")
-    else:
-        moduleLog.info("Graceful shutdown already completed")
-
-
-def graceful_operation_shutdown_handler() -> (
+def graceful_operation_shutdown_signal_handler() -> (
     typing.Callable[[int, typing.Any | None], None]
 ):
+    """Handler which executes cleanup callbacks registered by operations on receiving a signal"""
 
     def handler(sig, frame):
 
-        moduleLog.warning(f"Got signal {sig}")
-        moduleLog.warning("Calling graceful shutdown")
-        graceful_operation_shutdown()
+        moduleLog.critical(f"Got signal {sig}")
+        global shutdown_signal_received
+        global cleanup_callback_functions
+
+        if shutdown_signal_received:
+            moduleLog.info("Graceful shutdown already completed")
+
+        shutdown_signal_received = True
+        moduleLog.info("Calling cleanup callbacks")
+        for entry in cleanup_callback_functions:
+            moduleLog.info(f"Cleaning {entry}")
+            cleanup_callback_functions[entry]()
 
     return handler
 
@@ -91,16 +74,11 @@ class ResourceCleaner:
             moduleLog.info(f"cleaned {len(done)}, clean failed {len(not_done)}")
 
 
-def initialize_resource_cleaner():
+def initialize_ray_resource_cleaner(namespace=None):
     # create a cleaner actor.
     # We are creating Named detached actor (https://docs.ray.io/en/latest/ray-core/actors/named-actors.html)
     # so that we do not need to pass its handle (can get it by name) and it does not go out of scope, until
     # we explicitly kill it
     ResourceCleaner.options(
-        name=CLEANER_ACTOR, get_if_exists=True, lifetime="detached"
+        name=CLEANER_ACTOR, get_if_exists=True, lifetime="detached", namespace=namespace
     ).remote()
-    # Create a default handler that will clean up the ResourceCleaner
-    # Orchestration functions that require more complex shutdown can replace this handler
-    signal.signal(
-        signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_handler()
-    )

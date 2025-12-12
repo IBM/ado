@@ -47,10 +47,13 @@ class DiscoverySpaceUpdateSubscriber(abc.ABC):
 class DiscoverySpaceManager:
     """A Ray actor wrapping a DiscoverySpace
 
-    Provides remote/async access to discovery space properties
-    Handles insertion of new entities and measurements into the space coming from a MeasurementQueue.
-    Notifies subscribers of update events.
-    Notifies subscribers of shutdown
+    ray namespace scoped i.e. All ray actors accessing a DiscoverySpaceManager instance
+    should be in the same ray namespace as that instance.
+
+    - Provides remote/async access to discovery space properties
+    - Handles insertion of new entities and measurements into the space coming from a MeasurementQueue.
+    - Notifies subscribers of update events.
+    - Notifies subscribers of shutdown
     """
 
     @classmethod
@@ -114,8 +117,8 @@ class DiscoverySpaceManager:
         namespace=None,
     ):
         """
-        :param queue: A ray.util.queue.Queue instance.
-            Usually the singleton instance returned by StateUpdateQueue.get_measurement_queue
+        :param queue: A MeasurementQueue instance for this operation
+            All actuators in the same operation must use this queue
         :param space: The DiscoverySpace instance
 
         """
@@ -125,6 +128,11 @@ class DiscoverySpaceManager:
         self.log.debug("Initialising DiscoverySpaceManager")
 
         self._namespace = namespace
+        if self._namespace != queue.ray_namespace():
+            raise ValueError(
+                f"The provided measurement queue's ray namespace, {queue.ray_namespace()}, does "
+                f"not match the namespace provided to DiscoverySpaceManager, {self._namespace} "
+            )
 
         # This ivar will be used to mimic receiving updates on Measurements
         self._measurement_queue = queue

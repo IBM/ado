@@ -42,7 +42,7 @@ class QueueMonitorActor:
         starts the background monitoring coroutine.
         """
         self.logger = logging.getLogger("QueueMonitorActor")
-        self.shared_queue = MeasurementQueue.get_measurement_queue()
+        self.shared_queue = MeasurementQueue()
 
         # The in-memory store: experiment reference → request ID → request instance.
         self.requests_memory_storage: dict[

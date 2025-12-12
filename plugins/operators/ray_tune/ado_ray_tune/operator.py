@@ -58,7 +58,6 @@ from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import ValidMeasurementResult
-from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
@@ -140,8 +139,78 @@ class OrchTrainableParameters(pydantic.BaseModel):
         ActorHandle  # We need the state to access the sample store which can't be sent
     )
     debugging: bool
-    target_metric: str  # The abstract property tune is optimizing
+    target_metric: str | list[str]  # Accept single or multiple target metrics
     orchestrator_config: RayTuneOrchestratorConfiguration
+
+
+def process_metric(
+    metric: str,
+    all_results: dict[str, list[Any]],
+    entity: Entity,
+    trainable_params: OrchTrainableParameters,
+) -> Any:
+    """
+    Processes a single metric for a given entity.
+
+    If the metric is in all_results, it returns the last result.
+    If the metric is not in the all_results, it checks if it is a virtual property.
+    If it is, it returns the value of the virtual property.
+    If it is not, it returns the failed metric value.
+
+
+    Args:
+        metric (str): Name or identifier of the metric to process.
+        all_results (dict[str, list[Any]]): A dictionary of all results, keyed by metric name.
+        entity (Entity): The entity for which the metric is being processed.
+        trainable_params (OrchTrainableParameters): Parameters/configuration for the trainable/orchestrator.
+
+    Returns:
+        Any: The processed metric value, or the failed metric value if the metric could not be found or computed.
+
+    Raises:
+        ValueError: If the metric is a virtual property and there are multiple observed properties with the same identifier.
+    """
+
+    log = logging.getLogger(f"trainable-{entity.identifier}")
+
+    if all_results.get(metric):
+        # We use the last result
+        return all_results[metric][-1]
+
+    # The metric is not in the results, so we need to process it
+    # Check if this is a virtual metric
+    log.debug(f"No measured properties match {metric} - checking if a virtual property")
+    try:
+        properties = entity.virtualObservedPropertiesFromIdentifier(metric)
+    except ValueError:
+        log.warning(
+            f"No experiment measured {metric} and it's not a valid virtual property.  "
+            f"Will set value of {metric} for {entity.identifier} to {trainable_params.orchestrator_config.failed_metric_value} "
+        )
+        processed_metric = trainable_params.orchestrator_config.failed_metric_value
+    else:
+        if properties is not None:
+            if len(properties) == 1:
+                value = entity.valueForProperty(property=properties[0])
+                processed_metric = (
+                    value.value
+                    if value is not None
+                    else trainable_params.orchestrator_config.failed_metric_value
+                )
+            else:
+                raise ValueError(
+                    f"Ambiguous virtual target metric provided - matches multiple observed properties. "
+                    f"{[p.identifier for p in properties]}"
+                )
+        else:
+            log.warning(
+                f"{metric} is a valid virtual property name "
+                f"however no experiment measured an underlying property with the required identifier. "
+                f"Will set value of {metric} for {entity.identifier} to {trainable_params.orchestrator_config.failed_metric_value}"
+            )
+            processed_metric = trainable_params.orchestrator_config.failed_metric_value
+
+    return processed_metric
 
 
 def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
@@ -364,68 +433,24 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     # The following code either returns the last available value or if the metric is virtual, aggregates it.
     # It also handles the case where no value of target metric is available
     final_results = {}
-    virtual_property: VirtualObservedProperty | None = None
-    # Check if we have a result for the target trainable metric.
-    # It will be None if target_metric is a virtual metric, or somehow it's not a valid identifier
-    if not allResults.get(trainable_params.target_metric):
-        # Check if this is a virtual metric
-        log.debug(
-            f"No measured properties match {trainable_params.target_metric} - checking if a virtual property"
+
+    target_metrics = (
+        trainable_params.target_metric
+        if isinstance(trainable_params.target_metric, list)
+        else [trainable_params.target_metric]
+    )
+    for metric in target_metrics:
+        final_results[metric] = process_metric(
+            metric=metric,
+            all_results=allResults,
+            entity=entity,
+            trainable_params=trainable_params,
         )
-        try:
-            properties = entity.virtualObservedPropertiesFromIdentifier(
-                trainable_params.target_metric
-            )
-        except ValueError:
-            log.warning(
-                f"No experiment measured {trainable_params.target_metric} and it's not a valid virtual property.  "
-                f"Will set value of {trainable_params.target_metric} for {entity.identifier} to { trainable_params.orchestrator_config.failed_metric_value} "
-            )
-            final_results[trainable_params.target_metric] = (
-                trainable_params.orchestrator_config.failed_metric_value
-            )
-        else:
-            if properties is not None:
-                if len(properties) == 1:
-                    virtual_property = properties[0]
-                    value = entity.valueForProperty(property=properties[0])
-                    if value is None:
-                        value = trainable_params.orchestrator_config.failed_metric_value
-                    else:
-                        value = value.value
-
-                    final_results[trainable_params.target_metric] = value
-                else:
-                    raise ValueError(
-                        f"Ambiguous virtual target metric provided - matches multiple observed properties. "
-                        f"{[p.identifier for p in properties]}"
-                    )
-            else:
-                log.warning(
-                    f"{trainable_params.target_metric} is a valid virtual property name "
-                    f"however no experiment measured an underlying property with the required identifier. "
-                    f"Will set value of {trainable_params.target_metric} for {entity.identifier} to { trainable_params.orchestrator_config.failed_metric_value}"
-                )
-
-                final_results[trainable_params.target_metric] = (
-                    trainable_params.orchestrator_config.failed_metric_value
-                )
-    else:
-        # We use the last result
-        final_results[trainable_params.target_metric] = allResults[
-            trainable_params.target_metric
-        ][-1]
-
-    # Add non target metrics to final results - we also skip the base property of a virtual property
-    skip_metrics = [trainable_params.target_metric]
-    if virtual_property:
-        skip_metrics.append(
-            virtual_property.baseObservedProperty.targetProperty.identifier
-        )
+    # Add non target metrics to final results - skip any already handled
+    skip_metrics = list(target_metrics)
     for k, v in allResults.items():
         if k not in skip_metrics:
             final_results[k] = allResults[k][-1]
-
     return final_results
 
 
@@ -494,7 +519,7 @@ def tune(
             total_size=total_size,
         )
 
-    parameters.target_metric = ray_tune_config.metric
+    parameters.target_metric = ray_tune_config.metric  # still supports str or list
 
     ## LhuSampler requires entity space
     if isinstance(ray_tune_config.search_alg, LhuSampler):
@@ -730,10 +755,18 @@ class RayTune(Search):
                 await self.state.measurementSpace.remote()
             )  # type: MeasurementSpace
 
-            if measurement_space.propertyWithIdentifierInSpace(
-                self.params.tuneConfig.metric
-            ):
-
+            metric_or_metrics = self.params.tuneConfig.metric
+            # Check all if list, single if str
+            if isinstance(metric_or_metrics, list):
+                present = all(
+                    measurement_space.propertyWithIdentifierInSpace(m)
+                    for m in metric_or_metrics
+                )
+            else:
+                present = measurement_space.propertyWithIdentifierInSpace(
+                    metric_or_metrics
+                )
+            if present:
                 internal_parameters = OrchTrainableParameters(
                     operation_id=self.operationIdentifier(),
                     ray_tune_actor_name=self.actorName,
@@ -809,7 +842,7 @@ class RayTune(Search):
                 operation_output = OperationOutput(
                     exitStatus=OperationResourceStatus(
                         message=f"Ray Tune operation did not start. "
-                        f"Requested tune metric {self.params.tuneConfig.metric} is not a target, observed or virtual "
+                        f"Requested tune metric(s) {self.params.tuneConfig.metric} is/are not a target, observed or virtual "
                         f"property of the measurement space.",
                         exit_state=OperationExitStateEnum.FAIL,
                         event=OperationResourceEventEnum.FINISHED,

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import os
 import uuid
+from pathlib import Path
 
 import ray
 import yaml
@@ -53,14 +53,27 @@ class VLLMPerformanceTest(ActuatorBase):
     ) -> ExperimentCatalog:
         """Returns the Experiments your actuator provides"""
 
-        # The catalog be formed in code here or read from a file containing the Experiments models
-        # This shows reading from a file
+        # Loading experiment definitions for yaml files contained in the `experiments` directory.
+        # NOTE: Only files can be placed in the experiments directory,
+        #       but each file can contain multiple experiment definitions
+        curr_path = Path(__file__)
+        exp_dir = curr_path.parent / Path("experiments")
+        logger.debug(f"Experiments dir {exp_dir.absolute()}")
+        experiments = []
+        for exp_file in exp_dir.iterdir():
+            if exp_file.is_dir():
+                continue
 
-        path = os.path.abspath(__file__)
-        path = os.path.split(path)[0]
-        with open(os.path.join(path, "experiments.yaml")) as f:
-            data = yaml.safe_load(f)
-            experiments = [Experiment(**data[e]) for e in data]
+            logger.debug(f"Loading experiments from {exp_file.name}")
+            try:
+                file_data = exp_file.read_text()
+                data = yaml.safe_load(file_data)
+            except yaml.YAMLError:
+                error_message = f"File {exp_file.name} is a malformed YAML"
+                logger.error(error_message)
+                raise ValueError(error_message)
+
+            experiments.extend([Experiment.model_validate(data[e]) for e in data])
 
         return ExperimentCatalog(
             catalogIdentifier=cls.identifier,
@@ -181,7 +194,11 @@ class VLLMPerformanceTest(ActuatorBase):
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
-        if experiment.identifier == "test-deployment-v1":
+        if experiment.identifier in [
+            "test-deployment-v1",
+            "test-geospatial-deployment-v1",
+            "test-geospatial-deployment-custom-dataset-v1",
+        ]:
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(
                     f"Actuator configuration did not contain sufficient information for a kubernetes environment manager to be created. "
@@ -189,7 +206,7 @@ class VLLMPerformanceTest(ActuatorBase):
                 )
 
             # Execute experiment
-            # Note: Here the experiment instance is just past for convenience since we retrieved it above
+            # Note: Here the experiment instance is just passed for convenience since we retrieved it above
             run_resource_and_workload_experiment.remote(
                 request=request,
                 experiment=experiment,

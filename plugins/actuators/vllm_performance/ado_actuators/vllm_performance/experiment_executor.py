@@ -5,6 +5,7 @@ import json
 import logging
 import subprocess
 import time
+import traceback
 
 import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
@@ -27,6 +28,7 @@ from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
 )
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
     VLLMBenchmarkError,
+    execute_geospatial_benchmark,
     execute_random_benchmark,
 )
 from ray.actor import ActorHandle
@@ -204,10 +206,11 @@ def _create_environment(
                         cpu_offload=int(values.get("cpu_offload")),
                         max_num_seq=int(values.get("max_num_seq")),
                         hf_token=actuator.hf_token,
-                        reuse_service=False,
-                        reuse_deployment=False,
                         namespace=actuator.namespace,
                         pvc_name=pvc_name,
+                        skip_tokenizer_init=values.get("skip_tokenizer_init", 0) == 1,
+                        enforce_eager=values.get("enforce_eager", 0) == 1,
+                        io_processor_plugin=values.get("io_processor_plugin"),
                         check_interval=check_interval,
                         timeout=timeout,
                     )
@@ -219,6 +222,7 @@ def _create_environment(
                     logger.error(
                         f"Attempt {attempt}. Failed to create test environment {e}"
                     )
+                    logger.error(traceback.format_exception(e))
                     error = f"Failed to create test environment {e}"
                     time.sleep(tmout)
                     tmout *= 2
@@ -408,7 +412,6 @@ def run_resource_and_workload_experiment(
             max_concurrency = int(values.get("max_concurrency"))
             if max_concurrency < 0:
                 max_concurrency = None
-
             started_benchmarking = True
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
@@ -417,20 +420,38 @@ def run_resource_and_workload_experiment(
                     state="start",
                 )
             )
-            result = execute_random_benchmark(
-                base_url=base_url,
-                model=values.get("model"),
-                interpreter=actuator_parameters.interpreter,
-                num_prompts=int(values.get("num_prompts")),
-                request_rate=request_rate,
-                max_concurrency=max_concurrency,
-                hf_token=actuator_parameters.hf_token,
-                benchmark_retries=actuator_parameters.benchmark_retries,
-                retries_timeout=actuator_parameters.retries_timeout,
-                number_input_tokens=int(values.get("number_input_tokens")),
-                max_output_tokens=int(values.get("max_output_tokens")),
-                burstiness=float(values.get("burstiness")),
-            )
+            if experiment.identifier in [
+                "test-geospatial-deployment-v1",
+                "test-geospatial-deployment-custom-dataset-v1",
+            ]:
+                result = execute_geospatial_benchmark(
+                    base_url=base_url,
+                    model=values.get("model"),
+                    interpreter=actuator_parameters.interpreter,
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    burstiness=float(values.get("burstiness")),
+                    dataset=values.get("dataset"),
+                )
+            else:
+                result = execute_random_benchmark(
+                    base_url=base_url,
+                    model=values.get("model"),
+                    interpreter=actuator_parameters.interpreter,
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    number_input_tokens=int(values.get("number_input_tokens")),
+                    max_output_tokens=int(values.get("max_output_tokens")),
+                    burstiness=float(values.get("burstiness")),
+                )
 
         except (
             K8sEnvironmentCreationError,
@@ -536,20 +557,35 @@ def run_workload_experiment(
                 max_concurrency = None
 
             # Will raise VLLMBenchmarkError if there is a problem
-            result = execute_random_benchmark(
-                base_url=values.get("endpoint"),
-                model=values.get("model"),
-                interpreter=actuator_parameters.interpreter,
-                num_prompts=int(values.get("num_prompts")),
-                request_rate=request_rate,
-                max_concurrency=max_concurrency,
-                hf_token=actuator_parameters.hf_token,
-                benchmark_retries=actuator_parameters.benchmark_retries,
-                retries_timeout=actuator_parameters.retries_timeout,
-                number_input_tokens=int(values.get("number_input_tokens")),
-                max_output_tokens=int(values.get("max_output_tokens")),
-                burstiness=float(values.get("burstiness")),
-            )
+            if experiment.identifier == "test-geospatial-endpoint-v1":
+                result = execute_geospatial_benchmark(
+                    base_url=values.get("endpoint"),
+                    model=values.get("model"),
+                    interpreter=actuator_parameters.interpreter,
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    burstiness=float(values.get("burstiness")),
+                    dataset=values.get("dataset"),
+                )
+            else:
+                result = execute_random_benchmark(
+                    base_url=values.get("endpoint"),
+                    model=values.get("model"),
+                    interpreter=actuator_parameters.interpreter,
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    number_input_tokens=int(values.get("number_input_tokens")),
+                    max_output_tokens=int(values.get("max_output_tokens")),
+                    burstiness=float(values.get("burstiness")),
+                )
         except VLLMBenchmarkError as e:
             error = f"Encountered benchmark error when testing entity {entity.identifier}: {e}"
             logger.error(error)

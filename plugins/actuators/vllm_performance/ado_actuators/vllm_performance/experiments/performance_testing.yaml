@@ -154,6 +154,9 @@ test-deployment-v1:
         identifier: 'max_output_tokens'
       value: 128
     - property:
+        identifier: 'dataset'
+      value: 'random'
+    - property:
         identifier: 'gpu_memory_utilization'
       value: .9
     - property:
@@ -171,9 +174,6 @@ test-deployment-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
-    - property:
-        identifier: 'dataset'
-      value: 'random'
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -228,6 +228,7 @@ test-endpoint-v1:
         description: 'The endpoint(s) to test'
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["http://localhost:8000"]
     - identifier: 'request_rate'
       metadata:
         description: "The number of requests to send per second"

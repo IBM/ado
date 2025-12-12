@@ -130,7 +130,7 @@ class DiscoverySpaceManager:
         self._namespace = namespace
         if self._namespace != queue.ray_namespace():
             raise ValueError(
-                f"The provided measurement queues ray namespace, {queue.ray_namespace()}, does "
+                f"The provided measurement queue's ray namespace, {queue.ray_namespace()}, does "
                 f"not match the namespace provided to DiscoverySpaceManager, {self._namespace} "
             )
 

@@ -63,7 +63,7 @@ def setup_actuators(
 
     Params:
         discovery_space: The discovery space to create the actuators for
-        actuator_configurations: A set of (optional) configurations for actuators in the discoveryspace
+        actuator_configuration_identifiers: A set of (optional) identifiers of configurations for actuators in the discoveryspace
         queue: the measurement queue
 
     Raises:

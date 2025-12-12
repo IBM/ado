@@ -30,7 +30,7 @@ def create_optuna_ray_tune_config(
     return ray.tune.TuneConfig(**tune_options)
 
 
-def create_lhc_ray_tune_config(
+def create_lhu_ray_tune_config(
     metric: str,
     mode: str,
     parameters: dict,
@@ -198,7 +198,7 @@ class OrchTuneConfig(pydantic.BaseModel):
                 f"Multi-objective optimization with {self.search_alg.name} is not supported in ado_ray_tune."
             )
         if self.search_alg.name == "lhu_sampler":
-            return create_lhc_ray_tune_config(
+            return create_lhu_ray_tune_config(
                 mode=self.mode,
                 metric=self.metric,
                 tune_options=tune_options,

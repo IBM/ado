@@ -91,12 +91,13 @@ class TrimParameters(BaseModel):
 
     batchSize: int | None = pydantic.Field(
         default=None,
-        description="Batch size parameter of randomWalk, default is setting this equal to iterationSize",
+        description="""Batch size parameter of randomWalk, default is setting this equal to iterationSize.
+        Batch size must divide the iteration size value""",
     )
 
     holdoutSize: int | None = pydantic.Field(
         default=None,
-        description="Sample Size of the holdout set, default is setting this equal to iterationSize",
+        description="Sample Size of the holdout set, default is setting this equal to batch size",
     )
 
     samplingBudget: SamplingBudget = pydantic.Field(
@@ -139,15 +140,29 @@ class TrimParameters(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def set_final_batch_size(self):
+    def set_batch_size(self):
         if not self.batchSize:
+            logging.debug(
+                "Batch Size was not set, setting it equal to the iteration size"
+            )
+            self.batchSize = self.iterationSize
+        if self.iterationSize % self.batchSize != 0:
+            logging.warning(
+                "Batch size was set, but it was not a divisor of the iteration size."
+                "setting batch size it equal to the iteration size"
+            )
             self.batchSize = self.iterationSize
         return self
 
     @model_validator(mode="after")
-    def set_final_holdout_size(self):
+    def set_holdout_size(self):
         if not self.holdoutSize:
-            self.holdoutSize = self.iterationSize
+            self.holdoutSize = self.batchSize
+        if self.holdoutSize != self.batchSize:
+            logging.warning(
+                "Currently the holdout size must be equal to the batch size."
+                f"Setting it equals to it. Batch size = {self.batchSize}"
+            )
         return self
 
     @model_validator(mode="after")

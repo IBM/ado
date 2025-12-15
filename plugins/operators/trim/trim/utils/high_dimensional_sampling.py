@@ -39,7 +39,7 @@ def random_shifts_high_dimensional_sampling(dims, orders, n):
     )
 
     logging.info(
-        f"The greatest cardinality is {max(dims)}, multeplicity is {len([d for d in dims if d == max(dims)])}"
+        f"The greatest cardinality is {max(dims)}, multiplicity is {len([d for d in dims if d == max(dims)])}"
     )
 
     sampled_list = []

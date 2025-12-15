@@ -349,7 +349,7 @@ def df_to_points(df, cols=None, dropna=True, drop_duplicates=False):
     def to_py(x):
         import numpy as np
 
-        if isinstance(x, (np.generic,)):
+        if isinstance(x, (np.generic)):
             return x.item()
         return x
 

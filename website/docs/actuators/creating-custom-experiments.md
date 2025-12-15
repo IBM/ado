@@ -64,8 +64,17 @@ required property.
 
 **Return Value:**
 
-The function must return a dictionary whose keys are output names
-e.g. "density" above, and the value is the measured value.
+The function must return a dictionary whose keys
+include at least one of the output names you listed in
+`output_property_identifiers` (e.g., "density" above),
+and the values are the measured results.
+If no keys in the dictionary match the names in `output_property_identifiers`  
+the experiment result will be marked as invalid.
+
+> [!NOTE]
+>
+> Only keys listed in `output_property_identifiers` are extracted
+> from the returned dictionary, any extra keys are ignored.
 
 **Property Domains:**
 

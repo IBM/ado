@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import typing
+from collections import deque
 from pathlib import Path
 
 import numpy as np
@@ -16,16 +17,17 @@ from orchestrator.core.discoveryspace.samplers import BaseSampler
 from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from trim.trim_pydantic import TrimParameters
-from trim.utils.compare_describe_log_sources import (
-    split_common_and_diff,
-)
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.miscellaneous import delete_dir
 from trim.utils.one_dimensional_sampling import get_index_list_nn
 from trim.utils.order import get_feature_importance_order, reorder_df_by_importance
+from trim.utils.rowsring import RowsRing
 from trim.utils.space_df_connector import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
+)
+from trim.utils.split_common_and_diff import (
+    split_common_and_diff,
 )
 
 logger_trim_sampler = logging.getLogger(__name__)
@@ -43,13 +45,11 @@ class TrimSampleSelector(BaseSampler):
         return True
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace, batchsize=5
+        self, remoteDiscoverySpace, batchsize=1
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
-        logger_trim_sampler.info(f"Batchsize is {batchsize}")
-        if batchsize != self.params.batchSize:
-            raise ValueError
+        logger_trim_sampler.debug(f"Batchsize is {batchsize} (expected 1)")
 
         async def iterator_closure(
             stateHandle: DiscoverySpaceManager,  # type: ignore[name-defined]
@@ -80,7 +80,9 @@ class TrimSampleSelector(BaseSampler):
 
                 # Recording the initial source space
                 initial_source_df, _target_df = get_source_and_target(
-                    discoverySpace, self.params.targetOutput
+                    discoverySpace,
+                    self.params.targetOutput,
+                    discoverySpaceManager=stateHandle,
                 )
 
                 if logger_trim_sampler.isEnabledFor(logging.DEBUG):
@@ -105,12 +107,25 @@ class TrimSampleSelector(BaseSampler):
                 )
 
                 ############################################################################################################
-                ######################################## MAIN LOOP STARTS ##################################################
+                ######################################### MAIN LOOP STARTS #################################################
                 ############################################################################################################
 
                 metric_batch_size_dict = {}
-                comparison_indeces = []
-                yielded_entities = []
+                comparison_indices = []
+                previous_holdout_df = pd.DataFrame({})
+                yielded_entities = deque(maxlen=self.params.holdoutSize)
+                yielded_rows = RowsRing(
+                    maxlen=(
+                        self.params.holdoutSize
+                        if self.params.holdoutSize
+                        else self.params.iterationSize
+                    )
+                )
+                # TODO: same data structured but It is made up df rows, yielded_rows.df returns a df made of of those rows
+                # upon adding a new row a check is done automatically so that the rows is coherent with the others
+                # rows index information is discarded, indices are from 0 to self.params.holdoutSize -1 and are automatically updated each time a
+                # row is added, so that idx 0 is the oldest point, and when the ring is full, self.params.holdoutSize -1 is the latest added point
+
                 for i in range(0, numberEntities, batchsize):
                     entities = list_of_entities[i : i + batchsize]
 
@@ -125,84 +140,163 @@ class TrimSampleSelector(BaseSampler):
                         f"in the training set. Entities are:"
                     )
                     logger_trim_sampler.info(entities)
-                    # logger_trim_sampler.info(df_ordered_to_sample[train_cols].iloc[[i]])
 
-                    current_batch_size_source_df, _current_batch_size_target_df = (
-                        get_source_and_target(discoverySpace, self.params.targetOutput)
+                    current_source_df, _current_batch_size_target_df = (
+                        get_source_and_target(
+                            discoverySpace,
+                            self.params.targetOutput,
+                            discoverySpaceManager=stateHandle,
+                        )
                     )
+
                     if i == 0:
-                        previous_batch_size_source_df = current_batch_size_source_df
+                        previous_source_df = current_source_df
+                        train_df = current_source_df
                         logger_trim_sampler.debug(
                             "During the initial iterations the holdout is empty"
                         )
-                        train_df = current_batch_size_source_df
-                        previous_batch_size_holdout_df = pd.DataFrame({})
-                        logger_trim_sampler.info(f"Yielding {len(entities)} entities")
-                        # TODO: searc
-                        yield entities
-                        logger_trim_sampler.debug("Sleeping")
-                        await asyncio.sleep(5)
+                        logger_trim_sampler.info(f"Yielding {len(entities)} entity")
                         yielded_entities += entities
+                        yield entities
+
+                        # NOTE I'm in iterator_closure and stateHandle appears in
+                        # async def iterator_closure(
+                        #     stateHandle: DiscoverySpaceManager,  # type: ignore[name-defined]
+                        # )
+                        # TODO: implement MJ sol:
+                        # while stateHandle... != ...
+                        # sleep(0.1)
+
                         continue
 
                     # since we iterate for i in range(0, numberEntities, batchsize)
                     # we know for sure that at every i!=0 we will build a model and a holdout set
                     # Initializing holdout set, -1 because i starts from zero and we know for sure that batchsize divides iteration size
-                    elif i == batchsize:
-                        if len(current_batch_size_source_df) <= len(initial_source_df):
+                    elif i < self.params.iterationSize:
+                        # TODO: separate logging logic
+                        if len(current_source_df) != len(previous_source_df) + 1:
                             logger_trim_sampler.error(
                                 f"ANOMALY. Initial source df has length = {len(initial_source_df)}"
-                                f"While the current one, before splitting and obtaining the first holdout has length = {len(current_batch_size_source_df)} "
+                                f"While the current one, before splitting and obtaining the first holdout has length = {len(current_source_df)} "
                             )
                             raise ValueError(
-                                "The size of the source space did not increase!"
+                                f"The size of the source space did not increase by {batchsize}!"
                             )
 
                         logger_trim_sampler.debug(
-                            f"longer_df_from_which_you_subtract has len = {len(current_batch_size_source_df)}"
+                            f"longer_df_from_which_you_subtract has len = {len(current_source_df)}"
                         )
                         logger_trim_sampler.debug(
-                            f"longer_df_from_which_you_subtract has len = {len(previous_batch_size_source_df)}"
+                            f"longer_df_from_which_you_subtract has len = {len(previous_source_df)}"
                         )
-                        train_df, current_batch_size_holdout_df = split_common_and_diff(
-                            longer_df_from_which_you_subtract=current_batch_size_source_df,
-                            shorter_df_that_you_subtract=previous_batch_size_source_df,
+                        # ---------------------------
+
+                        compare_to_previous_source_df, one_additional_row = (
+                            split_common_and_diff(
+                                longer_df_from_which_you_subtract=current_source_df,
+                                shorter_df_that_you_subtract=previous_source_df,
+                            )
                         )
 
-                        logger_trim_sampler.debug(
-                            f"First holdout set created, it contains the following {len(current_batch_size_holdout_df)} rows:"
+                        yielded_rows += one_additional_row
+
+                        # TODO: separate logging logic
+                        if not compare_to_previous_source_df.equals(previous_source_df):
+                            logger_trim_sampler.setLevel(logging.DEBUG)
+                            logger_trim_sampler.error(
+                                f"Unexpected behaviour of dfs, logger set to debug level, and saving data in {self.params.debugDirectory}"
+                            )
+                            compare_to_previous_source_df.to_csv(f"Mismatch_{i}.csv")
+                            previous_source_df.to_csv(f"Mismatch_{i-1}.csv")
+
+                        if len(one_additional_row) != 1:
+                            logger_trim_sampler.setLevel(logging.DEBUG)
+                            logger_trim_sampler.error(
+                                f"{len(one_additional_row)} point(s) sampled (expected 1), logger set to debug level, and saving data in {self.params.debugDirectory}"
+                            )
+                            one_additional_row.to_csv(f"one_additional_row_{i}.csv")
+                        # I STILL DO NOT BUILD MODELS
+
+                        # _________________________
+
+                        # TODO: implement MJ sol
+                        yield entities
+                        yielded_entities += entities  # TODO: data structure
+                        continue
+                        logger_trim_sampler.debug("Sleeping")
+                        await asyncio.sleep(5)
+
+                    elif i == self.params.holdoutSize:
+                        train_df, current_holdout_df = split_common_and_diff(
+                            longer_df_from_which_you_subtract=current_source_df,
+                            shorter_df_that_you_subtract=initial_source_df,
                         )
-                        logger_trim_sampler.debug(current_batch_size_holdout_df)
-                        if current_batch_size_holdout_df.empty:
+                        previous_holdout_df = current_holdout_df
+
+                        # TODO: separate logging logic
+                        logger_trim_sampler.debug(
+                            f"First holdout set created, it contains the following {len(current_holdout_df)} rows:"
+                        )
+                        logger_trim_sampler.debug(current_holdout_df)
+                        if current_holdout_df.empty:
                             logger_trim_sampler.error("Empty Holdout Dataset!")
                             raise NotImplementedError
-                    else:
-                        train_df, current_batch_size_holdout_df = split_common_and_diff(
-                            longer_df_from_which_you_subtract=current_batch_size_source_df,
-                            shorter_df_that_you_subtract=previous_batch_size_source_df,
-                        )
-                        # check that the source df is growing
-                        # NOTE: batchsize =  self.params.batchSize is constrained to be a int by the @model_validator set_batch_size
+                        if len(current_holdout_df) != self.params.holdoutSize:
+                            logger_trim_sampler.error(
+                                f"The holdout df contains {len(current_holdout_df)} rows (expected { self.params.holdoutSize})"
+                            )
+                        # TODO: check that every row of yielded_rows is also in current_holdout_df
+                        #  current_holdout_df
+                        # Assumes both DFs have the same columns (names). Order can differ.
 
-                        if (
-                            len(current_batch_size_source_df)
-                            != len(previous_batch_size_source_df) + batchsize
-                        ):
-                            logger_trim_sampler.warning(
-                                f"Length of source df at iter {i}: {len(current_batch_size_source_df)}"
-                                f"It is NOT one batchsize greater than length of source df for {i} - {batchsize}: {len(previous_batch_size_source_df)}"
+                        same = yielded_rows.df.columns.equals(
+                            current_holdout_df.columns
+                        ) and yielded_rows.df.value_counts(dropna=False).equals(
+                            current_holdout_df.value_counts(dropna=False)
+                        )  # True if they contain exactly the same rows (multiset equality), regardless of order
+                        if not same:
+                            logger_trim_sampler.error("Data mismatch")
+                            logger_trim_sampler.setLevel(logging.DEBUG)
+                            logger_trim_sampler.error(
+                                f"Unexpected behaviour of holdout dfs, logger set to debug level, and saving data in {self.params.debugDirectory}"
+                            )
+                            yielded_rows.df.to_csv(f"Mismatch_yielded_rows_{i}.csv")
+                            current_holdout_df.to_csv(
+                                f"Mismatch_current_holdout_df_{i}.csv"
                             )
 
-                        if current_batch_size_holdout_df.equals(
-                            previous_batch_size_holdout_df
+                    else:
+                        train_df, one_additional_row = split_common_and_diff(
+                            longer_df_from_which_you_subtract=current_source_df,
+                            shorter_df_that_you_subtract=previous_source_df,
+                        )
+                        yielded_rows += one_additional_row
+                        current_holdout_df = pd.DataFrame(yielded_rows.df)
+
+                        if len(one_additional_row) != 1:
+                            logger_trim_sampler.setLevel(logging.DEBUG)
+                            logger_trim_sampler.error(
+                                f"{len(one_additional_row)} point(s) sampled (expected 1), logger set to debug level, and saving data in {self.params.debugDirectory}"
+                            )
+                            one_additional_row.to_csv(f"one_additional_row_{i}.csv")
+
+                        if (
+                            len(current_source_df)
+                            != len(previous_source_df) + batchsize
                         ):
+                            logger_trim_sampler.warning(
+                                f"Length of source df at iter {i}: {len(current_source_df)}"
+                                f"It is NOT 1 unit greater than length of source df for {i} - {batchsize}: {len(previous_source_df)}"
+                            )
+
+                        if current_holdout_df.equals(previous_holdout_df):
                             logger_trim_sampler.warning(
                                 "Holdout dataframe is not changing!"
                             )
 
                     # we eventually save data to debug easier
                     if logger_trim_sampler.isEnabledFor(logging.DEBUG):
-                        current_batch_size_source_df.to_csv(
+                        current_source_df.to_csv(
                             os.path.join(
                                 self.params.debugDirectory,
                                 f"source_at_iter_{i}.csv",
@@ -220,7 +314,7 @@ class TrimSampleSelector(BaseSampler):
                             if i != 0
                             else f"empty_holdout_at_iter_{i}.csv"
                         )
-                        current_batch_size_holdout_df.to_csv(
+                        current_holdout_df.to_csv(
                             os.path.join(self.params.debugDirectory, holdout_name),
                             index=False,
                         )
@@ -243,10 +337,11 @@ class TrimSampleSelector(BaseSampler):
                         raise ValueError
 
                     # we rename appropriately
-                    previous_batch_size_source_df = current_batch_size_source_df
-                    previous_batch_size_holdout_df = current_batch_size_holdout_df
+                    previous_source_df = current_source_df
+                    previous_holdout_df = current_holdout_df
+
                     train_data = TabularDataset(train_df)
-                    holdout_data = TabularDataset(current_batch_size_holdout_df)
+                    holdout_data = TabularDataset(current_holdout_df)
 
                     # NOTE: assigning more weight to target space points does NOT generally improve performance
                     # due diligence has been done
@@ -317,7 +412,7 @@ class TrimSampleSelector(BaseSampler):
                     #         continue  # next iteration of the for, where I will sample another point
 
                     else:
-                        comparison_indeces.append(i)
+                        comparison_indices.append(i)
                         # NOTE: if batchsize==iterationSize will compare just two models,
                         # one model from prev_iter_list_range, whose len would be 1, and
                         # one model from this_iter_list_range, whose len would be 1
@@ -529,8 +624,7 @@ class TrimSampleSelector(BaseSampler):
         return predictor
 
     def entities_for_iterative_modeling_from_discovery_space(
-        self,
-        discoverySpace: DiscoverySpace,
+        self, discoverySpace: DiscoverySpace, discoverySpaceManager=None
     ) -> tuple[list, pd.DataFrame]:
         """
         Generate an ordered list of entities for iterative modeling from a discovery space.
@@ -560,7 +654,9 @@ class TrimSampleSelector(BaseSampler):
         """
 
         source_df, target_df = get_source_and_target(
-            discoverySpace, self.params.targetOutput
+            discoverySpace,
+            self.params.targetOutput,
+            discoverySpaceManager=discoverySpaceManager,
         )
 
         if logger_trim_sampler.isEnabledFor(logging.DEBUG):

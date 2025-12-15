@@ -91,13 +91,13 @@ class TrimParameters(BaseModel):
 
     batchSize: int | None = pydantic.Field(
         default=None,
-        description="""Batch size parameter of randomWalk, default is setting this equal to iterationSize.
+        description="""CURRENTLY THIS HAS NO EFFECT! Batch size parameter of randomWalk, default is setting this equal to iterationSize.
         Batch size must divide the iteration size value""",
     )
 
     holdoutSize: int | None = pydantic.Field(
         default=None,
-        description="Sample Size of the holdout set, default is setting this equal to batch size",
+        description="Sample Size of the holdout set, default is setting this equal to iterationSize",
     )
 
     samplingBudget: SamplingBudget = pydantic.Field(
@@ -122,6 +122,11 @@ class TrimParameters(BaseModel):
         default=NoPriorsParameters(),
         description="Parameters of the no_priors_characterization operation",
     )
+
+    # disablePredictiveModeling: bool = pydantic.Field(
+    #     default=False,  # True,
+    #     description="Routes trim to a progressive sampler",
+    # )
 
     @classmethod
     def defaultOperation(cls):
@@ -157,11 +162,11 @@ class TrimParameters(BaseModel):
     @model_validator(mode="after")
     def set_holdout_size(self):
         if not self.holdoutSize:
-            self.holdoutSize = self.batchSize
-        if self.holdoutSize != self.batchSize:
+            self.holdoutSize = self.iterationSize
+        if self.holdoutSize != self.iterationSize:
             logging.warning(
-                "Currently the holdout size must be equal to the batch size."
-                f"Setting it equals to it. Batch size = {self.batchSize}"
+                "Currently the holdout size must be equal to the iterationSize."
+                f"Setting it equals to it. Batch size = {self.iterationSize}"
             )
         return self
 

@@ -10,6 +10,7 @@ import pandas as pd
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.project import ProjectContext
+from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,9 @@ def get_space(
 
 
 def get_df_all_entities_no_measurements(
-    discoverySpace: typing.Union["DiscoverySpace", str], targetOutput_list=[]
+    discoverySpace: typing.Union["DiscoverySpace", str],
+    targetOutput_list=[],
+    discoverySpaceManager=None,
 ) -> pd.DataFrame:
     """
     Return a DataFrame of all entities in the given Discovery Space, regardless of whether
@@ -79,9 +82,18 @@ def get_df_all_entities_no_measurements(
     # generating all the entities that this discovery space contains. These "backfill" entities will not be associated
     # with any observed property
 
-    all_entities = reduce(
-        operator.add, gen.entitySpaceIterator(entitySpace=space.entitySpace), []
-    )
+    if discoverySpaceManager:
+        logger.debug("Using manager in getting entities no measurement")
+        all_entities = reduce(
+            # operator.add, gen.entitySpaceIterator(entitySpace=discoverySpaceManager.discoverySpace.remote()), []
+            operator.add,
+            gen.entitySpaceIterator(entitySpace=discoverySpaceManager.entitySpace()),
+            [],
+        )
+    else:
+        all_entities = reduce(
+            operator.add, gen.entitySpaceIterator(entitySpace=space.entitySpace), []
+        )
 
     # same as:
     # all_entities = sum(list(gen.entitySpaceIterator(entitySpace=space.entitySpace)), [])
@@ -103,6 +115,7 @@ def get_df_all_entities_no_measurements(
 def get_df_at_least_one_measured_value(
     discoverySpace: typing.Union["DiscoverySpace", str],
     targetOutput_list=[],
+    discoverySpaceManager: DiscoverySpaceManager | None = None,
     add_measurement_id=False,
 ) -> pd.DataFrame:
     """
@@ -135,11 +148,37 @@ def get_df_at_least_one_measured_value(
     if add_measurement_id:
         col_list = ["identifier", *col_list]
 
-    df = pd.DataFrame(
-        space.matchingEntitiesTable(
-            property_type="target", aggregationMethod=PropertyAggregationMethodEnum.mean
+    if discoverySpaceManager:
+        logger.debug("Using manager in getting entities one measurement")
+        df = pd.DataFrame(
+            discoverySpaceManager.matchingEntitiesTable.remote(
+                property_type="target",
+                aggregationMethod=PropertyAggregationMethodEnum.mean,
+            )
         )
-    )
+    #
+    #      line 153, in get_df_at_least_one_measured_value\n    df = pd.DataFrame(\n  \
+    #     \       ^^^^^^^^^^^^^\n  File \"/Users/danielelotito/Documents/github/ad-orchestrator/.venv/lib/python3.12/site-packages/pandas/core/frame.py\"\
+    #     , line 890, in __init__\n    raise ValueError(\"DataFrame constructor not properly\
+    #     \ called!\")\nValueError: DataFrame constructor not properly called!."
+    #   recorded_at: '2025-12-15T16:35:55.915448Z'
+    # using async def in the class method does not change the result
+
+    #     without '.remote' I have the following error
+
+    #     discoverySpaceManager.matchingEntitiesTable(\n\
+    # \  File \"/Users/danielelotito/Documents/github/ad-orchestrator/.venv/lib/python3.12/site-packages/ray/actor.py\"\
+    # , line 659, in __call__\n    raise TypeError(\nTypeError: Actor methods cannot\
+    # \ be called directly. Instead of running 'object.matchingEntitiesTable()', try\
+    # \ 'object.matchingEntitiesTable.remote()'.."
+
+    else:
+        df = pd.DataFrame(
+            space.matchingEntitiesTable(
+                property_type="target",
+                aggregationMethod=PropertyAggregationMethodEnum.mean,
+            )
+        )
 
     if df.empty:
         # NOTE: this condition is hit when there are no measurements at all existing in the space
@@ -209,7 +248,9 @@ def get_df_at_least_one_measured_value(
 
 
 def get_source_and_target(
-    discoverySpace: typing.Union["DiscoverySpace", str], targetOutput: str
+    discoverySpace: typing.Union["DiscoverySpace", str],
+    targetOutput: str,
+    discoverySpaceManager=None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Build source (labeled) and target (unlabeled) DataFrames for a given target output `t`.
@@ -234,8 +275,12 @@ def get_source_and_target(
         (source_df, target_df)
     """
 
-    dfm = get_df_at_least_one_measured_value(discoverySpace, [targetOutput])
-    dfu = get_df_all_entities_no_measurements(discoverySpace, [targetOutput])
+    dfm = get_df_at_least_one_measured_value(
+        discoverySpace, [targetOutput], discoverySpaceManager=discoverySpaceManager
+    )
+    dfu = get_df_all_entities_no_measurements(
+        discoverySpace, [targetOutput], discoverySpaceManager=discoverySpaceManager
+    )
     keys = [c for c in dfu.columns if c in dfm.columns and c != "identifier"]
 
     # TODO: check if this logic is correct
@@ -470,3 +515,6 @@ def get_list_of_entities_from_df_and_space(df: pd.DataFrame, space):
         """
         logging.warning(numberEntities_log)
     return list_of_entities
+
+
+# %%

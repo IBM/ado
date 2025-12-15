@@ -15,6 +15,7 @@ import orchestrator.core.operation.resource
 import orchestrator.core.resources
 import orchestrator.schema.entityspace
 import orchestrator.schema.measurementspace
+import orchestrator.schema.virtual_property
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.metastore.project import (
     ProjectContext,
@@ -24,6 +25,9 @@ from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.logging import configure_logging
+
+PropertyFormatType = typing.Literal["observed", "target"]
+
 
 configure_logging()
 
@@ -191,6 +195,17 @@ class DiscoverySpaceManager:
             entities = selected
 
         return entities
+
+    def matchingEntitiesTable(
+        self,
+        property_type: PropertyFormatType = "observed",
+        aggregationMethod: (
+            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+        ) = None,
+    ):
+        return self._discoverySpace.matchingEntitiesTable(
+            property_type=property_type, aggregationMethod=aggregationMethod
+        )
 
     async def entity(self, index=0):
 

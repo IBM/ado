@@ -17,7 +17,9 @@ from orchestrator.modules.operators.randomwalk import (
 from trim.trim_pydantic import (
     TrimParameters,
 )  # Importing this way works when the package is installed
-from trim.utils.compare_describe_log_sources import log_and_save_characterization
+from trim.utils.logging_utilities import (
+    log_and_save_characterization,
+)
 from trim.utils.space_df_connector import get_source_and_target
 
 logger_trim = logging.getLogger(__name__)

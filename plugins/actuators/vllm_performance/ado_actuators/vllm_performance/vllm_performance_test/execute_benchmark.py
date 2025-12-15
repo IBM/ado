@@ -262,5 +262,6 @@ if __name__ == "__main__":
         max_concurrency=10,
         hf_token=os.getenv("HF_TOKEN"),
         num_prompts=100,
+        dataset="india_url_in_b64_out",
     )
     print(results)

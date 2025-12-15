@@ -528,7 +528,7 @@ def _call_decorated_custom_experiment(
     result_dict = function(**input_values)
 
     # Drop all keys not in output_property_identifiers
-    allowed_keys = [tp.identifier for tp in target_experiment.targetProperties]
+    allowed_keys = {tp.identifier for tp in target_experiment.targetProperties}
     filtered_result = {k: v for k, v in result_dict.items() if k in allowed_keys}
     dropped_keys = {k: v for k, v in result_dict.items() if k not in allowed_keys}
     if dropped_keys:

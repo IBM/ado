@@ -498,28 +498,23 @@ def load_custom_experiments_from_entry_points():
     This function searches for entry points under 'ado.custom_experiments' and loads
     any decorated functions from those modules.
     """
-    try:
-        import importlib
-        import importlib.metadata
 
-        # Get all entry points for ado.custom_experiments
-        entry_points = importlib.metadata.entry_points()
-        custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
-        for entry_point in custom_experiment_groups:
-            try:
-                entry_point.load()
-            except ImportError as error:
-                logging.getLogger("load_custom_experiments").warning(
-                    f"Unable to import custom experiments from {entry_point.value}: {error}"
-                )
-            except ValueError as error:
-                logging.getLogger("load_custom_experiments").warning(
-                    f"Error when creating custom experiments defined in {entry_point.value}: {error}"
-                )
-    except ImportError as error:
-        logging.getLogger("load_custom_experiments").warning(
-            f"Unexpected error getting custom experiments: {error}"
-        )
+    import importlib.metadata
+
+    # Get all entry points for ado.custom_experiments
+    entry_points = importlib.metadata.entry_points()
+    custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
+    for entry_point in custom_experiment_groups:
+        try:
+            entry_point.load()
+        except ImportError as error:
+            logging.getLogger("load_custom_experiments").warning(
+                f"Unable to import custom experiments from {entry_point.value}: {error}"
+            )
+        except ValueError as error:
+            logging.getLogger("load_custom_experiments").warning(
+                f"Error when creating custom experiments defined in {entry_point.value}: {error}"
+            )
 
 
 def get_custom_experiments_catalog() -> (

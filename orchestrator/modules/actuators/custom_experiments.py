@@ -542,7 +542,7 @@ def _call_decorated_custom_experiment(
     # Check at least one valid output property was returned
     if not filtered_result:
         raise ValueError(
-            f"No valid output properties (from {allowed_keys}) returned by experiment '{target_experiment.identifier}'"
+            f"No valid output properties (from set {allowed_keys}) returned by experiment '{target_experiment.identifier}'"
         )
 
     # Create observed property values

@@ -269,7 +269,7 @@ def check_parameters_valid(func, _required_properties, _optional_properties):
     experiment_prop_identifiers = req_property_identifiers | opt_property_identifiers
     if not experiment_prop_identifiers.issubset(func_param_names):
         raise ValueError(
-            f"Function parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. "
+            f"{func.__name__} parameter names {func_param_names} must include all property identifiers {experiment_prop_identifiers}. "
             f"Missing identifiers: {experiment_prop_identifiers - func_param_names}"
         )
 
@@ -299,6 +299,13 @@ def custom_experiment(
     Returns:
         A decorator that wraps a function to work with ado's custom experiment system
 
+    Raises:
+        ValueError: If Unable to generate custom function via decorator e.g.
+        - No required properties provided, and they could not be derived from signature:
+        - Optional properties provided but parameterization could not be derived from signature:
+        - No optional properties provided and they could not be derived from signature
+        - Function parameter names did not include all property identifiers
+
     Example:
 
     mass = ConstitutiveProperty(identifier="mass", propertyDomain=PropertyDomain(
@@ -322,7 +329,6 @@ def custom_experiment(
     """
 
     metadata = metadata if metadata else {}
-    logger = logging.getLogger("custom_experiment_decorator")
     required_properties = required_properties if required_properties else []
 
     ray_options_model = None
@@ -338,26 +344,26 @@ def custom_experiment(
         # This function will log a critical error message and raise exception
         # if inference is required (because user did not provide explicit information)
         # but it could not be done (missing annotation, invalid annotation etc.)
-        _optional_properties, _parameterization, _required_properties = (
-            check_parameters_and_infer(
-                func=func,
-                _required_properties=required_properties,
-                _optional_properties=optional_properties,
-                _parameterization=parameterization,
-            )
-        )
 
         try:
+            _optional_properties, _parameterization, _required_properties = (
+                check_parameters_and_infer(
+                    func=func,
+                    _required_properties=required_properties,
+                    _optional_properties=optional_properties,
+                    _parameterization=parameterization,
+                )
+            )
+
             check_parameters_valid(
                 func,
                 _required_properties=required_properties,
                 _optional_properties=_optional_properties,
             )
         except ValueError as error:
-            logger.critical(
-                f"Unable to generate custom function via decorator: {error}"
+            raise ValueError(
+                f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
             )
-            raise
 
         # Create an ExperimentModuleConf instance describing where the function is
         metadata["module"] = ExperimentModuleConf(
@@ -492,18 +498,23 @@ def load_custom_experiments_from_entry_points():
     This function searches for entry points under 'ado.custom_experiments' and loads
     any decorated functions from those modules.
     """
-    try:
-        import importlib
-        import importlib.metadata
 
-        # Get all entry points for ado.custom_experiments
-        entry_points = importlib.metadata.entry_points()
-        custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
-        for entry_point in custom_experiment_groups:
+    import importlib.metadata
+
+    # Get all entry points for ado.custom_experiments
+    entry_points = importlib.metadata.entry_points()
+    custom_experiment_groups = entry_points.select(group="ado.custom_experiments")
+    for entry_point in custom_experiment_groups:
+        try:
             entry_point.load()
-
-    except ImportError as error:
-        logging.getLogger("load_custom_experiments").warning(error)
+        except ImportError as error:
+            logging.getLogger("load_custom_experiments").warning(
+                f"Unable to import custom experiments from {entry_point.value}: {error}"
+            )
+        except ValueError as error:
+            logging.getLogger("load_custom_experiments").warning(
+                f"Error when creating custom experiments defined in {entry_point.value}: {error}"
+            )
 
 
 def get_custom_experiments_catalog() -> (

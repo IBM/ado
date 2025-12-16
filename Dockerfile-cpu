@@ -1,5 +1,6 @@
-ARG base_image=mirror.gcr.io/rayproject/ray:latest-py310-cpu
-FROM $base_image
+ARG PYTHON_VERSION=310
+ARG BASE_IMAGE=mirror.gcr.io/rayproject/ray:latest-py${PYTHON_VERSION}-cpu
+FROM $BASE_IMAGE
 
 USER 0
 RUN chgrp -R 0 /home/ray && \

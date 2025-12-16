@@ -1,5 +1,7 @@
-ARG base_image=mirror.gcr.io/rayproject/ray:latest-py310-cu121
-FROM $base_image
+ARG PYTHON_VERSION=310
+ARG CUDA_VERSION=cu121
+ARG BASE_IMAGE=mirror.gcr.io/rayproject/ray:latest-py${PYTHON_VERSION}-${CUDA_VERSION}
+FROM $BASE_IMAGE
 
 # AP 19/05/2025:
 # CUDA_HOME is not set in the image and is required
@@ -23,6 +25,7 @@ RUN cd ado && \
     uv pip install --system -r requirements.txt && \
     uv pip install --system \
     '.'
+
 ## Install ray-tune operator
 RUN cd ado && \
     uv pip install --system \

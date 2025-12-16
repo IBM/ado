@@ -16,11 +16,11 @@ from trim.no_priors_pydantic import NoPriorsParameters
 
 class SamplingBudget(pydantic.BaseModel):
     minPoints: int = pydantic.Field(
-        default=18,
+        default=10,
         description="Minimum number of points to sample, default is setting this equal to the number of features",
     )
     maxPoints: int = pydantic.Field(
-        default=22,
+        default=40,
         description="Maximum number of points to sample, default is setting this equal to 80 per cent of the target space",
     )
 

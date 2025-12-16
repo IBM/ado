@@ -204,6 +204,20 @@ def one_shift_then_random_points_high_dimensional_sampling(dims, orders, n):
     return filtered_list
 
 
+def random_high_dimensional_sampling(dims: list[int], n: int):
+    import itertools
+    import random
+
+    to_be_sampled_list = []
+    configs = list(itertools.product(*[range(d + 1) for d in dims]))
+    while len(to_be_sampled_list) < n:
+        candidate = random.choice(configs)
+        to_be_sampled_list.append(list(candidate))
+        configs.remove(candidate)
+
+    return to_be_sampled_list
+
+
 def get_order_list_nn_high_dimensional(
     dims: list[int],
     n: int | str = "all",
@@ -285,6 +299,9 @@ def get_order_list_nn_high_dimensional(
 
     if strategy == "random_shifts":
         return random_shifts_high_dimensional_sampling(dims, orders, n)
+
+    if strategy == "random":
+        return random_high_dimensional_sampling(dims, n)
 
     index_of_first_max = int(dims.index(max(dims)))
     sampled_list = []

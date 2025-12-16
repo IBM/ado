@@ -7,10 +7,10 @@ import typing
 from functools import reduce
 
 import pandas as pd
+import ray
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
 
 logger = logging.getLogger(__name__)
@@ -83,11 +83,13 @@ def get_df_all_entities_no_measurements(
     # with any observed property
 
     if discoverySpaceManager:
-        logger.debug("Using manager in getting entities no measurement")
+        logger.info("Using manager in getting entities no measurement")
         all_entities = reduce(
             # operator.add, gen.entitySpaceIterator(entitySpace=discoverySpaceManager.discoverySpace.remote()), []
             operator.add,
-            gen.entitySpaceIterator(entitySpace=discoverySpaceManager.entitySpace()),
+            gen.entitySpaceIterator(
+                entitySpace=ray.get(discoverySpaceManager.entitySpace.remote())
+            ),
             [],
         )
     else:
@@ -115,7 +117,8 @@ def get_df_all_entities_no_measurements(
 def get_df_at_least_one_measured_value(
     discoverySpace: typing.Union["DiscoverySpace", str],
     targetOutput_list=[],
-    discoverySpaceManager: DiscoverySpaceManager | None = None,
+    # discoverySpaceManager: DiscoverySpaceManager | None = None, This makes the operator disappear
+    discoverySpaceManager=None,
     add_measurement_id=False,
 ) -> pd.DataFrame:
     """
@@ -149,13 +152,23 @@ def get_df_at_least_one_measured_value(
         col_list = ["identifier", *col_list]
 
     if discoverySpaceManager:
-        logger.debug("Using manager in getting entities one measurement")
         df = pd.DataFrame(
-            discoverySpaceManager.matchingEntitiesTable.remote(
-                property_type="target",
-                aggregationMethod=PropertyAggregationMethodEnum.mean,
+            ray.get(
+                discoverySpaceManager.matchingEntitiesTable.remote(
+                    property_type="target",
+                    aggregationMethod=PropertyAggregationMethodEnum.mean,
+                )
             )
         )
+
+        # logger.debug("Using manager in getting entities one measurement")
+        # logger.warning(f"len source with manager is {len(df)}")
+        # df = pd.DataFrame(
+        #     discoverySpaceManager.matchingEntitiesTable.remote(
+        #         property_type="target",
+        #         aggregationMethod=PropertyAggregationMethodEnum.mean,
+        #     )
+        # )
     #
     #      line 153, in get_df_at_least_one_measured_value\n    df = pd.DataFrame(\n  \
     #     \       ^^^^^^^^^^^^^\n  File \"/Users/danielelotito/Documents/github/ad-orchestrator/.venv/lib/python3.12/site-packages/pandas/core/frame.py\"\
@@ -247,6 +260,7 @@ def get_df_at_least_one_measured_value(
     return df
 
 
+# TODO: in case we keep the retrieval with ray get, this function will accept discoverySpaceManager as the first argument
 def get_source_and_target(
     discoverySpace: typing.Union["DiscoverySpace", str],
     targetOutput: str,

@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+# %%
 from collections import deque
 from collections.abc import Callable
 from typing import Any
@@ -73,6 +74,14 @@ class RowsRing:
 
         self._rows.append(ser)
 
+    def __iadd__(self, row: Any):
+        """
+        Enable in-place add: `ring += row`
+        `row` can be a dict, pd.Series, or single-row pd.DataFrame.
+        """
+        self.append(row)
+        return self  # important: keep `yielded_rows` as RowsRing
+
     @property
     def df(self) -> pd.DataFrame:
         """Return a DataFrame view of the ring with index reset (0..size-1, oldest → newest)."""
@@ -94,3 +103,28 @@ class RowsRing:
     def to_list(self) -> list[pd.Series]:
         """Return the rows as a list of Series (oldest → newest)."""
         return list(self._rows)
+
+
+# %%
+# # NOTE:
+# these tests must be passed by the structure
+yielded_rows = RowsRing(maxlen=3)
+yielded_rows += pd.DataFrame({"id": 3, "value": 13.0}, index=[2])
+yielded_rows += pd.DataFrame({"id": 3, "value": 13.0}, index=[3])
+yielded_rows += pd.DataFrame({"id": 4, "value": 13.0}, index=[4])
+yielded_rows += pd.DataFrame({"id": 5, "value": 13.0}, index=[5])
+
+# indices of the df added are discarded
+# Indices are reset anyway
+e2 = pd.DataFrame({"id": [3.0, 4.0, 5.0], "value": [13.0, 13.0, 13.0]}, index=[0, 1, 2])
+# %%
+assert yielded_rows.df.equals(e2)
+
+# %%
+# indices of the df added are discarded
+yielded_rows += pd.DataFrame({"id": 3, "value": 13.0}, index=[2])
+# %%
+enext = pd.DataFrame(
+    {"id": [4.0, 5.0, 3.0], "value": [13.0, 13.0, 13.0]}, index=[0, 1, 2]
+)
+assert yielded_rows.df.equals(enext)

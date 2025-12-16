@@ -538,9 +538,27 @@ def _call_decorated_custom_experiment(
     # Call function with unpacked parameters
     result_dict = function(**input_values)
 
+    # Drop all keys not in output_property_identifiers
+    allowed_keys = {tp.identifier for tp in target_experiment.targetProperties}
+    filtered_result = {k: v for k, v in result_dict.items() if k in allowed_keys}
+    dropped_keys = {k: v for k, v in result_dict.items() if k not in allowed_keys}
+    if dropped_keys:
+        import logging
+
+        logger = logging.getLogger("custom_experiments")
+        logger.debug(
+            f"Dropped keys from return of {target_experiment.identifier}: {dropped_keys}"
+        )
+
+    # Check at least one valid output property was returned
+    if not filtered_result:
+        raise ValueError(
+            f"No valid output properties (from set {allowed_keys}) returned by experiment '{target_experiment.identifier}'"
+        )
+
     # Create observed property values
     observed_property_values = []
-    for property_identifier, value in result_dict.items():
+    for property_identifier, value in filtered_result.items():
         observed_property = target_experiment.observedPropertyForTargetIdentifier(
             property_identifier
         )

@@ -8,7 +8,64 @@ import pytest
 
 from orchestrator.modules.actuators import custom_experiments
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
+from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.property import ConstitutiveProperty
+
+
+def test_custom_experiment_unknown_keys_are_dropped():
+    @custom_experiments.custom_experiment(output_property_identifiers=["x", "y"])
+    def f(x: int, y: int):
+        return {"x": 1, "y": 2, "z": 3, "foo": 4}
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"x": 10, "y": 20}}).to_entity()
+    observed_values = custom_experiments._call_decorated_custom_experiment(
+        f, exp, entity
+    )
+    identifiers = {v.property.targetProperty.identifier for v in observed_values}
+    assert identifiers == {"x", "y"}
+
+
+def test_custom_experiment_only_unknown_keys_raises_value_error():
+    @custom_experiments.custom_experiment(output_property_identifiers=["x", "y"])
+    def f(x: int, y: int):
+        return {"z": 3, "foo": 4}  # none of these match the output property identifiers
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"x": 1, "y": 2}}).to_entity()
+    with pytest.raises(ValueError, match="No valid output properties"):
+        custom_experiments._call_decorated_custom_experiment(f, exp, entity)
+
+
+def test_custom_experiment_partial_output_keys():
+    @custom_experiments.custom_experiment(output_property_identifiers=["a", "b", "c"])
+    def f(a: int, b: int, c: int):
+        return {"a": 10, "junk": 999}
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"a": 1, "b": 2, "c": 3}}).to_entity()
+    observed_values = custom_experiments._call_decorated_custom_experiment(
+        f, exp, entity
+    )
+    identifiers = {v.property.targetProperty.identifier for v in observed_values}
+    assert "a" in identifiers
+    assert "junk" not in identifiers
+
+
+def test_custom_experiment_exact_output_keys():
+    @custom_experiments.custom_experiment(output_property_identifiers=["foo", "bar"])
+    def f(foo: int, bar: int):
+        return {"foo": 123, "bar": 456}
+
+    exp = f._experiment
+    entity = SpacePoint.model_validate({"entity": {"foo": 1, "bar": 2}}).to_entity()
+    observed_values = custom_experiments._call_decorated_custom_experiment(
+        f, exp, entity
+    )
+    identifiers = {v.property.targetProperty.identifier for v in observed_values}
+    assert "foo" in identifiers
+    assert "bar" in identifiers
+    assert len(observed_values) == 2
 
 
 def test_infer_domain_and_property_type():

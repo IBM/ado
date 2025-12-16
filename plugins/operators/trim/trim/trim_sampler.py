@@ -250,7 +250,7 @@ class TrimSampleSelector(BaseSampler):
                             batchsize=batchsize,
                         )
 
-                        yielded_rows += one_additional_row.iloc
+                        yielded_rows += one_additional_row
 
                         current_holdout_df = pd.DataFrame(yielded_rows.df)
 

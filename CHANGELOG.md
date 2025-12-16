@@ -1,3 +1,36 @@
+## [1.3.2](https://github.com/ibm/ado/compare/1.3.1..1.3.2) - 2025-12-16
+#### Features
+- (**core**) handle errors per custom_experiment (#314) - ([67f69cc](https://github.com/ibm/ado/commit/67f69cc0a18ea1d773811481ed5eaa2636d61f33)) - Michael Johnston
+- (**custom_experiments**) enforce stricter rules on outputs (#315) - ([8a2e924](https://github.com/ibm/ado/commit/8a2e924ab8148001b8c329339bb63bbb8f5a98e5)) - Michael Johnston
+- (**ray_tune**) support multi-objective optimization with optuna (#307) - ([d27f76c](https://github.com/ibm/ado/commit/d27f76cf14c2669062b4caccfbcf18e93e19420d)) - Michael Johnston
+- (**vllm_performance**) add support for benchmarking geospatial models (#187) - ([541eaee](https://github.com/ibm/ado/commit/541eaee317dc20faa0283203c250997f69212394)) - Christian Pinto
+#### Bug Fixes
+- (**ray_tune**) update imports in LHC sampler (#310) - ([63a1484](https://github.com/ibm/ado/commit/63a1484435e4e2b2e42a40f85298ec420642813a)) - Michael Johnston
+- (**run_experiment**) print request series with use_markup=False (#319) - ([6e9c078](https://github.com/ibm/ado/commit/6e9c0780f31e70a84a97565d1fa7861eb26b66d5)) - Michael Johnston
+- (**vllm_performance**) add missing parameter to execute_random_benchmark and make geospatial experiments beta (#317) - ([05e2713](https://github.com/ibm/ado/commit/05e271372e6ae2048fde3ba04667707a501fe550)) - Christian Pinto
+#### Build system
+- (**deps**) update dependencies (#311) - ([666defc](https://github.com/ibm/ado/commit/666defc2e32eac8f249d14dfb42c1a38abf296f7)) - Alessandro Pomponio
+#### Refactoring
+- (**core**) separate cleanup logic from signal handling and fix nested-operation shutdown (#281) - ([1405774](https://github.com/ibm/ado/commit/1405774d1efc1fd3e453d2cfba010105498fcc27)) - Michael Johnston
+
+## [1.3.1](https://github.com/ibm/ado/compare/1.3.0..1.3.1) - 2025-12-10
+#### Bug Fixes
+- (**cli**) do not use rich's Console.print with dataframes (#297) - ([97c6bea](https://github.com/ibm/ado/commit/97c6beaf1dc66a59f1c9e45f19fada66221df450)) - Alessandro Pomponio
+#### Documentation
+- (**changelog**) update changelog (#287) - ([6b63d40](https://github.com/ibm/ado/commit/6b63d4045b6e9f3629d92f0757c868da91ba7318)) - Alessandro Pomponio
+- (**website**) update instructions to build python wheels for ado and plugins (#301) - ([a62af24](https://github.com/ibm/ado/commit/a62af246b3853d6b4b223689cc646c8c4e74168d)) - Vassilis Vassiliadis
+- (**website**) simplify cli examples  (#293) - ([726aec9](https://github.com/ibm/ado/commit/726aec9aceceb7f4f1f02d01c8651a3ee0a08eb4)) - Michael Johnston
+#### Build system
+- (**autoconf**) pin the required autogluon version (#304) - ([d51f324](https://github.com/ibm/ado/commit/d51f32474c5072b379ecad43d10b5ab4ccad8353)) - Srikumar Venugopal
+- (**deps**) update dependencies (#300) - ([a247dfe](https://github.com/ibm/ado/commit/a247dfe946156bcd661d113838bdb1613a2d97e7)) - Alessandro Pomponio
+- support Python 3.13 (#291) - ([0ea5cbb](https://github.com/ibm/ado/commit/0ea5cbb32c9e29df78db33aaf88afbd305305cd6)) - Alessandro Pomponio
+- update pre-commit hooks (#298) - ([3ff6a6e](https://github.com/ibm/ado/commit/3ff6a6ec0187224991ad72da8842ce4e3517cd3d)) - Alessandro Pomponio
+#### Refactoring
+- (**cli**) improve sizing of live results table during operations (#299) - ([83716ac](https://github.com/ibm/ado/commit/83716acd1dbac5e9815b06b131dddc85e2c814b1)) - Alessandro Pomponio
+- (**run_experiment**) replace prints with console_prints (#289) - ([e728921](https://github.com/ibm/ado/commit/e72892194c3ad1be5f9ccea5406d14d8cf5b028b)) - Alessandro Pomponio
+#### Style
+- format yaml files with yamlfmt (#286) - ([e2eadfd](https://github.com/ibm/ado/commit/e2eadfdf4caa32a9a493fe8aa415db1bd122d7b8)) - Alessandro Pomponio
+
 ## [1.3.0](https://github.com/ibm/ado/compare/6de12d6c25d9ecd9685919b9192e9c0ddc6bbee7..1.3.0) - 2025-12-04
 #### Features
 - (**autoconf**) introduce autoconf custom experiments (#255) - ([3c1fd87](https://github.com/ibm/ado/commit/3c1fd87ac13d067d31499701031da537b7428cc3)) - Srikumar Venugopal

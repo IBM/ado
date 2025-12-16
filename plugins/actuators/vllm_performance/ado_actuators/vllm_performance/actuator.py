@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
 import uuid
 from pathlib import Path
 
@@ -53,6 +54,13 @@ class VLLMPerformanceTest(ActuatorBase):
     ) -> ExperimentCatalog:
         """Returns the Experiments your actuator provides"""
 
+        # NOTE: some of the experiments such as those for measuring the performance of
+        # geospatial models are included in the code base but are not yet officially supported.
+        # Users can enable them by setting the VLLM_PERFORMANCE_BETA_FEATURES environment variable.
+        enable_beta_experiments = os.getenv(
+            "VLLM_PERFORMANCE_BETA_FEATURES", default="False"
+        ).lower() in ["1", "true"]
+
         # Loading experiment definitions for yaml files contained in the `experiments` directory.
         # NOTE: Only files can be placed in the experiments directory,
         #       but each file can contain multiple experiment definitions
@@ -62,6 +70,9 @@ class VLLMPerformanceTest(ActuatorBase):
         experiments = []
         for exp_file in exp_dir.iterdir():
             if exp_file.is_dir():
+                continue
+
+            if "geospatial" in exp_file.name and not enable_beta_experiments:
                 continue
 
             logger.debug(f"Loading experiments from {exp_file.name}")

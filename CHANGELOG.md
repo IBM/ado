@@ -1,3 +1,21 @@
+## [1.3.1](https://github.com/ibm/ado/compare/6b63d4045b6e9f3629d92f0757c868da91ba7318..1.3.1) - 2025-12-10
+#### Bug Fixes
+- (**cli**) do not use rich's Console.print with dataframes (#297) - ([97c6bea](https://github.com/ibm/ado/commit/97c6beaf1dc66a59f1c9e45f19fada66221df450)) - Alessandro Pomponio
+#### Documentation
+- (**changelog**) update changelog (#287) - ([6b63d40](https://github.com/ibm/ado/commit/6b63d4045b6e9f3629d92f0757c868da91ba7318)) - Alessandro Pomponio
+- (**website**) update instructions to build python wheels for ado and plugins (#301) - ([a62af24](https://github.com/ibm/ado/commit/a62af246b3853d6b4b223689cc646c8c4e74168d)) - Vassilis Vassiliadis
+- (**website**) simplify cli examples  (#293) - ([726aec9](https://github.com/ibm/ado/commit/726aec9aceceb7f4f1f02d01c8651a3ee0a08eb4)) - Michael Johnston
+#### Build system
+- (**autoconf**) pin the required autogluon version (#304) - ([d51f324](https://github.com/ibm/ado/commit/d51f32474c5072b379ecad43d10b5ab4ccad8353)) - Srikumar Venugopal
+- (**deps**) update dependencies (#300) - ([a247dfe](https://github.com/ibm/ado/commit/a247dfe946156bcd661d113838bdb1613a2d97e7)) - Alessandro Pomponio
+- support Python 3.13 (#291) - ([0ea5cbb](https://github.com/ibm/ado/commit/0ea5cbb32c9e29df78db33aaf88afbd305305cd6)) - Alessandro Pomponio
+- update pre-commit hooks (#298) - ([3ff6a6e](https://github.com/ibm/ado/commit/3ff6a6ec0187224991ad72da8842ce4e3517cd3d)) - Alessandro Pomponio
+#### Refactoring
+- (**cli**) improve sizing of live results table during operations (#299) - ([83716ac](https://github.com/ibm/ado/commit/83716acd1dbac5e9815b06b131dddc85e2c814b1)) - Alessandro Pomponio
+- (**run_experiment**) replace prints with console_prints (#289) - ([e728921](https://github.com/ibm/ado/commit/e72892194c3ad1be5f9ccea5406d14d8cf5b028b)) - Alessandro Pomponio
+#### Style
+- format yaml files with yamlfmt (#286) - ([e2eadfd](https://github.com/ibm/ado/commit/e2eadfdf4caa32a9a493fe8aa415db1bd122d7b8)) - Alessandro Pomponio
+
 ## [1.3.0](https://github.com/ibm/ado/compare/6de12d6c25d9ecd9685919b9192e9c0ddc6bbee7..1.3.0) - 2025-12-04
 #### Features
 - (**autoconf**) introduce autoconf custom experiments (#255) - ([3c1fd87](https://github.com/ibm/ado/commit/3c1fd87ac13d067d31499701031da537b7428cc3)) - Srikumar Venugopal

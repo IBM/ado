@@ -451,6 +451,7 @@ def run_resource_and_workload_experiment(
                     number_input_tokens=int(values.get("number_input_tokens")),
                     max_output_tokens=int(values.get("max_output_tokens")),
                     burstiness=float(values.get("burstiness")),
+                    dataset=values.get("dataset"),
                 )
 
         except (
@@ -585,6 +586,7 @@ def run_workload_experiment(
                     number_input_tokens=int(values.get("number_input_tokens")),
                     max_output_tokens=int(values.get("max_output_tokens")),
                     burstiness=float(values.get("burstiness")),
+                    dataset=values.get("dataset"),
                 )
         except VLLMBenchmarkError as e:
             error = f"Encountered benchmark error when testing entity {entity.identifier}: {e}"

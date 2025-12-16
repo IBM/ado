@@ -47,5 +47,6 @@ dev = [
     "ruff>=0.12.1",
 ]
 
-[tool.uv.sources]
-ado-core = { workspace = true }
+# Required when added as a workspace package
+#[tool.uv.sources]
+#ado-core = { workspace = true }

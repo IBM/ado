@@ -101,6 +101,10 @@ test = [
 
 [tool.uv]
 default-groups = ["dev", "docs"]
+required-environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'"
+]
 
 # Having our plugins in the workspace section makes it so
 # that dependencies are resolved considering them as well.
@@ -113,7 +117,7 @@ members = [
     "plugins/custom_experiments/autoconf",
     "plugins/operators/ray_tune",
 #    "plugins/actuators/sfttrainer",
-    "plugins/actuators/vllm_performance",
+#    "plugins/actuators/vllm_performance",
     "plugins/operators/anomalous_series",
     "examples/density_example",
     "examples/optimization_test_functions/custom_experiments",
@@ -126,7 +130,7 @@ members = [
 ado-autoconf = { workspace = true, editable = true }
 ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
-ado-vllm-performance = { workspace = true, editable = true }
+ado-vllm-performance = { path = "plugins/actuators/vllm_performance", editable = true }
 anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }
 optimization-test-functions = { workspace = true, editable = true }

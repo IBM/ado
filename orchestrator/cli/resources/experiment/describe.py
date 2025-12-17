@@ -49,4 +49,4 @@ def describe_experiment(parameters: AdoDescribeCommandParameters):
         )
     )
 
-    console_print(pretty(experiment), use_markup=False)
+    console_print(pretty(experiment), has_pandas_content=True, use_markup=False)

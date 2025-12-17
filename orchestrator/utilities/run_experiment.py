@@ -274,6 +274,7 @@ def run(
                     console_print("Result:")
                     console_print(
                         f"{request.series_representation(output_format='target')}\n",
+                        has_pandas_content=True,
                         use_markup=False,
                     )
             else:

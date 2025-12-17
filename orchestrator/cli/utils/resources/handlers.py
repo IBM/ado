@@ -128,7 +128,7 @@ def handle_ado_get_default_format(
                 console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
                 return
 
-            console_print(output_df)
+            console_print(output_df, has_pandas_content=True)
             return
 
         resource = sql_store.getResource(
@@ -145,7 +145,7 @@ def handle_ado_get_default_format(
             resource=resource, show_details=parameters.show_details
         )
 
-        console_print(output_df)
+        console_print(output_df, has_pandas_content=True)
 
 
 def print_related_resources(

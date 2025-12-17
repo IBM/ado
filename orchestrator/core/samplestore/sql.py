@@ -5,9 +5,12 @@ import json
 import logging
 import typing
 import uuid
+from typing import TYPE_CHECKING
 
-import pandas as pd
 import pydantic
+
+if TYPE_CHECKING:
+    import pandas as pd
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -109,6 +112,7 @@ class SQLSampleStore(ActiveSampleStore):
     def experimentCatalogFromReference(
         cls, reference: orchestrator.core.samplestore.config.SampleStoreReference
     ):
+        import pandas as pd
 
         if reference.identifier is not None:
             if reference.storageLocation is None:
@@ -1135,7 +1139,9 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         output_format: typing.Literal["target", "observed"],
         limit_to_properties: list[str] | None = None,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
+        import pandas as pd
+
         """
         Returns the complete timeseries of measurement requests and measurement results.
 

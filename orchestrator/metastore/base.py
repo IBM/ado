@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 import abc
+from typing import TYPE_CHECKING
 
-import pandas as pd
 import pydantic
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.core.samplestore.resource import SampleStoreResource
@@ -139,7 +142,7 @@ class ResourceStore(abc.ABC):
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """Returns a Pandas dataframe containing identifiers of the given resource type
 
         Parameter:
@@ -180,20 +183,20 @@ class ResourceStore(abc.ABC):
     @abc.abstractmethod
     def getRelatedSubjectResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """Returns identifiers of resources that have a relationship with
         "identifier" where "identifier" is the object"""
 
     @abc.abstractmethod
     def getRelatedObjectResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """Returns identifiers of resources that have a relationship with "identifier" where "identifier" is the subject"""
 
     @abc.abstractmethod
     def getRelatedResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """Returns a DataFrame of resource identifiers related to a given resource identifier
 
         The returned identifiers can optionally be limited to those of a given kind

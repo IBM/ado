@@ -63,8 +63,6 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
             and operation_conf.operationType == DiscoveryOperationEnum.SEARCH
         ):
 
-            # We need to fetch the measurement results for the operation
-            # and see what entities have measurement results that are invalid
             from orchestrator.schema.result import ValidMeasurementResult
 
             entities_with_all_successful_measurements = (

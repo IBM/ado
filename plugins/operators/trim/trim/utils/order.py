@@ -8,10 +8,8 @@ import math
 import pandas as pd
 from autogluon.tabular import TabularPredictor
 
-from trim.trim_pydantic import TrimParameters  # pydantic model (TRIM)
 from trim.utils.high_dimensional_sampling import get_order_list_nn_high_dimensional
 from trim.utils.miscellaneous import delete_dir
-from trim.utils.space_df_connector import get_source_and_target
 
 logger = logging.getLogger("trim")
 if not logger.handlers:
@@ -101,57 +99,6 @@ def reorder_df_by_importance(
         raise ValueError("None of the importance features are present in df.")
 
     return df.sort_values(by=sort_cols).reset_index(drop=True)
-
-
-def get_df_ordered_by_source_space_importance(
-    discoverySpace: str,
-    params: TrimParameters,
-) -> pd.DataFrame:
-    """
-    Executes the TRIM workflow to rank features by importance and reorder the target DataFrame accordingly.
-
-    Steps:
-    1. Load source and target DataFrames using `get_source_and_target(discoverySpace, params.targetOutput)`.
-    2. Validate that `source_df` has at least `params.minMeasuredEntities` rows.
-    3. Train an AutoGluon `TabularPredictor` on the source space using:
-        - `params.autoGluonArgs.tabularPredictorArgs` for predictor initialization.
-        - `params.autoGluonArgs.fitArgs` for fitting.
-    4. Compute feature importances and derive:
-        - `importance_dict`: mapping of feature → importance score.
-        - `ordered_tuple_most_important_first`: tuple of features sorted by importance.
-    5. Delete the AutoGluon model directory to free disk space.
-    6. Reorder target DataFrame rows by feature importance and reset index.
-
-    Parameters
-    ----------
-    discoverySpace : str
-        Identifier for the discovery space.
-    params : TrimParameters
-        Configuration object containing TRIM workflow parameters.
-
-    Returns
-    -------
-    pd.DataFrame
-        Target DataFrame with columns reordered by feature importance and index reset.
-    ce importance
-    """
-
-    params = TrimParameters.model_validate(params)
-    # 1) Source/target
-    target_output = params.targetOutput
-    source_df, target_df = get_source_and_target(discoverySpace, target_output)
-    logger.info(f"Shapes — source_df: {source_df.shape} | target_df: {target_df.shape}")
-
-    # 2) Importances from source space
-    ordered_features, _importance_dict = get_feature_importance_order(
-        source_df=source_df,
-        target_output=target_output,
-        min_measured_entities=params.minMeasuredEntities,
-        autoGluonArgs=params.autoGluonArgs,
-    )
-
-    # 3) Row order based on importance (reset index)
-    return reorder_df_by_importance(target_df, ordered_features)
 
 
 def order_df_for_sampling_with_no_priors(

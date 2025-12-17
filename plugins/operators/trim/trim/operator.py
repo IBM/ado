@@ -68,7 +68,7 @@ def trim(
     )
 
     if logger_trim.isEnabledFor(logging.DEBUG):
-        log_and_save_characterization(source_df, target_df, logger_trim)
+        log_and_save_characterization(source_df, target_df)
 
     # TODO: think about a better solution for the fact that the target output may
     # not be acquired for every entity of your space given your experiment.
@@ -136,7 +136,7 @@ def trim(
             logger_trim.debug(
                 "Saving updated source space after no-priors characterization"
             )
-            log_and_save_characterization(source_df, target_df, logger_trim)
+            log_and_save_characterization(source_df, target_df)
 
     # Continuing with TRIM Iterative Modeling
     trim_module = SamplerModuleConf(

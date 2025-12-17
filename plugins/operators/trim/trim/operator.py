@@ -14,12 +14,12 @@ from orchestrator.modules.operators.randomwalk import (
     SamplerModuleConf,
     random_walk,
 )
-from plugins.operators.trim.trim.utils.logging_utils import (
-    log_and_save_characterization,
-)
 from trim.trim_pydantic import (
     TrimParameters,
 )  # Importing this way works when the package is installed
+from trim.utils.logging_utils import (
+    log_and_save_characterization,
+)
 from trim.utils.space_df_connector import get_source_and_target
 
 logger_trim = logging.getLogger(__name__)

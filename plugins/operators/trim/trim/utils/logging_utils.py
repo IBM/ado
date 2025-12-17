@@ -207,6 +207,36 @@ def log_after_first_holdout_creation(
         )
 
 
+def log_and_save_characterization(
+    source_df: pd.DataFrame,
+    target_df: pd.DataFrame,
+):
+    """
+    Logs characterization details and saves source/target DataFrames.
+    Assumes caller already checked logger level.
+    """
+
+    # Log basic stats
+    logger.debug(
+        f"[Characterization] source_df rows: {len(source_df)}, target_df rows: {len(target_df)}"
+    )
+
+    # Log unique identifier counts if present
+    if "identifier" in source_df.columns:
+        logger.debug(
+            f"[Characterization] source_df 'identifier' unique count: {source_df['identifier'].nunique(dropna=True)}"
+        )
+    else:
+        logger.debug("[Characterization] source_df has no 'identifier' column.")
+
+    if "identifier" in target_df.columns:
+        logger.debug(
+            f"[Characterization] target_df 'identifier' unique count: {target_df['identifier'].nunique(dropna=True)}"
+        )
+    else:
+        logger.debug("[Characterization] target_df has no 'identifier' column.")
+
+
 def log_before_first_holdout_update(
     one_additional_row: pd.DataFrame,
     current_source_df: pd.DataFrame,

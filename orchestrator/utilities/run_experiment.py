@@ -273,7 +273,8 @@ def run(
                 else:
                     console_print("Result:")
                     console_print(
-                        f"{request.series_representation(output_format='target')}\n"
+                        f"{request.series_representation(output_format='target')}\n",
+                        use_markup=False,
                     )
             else:
                 console_print(f"{ERROR}Entity is not valid")

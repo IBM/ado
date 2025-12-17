@@ -144,10 +144,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters):
             "will be ignored."
         )
 
-        console_print(
-            info_message,
-            stderr=True,
-        )
+        console_print(info_message, stderr=True)
 
         from orchestrator.core.samplestore.config import (
             SampleStoreConfiguration,

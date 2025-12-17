@@ -62,31 +62,18 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
             isinstance(operation_conf, OperationResource)
             and operation_conf.operationType == DiscoveryOperationEnum.SEARCH
         ):
-            submitted_entities_field_name = "entities_submitted"
-            submitted_entities = operation_conf.metadata.get(
-                submitted_entities_field_name, 0
-            )
-            entities_with_no_successful_measurements = (
-                submitted_entities - total_entities_sampled
-            )
-            table.add_row(
-                "Total entities with no successful measurements",
-                str(entities_with_no_successful_measurements),
-            )
-            table.add_row(
-                "Total entities with partial successful measurements",
-                str(total_entities_sampled - entities_with_no_successful_measurements),
-            )
 
             # We need to fetch the measurement results for the operation
             # and see what entities have measurement results that are invalid
-            from orchestrator.schema.result import InvalidMeasurementResult
+            from orchestrator.schema.result import ValidMeasurementResult
 
             entities_with_all_successful_measurements = (
                 space.entity_identifiers_in_operation(
                     operation_id=parameters.resource_id
                 )
             )
+
+            entities_with_partial_successful_measurements = set()
 
             measurement_results_for_operation = space.measurement_results_for_operation(
                 operation_id=parameters.resource_id
@@ -96,14 +83,33 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
                 entities_with_all_successful_measurements = set()
 
             for measurement_result in measurement_results_for_operation:
+
+                if isinstance(measurement_result, ValidMeasurementResult):
+                    entities_with_partial_successful_measurements.add(
+                        measurement_result.entityIdentifier
+                    )
+                    continue
+
                 if (
                     measurement_result.entityIdentifier
                     in entities_with_all_successful_measurements
-                    and isinstance(measurement_result, InvalidMeasurementResult)
                 ):
                     entities_with_all_successful_measurements.remove(
                         measurement_result.entityIdentifier
                     )
+
+            table.add_row(
+                "Total entities with no successful measurements",
+                str(
+                    total_entities_sampled
+                    - len(entities_with_partial_successful_measurements)
+                ),
+            )
+
+            table.add_row(
+                "Total entities with partial successful measurements",
+                str(len(entities_with_partial_successful_measurements)),
+            )
 
             table.add_row(
                 "Total entities with all successful measurements",

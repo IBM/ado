@@ -155,9 +155,12 @@ class TrimSampleSelector(BaseSampler):
                         yield entity
                         continue
 
-                    # since we iterate for i in range(0, numberEntities, batchsize)
-                    # we know for sure that at every i!=0 we will build a model and a holdout set
-                    # Initializing holdout set, -1 because i starts from zero and we know for sure that batchsize divides iteration size
+                    # TODO: the first holdout set can also be obtained from the source space
+                    # atm we sample new points from the target and put these into the holdout
+                    # we can instead look at the source at iter=0 and select within this set the best
+                    # source and holdout df, the rationale here would be selecting the holdout set first
+                    # to prioritize representativeness in the OOS set, and put the remaining points in
+                    # the test set
                     elif i < self.params.iterationSize:
                         current_source_df = wait_for_sampled_point(
                             current_source_df,

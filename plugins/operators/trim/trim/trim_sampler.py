@@ -36,6 +36,7 @@ from trim.utils.space_df_connector import (
 from trim.utils.split_common_and_diff import (
     split_common_and_diff,
 )
+from trim.utils.stopping_criterion import stopping_bool_from_ratios
 
 logger_trim_sampler = logging.getLogger(__name__)
 logger_trim_sampler.setLevel(logging.DEBUG)
@@ -733,61 +734,16 @@ class TrimSampleSelector(BaseSampler):
         self.params = parameters
 
 
-def stopping_bool_from_ratios(
-    mean_ratio: float,
-    std_ratio: float,
-    mean_ratio_threshold: float = 0.9,
-    std_ratio_threshold: float = 0.75,
-):
-    """
-    Determine whether sampling should stop based on mean and standard deviation ratios.
-
-    The function evaluates whether the mean ratio lies within a symmetric threshold
-    range around 1, and whether the standard deviation ratio is below its threshold.
-    It returns a boolean indicating if all conditions are satisfied.
-
-    Parameters
-    ----------
-    mean_ratio : float
-        Ratio of the current mean compared to a reference mean.
-    std_ratio : float
-        Ratio of the current standard deviation compared to a reference standard deviation.
-    mean_ratio_threshold : float, optional
-        Lower bound threshold for the mean ratio (default is 0.9).
-        The upper bound is taken as the reciprocal (1 / mean_ratio_threshold).
-    std_ratio_threshold : float, optional
-        Upper bound threshold for the standard deviation ratio (default is 0.75).
-
-    Returns
-    -------
-    bool
-        True if mean_ratio is greater than `mean_ratio_threshold` and less than
-        `1 / mean_ratio_threshold`, and std_ratio is less than `1 / std_ratio_threshold`.
-        False otherwise.
-
-    Notes
-    -----
-    This logic works for both maximum- and minimum-based metrics, ensuring
-    ratios remain within acceptable bounds before stopping.
-    """
-    return (
-        (mean_ratio > mean_ratio_threshold)
-        and (mean_ratio < 1 / mean_ratio_threshold)
-        and (std_ratio < 1 / std_ratio_threshold)
-    )
-
-
 def wait_for_sampled_point(
-    current_source_df,
-    previous_source_df,
-    targetOutput,
-    discoverySpaceManager,
-    discoverySpace,
-    max_time=20,
-    step_duration=1,
+    current_source_df: pd.DataFrame,
+    previous_source_df: pd.DataFrame,
+    targetOutput: str,
+    discoverySpaceManager: DiscoverySpaceManager,  # type: ignore[name-defined],
+    discoverySpace: DiscoverySpace | str,
+    max_time: int = 20,
+    step_duration: int = 1,
 ):
     # TODO: this f will become a logging function when we agree and test the retrieval
-
     from time import sleep
 
     time = 0

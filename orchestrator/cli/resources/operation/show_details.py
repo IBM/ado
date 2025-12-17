@@ -78,23 +78,32 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
                 str(total_entities_sampled - entities_with_no_successful_measurements),
             )
 
-            entities_with_all_successful_measurements = set()
-            for experiment in space.experiments_in_operation(
-                operation_id=parameters.resource_id
-            ):
-                entity_identifiers_in_experiment = (
-                    space.entity_identifiers_in_operation(
-                        operation_id=parameters.resource_id
-                    )
-                )
+            # We need to fetch the measurement results for the operation
+            # and see what entities have measurement results that are invalid
+            from orchestrator.schema.result import InvalidMeasurementResult
 
-                entities_with_all_successful_measurements = (
-                    entities_with_all_successful_measurements.union(
-                        entity_identifiers_in_experiment
-                    )
-                    if entities_with_all_successful_measurements
-                    else entity_identifiers_in_experiment
+            entities_with_all_successful_measurements = (
+                space.entity_identifiers_in_operation(
+                    operation_id=parameters.resource_id
                 )
+            )
+
+            measurement_results_for_operation = space.measurement_results_for_operation(
+                operation_id=parameters.resource_id
+            )
+
+            if not measurement_results_for_operation:
+                entities_with_all_successful_measurements = set()
+
+            for measurement_result in measurement_results_for_operation:
+                if (
+                    measurement_result.entityIdentifier
+                    in entities_with_all_successful_measurements
+                    and isinstance(measurement_result, InvalidMeasurementResult)
+                ):
+                    entities_with_all_successful_measurements.remove(
+                        measurement_result.entityIdentifier
+                    )
 
             table.add_row(
                 "Total entities with all successful measurements",

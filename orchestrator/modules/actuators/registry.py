@@ -419,7 +419,7 @@ class ActuatorRegistry:
         for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
-            except (
+            except (  # noqa: PERF203
                 MissingActuatorConfigurationForCatalogError,
                 UnexpectedCatalogRetrievalError,
             ):
@@ -439,7 +439,7 @@ class ActuatorRegistry:
         for actuatorid in self.actuatorIdentifierMap:
             try:
                 catalog = self.catalogForActuatorIdentifier(actuatorid=actuatorid)
-            except MissingActuatorConfigurationForCatalogError:
+            except MissingActuatorConfigurationForCatalogError:  # noqa: PERF203
                 self.log.warning(
                     f"Cannot retrieve experiments from actuator {actuatorid} as it requires configuration information for its catalog and this has not been provided"
                 )
@@ -467,7 +467,7 @@ class ActuatorRegistry:
         for experiment in catalogExtension.experiments:
             try:
                 self.catalogForActuatorIdentifier(experiment.actuatorIdentifier)
-            except UnknownActuatorError:
+            except UnknownActuatorError:  # noqa: PERF203
                 unknownActuators.append(experiment.actuatorIdentifier)
 
         if len(unknownActuators) > 0:
@@ -491,7 +491,7 @@ class ActuatorRegistry:
         for experiment in measurement_space.experiments:
             try:
                 self.experimentForReference(experiment.reference)
-            except UnknownExperimentError as error:
+            except UnknownExperimentError as error:  # noqa: PERF203
                 issues.append(f"UnknownExperimentError: {error!s}")
             except UnknownActuatorError as error:
                 issues.append(f"UnknownActuatorError: {error!s}")

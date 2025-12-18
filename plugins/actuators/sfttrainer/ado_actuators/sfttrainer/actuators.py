@@ -89,7 +89,7 @@ def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCata
                 ("ado_sfttrainer_deprecated_experiments", old_experiment_type)
             )
             module = importlib.import_module(name)
-        except (ModuleNotFoundError, ImportError):
+        except (ModuleNotFoundError, ImportError):  # noqa: PERF203
             continue
         else:
             module.inject_deprecated_experiments(catalog=catalog)

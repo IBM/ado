@@ -730,7 +730,7 @@ def _finetune_launch_kernel(
                 path = "_".join((aim_info_path, str(worker)))
 
             m = extract_metrics(path, args.number_gpus)
-        except FileNotFoundError:
+        except FileNotFoundError:  # noqa: PERF203
             log.info(f"Worker {worker} did not record any error under {path}")
         except ExperimentError as e:
             log.warning(f"Worker {worker} ran into {e}")

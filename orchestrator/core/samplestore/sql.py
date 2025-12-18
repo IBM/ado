@@ -352,7 +352,7 @@ class SQLSampleStore(ActiveSampleStore):
             except SQLAlchemyError as error:
                 msg = f"Unable to fetch entities and measurements from sample store {self._tablename}"
                 self.log.critical(f"{msg}. Error: {error}")
-                raise SystemError(f"{msg}. Error: {error}")
+                raise SystemError(f"{msg}. Error: {error}") from error
 
             self._entities = {}
             for entity_identifier, entity_representation, result_data in cur:
@@ -464,7 +464,7 @@ class SQLSampleStore(ActiveSampleStore):
                 )
                 raise SystemError(
                     f"Failed to insert entity batch starting from {index}. Error: {error}"
-                )
+                ) from error
 
     def add_external_entities(self, entities: list[Entity]):
 
@@ -602,7 +602,7 @@ class SQLSampleStore(ActiveSampleStore):
                 )
                 raise SystemError(
                     f"Failed to upsert entity batch starting from {index}. Error: {error}"
-                )
+                ) from error
 
     def close(self):
 
@@ -633,7 +633,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to fetch entity {entityIdentifier} and measurements from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
         entity = None
         failures = 0
@@ -731,7 +731,9 @@ class SQLSampleStore(ActiveSampleStore):
                 return db_id
         except SQLAlchemyError as error:
             self.log.critical(f"Failed to add measurement request. Error: {error}")
-            raise SystemError(f"Failed to add measurement request. Error: {error}")
+            raise SystemError(
+                f"Failed to add measurement request. Error: {error}"
+            ) from error
 
     def entity_identifiers(self) -> set[str]:
 
@@ -745,7 +747,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Failed to load identifiers from sample store {self._tablename}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
         return {row[0] for row in cur}
 
@@ -784,7 +786,9 @@ class SQLSampleStore(ActiveSampleStore):
                 connectable.execute(query, prepared_results)
         except SQLAlchemyError as error:
             self.log.critical(f"Failed to add measurement results. Error: {error}")
-            raise SystemError(f"Failed to add measurement results. Error: {error}")
+            raise SystemError(
+                f"Failed to add measurement results. Error: {error}"
+            ) from error
 
         if skip_relationship_to_request:
             return
@@ -827,7 +831,7 @@ class SQLSampleStore(ActiveSampleStore):
             )
             raise SystemError(
                 f"Failed to add link between measurement requests and results. Error: {error}"
-            )
+            ) from error
 
     def measurement_requests_count_for_operation(
         self,
@@ -858,7 +862,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to get the count of measurement requests for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
     def measurement_results_count_for_operation(
         self,
@@ -899,7 +903,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to get the count of measurement results for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
     def measurement_requests_for_operation(
         self, operation_id: str
@@ -926,7 +930,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement results for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
         return self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
 
@@ -955,7 +959,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement request for measurement request id {measurement_request_id}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
         request = self._measurement_requests_cursor_to_pydantic(db_cursor=cur)
         return request[0] if request else None
@@ -982,7 +986,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement results for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
         parsed_results = []
         for row in cur:
@@ -1098,7 +1102,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to get the experiments for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
         return [
             self.experimentCatalog().experimentForReference(
@@ -1126,7 +1130,7 @@ class SQLSampleStore(ActiveSampleStore):
         except SQLAlchemyError as error:
             msg = f"Unable to get the entity ids for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
-            raise SystemError(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
 
         return {ident[0] for ident in cur}
 

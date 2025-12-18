@@ -597,10 +597,10 @@ class Experiment(pydantic.BaseModel):
                             prop.identifier
                         ).value
                     )
-                except AttributeError:
+                except AttributeError as error:
                     raise ValueError(
                         f"Entity {entity} has no value for required constitutive property {prop.identifier}"
-                    )
+                    ) from error
 
         # 2. Get the values for the optional properties
         # These may be in the Entity (because they were used to define the EntitySpace) or the Experiment
@@ -853,10 +853,10 @@ class ParameterizedExperiment(Experiment):
 
         try:
             retval = self.mapping[property_identifier]
-        except KeyError:
+        except KeyError as error:
             raise ValueError(
                 f"No optional property called {property_identifier}. Known optional properties {self.optionalProperties}"
-            )
+            ) from error
 
         return retval
 

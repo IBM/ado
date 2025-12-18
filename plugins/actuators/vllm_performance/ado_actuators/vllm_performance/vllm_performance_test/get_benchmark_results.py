@@ -23,7 +23,7 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
     except Exception as e:
         raise VLLMBenchmarkResultReadError(
             f"Failed to read benchmark result due to {e}"
-        )
+        ) from e
     del results["date"]
     del results["endpoint_type"]
     del results["tokenizer_id"]

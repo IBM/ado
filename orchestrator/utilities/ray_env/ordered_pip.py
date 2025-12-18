@@ -216,7 +216,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
                 raise ValueError(
                     f"runtime_env['ordered_pip']['phases'][{i}] must be consistent with the pip validation rules but "
                     f"validation failed with error {e}"
-                )
+                ) from e
 
         result = RuntimeEnv(ordered_pip={"phases": phases})
         logging.debug(

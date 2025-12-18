@@ -363,7 +363,7 @@ def custom_experiment(
         except ValueError as error:
             raise ValueError(
                 f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
-            )
+            ) from error
 
         # Create an ExperimentModuleConf instance describing where the function is
         metadata["module"] = ExperimentModuleConf(

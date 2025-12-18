@@ -137,7 +137,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading deployment yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         metadata = deployment_yaml["metadata"]
@@ -274,7 +274,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading service yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         metadata = service_yaml["metadata"]
@@ -309,7 +309,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading pvc yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         pvc_yaml["metadata"]["name"] = pvc_name

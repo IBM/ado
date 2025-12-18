@@ -326,7 +326,7 @@ class DiscoverySpace:
             except ValueError as error:
                 raise SpaceInconsistencyError(
                     f"The entity space is not compatible with the measurement space: {error}"
-                )
+                ) from error
 
         self._sample_store = sample_store
         self._measurementSpace = measurementSpace

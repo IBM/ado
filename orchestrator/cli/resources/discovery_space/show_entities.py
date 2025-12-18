@@ -80,13 +80,13 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters):
                 f"{ERROR}The space configuration provided is not valid:\n{e}",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         except OSError as e:
             console_print(
                 f"{ERROR}There was a problem while reading the space configuration provided:\n\t{e}",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
         if parameters.entities_type != AdoShowEntitiesSupportedEntityTypes.MATCHING:
             console_print(

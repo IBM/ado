@@ -60,11 +60,11 @@ class ActuatorConfiguration(pydantic.BaseModel):
 
         try:
             actuator = actuator_registry.actuatorForIdentifier(model.actuatorIdentifier)
-        except UnknownActuatorError:
+        except UnknownActuatorError as error:
             raise ValueError(
                 f"Actuator {model.actuatorIdentifier} is not available in the registry. "
                 f"Registered actuators are: {','.join(actuator_registry.actuatorIdentifierMap.keys())}"
-            )
+            ) from error
         else:
             model.parameters = validate_or_default_parameters(actuator)
 

@@ -288,7 +288,7 @@ def main():
         app()
     except Exception as e:
         console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 if __name__ == "__main__":

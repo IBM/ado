@@ -64,14 +64,14 @@ class ComponentsManager:
             # this is just to make sure we are authenticated to the cluster
             # and fail immediately otherwise.
             self.kube_client_V1.list_namespaced_pod(namespace=namespace)
-        except ApiException:
+        except ApiException as error:
             error_message = "Error connecting to the Kubernetes cluster.\n"
             if in_cluster:
                 error_message += "Make sure the service account used for the Ray cluster has sufficient permissions."
             else:
                 error_message += "Make sure you are authenticated with the Kubernetes cluster or that you are using a valid kubeconfig."
             logger.critical(error_message)
-            raise K8sConnectionError
+            raise K8sConnectionError from error
         except Exception as e:
             logger.critical(f"Exception connecting to kubernetes {e}")
             raise
@@ -114,9 +114,9 @@ class ComponentsManager:
         except ApiException:
             print("api exception")
             return False
-        except Exception:
+        except Exception as error:
             print("Failed connecting to the Kubernetes cluster")
-            raise K8sConnectionError
+            raise K8sConnectionError from error
 
     def check_pvc_exists(self, pvc_name: str) -> bool:
         """

@@ -29,7 +29,7 @@ def override_values_in_pydantic_model(
                 f"{ERROR}The provided path {cyan(key)} was not a valid JSONPath string:\n{e}",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
         # We can either have a JSON document or a string
         with contextlib.suppress(ValueError):

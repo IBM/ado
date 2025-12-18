@@ -51,7 +51,7 @@ class ExperimentReference(pydantic.BaseModel):
                 f"At least one '.' is required to separate actuator id from experiment id. "
                 f"If actuator id contains a period this method will not be able to parse the id from the reference string representation"
                 f"Underlying error: {error}"
-            )
+            ) from error
         else:
             return cls(
                 experimentIdentifier=experimentIdentifier,
@@ -114,11 +114,11 @@ class ExperimentReference(pydantic.BaseModel):
                     actuatorIdentifier=self.actuatorIdentifier,
                 )
             )
-        except UnknownExperimentError:
+        except UnknownExperimentError as error:
             raise ValueError(
                 "Failed validating parameterization. "
                 f"Cannot find experiment {self.experimentIdentifier} from actuator {self.actuatorIdentifier} in catalog"
-            )
+            ) from error
         else:
             if not experiment.optionalProperties and self.parameterization:
                 raise ValueError(

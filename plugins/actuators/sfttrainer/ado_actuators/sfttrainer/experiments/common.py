@@ -1075,11 +1075,11 @@ class ExperimentParameters(pydantic.BaseModel):
         args = self.model_dump()
         try:
             args["model_name"] = model_map[self.weights_format]
-        except KeyError:
+        except KeyError as error:
             raise NotImplementedError(
                 f"Experiment expects weights_format {self.weights_format} but "
                 f"the available weight formats for the model are {list(model_map)}"
-            )
+            ) from error
         return args
 
 
@@ -1124,10 +1124,10 @@ class LoraExperimentParameters(ExperimentParameters):
         try:
             args["target_modules"] = self.target_modules_map[entity_space.model_name]
 
-        except KeyError:
+        except KeyError as error:
             raise NotImplementedError(
                 f"No target_modules mapping for model {entity_space.model_name}"
-            )
+            ) from error
 
         return args
 
@@ -1177,10 +1177,10 @@ def experiment_parameters_from_experiment(
             "full-error": FullFinetuningExperimentsParameters,
             "gptq-lora": GPTQLoraExperimentParameters,
         }[method]
-    except KeyError:
+    except KeyError as error:
         raise InternalInconsistencyError(
             f"There is no ExperimentParameters schema for experiment {exp.identifier} with method {method}"
-        )
+        ) from error
 
     # VV: Copy in any fields that the experiment sets and override the defaults from the experiment metadata
     # this also fills in any missing fields from the experiment metadata

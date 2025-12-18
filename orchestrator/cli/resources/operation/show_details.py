@@ -65,21 +65,14 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
 
             from orchestrator.schema.result import ValidMeasurementResult
 
-            entities_with_all_successful_measurements = (
-                space.entity_identifiers_in_operation(
-                    operation_id=parameters.resource_id
-                )
-            )
-
-            entities_with_partial_successful_measurements = set()
-
             measurement_results_for_operation = space.measurement_results_for_operation(
                 operation_id=parameters.resource_id
             )
 
-            if not measurement_results_for_operation:
-                entities_with_all_successful_measurements = set()
-
+            entities_with_all_successful_measurements = {
+                result.entityIdentifier for result in measurement_results_for_operation
+            }
+            entities_with_partial_successful_measurements = set()
             for measurement_result in measurement_results_for_operation:
 
                 if isinstance(measurement_result, ValidMeasurementResult):

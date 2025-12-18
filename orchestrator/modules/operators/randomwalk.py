@@ -955,7 +955,7 @@ class RandomWalk(Characterize):
 )
 def random_walk(
     discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo | None,
+    operationInfo: FunctionOperationInfo | None = None,
     **kwargs: dict,
 ) -> OperationOutput:
     """

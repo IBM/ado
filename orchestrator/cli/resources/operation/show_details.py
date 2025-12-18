@@ -88,13 +88,9 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
                     )
                     continue
 
-                if (
+                entities_with_all_successful_measurements.discard(
                     measurement_result.entityIdentifier
-                    in entities_with_all_successful_measurements
-                ):
-                    entities_with_all_successful_measurements.remove(
-                        measurement_result.entityIdentifier
-                    )
+                )
 
             table.add_row(
                 "Total entities with no successful measurements",

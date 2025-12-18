@@ -72,11 +72,11 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
             entities_with_all_successful_measurements = {
                 result.entityIdentifier for result in measurement_results_for_operation
             }
-            entities_with_partial_successful_measurements = set()
+            entities_with_at_least_one_successful_measurement = set()
             for measurement_result in measurement_results_for_operation:
 
                 if isinstance(measurement_result, ValidMeasurementResult):
-                    entities_with_partial_successful_measurements.add(
+                    entities_with_at_least_one_successful_measurement.add(
                         measurement_result.entityIdentifier
                     )
                     continue
@@ -89,13 +89,16 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
                 "Total entities with no successful measurements",
                 str(
                     total_entities_sampled
-                    - len(entities_with_partial_successful_measurements)
+                    - len(entities_with_at_least_one_successful_measurement)
                 ),
             )
 
             table.add_row(
-                "Total entities with partial successful measurements",
-                str(len(entities_with_partial_successful_measurements)),
+                "Total entities with only partially successful measurements",
+                str(
+                    len(entities_with_at_least_one_successful_measurement)
+                    - len(entities_with_all_successful_measurements)
+                ),
             )
 
             table.add_row(

@@ -64,12 +64,7 @@ def get_linear_layers(path_model: str):
     model_modules = str(model.modules)
     pattern = r"\((\w+)\): Linear"
     linear_layer_names = re.findall(pattern, model_modules)
-
-    names = []
-    for name in linear_layer_names:
-        names.append(name)
-
-    return sorted(set(names))
+    return sorted(set(linear_layer_names))
 
 
 ray.init()

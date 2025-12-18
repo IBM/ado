@@ -99,7 +99,7 @@ class ActuatorRegistry:
         for module in pkgutil.iter_modules(
             builtin_actuators.__path__, f"{builtin_actuators.__name__}."
         ):
-            for name, member in inspect.getmembers(
+            for _name, member in inspect.getmembers(
                 importlib.import_module(module.name)
             ):
                 # MJ: The Actuator classes are decorated ray.remote

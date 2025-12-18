@@ -450,7 +450,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     skip_metrics = list(target_metrics)
     for k, v in allResults.items():
         if k not in skip_metrics:
-            final_results[k] = allResults[k][-1]
+            final_results[k] = v[-1]
     return final_results
 
 

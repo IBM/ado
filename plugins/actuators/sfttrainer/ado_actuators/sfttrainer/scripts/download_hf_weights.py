@@ -3,6 +3,7 @@
 
 import os
 import pathlib
+from typing import Annotated
 
 import ray
 import typer
@@ -38,23 +39,29 @@ def download_weights(path_model: str, hf_home: pathlib.Path):
     help="Caches HuggingFace model weights locally",
 )
 def main(
-    path_to_models: pathlib.Path = typer.Option(
-        ...,
-        "--input",
-        "-i",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        help="Path to YAML file containing the models dictionary",
-    ),
-    hf_home: pathlib.Path = typer.Option(
-        pathlib.Path(__file__),
-        "--hf_home",
-        "-o",
-        file_okay=False,
-        dir_okay=True,
-        help="The path to use as the HuggingFace cache home",
-    ),
+    path_to_models: Annotated[
+        pathlib.Path,
+        typer.Option(
+            ...,
+            "--input",
+            "-i",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            help="Path to YAML file containing the models dictionary",
+        ),
+    ],
+    hf_home: Annotated[
+        pathlib.Path,
+        typer.Option(
+            pathlib.Path(__file__),
+            "--hf_home",
+            "-o",
+            file_okay=False,
+            dir_okay=True,
+            help="The path to use as the HuggingFace cache home",
+        ),
+    ] = pathlib.Path(__file__),
 ):
     ray.init()
 

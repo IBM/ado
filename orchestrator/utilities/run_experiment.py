@@ -6,6 +6,7 @@ import os
 import pathlib
 import time
 from collections.abc import Callable
+from typing import Annotated
 
 import ray.exceptions
 import requests
@@ -200,36 +201,49 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    point_file: pathlib.Path = typer.Argument(
-        ...,
-        help="Path to a yaml file containing an ado point definition",
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-        resolve_path=True,
-    ),
-    remote: str = typer.Option(
-        None,
-        "--remote",
-        metavar="ENDPOINT",
-        help="Execute the experiment on a remote Ray cluster at the given ENDPOINT. If not given the experiment will be run locally",
-    ),
-    timeout: int = typer.Option(
-        300,
-        "--timeout",
-        metavar="TIMEOUT",
-        help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
-    ),
-    validate: bool = typer.Option(
-        True,
-        help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
-    ),
-    actuator_configuration_identifiers: list[str] | None = typer.Option(
-        None,
-        "--actuator-config-id",
-        metavar="ACTUATOR_CONFIG_IDENTIFIER",
-        help="Optional actuator configuration identifier(s) to use for this experiment. May be specified multiple times.",
-    ),
+    point_file: Annotated[
+        pathlib.Path,
+        typer.Argument(
+            ...,
+            help="Path to a yaml file containing an ado point definition",
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ],
+    remote: Annotated[
+        str | None,
+        typer.Option(
+            None,
+            "--remote",
+            metavar="ENDPOINT",
+            help="Execute the experiment on a remote Ray cluster at the given ENDPOINT. If not given the experiment will be run locally",
+        ),
+    ] = None,
+    timeout: Annotated[
+        int,
+        typer.Option(
+            "--timeout",
+            metavar="TIMEOUT",
+            help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
+        ),
+    ] = 300,
+    validate: Annotated[
+        bool,
+        typer.Option(
+            help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
+        ),
+    ] = True,
+    actuator_configuration_identifiers: Annotated[
+        list[str] | None,
+        typer.Option(
+            None,
+            "--actuator-config-id",
+            metavar="ACTUATOR_CONFIG_IDENTIFIER",
+            help="Optional actuator configuration identifier(s) to use for this experiment. May be specified multiple times.",
+        ),
+    ] = None,
 ) -> None:
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 

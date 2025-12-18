@@ -143,7 +143,7 @@ def register_characterize_operation(func):
     @functools.wraps(func)
     def characterize_operation_wrapper(
         discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
+        operationInfo: FunctionOperationInfo | None = None,
         **kwargs,
     ) -> OperationOutput:
 
@@ -154,7 +154,7 @@ def register_characterize_operation(func):
                 DiscoveryOperationEnum.CHARACTERIZE
             ].configuration_model_for_operation(func.__name__),
             discovery_space=discoverySpace,
-            operation_info=operationInfo,
+            operation_info=operationInfo or FunctionOperationInfo(),
             operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
         )
 
@@ -212,7 +212,7 @@ def register_modify_operation(func):
     @functools.wraps(func)
     def modify_operation_wrapper(
         discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
+        operationInfo: FunctionOperationInfo | None = None,
         **kwargs,
     ) -> OperationOutput:
 
@@ -223,7 +223,7 @@ def register_modify_operation(func):
                 DiscoveryOperationEnum.MODIFY
             ].configuration_model_for_operation(func.__name__),
             discovery_space=discoverySpace,
-            operation_info=operationInfo,
+            operation_info=operationInfo or FunctionOperationInfo(),
             operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
         )
 
@@ -253,7 +253,7 @@ def register_export_operation(func):
     @functools.wraps(func)
     def export_operation_wrapper(
         discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
+        operationInfo: FunctionOperationInfo | None = None,
         **kwargs: dict,
     ) -> OperationOutput:
         return orchestrate_general_operation(
@@ -263,7 +263,7 @@ def register_export_operation(func):
                 DiscoveryOperationEnum.EXPORT
             ].configuration_model_for_operation(func.__name__),
             discovery_space=discoverySpace,
-            operation_info=operationInfo,
+            operation_info=operationInfo or FunctionOperationInfo(),
             operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT,
         )
 

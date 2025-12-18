@@ -955,7 +955,7 @@ class RandomWalk(Characterize):
 )
 def random_walk(
     discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
+    operationInfo: FunctionOperationInfo | None,
     **kwargs: dict,
 ) -> OperationOutput:
     """
@@ -964,6 +964,9 @@ def random_walk(
     """
 
     import orchestrator.modules.module
+
+    if operationInfo is None:
+        operationInfo = FunctionOperationInfo()
 
     module = orchestrator.core.operation.config.OperatorModuleConf(
         moduleName="orchestrator.modules.operators.randomwalk",

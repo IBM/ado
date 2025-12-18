@@ -17,6 +17,7 @@ import orchestrator.schema.virtual_property
 import orchestrator.utilities.logging
 from orchestrator.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
+    DiscoverySpaceProperties,
 )
 from orchestrator.core.operation.resource import OperationResource
 from orchestrator.core.resources import CoreResourceKinds
@@ -286,7 +287,9 @@ class DiscoverySpace:
         ) = None,
         entitySpace: EntitySpaceRepresentation | None = None,
         measurementSpace: MeasurementSpace | None = None,
-        properties: orchestrator.core.discoveryspace.config.DiscoverySpaceProperties = orchestrator.core.discoveryspace.config.DiscoverySpaceProperties(),
+        properties: (
+            orchestrator.core.discoveryspace.config.DiscoverySpaceProperties | None
+        ) = None,
         metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
     ):
         """
@@ -311,6 +314,9 @@ class DiscoverySpace:
         """
 
         import uuid
+
+        if not properties:
+            properties = DiscoverySpaceProperties()
 
         self.log = logging.getLogger("discovery-space")
 

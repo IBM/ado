@@ -74,7 +74,7 @@ class ComponentsYaml:
         k8s_name: str,
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
-        node_selector: dict[str, str] = {},
+        node_selector: dict[str, str] | None = None,
         image: str = "vllm/vllm-openai:v0.6.3",
         image_secret: str = "",
         n_gpus: int = 1,
@@ -116,6 +116,9 @@ class ComponentsYaml:
         :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :return:
         """
+        if node_selector is None:
+            node_selector = {}
+
         # read template
         if template is None:
             logger.debug("Using default Deployment template")

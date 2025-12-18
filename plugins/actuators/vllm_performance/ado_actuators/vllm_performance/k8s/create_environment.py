@@ -26,7 +26,7 @@ def create_test_environment(
     service_template: None | str = None,
     n_gpus: int = 1,
     gpu_type: str = "NVIDIA-A100-80GB-PCIe",
-    node_selector: dict[str, str] = {},
+    node_selector: dict[str, str] | None = None,
     n_cpus: int = 8,
     memory: str = "128Gi",
     max_batch_tokens: int = 16384,
@@ -72,6 +72,9 @@ def create_test_environment(
     :param timeout: timeout in seconds
     :return:
     """
+    if node_selector is None:
+        node_selector = {}
+
     logger.info(f"Creating environment in ns {namespace} with the parameters: ")
     logger.info(
         f"model {model}, in_cluster {in_cluster}, verify_ssl {verify_ssl}, image {image}"

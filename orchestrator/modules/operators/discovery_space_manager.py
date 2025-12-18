@@ -184,10 +184,7 @@ class DiscoverySpaceManager:
 
         entities = self._discoverySpace.matchingEntities()
         if selection is not None:
-            selected = []
-            for i in selection:
-                selected.append(entities[i])
-
+            selected = [entities[i] for i in selection]
             entities = selected
 
         return entities

@@ -437,10 +437,7 @@ def get_valid_value_ranges(
         cur_threshold = threshold[node_id]
         if X[sample_id, feature[node_id]] <= threshold[node_id]:
             threshold_sign = "<="
-            new_value_list = []
-            for v in value_list:
-                if v <= cur_threshold:
-                    new_value_list.append(v)
+            new_value_list = [v for v in value_list if v <= cur_threshold]
         else:
             threshold_sign = ">"
             new_value_list = []

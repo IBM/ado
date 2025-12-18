@@ -43,9 +43,10 @@ def valid_measurement_result_and_entity(
     assert not test_entity.observedPropertiesFromExperimentReference(ref)
 
     # Add a result
-    values = []
-    for op in exp.observedProperties:
-        values.append(ObservedPropertyValue(value=np.random.random(), property=op))
+    values = [
+        ObservedPropertyValue(value=np.random.random(), property=op)
+        for op in exp.observedProperties
+    ]
 
     return test_entity, ValidMeasurementResult(
         entityIdentifier=test_entity.identifier,

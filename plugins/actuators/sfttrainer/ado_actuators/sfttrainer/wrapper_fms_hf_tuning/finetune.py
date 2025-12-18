@@ -864,11 +864,7 @@ def calculate_tokens_in_image_text_dataset(
         )
 
     tokenized_dataset = dataset.map(lambda x: tokenize_samples(x), batched=False)
-    num_tokens = []
-    for sample in tokenized_dataset:
-        num_tokens.append(len(sample["input_ids"][0]))
-
-    return num_tokens
+    return [len(sample["input_ids"][0]) for sample in tokenized_dataset]
 
 
 def calculate_tokens_in_text_dataset(

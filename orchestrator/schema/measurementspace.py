@@ -540,13 +540,11 @@ class MeasurementSpace:
         experimentReference: ExperimentReference,
     ) -> list[ObservedProperty]:
         """Returns a list of observed properties in the receiver associated with the reference"""
-
-        retval = []
-        for op in self._observedProperties:
-            if op.experimentReference == experimentReference:
-                retval.append(op)
-
-        return retval
+        return [
+            op
+            for op in self._observedProperties
+            if op.experimentReference == experimentReference
+        ]
 
     def observedPropertiesForExperiment(
         self, experiment: Experiment

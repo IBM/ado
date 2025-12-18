@@ -136,10 +136,7 @@ def mi_pareto_selection(
     ignore_below=0.0001,
     return_all_above_threshold=False,
 ):
-    mi_labeled = {}
-    for k, v in mi_labeled_orig.items():
-        if v > ignore_below:
-            mi_labeled[k] = v
+    mi_labeled = {k: v for k, v in mi_labeled_orig.items() if v > ignore_below}
     l1 = list(mi_labeled.values())
     col_1 = list(mi_labeled.keys())
     pareto_pd = pd.DataFrame(

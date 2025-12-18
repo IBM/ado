@@ -295,13 +295,10 @@ def prepare_runtime_environment(
 
     # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
 
-    env_vars = {}
-    for key, name in os.environ.items():
-        # VV: Propagate environment variables that are related to pip
-        # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
-        # This is useful for packages that take too long to compile from source like mamba-ssm
-        if key.startswith("PIP_"):
-            env_vars[key] = name
+    # VV: Propagate environment variables that are related to pip
+    # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
+    # This is useful for packages that take too long to compile from source like mamba-ssm
+    env_vars = {key: name for key, name in os.environ.items() if key.startswith("PIP_")}
 
     runtime_env = ray_env_utils.get_ray_environment(
         packages=packages,

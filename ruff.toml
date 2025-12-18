@@ -70,7 +70,7 @@ select = [
 #    "NPY",
 #    "PD",
 #    "N",
-#    "PERF",
+    "PERF",
     "E",
     "W",
     "F",

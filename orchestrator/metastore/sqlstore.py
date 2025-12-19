@@ -272,7 +272,7 @@ class SQLResourceStore(ResourceStore):
 
             if table.shape[0] > 0:
                 for identifier, data, kind in zip(
-                    table.identifier, table.data, table.kind
+                    table.identifier, table.data, table.kind, strict=False
                 ):
                     d = json.loads(data)
                     custom_model_loader = kind_custom_model_load.get(kind)

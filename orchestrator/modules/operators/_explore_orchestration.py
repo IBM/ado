@@ -101,7 +101,7 @@ def graceful_explore_operation_shutdown(
         actors = [operator]
         actors.extend(actuators)
 
-        lookup = dict(zip(terminating_actors, actors))
+        lookup = dict(zip(terminating_actors, actors, strict=False))
 
         moduleLog.debug(f"Shutdown waiting on {lookup}")
         moduleLog.debug(

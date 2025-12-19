@@ -117,7 +117,6 @@ def main(
     output: Annotated[
         pathlib.Path,
         typer.Option(
-            ...,
             "--output",
             "-o",
             help="Where to store the dataset file.",
@@ -126,7 +125,6 @@ def main(
     input: Annotated[
         pathlib.Path,
         typer.Option(
-            pathlib.Path(__file__),
             "--input",
             "-i",
             exists=True,

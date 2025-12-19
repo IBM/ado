@@ -42,7 +42,6 @@ def main(
     path_to_models: Annotated[
         pathlib.Path,
         typer.Option(
-            ...,
             "--input",
             "-i",
             exists=True,
@@ -54,7 +53,6 @@ def main(
     hf_home: Annotated[
         pathlib.Path,
         typer.Option(
-            pathlib.Path(__file__),
             "--hf_home",
             "-o",
             file_okay=False,

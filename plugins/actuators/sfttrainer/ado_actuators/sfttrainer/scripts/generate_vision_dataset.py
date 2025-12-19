@@ -170,7 +170,6 @@ def main(
     output: Annotated[
         pathlib.Path,
         typer.Option(
-            ...,
             "--output",
             "-o",
             help="Where to store the dataset file.",
@@ -179,7 +178,6 @@ def main(
     input: Annotated[
         pathlib.Path,
         typer.Option(
-            pathlib.Path(__file__),
             "--input",
             "-i",
             exists=True,
@@ -222,9 +220,7 @@ def main(
     ] = 4,
     image_width: Annotated[int, typer.Option(help="The image width in pixels")] = 384,
     image_height: Annotated[int, typer.Option(help="The image height in pixels")] = 384,
-    log_level: Annotated[
-        int, typer.Option(20, "--log-level", "-l", help="Log level")
-    ] = 20,
+    log_level: Annotated[int, typer.Option("--log-level", "-l", help="Log level")] = 20,
 ):
     logging.basicConfig(
         level=log_level,

@@ -36,7 +36,7 @@ def get_clusters(
     #  also discrete_features could maybe be determined automatically?
     for col in columns_to_mask:
         num_unique = df_np_prep[col].nunique()
-        td = dict(zip(df_np_prep[col].unique(), range(num_unique)))
+        td = dict(zip(df_np_prep[col].unique(), range(num_unique), strict=True))
         translate_dicts[col] = td
 
     for index, row in df_np_prep.iterrows():
@@ -117,7 +117,7 @@ def calculate_mutual_information(
         f"The entropy of the clusters is {entropy}"
     )
 
-    mutual_information_labeled = dict(zip(data_columns, ig))
+    mutual_information_labeled = dict(zip(data_columns, ig, strict=True))
     logging.getLogger("mutual-information").debug(
         f"For the target variable {targeted_value}, the mutual information scores for the clusters are:{mutual_information_labeled}"
     )
@@ -364,7 +364,7 @@ def get_valid_value_ranges(
     #  also discrete_features could maybe be determined automatically?
     for col in columns_to_mask:
         num_unique = df_np_prep[col].nunique()
-        td = dict(zip(df_np_prep[col].unique(), range(num_unique)))
+        td = dict(zip(df_np_prep[col].unique(), range(num_unique), strict=True))
         translate_dicts[col] = td
 
     for index, row in df_np_prep.iterrows():

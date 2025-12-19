@@ -202,8 +202,7 @@ def _config_formatter_for_ado_resource(
 
     if not hasattr(to_print, "config"):
         console_print(
-            f"{ERROR}The resource requested does not have a config field.",
-            stderr=True,
+            f"{ERROR}The resource requested does not have a config field.", stderr=True
         )
         raise typer.Exit(1)
 

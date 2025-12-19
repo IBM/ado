@@ -204,7 +204,6 @@ def run(
     point_file: Annotated[
         pathlib.Path,
         typer.Argument(
-            ...,
             help="Path to a yaml file containing an ado point definition",
             file_okay=True,
             dir_okay=False,
@@ -215,8 +214,6 @@ def run(
     remote: Annotated[
         str | None,
         typer.Option(
-            None,
-            "--remote",
             metavar="ENDPOINT",
             help="Execute the experiment on a remote Ray cluster at the given ENDPOINT. If not given the experiment will be run locally",
         ),
@@ -224,7 +221,6 @@ def run(
     timeout: Annotated[
         int,
         typer.Option(
-            "--timeout",
             metavar="TIMEOUT",
             help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
         ),
@@ -232,19 +228,20 @@ def run(
     validate: Annotated[
         bool,
         typer.Option(
-            help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
+            help="Validate the entity before executing the experiment. "
+            "If executing remotely this requires the experiment to be installed locally",
         ),
     ] = True,
     actuator_configuration_identifiers: Annotated[
         list[str] | None,
         typer.Option(
-            None,
             "--actuator-config-id",
             metavar="ACTUATOR_CONFIG_IDENTIFIER",
-            help="Optional actuator configuration identifier(s) to use for this experiment. May be specified multiple times.",
+            help="Optional actuator configuration identifier(s) to use for this experiment. "
+            "May be specified multiple times.",
         ),
     ] = None,
-) -> None:
+):
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
     logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
@@ -288,6 +285,7 @@ def run(
                     console_print("Result:")
                     console_print(
                         f"{request.series_representation(output_format='target')}\n",
+                        has_pandas_content=True,
                         use_markup=False,
                     )
             else:

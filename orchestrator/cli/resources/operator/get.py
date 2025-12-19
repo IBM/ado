@@ -69,4 +69,4 @@ def get_operator(parameters: AdoGetCommandParameters):
     # After renaming some entries in the TYPE column
     # the values may not be sorted anymore
     operators = operators.sort_values(by=["TYPE", "OPERATOR"])
-    console_print(operators)
+    console_print(operators, has_pandas_content=True)

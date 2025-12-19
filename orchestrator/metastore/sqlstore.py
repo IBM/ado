@@ -4,9 +4,12 @@
 import json
 import logging
 import os
+from typing import TYPE_CHECKING
 
-import pandas as pd
 import pydantic
+
+if TYPE_CHECKING:
+    import pandas as pd
 import sqlalchemy
 
 import orchestrator.core
@@ -128,6 +131,7 @@ class SQLResourceStore(ResourceStore):
             resource schema - callers should use :meth:`getResource` if they
             need a fully-typed object.
         """
+        import pandas as pd
 
         query = sqlalchemy.text(
             "SELECT * FROM resources WHERE identifier=:identifier"
@@ -190,6 +194,8 @@ class SQLResourceStore(ResourceStore):
               the default Pydantic model from ``orchestrator.core.kindmap``
               is instantiated.
         """
+
+        import pandas as pd
 
         query = sqlalchemy.text(
             """
@@ -254,6 +260,8 @@ class SQLResourceStore(ResourceStore):
                 exist, it will not appear in the returned dictionary.
         """
 
+        import pandas as pd
+
         retval = {}
         if len(identifiers) != 0:
             if isinstance(identifiers, pd.Series):
@@ -297,7 +305,7 @@ class SQLResourceStore(ResourceStore):
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
         details: bool = False,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """
         Retrieve identifiers of resources of a given kind.
 
@@ -359,6 +367,8 @@ class SQLResourceStore(ResourceStore):
                 If the supplied ``kind`` is not a known
                 ``CoreResourceKinds`` value.
         """
+
+        import pandas as pd
 
         if kind not in [v.value for v in orchestrator.core.resources.CoreResourceKinds]:
             raise ValueError(f"Unknown kind specified: {kind}")
@@ -475,6 +485,7 @@ class SQLResourceStore(ResourceStore):
         return output_df[columns]
 
     def resourceTable(self):
+        import pandas as pd
 
         query = """SELECT * FROM resources"""
 
@@ -529,7 +540,7 @@ class SQLResourceStore(ResourceStore):
 
     def getRelatedSubjectResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """Retrieve identifiers of resources that have a relationship to the
         supplied ``identifier`` where that identifier acts as the *object*.
 
@@ -573,6 +584,8 @@ class SQLResourceStore(ResourceStore):
                 and object relationships merged.
         """
 
+        import pandas as pd
+
         query_text = """SELECT subject_identifier, resources.kind
                               FROM resource_relationships
                               INNER JOIN resources
@@ -599,7 +612,7 @@ class SQLResourceStore(ResourceStore):
 
     def getRelatedObjectResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """Retrieve identifiers of resources that have a relationship to the
         supplied ``identifier`` where that identifier acts as the *subject*.
 
@@ -643,6 +656,8 @@ class SQLResourceStore(ResourceStore):
                 and object relationships merged.
         """
 
+        import pandas as pd
+
         # First select where identifier is the subject
         query_text = """SELECT object_identifier, resources.kind
                     FROM resource_relationships
@@ -670,7 +685,7 @@ class SQLResourceStore(ResourceStore):
 
     def getRelatedResourceIdentifiers(
         self, identifier, kind: str | None = None, version: str | None = None
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         """
         Retrieve identifiers of resources that are related to ``identifier`` either as a
         subject or an object.
@@ -699,6 +714,8 @@ class SQLResourceStore(ResourceStore):
                 A DataFrame containing the identifiers of all related resources.
                 If no relationships exist an empty DataFrame is returned.
         """
+
+        import pandas as pd
 
         relatedAsObject = self.getRelatedObjectResourceIdentifiers(
             identifier=identifier, kind=kind, version=version
@@ -1291,11 +1308,3 @@ class SQLResourceStore(ResourceStore):
                     resource_kind=CoreResourceKinds.ACTUATORCONFIGURATION,
                     rollback_occurred=True,
                 ) from e
-
-    def recordTimeSeriesMetrics(self, df: pd.DataFrame, observedPropertyName: str):
-
-        self.log.warning(
-            "SQLResourceStore does not support recording time-series metrics yet. Will write to file."
-        )
-        name = f"{observedPropertyName}-ts.csv"
-        df.to_csv(name, mode="a", header=not os.path.exists(name))

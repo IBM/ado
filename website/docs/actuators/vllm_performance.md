@@ -256,7 +256,7 @@ Ray cluster, including environment and package setup, see
 
 > [!IMPORTANT] RayCluster permissions
 >
-> If running with `in_cluset=True`, your RayCluster **must** be configured so that
+> If running with `in_cluster=True`, your RayCluster **must** be configured so that
 > jobs launched by `ado` have permissions to create and manage Kubernetes deployments,
 > pods, and services.
 > For configuring the necessary ServiceAccount, roles, and permissions,

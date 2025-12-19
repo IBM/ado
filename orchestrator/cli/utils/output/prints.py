@@ -62,19 +62,22 @@ def set_pandas_display_options():
     pd.set_option("expand_frame_repr", False)
 
 
-def console_print(*args, stderr: bool = False, use_markup: bool = True):
+def console_print(
+    *args, stderr: bool = False, use_markup: bool = True, has_pandas_content=False
+):
     import sys
 
-    import pandas as pd
+    if has_pandas_content:
+        import pandas as pd
 
-    set_pandas_display_options()
+        set_pandas_display_options()
 
-    # AP: 08-12-2025
-    # rich has issues when printing large dataframes using overflow="ignore"
-    # ref: https://github.com/IBM/ado/issues/296
-    if all(isinstance(item, pd.DataFrame) for item in args):
-        print(*args, file=sys.stderr if stderr else sys.stdout)
-        return
+        # AP: 08-12-2025
+        # rich has issues when printing large dataframes using overflow="ignore"
+        # ref: https://github.com/IBM/ado/issues/296
+        if all(isinstance(item, pd.DataFrame) for item in args):
+            print(*args, file=sys.stderr if stderr else sys.stdout)
+            return
 
     if stderr:
         stderr_console.print(*args, overflow="ignore", crop=False, markup=use_markup)

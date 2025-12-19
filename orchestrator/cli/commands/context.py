@@ -62,10 +62,7 @@ def manage_contexts(
         return
 
     if ado_configuration.active_context is None:
-        console_print(
-            ADO_NO_ACTIVE_CONTEXT_ERROR,
-            stderr=True,
-        )
+        console_print(ADO_NO_ACTIVE_CONTEXT_ERROR, stderr=True)
         raise typer.Exit(1)
 
     console_print(ado_configuration.active_context)
@@ -135,10 +132,7 @@ def list_contexts(
         return
 
     if ado_configuration.active_context is None:
-        console_print(
-            ADO_NO_ACTIVE_CONTEXT_ERROR,
-            stderr=True,
-        )
+        console_print(ADO_NO_ACTIVE_CONTEXT_ERROR, stderr=True)
         return
 
     console_print(

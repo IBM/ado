@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from typing import TYPE_CHECKING
 
-import pandas as pd
 import pydantic
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 import orchestrator.core.samplestore.config
 import orchestrator.utilities.location
@@ -129,6 +132,8 @@ class CSVSampleStore(PassiveSampleStore):
 
         if not constitutivePropertyColumns:
             # check the file
+            import pandas as pd
+
             headers = pd.read_csv(csvPath, nrows=0).columns.tolist()
             constitutivePropertyColumns = [
                 h for h in headers if h not in [*observedPropertyColumns, idColumn]
@@ -172,6 +177,8 @@ class CSVSampleStore(PassiveSampleStore):
             self.sourceDescription.generatorIdentifier = (
                 self.storageLocation.hash_identifier
             )
+
+        import pandas as pd
 
         self._data = pd.read_csv(self.storageLocation.path)
         # Make column headers lowercase
@@ -226,7 +233,7 @@ class CSVSampleStore(PassiveSampleStore):
 
         return self.storageLocation.model_copy()
 
-    def _observed_property_values_from_row(self, row: pd.Series) -> tuple[list, list]:
+    def _observed_property_values_from_row(self, row: "pd.Series") -> tuple[list, list]:
 
         observedCalcValue = []
         experimentDescriptionMap = self.sourceDescription.experimentDescriptionMap
@@ -252,7 +259,7 @@ class CSVSampleStore(PassiveSampleStore):
 
         return observedCalcValue, columns_already_processed
 
-    def _entity_from_csv_entry(self, row: pd.Series) -> Entity:
+    def _entity_from_csv_entry(self, row: "pd.Series") -> Entity:
         """Creates an entity from pandas Series
 
         :param row: A Series

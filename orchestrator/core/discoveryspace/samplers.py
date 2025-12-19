@@ -501,7 +501,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 batch = []
                 for point in entitySpace.random_point_iterator():
                     entity = await discoverySpaceActor.entity_for_point.remote(
-                        point=dict(zip(names, point, strict=False))
+                        point=dict(zip(names, point, strict=True))
                     )
                     batch.append(entity)
                     if len(batch) == batchsize:

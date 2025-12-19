@@ -39,7 +39,7 @@ def df_to_output(
         return
 
     if output_format == "console":
-        console_print(df)
+        console_print(df, has_pandas_content=True)
         if (
             df.shape[0] >= DATAFRAME_ROWS_THRESHOLD
             or df.shape[1] >= DATAFRAME_COLS_THRESHOLD

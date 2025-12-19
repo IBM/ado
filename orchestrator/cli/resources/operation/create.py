@@ -160,10 +160,7 @@ def create_operation(parameters: AdoCreateCommandParameters):
         )
         raise typer.Exit(1) from e
     except ValueError as e:
-        console_print(
-            f"{ERROR}Failed to create operation:\n\t{e}",
-            stderr=True,
-        )
+        console_print(f"{ERROR}Failed to create operation:\n\t{e}", stderr=True)
         raise typer.Exit(1) from e
     except InterruptedOperationError as e:
         console_print(
@@ -327,7 +324,7 @@ def output_operation_result(result: OperationOutput):
         case OperationExitStateEnum.SUCCESS:
             console_print(
                 f"{SUCCESS}Created operation with identifier {magenta(result.operation.identifier)} "
-                "and it finished successfully.",
+                "and it finished successfully."
             )
         case OperationExitStateEnum.ERROR:
             console_print(

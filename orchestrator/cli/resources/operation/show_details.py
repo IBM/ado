@@ -62,39 +62,44 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters):
             isinstance(operation_conf, OperationResource)
             and operation_conf.operationType == DiscoveryOperationEnum.SEARCH
         ):
-            submitted_entities_field_name = "entities_submitted"
-            submitted_entities = operation_conf.metadata.get(
-                submitted_entities_field_name, 0
+
+            from orchestrator.schema.result import ValidMeasurementResult
+
+            measurement_results_for_operation = space.measurement_results_for_operation(
+                operation_id=parameters.resource_id
             )
-            entities_with_no_successful_measurements = (
-                submitted_entities - total_entities_sampled
-            )
+
+            entities_with_all_successful_measurements = {
+                result.entityIdentifier for result in measurement_results_for_operation
+            }
+            entities_with_at_least_one_successful_measurement = set()
+            for measurement_result in measurement_results_for_operation:
+
+                if isinstance(measurement_result, ValidMeasurementResult):
+                    entities_with_at_least_one_successful_measurement.add(
+                        measurement_result.entityIdentifier
+                    )
+                    continue
+
+                entities_with_all_successful_measurements.discard(
+                    measurement_result.entityIdentifier
+                )
+
             table.add_row(
                 "Total entities with no successful measurements",
-                str(entities_with_no_successful_measurements),
+                str(
+                    total_entities_sampled
+                    - len(entities_with_at_least_one_successful_measurement)
+                ),
             )
+
             table.add_row(
-                "Total entities with partial successful measurements",
-                str(total_entities_sampled - entities_with_no_successful_measurements),
+                "Total entities with only partially successful measurements",
+                str(
+                    len(entities_with_at_least_one_successful_measurement)
+                    - len(entities_with_all_successful_measurements)
+                ),
             )
-
-            entities_with_all_successful_measurements = set()
-            for experiment in space.experiments_in_operation(
-                operation_id=parameters.resource_id
-            ):
-                entity_identifiers_in_experiment = (
-                    space.entity_identifiers_in_operation(
-                        operation_id=parameters.resource_id
-                    )
-                )
-
-                entities_with_all_successful_measurements = (
-                    entities_with_all_successful_measurements.union(
-                        entity_identifiers_in_experiment
-                    )
-                    if entities_with_all_successful_measurements
-                    else entity_identifiers_in_experiment
-                )
 
             table.add_row(
                 "Total entities with all successful measurements",

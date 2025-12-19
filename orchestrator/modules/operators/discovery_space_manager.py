@@ -58,6 +58,8 @@ class DiscoverySpaceManager:
     - Handles insertion of new entities and measurements into the space coming from a MeasurementQueue.
     - Notifies subscribers of update events.
     - Notifies subscribers of shutdown
+    ray namespace scoped i.e. All ray actors accessing a DiscoverySpaceManager instance
+    should be in the same ray namespace as that instance.
     """
 
     @classmethod
@@ -134,7 +136,7 @@ class DiscoverySpaceManager:
         self._namespace = namespace
         if self._namespace != queue.ray_namespace():
             raise ValueError(
-                f"The provided measurement queue's ray namespace, {queue.ray_namespace()}, does "
+                f"The provided measurement queues ray namespace, {queue.ray_namespace()}, does "
                 f"not match the namespace provided to DiscoverySpaceManager, {self._namespace} "
             )
 

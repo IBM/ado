@@ -24,7 +24,7 @@ from .operator import RayTune
 )
 def ray_tune(
     discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo | None,
+    operationInfo: FunctionOperationInfo | None = None,
     **kwargs: dict,
 ) -> OperationOutput:
     """

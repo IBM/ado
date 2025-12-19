@@ -100,7 +100,7 @@ def graceful_explore_operation_shutdown(
         n_actors = len(terminate_actor_waitables)
         moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
 
-        actors = [operator]
+        actors = [operator, state]
         actors.extend(actuators)
 
         terminate_waitable_to_actor_lookup = dict(

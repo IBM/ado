@@ -197,7 +197,23 @@ def recursive_aggregation_high_dimensional_sampling(
         f"The greatest cardinality is {max(dims)}, multiplicity is {len([d for d in dims if d == max(dims)])}."
     )
 
-    # TODO: obtain sampled_indeces from orders, to account properly for previously sampled points
+    # NOTE: we fix the shifts a priori because they need to be consistent in the for loop below
+    permutations_dict = {}
+    for i in range(len(dims) - 1, -1, -1):
+        first = cprod[i - 1]
+        last = dims[i]
+        assert dims[i] == cprod[i] / cprod[i - 1]
+        gcd = math.gcd(first, last)
+        plist = list(range(gcd))
+        if random_shifts:
+            random.shuffle(plist)
+        permutations_dict[(first, last)] = plist
+
+    # def get_1d_sampled_points_from_orders(
+    #     orders: list[list[int]], permutations_dict: dict, dims: list[int]
+    # ): ...
+    # sampled_points = get_1d_sampled_points_from_orders(orders, permutations_dict, dims)
+    # TODO: obtain sampled_indeces from orders, to account properly for previously sampled points,
     one_d_representation_list = get_index_list_nn(
         length_segment=maximum_n, tot_points_to_sample=n
     )
@@ -223,13 +239,12 @@ def recursive_aggregation_high_dimensional_sampling(
             # first = cprod[-len(out)]
             first = cprod[-len(out) - 1]
             last = dims[-len(out)]
-            assert dims[-len(out)] == cprod[-len(out)] / cprod[-len(out) - 1]
+            if i != 0:
+                assert dims[-len(out)] == cprod[-len(out)] / cprod[-len(out) - 1]
             this_iter_gcd = math.gcd(first, last)
             this_iter_lcm = math.lcm(first, last)
             this_iter_index = out[0]
-            this_iter_plist = list(range(this_iter_gcd))
-            if random_shifts:
-                random.shuffle(this_iter_plist)
+            this_iter_plist = permutations_dict[(first, last)]
 
             try:
                 this_shift = this_iter_plist[this_iter_index // this_iter_lcm]

@@ -16,6 +16,24 @@ def get_index_list_nn(
 ) -> list[int]:
     """
     Selects a set of indices from a 1D segment using a deterministic sampling strategy.
+
+    :param length_segment: Total number of units in the 1D segment.
+    :type length_segment: int
+    :param tot_points_to_sample: Total number of indices to sample.
+    :type tot_points_to_sample: int
+    :param sampled_indices: List of indices already sampled. Defaults to an empty list.
+    :type sampled_indices: list[int], optional
+    :param sort: If True, returns the final list sorted in ascending order. Defaults to False.
+    :type sort: bool, optional
+    :param verbose: If True, prints debug information during sampling. Defaults to False.
+    :type verbose: bool, optional
+
+    :raises ValueError: If `tot_points_to_sample` exceeds `length_segment`.
+
+    :return: A list of sampled indices satisfying the distribution strategy.
+    :rtype: list[int]
+
+    ## Additional Observations and examples
     This function assumes that the data has been projected into a 1D segment based on feature importance,
     making it isomorphic to a 1d segment. The goal is to sample `tot_points_to_sample` indices from this segment,
     optionally considering a set of already sampled indices (`sampled_indices`). The strategy ensures that the
@@ -34,27 +52,11 @@ def get_index_list_nn(
         Index:     0  1  2  3  4  5  6  7  8  9 10 11 12 13
         Sample:    1  -  8  5  -  7  3  -  -  4  -  6  -  2
 
-    Here, numbers represent the order in which points were added, and `-` indicates unsampled positions.
+    Here, numbers in the bottom row represent the order in which each point is added, and `-` indicates unsampled positions.
     The algorithm ensures that each new point is placed where it maximally improves the balance of the structure,
     often targeting the midpoint of the largest gaps.
 
-    :param length_segment: Total number of units in the 1D segment.
-    :type length_segment: int
-    :param tot_points_to_sample: Total number of indices to sample.
-    :type tot_points_to_sample: int
-    :param sampled_indices: List of indices already sampled. Defaults to an empty list.
-    :type sampled_indices: list[int], optional
-    :param sort: If True, returns the final list sorted in ascending order. Defaults to False.
-    :type sort: bool, optional
-    :param verbose: If True, prints debug information during sampling. Defaults to False.
-    :type verbose: bool, optional
-
-    :raises ValueError: If `tot_points_to_sample` exceeds `length_segment`.
-
-    :return: A list of sampled indices satisfying the distribution strategy.
-    :rtype: list[int]
-
-    :example:
+    :examples:
 
     >>> get_index_list_nn(5, 3, sampled_indices=[0, 4])
     [0, 2, 4]

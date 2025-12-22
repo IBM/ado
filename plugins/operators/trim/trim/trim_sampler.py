@@ -348,10 +348,9 @@ class TrimSampleSelector(BaseSampler):
                         yielded_entities += entity
                         continue
 
-                    # # comparison happens at every params.iterationSize steps
-                    # elif comparison_indeces:
-                    #     if max(comparison_indeces) + self.params.iterationSize > i:
-                    #         continue  # next iteration of the for, where I will sample another point
+                    # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
+                    # instead, it happens at every batchsize=1 step, in a rolling fashion,
+                    # thus the parameters set for the threshold in trim parameters are not the same as in the paper!
                     else:
                         comparison_indices.append(i)
                         # NOTE: if batchsize==iterationSize will compare just two models,

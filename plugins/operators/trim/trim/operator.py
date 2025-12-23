@@ -49,7 +49,7 @@ def trim(
         f"Target variable = {params.targetOutput}"
     )
 
-    logger_trim.info(f"Parameters are {kwargs}")
+    logger_trim.info(f"Parameters are {params}")
 
     # raise ValueError
 
@@ -84,7 +84,7 @@ def trim(
             """
         )
 
-        no_priors_params = TrimParameters().noPriorParameters
+        no_priors_params = params.noPriorParameters
         if current_iter != 0:
             # Computing number of missing samples
             missing_points = params.samplingBudget.minPoints - len(source_df)

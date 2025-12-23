@@ -1,24 +1,91 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+from typing import ClassVar
+
 import pydantic
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class NoPriorsParameters(BaseModel):
+    """
+    Parameters for sampling high-dimensional spaces without prior model structure.
 
-    # TODO: get_source_target df requires this atm but you can just use the source df getter and target df getter independently
-    targetOutput: str = pydantic.Field(
+    The `sampling_strategy` is validated against the supported set documented below.
+    Source of truth for supported strategies is the comment block right here:
+
+        strategy (str): sampling subroutine:
+        - 'random': selects random points from the beginning
+        - 'one_shift': refer to one_shift_then_random_points_high_dimensional_sampling
+        - 'recursive_aggregation': refer to recursive_aggregation_high_dimensional_sampling
+        - 'sudoku': refer to sudoku_high_dimensional_sampling
+    """
+
+    # --- Supported strategies (centralized) ---
+    SUPPORTED_STRATEGIES: ClassVar[set[str]] = {
+        "random",
+        "one_shift",
+        "recursive_aggregation",
+        "sudoku",
+    }
+
+    targetOutput: str = Field(
         default="",
-        description="The measured property you will treat as a target variable",
+        description="The measured property you will treat as a target variable.",
     )
 
-    samples: int = pydantic.Field(default=18, description="Points to sample")
+    samples: int = Field(
+        default=18,
+        ge=1,
+        description="Number of unique points to sample (must be >= 1).",
+    )
 
-    batchSize: int = pydantic.Field(
+    batchSize: int = Field(
         default=5,
-        description="Batch size parameter of randomWalk, default is setting this equal to iterationSize",
+        ge=1,
+        description=(
+            "Batch size parameter used by certain samplers (e.g., randomWalk); "
+            "by default set equal to iterationSize in those contexts. Must be >= 1."
+        ),
     )
+
+    sampling_strategy: str = Field(
+        default="random",
+        description=(
+            "Sampling subroutine. Supported values:\n"
+            " - 'random': selects random points from the beginning\n"
+            " - 'one_shift': see one_shift_then_random_points_high_dimensional_sampling\n"
+            " - 'recursive_aggregation': see recursive_aggregation_high_dimensional_sampling\n"
+            " - 'sudoku': dimension-wise random without replacement until each dim cycles\n"
+            "Aliases: 'random_shifts' → 'recursive_aggregation'.\n"
+            "Validation is case-insensitive; value is normalized to lowercase."
+        ),
+    )
+
+    @field_validator("sampling_strategy")
+    @classmethod
+    def _validate_strategy(cls, v: str) -> str:
+        """
+        Validate and normalize the sampling strategy:
+        - strip/normalize to lowercase
+        - ensure result is in SUPPORTED_STRATEGIES
+        """
+        if not isinstance(v, str):
+            raise TypeError("sampling_strategy must be a string.")
+
+        normalized = v.strip().lower()
+
+        if normalized not in cls.SUPPORTED_STRATEGIES:
+            raise pydantic.ValidationError(
+                [
+                    pydantic.errors.PydanticCustomError(
+                        "unsupported_strategy",
+                        (f"Unsupported sampling_strategy '{v}'. "),
+                    )
+                ],
+                cls,
+            )
+        return normalized
 
 
 if __name__ == "__main__":

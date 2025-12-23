@@ -39,7 +39,7 @@ class StoppingCriterion(pydantic.BaseModel):
 
 class AutoGluonArgs(BaseModel):
     tabularPredictorArgs: dict = Field(
-        default={},
+        default={"verbosity": 1},
         description="A dictionary containing key-value pairs of AutoGluon optional parameters in Tabular Predictor",
     )
 

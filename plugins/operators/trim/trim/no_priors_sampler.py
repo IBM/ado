@@ -45,6 +45,7 @@ class NoPriorsSampleSelector(BaseSampler):
             source_df, target_df = get_source_and_target(
                 discoverySpace, self.params.targetOutput
             )
+            logger_no_priors.info(f"Target dataframe has length {len(target_df)}")
             target_df = order_df_for_sampling_with_no_priors(
                 target_df,
                 [
@@ -52,6 +53,7 @@ class NoPriorsSampleSelector(BaseSampler):
                     for cp in discoverySpace.entitySpace.constitutiveProperties
                 ],
                 self.params.samples - len(source_df),
+                strategy=self.params.sampling_strategy,
             )
             list_of_entities_for_no_prior_characterization = (
                 get_list_of_entities_from_df_and_space(

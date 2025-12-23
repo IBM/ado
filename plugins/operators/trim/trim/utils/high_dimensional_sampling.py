@@ -174,7 +174,6 @@ def recursive_aggregation_high_dimensional_sampling(
             dims[2] - 1,
         ]
     """
-    maximum_n = 1
     cprod = np.cumprod(np.array(dims), dtype=int).tolist()
     maximum_n = cprod[-1]
 
@@ -475,7 +474,7 @@ def random_high_dimensional_sampling(dims: list[int], n: int):
     import random
 
     to_be_sampled_list = []
-    configs = list(itertools.product(*[range(d + 1) for d in dims]))
+    configs = list(itertools.product(*[range(d) for d in dims]))
     while len(to_be_sampled_list) < n:
         candidate = random.choice(configs)
         to_be_sampled_list.append(list(candidate))
@@ -488,7 +487,7 @@ def get_order_list_nn_high_dimensional(
     dims: list[int],
     n: int | str = "all",
     space: dict[str, int] | None = None,
-    strategy: str = "one_shift",
+    strategy: str = "sudoku",
 ) -> list[list[int]]:
     """
     Generate sampling indices for a high-dimensional space using `get_index_list_nn` for each dimension.
@@ -545,9 +544,9 @@ def get_order_list_nn_high_dimensional(
     lcm = math.lcm(*dims)
 
     if lcm != maximum_n:
-        logging.warning(
-            """Periodicity detected, you will eventually sample
-                        the same configuration more than once, enabling shift"""
+        logging.debug(
+            "Periodicity detected, the sampling subroutine will ensure that you will not sampple"
+            "the same configuration more than once."
         )
 
     if isinstance(n, str):

@@ -5,6 +5,7 @@ import itertools
 import logging
 import math
 
+import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularPredictor
 
@@ -102,10 +103,32 @@ def reorder_df_by_importance(
 
 
 def order_df_for_sampling_with_no_priors(
-    df: pd.DataFrame, constitutive_properties: list[str], n: int, refined: bool = True
+    df: pd.DataFrame, constitutive_properties: list[str], n: int, strategy: str
 ) -> pd.DataFrame:
     """
     Orders a DataFrame for high-dimensional sampling without prior knowledge.
+
+    Args:
+        df (pd.DataFrame):
+            The input dataset containing at least the columns specified in `constitutive_properties`.
+            May contain duplicate configurations across the constitutive properties, which will
+            be removed before sampling.
+        constitutive_properties (list[str]):
+            Column names that define the configuration space (axes of the high-dimensional grid).
+            Uniqueness is enforced over the Cartesian product of these properties.
+        n (int):
+            Number of samples (orders) to generate. If larger than the deduplicated DataFrame length,
+            it is reduced to fit and a warning is logged.
+        strategy (str):
+            Sampling subroutine identifier. Passed through to `get_order_list_nn_high_dimensional`;
+            see that function's documentation for supported strategies and behavior.
+
+    Returns:
+        pd.DataFrame:
+            A view of the ordered, deduplicated DataFrame (`df_unique`) restricted to the rows
+            at `indices_to_sample`. The returned DataFrame preserves the column schema of `df`
+            and has `n` rows (after any adjustment). Index is positional (0..n-1) because
+            `.iloc` is used and `df_unique` was reset with `drop=True`.
 
     Steps:
 
@@ -133,8 +156,8 @@ def order_df_for_sampling_with_no_priors(
     delta_len = len_original - len(df_unique)
     if delta_len > 0:
         logging.warning(
-            f"""Removing {delta_len} duplicate configurations.
-                        They are characterized by the same combination of constitutive properties = {constitutive_properties}"""
+            f"Removing {delta_len} duplicate configurations."
+            f"They are characterized by the same combination of constitutive properties = {constitutive_properties}"
         )
 
     if n > len(df_unique):
@@ -169,29 +192,80 @@ def order_df_for_sampling_with_no_priors(
 
     # Generate sampling orders
     orders_to_sample = get_order_list_nn_high_dimensional(
-        dims=dims,
-        space=space_dict,
-        n=n,
+        dims=dims, space=space_dict, n=n, strategy=strategy
     )
 
     # Map orders to DataFrame indices
     indices_to_sample = get_index_list_nn_high_dimensional(orders_to_sample, dims)
 
-    # Select rows # IndexError("positional indexers are out-of-bounds")
     logger.info(f"Indexes are:\n {indices_to_sample}")
-    print(df_unique)
-    df_unique.to_csv("df_unique.csv")
-
-    return df_unique.iloc[indices_to_sample]
+    try:
+        return df_unique.iloc[indices_to_sample]
+    except IndexError:
+        logging.error(
+            f"Index Error detected. Length of the dataframe is {len(df_unique)}."
+            "The indices that cause the error are:"
+        )
+        out_of_bounds_list = []
+        for i in indices_to_sample:
+            try:
+                _temp = df_unique.iloc[[i]]
+            except IndexError:
+                out_of_bounds_list.append(i)
+        logging.error(out_of_bounds_list)
+        logging.error("Returning empty dataset")
+        return pd.DataFrame({})
 
 
 def order_df_for_get_index_list_nn_high_dimensional(
     df: pd.DataFrame, constitutive_properties: list[str], dims: list[int]
 ) -> pd.DataFrame:
     """
-    Sorts by constitutive_properties in the order provided.
-    If the length of df does not match the product of dims, log a warning and inject missing rows.
-    Injected rows will have NaN for non-constitutive columns.
+    Ensure a DataFrame is ordered and complete for high-dimensional index generation.
+
+    This utility prepares `df` so that its rows align with the Cartesian product
+    implied by `constitutive_properties` and `dims`. Specifically:
+
+    1. Sort rows by the provided constitutive properties in the given order.
+    2. Validate that the DataFrame length matches the expected size:
+        `expected_len = product(dims)`.
+    3. If rows are missing:
+        - Log a warning.
+        - Generate all possible combinations of unique values for each constitutive property.
+        - Identify missing combinations and inject them as new rows.
+            Non-constitutive columns in injected rows are filled with `NaN`.
+    4. Return the augmented and re-sorted DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame containing at least the columns listed in `constitutive_properties`.
+    constitutive_properties : list[str]
+        Column names that define the high-dimensional space (e.g., factors or grid axes).
+        The order determines the sort priority.
+    dims : list[int]
+        Expected cardinality for each constitutive property. Used to compute
+        `expected_len = math.prod(dims)` for consistency checks.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame sorted by `constitutive_properties` and augmented with any missing
+        combinations, ensuring coverage of the full Cartesian product implied by `dims`.
+
+    Notes
+    -----
+    - Injected rows will have `NaN` for all non-constitutive columns.
+    - If `dims` and the actual unique values in `df` disagree, the function uses
+        observed unique values to generate combinations.
+    - This function is useful for downstream routines that assume a complete
+        and ordered representation of the sampling space.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 2], 'B': ['x', 'y'], 'value': [0.1, 0.2]})
+    >>> order_df_for_get_index_list_nn_high_dimensional(df, ['A', 'B'], [2, 2])
+    # Returns a DataFrame with 4 rows covering all (A,B) pairs, sorted by A then B.
     """
 
     # Sort by constitutive properties
@@ -254,6 +328,9 @@ def get_index_list_nn_high_dimensional(
     dims is a list of sizes for each dimension [d0, d1, ..., dk].
     """
     indices = []
+    cprod = np.cumprod(np.array(dims), dtype=int).tolist()
+    maximum_n = cprod[-1]
+
     for order in orders_to_sample:
         index = 0
         multiplier = 1
@@ -261,5 +338,20 @@ def get_index_list_nn_high_dimensional(
         for i in reversed(range(len(dims))):
             index += order[i] * multiplier
             multiplier *= dims[i]
+
+        if index > maximum_n:
+            logging.warning(
+                f"Out of bound index {index} computed from order {order}, dims are {dims}"
+            )
         indices.append(index)
+
+    if len(set(indices)) != len(indices):
+        logger.error(f"{len(indices) - len(set(indices))} Duplicated indices!")
+
+    out_of_bounds_list = [i for i in indices if i > maximum_n]
+    if out_of_bounds_list:
+        logger.error(
+            f"The following indices are out of bound: {out_of_bounds_list}, maximum admissible value is {maximum_n-1}"
+        )
+
     return indices

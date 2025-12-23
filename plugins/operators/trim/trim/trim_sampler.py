@@ -214,7 +214,6 @@ class TrimSampleSelector(BaseSampler):
                         yielded_rows += one_additional_row
                         previous_holdout_df = current_holdout_df
 
-                        # TODO: separate logging logic
                         log_after_first_holdout_creation(
                             current_holdout_df,
                             yielded_rows,
@@ -501,7 +500,7 @@ class TrimSampleSelector(BaseSampler):
         )
         logger_trim_sampler.info(
             f"Finalizing the predictive model:"
-            f"Fitting AutoGluon TabularPredictor on full Source Space data."
+            f"Fitting AutoGluon TabularPredictor on full Source Space data of {len(source_df)} rows."
             f"Model will be saved in: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}"
         )
 

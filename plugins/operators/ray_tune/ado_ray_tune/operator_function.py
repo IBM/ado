@@ -24,13 +24,15 @@ from .operator import RayTune
 )
 def ray_tune(
     discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
+    operationInfo: FunctionOperationInfo | None = None,
     **kwargs: dict,
 ) -> OperationOutput:
     """
     Performs a random_walk operation on a given discoverySpace
 
     """
+    if operationInfo is None:
+        operationInfo = FunctionOperationInfo()
 
     module = orchestrator.core.operation.config.OperatorModuleConf(
         moduleName="ado_ray_tune.operator",

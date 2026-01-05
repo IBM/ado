@@ -66,7 +66,7 @@ def delete_sample_store(parameters: AdoDeleteCommandParameters):
                 f"{ERROR}{e}\n{HINT}You can force the deletion by adding the {cyan('--force')} flag.",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         except DeleteFromDatabaseError:
             spinner.stop()
             raise

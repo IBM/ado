@@ -188,7 +188,7 @@ class CSVSampleStore(PassiveSampleStore):
         # TODO: necessary to merge entities...
         self._entities = []
         self._ent_by_id: dict[str, Entity] = {}
-        for i, row in self._data.T.items():
+        for _i, row in self._data.T.items():
             entity_id = row[self.sourceDescription.identifierColumn]
             try:
                 # Check if entity already exists

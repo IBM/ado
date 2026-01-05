@@ -269,7 +269,8 @@ class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
 
             warnings.warn(
                 "The path to the SQLite database contains whitespace. "
-                "The URL being generated should not be used to connect to the database."
+                "The URL being generated should not be used to connect to the database.",
+                stacklevel=2,
             )
 
         return pydantic.AnyUrl.build(

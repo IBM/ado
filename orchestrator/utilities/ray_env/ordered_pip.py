@@ -38,16 +38,12 @@ _monkey_patch_lock = threading.RLock()
 def patch_create_or_get_virtualenv(phase_index: int):
     with _monkey_patch_lock:
         if phase_index > 0:
-            setattr(
-                virtualenv_utils, "create_or_get_virtualenv", create_or_get_virtualenv
-            )
+            virtualenv_utils.create_or_get_virtualenv = create_or_get_virtualenv
         try:
             yield
         finally:
-            setattr(
-                virtualenv_utils,
-                "create_or_get_virtualenv",
-                original_create_or_get_virtualenv,
+            virtualenv_utils.create_or_get_virtualenv = (
+                original_create_or_get_virtualenv
             )
 
 
@@ -216,7 +212,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
                 raise ValueError(
                     f"runtime_env['ordered_pip']['phases'][{i}] must be consistent with the pip validation rules but "
                     f"validation failed with error {e}"
-                )
+                ) from e
 
         result = RuntimeEnv(ordered_pip={"phases": phases})
         logging.debug(

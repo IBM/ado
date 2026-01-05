@@ -599,17 +599,19 @@ class SFTTrainer(ActuatorBase):
             data_path = os.path.join(
                 actuator_parameters.data_directory, DatasetMap[space.dataset_id]
             )
-        except KeyError:
-            raise NotImplementedError(f"References unknown dataset {space.dataset_id}")
+        except KeyError as error:
+            raise NotImplementedError(
+                f"References unknown dataset {space.dataset_id}"
+            ) from error
 
         try:
             model_map = actuator_parameters.model_map[space.model_name]
 
-        except KeyError:
+        except KeyError as error:
             raise NotImplementedError(
                 f'Entity is referencing unknown model "{space.model_name}", '
                 f"supported models are {list(actuator_parameters.model_map)}"
-            )
+            ) from error
 
         kwargs: dict[str, typing.Any] = actuator_parameters.model_dump(
             exclude_none=True,
@@ -652,7 +654,7 @@ class SFTTrainer(ActuatorBase):
         except Exception as e:
             # VV: This means there's a bug with the actuator - we should always be able to parse the args following
             # the above error checks
-            raise InternalInconsistencyError(str(e))
+            raise InternalInconsistencyError(str(e)) from e
 
         # VV: Here we fill in fields which need to propagate to FinetuneArgs BUT their definition in the
         # pydantic model (e.g. ExperimentParameter, or EntitySpace) contains `exclude=True`
@@ -1091,7 +1093,7 @@ class SFTTrainer(ActuatorBase):
         except InvalidEntityError:
             raise
         except finetune.ExperimentError as e:
-            raise InvalidEntityError(str(e))
+            raise InvalidEntityError(str(e)) from e
         except Exception as e:
             # VV: Can't tell what the issue is, we're probably missing a feature
             raise NotImplementedError(str(e)) from e
@@ -1118,7 +1120,7 @@ class SFTTrainer(ActuatorBase):
                 + entity.identifier
                 + " error was "
                 + str(e)
-            )
+            ) from e
 
     async def _evaluate_one_entity(
         self,
@@ -1169,7 +1171,7 @@ class SFTTrainer(ActuatorBase):
 
             except Exception as e:
                 self.log.debug(f"Exception while discovering experiment: {e}")
-                raise InternalInconsistencyError(e)
+                raise InternalInconsistencyError(e) from e
             exp_name = exp.identifier
             if exp is None:
                 # VV: Pretty sure this can never happen
@@ -1187,7 +1189,7 @@ class SFTTrainer(ActuatorBase):
             except InvalidEntityError:
                 raise
             except finetune.ExperimentError as e:
-                raise InvalidEntityError(str(e))
+                raise InvalidEntityError(str(e)) from e
             except Exception as e:
                 # VV: Can't tell what the issue is, we're probably missing a feature
                 raise NotImplementedError(str(e)) from e

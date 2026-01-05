@@ -190,7 +190,7 @@ def describe_resource(
         )
     except UnknownActuatorError as e:
         console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
     except UnknownExperimentError as e:
         handle_unknown_experiment_error(error=e)
 

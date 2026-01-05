@@ -19,8 +19,10 @@ def create_optuna_ray_tune_config(
 ) -> ray.tune.TuneConfig:
     try:
         from ray.tune.search.optuna import OptunaSearch
-    except ImportError:
-        raise ImportError("Optuna must be installed! Run `pip install optuna`.")
+    except ImportError as error:
+        raise ImportError(
+            "Optuna must be installed! Run `pip install optuna`."
+        ) from error
 
     # Params dict is already preprocessed (sampler class instantiated) by model validator
     search_alg = OptunaSearch(metric=metric, mode=mode, **parameters)
@@ -113,7 +115,7 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
         except (ImportError, AttributeError) as ex:
             raise ImportError(
                 f"Optuna sampler '{optuna_sampler}' not found in optuna.samplers. Original error: {ex}"
-            )
+            ) from ex
         # instantiate the sampler with any provided parameters
         sampler_instance = (
             sampler_cls(**sampler_parameters) if sampler_parameters else sampler_cls()

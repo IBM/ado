@@ -88,38 +88,44 @@ def graceful_explore_operation_shutdown(
             f"Shutdown ({identifier}) - waiting for actors to terminate (max {timeout}s)"
         )
 
-        terminating_actors = [
+        terminate_actor_waitables = [
             operator.__ray_terminate__.remote(),
             state.__ray_terminate__.remote(),
         ]
         # __ray_terminate allows atexit handlers of actors to run
         # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
-        terminating_actors.extend([a.__ray_terminate__.remote() for a in actuators])
-        n_actors = len(terminating_actors)
+        terminate_actor_waitables.extend(
+            [a.__ray_terminate__.remote() for a in actuators]
+        )
+        n_actors = len(terminate_actor_waitables)
         moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
 
-        actors = [operator]
+        actors = [operator, state]
         actors.extend(actuators)
 
-        lookup = dict(zip(terminating_actors, actors))
+        terminate_waitable_to_actor_lookup = dict(
+            zip(terminate_actor_waitables, actors, strict=True)
+        )
 
-        moduleLog.debug(f"Shutdown waiting on {lookup}")
+        moduleLog.debug(f"Shutdown waiting on {terminate_waitable_to_actor_lookup}")
         moduleLog.debug(
             f"Gracefully stopping actors - will wait {timeout} seconds  ..."
         )
-        terminated, active = ray.wait(
-            ray_waitables=terminating_actors, num_returns=n_actors, timeout=timeout
+        completed_terminate_waitables, active_terminate_waitables = ray.wait(
+            ray_waitables=terminate_actor_waitables,
+            num_returns=n_actors,
+            timeout=timeout,
         )
 
-        moduleLog.debug(f"Terminated: {terminated}")
-        moduleLog.debug(f"Active: {active}")
+        moduleLog.debug(f"Terminated: {completed_terminate_waitables}")
+        moduleLog.debug(f"Active: {active_terminate_waitables}")
 
-        if active:
+        if active_terminate_waitables:
             status.update(
                 f"Some actors have not completed after the {timeout}s grace period - killing"
             )
-            for actor_ref in active:
-                ray.kill(lookup[actor_ref])
+            for terminate_waitable in active_terminate_waitables:
+                ray.kill(terminate_waitable_to_actor_lookup[terminate_waitable])
 
 
 def run_explore_operation_core_closure(

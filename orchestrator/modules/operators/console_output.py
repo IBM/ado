@@ -89,7 +89,7 @@ class RichConsoleQueue:
         """
         # Only accept typed messages
         if not isinstance(
-            message, (RichConsoleSpinnerMessage, RichConsoleProgressMessage)
+            message, RichConsoleSpinnerMessage | RichConsoleProgressMessage
         ):
             raise ValueError("Unsupported message type for RichConsoleQueue.put")
 

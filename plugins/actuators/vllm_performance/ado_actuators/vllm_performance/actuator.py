@@ -79,10 +79,10 @@ class VLLMPerformanceTest(ActuatorBase):
             try:
                 file_data = exp_file.read_text()
                 data = yaml.safe_load(file_data)
-            except yaml.YAMLError:
+            except yaml.YAMLError as error:
                 error_message = f"File {exp_file.name} is a malformed YAML"
                 logger.error(error_message)
-                raise ValueError(error_message)
+                raise ValueError(error_message) from error
 
             experiments.extend([Experiment.model_validate(data[e]) for e in data])
 

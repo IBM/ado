@@ -152,7 +152,10 @@ def could_not_delete_resource_from_database_error_str(
     if not error.__cause__:
         import warnings
 
-        warnings.warn(f"{error.__class__.__name__} should be raised from another error")
+        warnings.warn(
+            f"{error.__class__.__name__} should be raised from another error",
+            stacklevel=2,
+        )
         error_to_be_displayed = error
 
     return (

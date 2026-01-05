@@ -26,8 +26,8 @@ class LatinHypercubeSampler:
             nd = list(range(num_points_in_dim))  # codespell:ignore nd
             l_bounds.append(nd[0])  # codespell:ignore nd
             u_bounds.append(nd[-1] + 1)  # codespell:ignore nd
-            tti = dict(zip(dim, nd))  # codespell:ignore nd
-            tto = dict(zip(nd, dim))  # codespell:ignore nd
+            tti = dict(zip(dim, nd, strict=True))  # codespell:ignore nd
+            tto = dict(zip(nd, dim, strict=True))  # codespell:ignore nd
             space_int_repr.append(nd)  # codespell:ignore nd
             index_to_label[i] = label
             i += 1

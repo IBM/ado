@@ -99,7 +99,7 @@ class ActuatorRegistry:
         for module in pkgutil.iter_modules(
             builtin_actuators.__path__, f"{builtin_actuators.__name__}."
         ):
-            for name, member in inspect.getmembers(
+            for _name, member in inspect.getmembers(
                 importlib.import_module(module.name)
             ):
                 # MJ: The Actuator classes are decorated ray.remote
@@ -259,7 +259,7 @@ class ActuatorRegistry:
         cfg = None
         try:
             catalog = self.catalogIdentifierMap[actuatorid]
-        except KeyError:
+        except KeyError as error:
             # Load catalog on demand
             # Get configuration if any registered
             cfg = self.catalogIdentifierMap.get(actuatorid)
@@ -270,7 +270,7 @@ class ActuatorRegistry:
             ) and not cfg:
                 raise MissingActuatorConfigurationForCatalogError(
                     f"Actuator {actuatorid} requires configuration information to create catalog."
-                )
+                ) from error
 
             # If the catalog config is not required we can continue if cfg is None or a configuration instance
             if (
@@ -289,7 +289,7 @@ class ActuatorRegistry:
                     )
                     raise UnexpectedCatalogRetrievalError(
                         f"Unexpected exception, '{error}', retrieving catalog of actuator {actuatorid} using configuration {cfg}"
-                    )
+                    ) from error
                 else:
                     self.catalogIdentifierMap[actuatorid] = catalog
                     self.log.debug(
@@ -304,7 +304,7 @@ class ActuatorRegistry:
                     )
                     raise UnexpectedCatalogRetrievalError(
                         f"Unexpected exception {error} retrieving catalog of actuator {actuatorid} using configuration {cfg}"
-                    )
+                    ) from error
                 else:
                     self.catalogIdentifierMap[actuatorid] = catalog
                     self.log.debug(
@@ -323,10 +323,10 @@ class ActuatorRegistry:
 
         try:
             acuatorClass = self.actuatorIdentifierMap[actuatorid]
-        except KeyError:
+        except KeyError as error:
             raise UnknownActuatorError(
                 f"No actuator called {actuatorid} has been added to the registry"
-            )
+            ) from error
 
         return acuatorClass
 

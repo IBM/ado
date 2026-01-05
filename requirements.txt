@@ -1789,9 +1789,9 @@ smart-open==7.5.0 \
     --hash=sha256:87e695c5148bbb988f15cec00971602765874163be85acb1c9fb8abc012e6599 \
     --hash=sha256:f394b143851d8091011832ac8113ea4aba6b92e6c35f6e677ddaaccb169d7cb9
     # via ray
-soupsieve==2.8 \
-    --hash=sha256:0cc76456a30e20f5d7f2e14a98a4ae2ee4e5abdc7c5ea0aafe795f344bc7984c \
-    --hash=sha256:e2dd4a40a628cb5f28f6d4b0db8800b8f581b65bb380b97de22ba5ca8d72572f
+soupsieve==2.8.1 \
+    --hash=sha256:4cf733bc50fa805f5df4b8ef4740fc0e0fa6218cf3006269afd3f9d6d80fd350 \
+    --hash=sha256:a11fe2a6f3d76ab3cf2de04eb339c1be5b506a8a47f2ceb6d139803177f85434
     # via beautifulsoup4
 sqlalchemy==2.0.45 \
     --hash=sha256:0209d9753671b0da74da2cfbb9ecf9c02f72a759e4b018b3ab35f244c91842c7 \

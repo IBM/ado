@@ -7,3 +7,8 @@ FROM $BASE_IMAGE
 # AP: we need to install torch before flash-attn
 RUN uv pip install --system "torch>=2.4,<2.5.0" && \
     uv pip install --system --no-build-isolation "flash-attn==2.6.3"
+
+## Install ado-sfttrainer
+RUN cd ado && \
+    uv pip install --system \
+    'plugins/actuators/sfttrainer'

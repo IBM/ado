@@ -522,9 +522,9 @@ google-api-core==2.28.1 \
     --hash=sha256:2b405df02d68e68ce0fbc138559e6036559e685159d148ae5861013dc201baf8 \
     --hash=sha256:4021b0f8ceb77a6fb4de6fde4502cecab45062e66ff4f2895169e0b35bc9466c
     # via opencensus
-google-auth==2.45.0 \
-    --hash=sha256:82344e86dc00410ef5382d99be677c6043d72e502b625aa4f4afa0bdacca0f36 \
-    --hash=sha256:90d3f41b6b72ea72dd9811e765699ee491ab24139f34ebf1ca2b9cc0c38708f3
+google-auth==2.46.0 \
+    --hash=sha256:cb04c071a73394a6e3b9e48c1a7f48506001175b33e9679587a0f5320a21a34d \
+    --hash=sha256:fa51659c3745cb7024dd073f4ab766222767ea5f7dee2472110eaa03c9dbd2cb
     # via google-api-core
 googleapis-common-protos==1.72.0 \
     --hash=sha256:4299c5a82d5ae1a9702ada957347726b167f9f8d1fc352477702a1e851ff4038 \

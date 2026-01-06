@@ -75,8 +75,8 @@ def main(
     with open(path_to_models) as f:
         model_map: dict[str, dict[str, str]] = yaml.safe_load(f)
 
-    for _model_name, items in model_map.items():
-        for _model_type, model_path in items.items():
+    for _model_name, items in model_map.items():  # noqa: PERF102
+        for _model_type, model_path in items.items():  # noqa: PERF102
             print("Downloading", model_path)
             try:
                 ray.get(download_weights.remote(model_path, hf_home))

@@ -114,7 +114,7 @@ def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
     while pending:
         parent, model = pending.pop(0)
 
-        for key, _value_info in model.model_fields.items():
+        for key, _value_info in model.model_fields.items():  # noqa: PERF102
             value = model.__getattribute__(key)
 
             if isinstance(value, pydantic.BaseModel):

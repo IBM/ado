@@ -50,7 +50,7 @@ def test_get_resources_of_kind(resource_store, resource_type):
         pytest.xfail("SQLite version 3.38.0 or higher is required")
 
     resources = resource_store.getResourcesOfKind(resource_type.value)
-    for _, resource in resources.items():
+    for resource in resources.values():
         assert resource
         assert isinstance(resource, orchestrator.core.kindmap[resource_type.value])
 

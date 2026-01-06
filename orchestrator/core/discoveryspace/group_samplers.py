@@ -31,7 +31,7 @@ def _get_space_points(discovery_space: DiscoverySpace) -> list[dict]:
     entity_space = discovery_space.entitySpace
     property_names = [c.identifier for c in entity_space.constitutiveProperties]
     return [
-        dict(zip(property_names, point))
+        dict(zip(property_names, point, strict=True))
         for point in entity_space.sequential_point_iterator()
     ]
 

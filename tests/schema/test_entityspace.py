@@ -336,10 +336,10 @@ def test_entity_space_iterators(measurement_space_from_single_parameterized_expe
     sequential = []
     ids = [cp.identifier for cp in es.constitutiveProperties]
     point = None
-    for i, point in enumerate(es.sequential_point_iterator()):
+    for i, point in enumerate(es.sequential_point_iterator()):  # noqa: B007
         sequential.append(point)
         assert es.isPointInSpace(
-            dict(zip(ids, point))
+            dict(zip(ids, point, strict=True))
         ), "Expected all points iterated over to be in space"
 
     assert i != 0, "Expected points to be returned"
@@ -358,10 +358,10 @@ def test_entity_space_iterators(measurement_space_from_single_parameterized_expe
 
     i = 0
     random = []
-    for i, point in enumerate(es.random_point_iterator()):
+    for i, point in enumerate(es.random_point_iterator()):  # noqa: B007
         random.append(point)
         assert es.isPointInSpace(
-            dict(zip(ids, point))
+            dict(zip(ids, point, strict=True))
         ), "Expected all points iterated over to be in space"
 
     assert i != 0, "Expected points to be returned"

@@ -77,10 +77,10 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
                     values["node_selector"] = (
                         {} if len(node_selector) == 0 else json.loads(node_selector)
                     )
-                except JSONDecodeError:
+                except JSONDecodeError as error:
                     raise ValueError(
                         "The node_selector field does not contain a valid dict"
-                    )
+                    ) from error
                 updated = True
         elif isinstance(values, GenericActuatorParameters):
             try:
@@ -90,10 +90,10 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
                         {} if len(node_selector) == 0 else json.loads(node_selector)
                     )
                     updated = True
-            except JSONDecodeError:
+            except JSONDecodeError as error:
                 raise ValueError(
                     "The node_selector field does not contain a valid dict"
-                )
+                ) from error
             except AttributeError:
                 pass
         if updated:

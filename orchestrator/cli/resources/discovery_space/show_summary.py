@@ -82,13 +82,13 @@ def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters):
                     stderr=True,
                 )
 
-            for id, resource in space_resources.items():
+            for space_id in space_resources:
                 status.update(
-                    f"Preparing summary for space {magenta(id)} ({len(data) + 1}/{len(space_resources)})"
+                    f"Preparing summary for space {magenta(space_id)} ({len(data) + 1}/{len(space_resources)})"
                 )
                 data.append(
                     SpaceSummary(
-                        id, parameters.ado_configuration.project_context
+                        space_id, parameters.ado_configuration.project_context
                     ).to_markdown_text()
                 )
 
@@ -100,13 +100,13 @@ def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters):
                 result = Markdown(result)
         else:
 
-            for id, resource in space_resources.items():
+            for space_id in space_resources:
                 status.update(
-                    f"Preparing summary for space {magenta(id)} ({len(data) + 1}/{len(space_resources)})"
+                    f"Preparing summary for space {magenta(space_id)} ({len(data) + 1}/{len(space_resources)})"
                 )
                 data.append(
                     SpaceSummary(
-                        id, parameters.ado_configuration.project_context
+                        space_id, parameters.ado_configuration.project_context
                     ).to_dataframe(
                         include_properties=parameters.include_properties,
                         columns_to_hide=parameters.columns_to_hide,

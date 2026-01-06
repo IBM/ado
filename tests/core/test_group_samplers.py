@@ -50,7 +50,8 @@ def check_group_order(
     if isinstance(sampler, ExplicitEntitySpaceGroupedGridSampleGenerator):
         ids = [cp.identifier for cp in space.entitySpace.constitutiveProperties]
         points = [
-            dict(zip(ids, p)) for p in space.entitySpace.sequential_point_iterator()
+            dict(zip(ids, p, strict=True))
+            for p in space.entitySpace.sequential_point_iterator()
         ]
         groups = _build_groups_dict(points=points, group=group)
         expected_group_order = list(groups.keys())

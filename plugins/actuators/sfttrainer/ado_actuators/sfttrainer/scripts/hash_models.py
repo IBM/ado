@@ -120,7 +120,7 @@ def main():
         unique_hashes[info["hash"]].append(model_name)
 
     all_unique = True
-    for the_hash, model_names in unique_hashes.items():
+    for _the_hash, model_names in unique_hashes.items():
         if len(model_names) > 1:
             print("These models are equivalent:", model_names)
             all_unique = False

@@ -117,7 +117,7 @@ def execute_benchmark(
                 logger.error(
                     f"Failed to execute benchmark after {benchmark_retries} attempts"
                 )
-                raise VLLMBenchmarkError(f"Failed to execute benchmark {e}")
+                raise VLLMBenchmarkError(f"Failed to execute benchmark {e}") from e
 
     try:
         retval = get_results(f_name=f_name)

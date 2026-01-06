@@ -61,6 +61,7 @@ class BaseSampler(abc.ABC):
     """
 
     @classmethod
+    @abc.abstractmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
     ):  # pragma: nocover
@@ -355,7 +356,9 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
                 for point in entitySpace.sequential_point_iterator():
-                    entity = discoverySpace.entity_for_point(dict(zip(names, point)))
+                    entity = discoverySpace.entity_for_point(
+                        dict(zip(names, point, strict=True))
+                    )
                     batch.append(entity)
                     if len(batch) == batchsize:
                         yield batch
@@ -369,7 +372,9 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
                 for point in entitySpace.random_point_iterator():
-                    entity = discoverySpace.entity_for_point(dict(zip(names, point)))
+                    entity = discoverySpace.entity_for_point(
+                        dict(zip(names, point, strict=True))
+                    )
                     batch.append(entity)
                     if len(batch) == batchsize:
                         yield batch
@@ -413,7 +418,9 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
                 for point in entitySpace.sequential_point_iterator():
-                    entity = entitySpace.entity_for_point(dict(zip(names, point)))
+                    entity = entitySpace.entity_for_point(
+                        dict(zip(names, point, strict=True))
+                    )
                     batch.append(entity)
                     if len(batch) == batchsize:
                         yield batch
@@ -428,7 +435,9 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 names = [c.identifier for c in entitySpace.constitutiveProperties]
                 batch = []
                 for point in entitySpace.random_point_iterator():
-                    entity = entitySpace.entity_for_point(dict(zip(names, point)))
+                    entity = entitySpace.entity_for_point(
+                        dict(zip(names, point, strict=True))
+                    )
                     batch.append(entity)
                     if len(batch) == batchsize:
                         yield batch
@@ -473,7 +482,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 batch = []
                 for point in entitySpace.sequential_point_iterator():
                     entity = await discoverySpaceActor.entity_for_point.remote(
-                        point=dict(zip(names, point))
+                        point=dict(zip(names, point, strict=True))
                     )
                     batch.append(entity)
                     if len(batch) == batchsize:
@@ -489,7 +498,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
                 batch = []
                 for point in entitySpace.random_point_iterator():
                     entity = await discoverySpaceActor.entity_for_point.remote(
-                        point=dict(zip(names, point))
+                        point=dict(zip(names, point, strict=True))
                     )
                     batch.append(entity)
                     if len(batch) == batchsize:

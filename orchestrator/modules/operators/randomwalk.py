@@ -166,11 +166,11 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
         try:
             SamplerTypeEnum(samplerType)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 f"Unknown sampler type  {samplerType}. "
                 f"Known sampler types {[item.value for item in SamplerTypeEnum]}"
-            )
+            ) from error
 
         return samplerType
 
@@ -179,10 +179,10 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
         try:
             CombinedWalkModeEnum(mode)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 f"Unknown walk mode {mode}. Known modes {[item.value for item in CombinedWalkModeEnum]}"
-            )
+            ) from error
 
         return mode
 
@@ -502,14 +502,14 @@ class RandomWalk(Characterize):
                 if entity_space.isDiscreteSpace:
                     try:
                         number_entities = entity_space.size
-                    except AttributeError:
+                    except AttributeError as error:
                         # noinspection PyUnresolvedReferences
                         self.state.unsubscribeFromUpdates.remote(
                             subscriberName=self.actorName
                         )
                         raise ValueError(
                             "Cannot specify 'all' for number of entities to sample for space with unbounded dimensions"
-                        )
+                        ) from error
                     else:
                         print(
                             f"'all' specified for number of entities to sample. "
@@ -955,7 +955,7 @@ class RandomWalk(Characterize):
 )
 def random_walk(
     discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
+    operationInfo: FunctionOperationInfo | None = None,
     **kwargs: dict,
 ) -> OperationOutput:
     """
@@ -964,6 +964,9 @@ def random_walk(
     """
 
     import orchestrator.modules.module
+
+    if operationInfo is None:
+        operationInfo = FunctionOperationInfo()
 
     module = orchestrator.core.operation.config.OperatorModuleConf(
         moduleName="orchestrator.modules.operators.randomwalk",

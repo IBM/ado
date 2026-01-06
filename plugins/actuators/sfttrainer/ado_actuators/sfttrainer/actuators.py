@@ -89,7 +89,7 @@ def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCata
                 ("ado_sfttrainer_deprecated_experiments", old_experiment_type)
             )
             module = importlib.import_module(name)
-        except (ModuleNotFoundError, ImportError):
+        except (ModuleNotFoundError, ImportError):  # noqa: PERF203
             continue
         else:
             module.inject_deprecated_experiments(catalog=catalog)
@@ -114,7 +114,7 @@ def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
     while pending:
         parent, model = pending.pop(0)
 
-        for key, _value_info in model.model_fields.items():
+        for key, _value_info in model.model_fields.items():  # noqa: PERF102
             value = model.__getattribute__(key)
 
             if isinstance(value, pydantic.BaseModel):
@@ -295,13 +295,10 @@ def prepare_runtime_environment(
 
     # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
 
-    env_vars = {}
-    for key, name in os.environ.items():
-        # VV: Propagate environment variables that are related to pip
-        # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
-        # This is useful for packages that take too long to compile from source like mamba-ssm
-        if key.startswith("PIP_"):
-            env_vars[key] = name
+    # VV: Propagate environment variables that are related to pip
+    # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
+    # This is useful for packages that take too long to compile from source like mamba-ssm
+    env_vars = {key: name for key, name in os.environ.items() if key.startswith("PIP_")}
 
     runtime_env = ray_env_utils.get_ray_environment(
         packages=packages,

@@ -507,11 +507,12 @@ def test_series_representation_multiple_observed(
 
     # Test multiple results for a property
     # Add another result for same experiment
-    values = []
-    for op in test_entity.observedPropertiesFromExperimentReference(
-        result.experimentReference
-    ):
-        values.append(ObservedPropertyValue(value=np.random.random(), property=op))
+    values = [
+        ObservedPropertyValue(value=np.random.random(), property=op)
+        for op in test_entity.observedPropertiesFromExperimentReference(
+            result.experimentReference
+        )
+    ]
 
     second_result = ValidMeasurementResult(
         entityIdentifier=test_entity.identifier,
@@ -670,11 +671,12 @@ def test_experiment_series_multiple_observed(
 
     # Test multiple results for a property
     # Add another result for same experiment
-    values = []
-    for op in test_entity.observedPropertiesFromExperimentReference(
-        result.experimentReference
-    ):
-        values.append(ObservedPropertyValue(value=np.random.random(), property=op))
+    values = [
+        ObservedPropertyValue(value=np.random.random(), property=op)
+        for op in test_entity.observedPropertiesFromExperimentReference(
+            result.experimentReference
+        )
+    ]
 
     second_result = ValidMeasurementResult(
         entityIdentifier=test_entity.identifier,

@@ -161,7 +161,7 @@ class QueueMonitorActor:
                         measurement_request=measurement_request
                     )
 
-            except Exception as error:
+            except Exception as error:  # noqa: PERF203
                 self.logger.warning(
                     f"Unexpected exception in monitor loop: {type(error)} {error}"
                 )

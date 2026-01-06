@@ -287,7 +287,7 @@ def add_operation_output_to_metastore(operation, output, metastore):
                 metastore.addResourceWithRelationships(
                     resource, relatedIdentifiers=[operation.identifier]
                 )
-            except ValueError:
+            except ValueError:  # noqa: PERF203
                 # Assume already added
                 metastore.addRelationship(operation.identifier, resource.identifier)
 

@@ -194,10 +194,7 @@ class RandomSampleSelector(BaseSampler):
                 # see note in remote iterator
                 for walkIndex in range(0, numberEntities, batchsize):
                     selection = walk[walkIndex : walkIndex + batchsize]
-                    selected = []
-                    for i in selection:
-                        selected.append(entities[i])
-
+                    selected = [entities[i] for i in selection]
                     yield selected
 
             return iterator

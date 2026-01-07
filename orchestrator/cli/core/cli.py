@@ -77,7 +77,7 @@ def load_cli_plugins():
                     f"Loaded CLI plugin: {cli_plugin.name} from {cli_plugin.value}"
                 )
             else:
-                cli_logger.warning(
+                cli_logger.error(
                     f"CLI plugin {cli_plugin.name} does not have a 'register' function"
                 )
         except Exception as e:  # noqa: PERF203

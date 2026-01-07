@@ -355,9 +355,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
         # So the dependent experiment will not execute more than once.
         for requestid in waitingRequestIds:
             log.debug(f"Checking if request {requestid} is complete")
-            request = ray.get(
-                driver.getRequest.remote(requestid)
-            )  # type: MeasurementRequest
+            request: MeasurementRequest = ray.get(driver.getRequest.remote(requestid))
             if request is not None:
                 log.debug(
                     f"Request {request} for {request.experimentReference} complete"
@@ -747,13 +745,13 @@ class RayTune(Search):
 
         try:
             # noinspection PyUnresolvedReferences
-            entity_space = (
+            entity_space: EntitySpaceRepresentation = (
                 await self.state.entitySpace.remote()
-            )  # type: EntitySpaceRepresentation
+            )
             # noinspection PyUnresolvedReferences
-            measurement_space = (
+            measurement_space: MeasurementSpace = (
                 await self.state.measurementSpace.remote()
-            )  # type: MeasurementSpace
+            )
 
             metric_or_metrics = self.params.tuneConfig.metric
             # Check all if list, single if str

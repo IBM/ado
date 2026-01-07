@@ -165,13 +165,13 @@ def orchestrate(
                     "Implementing operations as classes is only supported for explore operations"
                 )
         else:
-            output = (
-                operation_resource_configuration.operation.module.operationFunction()(
-                    discovery_space,
-                    operationInfo=operation_info,
-                    **operation_resource_configuration.operation.parameters,
-                )
-            )  # type: OperationOutput
+            output: (
+                OperationOutput
+            ) = operation_resource_configuration.operation.module.operationFunction()(
+                discovery_space,
+                operationInfo=operation_info,
+                **operation_resource_configuration.operation.parameters,
+            )
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
         raise

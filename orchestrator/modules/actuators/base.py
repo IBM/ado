@@ -66,7 +66,7 @@ class ActuatorBase(abc.ABC):
         self.log = logging.getLogger("actuator")
         self._stateUpdateQueue = queue
         self._parameters = params if params is not None else {}
-        self._measurementSpace = None  # type: typing.Optional[MeasurementSpace]
+        self._measurementSpace: MeasurementSpace | None = None
 
     def ready(self):
         """This method is used to determine if the Actuator died on init"""

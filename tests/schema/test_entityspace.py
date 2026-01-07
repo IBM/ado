@@ -28,10 +28,7 @@ def test_entity_space_from_measurement_space(
     # constitutive property called "smiles" with no domain
     # The entity space should have one constitutive property called smiles
 
-    entitySpace = (
-        measurement_space.compatibleEntitySpace()
-    )  # type: EntitySpaceRepresentation
-
+    entitySpace: EntitySpaceRepresentation = measurement_space.compatibleEntitySpace()
     assert len(entitySpace.constitutiveProperties) == 1
     assert entitySpace.constitutiveProperties[0].identifier == "smiles"
 

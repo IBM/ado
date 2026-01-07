@@ -141,9 +141,7 @@ class ValidMeasurementResult(MeasurementResult):
                 if not virtual_observed_properties:
                     continue
 
-                for (
-                    virtual_observed_property
-                ) in virtual_observed_properties:  # type: VirtualObservedProperty
+                for virtual_observed_property in virtual_observed_properties:
                     if output_format == "target":
                         rep[
                             virtual_observed_property.virtualTargetPropertyIdentifier

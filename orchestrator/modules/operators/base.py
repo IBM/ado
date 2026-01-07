@@ -228,7 +228,6 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         params: typing.Any = None,
         metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
     ):
-        # Common code for StateSubscribingDiscoveryOperations
         self.state = state
         self.actorName = operationActorName
         self.namespace = namespace

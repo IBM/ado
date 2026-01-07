@@ -447,7 +447,7 @@ class RandomWalk(Characterize):
         # IMPORTANT: We can map one request index/one retry as we know in RandomWalk
         # we only submit one entity per request -> we know only one MeasurementRequest will be created for each request
         # If this was not true we would need to use the entity id+requestIndex
-        self._retriedExperimentRequests = {}  # type: dict[int, RequestRetry]
+        self._retriedExperimentRequests: dict[int, RequestRetry] = {}
 
         # Sets state, actorName ivars and subscribes to the state
         super().__init__(
@@ -488,7 +488,7 @@ class RandomWalk(Characterize):
         )
 
         # noinspection PyUnresolvedReferences
-        ds = await self.state.discoverySpace.remote()  # type: DiscoverySpace
+        ds: DiscoverySpace = await self.state.discoverySpace.remote()
 
         measurement_space = ds.measurementSpace
         entity_space: EntitySpaceRepresentation | None = ds.entitySpace
@@ -530,7 +530,7 @@ class RandomWalk(Characterize):
                     f"This is {number_entities} entities - the number of entities in the sample store"
                 )
         else:
-            number_entities = self.params.numberEntities  # type: int
+            number_entities: int = self.params.numberEntities
 
         if entity_space is not None and entity_space.isDiscreteSpace:
             try:
@@ -664,9 +664,9 @@ class RandomWalk(Characterize):
             )
 
             # Wait for a finished measurement request or an error
-            measurement_request = (
+            measurement_request: MeasurementRequest | Exception = (
                 await self.update_queue.get()
-            )  # type: typing.Union[MeasurementRequest | Exception]
+            )
             if isinstance(measurement_request, Exception):
                 self.criticalError = True
                 self.log.critical(

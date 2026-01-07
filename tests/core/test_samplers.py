@@ -22,20 +22,17 @@ from orchestrator.schema.measurementspace import MeasurementSpace
 
 @pytest.fixture(params=[WalkModeEnum.RANDOM, WalkModeEnum.SEQUENTIAL])
 def walk_mode(request):
-
     return request.param
 
 
 @pytest.fixture
 def explicit_entity_space(constitutive_property_configuration_general):
-
     return EntitySpaceRepresentation(constitutive_property_configuration_general)
 
 
 def test_explicit_space_grid_sampler_entity_space_iterator(
     explicit_entity_space, walk_mode
 ):
-
     if not explicit_entity_space.isDiscreteSpace:
         assert (
             ExplicitEntitySpaceGridSampleGenerator.samplerCompatibleWithEntitySpace(
@@ -61,7 +58,7 @@ def test_explicit_space_grid_sampler_entity_space_iterator(
         )
 
         for entityBatch in iterator:
-            for entity in entityBatch:  # type: Entity
+            for entity in entityBatch:
                 count += 1
                 cps = [c.identifier for c in entity.constitutiveProperties]
                 assert len([k for k in cps if k not in names]) == 0
@@ -112,7 +109,6 @@ def test_explicit_space_grid_sampler_entity_space_iterator(
 async def test_explicit_space_grid_sampler_async_entity_iterator(
     ml_multi_cloud_space, walk_mode
 ):
-
     space = ml_multi_cloud_space
     if not space.entitySpace.isDiscreteSpace:
         assert (
@@ -147,7 +143,7 @@ async def test_explicit_space_grid_sampler_async_entity_iterator(
         )
 
         async for entityBatch in iterator:
-            for entity in entityBatch:  # type: Entity # noqa: B007
+            for entity in entityBatch:  # noqa: B007
                 count += 1
 
         if walk_mode == WalkModeEnum.SEQUENTIAL:
@@ -193,7 +189,6 @@ async def test_explicit_space_grid_sampler_async_entity_iterator(
 
 
 def test_explicit_space_grid_sampler_entity_iterator(ml_multi_cloud_space, walk_mode):
-
     space = ml_multi_cloud_space
     if not space.entitySpace.isDiscreteSpace:
         assert (
@@ -217,7 +212,7 @@ def test_explicit_space_grid_sampler_entity_iterator(ml_multi_cloud_space, walk_
         iterator = sampler.entityIterator(discoverySpace=space, batchsize=5)
 
         for entityBatch in iterator:
-            for entity in entityBatch:  # type: Entity # noqa: B007
+            for entity in entityBatch:  # noqa: B007
                 count += 1
 
         if walk_mode == WalkModeEnum.SEQUENTIAL:
@@ -266,7 +261,6 @@ def test_explicit_space_grid_sampler_entity_iterator(ml_multi_cloud_space, walk_
 async def test_random_sample_selector(
     ml_multi_cloud_space,
 ):
-
     space = ml_multi_cloud_space
     sampler = RandomSampleSelector()
     count = 0
@@ -306,7 +300,6 @@ async def test_random_sample_selector(
 async def test_sequential_sample_selector(
     ml_multi_cloud_space,
 ):
-
     space = ml_multi_cloud_space
     assert space.sample_store.numberOfEntities % 5 != 0
 
@@ -352,7 +345,6 @@ async def test_sequential_sample_selector(
 def test_sample_random_entity(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
 ):
-
     exp = measurement_space_from_single_parameterized_experiment.experiments[0]
     if not exp.requiredProperties:
         pytest.skip(

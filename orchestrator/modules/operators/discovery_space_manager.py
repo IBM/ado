@@ -139,7 +139,7 @@ class DiscoverySpaceManager:
         self._discoverySpace = space
 
         self.log.debug(f"Accessing DiscoverySpace {self._discoverySpace.uri}")
-        self._subscribers = {}  # type: {str:DiscoverySpaceUpdateSubscriber}
+        self._subscribers: dict[str, DiscoverySpaceUpdateSubscriber] = {}
         self.isalive = True
         self.iscompleted = False
         # Required to keep a strong ref to the co-routine created by create_task in startMonitoring
@@ -240,9 +240,9 @@ class DiscoverySpaceManager:
             measurement_request: MeasurementRequest | None = None
             try:
                 self.log.debug("Waiting for new measurement")
-                measurement_request = await self._measurement_queue.get_async(
-                    block=True, timeout=5
-                )  # type: MeasurementRequest
+                measurement_request: MeasurementRequest = (
+                    await self._measurement_queue.get_async(block=True, timeout=5)
+                )
                 self._discoverySpace.addMeasurement(measurement_request)
             except ray.util.queue.Empty:
                 # e object to help in debugging

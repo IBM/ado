@@ -544,7 +544,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         # Local
         for entity in entities:
-            storedEntity = self._entities.get(entity.identifier)  # type: Entity
+            storedEntity: Entity = self._entities.get(entity.identifier)
             if storedEntity is not None:
                 # Merge the entities property values measured here and upsert the result
                 if experiments is not None and len(experiments) != 0:

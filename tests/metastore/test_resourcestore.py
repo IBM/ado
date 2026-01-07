@@ -19,7 +19,11 @@ import orchestrator.metastore.sqlstore
 import orchestrator.modules.module
 import orchestrator.modules.operators.base
 import orchestrator.modules.operators.collections
-from orchestrator.core.datacontainer.resource import DataContainerResource
+from orchestrator.core import SampleStoreResource
+from orchestrator.core.datacontainer.resource import (
+    DataContainer,
+    DataContainerResource,
+)
 from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
 from orchestrator.core.operation.resource import OperationResource
 from orchestrator.core.resources import (
@@ -273,9 +277,9 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     sql_store.updateResource(updatedResource)
 
     # Check the update was made
-    resource = sql_store.getResource(
+    resource: OperationResource = sql_store.getResource(
         operation_resource.identifier, kind=CoreResourceKinds.OPERATION
-    )  # type: OperationResource
+    )
     print(resource.metadata)
     assert resource.metadata["new_samples_generated"] == 10
     assert resource.metadata["entities_submitted"] == 20
@@ -358,9 +362,7 @@ def test_add_operation_and_output(
     assert res.status[0].event == ADOResourceEventEnum.CREATED
     assert res.status[1].event == ADOResourceEventEnum.ADDED
 
-    data_container = (
-        res.config
-    )  # type: orchestrator.core.datacontainer.resource.DataContainer
+    data_container: DataContainer = res.config
     for k in data_container.tabularData:
         assert (
             data_container.tabularData[k].data
@@ -472,11 +474,9 @@ def test_custom_sample_store_loading(
 
     assert custom["config"]["specification"].get("storageLocation") is None
 
-    model = orchestrator.metastore.base.kind_custom_model_load[
+    model: SampleStoreResource = orchestrator.metastore.base.kind_custom_model_load[
         active_contest_test_sample_store_resource.kind.value
-    ](
-        custom, ado_test_file_project_context.metadataStore
-    )  # type: orchestrator.core.samplestore.resource.SampleStoreResource
+    ](custom, ado_test_file_project_context.metadataStore)
 
     assert (
         model.config.specification.storageLocation

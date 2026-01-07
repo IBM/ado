@@ -21,6 +21,7 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.core.resources import ADOResourceEventEnum, CoreResourceKinds
 from orchestrator.modules.module import load_module_class_or_function
+from orchestrator.modules.operators.base import DiscoveryOperationBase
 
 
 @pytest.fixture
@@ -140,9 +141,7 @@ def test_operation_config_file_valid(valid_operation_config_file):
     except AttributeError:
         pass
     else:
-        moduleClass = load_module_class_or_function(
-            module
-        )  # type: "orchestrator.modules.operators.base.DiscoveryOperationBase"
+        moduleClass: DiscoveryOperationBase = load_module_class_or_function(module)
         moduleClass.validateOperationParameters(parameters=op_cfg.parameters)
 
 

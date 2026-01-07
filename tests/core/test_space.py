@@ -77,7 +77,7 @@ def test_discovery_space_with_parameterized_experiments(
     )
 
     # create a compatible entityspace
-    es = ms.compatibleEntitySpace()  # type: EntitySpaceRepresentation
+    es: EntitySpaceRepresentation = ms.compatibleEntitySpace()
 
     # Try creating a space
     DiscoverySpace(

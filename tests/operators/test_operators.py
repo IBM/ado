@@ -18,6 +18,7 @@ from orchestrator.core.discoveryspace.samplers import (
     SequentialSampleSelector,
     WalkModeEnum,
 )
+from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.operation.resource import (
     DiscoveryOperationResourceConfiguration,
     OperationExitStateEnum,
@@ -453,9 +454,9 @@ def test_random_walk_fail_invalid_config(
     # as it is detected at RandomWalk.run() not during configuration validation (which can't check this as it has no access to the space)
     # This is captured and raise as a OperationException
     try:
-        random_walk(
+        _: OperationOutput = random_walk(
             discoverySpace, **invalidRandomWalkConf.operation.parameters
-        )  # type: orchestrator.modules.operators.base.OperationOutput
+        )
     except orchestrator.core.operation.operation.OperationException as error:
         operation = error.operation
         assert operation

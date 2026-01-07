@@ -39,6 +39,7 @@ moduleLog = logging.getLogger("explore_orchestration")
 if typing.TYPE_CHECKING:
     from orchestrator.modules.actuators.base import ActuatorActor
     from orchestrator.modules.operators.base import (
+        DiscoverySpaceSubscribingDiscoveryOperation,
         OperatorActor,
     )
     from orchestrator.modules.operators.discovery_space_manager import (
@@ -156,7 +157,7 @@ def run_explore_operation_core_closure(
             operation_future=future,
         )
 
-        return ray.get(future)  # type: OperationOutput
+        return ray.get(future)
 
     return _run_explore_operation_core
 
@@ -242,15 +243,14 @@ def orchestrate_explore_operation(
     #
     # DISCOVERY SPACE MANAGER
     #
-
-    # noinspection PyUnresolvedReferences
-    discovery_space_manager = DiscoverySpaceManager.options(
+    discovery_space_manager: DiscoverySpaceManagerActor = DiscoverySpaceManager.options(
         namespace=operation_info.ray_namespace
     ).remote(
         queue=measurement_queue,
         space=discovery_space,
         namespace=operation_info.ray_namespace,
-    )  # type: "InternalStateActor"
+    )
+
     moduleLog.debug(
         f"Waiting for discovery space manager to be ready: {discovery_space_manager}"
     )
@@ -262,20 +262,20 @@ def orchestrate_explore_operation(
     #
 
     # Validate the parameters for the operation
-    operator_class = load_module_class_or_function(
-        operator_module
-    )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
+    operator_class: DiscoverySpaceSubscribingDiscoveryOperation = (
+        load_module_class_or_function(operator_module)
+    )
     operator_class.validateOperationParameters(parameters)
 
     # Create operator actor
-    operator = orchestrator.modules.operators.setup.setup_operator(
+    operator: OperatorActor = orchestrator.modules.operators.setup.setup_operator(
         operator_module=operator_module,
         parameters=parameters,
         discovery_space=discovery_space,
         actuators=actuators,
         namespace=operation_info.ray_namespace,
         state=discovery_space_manager,
-    )  # type: "OperatorActor"
+    )
     identifier = ray.get(operator.operationIdentifier.remote())
 
     explore_run_closure = run_explore_operation_core_closure(

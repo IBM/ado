@@ -97,9 +97,9 @@ class MeasurementSpace:
         for ref in selectedExperiments:
             log.debug(f"looking for experiment {ref}")
             try:
-                experiment = globalRegistry.experimentForReference(
+                experiment: Experiment = globalRegistry.experimentForReference(
                     ref, experimentCatalogs
-                )  # type: Experiment
+                )
             except (
                 orchestrator.modules.actuators.registry.UnknownExperimentError,
                 orchestrator.modules.actuators.registry.UnknownActuatorError,
@@ -144,12 +144,12 @@ class MeasurementSpace:
 
         """
 
-        stringRepresentations = [
+        stringRepresentations: list[str] = [
             r for r in experimentReferences if not isinstance(r, ExperimentReference)
-        ]  # type: typing.List[str]
-        referenceModels = [
+        ]
+        referenceModels: list[ExperimentReference] = [
             r for r in experimentReferences if isinstance(r, ExperimentReference)
-        ]  # type: import orchestrator.schema.experiment_reference
+        ]
 
         references = [
             ExperimentReference.referenceFromString(x) for x in stringRepresentations

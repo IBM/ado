@@ -20,9 +20,7 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
-    from orchestrator.modules.actuators.base import (
-        ActuatorBase,
-    )
+    from orchestrator.modules.actuators.base import ActuatorBase
 
 configure_logging()
 
@@ -70,31 +68,27 @@ class ActuatorRegistry:
     ):
         """Detects and loads Actuator plugins"""
 
-        # Mpass actuator ids to actuator configurations: G
-        self.actuatorConfigurationMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, "orchestrator.model.config.GenericActuatorParameters"]
-        if actuator_configurations:
-            self.actuatorConfigurationMap.update(actuator_configurations)
-
-        # Maps actuator ids to ActuatorBase instances
-        self.actuatorIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, "orchestrator.actuators.base.BaseActuator"]
-        # Maps actuator ids to ExperimentCatalog instances
-        self.catalogIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, ExperimentCatalog]
-        self.log = logging.getLogger("registry")
-        self.id = uuid.uuid4()
-
-        # We handle builtin actuators
         import importlib.resources
         import inspect
         import pkgutil
 
         import orchestrator.modules.actuators as builtin_actuators
         from orchestrator.modules.actuators.base import ActuatorBase, ActuatorModuleConf
+
+        # Maps actuator ids to actuator configurations
+        self.actuatorConfigurationMap: dict[str, GenericActuatorParameters] = {}
+        if actuator_configurations:
+            self.actuatorConfigurationMap.update(actuator_configurations)
+
+        # Maps actuator ids to ActuatorBase instances
+        self.actuatorIdentifierMap: dict[str, ActuatorBase] = {}
+
+        # Maps actuator ids to ExperimentCatalog instances
+        self.catalogIdentifierMap: dict[str, ExperimentCatalog] = {}
+        self.log = logging.getLogger("registry")
+        self.id = uuid.uuid4()
+
+        # We handle builtin actuators
 
         for module in pkgutil.iter_modules(
             builtin_actuators.__path__, f"{builtin_actuators.__name__}."
@@ -252,10 +246,7 @@ class ActuatorRegistry:
             CatalogConfigurationRequirementEnum,
         )
 
-        actuator = self.actuatorForIdentifier(
-            actuatorid=actuatorid
-        )  # type: ActuatorBase
-
+        actuator: ActuatorBase = self.actuatorForIdentifier(actuatorid=actuatorid)
         cfg = None
         try:
             catalog = self.catalogIdentifierMap[actuatorid]

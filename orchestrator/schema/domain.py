@@ -275,11 +275,8 @@ class ProbabilityFunction(pydantic.BaseModel):
             return not other.parameters
 
         # This instance has parameters. The other instance should
-        # have the same amount of parameters, and the parameters
-        # should be of the same value
-        if not other.parameters or len(self.parameters.keys()) != len(
-            other.parameters.keys()
-        ):
+        # have the same parameter keys and values
+        if not other.parameters or self.parameters.keys() != other.parameters.keys():
             logging.debug(
                 f"The other probability function has a different number of parameters: {self.parameters, other.parameters}"
             )

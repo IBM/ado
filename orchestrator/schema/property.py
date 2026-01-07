@@ -47,12 +47,16 @@ class PropertyDescriptor(pydantic.BaseModel):
 
         return value
 
-    def __eq__(self, other: "Property"):
+    def __eq__(self, other: object):
         """Two PropertyDescriptors are considered the same if they have the same identifier
 
         A PropertyDescriptor will be equal to a Property if it has the same identifier.
 
         Metadata is not included"""
+
+        if not isinstance(other, (Property, PropertyDescriptor)):
+            return False
+
         return hasattr(other, "identifier") and self.identifier == other.identifier
 
     def _repr_pretty_(self, p, cycle=False):

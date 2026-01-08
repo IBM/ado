@@ -40,7 +40,7 @@ valueTypesDisplayNames = {
 # which is what fields using "bytes" type will be annotated with
 # Using this annotated type for a model field will cause its json schema not
 # to use binary, but instead specify it is a base64 string
-Bytes = Annotated[
+CustomBytes = Annotated[
     bytes,
     WithJsonSchema(
         # keep it as a plain string; add an optional hint for consumers
@@ -56,7 +56,7 @@ class PropertyValue(pydantic.BaseModel):
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
-    value: int | float | list | str | Bytes | None = pydantic.Field(
+    value: int | float | list | str | CustomBytes | None = pydantic.Field(
         description="The measured value."
     )
     property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(

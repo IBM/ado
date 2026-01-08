@@ -54,10 +54,10 @@ class PropertyDescriptor(pydantic.BaseModel):
 
         Metadata is not included"""
 
-        if not isinstance(other, (Property, PropertyDescriptor)):
-            return False
-
-        return hasattr(other, "identifier") and self.identifier == other.identifier
+        return (
+            isinstance(other, (Property, PropertyDescriptor))
+            and self.identifier == other.identifier
+        )
 
     def _repr_pretty_(self, p, cycle=False):
 

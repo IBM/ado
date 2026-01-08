@@ -45,9 +45,9 @@ dependencies = [
 [project.urls]
 Homepage = "https://ibm.github.io/ado/"
 #Documentation = "https://readthedocs.org"
-Repository = "https://github.com/ibm/ado.git"
-Issues = "https://github.com/ibm/ado/issues"
-Changelog = "https://github.com/ibm/ado/CHANGELOG.md"
+Repository = "https://github.com/IBM/ado"
+Issues = "https://github.com/IBM/ado/issues"
+Changelog = "https://github.com/IBM/ado/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [

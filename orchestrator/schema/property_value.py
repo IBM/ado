@@ -7,7 +7,7 @@ import typing
 from typing import Annotated
 
 import pydantic
-from pydantic import WithJsonSchema, Base64Bytes
+from pydantic import WithJsonSchema
 
 from orchestrator.schema.property import (
     ConstitutiveProperty,
@@ -34,14 +34,18 @@ valueTypesDisplayNames = {
 }
 
 
-# Format bytes as a base64 string to help with structured decoding methods.
-# Override the default Pydantic JSON schema:
-#   {"format": "base64", "type": "string", "title": ...}
-# to play well with some structured decoding libraries that raise grammar
-# errors (e.g., Outlines).
-CustomBase64Bytes = Annotated[
-    Base64Bytes,
-    WithJsonSchema({"type": "string", "contentEncoding": "base64"}),
+# A type to help with bytes value type + JSON + structured decoding.
+# Structured decoding methods uses the model json schema to constrain value generation
+# However these methods do not support fields with "binary" value types in schema
+# which is what fields using "bytes" type will be annotated with
+# Using this annotated type for a model field will cause its json schema not
+# to use binary, but instead specify it is a base64 string
+Bytes = Annotated[
+    bytes,
+    WithJsonSchema(
+        # keep it as a plain string; add an optional hint for consumers
+        {"type": "string", "contentEncoding": "base64"},
+    ),
 ]
 
 
@@ -52,7 +56,7 @@ class PropertyValue(pydantic.BaseModel):
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
-    value: int | float | list | str | CustomBase64Bytes | None = pydantic.Field(
+    value: int | float | list | str | Bytes | None = pydantic.Field(
         description="The measured value."
     )
     property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(

@@ -186,12 +186,12 @@ class Experiment(pydantic.BaseModel):
 
         if not value:
             if values.data.get("optionalProperties"):
-                raise AssertionError(
+                raise ValueError(
                     "optionalProperties specified without parameterization"
                 )
         else:
             if not values.data.get("optionalProperties"):
-                raise AssertionError(
+                raise ValueError(
                     "default parameterization specified without optionalProperties being specified"
                 )
             try:
@@ -209,7 +209,7 @@ class Experiment(pydantic.BaseModel):
                     if mapping.get(v.identifier) is None
                 ]
                 if len(isNotParameterized) > 0:
-                    raise AssertionError(
+                    raise ValueError(
                         f"optionalProperties do not have default parameterization. Missing: {[v.identifier for v in isNotParameterized]}"
                     )
 

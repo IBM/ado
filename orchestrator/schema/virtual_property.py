@@ -189,9 +189,10 @@ class VirtualObservedProperty(pydantic.BaseModel):
             )
 
             # This can only ha
-            assert (
-                virtual_observed_property.identifier == identifier
-            ), f"InternalInconsistency: A VirtualObservedProperty instance created by parsing the identifier string, {identifier}, has a different value of the identifier property, {virtual_observed_property.identifier}, when it should be the same"
+            if virtual_observed_property.identifier != identifier:
+                raise ValueError(
+                    f"InternalInconsistency: A VirtualObservedProperty instance created by parsing the identifier string, {identifier}, has a different value of the identifier property, {virtual_observed_property.identifier}, when it should be the same"
+                )
 
             virtual_observed_properties = [virtual_observed_property]
 

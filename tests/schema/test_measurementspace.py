@@ -536,6 +536,7 @@ def test_experiments_applied_to_entity_single(
 
     import numpy.random
 
+    rng = numpy.random.default_rng()
     exp: Experiment = (
         measurement_space_from_single_parameterized_experiment.experiments[0]
     )
@@ -544,7 +545,7 @@ def test_experiments_applied_to_entity_single(
     # Create a measurement result
     #
     values = [
-        ObservedPropertyValue(value=numpy.random.random(), property=op)
+        ObservedPropertyValue(value=rng.random(), property=op)
         for op in exp.observedProperties
     ]
 
@@ -565,7 +566,7 @@ def test_experiments_applied_to_entity_single(
     #
     values = []
     for op in exp.observedProperties:
-        values.append(ObservedPropertyValue(value=numpy.random.random(), property=op))
+        values.append(ObservedPropertyValue(value=rng.random(), property=op))
 
     result = ValidMeasurementResult(
         entityIdentifier=entity.identifier, measurements=values
@@ -602,9 +603,10 @@ def test_experiments_applied_to_entity_multiple(
     #
     import numpy as np
 
+    rng = np.random.default_rng()
     for exp in measurement_space_from_multiple_parameterized_experiments.experiments:
         values = [
-            ObservedPropertyValue(value=np.random.random(), property=op)
+            ObservedPropertyValue(value=rng.random(), property=op)
             for op in exp.observedProperties
         ]
 
@@ -627,7 +629,7 @@ def test_experiments_applied_to_entity_multiple(
     for exp in measurement_space_from_multiple_parameterized_experiments.experiments:
         values = []
         for op in exp.observedProperties:
-            values.append(ObservedPropertyValue(value=np.random.random(), property=op))
+            values.append(ObservedPropertyValue(value=rng.random(), property=op))
 
         result = ValidMeasurementResult(
             entityIdentifier=entity.identifier, measurements=values
@@ -686,7 +688,7 @@ def test_dependent_experiments_single(
 
     exp = measurement_space_from_single_parameterized_experiment.experiments[0]
     values = [
-        ObservedPropertyValue(value=numpy.random.random(), property=op)
+        ObservedPropertyValue(value=numpy.random.default_rng().random(), property=op)
         for op in exp.observedProperties
     ]
 
@@ -849,6 +851,7 @@ def test_dependent_experiments_multiple(
     import numpy.random
 
     # Here we find the experiment in the MS that matches the requirements of the dependent experiment
+    rng = numpy.random.default_rng()
     required_experiment = None
     for (
         r
@@ -863,7 +866,7 @@ def test_dependent_experiments_multiple(
     # Generate random values for the observed properties
     #
     values = [
-        ObservedPropertyValue(value=numpy.random.random(), property=op)
+        ObservedPropertyValue(value=rng.random(), property=op)
         for op in required_experiment.observedProperties
     ]
 
@@ -917,7 +920,7 @@ def test_dependent_experiments_multiple(
 
     values = []
     for op in dependent_exp.observedProperties:
-        values.append(ObservedPropertyValue(value=numpy.random.random(), property=op))
+        values.append(ObservedPropertyValue(value=rng.random(), property=op))
 
     # Create a measurement result
     result = ValidMeasurementResult(

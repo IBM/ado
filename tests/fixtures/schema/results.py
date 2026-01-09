@@ -44,7 +44,7 @@ def valid_measurement_result_and_entity(
 
     # Add a result
     values = [
-        ObservedPropertyValue(value=np.random.random(), property=op)
+        ObservedPropertyValue(value=np.random.default_rng().random(), property=op)
         for op in exp.observedProperties
     ]
 

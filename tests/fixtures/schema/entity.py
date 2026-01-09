@@ -45,11 +45,12 @@ def value_for_value_type() -> (
         vector_width = 2
         string_length = 8
         blob_length_bytes = 16
+        rng = np.random.default_rng()
 
         if value_type == ValueTypeEnum.NUMERIC_VALUE_TYPE:
-            value = np.random.rand()
+            value = rng.random()
         elif value_type == ValueTypeEnum.VECTOR_VALUE_TYPE:
-            value = list(np.random.rand(vector_length, vector_width))
+            value = list(rng.random(vector_length, vector_width))
         elif value_type == ValueTypeEnum.STRING_VALUE_TYPE:
             value = "".join(
                 random.choices(string.ascii_letters + string.digits, k=string_length)

@@ -33,7 +33,7 @@ async def mock_experiment_wait(
 
     import numpy as np
 
-    await asyncio.sleep(np.random.randint(1, 5))
+    await asyncio.sleep(np.random.default_rng().integers(1, 5))
 
     numberSuccessfulMeasurements = functools.reduce(
         lambda x, y: x + y,

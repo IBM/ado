@@ -22,9 +22,10 @@ def my_experiment(**kwargs) -> dict[str, typing.Any]:
     # Put your logic here
     # IMPORTANT: The keys of this dict must match the identifiers given for the outputs of the experiment in experiments.yaml
     # Here we just put some random values for testing purposes
+    rng = np.random.default_rng()
     return {
-        "adsorption_timeseries": [np.random.random() for i in range(10)],
-        "adsorption_plateau_value": np.random.random(),
+        "adsorption_timeseries": [rng.random() for i in range(10)],
+        "adsorption_plateau_value": rng.random(),
     }
 
 

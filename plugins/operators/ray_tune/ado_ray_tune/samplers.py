@@ -22,8 +22,8 @@ class LhuSampler(ray.tune.search.Searcher):
         entity_space: EntitySpaceRepresentation | None = None,
     ):
 
-        if mode:
-            assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
+        if mode and mode not in {"max", "min"}:
+            raise ValueError(f"mode must be either max or min (was {mode})")
 
         super().__init__(
             metric=metric,

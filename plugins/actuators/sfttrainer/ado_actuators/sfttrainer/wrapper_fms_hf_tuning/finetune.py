@@ -877,10 +877,10 @@ def calculate_tokens_in_text_dataset(
     tokenizer = AutoTokenizer.from_pretrained(path_model)
     special_tokens_dict = {}
 
-    DEFAULT_PAD_TOKEN = "<PAD>"
-    DEFAULT_EOS_TOKEN = "</s>"
-    DEFAULT_BOS_TOKEN = "<s>"
-    DEFAULT_UNK_TOKEN = "<unk>"
+    DEFAULT_PAD_TOKEN = "<PAD>"  # noqa: S105
+    DEFAULT_EOS_TOKEN = "</s>"  # noqa: S105
+    DEFAULT_BOS_TOKEN = "<s>"  # noqa: S105
+    DEFAULT_UNK_TOKEN = "<unk>"  # noqa: S105
 
     if tokenizer.pad_token is None:
         log.warning("PAD token set to default, missing in tokenizer")

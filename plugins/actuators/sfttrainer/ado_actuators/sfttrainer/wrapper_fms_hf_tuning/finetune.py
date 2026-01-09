@@ -930,7 +930,7 @@ def get_cache_file_for_tokens_per_sample(
     # we use the md5 hash of the file as part of the cache id
     import hashlib
 
-    digest = hashlib.md5()
+    digest = hashlib.md5(usedforsecurity=False)
 
     with open(path_data, "rb") as f:
         b = f.read(32768)

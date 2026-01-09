@@ -333,8 +333,8 @@ class CSVSampleStore(PassiveSampleStore):
         import hashlib
 
         # hash experiment/properties
-        h = (
-            hashlib.md5()
+        h = hashlib.md5(
+            usedforsecurity=False
         )  # Construct a hash object using our selected hashing algorithm
         for op in self._observedProperties:
             h.update(

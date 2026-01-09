@@ -151,10 +151,14 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
     ):
 
         if (
-            values.data.get("mode") == CombinedWalkModeEnum.RANDOMGROUPED
-            or values.data.get("mode") == CombinedWalkModeEnum.SEQUENTIALGROUPED
+            values.data.get("mode")
+            in {
+                CombinedWalkModeEnum.RANDOMGROUPED,
+                CombinedWalkModeEnum.SEQUENTIALGROUPED,
+            }
+            and len(grouping) == 0
         ):
-            assert len(grouping) > 0, (
+            raise ValueError(
                 f"grouping {grouping} has to contain some names for the grouping "
                 f'mode {values.data.get("mode")}'
             )
@@ -360,8 +364,11 @@ class RandomWalkParameters(pydantic.BaseModel):
     @pydantic.field_validator("batchSize")
     def validate_runtime_config(cls, value, values: "pydantic.FieldValidationInfo"):
 
-        if values.data.get("numberEntities") != "all":
-            assert values.data.get("numberEntities") >= value, (
+        if (
+            values.data.get("numberEntities") != "all"
+            and values.data.get("numberEntities") < value
+        ):
+            raise ValueError(
                 f'Number of entities to sample {values.data.get("numberEntities")} '
                 f"cannot be less than batch size {value}"
             )

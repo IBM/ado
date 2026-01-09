@@ -45,9 +45,11 @@ class SampleStoreSpecification(pydantic.BaseModel):
     @classmethod
     def check_is_resource_location_subclass(cls, storageLocation: typing.Any):
 
-        if storageLocation is not None:
-            assert isinstance(
-                storageLocation, orchestrator.utilities.location.ResourceLocation
+        if storageLocation is not None and not isinstance(
+            storageLocation, orchestrator.utilities.location.ResourceLocation
+        ):
+            raise ValueError(
+                "The storageLocation field must be a ResourceLocation subclass"
             )
 
         return storageLocation
@@ -119,8 +121,12 @@ class SampleStoreConfiguration(pydantic.BaseModel):
         moduleClass = orchestrator.modules.module.load_module_class_or_function(
             value.module
         )
-        assert issubclass(
+
+        if not issubclass(
             moduleClass, orchestrator.core.samplestore.base.ActiveSampleStore
-        ), f"SampleStore module {moduleClass} is not active"
+        ):
+            raise ValueError(
+                f"SampleStore module {moduleClass} is not an ActiveSampleStore"
+            )
 
         return value

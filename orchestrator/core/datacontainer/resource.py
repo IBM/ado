@@ -80,9 +80,10 @@ class DataContainer(pydantic.BaseModel):
     @pydantic.model_validator(mode="after")
     def test_data_present(self):
 
-        assert (
-            self.tabularData or self.locationData or self.data
-        ), "All data fields empty in DataContainer"
+        if not (self.tabularData or self.locationData or self.data):
+            raise ValueError(
+                "All data fields of the DataContainer (tabularData, locationData, data) were empty."
+            )
 
         return self
 

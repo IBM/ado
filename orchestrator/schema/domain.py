@@ -344,10 +344,11 @@ class PropertyDomain(pydantic.BaseModel):
         cls, interval, values: "pydantic.FieldValidationInfo"
     ):
 
-        if interval is not None:
-            assert (
-                values.data.get("values") is None
-            ), f"Cannot specify interval ({interval} if values are specified ({values.data.get('values')}"
+        if interval is not None and values.data.get("values") is not None:
+            raise ValueError(
+                "Cannot specify both interval and values in a PropertyDomain. "
+                f"Values were: {values.data.get('values')}. Interval was: {interval}"
+            )
 
         return interval
 
@@ -404,25 +405,61 @@ class PropertyDomain(pydantic.BaseModel):
                 value = VariableTypeEnum.DISCRETE_VARIABLE_TYPE
 
         if value == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
-            assert values.data.get("values") is not None
-            assert values.data.get("interval") is None
-            if not all(
-                isinstance(e, numbers.Number) for e in values.data.get("values")
+
+            if values.data.get("values") is None:
+                raise ValueError(
+                    "The values field for a CATEGORICAL_VARIABLE_TYPE was None"
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field for a CATEGORICAL_VARIABLE_TYPE was not None"
+                )
+
+            if (
+                not all(
+                    isinstance(e, numbers.Number) for e in values.data.get("values")
+                )
+                and values.data.get("domainRange") is not None
             ):
-                assert values.data.get("domainRange") is None
+                raise ValueError(
+                    "The domainRange field was not None for a CATEGORICAL_VARIABLE_TYPE "
+                    "where the values are not all numbers"
+                )
+
         elif value == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             # Discrete must have either values or an interval
             # If it has a range it must have an interval
             valuesCheck = values.data.get("values") is not None
             intervalCheck = values.data.get("interval") is not None
-            assert valuesCheck or intervalCheck
+            if not (valuesCheck or intervalCheck):
+                raise ValueError(
+                    "A DISCRETE_VARIABLE_TYPE had neither values nor interval specified"
+                )
 
         elif value == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-            assert values.data.get("values") is None
-            assert values.data.get("interval") is None
+
+            if values.data.get("values") is not None:
+                raise ValueError(
+                    "The values field of a CONTINUOUS_VARIABLE_TYPE was not None"
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field of a CONTINUOUS_VARIABLE_TYPE was not None"
+                )
+
         elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
-            assert values.data.get("interval") is None
-            assert values.data.get("domainRange") is None
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                )
+
+            if values.data.get("domainRange") is not None:
+                raise ValueError(
+                    "The domainRange field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                )
 
         return value
 

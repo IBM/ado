@@ -166,14 +166,17 @@ class Experiment(pydantic.BaseModel):
             )
 
         # Check no optional property is a required property
-        assert (
+        if (
             len(
                 {p.identifier for p in optionalProperties}.intersection(
                     {p.identifier for p in values.data.get("requiredProperties")}
                 )
             )
-            == 0
-        )
+            != 0
+        ):
+            raise ValueError(
+                "One or more optional properties were also in the required properties"
+            )
 
         return optionalProperties
 
@@ -460,7 +463,8 @@ class Experiment(pydantic.BaseModel):
                 baseObservedProperty=op, aggregationMethod=aggregationMethod
             )
             print(vp.identifier, identifier)
-            assert vp.identifier == identifier
+            if vp.identifier != identifier:
+                raise ValueError("Mismatch between property identifiers")
             retval = vp
         else:
             # Not an observed property - Check if it's a target property
@@ -475,10 +479,13 @@ class Experiment(pydantic.BaseModel):
                 vp = VirtualObservedProperty(
                     baseObservedProperty=op, aggregationMethod=aggregationMethod
                 )
-                assert (
+
+                if (
                     vp.baseObservedProperty.targetProperty.identifier
-                    == propertyIdentifier
-                )
+                    != propertyIdentifier
+                ):
+                    raise ValueError("Mismatch between property identifiers")
+
                 retval = vp
             else:
                 # Not observed or target property - return None
@@ -784,7 +791,8 @@ class ParameterizedExperiment(Experiment):
     ):
 
         # Check it's not empty - it is raise error as should use ParameterizedExperiment
-        assert parameterization, "Custom parameterization cannot be empty"
+        if not parameterization:
+            raise ValueError("Custom parameterization cannot be empty")
 
         # Someone could try to initialize this object with a parameterization
         # but no optionalParameters or defaultParameterization
@@ -793,9 +801,10 @@ class ParameterizedExperiment(Experiment):
         # class validators will check for the other
 
         # Check there are optional properties to parameterize
-        assert values.data.get(
-            "optionalProperties"
-        ), "Cannot parameterize an experiment with no optionalProperties"
+        if not values.data.get("optionalProperties"):
+            raise ValueError(
+                "Cannot parameterize an experiment with no optionalProperties"
+            )
 
         return parameterization
 
@@ -825,10 +834,13 @@ class ParameterizedExperiment(Experiment):
 
         # Now check that none of the parameterized values are the same as the defaults
         for v in self.defaultParameterization:
-            if customParameterizationMap.get(v.property.identifier):
-                assert (
-                    v.value != customParameterizationMap[v.property.identifier].value
-                ), f"Default value {v.value} for property {v.property.identifier} is the same as the custom value, { customParameterizationMap[v.property.identifier].value}"
+            if (
+                v.property.identifier in customParameterizationMap
+                and v.value == customParameterizationMap[v.property.identifier].value
+            ):
+                raise ValueError(
+                    f"Default value {v.value} for property {v.property.identifier} is the same as the custom value, {customParameterizationMap[v.property.identifier].value}"
+                )
 
         # Finally update identifier
 

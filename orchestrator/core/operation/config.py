@@ -219,7 +219,10 @@ class OperatorFunctionConf(pydantic.BaseModel):
             raise ValueError(f"Unknown operation type {self.operationType}") from e
 
         function = collection.function_operations.get(self.operatorName)
-        assert function is not None
+        if function is None:
+            raise ValueError(
+                f"The function retrieved for operator {self.operatorName} was None"
+            )
 
         return True
 

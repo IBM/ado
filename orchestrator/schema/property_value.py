@@ -97,7 +97,7 @@ class PropertyValue(pydantic.BaseModel):
                         f"TEMP: Detected list value, {value}, assigned NUMERIC_TYPE assuming due to prior bug. Will upgrade"
                     )
                 else:
-                    if type(value) not in {float, int} or value is not None:
+                    if type(value) not in {float, int} and value is not None:
                         raise ValueError("Validation failed for NUMERIC_VALUE_TYPE")
             elif valueType == ValueTypeEnum.STRING_VALUE_TYPE:
                 if not isinstance(value, str):

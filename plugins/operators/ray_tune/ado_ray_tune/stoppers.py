@@ -261,7 +261,10 @@ class InformationGainStopper(ray.tune.Stopper):
         # self.targeted_value = 'values__' + targeted_value
         self.targeted_value = targeted_value
         if min_samples == "auto":
-            assert search_columns
+
+            if not search_columns:
+                raise ValueError("search_columns cannot be None")
+
             # self.min_samples = 2*len(data_columns)
             self.min_samples = 2 * len(search_columns)
         else:

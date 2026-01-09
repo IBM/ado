@@ -119,13 +119,18 @@ def local_execution_closure(
 
 
 def remote_execution_closure(
-    endpoint: str, timeout: int = 300
+    endpoint: str,
+    experiment_timeout: int = 300,
+    verify_certs: bool = False,
+    requests_timeout: int = 60,
 ) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
     """Execute via ado API
 
     Parameters:
         endpoint: The endpoint to use to execute the experiment
-        timeout: The timeout for the experiment in seconds
+        experiment_timeout: The timeout for the experiment in seconds
+        verify_certs: Enables or disables SSL certificate verification for web requests
+        requests_timeout: Timeout for web requests
 
     Returns:
         A callable that submits a remote measurement request to the given endpoint
@@ -135,7 +140,10 @@ def remote_execution_closure(
     logger = logging.getLogger("remote_execution")
 
     def execute_remote(
-        reference: ExperimentReference, entity: Entity
+        reference: ExperimentReference,
+        entity: Entity,
+        verify_certs: bool,
+        requests_timeout: int,
     ) -> MeasurementRequest | None:
 
         # Use requests to post to the endpoint
@@ -145,7 +153,8 @@ def remote_execution_closure(
         response = requests.post(
             f"{endpoint}/api/latest/actuators/{reference.actuatorIdentifier}/experiments/{reference.experimentIdentifier}/requests",
             json=[entity.model_dump()],
-            verify=False,
+            verify=verify_certs,
+            timeout=requests_timeout,
         )
         # If the response is successful the response is a MeasurementRequest identifier
         # If the response status is 404 then the experiment was not found
@@ -172,7 +181,8 @@ def remote_execution_closure(
             logger.debug(f"Polling for request {request_id}")
             response = requests.get(
                 f"{endpoint}/api/latest/actuators/{reference.actuatorIdentifier}/experiments/{reference.experimentIdentifier}/requests/{request_id}",
-                verify=False,
+                verify=verify_certs,
+                timeout=requests_timeout,
             )
             if response.status_code == 200:
                 logger.debug(response.json())
@@ -181,7 +191,7 @@ def remote_execution_closure(
             else:
                 elapsed = (datetime.datetime.now() - start_time).total_seconds()
                 logger.debug(f"Waiting - {elapsed:.1f} seconds elapsed")
-                if elapsed > timeout:
+                if elapsed > experiment_timeout:
                     raise Exception(
                         f"Timeout waiting for measurement request {request_id} to complete"
                     )
@@ -241,6 +251,15 @@ def run(
             "May be specified multiple times.",
         ),
     ] = None,
+    verify_certs: Annotated[
+        bool,
+        typer.Option(
+            help="Enable or disable SSL certificate verification of remote hosts"
+        ),
+    ] = False,
+    request_timeout: Annotated[
+        int, typer.Option(help="Timeout for web requests.")
+    ] = 60,
 ):
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
@@ -258,7 +277,12 @@ def run(
             actuator_configuration_identifiers=actuator_configuration_identifiers,
         )
         if not remote
-        else remote_execution_closure(remote, timeout=timeout)
+        else remote_execution_closure(
+            remote,
+            experiment_timeout=timeout,
+            verify_certs=verify_certs,
+            requests_timeout=request_timeout,
+        )
     )
 
     if not remote:

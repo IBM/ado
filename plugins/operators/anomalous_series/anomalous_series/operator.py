@@ -186,7 +186,10 @@ def detect_anomalous_series(
 
     if config.failed_metric is not None:
         print("Checking if failed metric is present: ... ")
-        assert config.failed_metric in df.columns
+
+        if config.failed_metric not in df.columns:
+            raise ValueError("failed_metric was not present in the DataFrame")
+
         print("Present\n")
 
     results = []

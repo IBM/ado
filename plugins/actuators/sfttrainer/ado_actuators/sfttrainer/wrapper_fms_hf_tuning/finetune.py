@@ -456,7 +456,7 @@ def get_available_open_port() -> int:
     import socket
 
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("0.0.0.0", 0))
+        s.bind(("0.0.0.0", 0))  # noqa: S104
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
@@ -576,7 +576,7 @@ def _finetune_launch_kernel(
             with contextlib.closing(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             ) as s:
-                s.bind(("0.0.0.0", multi_node.port))
+                s.bind(("0.0.0.0", multi_node.port))  # noqa: S104
 
         # VV: Accelerate refers to DDP with the name "MULTI_GPU"
         backend_name_map = {"FSDP": "FSDP", "DDP": "MULTI_GPU"}[
@@ -705,7 +705,7 @@ def _finetune_launch_kernel(
         env["LOGLEVEL"] = env["LOGLEVEL"].upper()
 
     log.info(f"Environment variables {env}")
-    proc = subprocess.Popen(
+    proc = subprocess.Popen(  # noqa: S603
         command,
         stdout=sys.stdout,
         stderr=sys.stderr,

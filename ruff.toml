@@ -67,7 +67,7 @@ select = [
     "TID",
 #    "TD",
     "I",
-#    "NPY",
+    "NPY",
 #    "PD",
 #    "N",
     "PERF",

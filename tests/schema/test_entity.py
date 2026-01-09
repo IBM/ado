@@ -508,7 +508,7 @@ def test_series_representation_multiple_observed(
     # Test multiple results for a property
     # Add another result for same experiment
     values = [
-        ObservedPropertyValue(value=np.random.random(), property=op)
+        ObservedPropertyValue(value=np.random.default_rng().random(), property=op)
         for op in test_entity.observedPropertiesFromExperimentReference(
             result.experimentReference
         )
@@ -672,7 +672,7 @@ def test_experiment_series_multiple_observed(
     # Test multiple results for a property
     # Add another result for same experiment
     values = [
-        ObservedPropertyValue(value=np.random.random(), property=op)
+        ObservedPropertyValue(value=np.random.default_rng().random(), property=op)
         for op in test_entity.observedPropertiesFromExperimentReference(
             result.experimentReference
         )

@@ -153,7 +153,7 @@ class RandomSampleSelector(BaseSampler):
         ) -> typing.Callable[[], typing.AsyncGenerator[list[Entity], None]]:
             # noinspection PyUnresolvedReferences
             numberEntities = await stateHandle.numberOfMatchingEntitiesInSource.remote()
-            walk = np.random.choice(
+            walk = np.random.default_rng().choice(
                 range(numberEntities), numberEntities, replace=False
             )
 
@@ -186,7 +186,7 @@ class RandomSampleSelector(BaseSampler):
         ) -> typing.Callable[[], typing.Generator[list[Entity], None, None]]:
             entities = space.matchingEntities()
             numberEntities = len(space.matchingEntities())
-            walk = np.random.choice(
+            walk = np.random.default_rng().choice(
                 range(numberEntities), numberEntities, replace=False
             )
 

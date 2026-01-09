@@ -44,7 +44,9 @@ def test_valid_measurement_result_mismatch_properties(entity, property_values):
             experimentIdentifier="test_exp", actuatorIdentifier="test_act"
         ),
     )
-    pv = ObservedPropertyValue(value=numpy.random.randint(0, 50), property=op)
+    pv = ObservedPropertyValue(
+        value=numpy.random.default_rng().integers(0, 50), property=op
+    )
 
     # Test init with incorrect properties
     property_values.append(pv)

@@ -156,7 +156,7 @@ async def _random_iterator_async(
     :return:
     """
     group_list = _build_groups_list(points=points, group=group)
-    randomized = np.random.choice(
+    randomized = np.random.default_rng().choice(
         a=range(len(group_list)), size=len(group_list), replace=False
     )
     for i in range(len(randomized)):
@@ -180,7 +180,7 @@ def _random_iterator(
     :return:
     """
     group_list = _build_groups_list(points=points, group=group)
-    randomized = np.random.choice(
+    randomized = np.random.default_rng().choice(
         a=range(len(group_list)), size=len(group_list), replace=False
     )
     for i in range(len(randomized)):

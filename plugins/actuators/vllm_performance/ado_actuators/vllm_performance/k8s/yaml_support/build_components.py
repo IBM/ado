@@ -231,7 +231,7 @@ class ComponentsYaml:
                 [
                     {
                         "name": "HOME",
-                        "value": "/tmp",
+                        "value": "/tmp",  # noqa: S108
                     },
                     {
                         "name": "HF_HOME",

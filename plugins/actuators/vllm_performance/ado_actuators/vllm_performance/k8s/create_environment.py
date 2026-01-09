@@ -136,6 +136,5 @@ if __name__ == "__main__":
         verify_ssl=False,
         model=t_model,
         pvc_name="vllm-support",
-        hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )

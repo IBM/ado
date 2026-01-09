@@ -20,12 +20,12 @@ ado create space -f space_pressure.yaml --new-sample-store
 
 ---
 
-## Troubleshooting
+In the same folder you can run
 
-- **Check branch/commit**
+```bash
+ ado create operation -f op_pressure.yaml --use-latest space
+```
 
-  ```bash
-  git checkout dl_operator_trim
-  git log -1
-  # expect: a83053c6eebf9f4ae0aaebcf37d1afeb9a023770
-  ```
+You will see that the operation bootstraps the parameter exploration
+with a no-priors characterization, then it proceeds with iterative
+modeling until a stopping criterion is met.

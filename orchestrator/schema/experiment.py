@@ -486,7 +486,10 @@ class Experiment(pydantic.BaseModel):
                     vp.baseObservedProperty.targetProperty.identifier
                     != propertyIdentifier
                 ):
-                    raise ValueError("Mismatch between property identifiers")
+                    raise ValueError(
+                        "Mismatch between property identifiers "
+                        f"{vp.baseObservedProperty.targetProperty.identifier} != {propertyIdentifier}"
+                    )
 
                 retval = vp
             else:

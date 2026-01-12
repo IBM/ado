@@ -75,35 +75,62 @@ def execute_benchmark(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
 
-    # get logger level and forward to subprocess
-    log_level = logging.getLevelName(logger.getEffectiveLevel())
-    request = f"export HF_TOKEN={hf_token} && " if hf_token is not None else ""
+    # Copy over the environment and add required variables for the benchmark
+    env = dict(os.environ)
+    env["VLLM_BENCH_LOGLEVEL"] = logging.getLevelName(logger.getEffectiveLevel())
+
+    if hf_token is not None:
+        env["HF_TOKEN"] = hf_token
+
+    # Output to a random file name
     f_name = f"{uuid.uuid4().hex}.json"
-    # Propagate logger's log level to subprocess via env var (if supported)
-    request = f"export VLLM_BENCH_LOGLEVEL={log_level} && " + request
-    request += (
-        f"vllm bench serve --backend {backend} --base-url {base_url} --dataset-name {dataset} "
-        f"--model {model} --seed 12345 --num-prompts {num_prompts!s} --save-result --metric-percentiles "
-        f'"25,75,99" --percentile-metrics "ttft,tpot,itl,e2el" --result-dir . --result-filename {f_name} '
-        f"--burstiness {burstiness} "
-    )
+
+    # Build the vllm bench serve command
+    command = [
+        "vllm",
+        "bench",
+        "serve",
+        "--backend",
+        backend,
+        "--base-url",
+        base_url,
+        "--dataset-name",
+        dataset,
+        "--model",
+        model,
+        "--seed",
+        "12345",
+        "--num-prompts",
+        f"{num_prompts!s}",
+        "--save-result",
+        "--metric-percentiles",
+        "25,75,99",
+        "--percentile-metrics",
+        "ttft,tpot,itl,e2el",
+        "--result-dir",
+        ".",
+        "--result-filename",
+        f_name,
+        "--burstiness",
+        f"{burstiness!s}",
+    ]
 
     if dataset_path is not None:
-        request += f" --dataset-path {dataset_path} "
+        command.extend(["--dataset-path", dataset_path])
     if request_rate is not None:
-        request += f" --request-rate {request_rate!s} "
+        command.extend(["--request-rate", f"{request_rate!s}"])
     if max_concurrency is not None:
-        request += f"--max-concurrency {max_concurrency!s} "
+        command.extend(["--max-concurrency", f"{max_concurrency!s}"])
     if custom_args is not None:
         for key, value in custom_args.items():
-            request += f" {key} {value!s} "
+            command.extend([key, f"{value!s}"])
+
+    logger.debug(f"Command line: {command}")
+
     timeout = retries_timeout
-
-    logger.debug(f"Command line: {request}")
-
     for i in range(benchmark_retries):
         try:
-            subprocess.check_call(request, shell=True)
+            subprocess.check_call(command, env=env)
             break
         except subprocess.CalledProcessError as e:
             logger.warning(f"Command failed with return code {e.returncode}")

@@ -308,7 +308,6 @@ def get_source_and_target(
     )
     keys = [c for c in dfu.columns if c in dfm.columns and c != "identifier"]
 
-    # TODO: check if this logic is correct
     if dfm.empty:
         logger.warning("Empty source")
         return dfm, dfu
@@ -327,33 +326,28 @@ def get_source_and_target(
         logger.debug("Adding an empty column to the dataframe.")
         df[targetOutput] = pd.NA
 
-    # NOTE: problematic lines, because target output may be not present
-    try:
+    if targetOutput in list(df.columns):
         df_measured_drop_na = df.dropna(subset=[targetOutput])
+        df_unmeasured_drop_na = df[df[targetOutput].isna()].drop(columns=[targetOutput])
         n_rows_dropped = len(df) - len(df_measured_drop_na)
-        logger.info(
+        logger.debug(
             f"Dropped {n_rows_dropped} rows. Function called with log_string={log_string}"
         )
-
-    except Exception as e:
-        save_path = "df_merged_drop_nan_failed.csv"
-        logger.error(
-            f"Dropping nans failed, saving in {save_path}, exception was: {e!s}\n returning unmerged dataframes"
-        )
-        df.to_csv(save_path)
-        return dfm, dfu
-
-    try:
-        df_unmeasured_drop_na = df[df[targetOutput].isna()].drop(columns=[targetOutput])
-    except Exception as e:
-        save_path = "df_merged_drop_nan_failed.csv"
-        logger.error(
-            f"Dropping nans failed, saving in {save_path}, exception was: {e!s}\n, returning unmerged dataframes"
-        )
-        df.to_csv(save_path)
-        return dfm, dfu
-
-    return df_measured_drop_na, df_unmeasured_drop_na
+        if df_measured_drop_na.empty:
+            logger.warning(
+                f"Empty source after dropping rows that contain Nan in {targetOutput} column"
+            )
+        if df_unmeasured_drop_na.empty:
+            logger.warning(
+                f"Empty target after filtering rows that contain Nan in {targetOutput} column"
+            )
+        return df_measured_drop_na, df_unmeasured_drop_na
+    save_path = "df_with_no_targetOutput_columns.csv"
+    logger.error(
+        f"'{targetOutput}' column is missing, saving df in {save_path}, returning unmerged dataframes"
+    )
+    df.to_csv(save_path)
+    return dfm, dfu
 
 
 def validate_points_in_space(

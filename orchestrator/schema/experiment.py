@@ -465,7 +465,6 @@ class Experiment(pydantic.BaseModel):
             vp = VirtualObservedProperty(
                 baseObservedProperty=op, aggregationMethod=aggregationMethod
             )
-            print(vp.identifier, identifier)
             if vp.identifier != identifier:
                 raise ValueError("Mismatch between property identifiers")
             retval = vp

@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+import re
 import typing
 
 import pydantic
@@ -45,3 +45,23 @@ def model_dict_representation_with_field_exclusions_for_custom_model_serializer(
             del dict_representation[field_name]
 
     return dict_representation
+
+
+rfc_1123_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$"
+rfc_1123_regex = re.compile(rfc_1123_pattern)
+
+
+def validate_rfc_1123(value: str | None) -> str | None:
+
+    if value is None:
+        return value
+
+    if len(value) == 0 or len(value) >= 64:
+        raise ValueError("The string must be between 1 and 63 characters")
+
+    if not rfc_1123_regex.match(value):
+        raise ValueError(
+            f"The string does not match RFC1123. Regex: {rfc_1123_pattern}"
+        )
+
+    return value

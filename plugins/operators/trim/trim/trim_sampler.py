@@ -742,7 +742,7 @@ def wait_for_sampled_point(
     discoverySpaceManager: DiscoverySpaceManager,  # type: ignore[name-defined],
     discoverySpace: DiscoverySpace | str,
     max_time: int = 20,
-    step_duration: int = 1,
+    step_duration: float = 0.1,
 ):
     # TODO: this f will become a logging function when we agree and test the retrieval
     from time import sleep

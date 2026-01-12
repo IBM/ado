@@ -148,7 +148,8 @@ class Experiment(pydantic.BaseModel):
     ):
 
         # Check all optional properties have unique identifiers
-        if len({p.identifier for p in optionalProperties}) != len(
+        optional_properties_identifiers = {p.identifier for p in optionalProperties}
+        if len(optional_properties_identifiers) != len(
             [p.identifier for p in optionalProperties]
         ):
             count = {}
@@ -166,16 +167,18 @@ class Experiment(pydantic.BaseModel):
             )
 
         # Check no optional property is a required property
-        if (
-            len(
-                {p.identifier for p in optionalProperties}.intersection(
-                    {p.identifier for p in values.data.get("requiredProperties")}
-                )
+        required_properties_identifiers = {
+            p.identifier for p in values.data.get("requiredProperties")
+        }
+        required_and_optional_properties_identifiers = (
+            optional_properties_identifiers.intersection(
+                required_properties_identifiers
             )
-            != 0
-        ):
+        )
+        if len(required_and_optional_properties_identifiers) != 0:
             raise ValueError(
-                "One or more optional properties were also in the required properties"
+                "The following optional properties were also in the required properties: "
+                f"{required_and_optional_properties_identifiers}"
             )
 
         return optionalProperties

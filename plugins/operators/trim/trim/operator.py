@@ -150,11 +150,7 @@ def trim(
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
         # here you set up the rw params
-        batchSize=(
-            params.batchSize
-            if isinstance(params.batchSize, int)
-            else params.iterationSize
-        ),
+        batchSize=1,
         numberEntities=params.samplingBudget.maxPoints,
         singleMeasurement=True,
     )

@@ -89,12 +89,6 @@ class TrimParameters(BaseModel):
         default=5, description="TRIM iteration size, sets"
     )
 
-    batchSize: int | None = pydantic.Field(
-        default=None,
-        description="""CURRENTLY THIS HAS NO EFFECT! Batch size parameter of randomWalk, default is setting this equal to iterationSize.
-        Batch size must divide the iteration size value""",
-    )
-
     holdoutSize: int | None = pydantic.Field(
         default=None,
         description="Sample Size of the holdout set, default is setting this equal to iterationSize",
@@ -135,28 +129,13 @@ class TrimParameters(BaseModel):
                 operatorName="trim",
                 operationType=DiscoveryOperationEnum.CHARACTERIZE,
             ),
-            parameters=cls(),  # cls.model_validate({'batchSize':2}),
+            parameters=cls(),
         )
 
     @model_validator(mode="after")
     def set_final_model_args(self):
         if self.finalModelAutoGluonArgs == AutoGluonArgs():
             self.finalModelAutoGluonArgs = self.autoGluonArgs
-        return self
-
-    @model_validator(mode="after")
-    def set_batch_size(self):
-        if not self.batchSize:
-            logging.debug(
-                "Batch Size was not set, setting it equal to the iteration size"
-            )
-            self.batchSize = self.iterationSize
-        if self.iterationSize % self.batchSize != 0:
-            logging.warning(
-                "Batch size was set, but it was not a divisor of the iteration size."
-                "setting batch size it equal to the iteration size"
-            )
-            self.batchSize = self.iterationSize
         return self
 
     @model_validator(mode="after")

@@ -340,8 +340,6 @@ class TrimSampleSelector(BaseSampler):
                     # i<iter_size: no models
                     # itersize =< i< itersize *2 : 1st iter of models
                     # itersize*2 =< i< itersize *3 : 2nd iter of models
-
-                    # remember, batchSize divides iterationSize
                     if i < self.params.iterationSize * 3 - 1:
                         yield entity
                         yielded_entities += entity
@@ -417,10 +415,6 @@ class TrimSampleSelector(BaseSampler):
                                     "Setting the ratio to 0"
                                 )
                                 std_ratio = 0
-                                if self.params.batchSize != self.params.iterationSize:
-                                    logger_trim_sampler.warning(
-                                        "This is a suspicious behavior since the iteration size is differenet from the batch size"
-                                    )
 
                             else:
                                 std_ratio = (
@@ -735,6 +729,8 @@ class TrimSampleSelector(BaseSampler):
         self.params = parameters
 
 
+# NOTE: https://github.com/IBM/ado/pull/329#issuecomment-3740538507 has been addressed
+# this function will be deprecated soon since batchSize is constrained to one
 def wait_for_sampled_point(
     current_source_df: pd.DataFrame,
     previous_source_df: pd.DataFrame,

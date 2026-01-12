@@ -46,7 +46,7 @@ select = [
     "FAST",
     "YTT",
     "ASYNC",
-#    "S",
+    "S",
     "S608",
     "B",
 #    "A",

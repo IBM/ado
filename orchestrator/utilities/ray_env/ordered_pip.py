@@ -214,8 +214,11 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
                     f"validation failed with error {e}"
                 ) from e
 
-        result = RuntimeEnv(ordered_pip={"phases": phases})
-        logging.debug(
+        # VV: keep extra fields - these are not directly used by ordered_pip but
+        # may help developers troubleshoot issues
+        others = {k: v for k, v in runtime_env_dict.items() if k != "ordered_pip"}
+        result = RuntimeEnv(ordered_pip={"phases": phases}, **others)
+        logging.info(
             f"Rewrote runtime_env `ordered_pip` field from {runtime_env_dict} to {result}."
         )
 

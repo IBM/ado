@@ -1,14 +1,16 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import Any
+from typing import Annotated, Any
 
 import pydantic
+from pydantic import AfterValidator
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.operators.base import (
     warn_deprecated_operator_parameters_model_in_use,
 )
+from orchestrator.utilities.pydantic import validate_rfc_1123
 
 
 # In case we need parameters for our actuator, we create a class
@@ -16,10 +18,14 @@ from orchestrator.modules.operators.base import (
 # in the parameters_class class variable of our actuator.
 # This class inherits from pydantic.BaseModel.
 class VLLMPerformanceTestParameters(GenericActuatorParameters):
-    namespace: str | None = pydantic.Field(
-        default=None,
-        description="K8s namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
-    )
+    namespace: Annotated[
+        str | None,
+        pydantic.Field(
+            description="K8s namespace for running VLLM pod. If not supplied vllm deployments cannot be created.",
+            validate_default=False,
+        ),
+        AfterValidator(validate_rfc_1123),
+    ] = None
     in_cluster: bool = pydantic.Field(
         default=False,
         description="flag to determine whether we are running in K8s cluster or locally",

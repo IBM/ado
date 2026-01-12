@@ -37,11 +37,7 @@ class ActuatorConfiguration(pydantic.BaseModel):
     )
 
     @pydantic.model_validator(mode="after")
-    @classmethod
-    def validate_model(
-        cls,
-        model: "ActuatorConfiguration",
-    ) -> "ActuatorConfiguration":
+    def validate_model(self) -> "ActuatorConfiguration":
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
             UnknownActuatorError,
@@ -51,24 +47,24 @@ class ActuatorConfiguration(pydantic.BaseModel):
             actuator_instance: "ActuatorBase",
         ) -> GenericActuatorParameters:
             return (
-                actuator_instance.validate_parameters(parameters=model.parameters)
-                if model.parameters
+                actuator_instance.validate_parameters(parameters=self.parameters)
+                if self.parameters
                 else actuator_instance.default_parameters()
             )
 
         actuator_registry = ActuatorRegistry.globalRegistry()
 
         try:
-            actuator = actuator_registry.actuatorForIdentifier(model.actuatorIdentifier)
+            actuator = actuator_registry.actuatorForIdentifier(self.actuatorIdentifier)
         except UnknownActuatorError as error:
             raise ValueError(
-                f"Actuator {model.actuatorIdentifier} is not available in the registry. "
+                f"Actuator {self.actuatorIdentifier} is not available in the registry. "
                 f"Registered actuators are: {','.join(actuator_registry.actuatorIdentifierMap.keys())}"
             ) from error
         else:
-            model.parameters = validate_or_default_parameters(actuator)
+            self.parameters = validate_or_default_parameters(actuator)
 
-        return model
+        return self
 
 
 def warn_deprecated_actuator_parameters_model_in_use(

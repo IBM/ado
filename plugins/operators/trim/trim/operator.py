@@ -48,17 +48,16 @@ def trim(
         "Transfer Refined Iterative Modeling starts."
         f"Target variable = {params.targetOutput}"
     )
-
     logger_trim.info(f"Parameters are {params}")
-
-    # raise ValueError
 
     nopriors_module = SamplerModuleConf(
         moduleClass="NoPriorsSampleSelector", moduleName="trim.no_priors_sampler"
     )
 
     # Checks if the source space has been already characterized appropriately
-    source_df, target_df = get_source_and_target(discoverySpace, params.targetOutput)
+    source_df, target_df = get_source_and_target(
+        discoverySpace, params.targetOutput, log_string="First query"
+    )
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
             "metadata": {
@@ -79,8 +78,8 @@ def trim(
     ) and current_iter < max_iter:
         logger_trim.warning(
             f"""Only {len(source_df)} points in the source space.
-                                Starting with no-prior characterization for {params.samplingBudget.minPoints - len(source_df)}
-                                Note: Trim sampler has been called with a minimum budget of {params.samplingBudget.minPoints} points.
+                Starting with no-prior characterization for {params.samplingBudget.minPoints - len(source_df)}
+                Note: Trim sampler has been called with a minimum budget of {params.samplingBudget.minPoints} points.
             """
         )
 
@@ -118,10 +117,12 @@ def trim(
             **no_priors_rwparams.model_dump(),
         )
 
-        current_iter += 1
         source_df, target_df = get_source_and_target(
-            discoverySpace, params.targetOutput
+            discoverySpace,
+            params.targetOutput,
+            log_string=f"No priors iter={current_iter}",
         )
+        current_iter += 1
         op_output_characterization_no_prior = OperationOutput.model_validate(
             {
                 "metadata": {

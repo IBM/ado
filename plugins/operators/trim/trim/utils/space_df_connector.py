@@ -275,6 +275,7 @@ def get_source_and_target(
     discoverySpace: typing.Union["DiscoverySpace", str],
     targetOutput: str,
     discoverySpaceManager=None,
+    log_string: str = "",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Build source (labeled) and target (unlabeled) DataFrames for a given target output `t`.
@@ -326,9 +327,14 @@ def get_source_and_target(
         logger.debug("Adding an empty column to the dataframe.")
         df[targetOutput] = pd.NA
 
-    # NOTE: problematic lines, because target output may be not presents
+    # NOTE: problematic lines, because target output may be not present
     try:
         df_measured_drop_na = df.dropna(subset=[targetOutput])
+        n_rows_dropped = len(df) - len(df_measured_drop_na)
+        logger.info(
+            f"Dropped {n_rows_dropped} rows. Function called with log_string={log_string}"
+        )
+
     except Exception as e:
         save_path = "df_merged_drop_nan_failed.csv"
         logger.error(

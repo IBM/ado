@@ -40,9 +40,7 @@ target-version = "py310"
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
 select = [
-    "E4",
-    "E7",
-    "E9",
+    "E",
     "FAST",
     "YTT",
     "ASYNC",
@@ -57,6 +55,7 @@ select = [
     "INT",
     "ISC",
     "ICN",
+    "PIE",
     "PYI",
     "PT",
     "Q",
@@ -64,6 +63,7 @@ select = [
     "RET",
     "SIM",
     "SLOT",
+    "T10",
     "TID",
 #    "TD",
     "I",

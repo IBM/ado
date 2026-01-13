@@ -8,12 +8,6 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import FunctionOperationInfo
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.operators.collections import characterize_operation
-from orchestrator.modules.operators.randomwalk import (
-    CustomSamplerConfiguration,
-    RandomWalkParameters,
-    SamplerModuleConf,
-    random_walk,
-)
 from trim.trim_pydantic import (
     TrimParameters,
 )  # Importing this way works when the package is installed
@@ -42,6 +36,13 @@ def trim(
     operationInfo: FunctionOperationInfo | None = None,
     **kwargs,
 ) -> OperationOutput:
+    # Lazy import to avoid circular import issues during plugin loading
+    from orchestrator.modules.operators.randomwalk import (
+        CustomSamplerConfiguration,
+        RandomWalkParameters,
+        SamplerModuleConf,
+        random_walk,
+    )
 
     params = TrimParameters.model_validate(kwargs)
     logger_trim.info(

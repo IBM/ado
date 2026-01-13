@@ -8,9 +8,5 @@ dependencies = ["pandas",
                 "autogluon.tabular[catboost,xgboost]==1.5"]
 
 
-[tool.setuptools]
-packages = ["trim"]
-
-
 [project.entry-points."ado.operators"]
 trim = "trim.operator"

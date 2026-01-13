@@ -115,7 +115,7 @@ class DistributedSettings:
             "[2] SHARD_GRAD_OP (shards optimizer states and gradients), "
             "[3] NO_SHARD (DDP), "
             "[4] HYBRID_SHARD (shards optimizer states, gradients and parameters within each node "
-            "while each node has full copy), "
+            "while each node has full copy - equivalent to FULL_SHARD for single-node runs), "
             "[5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients within each node while each node has "
             "full copy). For more information, please refer the official PyTorch docs."
         },

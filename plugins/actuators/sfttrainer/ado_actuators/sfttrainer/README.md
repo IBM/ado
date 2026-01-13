@@ -332,9 +332,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -963,9 +964,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1410,9 +1412,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1825,9 +1828,10 @@ Optional:
   the checkpointed function. Can be `True`, `False`.
 - fsdp_sharding_strategy: Default is `FULL_SHARD`. [1] FULL_SHARD (shards
   optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
-  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
-  optimizer states, gradients and parameters within each node while each node
-  has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+  optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD
+  (shards optimizer states, gradients and parameters within each node while
+  each node has full copy - equivalent to FULL_SHARD for single-node runs),
+  [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
   within each node while each node has full copy). For more information, please
   refer the official PyTorch docs.
 - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]

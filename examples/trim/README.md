@@ -4,13 +4,13 @@
 
 ```bash
 uv pip install plugins/operators/trim
-uv pip install -e examples/trim_custom_experiments
+uv pip install -e examples/trim
 ```
 
 ## Create the space
 
 ```bash
-cd examples/trim_custom_experiments/trim_custom_experiments/configs
+cd examples/trim/trim_custom_experiments/configs
 ado create space -f space_pressure.yaml --new-sample-store
 ```
 

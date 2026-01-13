@@ -20,7 +20,7 @@ def remove_fields_from_dictionary(input_dictionary: dict, fields_to_remove: list
                 f"{ERROR}The provided path {cyan(field_to_remove)} was not a valid JSONPath string:\n{e}",
                 stderr=True,
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
         # AP 28/07/2025:
         # path.filter will not raise any errors or anything when the field

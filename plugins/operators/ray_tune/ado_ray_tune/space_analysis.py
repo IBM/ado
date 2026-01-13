@@ -36,7 +36,7 @@ def get_clusters(
     #  also discrete_features could maybe be determined automatically?
     for col in columns_to_mask:
         num_unique = df_np_prep[col].nunique()
-        td = dict(zip(df_np_prep[col].unique(), range(num_unique)))
+        td = dict(zip(df_np_prep[col].unique(), range(num_unique), strict=True))
         translate_dicts[col] = td
 
     for index, row in df_np_prep.iterrows():
@@ -117,7 +117,7 @@ def calculate_mutual_information(
         f"The entropy of the clusters is {entropy}"
     )
 
-    mutual_information_labeled = dict(zip(data_columns, ig))
+    mutual_information_labeled = dict(zip(data_columns, ig, strict=True))
     logging.getLogger("mutual-information").debug(
         f"For the target variable {targeted_value}, the mutual information scores for the clusters are:{mutual_information_labeled}"
     )
@@ -136,10 +136,7 @@ def mi_pareto_selection(
     ignore_below=0.0001,
     return_all_above_threshold=False,
 ):
-    mi_labeled = {}
-    for k, v in mi_labeled_orig.items():
-        if v > ignore_below:
-            mi_labeled[k] = v
+    mi_labeled = {k: v for k, v in mi_labeled_orig.items() if v > ignore_below}
     l1 = list(mi_labeled.values())
     col_1 = list(mi_labeled.keys())
     pareto_pd = pd.DataFrame(
@@ -364,7 +361,7 @@ def get_valid_value_ranges(
     #  also discrete_features could maybe be determined automatically?
     for col in columns_to_mask:
         num_unique = df_np_prep[col].nunique()
-        td = dict(zip(df_np_prep[col].unique(), range(num_unique)))
+        td = dict(zip(df_np_prep[col].unique(), range(num_unique), strict=True))
         translate_dicts[col] = td
 
     for index, row in df_np_prep.iterrows():
@@ -437,10 +434,7 @@ def get_valid_value_ranges(
         cur_threshold = threshold[node_id]
         if X[sample_id, feature[node_id]] <= threshold[node_id]:
             threshold_sign = "<="
-            new_value_list = []
-            for v in value_list:
-                if v <= cur_threshold:
-                    new_value_list.append(v)
+            new_value_list = [v for v in value_list if v <= cur_threshold]
         else:
             threshold_sign = ">"
             new_value_list = []

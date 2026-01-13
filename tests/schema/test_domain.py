@@ -810,7 +810,7 @@ def test_domain_values():
         ValueError,
         match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
-        PropertyDomain(
+        PropertyDomain(  # noqa: B018
             variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
         ).domain_values
 
@@ -819,7 +819,7 @@ def test_domain_values():
         ValueError,
         match="Cannot generate domain values for continuous, unknown or open categorical variables",
     ):
-        PropertyDomain(
+        PropertyDomain(  # noqa: B018
             variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
         ).domain_values
 

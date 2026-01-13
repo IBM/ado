@@ -97,10 +97,10 @@ def create_sample_store(
     #
     additional_sample_stores = []
     if conf.copyFrom is not None:
-        for reference in conf.copyFrom:
-            additional_sample_stores.append(
-                initialize_sample_store_from_reference(reference)
-            )
+        additional_sample_stores = [
+            initialize_sample_store_from_reference(reference)
+            for reference in conf.copyFrom
+        ]
 
     for s in additional_sample_stores:  # type:SampleStore
         moduleLogger.debug(

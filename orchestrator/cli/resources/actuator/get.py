@@ -99,4 +99,4 @@ def get_actuator(parameters: AdoGetCommandParameters):
         console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
         return
 
-    console_print(output_df)
+    console_print(output_df, has_pandas_content=True)

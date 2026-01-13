@@ -79,7 +79,7 @@ def check_field_in_sqlite_json_document(
             return f"= '{value}'"
         if isinstance(value, bool):
             return f"= {json.dumps(value)}"
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             return f"= {value}"
         if isinstance(value, NoneType):
             return "IS NULL"
@@ -174,7 +174,7 @@ def check_field_in_sqlite_json_document(
         # If the list element or the dictionary key is not a scalar, we need recursion.
         # Example:
         #   - ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'
-        if isinstance(field, (list, dict)):
+        if isinstance(field, list | dict):
             fragments.extend(check_field_in_sqlite_json_document(field, path))
             continue
 
@@ -194,7 +194,7 @@ def check_field_in_sqlite_json_document(
         #     one field of the object.
         #   - If it's a scalar, we can create a query with all the information
         #     we have available.
-        if isinstance(candidate[field], (list, dict)):
+        if isinstance(candidate[field], list | dict):
             # The use of % in the path is because json_tree will add list items in the path.
             # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
             # whether a field is a list or not, we use the LIKE operator and a wildcard (%)

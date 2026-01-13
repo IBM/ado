@@ -28,9 +28,7 @@ moduleLog = logging.getLogger("setup")
 
 
 def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict):
-    paths = []
-    for env_var in vars_to_load:
-        paths.append(f"{base_path}/{env_var}")
+    paths = [f"{base_path}/{env_var}" for env_var in vars_to_load]
 
     for p in paths:
 

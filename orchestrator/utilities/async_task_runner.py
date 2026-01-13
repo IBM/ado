@@ -54,7 +54,8 @@ class AsyncTaskRunner:
             # If the instance does not exist, create one
             AsyncTaskRunner()
         # sanity check
-        assert AsyncTaskRunner.__instance is not None
+        if AsyncTaskRunner.__instance is None:
+            raise ValueError("AsyncTaskRunner.__instance was None")
         return AsyncTaskRunner.__instance
 
     def __init__(self):
@@ -84,7 +85,10 @@ class AsyncTaskRunner:
         Function to run in a thread
         """
         loop = self.__io_loop
-        assert loop is not None
+
+        if loop is None:
+            raise ValueError("loop was None")
+
         try:
             loop.run_forever()
         finally:

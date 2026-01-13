@@ -221,7 +221,9 @@ def test_entity_property_values_from_experiment_reference_parameterized(
     # Add a measurement
     values = []
     for op in exp.observedProperties:
-        pv = ObservedPropertyValue(property=op, value=numpy.random.rand())
+        pv = ObservedPropertyValue(
+            property=op, value=numpy.random.default_rng().random()
+        )
         values.append(pv)
 
     entity.add_measurement_result(

@@ -151,10 +151,14 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
     ):
 
         if (
-            values.data.get("mode") == CombinedWalkModeEnum.RANDOMGROUPED
-            or values.data.get("mode") == CombinedWalkModeEnum.SEQUENTIALGROUPED
+            values.data.get("mode")
+            in {
+                CombinedWalkModeEnum.RANDOMGROUPED,
+                CombinedWalkModeEnum.SEQUENTIALGROUPED,
+            }
+            and len(grouping) == 0
         ):
-            assert len(grouping) > 0, (
+            raise ValueError(
                 f"grouping {grouping} has to contain some names for the grouping "
                 f'mode {values.data.get("mode")}'
             )
@@ -166,11 +170,11 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
         try:
             SamplerTypeEnum(samplerType)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 f"Unknown sampler type  {samplerType}. "
                 f"Known sampler types {[item.value for item in SamplerTypeEnum]}"
-            )
+            ) from error
 
         return samplerType
 
@@ -179,10 +183,10 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
         try:
             CombinedWalkModeEnum(mode)
-        except ValueError:
+        except ValueError as error:
             raise ValueError(
                 f"Unknown walk mode {mode}. Known modes {[item.value for item in CombinedWalkModeEnum]}"
-            )
+            ) from error
 
         return mode
 
@@ -360,8 +364,11 @@ class RandomWalkParameters(pydantic.BaseModel):
     @pydantic.field_validator("batchSize")
     def validate_runtime_config(cls, value, values: "pydantic.FieldValidationInfo"):
 
-        if values.data.get("numberEntities") != "all":
-            assert values.data.get("numberEntities") >= value, (
+        if (
+            values.data.get("numberEntities") != "all"
+            and values.data.get("numberEntities") < value
+        ):
+            raise ValueError(
                 f'Number of entities to sample {values.data.get("numberEntities")} '
                 f"cannot be less than batch size {value}"
             )
@@ -502,14 +509,14 @@ class RandomWalk(Characterize):
                 if entity_space.isDiscreteSpace:
                     try:
                         number_entities = entity_space.size
-                    except AttributeError:
+                    except AttributeError as error:
                         # noinspection PyUnresolvedReferences
                         self.state.unsubscribeFromUpdates.remote(
                             subscriberName=self.actorName
                         )
                         raise ValueError(
                             "Cannot specify 'all' for number of entities to sample for space with unbounded dimensions"
-                        )
+                        ) from error
                     else:
                         print(
                             f"'all' specified for number of entities to sample. "
@@ -955,7 +962,7 @@ class RandomWalk(Characterize):
 )
 def random_walk(
     discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
+    operationInfo: FunctionOperationInfo | None = None,
     **kwargs: dict,
 ) -> OperationOutput:
     """
@@ -964,6 +971,9 @@ def random_walk(
     """
 
     import orchestrator.modules.module
+
+    if operationInfo is None:
+        operationInfo = FunctionOperationInfo()
 
     module = orchestrator.core.operation.config.OperatorModuleConf(
         moduleName="orchestrator.modules.operators.randomwalk",

@@ -46,6 +46,7 @@ import logging
 import os.path
 import pathlib
 import sys
+from typing import Annotated
 
 import typer
 
@@ -113,53 +114,67 @@ def generate_dataset(
     f"- python {sys.argv[0]} -i path/to/some/file -o dataset.jsonl",
 )
 def main(
-    output: pathlib.Path = typer.Option(
-        ...,
-        "--output",
-        "-o",
-        help="Where to store the dataset file.",
-    ),
-    input: pathlib.Path = typer.Option(
-        pathlib.Path(__file__),
-        "--input",
-        "-i",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        help="Input file to use as a source of sentences. For example you can use this python file, "
-        "or some kind of publicly available document such as the Apache 2.0 License file. "
-        "Smaller files should also work just as well.",
-    ),
-    tokens_input: int = typer.Option(
-        10,
-        help="How many tokens to have before the Response delimiter",
-    ),
-    tokens_output: int = typer.Option(
-        18240,
-        help="How many tokens to have after the Response delimiter",
-    ),
-    response_delimiter: str = typer.Option(
-        "\n\n### Response:",
-        help="The text to insert between the input and output tokens",
-    ),
-    prompt: str = typer.Option(
-        "### Input:\n", help="The text to insert before the input tokens"
-    ),
-    words_per_token: float = typer.Option(
-        0.75,
-        help="How many tokens you expect to have per token - this is just an estimation",
-    ),
-    num_max_gpus: int = typer.Option(
-        8, help="Maximum number of gpus in your experiment campaign"
-    ),
-    num_max_batch_size: int = typer.Option(
-        128, help="Maximum batch size in your experiment campaign"
-    ),
-    num_gradient_accumulation_steps: int = typer.Option(
-        4,
-        help="Maximum num_gradient_accumulation_steps you will investigate with your experiment campaign",
-    ),
-    log_level: int = typer.Option(20, "--log-level", "-l", help="Log level"),
+    output: Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Where to store the dataset file.",
+        ),
+    ],
+    input: Annotated[
+        pathlib.Path,
+        typer.Option(
+            "--input",
+            "-i",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            help="Input file to use as a source of sentences. For example you can use this python file, "
+            "or some kind of publicly available document such as the Apache 2.0 License file. "
+            "Smaller files should also work just as well.",
+        ),
+    ] = pathlib.Path(__file__),
+    tokens_input: Annotated[
+        int,
+        typer.Option(
+            help="How many tokens to have before the Response delimiter",
+        ),
+    ] = 10,
+    tokens_output: Annotated[
+        int,
+        typer.Option(
+            help="How many tokens to have after the Response delimiter",
+        ),
+    ] = 18240,
+    response_delimiter: Annotated[
+        str,
+        typer.Option(
+            help="The text to insert between the input and output tokens",
+        ),
+    ] = "\n\n### Response:",
+    prompt: Annotated[
+        str, typer.Option(help="The text to insert before the input tokens")
+    ] = "### Input:\n",
+    words_per_token: Annotated[
+        float,
+        typer.Option(
+            help="How many tokens you expect to have per token - this is just an estimation",
+        ),
+    ] = 0.75,
+    num_max_gpus: Annotated[
+        int, typer.Option(help="Maximum number of gpus in your experiment campaign")
+    ] = 8,
+    num_max_batch_size: Annotated[
+        int, typer.Option(help="Maximum batch size in your experiment campaign")
+    ] = 128,
+    num_gradient_accumulation_steps: Annotated[
+        int,
+        typer.Option(
+            help="Maximum num_gradient_accumulation_steps you will investigate with your experiment campaign",
+        ),
+    ] = 4,
+    log_level: Annotated[int, typer.Option("--log-level", "-l", help="Log level")] = 20,
 ):
     logging.basicConfig(
         level=log_level,

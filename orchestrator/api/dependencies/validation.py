@@ -57,11 +57,11 @@ def validated_experiment_id(
                 experimentIdentifier=experiment_id, actuatorIdentifier=actuator_id
             )
         )
-    except UnknownExperimentError:
+    except UnknownExperimentError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Actuator {actuator_id} does not have experiment {experiment_id}",
-        )
+        ) from e
 
     return experiment_id
 
@@ -98,6 +98,6 @@ def validated_entities_for_experiment(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e),
-        )
+        ) from e
 
     return entities

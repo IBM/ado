@@ -74,7 +74,7 @@ class ComponentsYaml:
         k8s_name: str,
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
-        node_selector: dict[str, str] = {},
+        node_selector: dict[str, str] | None = None,
         image: str = "vllm/vllm-openai:v0.6.3",
         image_secret: str = "",
         n_gpus: int = 1,
@@ -116,6 +116,9 @@ class ComponentsYaml:
         :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :return:
         """
+        if node_selector is None:
+            node_selector = {}
+
         # read template
         if template is None:
             logger.debug("Using default Deployment template")
@@ -134,7 +137,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading deployment yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         metadata = deployment_yaml["metadata"]
@@ -228,7 +231,7 @@ class ComponentsYaml:
                 [
                     {
                         "name": "HOME",
-                        "value": "/tmp",
+                        "value": "/tmp",  # noqa: S108
                     },
                     {
                         "name": "HF_HOME",
@@ -271,7 +274,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading service yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         metadata = service_yaml["metadata"]
@@ -306,7 +309,7 @@ class ComponentsYaml:
         except Exception as exception:
             error_string = f"Exception reading pvc yaml template {exception}"
             logger.error(error_string)
-            raise ValueError(error_string)
+            raise ValueError(error_string) from exception
 
         # Update metadata
         pvc_yaml["metadata"]["name"] = pvc_name
@@ -323,7 +326,6 @@ if __name__ == "__main__":
         model=t_model,
         claim_name="vllm-support",
         node_selector={"kubernetes.io/hostname": "cpu16"},
-        hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
     print(f"Deployment YAML: \n{yaml.dump(deployment)}")

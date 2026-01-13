@@ -6,6 +6,7 @@ import os
 import pathlib
 import time
 from collections.abc import Callable
+from typing import Annotated
 
 import ray.exceptions
 import requests
@@ -118,13 +119,18 @@ def local_execution_closure(
 
 
 def remote_execution_closure(
-    endpoint: str, timeout: int = 300
+    endpoint: str,
+    experiment_timeout: int = 300,
+    verify_certs: bool = False,
+    requests_timeout: int = 60,
 ) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
     """Execute via ado API
 
     Parameters:
         endpoint: The endpoint to use to execute the experiment
-        timeout: The timeout for the experiment in seconds
+        experiment_timeout: The timeout for the experiment in seconds
+        verify_certs: Enables or disables SSL certificate verification for web requests
+        requests_timeout: Timeout for web requests
 
     Returns:
         A callable that submits a remote measurement request to the given endpoint
@@ -134,7 +140,10 @@ def remote_execution_closure(
     logger = logging.getLogger("remote_execution")
 
     def execute_remote(
-        reference: ExperimentReference, entity: Entity
+        reference: ExperimentReference,
+        entity: Entity,
+        verify_certs: bool,
+        requests_timeout: int,
     ) -> MeasurementRequest | None:
 
         # Use requests to post to the endpoint
@@ -144,7 +153,8 @@ def remote_execution_closure(
         response = requests.post(
             f"{endpoint}/api/latest/actuators/{reference.actuatorIdentifier}/experiments/{reference.experimentIdentifier}/requests",
             json=[entity.model_dump()],
-            verify=False,
+            verify=verify_certs,
+            timeout=requests_timeout,
         )
         # If the response is successful the response is a MeasurementRequest identifier
         # If the response status is 404 then the experiment was not found
@@ -171,7 +181,8 @@ def remote_execution_closure(
             logger.debug(f"Polling for request {request_id}")
             response = requests.get(
                 f"{endpoint}/api/latest/actuators/{reference.actuatorIdentifier}/experiments/{reference.experimentIdentifier}/requests/{request_id}",
-                verify=False,
+                verify=verify_certs,
+                timeout=requests_timeout,
             )
             if response.status_code == 200:
                 logger.debug(response.json())
@@ -180,7 +191,7 @@ def remote_execution_closure(
             else:
                 elapsed = (datetime.datetime.now() - start_time).total_seconds()
                 logger.debug(f"Waiting - {elapsed:.1f} seconds elapsed")
-                if elapsed > timeout:
+                if elapsed > experiment_timeout:
                     raise Exception(
                         f"Timeout waiting for measurement request {request_id} to complete"
                     )
@@ -200,37 +211,56 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    point_file: pathlib.Path = typer.Argument(
-        ...,
-        help="Path to a yaml file containing an ado point definition",
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-        resolve_path=True,
-    ),
-    remote: str = typer.Option(
-        None,
-        "--remote",
-        metavar="ENDPOINT",
-        help="Execute the experiment on a remote Ray cluster at the given ENDPOINT. If not given the experiment will be run locally",
-    ),
-    timeout: int = typer.Option(
-        300,
-        "--timeout",
-        metavar="TIMEOUT",
-        help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
-    ),
-    validate: bool = typer.Option(
-        True,
-        help="Validate the entity before executing the experiment. If executing remotely this requires the experiment to be installed locally",
-    ),
-    actuator_configuration_identifiers: list[str] | None = typer.Option(
-        None,
-        "--actuator-config-id",
-        metavar="ACTUATOR_CONFIG_IDENTIFIER",
-        help="Optional actuator configuration identifier(s) to use for this experiment. May be specified multiple times.",
-    ),
-) -> None:
+    point_file: Annotated[
+        pathlib.Path,
+        typer.Argument(
+            help="Path to a yaml file containing an ado point definition",
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            resolve_path=True,
+        ),
+    ],
+    remote: Annotated[
+        str | None,
+        typer.Option(
+            metavar="ENDPOINT",
+            help="Execute the experiment on a remote Ray cluster at the given ENDPOINT. If not given the experiment will be run locally",
+        ),
+    ] = None,
+    timeout: Annotated[
+        int,
+        typer.Option(
+            metavar="TIMEOUT",
+            help="Timeout for the remote experiment in seconds. If not given the default is 300 seconds",
+        ),
+    ] = 300,
+    validate: Annotated[
+        bool,
+        typer.Option(
+            help="Validate the entity before executing the experiment. "
+            "If executing remotely this requires the experiment to be installed locally",
+        ),
+    ] = True,
+    actuator_configuration_identifiers: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--actuator-config-id",
+            metavar="ACTUATOR_CONFIG_IDENTIFIER",
+            help="Optional actuator configuration identifier(s) to use for this experiment. "
+            "May be specified multiple times.",
+        ),
+    ] = None,
+    verify_certs: Annotated[
+        bool,
+        typer.Option(
+            help="Enable or disable SSL certificate verification of remote hosts"
+        ),
+    ] = False,
+    request_timeout: Annotated[
+        int, typer.Option(help="Timeout for web requests.")
+    ] = 60,
+):
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
     logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
@@ -247,7 +277,12 @@ def run(
             actuator_configuration_identifiers=actuator_configuration_identifiers,
         )
         if not remote
-        else remote_execution_closure(remote, timeout=timeout)
+        else remote_execution_closure(
+            remote,
+            experiment_timeout=timeout,
+            verify_certs=verify_certs,
+            requests_timeout=request_timeout,
+        )
     )
 
     if not remote:
@@ -274,6 +309,7 @@ def run(
                     console_print("Result:")
                     console_print(
                         f"{request.series_representation(output_format='target')}\n",
+                        has_pandas_content=True,
                         use_markup=False,
                     )
             else:
@@ -288,7 +324,7 @@ def main():
         app()
     except Exception as e:
         console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from e
 
 
 if __name__ == "__main__":

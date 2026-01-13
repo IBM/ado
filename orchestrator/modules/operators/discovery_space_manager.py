@@ -190,10 +190,7 @@ class DiscoverySpaceManager:
 
         entities = self._discoverySpace.matchingEntities()
         if selection is not None:
-            selected = []
-            for i in selection:
-                selected.append(entities[i])
-
+            selected = [entities[i] for i in selection]
             entities = selected
 
         return entities
@@ -294,7 +291,7 @@ class DiscoverySpaceManager:
                     try:
                         promise = subscriber.onUpdate.remote(measurement_request)
                         promises.append(promise)
-                    except Exception as error:
+                    except Exception as error:  # noqa: PERF203
                         self.log.info(
                             f"Exception {error} while notifying subscriber of update {subscriber}"
                         )
@@ -313,11 +310,11 @@ class DiscoverySpaceManager:
             self.log.info(
                 "Measurement queue observation complete - notifying subscribers"
             )
-            for subscriberName, subscriber in self._subscribers.items():
+            for subscriber in self._subscribers.values():
                 try:
                     self.log.info("Notifying subscriber")
                     await subscriber.onCompleted.remote()
-                except Exception as error:
+                except Exception as error:  # noqa: PERF203
                     self.log.info(
                         f"Exception error {error} while notifying subscriber of completion {subscriber}"
                     )

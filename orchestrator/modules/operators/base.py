@@ -52,9 +52,6 @@ moduleLog = logging.getLogger("operation_base")
 
 class DiscoveryOperationBase(metaclass=abc.ABCMeta):
 
-    def __init__(self, params: typing.Any = None):
-        pass
-
     @abc.abstractmethod
     def operationIdentifier(self):
         """A unique id for the operation instance being run by the operator
@@ -62,22 +59,26 @@ class DiscoveryOperationBase(metaclass=abc.ABCMeta):
         should have form $operatorIdentifier-$version-$uid"""
 
     @classmethod
+    @abc.abstractmethod
     def operatorIdentifier(cls):
         """The identifier of this operator
 
         should have form method-version"""
 
     @classmethod
+    @abc.abstractmethod
     def operationType(cls) -> DiscoveryOperationEnum:
         """The type of operation this operator applies"""
 
     @classmethod
+    @abc.abstractmethod
     def defaultOperationParameters(
         cls,
     ) -> pydantic.BaseModel:
         """A default pytdantic model for this operations parameters with this operator"""
 
     @classmethod
+    @abc.abstractmethod
     def validateOperationParameters(
         cls,
         parameters: dict,
@@ -93,6 +94,7 @@ class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):
     # async def run(self, discoveryState):
     #     pass
 
+    @abc.abstractmethod
     async def run(self) -> OperationOutput | None:
         pass
 
@@ -103,6 +105,7 @@ class MultivariateDiscoveryOperation(metaclass=abc.ABCMeta):
     # async def run(self, *discoveryStates):
     #     pass
 
+    @abc.abstractmethod
     async def run(self) -> OperationOutput | None:
         pass
 
@@ -191,10 +194,8 @@ def measure_or_replay(
         except ray.exceptions.RayTaskError as e:
             if isinstance(
                 e.cause,
-                (
-                    orchestrator.modules.actuators.base.DeprecatedExperimentError,
-                    orchestrator.modules.actuators.base.MissingConfigurationForExperimentError,
-                ),
+                orchestrator.modules.actuators.base.DeprecatedExperimentError
+                | orchestrator.modules.actuators.base.MissingConfigurationForExperimentError,
             ):
                 raise orchestrator.modules.actuators.base.MeasurementError(
                     f"Cannot apply experiment {experimentReference}. Reason: {e.cause}"
@@ -286,7 +287,7 @@ def add_operation_output_to_metastore(operation, output, metastore):
                 metastore.addResourceWithRelationships(
                     resource, relatedIdentifiers=[operation.identifier]
                 )
-            except ValueError:
+            except ValueError:  # noqa: PERF203
                 # Assume already added
                 metastore.addRelationship(operation.identifier, resource.identifier)
 
@@ -447,8 +448,11 @@ class InterruptedOperationError(KeyboardInterrupt):
     to provide context about which operation was interrupted.
     """
 
-    def __init__(self, operation_identifier: str):
+    def __init__(
+        self, operation_identifier: str, resources: list["ADOResource"] | None = None
+    ):
         self.operation_identifier = operation_identifier
+        self.resources = resources if resources else []
         super().__init__(f"Operation {operation_identifier} was interrupted")
 
 

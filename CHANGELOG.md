@@ -1,3 +1,32 @@
+## [1.3.3](https://github.com/ibm/ado/compare/2fc3b9113577a2e7a9fb7532440b166237c7f6fa..1.3.3) - 2026-01-8
+#### Features
+- (**cli**) support loading commands via plugins (#344) - ([6e61cff](https://github.com/ibm/ado/commit/6e61cff68d90004617b4d3b8f00ec116bd9e7651)) - Michael Johnston
+#### Bug Fixes
+- (**cli**) update calculations in show details operation (#325) - ([dfd4884](https://github.com/ibm/ado/commit/dfd4884d98e6ff08d0a5c4eba87e52055a72806c)) - Alessandro Pomponio
+- (**core**) update PropertyValue schema for structured decoding  (#350) - ([58b5fd2](https://github.com/ibm/ado/commit/58b5fd20be93d3158220a17f69c543bce1b792c1)) - Michael Johnston
+- (**docs**) update changelog link in pyproject (#351) - ([f1094df](https://github.com/ibm/ado/commit/f1094dfd2108ca1009b9d67b6f6403afe137a64d)) - Alessandro Pomponio
+- (**docs**) update docs for upgrading actuator configurations (#343) - ([7a5804d](https://github.com/ibm/ado/commit/7a5804df7d7a13acf006e30cacd248cdd7d986e3)) - Alessandro Pomponio
+- enable Bugbear linter (#330) - ([f580b34](https://github.com/ibm/ado/commit/f580b34abca11db10651fe47ca51a55902245c97)) - Alessandro Pomponio
+#### Performance Improvements
+- enable PERF linter (#333) - ([179c2b6](https://github.com/ibm/ado/commit/179c2b6c33d209213535a6625c78a2c699e5b070)) - Alessandro Pomponio
+#### Documentation
+- (**changelog**) update changelog (#321) - ([66a60f0](https://github.com/ibm/ado/commit/66a60f02d14f39ccbadfaa1c13471f52d86e39e5)) - Alessandro Pomponio
+- (**vllm_performance**) fix in_cluster spelling (#326) - ([6b9f639](https://github.com/ibm/ado/commit/6b9f639b127bb9e6cb8fbda0440cd8b38b01bc12)) - Christian Pinto
+- (**website**) fix typo in "Target v observed property formats" (#345) - ([6da973a](https://github.com/ibm/ado/commit/6da973a20947c10bc6a69ea9340483962d871c05)) - Daniele Lotito
+#### Build system
+- (**containers**) support geo and sft image (#341) - ([dd0c0c7](https://github.com/ibm/ado/commit/dd0c0c78ed79c3bec28cdce7e707c9452cceb5fc)) - Alessandro Pomponio
+- (**containers**) support building on multiple Python and CUDA versions (#318) - ([4472e1d](https://github.com/ibm/ado/commit/4472e1df58ea3833fb82e89b39803f579d648b06)) - Alessandro Pomponio
+- (**core**) add required environments (#323) - ([5590c16](https://github.com/ibm/ado/commit/5590c1663c0c9430968087038294756ab5767be2)) - Alessandro Pomponio
+- (**deps**) update dependencies (#353) - ([b6737ef](https://github.com/ibm/ado/commit/b6737ef74c54e7463db0ca9d46bd88de1bb78282)) - Alessandro Pomponio
+- (**deps**) update dependencies (#336) - ([2888b7f](https://github.com/ibm/ado/commit/2888b7fb61ad1d736174bb123446518599f30480)) - Alessandro Pomponio
+- (**deps**) update dependencies (#331) - ([42c3c0f](https://github.com/ibm/ado/commit/42c3c0f7a657ff87d464ff5a81aab732d103fa25)) - Alessandro Pomponio
+- (**deps**) update dependencies (#320) - ([2fc3b91](https://github.com/ibm/ado/commit/2fc3b9113577a2e7a9fb7532440b166237c7f6fa)) - Alessandro Pomponio
+#### Refactoring
+- (**core**) delay expensive imports (#328) - ([28963fd](https://github.com/ibm/ado/commit/28963fda7b1d51bdad0572d48b6a726856536d29)) - Michael Johnston
+- rewrite ProbabilityFunction.__eq__ (#348) - ([6282363](https://github.com/ibm/ado/commit/6282363ea52e244e1d8bd5d9bd7ff7346c0056ce)) - Alessandro Pomponio
+#### Miscellaneous Chores
+- update gitignore (#342) - ([3e14b3d](https://github.com/ibm/ado/commit/3e14b3d7ffcc2dfad1a71e6cc9df4e6ffe3bf201)) - Alessandro Pomponio
+
 ## [1.3.2](https://github.com/ibm/ado/compare/1.3.1..1.3.2) - 2025-12-16
 #### Features
 - (**core**) handle errors per custom_experiment (#314) - ([67f69cc](https://github.com/ibm/ado/commit/67f69cc0a18ea1d773811481ed5eaa2636d61f33)) - Michael Johnston

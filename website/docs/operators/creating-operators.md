@@ -177,11 +177,11 @@ If your operator type involves sampling and measuring entities e.g. it is an
 optimizer, your code has some additional packaging requirements which are
 discussed in [explore operators](#creating-explore-operators).
 
-### Returning data from your operation
+## Returning data from your operation: Operation Outputs
 
 > [!NOTE]
 >
-> Any `ado` resources created will be stored in the context the operation was
+> Any `ado` resources created will be stored in the project the operation was
 > created in.
 
 The operator function must return data using the
@@ -207,16 +207,13 @@ The key fields to set are:
 - **resources**: A list of `ado` resources your operation created.
 - **existStatus**: Indicates if the operation worked or not
 
-Its expected that certain operation types return certain outputs:
-
-- fuse, modify: Expected to return a new DiscoverySpaceResource and optionally a
-  SampleStoreResource
-- compare: Expected to return a new DataContainerResource
-- characterize: Expected to return a new DataContainerResource
+### Returning non-ado resource data
 
 If you have non-ado resource data you want to return from your operation, for
 example pandas DataFrames, paths to files, text, lists etc. you can use `ado`s
 [`datacontainer`](../resources/datacontainer.md) resource.
+
+### Example
 
 The following code snippet shows returning a dataframe, a dictionary with some
 key:value pairs, and an URL:
@@ -229,9 +226,24 @@ data_container = DataContainer(tabularData={"main_dataframe":tabular_data},
                                locationData={"important_location": location})
 
 return OperationOutput(resources=[DataContainerResource(config=data_container)])
-
-
 ```
+
+### Storing returned resources
+
+All resources returned by the operation will automatically be stored in the
+project the operation was created in. In addition, the relationships between the
+operation and the resources it creates are also automatically added. This means
+`ado show related operation $OPERATION_ID` will list the resources the operation
+created.
+
+### Expected return types
+
+Certain operation types are expected to return outputs as follows:
+
+- fuse, modify: a new DiscoverySpaceResource and optionally a
+  SampleStoreResource
+- compare: a new DataContainerResource
+- characterize: a new DataContainerResource
 
 ## How to update your operator input parameters
 
@@ -430,6 +442,52 @@ def my_learning_operation(...):
 You access the data of the operation from the OperationOutput instance it
 returns. Any `ado` resources the nested operation creates will have been
 automatically added to the correct project by `ado`.
+
+## Handling Keyboard Interrupts (SIGINT)
+
+> [!NOTE]
+>
+> If your operator does not create any ado resources, you don't need
+> to do anything.
+
+Your operator must ensure that all resources it creates, along with their
+relationships, are recorded in the project database if a keyboard interrupt
+(CTRL+C) occurs during execution. For details on how resources are handled under
+normal conditions, see [Storing Returned
+Resources](#storing-returned-resources).
+
+By default, ado ensures that when a keyboard interrupt (CTRL+C) occurs:
+
+- Any nested operations created by your operator are stored.
+- The relationship to the nested operation that was executing at the time of the
+  interrupt is stored.
+
+However, the following are **not stored by default**:
+
+- Non-operation resources (e.g., spaces, data containers) and their
+  relationships created before the interrupt.
+- Relationships to nested operations that were already completed.
+
+To handle these cases, wrap your operator logic in a try/except block as shown
+below
+
+```python
+from orchestrator.modules.operators.base import InterruptedOperationError
+
+try:
+    # operator logic
+    ...
+except KeyboardInterrupt as error:
+    # Assumes created_resources is an array containing all ado resource already created
+    raise InterruptedOperationError(resources=created_resources) from error
+except (
+    InterruptedOperationError
+) as nested_operation_error:  # This is when a nested operation was interrupted first
+    # IMPORTANT: You must add the identifier of the interrupted nested operation
+    raise InterruptedOperationError(
+        resources=created_resources, identifier=nested_operation_error.identifier
+    ) from error
+```
 
 ## Creating Explore Operators
 

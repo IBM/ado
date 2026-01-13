@@ -147,7 +147,7 @@ async def test_explicit_space_grid_sampler_async_entity_iterator(
         )
 
         async for entityBatch in iterator:
-            for entity in entityBatch:  # type: Entity
+            for entity in entityBatch:  # type: Entity # noqa: B007
                 count += 1
 
         if walk_mode == WalkModeEnum.SEQUENTIAL:
@@ -217,7 +217,7 @@ def test_explicit_space_grid_sampler_entity_iterator(ml_multi_cloud_space, walk_
         iterator = sampler.entityIterator(discoverySpace=space, batchsize=5)
 
         for entityBatch in iterator:
-            for entity in entityBatch:  # type: Entity
+            for entity in entityBatch:  # type: Entity # noqa: B007
                 count += 1
 
         if walk_mode == WalkModeEnum.SEQUENTIAL:

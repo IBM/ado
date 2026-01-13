@@ -89,7 +89,7 @@ def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCata
                 ("ado_sfttrainer_deprecated_experiments", old_experiment_type)
             )
             module = importlib.import_module(name)
-        except (ModuleNotFoundError, ImportError):
+        except (ModuleNotFoundError, ImportError):  # noqa: PERF203
             continue
         else:
             module.inject_deprecated_experiments(catalog=catalog)
@@ -114,7 +114,7 @@ def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
     while pending:
         parent, model = pending.pop(0)
 
-        for key, _value_info in model.model_fields.items():
+        for key, _value_info in model.model_fields.items():  # noqa: PERF102
             value = model.__getattribute__(key)
 
             if isinstance(value, pydantic.BaseModel):
@@ -295,13 +295,10 @@ def prepare_runtime_environment(
 
     # VV: Get a ray runtime-environment which contains packages that this version of fms-hf-tuning imports
 
-    env_vars = {}
-    for key, name in os.environ.items():
-        # VV: Propagate environment variables that are related to pip
-        # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
-        # This is useful for packages that take too long to compile from source like mamba-ssm
-        if key.startswith("PIP_"):
-            env_vars[key] = name
+    # VV: Propagate environment variables that are related to pip
+    # for example, PIP_FIND_LINKS for installing packages from a URL/directory.
+    # This is useful for packages that take too long to compile from source like mamba-ssm
+    env_vars = {key: name for key, name in os.environ.items() if key.startswith("PIP_")}
 
     runtime_env = ray_env_utils.get_ray_environment(
         packages=packages,
@@ -599,17 +596,19 @@ class SFTTrainer(ActuatorBase):
             data_path = os.path.join(
                 actuator_parameters.data_directory, DatasetMap[space.dataset_id]
             )
-        except KeyError:
-            raise NotImplementedError(f"References unknown dataset {space.dataset_id}")
+        except KeyError as error:
+            raise NotImplementedError(
+                f"References unknown dataset {space.dataset_id}"
+            ) from error
 
         try:
             model_map = actuator_parameters.model_map[space.model_name]
 
-        except KeyError:
+        except KeyError as error:
             raise NotImplementedError(
                 f'Entity is referencing unknown model "{space.model_name}", '
                 f"supported models are {list(actuator_parameters.model_map)}"
-            )
+            ) from error
 
         kwargs: dict[str, typing.Any] = actuator_parameters.model_dump(
             exclude_none=True,
@@ -652,7 +651,7 @@ class SFTTrainer(ActuatorBase):
         except Exception as e:
             # VV: This means there's a bug with the actuator - we should always be able to parse the args following
             # the above error checks
-            raise InternalInconsistencyError(str(e))
+            raise InternalInconsistencyError(str(e)) from e
 
         # VV: Here we fill in fields which need to propagate to FinetuneArgs BUT their definition in the
         # pydantic model (e.g. ExperimentParameter, or EntitySpace) contains `exclude=True`
@@ -1091,7 +1090,7 @@ class SFTTrainer(ActuatorBase):
         except InvalidEntityError:
             raise
         except finetune.ExperimentError as e:
-            raise InvalidEntityError(str(e))
+            raise InvalidEntityError(str(e)) from e
         except Exception as e:
             # VV: Can't tell what the issue is, we're probably missing a feature
             raise NotImplementedError(str(e)) from e
@@ -1118,7 +1117,7 @@ class SFTTrainer(ActuatorBase):
                 + entity.identifier
                 + " error was "
                 + str(e)
-            )
+            ) from e
 
     async def _evaluate_one_entity(
         self,
@@ -1169,7 +1168,7 @@ class SFTTrainer(ActuatorBase):
 
             except Exception as e:
                 self.log.debug(f"Exception while discovering experiment: {e}")
-                raise InternalInconsistencyError(e)
+                raise InternalInconsistencyError(e) from e
             exp_name = exp.identifier
             if exp is None:
                 # VV: Pretty sure this can never happen
@@ -1187,7 +1186,7 @@ class SFTTrainer(ActuatorBase):
             except InvalidEntityError:
                 raise
             except finetune.ExperimentError as e:
-                raise InvalidEntityError(str(e))
+                raise InvalidEntityError(str(e)) from e
             except Exception as e:
                 # VV: Can't tell what the issue is, we're probably missing a feature
                 raise NotImplementedError(str(e)) from e

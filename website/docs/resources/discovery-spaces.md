@@ -176,7 +176,7 @@ table = space.measuredEntitiesTable()
 table = space.matchingEntitiesTable()
 ```
 
-## Target v observed property formats
+## Target vs observed property formats
 
 There are two formats the entities can be output controlled by the
 `--property-format` option to `show entities`

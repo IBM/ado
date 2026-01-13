@@ -358,8 +358,11 @@ the validator:
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```python
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Any
+
 import pydantic
+
+from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
@@ -377,14 +380,53 @@ class InferenceActuatorParameters(GenericActuatorParameters):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def rename_authToken(cls, values: dict):
+    def rename_authToken(cls, values: Any):
+
+        # We expect either a GenericActuatorParameters or a dict instance
+        if not isinstance(values, GenericActuatorParameters) and not isinstance(
+            values, dict
+        ):
+            raise ValueError(f"Unexpected type {type(values)} in validator")
+
         from orchestrator.core.actuatorconfiguration.config import (
             warn_deprecated_actuator_parameters_model_in_use,
         )
 
         old_key = "authToken"
         new_key = "authorization_token"
-        if old_key in values:
+
+        if isinstance(values, GenericActuatorParameters):
+
+            # The old key is not present - all good
+            if not hasattr(values, old_key):
+                return values
+
+            # Notify the user that the authToken
+            # field is deprecated
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="my_actuator",
+                deprecated_from_actuator_version="v2",
+                removed_from_actuator_version="v3",
+                deprecated_fields=old_key,
+                latest_format_documentation_url="https://example.com",
+            )
+
+            # The user has set both the old
+            # and the new key - the new key
+            # takes precedence.
+            if hasattr(values, new_key):
+                delattr(values, old_key)
+            # Set the old value in the
+            # new field
+            else:
+                setattr(values, new_key, getattr(values, old_key))
+                delattr(values, old_key)
+
+        else:
+
+            # The old key is not present - all good
+            if old_key not in values:
+                return values
 
             # Notify the user that the authToken
             # field is deprecated

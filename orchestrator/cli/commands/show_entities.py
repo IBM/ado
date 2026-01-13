@@ -209,7 +209,7 @@ def show_entities_for_resources(
         FailedToDecodeStoredMeasurementResultForEntityError,
     ) as e:
         console_print(f"{ERROR}{e}", stderr=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def register_show_entities_command(app: typer.Typer):

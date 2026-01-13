@@ -64,14 +64,14 @@ class ComponentsManager:
             # this is just to make sure we are authenticated to the cluster
             # and fail immediately otherwise.
             self.kube_client_V1.list_namespaced_pod(namespace=namespace)
-        except ApiException:
+        except ApiException as error:
             error_message = "Error connecting to the Kubernetes cluster.\n"
             if in_cluster:
                 error_message += "Make sure the service account used for the Ray cluster has sufficient permissions."
             else:
                 error_message += "Make sure you are authenticated with the Kubernetes cluster or that you are using a valid kubeconfig."
             logger.critical(error_message)
-            raise K8sConnectionError
+            raise K8sConnectionError from error
         except Exception as e:
             logger.critical(f"Exception connecting to kubernetes {e}")
             raise
@@ -114,9 +114,9 @@ class ComponentsManager:
         except ApiException:
             print("api exception")
             return False
-        except Exception:
+        except Exception as error:
             print("Failed connecting to the Kubernetes cluster")
-            raise K8sConnectionError
+            raise K8sConnectionError from error
 
     def check_pvc_exists(self, pvc_name: str) -> bool:
         """
@@ -243,7 +243,7 @@ class ComponentsManager:
         k8s_name: str,
         model: str,
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
-        node_selector: dict[str, str] = {},
+        node_selector: dict[str, str] | None = None,
         image: str = "vllm/vllm-openai:v0.6.3",
         image_secret: str = "",
         n_gpus: int = 1,
@@ -285,6 +285,8 @@ class ComponentsManager:
         :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
         :return:
         """
+        if node_selector is None:
+            node_selector = {}
 
         # create deployment
         deployment_yaml = ComponentsYaml.deployment_yaml(
@@ -404,7 +406,6 @@ if __name__ == "__main__":
         k8s_name=t_k8s_name,
         model="meta-llama/Llama-3.1-8B-Instruct",
         claim_name="vllm-support",
-        hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
     c_manager.wait_deployment_ready(k8s_name=t_k8s_name)

@@ -4,8 +4,10 @@
 import enum
 import logging
 import typing
+from typing import Annotated
 
 import pydantic
+from pydantic import WithJsonSchema
 
 from orchestrator.schema.property import (
     ConstitutiveProperty,
@@ -32,6 +34,21 @@ valueTypesDisplayNames = {
 }
 
 
+# A type to help with bytes value type + JSON + structured decoding.
+# Structured decoding methods uses the model json schema to constrain value generation
+# However these methods do not support fields with "binary" value types in schema
+# which is what fields using "bytes" type will be annotated with
+# Using this annotated type for a model field will cause its json schema not
+# to use binary, but instead specify it is a base64 string
+CustomBytes = Annotated[
+    bytes,
+    WithJsonSchema(
+        # keep it as a plain string; add an optional hint for consumers
+        {"type": "string", "contentEncoding": "base64"},
+    ),
+]
+
+
 class PropertyValue(pydantic.BaseModel):
     """Represents the value of a property"""
 
@@ -39,7 +56,7 @@ class PropertyValue(pydantic.BaseModel):
         default=None,
         description="The type of the value. If not set it is set based on the value.",
     )
-    value: int | float | list | str | bytes | None = pydantic.Field(
+    value: int | float | list | str | CustomBytes | None = pydantic.Field(
         description="The measured value."
     )
     property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(
@@ -80,9 +97,13 @@ class PropertyValue(pydantic.BaseModel):
                         f"TEMP: Detected list value, {value}, assigned NUMERIC_TYPE assuming due to prior bug. Will upgrade"
                     )
                 else:
-                    assert type(value) in [float, int] or value is None
+                    if type(value) not in {float, int} and value is not None:
+                        raise ValueError("Validation failed for NUMERIC_VALUE_TYPE")
             elif valueType == ValueTypeEnum.STRING_VALUE_TYPE:
-                assert isinstance(value, str)
+                if not isinstance(value, str):
+                    raise ValueError(
+                        f"ValueType was string but Value was of type {type(value)}"
+                    )
             elif valueType == ValueTypeEnum.BLOB_VALUE_TYPE:
                 # If type is BLOB but value is string we need to convert to bytes
                 # This is because bytes are serialized in JSON as strings and if we
@@ -95,9 +116,15 @@ class PropertyValue(pydantic.BaseModel):
                         bytes(value, "utf-8").decode("unicode_escape").encode("latin1")
                     )
                 else:
-                    assert isinstance(value, bytes)
+                    if not isinstance(value, bytes):
+                        raise ValueError(
+                            f"ValueType was Blob but Value was of type {type(value)} and not bytes"
+                        )
             elif valueType == ValueTypeEnum.VECTOR_VALUE_TYPE:
-                assert isinstance(value, list)
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"ValueType was Vector but Value was of type {type(value)} and not a list"
+                    )
             else:  # pragma: nocover
                 raise ValueError(
                     f"No validation available for values of type {valueType}. This is an internal error. "

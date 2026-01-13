@@ -39,7 +39,10 @@ class SimpleStopper(ray.tune.Stopper):
     ):
         # self.mode = mode
         self.min_trials = int(min_trials)
-        assert (mode == "max") or (mode == "min")
+
+        if mode not in {"max", "min"}:
+            raise ValueError(f"mode must be either max or min (was {mode})")
+
         if mode == "max":
             self._is_better = lambda x, y: x > y
             self.last_metric = -float("inf")
@@ -116,7 +119,10 @@ class GrowthStopper(ray.tune.Stopper):
 
     # TODO: I don't know why init isn't accepting parameters...
     def set_config(self, mode, metric, growth_threshold=1.0, grace_trials=2):
-        assert (mode == "max") or (mode == "min")
+
+        if mode not in {"max", "min"}:
+            raise ValueError(f"mode must be either max or min (was {mode})")
+
         # if mode == 'max':
         #     self.last_result = -float('inf')
         # if mode == 'min':
@@ -261,7 +267,10 @@ class InformationGainStopper(ray.tune.Stopper):
         # self.targeted_value = 'values__' + targeted_value
         self.targeted_value = targeted_value
         if min_samples == "auto":
-            assert search_columns
+
+            if not search_columns:
+                raise ValueError("search_columns cannot be None")
+
             # self.min_samples = 2*len(data_columns)
             self.min_samples = 2 * len(search_columns)
         else:

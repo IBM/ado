@@ -31,9 +31,10 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters):
         )
     except pydantic.ValidationError as error:
         console_print(
-            f"{ERROR}The actuatorconfiguration provided was not valid:\n{error}",
+            f"{ERROR}The actuatorconfiguration provided was not valid:",
             stderr=True,
         )
+        console_print(error, stderr=True, use_markup=False)
         raise typer.Exit(1) from error
 
     if parameters.override_values:

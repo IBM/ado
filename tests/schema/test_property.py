@@ -187,7 +187,7 @@ def test_abstract_property_identifier_and_string_representation(
     target_property_list, abstract_properties: list[AbstractPropertyDescriptor]
 ):
 
-    for t, p in zip(target_property_list, abstract_properties):
+    for t, p in zip(target_property_list, abstract_properties, strict=True):
         assert p.identifier == t
         assert str(p) == f"ap-{t}"
 
@@ -201,6 +201,6 @@ def test_abstract_property_identifier_and_string_representation(
 def test_constitutive_property_identifier_and_string_representation(
     constitutive_property_list, constitutive_properties
 ):
-    for t, p in zip(constitutive_property_list, constitutive_properties):
+    for t, p in zip(constitutive_property_list, constitutive_properties, strict=True):
         assert p.identifier == t
         assert str(p) == f"cp-{t}"

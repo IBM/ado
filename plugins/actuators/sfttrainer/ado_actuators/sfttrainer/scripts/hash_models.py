@@ -55,7 +55,9 @@ def get_model_hash(path_model: str):
     num_parameters = sum(m[1] for m in hash_info)
     hash_info.append(["architectures", architectures])
 
-    the_hash = hashlib.md5(str(hash_info).encode("utf-8")).hexdigest()
+    the_hash = hashlib.md5(
+        str(hash_info).encode("utf-8"), usedforsecurity=False
+    ).hexdigest()
 
     print(
         path_model,
@@ -120,7 +122,7 @@ def main():
         unique_hashes[info["hash"]].append(model_name)
 
     all_unique = True
-    for the_hash, model_names in unique_hashes.items():
+    for model_names in unique_hashes.values():
         if len(model_names) > 1:
             print("These models are equivalent:", model_names)
             all_unique = False

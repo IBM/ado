@@ -146,7 +146,8 @@ class FilePathLocation(ResourceLocation):
         import pandas as pd
 
         file_hash = hashlib.md5(
-            pd.util.hash_pandas_object(pd.read_csv(self.path), index=True).values
+            pd.util.hash_pandas_object(pd.read_csv(self.path), index=True).values,
+            usedforsecurity=False,
         ).hexdigest()
         filename = os.path.split(os.path.expandvars(self.path))[1]
         return f"{filename}-{file_hash}"
@@ -269,7 +270,8 @@ class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
 
             warnings.warn(
                 "The path to the SQLite database contains whitespace. "
-                "The URL being generated should not be used to connect to the database."
+                "The URL being generated should not be used to connect to the database.",
+                stacklevel=2,
             )
 
         return pydantic.AnyUrl.build(

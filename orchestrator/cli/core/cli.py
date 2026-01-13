@@ -59,7 +59,34 @@ register_show_command(app)
 register_template_command(app)
 register_upgrade_command(app)
 register_version_command(app)
-# register_hamilton_command(app)
+
+
+# Load CLI plugins via entrypoints
+def load_cli_plugins():
+    """Load and register CLI plugins from entry points."""
+    from importlib.metadata import entry_points
+
+    cli_logger = logging.getLogger(__name__)
+    for cli_plugin in entry_points(group="ado.cli"):
+        # We don't want one plugin failing to load to prevent others loading
+        try:
+            plugin_module = cli_plugin.load()
+            if hasattr(plugin_module, "register"):
+                plugin_module.register(app)
+                cli_logger.debug(
+                    f"Loaded CLI plugin: {cli_plugin.name} from {cli_plugin.value}"
+                )
+            else:
+                cli_logger.error(
+                    f"CLI plugin {cli_plugin.name} does not have a 'register' function"
+                )
+        except Exception as e:  # noqa: PERF203
+            cli_logger.warning(
+                f"Failed to load CLI plugin {cli_plugin.name}: {e}", exc_info=True
+            )
+
+
+load_cli_plugins()
 
 
 @app.callback()

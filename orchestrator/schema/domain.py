@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import logging
 import math
 import typing
 
@@ -255,34 +256,40 @@ class ProbabilityFunction(pydantic.BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    def __eq__(self, other: "ProbabilityFunction"):
+    def __eq__(self, other: object):
 
-        try:
-            assert (
-                self.identifier == other.identifier
-            ), f"Probability functions type is not the same {self.identifier, other.identifier}"
-            if self.parameters:
-                assert (
-                    len(
-                        set(self.parameters.keys()).difference(
-                            set(other.parameters.keys())
-                        )
-                    )
-                    == 0
-                ), f"The other probability function has a different number of parameters {self.parameters, other.parameters}"
-                for k in self.parameters:
-                    assert (
-                        self.parameters[k] == other.parameters[k]
-                    ), f"The value of parameter {k} differs: {self.parameters[k], other.parameters[k]}"
-                retval = True
-            else:
-                retval = not other.parameters
+        # They should both be ProbabilityFunctions
+        if not isinstance(other, ProbabilityFunction):
+            return False
 
-        except (AttributeError, AssertionError) as error:
-            print(error)
-            retval = False
+        # Identifiers must match
+        if self.identifier != other.identifier:
+            logging.debug(
+                f"Probability functions type is not the same {self.identifier, other.identifier}"
+            )
+            return False
 
-        return retval
+        # If this instance doesn't have parameters, the other one
+        # shouldn't have them either
+        if not self.parameters:
+            return not other.parameters
+
+        # This instance has parameters. The other instance should
+        # have the same parameter keys and values
+        if not other.parameters or self.parameters.keys() != other.parameters.keys():
+            logging.debug(
+                f"The other probability function has a different number of parameters: {self.parameters, other.parameters}"
+            )
+            return False
+
+        for key in self.parameters:
+            if self.parameters[key] != other.parameters[key]:
+                logging.debug(
+                    f"The value of parameter {key} differs: {self.parameters[key], other.parameters[key]}"
+                )
+                return False
+
+        return True
 
 
 class PropertyDomain(pydantic.BaseModel):
@@ -337,10 +344,11 @@ class PropertyDomain(pydantic.BaseModel):
         cls, interval, values: "pydantic.FieldValidationInfo"
     ):
 
-        if interval is not None:
-            assert (
-                values.data.get("values") is None
-            ), f"Cannot specify interval ({interval} if values are specified ({values.data.get('values')}"
+        if interval is not None and values.data.get("values") is not None:
+            raise ValueError(
+                "Cannot specify both interval and values in a PropertyDomain. "
+                f"Values were: {values.data.get('values')}. Interval was: {interval}"
+            )
 
         return interval
 
@@ -397,25 +405,61 @@ class PropertyDomain(pydantic.BaseModel):
                 value = VariableTypeEnum.DISCRETE_VARIABLE_TYPE
 
         if value == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE:
-            assert values.data.get("values") is not None
-            assert values.data.get("interval") is None
-            if not all(
-                isinstance(e, numbers.Number) for e in values.data.get("values")
+
+            if values.data.get("values") is None:
+                raise ValueError(
+                    "The values field for a CATEGORICAL_VARIABLE_TYPE was None"
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field for a CATEGORICAL_VARIABLE_TYPE was not None"
+                )
+
+            if (
+                not all(
+                    isinstance(e, numbers.Number) for e in values.data.get("values")
+                )
+                and values.data.get("domainRange") is not None
             ):
-                assert values.data.get("domainRange") is None
+                raise ValueError(
+                    "The domainRange field was not None for a CATEGORICAL_VARIABLE_TYPE "
+                    "where the values are not all numbers"
+                )
+
         elif value == VariableTypeEnum.DISCRETE_VARIABLE_TYPE:
             # Discrete must have either values or an interval
             # If it has a range it must have an interval
             valuesCheck = values.data.get("values") is not None
             intervalCheck = values.data.get("interval") is not None
-            assert valuesCheck or intervalCheck
+            if not (valuesCheck or intervalCheck):
+                raise ValueError(
+                    "A DISCRETE_VARIABLE_TYPE had neither values nor interval specified"
+                )
 
         elif value == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
-            assert values.data.get("values") is None
-            assert values.data.get("interval") is None
+
+            if values.data.get("values") is not None:
+                raise ValueError(
+                    "The values field of a CONTINUOUS_VARIABLE_TYPE was not None"
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field of a CONTINUOUS_VARIABLE_TYPE was not None"
+                )
+
         elif value == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE:
-            assert values.data.get("interval") is None
-            assert values.data.get("domainRange") is None
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                )
+
+            if values.data.get("domainRange") is not None:
+                raise ValueError(
+                    "The domainRange field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
+                )
 
         return value
 

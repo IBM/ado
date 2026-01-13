@@ -363,7 +363,7 @@ def custom_experiment(
         except ValueError as error:
             raise ValueError(
                 f"Unable to generate custom experiment for {func.__name__} via decorator.\n\t{error}"
-            )
+            ) from error
 
         # Create an ExperimentModuleConf instance describing where the function is
         metadata["module"] = ExperimentModuleConf(
@@ -507,7 +507,7 @@ def load_custom_experiments_from_entry_points():
     for entry_point in custom_experiment_groups:
         try:
             entry_point.load()
-        except ImportError as error:
+        except ImportError as error:  # noqa: PERF203
             logging.getLogger("load_custom_experiments").warning(
                 f"Unable to import custom experiments from {entry_point.value}: {error}"
             )
@@ -631,7 +631,7 @@ def custom_experiment_executor(
                     entityIdentifier=entity.identifier, measurements=values
                 )
                 measurement_results.append(measurement_result)
-        except Exception as error:
+        except Exception as error:  # noqa: PERF203
             measurement_result = InvalidMeasurementResult(
                 entityIdentifier=entity.identifier,
                 experimentReference=target_experiment.reference,

@@ -1,12 +1,14 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+import typing
 
-import pandas as pd
+if typing.TYPE_CHECKING:
+    import pandas as pd
 
 
 def reorder_dataframe_columns(
-    df: pd.DataFrame, move_to_start: list[str], move_to_end: list[str]
-) -> pd.DataFrame:
+    df: "pd.DataFrame", move_to_start: list[str], move_to_end: list[str]
+) -> "pd.DataFrame":
     """
     Reorder the columns of a pandas DataFrame.
 
@@ -25,8 +27,8 @@ def reorder_dataframe_columns(
 
 
 def filter_dataframe_columns(
-    df: pd.DataFrame, columns_to_keep: list[str]
-) -> pd.DataFrame:
+    df: "pd.DataFrame", columns_to_keep: list[str]
+) -> "pd.DataFrame":
     """
     Filters a pandas DataFrame based on a list of column names to keep.
 

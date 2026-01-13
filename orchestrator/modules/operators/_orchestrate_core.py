@@ -96,7 +96,7 @@ def _run_operation_harness(
     )
 
     operation_output = None
-    interrupted_nested_operations: list[str] = []
+    interrupted_nested_operation: str | None = None
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,
         exit_state=OperationExitStateEnum.ERROR,
@@ -123,7 +123,7 @@ def _run_operation_harness(
         )
 
         # Add the nested operation identifier to the list
-        interrupted_nested_operations.append(error.operation_identifier)
+        interrupted_nested_operation = error.operation_identifier
         if error.resources:
             # Create an OperationOutput to hold the resources created before interrupt
             operation_output = OperationOutput(
@@ -235,18 +235,17 @@ def _run_operation_harness(
         discovery_space.metadataStore.updateResource(operation_resource)
 
         # Establish relationships with interrupted nested operations
-        if interrupted_nested_operations:
-            for nested_operation_id in interrupted_nested_operations:
-                try:
-                    discovery_space.metadataStore.addRelationship(
-                        subjectIdentifier=operation_resource.identifier,
-                        objectIdentifier=nested_operation_id,
-                    )
-                except Exception as e:  #  noqa: PERF203
-                    moduleLog.warning(
-                        f"Failed to establish relationship with nested operation "
-                        f"{nested_operation_id}: {e}"
-                    )
+        if interrupted_nested_operation:
+            try:
+                discovery_space.metadataStore.addRelationship(
+                    subjectIdentifier=operation_resource.identifier,
+                    objectIdentifier=interrupted_nested_operation,
+                )
+            except Exception as e:
+                moduleLog.warning(
+                    f"Failed to establish relationship with nested operation "
+                    f"{interrupted_nested_operation}: {e}"
+                )
 
         print("=========== Operation Details ============\n")
         print(f"Space ID: {operation_resource.config.spaces[0]}")

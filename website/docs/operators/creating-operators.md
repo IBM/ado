@@ -230,21 +230,20 @@ return OperationOutput(resources=[DataContainerResource(config=data_container)])
 
 ### Storing returned resources
 
-All resources returned by the operation will automatically
-be stored in the project the operation was created in.
-In addition, the relationships between the operation and the resources
-it creates are also automatically added.
-This means ```ado show related operation $OPERATIONID``` will list the
-resources the operation created.
+All resources returned by the operation will automatically be stored in the
+project the operation was created in. In addition, the relationships between the
+operation and the resources it creates are also automatically added. This means
+`ado show related operation $OPERATION_ID` will list the resources the operation
+created.
 
 ### Expected return types
 
-Its expected that certain operation types return certain outputs:
+Certain operation types are expected to return outputs as follows:
 
-- fuse, modify: Expected to return a new DiscoverySpaceResource and optionally a
+- fuse, modify: a new DiscoverySpaceResource and optionally a
   SampleStoreResource
-- compare: Expected to return a new DataContainerResource
-- characterize: Expected to return a new DataContainerResource
+- compare: a new DataContainerResource
+- characterize: a new DataContainerResource
 
 ## How to update your operator input parameters
 
@@ -448,40 +447,46 @@ automatically added to the correct project by `ado`.
 
 > [!NOTE]
 >
-> If your operator does not create any ado resources you don't need
-> to do anything
+> If your operator does not create any ado resources, you don't need
+> to do anything.
 
-Your operator must take steps to ensure all resources it creates
-, and their relationships, are recorded in the project database if a
-keyboard interrupt is received (CTRL+C) while it is executing
-((see [storing returned resources] for how these are handled
-in normal case) .
+Your operator must ensure that all resources it creates, along with their
+relationships, are recorded in the project database if a keyboard interrupt
+(CTRL+C) occurs during execution. For details on how resources are handled under
+normal conditions, see [Storing Returned
+Resources](#storing-returned-resources).
 
-By default, `ado` will ensure on keyboard interrupt that
+By default, ado ensures that when a keyboard interrupt (CTRL+C) occurs:
 
-- any nested operations created by your operator are stored
-- the relationship to a nested operation executing when keyboard-interrupt is received is stored
+- Any nested operations created by your operator are stored.
+- The relationship to the nested operation that was executing at the time of the
+  interrupt is stored.
 
-This means the following will not be stored by default
+However, the following are **not stored by default**:
 
-- any non-operation resources (e.g. spaces, datacontainers),
-and their relationships, created before the interrupt
-- the relationships to nested already completed
+- Non-operation resources (e.g., spaces, data containers) and their
+  relationships created before the interrupt.
+- Relationships to nested operations that were already completed.
 
-To handle these cases wrap your operator logic in a try/except block as follows
+To handle these cases, wrap your operator logic in a try/except block as shown
+below
 
 ```python
 from orchestrator.modules.operators.base import InterruptedOperationError
 
 try:
-  #operator logic
-  ...
+    # operator logic
+    ...
 except KeyboardInterrupt as error:
-   #Assumes created_resources is an array containing all ado resource already created
-   raise InterruptedOperationError(resources=created_resources)
-except InterruptedOperationError as nested_operation_error: # This is when a nested operation was interrupted first
-   # IMPORTANT: You must add the identifier of the interrupted nested operation
-   raise InterruptedOperationError(resources=created_resources, identifier=nested_operation_error.identifier)
+    # Assumes created_resources is an array containing all ado resource already created
+    raise InterruptedOperationError(resources=created_resources) from error
+except (
+    InterruptedOperationError
+) as nested_operation_error:  # This is when a nested operation was interrupted first
+    # IMPORTANT: You must add the identifier of the interrupted nested operation
+    raise InterruptedOperationError(
+        resources=created_resources, identifier=nested_operation_error.identifier
+    ) from error
 ```
 
 ## Creating Explore Operators

@@ -122,7 +122,7 @@ def _run_operation_harness(
             message="Operation exited due to SIGINT propagated from nested operation",
         )
 
-        # Add the nested operation identifier to the list
+        # Record the identifier of the interrupted nested operation
         interrupted_nested_operation = error.operation_identifier
         if error.resources:
             # Create an OperationOutput to hold the resources created before interrupt

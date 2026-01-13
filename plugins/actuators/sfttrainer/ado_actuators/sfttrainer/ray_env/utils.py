@@ -318,7 +318,7 @@ def get_ray_environment(
         base_packages.extend(packages)
 
         base_phase = {"packages": base_packages}
-        if insert_pip_install_options and insert_pip_install_options:
+        if insert_pip_install_options and pip_install_options:
             base_phase["pip_install_options"] = list(pip_install_options)
         phases.insert(0, base_phase)
     else:

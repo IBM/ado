@@ -449,7 +449,7 @@ class InterruptedOperationError(KeyboardInterrupt):
     """
 
     def __init__(
-        self, operation_identifier: str, resources: list[ADOResource] | None = None
+        self, operation_identifier: str, resources: list["ADOResource"] | None = None
     ):
         self.operation_identifier = operation_identifier
         self.resources = resources if resources else []

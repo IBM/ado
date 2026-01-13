@@ -64,7 +64,10 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
             "env_vars": {"AIM_UI_TELEMETRY_ENABLED": "0"},
             "ordered_pip": {
                 "phases": [
-                    {"packages": ["torch==2.6.0"]},
+                    {
+                        "packages": ["torch==2.6.0"],
+                        "pip_install_options": ["--no-build-isolation"],
+                    },
                     {
                         "packages": ["flash_attn==2.7.4.post1", "mamba-ssm==2.2.5"],
                         "pip_install_options": ["--no-build-isolation"],

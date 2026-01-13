@@ -222,6 +222,7 @@ def get_ray_environment(
     packages: list[str],
     packages_requiring_extra_phase: list[list[str]],
     env_vars: dict[str, str],
+    insert_pip_install_options: bool | None = None,
 ) -> dict[str, typing.Any]:
     """Builds a ray-environment using a Ray RuntimeEnvPlugin.
 
@@ -241,6 +242,9 @@ def get_ray_environment(
             This is only used when the ordered_pip RuntimeEnvPlugin is available. Otherwise, it is ignored.
         env_vars:
             Environment variables to inject into the RuntimeContext
+        insert_pip_install_options:
+            Whether to insert pip_install_options fields. If set to None the method will auto-decide based on
+            the version of ray by invoking the function ray_version_supports_pip_install_options()
     Returns:
         A dictionary representing a RuntimeContext for Ray jobs
     """
@@ -268,7 +272,10 @@ def get_ray_environment(
 
     pip_install_options = []
 
-    if ray_version_supports_pip_install_options() or env_plugin_name == "uv":
+    if insert_pip_install_options is None:
+        insert_pip_install_options = ray_version_supports_pip_install_options()
+
+    if insert_pip_install_options or env_plugin_name == "uv":
         # VV: Ray added support for pip_install_options in 2.50.0
         pip_install_options = ["--no-build-isolation"]
 
@@ -279,7 +286,7 @@ def get_ray_environment(
     if env_plugin_name == "pip":
         phase = {"packages": packages}
 
-        if pip_install_options:
+        if pip_install_options and insert_pip_install_options:
             phase["pip_install_options"] = pip_install_options
         else:
             ray_environment["env_vars"]["PIP_NO_BUILD_ISOLATION"] = "0"
@@ -293,7 +300,8 @@ def get_ray_environment(
     elif env_plugin_name == "ordered_pip":
         # VV: Keeps the linter happy
         base_packages = []
-        phases = [{"packages": base_packages}]
+        phases = []
+
         plugin["phases"] = phases
 
         for p in packages_requiring_extra_phase or []:
@@ -302,12 +310,17 @@ def get_ray_environment(
             )
             if this_phase:
                 phase = {"packages": this_phase}
-                if ray_version_supports_pip_install_options():
+                if insert_pip_install_options and pip_install_options:
                     phase["pip_install_options"] = list(pip_install_options)
                 phases.append(phase)
 
         # VV: At this point the packages var contains all the packages that must go into the very first phase
         base_packages.extend(packages)
+
+        base_phase = {"packages": base_packages}
+        if insert_pip_install_options and pip_install_options:
+            base_phase["pip_install_options"] = list(pip_install_options)
+        phases.insert(0, base_phase)
     else:
         raise NotImplementedError("Unknown ray environment env plugin", env_plugin_name)
 

@@ -10,7 +10,7 @@ uv pip install -e examples/trim
 ## Create the space
 
 ```bash
-cd examples/trim/trim_custom_experiments/configs
+cd examples/trim/configs
 ado create space -f space_pressure.yaml --new-sample-store
 ```
 

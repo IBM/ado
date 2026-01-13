@@ -13,11 +13,6 @@ from trim.utils.high_dimensional_sampling import get_order_list_nn_high_dimensio
 from trim.utils.miscellaneous import delete_dir
 
 logger = logging.getLogger("trim")
-if not logger.handlers:
-    logger.setLevel(logging.INFO)
-    _h = logging.StreamHandler()
-    _h.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
-    logger.addHandler(_h)
 
 
 def get_feature_importance_order(

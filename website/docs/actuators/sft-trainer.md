@@ -309,7 +309,8 @@ models.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`.
@@ -567,7 +568,8 @@ configurations.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -857,7 +859,8 @@ adaptation.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1182,7 +1185,8 @@ memory constrained environments.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1464,7 +1468,8 @@ for performance.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy), [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
+      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
     - fsdp_state_dict_type: Default is `FULL_STATE_DICT`. [1] FULL_STATE_DICT, [2]
@@ -1893,10 +1898,6 @@ To enable RoCE in a RayCluster on Kubernetes, you need to:
      paths are used during collective operations.
 3. **Ensure the Kubernetes nodes and network** are RoCE-capable and properly
    configured.
-
-Here’s the revised and improved list of **prerequisites** for enabling RoCE in
-GPU workers of a RayCluster on Kubernetes, incorporating clarity, completeness,
-and technical accuracy:
 
 ### Prerequisites
 

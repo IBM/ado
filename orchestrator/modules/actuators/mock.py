@@ -108,7 +108,7 @@ class MockActuator(ActuatorBase):
         measurement_results = []
         for entity in entities:
 
-            if random.randint(0, 100) < failRate:
+            if random.randint(0, 100) < failRate:  # noqa: S311 - not crypto purposes
                 measurement_result = InvalidMeasurementResult(
                     entityIdentifier=entity.identifier,
                     experimentReference=request.experimentReference,
@@ -120,7 +120,9 @@ class MockActuator(ActuatorBase):
                     self.log.debug(f"Creating mock measured value of {op} for {entity}")
                     # Create fake values for each property in the experiment
                     value = ObservedPropertyValue(
-                        value=random.randint(0, 1000),
+                        value=random.randint(  # noqa: S311 - not crypto purposes
+                            0, 1000
+                        ),
                         property=op,
                         valueType=orchestrator.schema.property_value.ValueTypeEnum.NUMERIC_VALUE_TYPE,
                     )

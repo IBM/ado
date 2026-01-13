@@ -207,19 +207,18 @@ class OperatorFunctionConf(pydantic.BaseModel):
         # This happens if an operator registers  a default operation configuration which instantiates this class
         # because the registrations happen on import of each operator
 
-        import orchestrator.modules.operators.collections
+        from orchestrator.modules.operators.collections import operationCollectionMap
 
-        try:
-            collection = (
-                orchestrator.modules.operators.collections.operationCollectionMap[
-                    self.operationType
-                ]
+        if self.operationType not in operationCollectionMap:
+            raise ValueError(f"Unknown operation type {self.operationType}")
+
+        if (
+            self.operatorName
+            not in operationCollectionMap[self.operationType].function_operations
+        ):
+            raise ValueError(
+                f"Operator {self.operatorName} had no functions of type {self.operationType}"
             )
-        except KeyError as e:
-            raise ValueError(f"Unknown operation type {self.operationType}") from e
-
-        function = collection.function_operations.get(self.operatorName)
-        assert function is not None
 
         return True
 

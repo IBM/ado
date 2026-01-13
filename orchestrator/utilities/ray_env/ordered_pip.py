@@ -236,7 +236,10 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         import hashlib
 
         return [
-            "pip://" + hashlib.sha1(str(aggregate_packages).encode("utf-8")).hexdigest()
+            "pip://"
+            + hashlib.sha1(
+                str(aggregate_packages).encode("utf-8"), usedforsecurity=False
+            ).hexdigest()
         ]
 
     def is_ordered_pip_runtimeenv(self, runtime_env: "RuntimeEnv") -> bool:

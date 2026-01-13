@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import itertools
+import re
 import typing
 
 import pydantic
@@ -157,35 +158,62 @@ def test_explore_operator_function_configurations(expected_explore_operators):
 
 def test_operator_function_configuration_incorrect_type(expected_explore_operators):
 
-    for operationName in expected_explore_operators:
+    operation_type = (
+        orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
+    )
+
+    for operator_name in expected_explore_operators:
         operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
-            operatorName=operationName,
-            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
+            operatorName=operator_name,
+            operationType=operation_type,
         )
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(
+            ValueError,
+            match=re.escape(
+                f"Operator {operator_name} had no functions of type {operation_type}"
+            ),
+        ):
             operationConf.validateOperatorExists()
 
 
 def test_operator_function_configuration_unknown_function():
+
+    operator_name = "UnknownOperationName"
+    operation_type = (
+        orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
+    )
 
     operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
         operatorName="UnknownOperationName",
         operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
     )
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"Operator {operator_name} had no functions of type {operation_type}"
+        ),
+    ):
         operationConf.validateOperatorExists()
 
 
 def test_operator_function_configuration_unknown_type():
 
+    operator_name = "raytune"
+    operation_type = orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY
+
     operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
-        operatorName="raytune",
-        operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY,
+        operatorName=operator_name,
+        operationType=operation_type,
     )
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"Operator {operator_name} had no functions of type {operation_type}"
+        ),
+    ):
         operationConf.validateOperatorExists()
 
 

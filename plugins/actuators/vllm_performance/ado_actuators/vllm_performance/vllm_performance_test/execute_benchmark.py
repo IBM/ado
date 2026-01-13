@@ -130,7 +130,7 @@ def execute_benchmark(
     timeout = retries_timeout
     for i in range(benchmark_retries):
         try:
-            subprocess.check_call(command, env=env)
+            subprocess.check_call(command, env=env)  # noqa: S603
             break
         except subprocess.CalledProcessError as e:
             logger.warning(f"Command failed with return code {e.returncode}")

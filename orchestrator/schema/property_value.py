@@ -97,9 +97,13 @@ class PropertyValue(pydantic.BaseModel):
                         f"TEMP: Detected list value, {value}, assigned NUMERIC_TYPE assuming due to prior bug. Will upgrade"
                     )
                 else:
-                    assert type(value) in [float, int] or value is None
+                    if type(value) not in {float, int} and value is not None:
+                        raise ValueError("Validation failed for NUMERIC_VALUE_TYPE")
             elif valueType == ValueTypeEnum.STRING_VALUE_TYPE:
-                assert isinstance(value, str)
+                if not isinstance(value, str):
+                    raise ValueError(
+                        f"ValueType was string but Value was of type {type(value)}"
+                    )
             elif valueType == ValueTypeEnum.BLOB_VALUE_TYPE:
                 # If type is BLOB but value is string we need to convert to bytes
                 # This is because bytes are serialized in JSON as strings and if we
@@ -112,9 +116,15 @@ class PropertyValue(pydantic.BaseModel):
                         bytes(value, "utf-8").decode("unicode_escape").encode("latin1")
                     )
                 else:
-                    assert isinstance(value, bytes)
+                    if not isinstance(value, bytes):
+                        raise ValueError(
+                            f"ValueType was Blob but Value was of type {type(value)} and not bytes"
+                        )
             elif valueType == ValueTypeEnum.VECTOR_VALUE_TYPE:
-                assert isinstance(value, list)
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"ValueType was Vector but Value was of type {type(value)} and not a list"
+                    )
             else:  # pragma: nocover
                 raise ValueError(
                     f"No validation available for values of type {valueType}. This is an internal error. "

@@ -500,8 +500,11 @@ class ResourceTracker:
             self._log.debug("Stopping stat tracker thread")
             self._end_requested.set()
             self._thread.join()
+
             # VV: Just some sanity checking
-            assert self._stopped.is_set()
+            if not self._stopped.is_set():
+                raise ValueError("_stopped was not set as expected")
+
             self._thread = None
 
     @classmethod

@@ -315,7 +315,7 @@ def _connect_to_vllm_server(
             f"{port}:80",
         ]
         try:
-            pf = subprocess.Popen(
+            pf = subprocess.Popen(  # noqa: S603 - namespace is sanitized to be RFC1123
                 pf_command_args,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

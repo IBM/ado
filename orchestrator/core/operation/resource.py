@@ -48,8 +48,8 @@ class OperationResourceStatus(ADOResourceStatus):
     @pydantic.model_validator(mode="after")
     def check_status(self):
 
-        if self.exit_state:
-            assert self.event == OperationResourceEventEnum.FINISHED, (
+        if self.exit_state and self.event != OperationResourceEventEnum.FINISHED:
+            raise ValueError(
                 f"Recording an exit state (here {self.exit_state}) for an operation resource status, "
                 f"requires recording a corresponding FINISHED event ({self.event} given)"
             )

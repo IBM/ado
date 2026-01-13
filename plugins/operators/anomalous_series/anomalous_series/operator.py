@@ -164,14 +164,24 @@ def detect_anomalous_series(
 
     # Check if all properties are present
     print("Checking all groupby properties are present: ... ")
-    for prop in config.groupby_properties:
-        assert prop in df.columns
-
+    df_columns_set = set(df.columns)
+    missing_group_by_properties = df_columns_set.difference(
+        set(config.groupby_properties)
+    )
+    if len(missing_group_by_properties) != 0:
+        raise ValueError(
+            f"Not all groupby properties were present. Missing: {missing_group_by_properties}"
+        )
     print("All present\n")
-    print("Checking all independent properties are present: ... ")
-    for prop in config.independent_properties:
-        assert prop in df.columns
 
+    print("Checking all independent properties are present: ... ")
+    missing_independent_properties = df_columns_set.difference(
+        set(config.independent_properties)
+    )
+    if len(missing_independent_properties) != 0:
+        raise ValueError(
+            f"Not all independent properties were present. Missing: {missing_independent_properties}"
+        )
     print("All present\n")
 
     print("Checking all test properties are present: ... ")
@@ -186,7 +196,10 @@ def detect_anomalous_series(
 
     if config.failed_metric is not None:
         print("Checking if failed metric is present: ... ")
-        assert config.failed_metric in df.columns
+
+        if config.failed_metric not in df.columns:
+            raise ValueError("failed_metric was not present in the DataFrame")
+
         print("Present\n")
 
     results = []

@@ -46,7 +46,7 @@ select = [
     "FAST",
     "YTT",
     "ASYNC",
-#    "S",
+    "S",
     "S608",
     "B",
 #    "A",
@@ -130,3 +130,5 @@ docstring-code-line-length = "dynamic"
 # Ignore `S108` (Probable insecure usage of temporary file or directory)
 # Ignore `S311` (Standard pseudo-random generators are not suitable for cryptographic purposes)
 "tests/*" = ["S101", "S105", "S106", "S108", "S311"]
+"plugins/custom_experiments/autoconf/autoconf/test/*" = ["S101"]
+"plugins/actuators/sfttrainer/ado_actuators/sfttrainer/tests/*" = ["S101"]

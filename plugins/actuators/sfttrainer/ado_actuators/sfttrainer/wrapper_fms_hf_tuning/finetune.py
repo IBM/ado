@@ -456,7 +456,7 @@ def get_available_open_port() -> int:
     import socket
 
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("0.0.0.0", 0))
+        s.bind(("0.0.0.0", 0))  # noqa: S104
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
@@ -576,7 +576,7 @@ def _finetune_launch_kernel(
             with contextlib.closing(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             ) as s:
-                s.bind(("0.0.0.0", multi_node.port))
+                s.bind(("0.0.0.0", multi_node.port))  # noqa: S104
 
         # VV: Accelerate refers to DDP with the name "MULTI_GPU"
         backend_name_map = {"FSDP": "FSDP", "DDP": "MULTI_GPU"}[
@@ -705,7 +705,7 @@ def _finetune_launch_kernel(
         env["LOGLEVEL"] = env["LOGLEVEL"].upper()
 
     log.info(f"Environment variables {env}")
-    proc = subprocess.Popen(
+    proc = subprocess.Popen(  # noqa: S603
         command,
         stdout=sys.stdout,
         stderr=sys.stderr,
@@ -877,10 +877,10 @@ def calculate_tokens_in_text_dataset(
     tokenizer = AutoTokenizer.from_pretrained(path_model)
     special_tokens_dict = {}
 
-    DEFAULT_PAD_TOKEN = "<PAD>"
-    DEFAULT_EOS_TOKEN = "</s>"
-    DEFAULT_BOS_TOKEN = "<s>"
-    DEFAULT_UNK_TOKEN = "<unk>"
+    DEFAULT_PAD_TOKEN = "<PAD>"  # noqa: S105
+    DEFAULT_EOS_TOKEN = "</s>"  # noqa: S105
+    DEFAULT_BOS_TOKEN = "<s>"  # noqa: S105
+    DEFAULT_UNK_TOKEN = "<unk>"  # noqa: S105
 
     if tokenizer.pad_token is None:
         log.warning("PAD token set to default, missing in tokenizer")
@@ -930,7 +930,7 @@ def get_cache_file_for_tokens_per_sample(
     # we use the md5 hash of the file as part of the cache id
     import hashlib
 
-    digest = hashlib.md5()
+    digest = hashlib.md5(usedforsecurity=False)
 
     with open(path_data, "rb") as f:
         b = f.read(32768)

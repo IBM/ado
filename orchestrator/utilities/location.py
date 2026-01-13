@@ -146,7 +146,8 @@ class FilePathLocation(ResourceLocation):
         import pandas as pd
 
         file_hash = hashlib.md5(
-            pd.util.hash_pandas_object(pd.read_csv(self.path), index=True).values
+            pd.util.hash_pandas_object(pd.read_csv(self.path), index=True).values,
+            usedforsecurity=False,
         ).hexdigest()
         filename = os.path.split(os.path.expandvars(self.path))[1]
         return f"{filename}-{file_hash}"

@@ -52,7 +52,9 @@ def download(
 
     print(command)
 
-    proc = subprocess.Popen(command, stdout=sys.stderr, stderr=sys.stderr, env=env)
+    proc = subprocess.Popen(  # noqa: S603
+        command, stdout=sys.stderr, stderr=sys.stderr, env=env
+    )
     proc.wait()
 
     if proc.returncode != 0:
@@ -79,7 +81,9 @@ def upload(
 
     print(command)
 
-    proc = subprocess.Popen(command, stdout=sys.stderr, stderr=sys.stderr, env=env)
+    proc = subprocess.Popen(  # noqa: S603
+        command, stdout=sys.stderr, stderr=sys.stderr, env=env
+    )
     proc.wait()
 
     if proc.returncode != 0:

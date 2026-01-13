@@ -299,7 +299,7 @@ def load_operators():
                 f"Loaded plugin: {operator_plugin.name} from {operator_plugin.value}"
             )
         except Exception as e:  # noqa: PERF203
-            moduleLog.debug(f"Failed to load plugin {operator_plugin.name}: {e}")
+            moduleLog.error(f"Failed to load plugin {operator_plugin.name}: {e}")
 
 
 # Load the operator plugins

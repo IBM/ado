@@ -96,6 +96,7 @@ def _run_operation_harness(
     )
 
     operation_output = None
+    interrupted_nested_operation: str | None = None
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,
         exit_state=OperationExitStateEnum.ERROR,
@@ -107,10 +108,35 @@ def _run_operation_harness(
         )
         discovery_space.metadataStore.updateResource(operation_resource)
         operation_output: OperationOutput | None = run_closure()
+    except InterruptedOperationError as error:
+        # This will occur if a nested operation caught SIGINT first.
+        sys.stdout.flush()
+        moduleLog.warning(
+            f"Caught interrupt from nested operation {error.operation_identifier} "
+            f"during operation {operation_resource.identifier}."
+        )
+
+        operationStatus = OperationResourceStatus(
+            event=OperationResourceEventEnum.FINISHED,
+            exit_state=OperationExitStateEnum.ERROR,
+            message="Operation exited due to SIGINT propagated from nested operation",
+        )
+
+        # Record the identifier of the interrupted nested operation
+        interrupted_nested_operation = error.operation_identifier
+        if error.resources:
+            # Create an OperationOutput to hold the resources created before interrupt
+            operation_output = OperationOutput(
+                operation=operation_resource,
+                resources=error.resources,
+                exitStatus=operationStatus,
+            )
+
+        raise InterruptedOperationError(operation_resource.identifier) from error
     except KeyboardInterrupt as error:
         sys.stdout.flush()
         moduleLog.warning(
-            f"Caught keyboard interrupt during operation {operation_identifier} - initiating graceful shutdown"
+            f"Caught keyboard interrupt during operation {operation_resource.identifier} - initiating graceful shutdown"
         )
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
@@ -207,6 +233,19 @@ def _run_operation_harness(
             finalize_callback(operation_resource)
 
         discovery_space.metadataStore.updateResource(operation_resource)
+
+        # Establish relationships with interrupted nested operations
+        if interrupted_nested_operation:
+            try:
+                discovery_space.metadataStore.addRelationship(
+                    subjectIdentifier=operation_resource.identifier,
+                    objectIdentifier=interrupted_nested_operation,
+                )
+            except Exception as e:
+                moduleLog.warning(
+                    f"Failed to establish relationship with nested operation "
+                    f"{interrupted_nested_operation}: {e}"
+                )
 
         print("=========== Operation Details ============\n")
         print(f"Space ID: {operation_resource.config.spaces[0]}")

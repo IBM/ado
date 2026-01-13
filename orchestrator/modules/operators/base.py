@@ -448,8 +448,11 @@ class InterruptedOperationError(KeyboardInterrupt):
     to provide context about which operation was interrupted.
     """
 
-    def __init__(self, operation_identifier: str):
+    def __init__(
+        self, operation_identifier: str, resources: list["ADOResource"] | None = None
+    ):
         self.operation_identifier = operation_identifier
+        self.resources = resources if resources else []
         super().__init__(f"Operation {operation_identifier} was interrupted")
 
 

@@ -116,14 +116,21 @@ def _run_operation_harness(
             f"during operation {operation_resource.identifier}."
         )
 
-        # Add the nested operation identifier to the list
-        interrupted_nested_operations.append(error.operation_identifier)
-
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,
             message="Operation exited due to SIGINT propagated from nested operation",
         )
+
+        # Add the nested operation identifier to the list
+        interrupted_nested_operations.append(error.operation_identifier)
+        if error.resources:
+            # Create an OperationOutput to hold the resources created before interrupt
+            operation_output = OperationOutput(
+                operation=operation_resource,
+                resources=error.resources,
+                exitStatus=operationStatus,
+            )
 
         raise InterruptedOperationError(operation_resource.identifier) from error
     except KeyboardInterrupt as error:

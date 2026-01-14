@@ -41,7 +41,6 @@ def get_space(
 
 def get_df_all_entities_no_measurements(
     discoverySpace: typing.Union["DiscoverySpace", str],
-    targetOutput_list=[],
     discoverySpaceManager=None,
 ) -> pd.DataFrame:
     """
@@ -116,7 +115,7 @@ def get_df_all_entities_no_measurements(
 
 def get_df_at_least_one_measured_value(
     discoverySpace: typing.Union["DiscoverySpace", str],
-    targetOutput_list=[],
+    targetOutput_list=None,
     # discoverySpaceManager: DiscoverySpaceManager | None = None, This makes the operator disappear
     discoverySpaceManager=None,
     add_measurement_id=False,
@@ -145,8 +144,9 @@ def get_df_at_least_one_measured_value(
         DataFrame with columns: ['identifier' (optional), <constitutive properties>, <target outputs>].
     """
 
+    if not targetOutput_list:
+        targetOutput_list = []
     space = get_space(space_or_space_id=discoverySpace)
-
     col_list = [cp.identifier for cp in space.entitySpace.constitutiveProperties]
     if add_measurement_id:
         col_list = ["identifier", *col_list]
@@ -304,7 +304,7 @@ def get_source_and_target(
         discoverySpace, [targetOutput], discoverySpaceManager=discoverySpaceManager
     )
     dfu = get_df_all_entities_no_measurements(
-        discoverySpace, [targetOutput], discoverySpaceManager=discoverySpaceManager
+        discoverySpace, discoverySpaceManager=discoverySpaceManager
     )
     keys = [c for c in dfu.columns if c in dfm.columns and c != "identifier"]
 

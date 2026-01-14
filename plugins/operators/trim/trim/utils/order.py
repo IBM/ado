@@ -162,21 +162,24 @@ def order_df_for_sampling_with_no_priors(
         n = min(n, len(df_unique))
 
     # Build dictionaries
-    value_dict_unordered = {
-        prop: list(set(df_unique[prop].values)) for prop in constitutive_properties
-    }
-
-    value_dict = {}
-    for prop, vals in value_dict_unordered.items():
+    def _get_sorted_uniques(prop):
+        """Helper to safely sort unique values for a property."""
+        # Note: using set() handles duplicates, but be aware that set({nan, nan})
+        # can result in multiple NaNs. consider df_unique[prop].unique() for safer handling.
+        vals = set(df_unique[prop].values)
         try:
-            value_dict[prop] = sorted(vals)
+            return sorted(vals)
         except TypeError:
             logging.warning(
-                f"Cannot sort mixed types for property '{prop}'. Keeping original order (it may be inconsistent due to the use of sets)."
+                f"Cannot sort mixed types for property '{prop}'. "
+                "Keeping original order (it may be inconsistent due to the use of sets)."
             )
-            value_dict[prop] = list(vals)
+            return list(vals)
+
+    value_dict = {prop: _get_sorted_uniques(prop) for prop in constitutive_properties}
 
     space_dict = {prop: len(vals) for prop, vals in value_dict.items()}
+
     dims = list(space_dict.values())
 
     # Order DataFrame for index mapping
@@ -201,12 +204,9 @@ def order_df_for_sampling_with_no_priors(
             f"Index Error detected. Length of the dataframe is {len(df_unique)}."
             "The indices that cause the error are:"
         )
-        out_of_bounds_list = []
-        for i in indices_to_sample:
-            try:
-                _temp = df_unique.iloc[[i]]
-            except IndexError:
-                out_of_bounds_list.append(i)
+        max_len = len(df_unique)
+        out_of_bounds_list = [i for i in indices_to_sample if i < 0 or i >= max_len]
+
         logging.error(out_of_bounds_list)
         logging.error("Returning empty dataset")
         return pd.DataFrame({})
@@ -296,7 +296,7 @@ def order_df_for_get_index_list_nn_high_dimensional(
             )
             injected_rows = []
             for comb in missing_combinations:
-                row_data = dict(zip(constitutive_properties, comb))
+                row_data = dict(zip(constitutive_properties, comb, strict=False))
                 # Fill other columns with NaN
                 for col in df.columns:
                     if col not in constitutive_properties:

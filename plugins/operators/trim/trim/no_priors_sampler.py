@@ -100,12 +100,12 @@ class NoPriorsSampleSelector(BaseSampler):
             space: DiscoverySpace,
         ) -> typing.Callable[[], typing.Generator[list[Entity], None, None]]:
 
-            list_of_entities = list(...)  # type: ignore[name-defined]
-            numberEntities = len(list_of_entities)
+            # list_of_entities = list(...)  # type: ignore[name-defined]
+            # numberEntities = len(list_of_entities)
 
             def iterator() -> typing.Generator[list[Entity], None, None]:  # type: ignore[name-defined]
-                for i in range(0, numberEntities, batchsize):
-                    raise NotImplementedError
+                raise NotImplementedError
+                # ...for i in range(0, numberEntities, batchsize):
 
             return iterator
 

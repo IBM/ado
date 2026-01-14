@@ -173,7 +173,10 @@ def get_index_list_nn(
             if not indices:
                 # Exact OG behavior: pick first element of the previous set
                 # when the intersection is empty at this d.
-                assert previous_set, "Previous candidate set should not be empty"
+                if not previous_set:
+                    raise ValueError(
+                        "Previous candidate set should not be empty or None"
+                    )
                 if verbose:
                     logger.info(
                         f"No intersection found with d={d}. Using the previous set "
@@ -234,7 +237,7 @@ def get_index_list_ordered_partitions(n: int, tot_points: int) -> list[int]:
         l_copy_sorted = index_list.copy()
         l_copy_sorted.sort()
         l_copy = index_list.copy()
-        for i, el in enumerate(l_copy[1:]):
+        for _i, el in enumerate(l_copy[1:]):
             start = el
             index_seen = l_copy_sorted.index(el)
             end = l_copy_sorted[index_seen + 1]
@@ -281,7 +284,8 @@ def generate_df_and_point_mask(df, k):
 
 def midpoint(start: int, end: int) -> int:
     """n is a valid index for your row/array"""
-    assert end - start >= 0
+    if end - start < 0:
+        raise ValueError("Start is greater than end!")
     return start + ((end - start) // 2)
 
 
@@ -338,7 +342,7 @@ def midpoint(start: int, end: int) -> int:
 def get_index_list_nn_not_optimized(
     length_segment: int,
     tot_points_to_sample: int,
-    sampled_indices: list[int] = [],
+    sampled_indices: list[int] | None = None,
     sort: bool = False,
     verbose: bool = False,
 ) -> list[int]:
@@ -392,7 +396,8 @@ def get_index_list_nn_not_optimized(
 
     This strategy is particularly useful in optimization settings where boundary coverage and balanced sampling are important.
     """
-
+    if not sampled_indices:
+        sampled_indices = []
     # CHECKS
     if tot_points_to_sample == 0:
         return []
@@ -460,8 +465,7 @@ def get_index_list_nn_not_optimized(
             )
             # If I cannot filter further
             if not indices:
-                # I use the previously set, asserting is not empty
-                assert selectable_indices
+                # I use the previous set
                 selection = 1
                 if verbose:
                     logger.info(

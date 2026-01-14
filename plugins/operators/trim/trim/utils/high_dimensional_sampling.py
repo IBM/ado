@@ -41,7 +41,7 @@ def sudoku_high_dimensional_sampling(
     if n <= 0:
         return []
 
-    rng = random.Random(seed)
+    rng = random.Random(seed)  # noqa: S311
 
     # Per-dimension pools: remaining indices to choose from before a reset.
     # We do random-without-replacement by popping a random index from each pool.
@@ -67,7 +67,7 @@ def sudoku_high_dimensional_sampling(
 def recursive_aggregation_high_dimensional_sampling(
     dims: list[int],
     n: int,
-    orders: list[list[int]] = [],  # the already sampled ?
+    orders: list[list[int]] | None = None,  # the already sampled ?
     random_shifts: bool = False,
 ) -> list[list[int]]:
     """
@@ -174,6 +174,10 @@ def recursive_aggregation_high_dimensional_sampling(
             dims[2] - 1,
         ]
     """
+
+    if not orders:
+        orders = []
+
     cprod = np.cumprod(np.array(dims), dtype=int).tolist()
     maximum_n = cprod[-1]
 
@@ -201,7 +205,8 @@ def recursive_aggregation_high_dimensional_sampling(
     for i in range(len(dims) - 1, -1, -1):
         first = cprod[i - 1]
         last = dims[i]
-        assert dims[i] == cprod[i] / cprod[i - 1]
+        if dims[i] != cprod[i] / cprod[i - 1]:
+            raise ValueError("Dimension mismatch")
         gcd = math.gcd(first, last)
         plist = list(range(gcd))
         if random_shifts:
@@ -238,8 +243,8 @@ def recursive_aggregation_high_dimensional_sampling(
             # first = cprod[-len(out)]
             first = cprod[-len(out) - 1]
             last = dims[-len(out)]
-            if i != 0:
-                assert dims[-len(out)] == cprod[-len(out)] / cprod[-len(out) - 1]
+            if i != 0 and dims[-len(out)] != cprod[-len(out)] / cprod[-len(out) - 1]:
+                raise ValueError("Dimension mismatch!")
             this_iter_gcd = math.gcd(first, last)
             this_iter_lcm = math.lcm(first, last)
             this_iter_index = out[0]
@@ -405,7 +410,7 @@ def one_shift_then_random_points_high_dimensional_sampling(
         )
         el = []
         inner_indeces = []
-        for i, order in enumerate(orders):
+        for _i, order in enumerate(orders):
             index_inner = pointer % len(order)  # len(order) == dim by construction
             inner_indeces.append(index_inner)
 
@@ -459,7 +464,7 @@ def one_shift_then_random_points_high_dimensional_sampling(
 
         # Randomly sample the required number of unique configurations
         while len(points_added) < points_to_add and available_configs:
-            candidate = random.choice(available_configs)
+            candidate = random.choice(available_configs)  # noqa: S311
             points_added.append(list(candidate))
             available_configs.remove(candidate)
 
@@ -476,7 +481,7 @@ def random_high_dimensional_sampling(dims: list[int], n: int):
     to_be_sampled_list = []
     configs = list(itertools.product(*[range(d) for d in dims]))
     while len(to_be_sampled_list) < n:
-        candidate = random.choice(configs)
+        candidate = random.choice(configs)  # noqa: S311
         to_be_sampled_list.append(list(candidate))
         configs.remove(candidate)
 

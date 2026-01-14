@@ -251,6 +251,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "GrowthStopper",
                     "MaxSamplesStopper",
                     "InformationGainStopper",
+                    "BayesianMetricDifferenceStopper",
                 ]:
                     module_name = "ado_ray_tune.stoppers"
                 else:
@@ -269,6 +270,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "GrowthStopper",
                     "MaxSamplesStopper",
                     "InformationGainStopper",
+                    "BayesianMetricDifferenceStopper",
                 ]:
                     # There is some problem passing the in-build stoppers params via init
                     stopper = stopper_class()

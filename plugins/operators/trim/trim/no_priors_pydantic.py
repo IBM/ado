@@ -19,6 +19,7 @@ class NoPriorsParameters(BaseModel):
         - 'one_shift': refer to one_shift_then_random_points_high_dimensional_sampling
         - 'recursive_aggregation': refer to recursive_aggregation_high_dimensional_sampling
         - 'clhs': refer to concatenated_latin_hypercube_sampling
+        - 'sobol': sobol sampling
     """
 
     # --- Supported strategies (centralized) ---
@@ -27,6 +28,7 @@ class NoPriorsParameters(BaseModel):
         "one_shift",
         "recursive_aggregation",
         "clhs",
+        "sobol",
     }
 
     targetOutput: str = Field(
@@ -57,6 +59,7 @@ class NoPriorsParameters(BaseModel):
             " - 'one_shift': see one_shift_then_random_points_high_dimensional_sampling\n"
             " - 'recursive_aggregation': see recursive_aggregation_high_dimensional_sampling\n"
             " - 'clhs': dimension-wise random without replacement until each dim cycles\n"
+            " - 'sobol': sobol sampling via scipy\n"
             "Aliases: 'random_shifts' → 'recursive_aggregation'.\n"
             "Validation is case-insensitive; value is normalized to lowercase."
         ),

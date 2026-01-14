@@ -16,6 +16,7 @@ def get_index_list_nn(
 ) -> list[int]:
     """
     Selects a set of indices from a 1D segment using a deterministic sampling strategy.
+    It is a modified to a Van der Corput Sequence
 
     :param length_segment: Total number of units in the 1D segment.
     :type length_segment: int

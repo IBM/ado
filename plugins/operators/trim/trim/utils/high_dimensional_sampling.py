@@ -9,8 +9,11 @@ from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
+from scipy.stats.qmc import Sobol
 
 from trim.utils.one_dimensional_sampling import get_index_list_nn
+
+SEED = 61729
 
 
 def concatenated_latin_hypercube_sampling(
@@ -71,6 +74,22 @@ def concatenated_latin_hypercube_sampling(
     return samples
 
 
+# TODO: test this
+def sobol_sampling(dims: list[int], n: int, seed: int | None = None) -> list[list[int]]:
+    # Sobol generates points in [0, 1). We scale them to the integer dimensions.
+    sampler = Sobol(d=len(dims), rng=SEED)
+    points = sampler.random(n)
+    # Scale and floor to get integer indices
+    discrete_points = [
+        [int(val * d) for val, d in zip(p, dims, strict=True)] for p in points
+    ]
+    if len(set(discrete_points)) != n:
+        logging.error("Sobol sampling failed, defaulting to clhs sampling")
+        return concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=seed)
+    return discrete_points
+
+
+# NOTE: this will be deprecated soon
 def recursive_aggregation_high_dimensional_sampling(
     dims: list[int],
     n: int,
@@ -510,9 +529,10 @@ def get_order_list_nn_high_dimensional(
 
         strategy (str): sampling subroutine:
             - 'random': selects random points from the beginning
+            - 'clhs': refer to concatenated_latin_hypercube_sampling
+            - 'sobol': sobol sampling
             - 'one_shift': refer to one_shift_then_random_points_high_dimensional_sampling
             - 'recursive_aggregation': refer to recursive_aggregation_high_dimensional_sampling
-            - 'clhs': refer to concatenated_latin_hypercube_sampling
         space (Optional[Dict[str, int]]): Optional mapping of dimension names to sizes (used only for logging/debug purposes).
             Example:
                 space = {'batch_size': 8, 'model_name': 5}
@@ -585,7 +605,10 @@ def get_order_list_nn_high_dimensional(
         return recursive_aggregation_high_dimensional_sampling(dims=dims, n=n)
 
     if strategy == "clhs":
-        return concatenated_latin_hypercube_sampling(dims=dims, n=n)
+        return concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=SEED)
+
+    if strategy == "sobol":
+        return sobol_sampling(dims=dims, n=n, seed=SEED)
 
     raise NotImplementedError(f"Strategy {strategy} is unknown")
 

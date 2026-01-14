@@ -78,11 +78,7 @@ class CSVSampleStore(PassiveSampleStore):
     """
 
     @staticmethod
-    def validate_parameters(parameters=None):
-        # AP: parameters are used to instantiate a CSVSampleStoreDescription
-        if parameters is None:
-            raise ValueError("parameters cannot be None for CSVSampleStore")
-
+    def validate_parameters(parameters: dict):
         return CSVSampleStoreDescription.model_validate(parameters)
 
     @staticmethod

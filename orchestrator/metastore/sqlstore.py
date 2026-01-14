@@ -7,9 +7,6 @@ import os
 from typing import TYPE_CHECKING
 
 import pydantic
-
-if TYPE_CHECKING:
-    import pandas as pd
 import sqlalchemy
 
 import orchestrator.core
@@ -32,6 +29,9 @@ from orchestrator.metastore.sql.utils import (
     create_sql_resource_store,
     engine_for_sql_store,
 )
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class SQLStore(ResourceStore):
@@ -486,7 +486,7 @@ class SQLResourceStore(ResourceStore):
 
         return output_df[columns]
 
-    def resourceTable(self) -> pd.DataFrame:
+    def resourceTable(self) -> "pd.DataFrame":
         import pandas as pd
 
         query = """SELECT * FROM resources"""

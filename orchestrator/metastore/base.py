@@ -182,20 +182,20 @@ class ResourceStore(abc.ABC):
 
     @abc.abstractmethod
     def getRelatedSubjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """Returns identifiers of resources that have a relationship with
         "identifier" where "identifier" is the object"""
 
     @abc.abstractmethod
     def getRelatedObjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """Returns identifiers of resources that have a relationship with "identifier" where "identifier" is the subject"""
 
     @abc.abstractmethod
     def getRelatedResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """Returns a DataFrame of resource identifiers related to a given resource identifier
 
@@ -234,7 +234,7 @@ class ResourceStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def addResource(self, resource: ADOResource):
+    def addResource(self, resource: ADOResource) -> None:
 
         pass
 
@@ -243,14 +243,14 @@ class ResourceStore(abc.ABC):
         self,
         subjectIdentifier: str,
         objectIdentifier: str,
-    ):
+    ) -> None:
 
         pass
 
     @abc.abstractmethod
     def addRelationshipForResources(
         self, subjectResource: pydantic.BaseModel, objectResource: pydantic.BaseModel
-    ):
+    ) -> None:
 
         pass
 
@@ -259,13 +259,13 @@ class ResourceStore(abc.ABC):
         self,
         resource: ADOResource,
         relatedIdentifiers: list,
-    ):
+    ) -> None:
         """For the relationship, the resource id is stored as object and the other ids as subjects
 
         This is because the others ids must already exist"""
 
     @abc.abstractmethod
-    def updateResource(self, resource: ADOResource):
+    def updateResource(self, resource: ADOResource) -> None:
         """Replaces any data stored against "resource.identifier" with resource
 
         Raises:
@@ -274,42 +274,44 @@ class ResourceStore(abc.ABC):
         """
 
     @abc.abstractmethod
-    def deleteResource(self, identifier):
+    def deleteResource(self, identifier: str) -> None:
 
         pass
 
     @abc.abstractmethod
-    def deleteObjectRelationships(self, identifier):
+    def deleteObjectRelationships(self, identifier: str) -> None:
         """Deletes all recorded relationships for identifier where it is the object
 
         Only works if it is not the subject of another relationship"""
 
     @abc.abstractmethod
-    def delete_sample_store(self, identifier: str, force_deletion: bool = False):
+    def delete_sample_store(
+        self, identifier: str, force_deletion: bool = False
+    ) -> None:
         pass
 
     @abc.abstractmethod
     def delete_operation(
         self, identifier: str, ignore_running_operations: bool = False
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
-    def delete_discovery_space(self, identifier: str):
+    def delete_discovery_space(self, identifier: str) -> None:
         pass
 
     @abc.abstractmethod
-    def delete_data_container(self, identifier: str):
+    def delete_data_container(self, identifier: str) -> None:
         pass
 
     @abc.abstractmethod
-    def delete_actuator_configuration(self, identifier: str):
+    def delete_actuator_configuration(self, identifier: str) -> None:
         pass
 
 
 def sample_store_dump(
     sample_store_resource: SampleStoreResource,
-):
+) -> str:
 
     # We want to apply the following policies to sample store resources
     # 1. Do not store SQLSampleStore storage access information in the resource
@@ -334,7 +336,7 @@ def sample_store_dump(
 def sample_store_load(
     sample_store_resource_dict: dict,
     storage_location: SQLiteStoreConfiguration | SQLStoreConfiguration,
-):
+) -> SampleStoreResource:
     """Adds storage location information to SQL sample stores"""
     if (
         sample_store_resource_dict["config"]["specification"]["module"]["moduleClass"]

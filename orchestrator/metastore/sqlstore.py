@@ -7,9 +7,6 @@ import os
 from typing import TYPE_CHECKING
 
 import pydantic
-
-if TYPE_CHECKING:
-    import pandas as pd
 import sqlalchemy
 
 import orchestrator.core
@@ -33,11 +30,14 @@ from orchestrator.metastore.sql.utils import (
     engine_for_sql_store,
 )
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 
 class SQLStore(ResourceStore):
     """Base class for SQLStores"""
 
-    def __new__(cls, project_context: ProjectContext):
+    def __new__(cls, project_context: ProjectContext) -> "SQLResourceStore":
 
         engine = engine_for_sql_store(configuration=project_context.metadataStore)
         inspector = sqlalchemy.inspect(engine)
@@ -66,7 +66,9 @@ class SQLResourceStore(ResourceStore):
 
     """
 
-    def __init__(self, project_context: ProjectContext, ensureExists=True) -> None:
+    def __init__(
+        self, project_context: ProjectContext, ensureExists: bool = True
+    ) -> None:
         """
         Creates a SQLResourceStore instance based on the ProjectContext
 
@@ -104,11 +106,11 @@ class SQLResourceStore(ResourceStore):
         super().__init__()
 
     @property
-    def engine(self):
+    def engine(self) -> sqlalchemy.Engine:
 
         return engine_for_sql_store(configuration=self.configuration)
 
-    def getResourceRaw(self, identifier) -> dict | None:
+    def getResourceRaw(self, identifier: str) -> dict | None:
         """Retrieve the raw JSON data for a resource.
 
         The method queries the ``resources`` table for a row with the
@@ -484,7 +486,7 @@ class SQLResourceStore(ResourceStore):
 
         return output_df[columns]
 
-    def resourceTable(self):
+    def resourceTable(self) -> "pd.DataFrame":
         import pandas as pd
 
         query = """SELECT * FROM resources"""
@@ -539,7 +541,7 @@ class SQLResourceStore(ResourceStore):
         return self.getResources(identifiers=identifiers["IDENTIFIER"])
 
     def getRelatedSubjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """Retrieve identifiers of resources that have a relationship to the
         supplied ``identifier`` where that identifier acts as the *object*.
@@ -611,7 +613,7 @@ class SQLResourceStore(ResourceStore):
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def getRelatedObjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """Retrieve identifiers of resources that have a relationship to the
         supplied ``identifier`` where that identifier acts as the *subject*.
@@ -684,7 +686,7 @@ class SQLResourceStore(ResourceStore):
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def getRelatedResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """
         Retrieve identifiers of resources that are related to ``identifier`` either as a
@@ -897,7 +899,7 @@ class SQLResourceStore(ResourceStore):
 
             connectable.execute(query)
 
-    def deleteResource(self, identifier) -> None:
+    def deleteResource(self, identifier: str) -> None:
 
         if not self.containsResourceWithIdentifier(identifier):
             raise ValueError(
@@ -921,7 +923,7 @@ class SQLResourceStore(ResourceStore):
             ).bindparams(identifier=identifier)
             connectable.execute(query)
 
-    def deleteObjectRelationships(self, identifier) -> None:
+    def deleteObjectRelationships(self, identifier: str) -> None:
         """Deletes all recorded relationships for identifier where it is the object
 
         Only works if it is not the subject of another relationship"""

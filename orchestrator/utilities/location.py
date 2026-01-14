@@ -115,7 +115,7 @@ class ResourceLocation(pydantic.BaseModel):
             path=self.path.lstrip("/"),
         )
 
-    def _repr_pretty_(self, p: PrettyPrinter, cycle: bool = False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:
             p.text("Cycle detected")

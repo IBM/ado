@@ -20,9 +20,12 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
+    import pandas as pd
+
     from orchestrator.modules.actuators.base import (
         ActuatorBase,
     )
+    from orchestrator.schema.experiment import Experiment
 
 configure_logging()
 
@@ -53,7 +56,7 @@ class ActuatorRegistry:
     """Provides access to actuators and the experiments they can execute"""
 
     @classmethod
-    def globalRegistry(cls):
+    def globalRegistry(cls) -> "ActuatorRegistry":
 
         if ActuatorRegistry.gRegistry is not None:
             moduleLogger.debug("Global registry exists - using")
@@ -334,7 +337,7 @@ class ActuatorRegistry:
         self,
         reference: ExperimentReference,
         additionalCatalogs: list[ExperimentCatalog] | None = None,
-    ):
+    ) -> "Experiment":
         """
         Returns the Experiment object corresponding to reference
 
@@ -407,7 +410,7 @@ class ActuatorRegistry:
         return experiment
 
     @property
-    def catalogs(self):
+    def catalogs(self) -> list[ExperimentCatalog]:
         """Returns an iterator over the catalogs of the registered actuators
 
         If a catalog requires configuration and this has not been supplied it will be skipped.
@@ -430,7 +433,7 @@ class ActuatorRegistry:
         return catalogs
 
     @property
-    def experiments(self):
+    def experiments(self) -> "pd.DataFrame":
         """Returns a dataframe of the experiments in the receiver"""
 
         import pandas as pd

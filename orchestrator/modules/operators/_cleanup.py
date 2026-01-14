@@ -21,7 +21,7 @@ def graceful_operation_shutdown_signal_handler() -> (
 ):
     """Handler which executes cleanup callbacks registered by operations on receiving a signal"""
 
-    def handler(sig, frame) -> None:
+    def handler(sig: int, frame: typing.Any | None) -> None:  # noqa: ANN401
 
         moduleLog.critical(f"Got signal {sig}")
         global shutdown_signal_received
@@ -74,7 +74,7 @@ class ResourceCleaner:
             moduleLog.info(f"cleaned {len(done)}, clean failed {len(not_done)}")
 
 
-def initialize_ray_resource_cleaner(namespace=None) -> None:
+def initialize_ray_resource_cleaner(namespace: str | None = None) -> None:
     # create a cleaner actor.
     # We are creating Named detached actor (https://docs.ray.io/en/latest/ray-core/actors/named-actors.html)
     # so that we do not need to pass its handle (can get it by name) and it does not go out of scope, until

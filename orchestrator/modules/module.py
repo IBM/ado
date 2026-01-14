@@ -3,9 +3,13 @@
 
 import enum
 import logging
+import typing
 
 import pydantic
 from pydantic import ConfigDict
+
+if typing.TYPE_CHECKING:
+    from types import ModuleType
 
 moduleLog = logging.getLogger("module")
 
@@ -52,8 +56,8 @@ class ModuleConf(pydantic.BaseModel):
 
     @pydantic.field_validator("moduleName")
     def set_default_module_name_for_type(
-        cls, value, values: "pydantic.FieldValidationInfo"
-    ):
+        cls, value: str | None, values: "pydantic.FieldValidationInfo"
+    ) -> str | None:
 
         if value is None:
             if values.data.get("moduleType") == ModuleTypeEnum.OPERATION:
@@ -66,7 +70,9 @@ class ModuleConf(pydantic.BaseModel):
         return value
 
     @pydantic.field_validator("moduleClass")
-    def set_default_class_for_type(cls, value, values: "pydantic.FieldValidationInfo"):
+    def set_default_class_for_type(
+        cls, value: str | None, values: "pydantic.FieldValidationInfo"
+    ) -> str | None:
 
         if value is None:
             if values.data.get("moduleType") == ModuleTypeEnum.OPERATION:
@@ -89,7 +95,7 @@ class ModuleConf(pydantic.BaseModel):
         return description
 
 
-def load_module(conf: ModuleConf):
+def load_module(conf: ModuleConf) -> "ModuleType":
     """Loads a module and returns the module
 
     Params:
@@ -148,7 +154,7 @@ def load_module(conf: ModuleConf):
     return sys.modules[conf.moduleName]
 
 
-def load_module_class_or_function(conf: ModuleConf):
+def load_module_class_or_function(conf: ModuleConf) -> type | typing.Callable:
     """Loads a module and returns the class or function
 
     Params:

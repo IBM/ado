@@ -21,6 +21,9 @@ from orchestrator.utilities.logging import configure_logging
 if typing.TYPE_CHECKING:
     from orchestrator.modules.actuators.base import ActuatorActor
     from orchestrator.modules.operators.base import OperatorActor
+    from orchestrator.modules.operators.discovery_space_manager import (
+        DiscoverySpaceManagerActor,
+    )
 
 configure_logging()
 moduleLog = logging.getLogger("setup")
@@ -132,7 +135,7 @@ def setup_operator(
     parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
-    state,
+    state: "DiscoverySpaceManagerActor",
     actuators: dict,
 ) -> "OperatorActor":
     """Sets up and creates an operator actor for class-based operations

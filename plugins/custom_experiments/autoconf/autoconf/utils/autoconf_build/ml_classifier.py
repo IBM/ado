@@ -15,13 +15,18 @@ from autoconf.utils.rule_based_classifier import is_row_valid
 
 logger = logging.getLogger(__name__)
 logger.info("These are the available csvs")
-glob.glob("*", root_dir="../../../data")  # %%
-
+data_root_dir = "/Users/danielelotito/autoconf_data"  # %change this to the data folder
+glob.glob("*", root_dir=data_root_dir)
 # %%
-REFIT = True
+file_name = "lh_dashboard_136_date_01_13_2026.csv"
+path = os.path.join(data_root_dir, file_name)
+# %%
+REFIT = False
+train_fraction = 0.8
+fit_params = {"presets": ["medium_quality"], "excluded_model_types": "GBM"}
+suffix = f"-clone-opt-train_frac_{train_fraction}"  # this will be attached to the model folder name
 
-d_s = "11-13-dashboard-163-for-min-gpu"
-path = f"../../../data/{d_s}.csv"
+
 df_original = pd.read_csv(path)
 clist = list(df_original.columns)
 cols_to_use = [
@@ -37,7 +42,6 @@ cols_to_use = [
 logger.info(set(df_original["model_name"].values))
 
 # %%
-fit_params = {"presets": ["medium_quality"], "excluded_model_types": "GBM"}
 target = "is_valid"
 
 
@@ -55,7 +59,6 @@ df = df.sample(frac=1).reset_index(drop=True)
 
 
 # %% You can decide here if you want to train
-train_fraction = 0.8
 train_idx = int(len(df) * train_fraction)
 df_train = df.iloc[:train_idx][cols_to_use]
 df_test = df.iloc[train_idx:][cols_to_use]
@@ -70,22 +73,27 @@ model_path = predictor.path
 size_original = predictor.disk_usage()
 logger.info("Model path is: ", model_path)
 
-# %% TEST
-test_data = TabularDataset(df_test)
-y_pred = predictor.predict(test_data.drop(columns=[target]))
 
-d = predictor.evaluate(test_data, silent=True)
-d_name = [predictor.eval_metric.name]
-logger.info("Evaluation is", d)
+# %% TEST
+def log_metrics(predictor, df_test):
+    if not df_test.empty:
+        test_data = TabularDataset(df_test)
+        metrics_dict = predictor.evaluate(test_data, silent=True)
+        logger.info("The model performance on the test data is", metrics_dict)
+    else:
+        metrics_dict = predictor.evaluate(train_data, silent=True)
+        logger.info(f"The test df was empty, train fraction = {train_fraction}.")
+        logger.info(" The model performance on the training data is", metrics_dict)
+    return metrics_dict
 
 
 # %% Refitting the original model is discretionary,  it improves inference speed but diminishes accuracy
 # docs at <https://auto.gluon.ai/stable/api/autogluon.tabular.TabularPredictor.html>
 if REFIT:
     predictor.refit_full(model="best", set_best_to_refit_full=True)
+    suffix = "-refit" + suffix
 
-
-save_path_refit_clone_opt = model_path + "-refit-clone-opt"
+save_path_refit_clone_opt = model_path + suffix
 path_clone_opt = predictor.clone_for_deployment(path=save_path_refit_clone_opt)
 predictor_clone_opt = TabularPredictor.load(path=save_path_refit_clone_opt)
 
@@ -96,8 +104,7 @@ logger.info(f"Size Optimized: {size_refit_opt} bytes")
 logger.info(
     f"Optimized predictor achieved a {round((1 - (size_refit_opt/size_original)) * 100, 1)}% reduction in disk usage."
 )
-
-predictor_clone_opt.evaluate(test_data, silent=True)
+metrics = log_metrics(predictor_clone_opt, df_test=df_test)
 # %% cleaning up files, keeping only the refit-opt model
 if model_path and os.path.isdir(model_path):
     try:
@@ -105,3 +112,37 @@ if model_path and os.path.isdir(model_path):
         logger.info(f"Deleted model directory: {model_path}")
     except Exception as e:
         logger.info(f"Could not delete model directory '{model_path}': {e}")
+
+# %% saves in the model folder which is save_path_refit_clone_opt a the modelcard.csv which
+# has all the value fixed in this script (data_path, refit, suffix, train_percetages, size, etc) +
+# all the metrics contained in metrics dict which are additional columns in the csv
+# ('accuracy', 'balanced_accuracy', ...) to do this we extract key values pairs from metrics
+
+# 1. Create a dictionary with the metadata/configuration values
+model_card_data = {
+    "data_path": path,
+    "refit": REFIT,
+    "suffix": suffix,
+    "train_fraction": train_fraction,
+    "size_original_bytes": size_original,
+    "size_optimized_bytes": size_refit_opt,
+    "disk_usage_reduction_percent": round(
+        (1 - (size_refit_opt / size_original)) * 100, 1
+    ),
+}
+
+# 2. Merge the metrics dictionary into the metadata dictionary
+# This adds keys like 'accuracy', 'balanced_accuracy', etc. as new columns
+if metrics:
+    model_card_data.update(metrics)
+
+# 3. Create a DataFrame (wrapping data in a list to create a single row)
+df_model_card = pd.DataFrame([model_card_data])
+
+# 4. Construct the full path and save to CSV
+model_card_path = os.path.join(save_path_refit_clone_opt, "modelcard.csv")
+df_model_card.to_csv(model_card_path, index=False)
+
+logger.info(f"Model card saved successfully at: {model_card_path}")
+
+# %%

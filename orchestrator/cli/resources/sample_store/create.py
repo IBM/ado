@@ -27,7 +27,7 @@ from orchestrator.core.samplestore.config import (
 )
 
 
-def create_sample_store(parameters: AdoCreateCommandParameters):
+def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
 
     if parameters.new_sample_store:
         console_print(f"{INFO}A new SQLSampleStore was requested.")

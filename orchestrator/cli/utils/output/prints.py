@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import typing
+from typing import Any
 
 from rich.console import Console
 
@@ -63,7 +64,10 @@ def set_pandas_display_options() -> None:
 
 
 def console_print(
-    *args, stderr: bool = False, use_markup: bool = True, has_pandas_content=False
+    *args: Any,  # noqa: ANN401
+    stderr: bool = False,
+    use_markup: bool = True,
+    has_pandas_content: bool = False,
 ) -> None:
     import sys
 

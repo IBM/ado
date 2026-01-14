@@ -12,7 +12,7 @@ from orchestrator.cli.utils.output.prints import ERROR, console_print, cyan
 
 def override_values_in_pydantic_model(
     model: pydantic.BaseModel, override_values: list[dict[str, str]]
-):
+) -> pydantic.BaseModel:
     import jsonpath_ng.ext
     from jsonpath_ng.exceptions import JsonPathLexerError, JsonPathParserError
 

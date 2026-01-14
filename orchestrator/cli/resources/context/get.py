@@ -1,5 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+import typing
 
 import pydantic
 import typer
@@ -17,6 +18,9 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
 )
 from orchestrator.metastore.project import ProjectContext
+
+if typing.TYPE_CHECKING:
+    import pandas as pd
 
 
 def get_context(
@@ -107,7 +111,9 @@ def _simple_contexts_formatting(contexts: list[str]) -> None:
         console_print(context)
 
 
-def _prepare_context_dataframe(contexts: list[str], default_context: str | None):
+def _prepare_context_dataframe(
+    contexts: list[str], default_context: str | None
+) -> "pd.DataFrame":
     import pandas as pd
 
     default_context_column = ["*" if ctx == default_context else "" for ctx in contexts]

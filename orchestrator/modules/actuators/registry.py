@@ -80,7 +80,7 @@ class ActuatorRegistry:
         # Maps actuator ids to ActuatorBase instances
         self.actuatorIdentifierMap = (
             {}
-        )  # type: typing.Dict[typing.AnyStr, "orchestrator.actuators.base.BaseActuator"]
+        )  # type: typing.Dict[typing.AnyStr, "ActuatorBase"]
         # Maps actuator ids to ExperimentCatalog instances
         self.catalogIdentifierMap = (
             {}

@@ -1,7 +1,10 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import math
+import typing
 from io import StringIO
 
 import rich.table
@@ -13,6 +16,9 @@ from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
+
+if typing.TYPE_CHECKING:
+    import pandas as pd
 
 
 class SpaceDetails:
@@ -48,7 +54,7 @@ class SpaceDetails:
         self.size_of_entity_space = size_of_entity_space
 
     @classmethod
-    def from_space(cls, space: DiscoverySpace):
+    def from_space(cls, space: DiscoverySpace) -> SpaceDetails:
 
         import pandas as pd
 
@@ -277,7 +283,7 @@ class SpaceSummary:
     def _get_dataframe_columns(
         candidate_columns: list[str],
         columns_to_hide: list[str] | None = None,
-    ):
+    ) -> list[str]:
         common_column_mappings = {
             "id": "Space ID",
             "experiment": "Experiments",
@@ -300,7 +306,7 @@ class SpaceSummary:
         }
         return [col for col in candidate_columns if col.lower() not in columns_to_hide]
 
-    def to_markdown_text(self, heading_level: int = 1):
+    def to_markdown_text(self, heading_level: int = 1) -> str:
         content = StringIO()
         content.write(f"{'#'*heading_level} Space `{self.id}`\n")
         heading_level += 1
@@ -357,7 +363,7 @@ class SpaceSummary:
         self,
         include_properties: list[str] | None = None,
         columns_to_hide: list[str] | None = None,
-    ):
+    ) -> pd.DataFrame:
 
         import pandas as pd
 

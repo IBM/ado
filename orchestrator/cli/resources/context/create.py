@@ -23,7 +23,7 @@ from orchestrator.utilities.location import (
 )
 
 
-def create_context(parameters: AdoCreateCommandParameters):
+def create_context(parameters: AdoCreateCommandParameters) -> str | None:
 
     try:
         context_configuration = ProjectContext.model_validate(

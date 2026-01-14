@@ -158,7 +158,7 @@ class AdoConfiguration(pydantic.BaseModel):
         self.config_file.write_text(self.model_dump_json())
 
     @property
-    def project_context(self):
+    def project_context(self) -> ProjectContext | None:
         return self._project_context
 
     @property

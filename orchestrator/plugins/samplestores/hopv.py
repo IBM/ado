@@ -14,8 +14,11 @@ from orchestrator.core.samplestore.csv import (
 class HOPV(CSVSampleStore):
 
     @staticmethod
-    def validate_parameters(parameters=None):
+    def validate_parameters(
+        parameters: dict | None = None,
+    ) -> CSVSampleStoreDescription:
 
+        parameters = {} if parameters is None else parameters
         properties = ["homo", "lumo", "pce", "voc", "jsc"]
 
         insilico = ExperimentDescription(

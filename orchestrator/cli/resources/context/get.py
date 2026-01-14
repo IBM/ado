@@ -22,7 +22,7 @@ from orchestrator.metastore.project import ProjectContext
 def get_context(
     parameters: AdoGetCommandParameters,
     simplify_output: bool = False,
-):
+) -> None:
 
     available_contexts = parameters.ado_configuration.available_contexts
 
@@ -102,7 +102,7 @@ def get_context(
     )
 
 
-def _simple_contexts_formatting(contexts: list[str]):
+def _simple_contexts_formatting(contexts: list[str]) -> None:
     for context in sorted(contexts):
         console_print(context)
 

@@ -44,7 +44,7 @@ configure_logging()
 moduleLog = logging.getLogger("orch")
 
 
-def graceful_orchestrate_shutdown():
+def graceful_orchestrate_shutdown() -> None:
     """Clean resources set up by orchestrate()
 
     This includes ray.shutdown and waiting for logs to flush."""

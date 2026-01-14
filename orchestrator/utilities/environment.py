@@ -8,7 +8,7 @@ def getBoolEnv(name: str, *args, **kwargs) -> bool:
     return str(os.getenv(name, *args, **kwargs)).lower() not in ["false", "no"]
 
 
-def enable_ray_actor_coverage(identifier: str):
+def enable_ray_actor_coverage(identifier: str) -> None:
     """For coverage to work with distributed ray actors they need to call this function in their init
 
     If coverage module is not installed or COVERAGE_PROCESS_START is not defined in the environment

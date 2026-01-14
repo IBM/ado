@@ -74,10 +74,10 @@ class RichConsoleQueue:
     updating process in a thread-safe way.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._queue = queue.Queue()
 
-    def put(self, message: RichConsoleMessageType):
+    def put(self, message: RichConsoleMessageType) -> None:
         """
         Append a single RichConsoleMessageType instance (progress or spinner message) to the FIFO queue.
 
@@ -324,7 +324,7 @@ def run_operation_live_updates(
     operation_id: str,
     console_queue: ray.actor.ActorHandle[RichConsoleQueue],
     operation_future: ray.ObjectRef,
-):
+) -> None:
     """
     Continuously updates the live Rich Console display during the execution of a distributed operation.
     Handles periodic refresh of the operation results table and processes all messages from the Ray queue to update progress bars and spinners in real-time.

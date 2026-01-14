@@ -17,7 +17,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 
 
-def get_operator(parameters: AdoGetCommandParameters):
+def get_operator(parameters: AdoGetCommandParameters) -> None:
 
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
         import pandas as pd

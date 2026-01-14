@@ -105,17 +105,17 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
         return "-".join(components[:-1]), method.value
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"vp-{self.identifier}"
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
 
         return f"{self.baseObservedProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
     @property
-    def virtualTargetPropertyIdentifier(self):
+    def virtualTargetPropertyIdentifier(self) -> str:
 
         return f"{self.baseObservedProperty.targetProperty.identifier}-{self.aggregationMethod.identifier.value}"
 

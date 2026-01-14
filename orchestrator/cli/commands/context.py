@@ -32,7 +32,7 @@ def manage_contexts(
             show_default=False,
         ),
     ] = None,
-):
+) -> None:
     """
     View or set the active context.
 
@@ -76,7 +76,7 @@ def list_contexts(
             "--simple", help="Display only context names.", show_default=False
         ),
     ] = False,
-):
+) -> None:
     """
     List available contexts.
 
@@ -140,14 +140,14 @@ def list_contexts(
     )
 
 
-def register_context_command(app: typer.Typer):
+def register_context_command(app: typer.Typer) -> None:
     app.command(
         name="context",
         options_metavar="",
     )(manage_contexts)
 
 
-def register_contexts_command(app: typer.Typer):
+def register_contexts_command(app: typer.Typer) -> None:
     app.command(
         name="contexts",
         options_metavar="[--simple]",

@@ -74,7 +74,7 @@ def property_value(request) -> tuple[ConstitutivePropertyValue, type]:
 
 def test_property_value_preserves_value_type(
     property_value: tuple[PropertyValue, type],
-):
+) -> None:
     """Test that PropertyValue preserved the type of the value added to it
 
     For example that if the value is an int its not returned as a float"""
@@ -88,7 +88,7 @@ def test_property_value_preserves_value_type(
 
 def test_property_value_preserves_value_type_after_json_serialization(
     property_value: tuple[ConstitutivePropertyValue, type],
-):
+) -> None:
     """Test that PropertyValue preserved the type of the value added to it after it is dumped as json and re-read
 
     For example that if the value is an int its not returned as a float"""
@@ -107,7 +107,7 @@ def test_property_value_preserves_value_type_after_json_serialization(
 
 def test_property_value_preserves_value_type_after_serialization(
     property_value: tuple[ConstitutivePropertyValue, type],
-):
+) -> None:
     """Test that PropertyValue preserved the type of the value added to it after it is dumped and re-read
 
     For example that if the value is an int its not returned as a float"""
@@ -122,7 +122,7 @@ def test_property_value_preserves_value_type_after_serialization(
     ), f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
 
 
-def test_property_value_checks_value_type(value_example, test_value_example):
+def test_property_value_checks_value_type(value_example, test_value_example) -> None:
     """Tests if PropertyValue validates the type of the value against the valueType field"""
 
     prop = ConstitutiveProperty(identifier="cons_prop")
@@ -176,7 +176,7 @@ def test_property_value_checks_value_type(value_example, test_value_example):
         )
 
 
-def test_string_with_bytes_type_converted_to_blob():
+def test_string_with_bytes_type_converted_to_blob() -> None:
 
     prop = ConstitutiveProperty(identifier="cons_prop")
     val = ConstitutivePropertyValue(
@@ -190,7 +190,7 @@ def test_string_with_bytes_type_converted_to_blob():
     ), "String value with type BLOB_VALUE_TYPE was not converted to bytes as expected"
 
 
-def test_type_detection(property_value: tuple[PropertyValue, type]):
+def test_type_detection(property_value: tuple[PropertyValue, type]) -> None:
     """Test the value has type correct seto"""
 
     val, value_type = property_value
@@ -209,7 +209,7 @@ def test_type_detection(property_value: tuple[PropertyValue, type]):
         pytest.fail(f"Test of value type {value_type} with value {val} not implemented")
 
 
-def test_uncertain_property_value(property_value):
+def test_uncertain_property_value(property_value) -> None:
     """Test the uncertain property works"""
 
     val, _value_type = property_value

@@ -9,7 +9,7 @@ from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from . import common
 
 
-def add_experiments(catalog: "ExperimentCatalog"):
+def add_experiments(catalog: "ExperimentCatalog") -> None:
 
     method = "pt"
     version = "1.0.0"

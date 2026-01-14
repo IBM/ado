@@ -247,7 +247,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
         return sampler
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         s = f"sampler: {self.samplerType} walk mode: {self.mode}."
         if self.grouping:
@@ -273,7 +273,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
     )
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"custom sampler class: {self.module}. parameters: {self.parameters}"
 
@@ -309,7 +309,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return sampler
 
 
-def sampler_type_discriminator(sampler_config):
+def sampler_type_discriminator(sampler_config) -> str:
 
     if isinstance(sampler_config, CustomSamplerConfiguration):
         return "Custom"
@@ -388,7 +388,7 @@ class RequestRetry(pydantic.BaseModel):
         default=None, description="The final status"
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return (
             f"Request {self.measurementRequest.requestid}. Entity: {self.measurementRequest.entities[0]}. "
@@ -414,7 +414,7 @@ class RandomWalk(Characterize):
         return RandomWalkParameters.model_validate(parameters)
 
     @classmethod
-    def description(cls):
+    def description(cls) -> str:
 
         return """RandomWalk provides capabilities for sampling points in an entity space and applying
             measurements to them via a variety of walk and sampling filters.
@@ -430,7 +430,7 @@ class RandomWalk(Characterize):
         state: DiscoverySpaceManager,
         actuators: dict[str, "ActuatorBase"],
         params=None,
-    ):
+    ) -> None:
 
         enable_ray_actor_coverage("random_walk")
         configure_logging()
@@ -464,19 +464,19 @@ class RandomWalk(Characterize):
             actuators=actuators,
         )
 
-    def onUpdate(self, measurementRequest):
+    def onUpdate(self, measurementRequest) -> None:
 
         self.update_queue.put_nowait(measurementRequest)
 
-    def onCompleted(self):
+    def onCompleted(self) -> None:
 
         self.log.info("Completed")
 
-    def onError(self, error: Exception):
+    def onError(self, error: Exception) -> None:
 
         self.update_queue.put_nowait(error)
 
-    async def run(self):
+    async def run(self) -> None:
 
         from orchestrator.modules.operators.console_output import (
             RichConsoleProgressMessage,
@@ -830,7 +830,7 @@ class RandomWalk(Characterize):
 
     async def _getAndSubmitMeasurement(
         self, completedExperiments, continuousBatchingQueue, updateQueue
-    ):
+    ) -> None:
         """
         Gets an experiment+entity for continuousBatchingQueue and submits it
 
@@ -935,12 +935,12 @@ class RandomWalk(Characterize):
 
         return self._experimentsRequested
 
-    def operationIdentifier(self):
+    def operationIdentifier(self) -> str:
 
         return f"{self.__class__.operatorIdentifier()}-{self.runid}"
 
     @classmethod
-    def operatorIdentifier(cls):
+    def operatorIdentifier(cls) -> str:
 
         from importlib.metadata import version
 

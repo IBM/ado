@@ -24,7 +24,7 @@ class OperationException(Exception):
         message,
         operation: OperationResource,
         *args,
-    ):
+    ) -> None:
         self.operation = operation
         super().__init__(message, operation, *args)
 

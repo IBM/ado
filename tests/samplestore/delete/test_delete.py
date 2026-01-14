@@ -7,7 +7,7 @@ import pytest
 
 def test_resource_deletion(
     resource_generator_from_db, delete_resource, sql_store, request
-):
+) -> None:
     _resource_kind, generator = resource_generator_from_db
     resource = request.getfixturevalue(generator)()
     delete_resource(resource.identifier)
@@ -18,7 +18,7 @@ def test_resource_deletion(
     )
 
 
-def test_nonexistent_resource_deletion(delete_resource, sql_store):
+def test_nonexistent_resource_deletion(delete_resource, sql_store) -> None:
     with pytest.raises(
         ValueError,
         match=re.escape(

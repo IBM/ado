@@ -9,7 +9,7 @@ from orchestrator.cli.core.cli import app as ado
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
-def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path):
+def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path) -> None:
     sample_store_configuration_file = "tests/resources/ml_multicloud_sample_store.yaml"
     runner = CliRunner()
     result = runner.invoke(
@@ -32,7 +32,7 @@ def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path):
     assert result.output == expected_output
 
 
-def test_create_sample_store_dry_run_failure(tmp_path: pathlib.Path):
+def test_create_sample_store_dry_run_failure(tmp_path: pathlib.Path) -> None:
     sample_store_configuration_file = pathlib.Path(
         "tests/resources/ml_multicloud_sample_store.yaml"
     )
@@ -65,7 +65,7 @@ def test_create_sample_store_dry_run_failure(tmp_path: pathlib.Path):
 
 def test_create_sample_store_success(
     tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
-):
+) -> None:
     sample_store_configuration_file = pathlib.Path(
         "tests/resources/ml_multicloud_sample_store.yaml"
     )
@@ -93,7 +93,7 @@ def test_create_sample_store_success(
 
 def test_create_sample_store_success_new_sample_store(
     tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -123,7 +123,7 @@ def test_create_sample_store_failure_because_hardcoded_storage_location(
     valid_ado_project_context,
     create_active_ado_context,
     ado_sql_sample_store_with_storagelocation,
-):
+) -> None:
 
     runner = CliRunner()
     create_active_ado_context(

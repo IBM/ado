@@ -38,7 +38,7 @@ class HOPV(CSVSampleStore):
         self,
         storageLocation: orchestrator.utilities.location.FilePathLocation,
         parameters: CSVSampleStoreDescription,
-    ):
+    ) -> None:
         """
 
         :param parameters: A dictionary containing one field "data-file" which is the location of the HOPV CSV

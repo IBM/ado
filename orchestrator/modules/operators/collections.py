@@ -41,26 +41,26 @@ class OperationCollections(pydantic.BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def add_operation_function(self, name: str, fn: typing.Callable):
+    def add_operation_function(self, name: str, fn: typing.Callable) -> None:
         self.function_operations[name] = fn
 
-    def add_operation_version(self, name: str, version: str):
+    def add_operation_version(self, name: str, version: str) -> None:
         self.function_operation_versions[name] = version
 
-    def add_operation_description(self, name: str, version: str):
+    def add_operation_description(self, name: str, version: str) -> None:
         self.function_operation_descriptions[name] = version
 
     def add_operation_configuration_model(
         self, name: str, model: type[pydantic.BaseModel]
-    ):
+    ) -> None:
         self.function_operation_models[name] = model
 
     def add_operation_configuration_model_default(
         self, name: str, default: pydantic.BaseModel
-    ):
+    ) -> None:
         self.function_operation_model_defaults[name] = default
 
-    def add_operation_object(self, name: str, object: DiscoveryOperationBase):
+    def add_operation_object(self, name: str, object: DiscoveryOperationBase) -> None:
         self.object_operations[name] = object
 
     def list_operations(self) -> list:
@@ -287,7 +287,7 @@ def export_operation(
     return register_export_operation
 
 
-def load_operators():
+def load_operators() -> None:
     from importlib.metadata import entry_points
 
     import orchestrator.modules.operators.randomwalk  # noqa: F401

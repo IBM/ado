@@ -62,7 +62,7 @@ def show_details_for_resources(
             show_default=False,
         ),
     ] = False,
-):
+) -> None:
     """
     Show a high-level overview of a resource and what resources are related to it.
 
@@ -137,7 +137,7 @@ def show_details_for_resources(
         raise typer.Exit(1) from e
 
 
-def register_show_details_command(app: typer.Typer):
+def register_show_details_command(app: typer.Typer) -> None:
     app.command(
         name="details",
         no_args_is_help=True,

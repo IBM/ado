@@ -26,7 +26,7 @@ def test_create_operation_dry_run_success(
     valid_ado_project_context,
     create_active_ado_context,
     operations_to_be_run,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -60,7 +60,7 @@ def test_create_operation_dry_run_failure(
     valid_ado_project_context,
     create_active_ado_context,
     ml_multi_cloud_operation_configuration,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -96,7 +96,7 @@ def test_create_operation_success(
     valid_ado_project_context,
     create_active_ado_context,
     operations_to_be_run,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -125,7 +125,7 @@ def test_create_operation_success_set_spaces(
     valid_ado_project_context,
     create_active_ado_context,
     ml_multi_cloud_space,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -156,7 +156,7 @@ def test_create_operation_success_with_discovery_space(
     mysql_test_instance,
     valid_ado_project_context,
     create_active_ado_context,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context

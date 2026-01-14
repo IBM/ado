@@ -5,7 +5,7 @@ from orchestrator.cli.models.parameters import AdoUpgradeCommandParameters
 from orchestrator.core import CoreResourceKinds
 
 
-def upgrade_operation(parameters: AdoUpgradeCommandParameters):
+def upgrade_operation(parameters: AdoUpgradeCommandParameters) -> None:
     from orchestrator.cli.utils.resources.handlers import (
         handle_ado_upgrade,
     )

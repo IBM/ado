@@ -95,7 +95,7 @@ class VLLMPerformanceTest(ActuatorBase):
         self,
         queue: MeasurementQueue,
         params: VLLMPerformanceTestParameters,
-    ):
+    ) -> None:
         """
         queue: Queue where experiment results are put for consumers
         params: This actuators configuration parameters (Note: Soon this will be a model defined by the Actuator)

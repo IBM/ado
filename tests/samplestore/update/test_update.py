@@ -9,7 +9,7 @@ def test_update_operation(
     sql_store,
     update_resource,
     get_single_resource_by_identifier,
-):
+) -> None:
     operation = random_operation_resource_from_db()
 
     metadata = {

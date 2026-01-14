@@ -22,7 +22,7 @@ from orchestrator.schema.property_value import ConstitutivePropertyValue
 
 def test_entity_space_from_measurement_space(
     measurement_space: MeasurementSpace,
-):
+) -> None:
 
     # The input measurement space has two experiment both requiring a single
     # constitutive property called "smiles" with no domain
@@ -36,7 +36,7 @@ def test_entity_space_from_measurement_space(
     assert entitySpace.constitutiveProperties[0].identifier == "smiles"
 
 
-def test_entity_space_compatibility_with_measurement_space():
+def test_entity_space_compatibility_with_measurement_space() -> None:
 
     cp1 = ConstitutiveProperty(
         identifier="gpu_model",
@@ -158,7 +158,7 @@ def test_entity_space_compatibility_with_measurement_space():
 def test_entity_space_representation(
     constitutive_property_configuration_general,
     constitutive_property_configuration_general_yaml,
-):
+) -> None:
     rep = EntitySpaceRepresentation.representationFromConfiguration(
         constitutive_property_configuration_general
     )
@@ -184,7 +184,7 @@ def test_entity_space_representation(
 
 def test_entity_in_space(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
-):
+) -> None:
 
     es = EntitySpaceRepresentation(
         constitutiveProperties=constitutive_property_configuration_general
@@ -249,7 +249,7 @@ def test_entity_in_space(
 
 def test_entity_space_pretty(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
-):
+) -> None:
 
     ## Add an Unknown property
 
@@ -282,7 +282,7 @@ def test_entity_space_pretty(
 
 def test_entity_space_dimension_values(
     measurement_space_from_single_parameterized_experiment,
-):
+) -> None:
 
     es = measurement_space_from_single_parameterized_experiment.compatibleEntitySpace()
     es.dimension_values()
@@ -321,7 +321,9 @@ def test_entity_space_dimension_values(
     }
 
 
-def test_entity_space_iterators(measurement_space_from_single_parameterized_experiment):
+def test_entity_space_iterators(
+    measurement_space_from_single_parameterized_experiment,
+) -> None:
 
     exp = measurement_space_from_single_parameterized_experiment.experiments[0]
     if not exp.requiredConstitutiveProperties:
@@ -376,7 +378,7 @@ def test_entity_space_iterators(measurement_space_from_single_parameterized_expe
     assert len(set(random)) == len(random), "Expected no points to be duplicated"
 
 
-def test_entity_space_updates_open_categorical_property():
+def test_entity_space_updates_open_categorical_property() -> None:
     es = EntitySpaceRepresentation(
         constitutiveProperties=[
             ConstitutiveProperty(

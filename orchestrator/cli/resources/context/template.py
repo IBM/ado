@@ -15,7 +15,7 @@ from orchestrator.utilities.location import (
 )
 
 
-def template_context(parameters: AdoTemplateCommandParameters):
+def template_context(parameters: AdoTemplateCommandParameters) -> None:
 
     model_instance = (
         ProjectContext(

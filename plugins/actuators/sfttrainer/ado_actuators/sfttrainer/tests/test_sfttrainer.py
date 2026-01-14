@@ -76,7 +76,7 @@ def try_instantiate_experiment(
         "finetune_pt_benchmark",
     ],
 )
-def test_sfttrainer_parameterised_experiment(exp_name):
+def test_sfttrainer_parameterised_experiment(exp_name) -> None:
     all_experiments = [
         e
         for e in ado_actuators.sfttrainer.actuators.catalog.experiments
@@ -125,7 +125,7 @@ def test_sfttrainer_parameterised_experiment(exp_name):
             assert context.entity_space.max_steps == 3
 
 
-def test_sfttrainer_fast_moe():
+def test_sfttrainer_fast_moe() -> None:
     # VV: The type of the experiment doesn't really matter
     all_full_experiments = [
         e

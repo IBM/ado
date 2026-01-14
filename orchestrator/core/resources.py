@@ -83,7 +83,7 @@ def warn_deprecated_resource_model_in_use(
     removed_from_ado_version: str,
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
-):
+) -> None:
     from rich.console import Console
 
     # AP: some resources have a slightly different name in the CLI

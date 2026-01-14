@@ -92,7 +92,7 @@ def describe_resource(
             rich_help_panel=EXPERIMENT_ONLY_OPTIONS,
         ),
     ] = None,
-):
+) -> None:
     """
     Print a human-friendly description of a resource or an experiment.
 
@@ -195,7 +195,7 @@ def describe_resource(
         handle_unknown_experiment_error(error=e)
 
 
-def register_describe_command(app: typer.Typer):
+def register_describe_command(app: typer.Typer) -> None:
     app.command(
         name="describe",
         no_args_is_help=True,

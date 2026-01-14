@@ -105,7 +105,7 @@ class Replay(ActuatorBase):
 
     identifier = "replay"
 
-    def __init__(self, queue, params=None):
+    def __init__(self, queue, params=None) -> None:
         enable_ray_actor_coverage("replay")
         super().__init__(queue=queue, params=params)
         self.log = logging.getLogger("replay")

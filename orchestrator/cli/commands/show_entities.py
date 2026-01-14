@@ -121,7 +121,7 @@ def show_entities_for_resources(
             rich_help_panel=SPACE_PANEL_NAME,
         ),
     ] = None,
-):
+) -> None:
     """
     Show entities related to a space or an operation and their measurements.
 
@@ -212,7 +212,7 @@ def show_entities_for_resources(
         raise typer.Exit(1) from e
 
 
-def register_show_entities_command(app: typer.Typer):
+def register_show_entities_command(app: typer.Typer) -> None:
     app.command(
         name="entities",
         no_args_is_help=True,

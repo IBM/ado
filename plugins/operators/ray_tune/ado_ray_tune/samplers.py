@@ -20,7 +20,7 @@ class LhuSampler(ray.tune.search.Searcher):
         mode: str | None = None,
         points_to_evaluate: list[dict] | None = None,
         entity_space: EntitySpaceRepresentation | None = None,
-    ):
+    ) -> None:
 
         if mode and mode not in {"max", "min"}:
             raise ValueError(f"mode must be either max or min (was {mode})")
@@ -59,7 +59,7 @@ class LhuSampler(ray.tune.search.Searcher):
         if self._space:
             self._setup_experiment()
 
-    def _setup_experiment(self):
+    def _setup_experiment(self) -> None:
         from .doe import LatinHypercubeSampler
 
         self._num_samples = 0
@@ -69,13 +69,13 @@ class LhuSampler(ray.tune.search.Searcher):
         self._suggestions = []
         self._generate_new_samples()
 
-    def _generate_new_samples(self):
+    def _generate_new_samples(self) -> None:
         self._suggestions.extend(
             self._sampler.generate_new_categorical_samples(n_factor=4)
         )
         self._samples_generated_so_far = len(self._suggestions)
 
-    def set_entity_space(self, entity_space: EntitySpaceRepresentation):
+    def set_entity_space(self, entity_space: EntitySpaceRepresentation) -> None:
         """LHC samplers requires the orchestrators ExplicitEntitySpaceRepresentation
 
         This is because the ray tune search space does not give sufficient information
@@ -89,7 +89,7 @@ class LhuSampler(ray.tune.search.Searcher):
         mode: str | None,
         config: dict,
         **spec,
-    ):
+    ) -> bool:
         space = self.convert_search_space(config)
         self._space = space
         if metric:

@@ -175,7 +175,7 @@ def main(
         ),
     ] = 4,
     log_level: Annotated[int, typer.Option("--log-level", "-l", help="Log level")] = 20,
-):
+) -> None:
     logging.basicConfig(
         level=log_level,
         format="%(levelname)-9s %(name)-30s: %(funcName)-20s %(asctime)-15s: %(message)s",

@@ -135,7 +135,7 @@ def template_resource(
             rich_help_panel=TEMPLATE_OPERATION_PANEL_NAME,
         ),
     ] = True,
-):
+) -> None:
     """
     Output templates for creating resources and contexts.
 
@@ -197,7 +197,7 @@ def template_resource(
     method_mapping[resource_type](parameters=parameters)
 
 
-def register_template_command(app: typer.Typer):
+def register_template_command(app: typer.Typer) -> None:
     app.command(
         name="template",
         no_args_is_help=True,

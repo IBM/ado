@@ -157,10 +157,10 @@ class PropertyValue(pydantic.BaseModel):
 
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"value-{self.property}:{self.value}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"value-{self.property}:{self.value}"
 
     def __eq__(self, other):
@@ -199,7 +199,7 @@ def validate_point_against_properties(
     constitutive_properties: list[ConstitutiveProperty],
     allow_partial_matches: bool = False,
     verbose=False,
-):
+) -> bool:
     """point is valid if all its keys have a constitutive_property with
     a matching identifier and all its values are in the domain of this
     property. If allow_partial_matches is False an additional condition is that

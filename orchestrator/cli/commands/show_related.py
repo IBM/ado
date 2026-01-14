@@ -66,7 +66,7 @@ def show_related_for_resources(
             show_default=False,
         ),
     ] = False,
-):
+) -> None:
     """
     Show resources directly (one-hop) related to the requested resource, grouped by type.
 
@@ -129,7 +129,7 @@ def show_related_for_resources(
         )
 
 
-def register_show_related_command(app: typer.Typer):
+def register_show_related_command(app: typer.Typer) -> None:
     app.command(
         name="related",
         no_args_is_help=True,

@@ -420,7 +420,7 @@ def most_important_status_update(
     return OperationResourceStatus(event=ADOResourceEventEnum.ADDED)
 
 
-def timedelta_to_string(total_seconds: float):
+def timedelta_to_string(total_seconds: float) -> str:
     if math.isnan(total_seconds):
         return "NaT"
     if total_seconds < SECONDS_IN_A_MINUTE:

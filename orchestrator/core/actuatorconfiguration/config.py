@@ -73,7 +73,7 @@ def warn_deprecated_actuator_parameters_model_in_use(
     removed_from_actuator_version: str,
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
-):
+) -> None:
     from rich.console import Console
 
     resource_name = "actuatorconfiguration"

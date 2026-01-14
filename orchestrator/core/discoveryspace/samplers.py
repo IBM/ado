@@ -140,7 +140,7 @@ class RandomSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
-    ):
+    ) -> bool:
         return True
 
     async def remoteEntityIterator(
@@ -208,7 +208,7 @@ class SequentialSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
-    ):
+    ) -> bool:
         return True
 
     async def remoteEntityIterator(
@@ -322,7 +322,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
 
         return BaseSamplerParameters
 
-    def __init__(self, mode: WalkModeEnum | BaseSamplerParameters):
+    def __init__(self, mode: WalkModeEnum | BaseSamplerParameters) -> None:
 
         if isinstance(mode, BaseSamplerParameters):
             self.mode = mode.mode

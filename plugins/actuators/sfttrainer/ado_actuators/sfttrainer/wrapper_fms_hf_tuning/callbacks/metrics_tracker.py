@@ -396,7 +396,7 @@ class Metrics:
             warmup_seconds=aim_info.get("warmup_seconds"),
         )
 
-    def filter_unused_gpus(self):
+    def filter_unused_gpus(self) -> None:
         """Uses CUDA_VISIBLE_DEVICES to filter out metrics of GPUs that the task did not use
 
         Updates the metrics in place
@@ -443,7 +443,7 @@ class ResourceTracker:
             return items
         raise ValueError(f"unknown aggregation mode: '{mode}'")
 
-    def __init__(self, period: float = 30.0):
+    def __init__(self, period: float = 30.0) -> None:
         """Takes a snapshot of system metrics every @period seconds
 
         Args:
@@ -465,7 +465,7 @@ class ResourceTracker:
         self._stopped.set()
         self._period = period
 
-    def track_stats(self):
+    def track_stats(self) -> None:
         system, gpus = self._stat.get_stats()
         stat = aim.ext.resource.stat.StatDict(system, gpus)
 
@@ -476,7 +476,7 @@ class ResourceTracker:
 
         self.metrics.append(stat)
 
-    def _kernel(self: "ResourceTracker"):
+    def _kernel(self: "ResourceTracker") -> None:
         """Utility method which takes a metric snapshot every period seconds and can be cancelled via end_track()"""
 
         while self._end_requested.wait(timeout=self._period) is False:
@@ -489,13 +489,13 @@ class ResourceTracker:
 
         self._stopped.set()
 
-    def begin_track(self):
+    def begin_track(self) -> None:
         self._stopped.clear()
 
         self._thread = Thread(target=self._kernel)
         self._thread.start()
 
-    def end_track(self):
+    def end_track(self) -> None:
         if self._thread is not None:
             self._log.debug("Stopping stat tracker thread")
             self._end_requested.set()
@@ -508,7 +508,7 @@ class ResourceTracker:
             self._thread = None
 
     @classmethod
-    def _fix_stat(cls, stat: aim.ext.resource.stat.StatDict):
+    def _fix_stat(cls, stat: aim.ext.resource.stat.StatDict) -> None:
         # VV: There's a bug in AIM which causes some GPU fields to be a tuple of 1 item instead of a float
         for g in stat.gpus:
             for name in g:
@@ -595,7 +595,7 @@ class ResourceTracker:
         return Metrics(gpus=gpus, system=system, training=training, model=model)
 
     @classmethod
-    def filter_unused_gpus(cls, metrics: Metrics):
+    def filter_unused_gpus(cls, metrics: Metrics) -> None:
         """Uses CUDA_VISIBLE_DEVICES to filter out metrics of GPUs that the task did not use
 
         Args:

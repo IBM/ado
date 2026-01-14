@@ -81,7 +81,7 @@ def get_actuator_configurations(
 def validate_actuator_configurations_against_space_configuration(
     actuator_configurations: list[ActuatorConfiguration],
     discovery_space_configuration: DiscoverySpaceConfiguration,
-):
+) -> None:
     """Validates that actuator configurations are compatible with a discovery space
 
     Checks that all actuators referenced in the actuator configurations are used
@@ -200,7 +200,7 @@ class OperatorFunctionConf(pydantic.BaseModel):
     )
     operatorName: str = pydantic.Field(description="The name of the operator")
 
-    def validateOperatorExists(self):
+    def validateOperatorExists(self) -> bool:
 
         # Note: this is not implemented as a pydantic validator to avoid a
         # recursive import of agents.operations

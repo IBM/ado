@@ -79,7 +79,7 @@ def delete_resource(
             rich_help_panel=CONTEXT_ONLY_PANEL_NAME,
         ),
     ] = None,
-):
+) -> None:
     """
     Delete resources and contexts.
 
@@ -142,7 +142,7 @@ def delete_resource(
         handle_resource_deletion_error(error=e)
 
 
-def register_delete_command(app: typer.Typer):
+def register_delete_command(app: typer.Typer) -> None:
     app.command(
         name="delete",
         no_args_is_help=True,

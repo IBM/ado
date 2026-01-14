@@ -18,12 +18,12 @@ from orchestrator.schema.reference import ExperimentReference
 
 
 @pytest.fixture
-def experiment_identifier():
+def experiment_identifier() -> str:
     return "pytest-mock-experiment"
 
 
 @pytest.fixture
-def actuator_identifier():
+def actuator_identifier() -> str:
     return "mock"
 
 

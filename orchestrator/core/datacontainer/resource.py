@@ -38,7 +38,7 @@ class TabularData(pydantic.BaseModel):
 
         return pd.DataFrame(self.data)
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -87,7 +87,7 @@ class DataContainer(pydantic.BaseModel):
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -145,7 +145,7 @@ class DataContainerResource(ADOResource):
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")

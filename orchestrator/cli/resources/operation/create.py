@@ -255,7 +255,7 @@ def validate_operation(
 def reuse_requested_latest_identifiers(
     resource_configuration: DiscoveryOperationResourceConfiguration,
     parameters: AdoCreateCommandParameters,
-):
+) -> None:
     updated = False
 
     if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.use_latest:

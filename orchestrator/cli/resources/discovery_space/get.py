@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:
     import pandas as pd
 
 
-def get_discovery_space(parameters: AdoGetCommandParameters):
+def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
     from orchestrator.cli.utils.resources.handlers import (
         handle_ado_get_default_format,
         handle_ado_get_special_formats,

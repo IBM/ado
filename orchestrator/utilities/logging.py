@@ -23,7 +23,7 @@ def uniform_color(color: str) -> dict:
     return dict.fromkeys(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], color)
 
 
-def configure_logging():
+def configure_logging() -> None:
 
     # Create a root logger
     import os

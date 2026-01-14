@@ -256,7 +256,7 @@ def check_parameters_and_infer(
     return _optional_properties, _parameterization, _required_properties
 
 
-def check_parameters_valid(func, _required_properties, _optional_properties):
+def check_parameters_valid(func, _required_properties, _optional_properties) -> None:
     # Validate that the property identifiers match the function parameters
     func_signature = inspect.signature(func)
     func_param_names = set(func_signature.parameters.keys())
@@ -436,7 +436,7 @@ def custom_experiment(
     return decorator
 
 
-def load_custom_experiments_from_catalog_extensions(identifier):
+def load_custom_experiments_from_catalog_extensions(identifier) -> None:
     import importlib.resources
     import logging
     import pkgutil
@@ -491,7 +491,7 @@ def load_custom_experiments_from_catalog_extensions(identifier):
                     )
 
 
-def load_custom_experiments_from_entry_points():
+def load_custom_experiments_from_entry_points() -> None:
     """
     Load custom experiments from entry points.
 
@@ -597,7 +597,7 @@ def custom_experiment_executor(
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue,
-):
+) -> None:
     """
     :param function: The function to call
     :param parameters: The custom parameters to the function
@@ -655,7 +655,7 @@ class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments
     """
 
-    def __init__(self, queue, params: dict | None = None):
+    def __init__(self, queue, params: dict | None = None) -> None:
         """
 
         :param queue: The StateUpdates queue instance

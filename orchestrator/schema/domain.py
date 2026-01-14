@@ -68,7 +68,7 @@ def _internal_range_values(lower, upper, interval) -> list:
     return list(np.round(values, 10))
 
 
-def is_subdomain_of_unknown_domain(unknownDomain, testDomain):
+def is_subdomain_of_unknown_domain(unknownDomain, testDomain) -> bool:
     """Returns True if the testDomain is a subdomain of the unknownDomain
     Parameters:
         unknownDomain: A PropertyDomain with variableType UNKNOWN_VARIABLE_TYPE
@@ -319,7 +319,7 @@ class PropertyDomain(pydantic.BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")

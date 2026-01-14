@@ -193,7 +193,7 @@ class InvalidMeasurementResult(MeasurementResult):
 class DuplicateMeasurementResultError(ValueError): ...
 
 
-def measurement_result_type_discriminator(result):
+def measurement_result_type_discriminator(result) -> str:
 
     if isinstance(result, ValidMeasurementResult):
         return "Valid"

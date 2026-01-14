@@ -22,7 +22,7 @@ from orchestrator.schema.request import ReplayedMeasurement
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 
 
-def show_operation_results(parameters: AdoShowResultsCommandParameters):
+def show_operation_results(parameters: AdoShowResultsCommandParameters) -> None:
 
     class _COLUMN(enum.Enum):
         RESULT_UID = "Result UID"

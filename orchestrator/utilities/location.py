@@ -112,7 +112,7 @@ class ResourceLocation(pydantic.BaseModel):
             path=self.path.lstrip("/"),
         )
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:
             p.text("Cycle detected")
@@ -138,7 +138,7 @@ class FilePathLocation(ResourceLocation):
         return value
 
     @property
-    def hash_identifier(self):
+    def hash_identifier(self) -> str:
         """Returns an identifier for the file-path of the form {filename}-{file hash}"""
 
         import hashlib

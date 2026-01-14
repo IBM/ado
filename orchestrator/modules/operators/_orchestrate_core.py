@@ -33,7 +33,7 @@ from orchestrator.modules.operators.base import (
 moduleLog = logging.getLogger("orchestrate_core")
 
 
-def log_space_details(discovery_space: "DiscoverySpace"):
+def log_space_details(discovery_space: "DiscoverySpace") -> None:
 
     from IPython.lib import pretty
 

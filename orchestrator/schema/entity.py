@@ -189,10 +189,10 @@ class Entity(pydantic.BaseModel):
 
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.identifier} ({self.generatorid})"
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         import pandas as pd
 
@@ -441,7 +441,9 @@ class Entity(pydantic.BaseModel):
             )
         )
 
-    def add_measurement_result(self, result: typing.Union["ValidMeasurementResult"]):
+    def add_measurement_result(
+        self, result: typing.Union["ValidMeasurementResult"]
+    ) -> None:
         """
         Adds a ValidMeasurementResult object to the entity.
         """

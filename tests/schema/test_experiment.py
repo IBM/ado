@@ -36,24 +36,24 @@ from orchestrator.utilities.support import get_experiment_input_values
 #
 
 
-def test_property_values_from_entity_multiple_required():
+def test_property_values_from_entity_multiple_required() -> None:
 
     pass
 
 
-def test_property_values_from_entity_missing_required_constitutive():
+def test_property_values_from_entity_missing_required_constitutive() -> None:
 
     pass
 
 
-def experiment_equality_non_experiment(experiment):
+def experiment_equality_non_experiment(experiment) -> None:
     "Utility function for use in tests"
 
     assert experiment != "string"
     assert experiment != experiment.model_dump()
 
 
-def experiment_is_hashable(experiment):
+def experiment_is_hashable(experiment) -> None:
     "Utility function for use in tests"
 
     # Check the instance can be used as dict key
@@ -81,7 +81,7 @@ def experiment_is_hashable(experiment):
 #    pass
 
 
-def experiment_pretty(experiment):
+def experiment_pretty(experiment) -> None:
     "Utility function for use in tests"
 
     from IPython.lib.pretty import pretty
@@ -91,7 +91,7 @@ def experiment_pretty(experiment):
 
 def test_parameterizable_experiment_equality_experiment_same_id_different_actuator(
     parameterizable_experiment: Experiment, global_registry: ActuatorRegistry
-):
+) -> None:
 
     cp = parameterizable_experiment.model_copy(
         update={"actuatorIdentifier": "randomstring"}
@@ -102,7 +102,7 @@ def test_parameterizable_experiment_equality_experiment_same_id_different_actuat
 
 def test_parameterized_experiment_equality_experiment_same_id_different_actuator(
     parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
-):
+) -> None:
 
     assert parameterized_experiment != parameterized_experiment.model_copy(
         update={"actuatorIdentifier": "randomstring"}
@@ -111,31 +111,31 @@ def test_parameterized_experiment_equality_experiment_same_id_different_actuator
 
 def test_parameterizable_experiment_equality_non_experiment(
     parameterizable_experiment: Experiment, global_registry: ActuatorRegistry
-):
+) -> None:
 
     experiment_equality_non_experiment(parameterizable_experiment)
 
 
 def test_parameterized_experiment_equality_non_experiment(
     parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
-):
+) -> None:
 
     experiment_equality_non_experiment(parameterized_experiment)
 
 
-def test_parameterizable_experiment_is_hashable(parameterizable_experiment):
+def test_parameterizable_experiment_is_hashable(parameterizable_experiment) -> None:
 
     experiment_is_hashable(parameterizable_experiment)
 
 
-def test_parameterized_experiment_is_hashable(parameterized_experiment):
+def test_parameterized_experiment_is_hashable(parameterized_experiment) -> None:
 
     experiment_is_hashable(parameterized_experiment)
 
 
 def test_parameterized_experiment_base_equality_methods(
     parameterized_experiment, global_registry
-):
+) -> None:
 
     base_exp = global_registry.experimentForReference(
         parameterized_experiment.reference
@@ -152,13 +152,17 @@ def test_parameterized_experiment_base_equality_methods(
     assert base_exp.has_same_base_as_experiment(parameterized_experiment)
 
 
-def test_parameterizable_experiment_pretty(parameterized_experiment, global_registry):
+def test_parameterizable_experiment_pretty(
+    parameterized_experiment, global_registry
+) -> None:
 
     # Requesting global_registry fixture to ensure the experiments are added to the registry for testing
     experiment_pretty(parameterized_experiment)
 
 
-def test_parameterized_experiment_pretty(parameterized_experiment, global_registry):
+def test_parameterized_experiment_pretty(
+    parameterized_experiment, global_registry
+) -> None:
 
     # Requesting global_registry fixture to ensure the experiments are added to the registry for testing
     experiment_pretty(parameterized_experiment)
@@ -168,7 +172,7 @@ def test_experiment_observed_properties(
     experiment: Experiment,
     expected_observed_property_identifiers: list[str],
     target_property_list: list[str],
-):
+) -> None:
     """Test that the observed properties created by an experiment are as expected"""
 
     for op in experiment.observedProperties:
@@ -244,7 +248,7 @@ def test_create_experiment_with_optional_params(
     experimentRawNoOptional: dict,
     optionalProperties: list[ConstitutiveProperty],
     defaultParameterization: list[ConstitutivePropertyValue],
-):
+) -> None:
     """Test we can create an experiment with optional parameters"""
 
     Experiment(
@@ -326,7 +330,7 @@ def test_create_experiment_with_optional_params(
 
 def test_get_experiment_optional_parameter_value(
     experimentWithOptions, defaultParameterization, customParameterization
-):
+) -> None:
 
     #  Test valueForProperty returns the default parameterized values
     for pv in defaultParameterization:
@@ -370,7 +374,7 @@ def test_get_experiment_optional_parameter_value(
 
 def test_is_valid_experiment_parameterization(
     experimentWithOptions, defaultParameterization
-):
+) -> None:
 
     assert experimentWithOptions.isValidParameterization(defaultParameterization)
 
@@ -403,19 +407,19 @@ def test_is_valid_experiment_parameterization(
 
 def test_custom_experiment_parameterization_is_valid(
     experimentWithOptions, customParameterization
-):
+) -> None:
 
     assert experimentWithOptions.isValidParameterization(customParameterization)
 
 
-def test_experiment_pretty(experiment):
+def test_experiment_pretty(experiment) -> None:
 
     from IPython.lib.pretty import pretty
 
     pretty(experiment)
 
 
-def test_measurement_types(experiment: Experiment):
+def test_measurement_types(experiment: Experiment) -> None:
     """Test that created experiments have the correct measurements types"""
 
     assert (
@@ -426,7 +430,7 @@ def test_measurement_types(experiment: Experiment):
 
 def test_retrieve_parameterizable_experiment(
     global_registry: ActuatorRegistry, mock_parameterizable_experiment: Experiment
-):
+) -> None:
 
     assert global_registry.experimentForReference(
         mock_parameterizable_experiment.reference
@@ -437,7 +441,7 @@ def test_parameterized_experiment_serialize_deserialize(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
     customParameterization: list[ConstitutivePropertyValue],
-):
+) -> None:
     ref = ExperimentReference(
         actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,
         experimentIdentifier=mock_parameterizable_experiment.identifier,
@@ -453,7 +457,7 @@ def test_create_parameterized_experiment(
     experimentWithOptions: Experiment,
     customParameterization: list[ConstitutivePropertyValue],
     global_registry: ActuatorRegistry,
-):
+) -> None:
 
     import copy
 
@@ -539,7 +543,7 @@ def test_create_parameterized_experiment(
 # - Testing a Entity that doesn't have the correct ConstitutiveProperties
 def test_experiment_property_values_from_entity(
     entity_for_parameterized_experiment: tuple[Entity, ParameterizedExperiment],
-):
+) -> None:
     """Test Experiment.propertyValuesFromEntity works"""
 
     entity: Entity = entity_for_parameterized_experiment[0]
@@ -634,7 +638,7 @@ def test_experiment_property_values_from_entity(
             exp.propertyValuesFromEntity(entity_copy)
 
 
-def test_parameterized_experiment_reference_validation_detects_invalid_cases():
+def test_parameterized_experiment_reference_validation_detects_invalid_cases() -> None:
 
     # Test creating a parameterized reference for an experiment that doesn't exist
     with pytest.raises(
@@ -674,7 +678,7 @@ def test_parameterized_experiment_reference_validation_detects_invalid_cases():
 
 def test_validate_parameterization_function_with_none_values(
     optionalProperties, defaultParameterization, customParameterization
-):
+) -> None:
 
     # Initial check it works as intended
     check_parameterization_validity(
@@ -714,12 +718,14 @@ def test_validate_parameterization_function_with_none_values(
 
 
 # Required so we can test fields are readonly without causing pycharm to flag the test assignments as errors
-def assert_field_is_readonly(instance, field, value):
+def assert_field_is_readonly(instance, field, value) -> None:
     with pytest.raises(pydantic.ValidationError):
         setattr(instance, field, value)
 
 
-def test_parameterized_experiment_fields_immutable(mock_parameterizable_experiment):
+def test_parameterized_experiment_fields_immutable(
+    mock_parameterizable_experiment,
+) -> None:
     """Test we cannot change the values of requiredProperties, optionalProperties or defaultParameterization
 
     Either by reassigning or modifying the container via a reference to the field
@@ -783,7 +789,7 @@ def test_parameterized_experiment_fields_immutable(mock_parameterizable_experime
 
 def test_cannot_set_parameterized_experiment_identifier_for_experiment(
     parameterizable_experiment,
-):
+) -> None:
     # Create a new value for one of the properties
     test_property_value = ConstitutivePropertyValue(
         value="C", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
@@ -801,7 +807,7 @@ def test_experiment_provides_requirements(
     mock_parameterizable_experiment_with_required_observed,
     mock_parameterizable_experiment,
     mock_parameterizable_experiment_no_required,
-):
+) -> None:
     """Test the method experimentProvidesRequirements"""
 
     # The "with_required_observed" experiment is constructed to require the mock_parameterizable_experiment
@@ -874,7 +880,7 @@ def entity_with_props(props):
     return Entity(constitutive_property_values=tuple(props))
 
 
-def test_validate_entity_required_only(nevergrad_opt_3d_test_func_experiment):
+def test_validate_entity_required_only(nevergrad_opt_3d_test_func_experiment) -> None:
     props = [
         ConstitutivePropertyValue(
             value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
@@ -890,7 +896,9 @@ def test_validate_entity_required_only(nevergrad_opt_3d_test_func_experiment):
     assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is True
 
 
-def test_validate_entity_with_optional_valid(nevergrad_opt_3d_test_func_experiment):
+def test_validate_entity_with_optional_valid(
+    nevergrad_opt_3d_test_func_experiment,
+) -> None:
     props = [
         ConstitutivePropertyValue(
             value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
@@ -909,7 +917,9 @@ def test_validate_entity_with_optional_valid(nevergrad_opt_3d_test_func_experime
     assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is True
 
 
-def test_validate_entity_with_optional_invalid(nevergrad_opt_3d_test_func_experiment):
+def test_validate_entity_with_optional_invalid(
+    nevergrad_opt_3d_test_func_experiment,
+) -> None:
     props = [
         ConstitutivePropertyValue(
             value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
@@ -928,7 +938,9 @@ def test_validate_entity_with_optional_invalid(nevergrad_opt_3d_test_func_experi
     assert nevergrad_opt_3d_test_func_experiment.validate_entity(entity) is False
 
 
-def test_validate_entity_missing_required(nevergrad_opt_3d_test_func_experiment):
+def test_validate_entity_missing_required(
+    nevergrad_opt_3d_test_func_experiment,
+) -> None:
     # missing x2
     props = [
         ConstitutivePropertyValue(
@@ -944,7 +956,7 @@ def test_validate_entity_missing_required(nevergrad_opt_3d_test_func_experiment)
 
 def test_validate_entity_missing_required_with_optional_valid(
     nevergrad_opt_3d_test_func_experiment,
-):
+) -> None:
     # missing x2 but valid name
     props = [
         ConstitutivePropertyValue(
@@ -963,7 +975,7 @@ def test_validate_entity_missing_required_with_optional_valid(
 
 def test_validate_entity_additional_property_strict_optional_false(
     nevergrad_opt_3d_test_func_experiment,
-):
+) -> None:
     props = [
         ConstitutivePropertyValue(
             value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")
@@ -985,7 +997,7 @@ def test_validate_entity_additional_property_strict_optional_false(
 
 def test_validate_entity_additional_property_strict_optional_true(
     nevergrad_opt_3d_test_func_experiment,
-):
+) -> None:
     props = [
         ConstitutivePropertyValue(
             value=0.5, property=ConstitutivePropertyDescriptor(identifier="x0")

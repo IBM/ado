@@ -20,7 +20,9 @@ from orchestrator.schema.entity import Entity
 ##################################################################
 @pytest.fixture
 def create_resources(sql_store):
-    def _create_resource(resources: list[ADOResource], db: SQLStore = sql_store):
+    def _create_resource(
+        resources: list[ADOResource], db: SQLStore = sql_store
+    ) -> None:
         for resource in resources:
             db.addResource(resource)
 
@@ -33,7 +35,7 @@ def create_resource_with_related_identifiers(sql_store):
         resource: ADOResource,
         related_identifiers: list[str],
         db: SQLStore = sql_store,
-    ):
+    ) -> None:
         db.addResourceWithRelationships(
             resource=resource, relatedIdentifiers=related_identifiers
         )
@@ -45,7 +47,7 @@ def create_resource_with_related_identifiers(sql_store):
 def add_entities_to_sample_store():
     def _add_entities_to_sample_store(
         sql_sample_store: SQLSampleStore, entities: list[Entity]
-    ):
+    ) -> None:
         sql_sample_store.addEntities(entities)
 
     return _add_entities_to_sample_store
@@ -55,7 +57,7 @@ def add_entities_to_sample_store():
 def upsert_entities_to_sample_store():
     def _upsert_entities_to_sample_store(
         sql_sample_store: SQLSampleStore, entities: list[Entity]
-    ):
+    ) -> None:
         sql_sample_store.upsertEntities(entities)
 
     return _upsert_entities_to_sample_store
@@ -115,7 +117,7 @@ def get_related_resource_identifiers_by_identifier(sql_store):
 ##################################################################
 @pytest.fixture
 def update_resource(sql_store):
-    def _update_resource(resource: ADOResource, db: SQLStore = sql_store):
+    def _update_resource(resource: ADOResource, db: SQLStore = sql_store) -> None:
         db.updateResource(resource)
 
     return _update_resource

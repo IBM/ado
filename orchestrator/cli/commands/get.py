@@ -247,7 +247,7 @@ def get_resource(
             rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
         ),
     ] = None,
-):
+) -> None:
     """
     List, search, and retrieve representation of resources, contexts, actuators, and operators.
 
@@ -379,7 +379,7 @@ def get_resource(
         )
 
 
-def register_get_command(app: typer.Typer):
+def register_get_command(app: typer.Typer) -> None:
     app.command(
         name="get",
         no_args_is_help=True,

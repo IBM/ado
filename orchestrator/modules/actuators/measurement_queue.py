@@ -10,7 +10,7 @@ class MeasurementQueue(ray.util.queue.Queue):
     The DiscoverySpaceManager and all Actuators in an explore operation MUST
     use the same MeasurementQueue instance."""
 
-    def __init__(self, maxsize=0, ray_namespace: str | None = None):
+    def __init__(self, maxsize=0, ray_namespace: str | None = None) -> None:
         """Parameters:
 
         ray_namespace: The namespace of the operation this queue is for.

@@ -161,7 +161,7 @@ def format_resource_for_ado_get_custom_format(
         | dict
     ),
     parameters: AdoGetCommandParameters,
-):
+) -> str:
     match parameters.output_format:
         case AdoGetSupportedOutputFormats.CONFIG:
             return _config_formatter_for_ado_resource(
@@ -194,7 +194,7 @@ def _config_formatter_for_ado_resource(
         | dict
     ),
     parameters: AdoGetCommandParameters,
-):
+) -> str:
 
     if isinstance(to_print, list):
         console_print(f"{ERROR}{ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE}", stderr=True)
@@ -249,7 +249,7 @@ def _yaml_formatter_for_ado_resource(
         | dict
     ),
     parameters: AdoGetCommandParameters,
-):
+) -> str:
 
     if parameters.minimize_output:
         serialization_context = minimize_output_context
@@ -290,7 +290,7 @@ def _json_formatter_for_ado_resource(
         ADOResource | list[ADOResource] | pydantic.BaseModel | list[pydantic.BaseModel]
     ),
     parameters: AdoGetCommandParameters,
-):
+) -> str:
 
     if parameters.minimize_output:
         serialization_context = minimize_output_context
@@ -364,7 +364,7 @@ def _raw_formatter_for_ado_resource(
         | dict
     ),
     parameters: AdoGetCommandParameters,
-):
+) -> str:
     import pprint
 
     if parameters.minimize_output:
@@ -380,7 +380,7 @@ def _minimize_ado_resource_representation(
     to_print: (
         ADOResource | list[ADOResource] | pydantic.BaseModel | list[pydantic.BaseModel]
     ),
-):
+) -> ADOResource | pydantic.BaseModel:
     if isinstance(to_print, list):
         console_print(
             f"{ERROR}The minimal output format can only be used "

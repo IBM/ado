@@ -51,7 +51,7 @@ def resource_type_callback(
     ctx: typer.Context,
     param: typer.CallbackParam,
     value: AdoCreateSupportedResourceTypes,
-):
+) -> str:
     # AP: 27/05/2025
     # To avoid making it impossible to run ado create context
     # when there is no default context, we need to disable

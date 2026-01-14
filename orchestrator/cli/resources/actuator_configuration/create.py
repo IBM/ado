@@ -24,7 +24,7 @@ from orchestrator.core.actuatorconfiguration.resource import (
 )
 
 
-def create_actuator_configuration(parameters: AdoCreateCommandParameters):
+def create_actuator_configuration(parameters: AdoCreateCommandParameters) -> str | None:
     try:
         actuatorconfig_configuration = ActuatorConfiguration.model_validate(
             yaml.safe_load(parameters.resource_configuration_file.read_text())

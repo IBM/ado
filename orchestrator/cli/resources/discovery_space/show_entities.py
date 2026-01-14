@@ -31,6 +31,8 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
 
 if typing.TYPE_CHECKING:
+    import pandas as pd
+
     from orchestrator.schema.entity import Entity
 
 
@@ -176,7 +178,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
     )
 
 
-def unmeasured_entities_from_space(space: DiscoverySpace):
+def unmeasured_entities_from_space(space: DiscoverySpace) -> list["Entity"]:
     from orchestrator.core.discoveryspace.samplers import (
         ExplicitEntitySpaceGridSampleGenerator,
         WalkModeEnum,
@@ -201,7 +203,7 @@ def unmeasured_entities_from_space(space: DiscoverySpace):
     return [entity[0] for entity in iterator if entity[0] not in measured_entities]
 
 
-def missing_entities_from_space(space: DiscoverySpace):
+def missing_entities_from_space(space: DiscoverySpace) -> list["Entity"]:
     from orchestrator.core.discoveryspace.samplers import (
         ExplicitEntitySpaceGridSampleGenerator,
         WalkModeEnum,
@@ -230,7 +232,7 @@ def missing_entities_from_space(space: DiscoverySpace):
 def entities_to_dataframe(
     entities: typing.Iterable["Entity"],
     constitutive_properties_only: bool = True,
-):
+) -> "pd.DataFrame":
     import pandas as pd
 
     if constitutive_properties_only:

@@ -36,7 +36,7 @@ from orchestrator.core.operation.resource import (
 )
 
 
-def create_operation(parameters: AdoCreateCommandParameters):
+def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
 
     import orchestrator.modules.operators.orchestrate
     from orchestrator.modules.actuators.base import MeasurementError
@@ -316,7 +316,7 @@ def reuse_requested_latest_identifiers(
         validate_operation(resource_configuration)
 
 
-def output_operation_result(result: OperationOutput):
+def output_operation_result(result: OperationOutput) -> str | None:
     # Output some padding
     console_print("", stderr=True)
 

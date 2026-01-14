@@ -271,7 +271,7 @@ def _find_spaces_matching_space(
 def _discovery_space_resource_list_to_ado_get_default_dataframe(
     resources: list[DiscoverySpaceResource],
     parameters: AdoGetCommandParameters,
-):
+) -> "pd.DataFrame":
     from datetime import datetime, timezone
 
     import pandas as pd

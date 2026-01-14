@@ -13,52 +13,59 @@ import numpy as np
 from trim.utils.one_dimensional_sampling import get_index_list_nn
 
 
-def sudoku_high_dimensional_sampling(
+def concatenated_latin_hypercube_sampling(
     dims: list[int],
     n: int,
     seed: int | None = None,
 ) -> list[list[int]]:
     """
-    Sudoku sampling: for each dimension, sample values uniformly at random
-    without replacement until all values in that dimension have been used,
-    then reset that dimension's pool and continue.
+    Generates samples using a Concatenated Latin Hypercube Sampling strategy.
+
+    For each dimension independently, this method enforces a 1D stratification
+    (Latin Hypercube property) by generating random permutations of the
+    possible values. If the number of requested samples 'n' exceeds the cardinality
+    of a dimension, new random permutations are concatenated to the sequence.
+
+    This guarantees that for any dimension j with size d_j, every sequence
+    of d_j samples contains exactly one instance of every value in range(d_j).
 
     Args:
-        dims (List[int]): size of each dimension (must be positive integers).
-        n (int): number of points to sample.
-        seed (Optional[int]): optional PRNG seed for reproducibility.
+        dims (List[int]): Cardinality (size) of each dimension. Must be positive.
+        n (int): Total number of points to sample.
+        seed (Optional[int]): Optional PRNG seed for reproducibility.
 
     Returns:
-        List[List[int]]: n sampled points, each a list of indices per dimension.
+        List[List[int]]: A list of n sampled points, where each point is a
+        list of indices corresponding to the dimensions.
 
-    Invariants:
-        - For dimension j, the sequence of chosen indices is comprised of cycles
-          where each cycle is a random permutation of range(dims[j]).
-        - Sampling is random among remaining valid values at each step.
+    Raises:
+        ValueError: If any dimension size is less than 1.
     """
     if any(d <= 0 for d in dims):
         raise ValueError(f"All dimensions must be >= 1, received dims={dims}")
+
     if n <= 0:
         return []
 
     rng = random.Random(seed)  # noqa: S311
 
-    # Per-dimension pools: remaining indices to choose from before a reset.
-    # We do random-without-replacement by popping a random index from each pool.
+    # Per-dimension pools: active permutation for the current block.
+    # We maintain the Latin Hypercube property by sampling without replacement.
     pools: list[list[int]] = [list(range(d)) for d in dims]
-
     samples: list[list[int]] = []
+
     for _ in range(n):
         point: list[int] = []
         for j, d in enumerate(dims):
-            # Reset the pool if exhausted
+            # If the current permutation block is exhausted, start a new one (new cycle).
             if not pools[j]:
                 pools[j] = list(range(d))
 
-            # Choose a random remaining element *uniformly* and remove it
-            k = rng.randrange(len(pools[j]))  # 0 .. len(pool)-1
+            # Select a random element from the remaining pool for this block.
+            k = rng.randrange(len(pools[j]))
             val = pools[j].pop(k)
             point.append(val)
+
         samples.append(point)
 
     return samples
@@ -492,7 +499,7 @@ def get_order_list_nn_high_dimensional(
     dims: list[int],
     n: int | str = "all",
     space: dict[str, int] | None = None,
-    strategy: str = "sudoku",
+    strategy: str = "clhs",
 ) -> list[list[int]]:
     """
     Generate sampling indices for a high-dimensional space using `get_index_list_nn` for each dimension.
@@ -507,7 +514,7 @@ def get_order_list_nn_high_dimensional(
             - 'random': selects random points from the beginning
             - 'one_shift': refer to one_shift_then_random_points_high_dimensional_sampling
             - 'recursive_aggregation': refer to recursive_aggregation_high_dimensional_sampling
-            - 'sudoku': refer to sudoku_high_dimensional_sampling
+            - 'clhs': refer to concatenated_latin_hypercube_sampling
         space (Optional[Dict[str, int]]): Optional mapping of dimension names to sizes (used only for logging/debug purposes).
             Example:
                 space = {'batch_size': 8, 'model_name': 5}
@@ -579,8 +586,8 @@ def get_order_list_nn_high_dimensional(
     if strategy == "recursive_aggregation":
         return recursive_aggregation_high_dimensional_sampling(dims=dims, n=n)
 
-    if strategy == "sudoku":
-        return sudoku_high_dimensional_sampling(dims=dims, n=n)
+    if strategy == "clhs":
+        return concatenated_latin_hypercube_sampling(dims=dims, n=n)
 
     raise NotImplementedError(f"Strategy {strategy} is unknown")
 

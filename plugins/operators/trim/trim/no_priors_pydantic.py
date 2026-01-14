@@ -18,7 +18,7 @@ class NoPriorsParameters(BaseModel):
         - 'random': selects random points from the beginning
         - 'one_shift': refer to one_shift_then_random_points_high_dimensional_sampling
         - 'recursive_aggregation': refer to recursive_aggregation_high_dimensional_sampling
-        - 'sudoku': refer to sudoku_high_dimensional_sampling
+        - 'clhs': refer to concatenated_latin_hypercube_sampling
     """
 
     # --- Supported strategies (centralized) ---
@@ -26,7 +26,7 @@ class NoPriorsParameters(BaseModel):
         "random",
         "one_shift",
         "recursive_aggregation",
-        "sudoku",
+        "clhs",
     }
 
     targetOutput: str = Field(
@@ -56,7 +56,7 @@ class NoPriorsParameters(BaseModel):
             " - 'random': selects random points from the beginning\n"
             " - 'one_shift': see one_shift_then_random_points_high_dimensional_sampling\n"
             " - 'recursive_aggregation': see recursive_aggregation_high_dimensional_sampling\n"
-            " - 'sudoku': dimension-wise random without replacement until each dim cycles\n"
+            " - 'clhs': dimension-wise random without replacement until each dim cycles\n"
             "Aliases: 'random_shifts' → 'recursive_aggregation'.\n"
             "Validation is case-insensitive; value is normalized to lowercase."
         ),

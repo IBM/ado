@@ -43,10 +43,10 @@ class AsyncTaskRunner:
     """
 
     # class instance
-    __instance = None
+    __instance: "AsyncTaskRunner" | None = None
 
     @staticmethod
-    def get_instance():
+    def get_instance() -> "AsyncTaskRunner":
         """
         Get an AsyncTaskRunner (singleton)
         """
@@ -94,7 +94,7 @@ class AsyncTaskRunner:
         finally:
             loop.close()
 
-    def run(self, coro: Coroutine) -> Any:
+    def run(self, coro: Coroutine) -> Any:  # noqa: ANN401
         """
         Synchronously run a coroutine on a background thread.
         """

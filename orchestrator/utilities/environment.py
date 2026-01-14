@@ -4,10 +4,6 @@ import logging
 import os
 
 
-def getBoolEnv(name: str, *args, **kwargs) -> bool:
-    return str(os.getenv(name, *args, **kwargs)).lower() not in ["false", "no"]
-
-
 def enable_ray_actor_coverage(identifier: str) -> None:
     """For coverage to work with distributed ray actors they need to call this function in their init
 

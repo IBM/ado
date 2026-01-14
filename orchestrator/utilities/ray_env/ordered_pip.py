@@ -35,7 +35,9 @@ _monkey_patch_lock = threading.RLock()
 
 
 @contextlib.contextmanager
-def patch_create_or_get_virtualenv(phase_index: int):
+def patch_create_or_get_virtualenv(
+    phase_index: int,
+) -> typing.Generator[None, None, None]:
     with _monkey_patch_lock:
         if phase_index > 0:
             virtualenv_utils.create_or_get_virtualenv = create_or_get_virtualenv

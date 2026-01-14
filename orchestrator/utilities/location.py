@@ -9,6 +9,9 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
+if typing.TYPE_CHECKING:
+    from IPython.lib.pretty import PrettyPrinter
+
 moduleLog = logging.getLogger("location")
 
 
@@ -16,7 +19,7 @@ class ResourceLocation(pydantic.BaseModel):
     """A model for URLs/URIs"""
 
     @classmethod
-    def locationFromURL(cls, string):
+    def locationFromURL(cls, string: str) -> "ResourceLocation":
 
         # Note2: Users can pass the port as part of host but pydantic will
 
@@ -48,7 +51,7 @@ class ResourceLocation(pydantic.BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @pydantic.model_validator(mode="after")
-    def check_if_host_specifies_port(self):
+    def check_if_host_specifies_port(self) -> "ResourceLocation":
         """port should not be included in the host name, but use the port field
 
         This validator checks if the port is in the host field.
@@ -69,7 +72,7 @@ class ResourceLocation(pydantic.BaseModel):
 
         return self
 
-    def url(self, hide_pw=False) -> pydantic.AnyUrl:
+    def url(self, hide_pw: bool = False) -> pydantic.AnyUrl:
         """Note: pydantic 2 up to at least 2.6.4 adds trailing path separators to host names
 
         e.g. https://localhost -> https://localhost/
@@ -100,7 +103,7 @@ class ResourceLocation(pydantic.BaseModel):
             path=None if self.path is None else self.path.lstrip("/"),
         )
 
-    def baseUrl(self):
+    def baseUrl(self) -> pydantic.AnyUrl | pydantic.FileUrl:
         """Returns URL without password or user components"""
 
         urlClass = pydantic.FileUrl if self.scheme == "file" else pydantic.AnyUrl
@@ -112,7 +115,7 @@ class ResourceLocation(pydantic.BaseModel):
             path=self.path.lstrip("/"),
         )
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:
             p.text("Cycle detected")
@@ -127,7 +130,7 @@ class FilePathLocation(ResourceLocation):
     )
 
     @pydantic.field_validator("path", mode="before")
-    def check_if_path_exists(cls, value, values):
+    def check_if_path_exists(cls, value: str) -> str:
         """Check if the path exists and emit a debug log if it does not"""
         import os
 
@@ -152,7 +155,7 @@ class FilePathLocation(ResourceLocation):
         filename = os.path.split(os.path.expandvars(self.path))[1]
         return f"{filename}-{file_hash}"
 
-    def url(self, hide_pw=False) -> pydantic.AnyUrl:
+    def url(self, hide_pw: bool = False) -> pydantic.AnyUrl:
         """Note: pydantic 2 up to at least 2.6.4 adds trailing path separators to host names
 
         e.g. https://localhost -> https://localhost/
@@ -200,7 +203,7 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
     ] = None
 
     @pydantic.model_validator(mode="after")
-    def set_url_path_to_database_name(self):
+    def set_url_path_to_database_name(self) -> "SQLStoreConfiguration":
 
         moduleLog.debug(
             f"Replacing path value {self.path} with database value {self.database}"
@@ -210,7 +213,7 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
         return self
 
     @pydantic.model_validator(mode="after")
-    def check_valid_dsn(self):
+    def check_valid_dsn(self) -> "SQLStoreConfiguration":
         """
         Validates that the url produced by this class is a valid
         MySQLDsn.
@@ -255,7 +258,7 @@ class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
     ] = None
 
     @pydantic.model_validator(mode="after")
-    def purge_unsupported_fields(self):
+    def purge_unsupported_fields(self) -> "SQLiteStoreConfiguration":
         self.host = None
         self.port = None
         self.user = None
@@ -264,7 +267,7 @@ class SQLiteStoreConfiguration(StorageDatabaseConfiguration):
         self.sslVerify = False
         return self
 
-    def url(self, hide_pw=False) -> pydantic.AnyUrl:
+    def url(self, hide_pw: bool = False) -> pydantic.AnyUrl:
         if " " in self.path:
             import warnings
 

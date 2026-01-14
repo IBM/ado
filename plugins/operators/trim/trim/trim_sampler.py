@@ -42,8 +42,8 @@ logger_trim_sampler = logging.getLogger(__name__)
 logger_trim_sampler.setLevel(logging.DEBUG)
 
 
-# NOTE: to repeat the operation on the same space I can delete the operation if the output of this operation
-# are not used by another operation
+# NOTE: to repeat the operation on the same space you can delete the operation
+# but first make sure that the output of this operation is not used by another operation
 class TrimSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
@@ -162,15 +162,6 @@ class TrimSampleSelector(BaseSampler):
                     # to prioritize representativeness in the OOS set, and put the remaining points in
                     # the test set
                     elif i < self.params.iterationSize:
-                        current_source_df = wait_for_sampled_point(
-                            current_source_df,
-                            previous_source_df,
-                            targetOutput=self.params.targetOutput,
-                            discoverySpaceManager=stateHandle,
-                            discoverySpace=discoverySpace,
-                        )
-                        # ---------------------------
-
                         compare_to_previous_source_df, one_additional_row = (
                             split_common_and_diff(
                                 longer_df_from_which_you_subtract=current_source_df,
@@ -196,13 +187,6 @@ class TrimSampleSelector(BaseSampler):
                     elif (
                         i == self.params.iterationSize
                     ):  # at this point we build the first model
-                        current_source_df = wait_for_sampled_point(
-                            current_source_df,
-                            previous_source_df,
-                            targetOutput=self.params.targetOutput,
-                            discoverySpaceManager=stateHandle,
-                            discoverySpace=discoverySpace,
-                        )
                         train_df, current_holdout_df = split_common_and_diff(
                             longer_df_from_which_you_subtract=current_source_df,
                             shorter_df_that_you_subtract=initial_source_df,
@@ -222,14 +206,6 @@ class TrimSampleSelector(BaseSampler):
                         )
 
                     else:  # i > self.params.iterationSize
-                        current_source_df = wait_for_sampled_point(
-                            current_source_df,
-                            previous_source_df,
-                            targetOutput=self.params.targetOutput,
-                            discoverySpaceManager=stateHandle,
-                            discoverySpace=discoverySpace,
-                        )
-
                         train_df, one_additional_row = split_common_and_diff(
                             longer_df_from_which_you_subtract=current_source_df,
                             shorter_df_that_you_subtract=previous_source_df,
@@ -712,7 +688,7 @@ class TrimSampleSelector(BaseSampler):
             numberEntities = len(list_of_entities)
 
             def iterator() -> typing.Generator[list[Entity], None, None]:  # type: ignore[name-defined]
-                for i in range(0, numberEntities, batchsize):
+                for _i in range(0, numberEntities, batchsize):
                     # batch = list_of_entities[i : i + batchsize]
                     ...
 
@@ -727,50 +703,3 @@ class TrimSampleSelector(BaseSampler):
 
     def __init__(self, parameters: TrimParameters):
         self.params = parameters
-
-
-# NOTE: https://github.com/IBM/ado/pull/329#issuecomment-3740538507 has been addressed
-# this function will be deprecated soon since batchSize is constrained to one
-def wait_for_sampled_point(
-    current_source_df: pd.DataFrame,
-    previous_source_df: pd.DataFrame,
-    targetOutput: str,
-    discoverySpaceManager: DiscoverySpaceManager,  # type: ignore[name-defined],
-    discoverySpace: DiscoverySpace | str,
-    max_time: int = 20,
-    step_duration: float = 0.1,
-):
-    # TODO: this f will become a logging function when we agree and test the retrieval
-    from time import sleep
-
-    time = 0
-    while (len(current_source_df) != len(previous_source_df) + 1) and time < max_time:
-
-        logger_trim_sampler.warning(
-            f"ANOMALY. Previous source df has length = {len(previous_source_df)}"
-            f"While the current one has length = {len(current_source_df)} "
-        )
-        logger_trim_sampler.info(
-            f"longer_df_from_which_you_subtract has len = {len(current_source_df)}"
-        )
-        logger_trim_sampler.info(
-            f"longer_df_from_which_you_subtract has len = {len(previous_source_df)}"
-        )
-        # logger_trim_sampler.debug(f"Sleeping for {step_duration}s and retrying df retrieval")
-        time += step_duration
-        sleep(step_duration)
-        current_source_df, _target_df = get_source_and_target(
-            discoverySpace,
-            targetOutput,
-            discoverySpaceManager=discoverySpaceManager,
-        )
-
-    logger_trim_sampler.info(
-        f"Time waited for the new measurement being retrieved: {time} s"
-    )
-    if time >= max_time:
-        logger_trim_sampler.error(
-            f"Maximum time of {max_time}s exceeded. Returning a source df of len"
-            f"len {len(current_source_df)},\texpected{len(previous_source_df)+1}"
-        )
-    return current_source_df

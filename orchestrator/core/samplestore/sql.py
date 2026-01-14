@@ -278,7 +278,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         identifier: str | None,
         storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
-        parameters: dict | None,
+        parameters: dict,
     ) -> None:
 
         import uuid
@@ -692,7 +692,7 @@ class SQLSampleStore(ActiveSampleStore):
         ) + f"/{self._tablename}"
 
     @staticmethod
-    def validate_parameters(parameters=None):
+    def validate_parameters(parameters: dict):
 
         # No parameters to validate
         return parameters

@@ -27,8 +27,8 @@ class SampleStoreSpecification(pydantic.BaseModel):
     module: SampleStoreModuleConf = pydantic.Field(
         description="The SampleStore module and class to use",
     )
-    parameters: typing.Any = pydantic.Field(
-        default={},
+    parameters: dict = pydantic.Field(
+        default_factory=dict,
         description="SampleStore specific parameters that configure its behaviour ",
     )
 

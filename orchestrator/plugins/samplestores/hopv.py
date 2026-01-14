@@ -15,10 +15,9 @@ class HOPV(CSVSampleStore):
 
     @staticmethod
     def validate_parameters(
-        parameters: dict | None = None,
+        parameters: dict,
     ) -> CSVSampleStoreDescription:
 
-        parameters = {} if parameters is None else parameters
         properties = ["homo", "lumo", "pce", "voc", "jsc"]
 
         insilico = ExperimentDescription(

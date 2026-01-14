@@ -114,7 +114,7 @@ class SampleStore(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def validate_parameters(parameters=None) -> typing.Any:  # pragma: nocover
+    def validate_parameters(parameters: dict) -> typing.Any:  # pragma: nocover
         """
         Validates the parameters to be passed to the class
         according to the concrete class's logic.

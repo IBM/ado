@@ -11,7 +11,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 
 
-def activate_context(context_name: str, ado_configuration: AdoConfiguration):
+def activate_context(context_name: str, ado_configuration: AdoConfiguration) -> None:
 
     available_contexts = ado_configuration.available_contexts
     if context_name not in available_contexts:

@@ -11,7 +11,7 @@ from orchestrator.core.operation.resource import (
 from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
 
 
-def test_ado_resource_status():
+def test_ado_resource_status() -> None:
 
     # Create an event status and check expected fields are set
     status = ADOResourceStatus(event=ADOResourceEventEnum.UPDATED)
@@ -38,7 +38,7 @@ def test_resource_has_default_status(
     sample_store_resource: SampleStoreResource,
     discovery_space_resource: DiscoverySpaceResource,
     operation_resource: OperationResource,
-):
+) -> None:
 
     assert len(sample_store_resource.status) == 1
     assert sample_store_resource.status[0].event == ADOResourceEventEnum.CREATED
@@ -52,7 +52,7 @@ def test_resource_has_status_ser_deser(
     sample_store_resource: SampleStoreResource,
     discovery_space_resource: DiscoverySpaceResource,
     operation_resource: OperationResource,
-):
+) -> None:
     """Check that status types are correct serialized and deserialized with a resource"""
 
     dump = sample_store_resource.model_dump()

@@ -20,7 +20,7 @@ from orchestrator.cli.utils.output.prints import (
 from orchestrator.metastore.project import ProjectContext
 
 
-def delete_context(parameters: AdoDeleteCommandParameters):
+def delete_context(parameters: AdoDeleteCommandParameters) -> None:
 
     available_contexts = parameters.ado_configuration.available_contexts
     if parameters.resource_id not in available_contexts:

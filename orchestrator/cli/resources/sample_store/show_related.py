@@ -13,7 +13,7 @@ from orchestrator.core.resources import CoreResourceKinds
 
 def show_resources_related_to_sample_store(
     parameters: AdoShowRelatedCommandParameters,
-):
+) -> None:
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )

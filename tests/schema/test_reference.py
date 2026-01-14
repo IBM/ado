@@ -17,20 +17,20 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import ValidMeasurementResult
 
 
-def test_parameterized_reference_equality(parameterized_references):
+def test_parameterized_reference_equality(parameterized_references) -> None:
 
     for r in parameterized_references:
         assert r == r
         assert r != r.model_copy(update={"actuatorIdentifier": "changed"})
 
 
-def test_experiment_reference_matching(experiment, experiment_reference):
+def test_experiment_reference_matching(experiment, experiment_reference) -> None:
     assert experiment.reference == experiment_reference
 
 
 def test_reference_of_parameterizable_experiment_has_no_parameters(
     mock_parameterizable_experiment,
-):
+) -> None:
 
     assert mock_parameterizable_experiment.reference.parameterization is None
 
@@ -39,7 +39,7 @@ def test_create_parameterizable_experiment_reference_with_parameters(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
     customParameterization: list[ConstitutivePropertyValue],
-):
+) -> None:
 
     import copy
 
@@ -103,7 +103,7 @@ def test_parameterized_experiment_reference_equality(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
     customParameterization: list[ConstitutivePropertyValue],
-):
+) -> None:
 
     ref = ExperimentReference(
         actuatorIdentifier=mock_parameterizable_experiment.actuatorIdentifier,
@@ -137,7 +137,7 @@ def test_parameterized_experiment_retrieval_from_registry(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
     customParameterization: list[ConstitutivePropertyValue],
-):
+) -> None:
 
     # Test we can retrieve the experiment from the registry using its own reference
     assert global_registry.experimentForReference(
@@ -159,7 +159,7 @@ def test_entity_property_values_from_experiment_reference_parameterized(
     global_registry: ActuatorRegistry,
     mock_parameterizable_experiment: Experiment,
     customParameterization: list[ConstitutivePropertyValue],
-):
+) -> None:
     """Tests that Entity.propertyValuesFromExperimentReference works for parameterized experiments"""
 
     # 1. Create the parameterized experiment
@@ -262,7 +262,7 @@ def test_entity_property_values_from_experiment_reference_parameterized(
     ), f"Entity had values added for {parameterized_ref}. It should not return any values when given base experiment reference {different_parameterized_ref}"
 
 
-def test_experiment_reference_from_invalid_string():
+def test_experiment_reference_from_invalid_string() -> None:
 
     with pytest.raises(
         ValueError,
@@ -278,7 +278,7 @@ def test_experiment_reference_from_invalid_string():
     ExperimentReference.referenceFromString("string.with.more_separators")
 
 
-def test_experiment_reference_equality_non_reference():
+def test_experiment_reference_equality_non_reference() -> None:
 
     ref = ExperimentReference(experimentIdentifier="test", actuatorIdentifier="test")
     assert ref != "test.test"

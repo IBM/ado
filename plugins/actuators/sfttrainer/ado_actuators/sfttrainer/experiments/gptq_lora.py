@@ -36,7 +36,7 @@ hardcoded_parameters: dict[str, typing.Any] = {
 }
 
 
-def add_experiments(catalog: "ExperimentCatalog"):
+def add_experiments(catalog: "ExperimentCatalog") -> None:
 
     # VV: GTPQ-LoRA has been known to work before support for padding_free
     # "padding_free": ["huggingface"],

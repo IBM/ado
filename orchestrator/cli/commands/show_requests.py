@@ -66,7 +66,7 @@ def show_requests_for_resources(
             """,
         ),
     ] = None,
-):
+) -> None:
     """
     Show the timeseries of requests for an operation.
 
@@ -125,7 +125,7 @@ def show_requests_for_resources(
     method_mapping[resource_type](parameters=parameters)
 
 
-def register_show_requests_command(app: typer.Typer):
+def register_show_requests_command(app: typer.Typer) -> None:
     app.command(
         name="requests",
         no_args_is_help=True,

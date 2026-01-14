@@ -40,7 +40,7 @@ class ComponentsManager:
         init_pvc: bool = False,
         pvc_name: None | str = None,
         pvc_template: None | str = None,
-    ):
+    ) -> None:
         """
         set up for configuration usage
         :param namespace: cluster namespace to use

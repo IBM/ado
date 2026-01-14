@@ -6,7 +6,7 @@ from orchestrator.core.resources import CoreResourceKinds
 
 def test_create_ml_multicloud_sample_store(
     get_single_resource_by_identifier, ml_multi_cloud_sample_store
-):
+) -> None:
     assert ml_multi_cloud_sample_store.identifier is not None
     sample_store_resource = get_single_resource_by_identifier(
         identifier=ml_multi_cloud_sample_store.identifier,
@@ -19,7 +19,7 @@ def test_create_ml_multicloud_sample_store(
 
 def test_create_ml_multicloud_space(
     ml_multi_cloud_space,
-):
+) -> None:
     assert ml_multi_cloud_space is not None
     assert ml_multi_cloud_space.uri.startswith("space-")
     assert ml_multi_cloud_space.uri.endswith(
@@ -30,7 +30,7 @@ def test_create_ml_multicloud_space(
 def test_create_ml_multicloud_actuatorconfiguration(
     get_single_resource_by_identifier,
     ml_multi_cloud_correct_actuatorconfiguration,
-):
+) -> None:
     assert ml_multi_cloud_correct_actuatorconfiguration is not None
     actuatorconfiguration_resource = get_single_resource_by_identifier(
         identifier=ml_multi_cloud_correct_actuatorconfiguration.identifier,

@@ -11,7 +11,7 @@ from orchestrator.cli.utils.input.parsers import resource_shorthands_to_full_nam
 
 
 class GenericChoiceType(click.Choice):
-    def __init__(self, enum_type: enum.EnumMeta, case_sensitive: bool = True):
+    def __init__(self, enum_type: enum.EnumMeta, case_sensitive: bool = True) -> None:
         choices = [value.value for value in enum_type]
         super().__init__(choices, case_sensitive)
         self.choices = choices

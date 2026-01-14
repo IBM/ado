@@ -45,42 +45,42 @@ class ExperimentError(Exception):
 
 
 class NumberOfExpertsNotDivisibleByEpDegreeError(ExperimentError):
-    def __init__(self, underlying_error: str):
+    def __init__(self, underlying_error: str) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.underlying_error
 
 
 class AccelerateError(ExperimentError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         self.reason = reason
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.reason
 
 
 class OutOfGPUMemoryError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Out of GPU memory, underlying error was {self.underlying_error}"
 
 
 class NCCLError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"NCCL error, underlying error was {self.underlying_error}"
 
 
 class UnhandledError(NotImplementedError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"Unhandled experiment error, underlying error was {self.underlying_error}"
         )
@@ -767,7 +767,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
     tokens_per_sample: list[int],
     model_id: str,
     path_data: str,
-):
+) -> None:
     import json
 
     parent_dir = os.path.dirname(cache_file)

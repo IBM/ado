@@ -67,7 +67,7 @@ class ActuatorRegistry:
     def __init__(
         self,
         actuator_configurations: dict[str, GenericActuatorParameters] | None = None,
-    ):
+    ) -> None:
         """Detects and loads Actuator plugins"""
 
         # Mpass actuator ids to actuator configurations: G
@@ -198,13 +198,13 @@ class ActuatorRegistry:
                         actuatorClass=actuator_class,
                     )
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"Registry id {self.id}"
 
     def set_actuator_configurations_for_catalogs(
         self, configurations: dict[str, GenericActuatorParameters]
-    ):
+    ) -> None:
         """Supply information for catalogs that require configuration
 
         If a configuration has already been supplied for an actuator it is not updated - you will need to create a
@@ -223,7 +223,7 @@ class ActuatorRegistry:
         self,
         actuatorid: str,
         actuatorClass: "type[ActuatorBase]",
-    ):
+    ) -> None:
         """Adds an actuator and a catalog of experiments it can execute to the registry
 
         Note: Currently each actuator can only have one catalog although further experiments can be added to it
@@ -455,7 +455,7 @@ class ActuatorRegistry:
     def updateCatalogs(
         self,
         catalogExtension: orchestrator.modules.actuators.catalog.ActuatorCatalogExtension,
-    ):
+    ) -> None:
         """Updates the receivers catalogs with the experiments in catalogExtension
 
         Its expected that catalogExtension will only contain experiments for a single actuator, but it is not enforced

@@ -41,7 +41,7 @@ def operation_resource(operation_configuration) -> OperationResource:
     )
 
 
-def test_operation_resource(operation_resource):
+def test_operation_resource(operation_resource) -> None:
 
     assert operation_resource.operatorIdentifier is not None
     assert operation_resource.operatorIdentifier == "test_operator"
@@ -65,7 +65,7 @@ def test_operation_resource(operation_resource):
     assert len(operation_resource.status) == 1
 
 
-def test_operation_resource_event_status():
+def test_operation_resource_event_status() -> None:
     """Test we can set additional event status for operation resources"""
 
     # Check we can create a resource with generic field
@@ -86,7 +86,7 @@ def test_operation_resource_event_status():
     assert deser.event == OperationResourceEventEnum.STARTED
 
 
-def test_operation_resource_exit_state():
+def test_operation_resource_exit_state() -> None:
     """Test we can set additional event status for operation resources"""
 
     # Check we can create an event+exit status for operation
@@ -126,7 +126,7 @@ def test_operation_resource_exit_state():
     assert status.recorded_at
 
 
-def test_operation_config_file_valid(valid_operation_config_file):
+def test_operation_config_file_valid(valid_operation_config_file) -> None:
 
     with open(valid_operation_config_file) as f:
         content = f.read()
@@ -146,7 +146,7 @@ def test_operation_config_file_valid(valid_operation_config_file):
         moduleClass.validateOperationParameters(parameters=op_cfg.parameters)
 
 
-def test_set_manual_operation_identifier(operation_configuration):
+def test_set_manual_operation_identifier(operation_configuration) -> None:
 
     test = OperationResource(
         operatorIdentifier="test",
@@ -157,7 +157,7 @@ def test_set_manual_operation_identifier(operation_configuration):
     assert test.identifier == "test-xxxdd3"
 
 
-def test_setting_space_id(operation_configuration):
+def test_setting_space_id(operation_configuration) -> None:
 
     import pydantic
 
@@ -174,6 +174,6 @@ def test_setting_space_id(operation_configuration):
         )
 
 
-def test_add_operation_result(operation_resource, operation_result):
+def test_add_operation_result(operation_resource, operation_result) -> None:
 
     pass

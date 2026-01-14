@@ -55,7 +55,7 @@ def edit_resource(
         AdoEditSupportedEditors,
         typer.Option(envvar="ADO_EDITOR", help="The editor to use to edit metadata"),
     ] = AdoEditSupportedEditors.NANO.value,
-):
+) -> None:
     """
     Edit resources' metadata.
 
@@ -104,7 +104,7 @@ def edit_resource(
         )
 
 
-def register_edit_command(app: typer.Typer):
+def register_edit_command(app: typer.Typer) -> None:
     app.command(name="edit", no_args_is_help=True, options_metavar="[--editor <name>]")(
         edit_resource
     )

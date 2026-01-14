@@ -153,7 +153,7 @@ class WeightsFormat(str, enum.Enum):
     Vanilla = "Vanilla"
     GPTQQuantized = "GPTQ-Quantized"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -161,7 +161,7 @@ class ExperimentPurpose(str, enum.Enum):
     Performance = "Performance"
     Stability = "Stability"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -954,7 +954,7 @@ class EntitySpace(SFTTrainerCLIArgs):
 
     def validate_and_update(
         self, exp_params: "ExperimentParameters", logger: logging.Logger
-    ):
+    ) -> None:
         """Method updates both @self and @exp_params to make the 2 consistent with each other, also validates them
 
         Args:

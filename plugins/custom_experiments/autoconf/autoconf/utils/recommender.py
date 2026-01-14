@@ -121,7 +121,7 @@ def recommend_min_gpu(
 
 
 class MinGpuRecommender:
-    def __init__(self, predictor, valid_n_gpu: list[int] | None = None):
+    def __init__(self, predictor, valid_n_gpu: list[int] | None = None) -> None:
         self.valid_n_gpu = valid_n_gpu or list(VALID_N_GPUS)
 
         if isinstance(predictor, str):
@@ -152,8 +152,8 @@ class MinGpuRecommender:
 
 
 class NoRecommendationError(ValueError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         self.reason = reason
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Unable to recommend minimum number of GPUs to avoid GPU OOM: {self.reason}"

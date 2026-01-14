@@ -221,7 +221,7 @@ def main(
     image_width: Annotated[int, typer.Option(help="The image width in pixels")] = 384,
     image_height: Annotated[int, typer.Option(help="The image height in pixels")] = 384,
     log_level: Annotated[int, typer.Option("--log-level", "-l", help="Log level")] = 20,
-):
+) -> None:
     logging.basicConfig(
         level=log_level,
         format="%(levelname)-9s %(name)-30s: %(funcName)-20s %(asctime)-15s: %(message)s",

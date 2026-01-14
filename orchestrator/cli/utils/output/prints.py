@@ -51,7 +51,7 @@ stdout_console = Console()
 stderr_console = Console(stderr=True)
 
 
-def set_pandas_display_options():
+def set_pandas_display_options() -> None:
     import pandas as pd
 
     # Ensure we are extremely unlikely to truncate output in pandas
@@ -64,7 +64,7 @@ def set_pandas_display_options():
 
 def console_print(
     *args, stderr: bool = False, use_markup: bool = True, has_pandas_content=False
-):
+) -> None:
     import sys
 
     if has_pandas_content:
@@ -111,14 +111,14 @@ def no_related_resources_error_str(
 
 def context_not_in_available_contexts_error_str(
     requested_context: str, available_contexts: list[str]
-):
+) -> str:
     return (
         f"{ERROR}{requested_context} is not in the available contexts.\n"
         f"{HINT}The available contexts are {sorted(available_contexts)}"
     )
 
 
-def unknown_experiment_error_str(error: UnknownExperimentError):
+def unknown_experiment_error_str(error: UnknownExperimentError) -> str:
     return (
         f"{ERROR}The following experiment was not found: {error}\n"
         f"{HINT}Check available experiments with {cyan('ado get actuators --details')}"
@@ -198,7 +198,7 @@ def value_in_configuration_replaced_with_latest_identifier_for_resource(
 
 def using_latest_identifier_for_resource(
     resource_kind: CoreResourceKinds, resource_identifier: str
-):
+) -> str:
     latest_resource_human_readable_name = resource_kinds_to_human[resource_kind]
     return f"{INFO}Using {latest_resource_human_readable_name} {magenta(resource_identifier)}."
 

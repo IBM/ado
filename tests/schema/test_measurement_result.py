@@ -21,7 +21,7 @@ from orchestrator.schema.virtual_property import (
 )
 
 
-def test_valid_measurement_result(entity, property_values):
+def test_valid_measurement_result(entity, property_values) -> None:
 
     # Test init
     result = ValidMeasurementResult(
@@ -32,7 +32,7 @@ def test_valid_measurement_result(entity, property_values):
     assert property_values[0].property.experimentReference == result.experimentReference
 
 
-def test_valid_measurement_result_mismatch_properties(entity, property_values):
+def test_valid_measurement_result_mismatch_properties(entity, property_values) -> None:
 
     import pydantic
 
@@ -58,7 +58,7 @@ def test_valid_measurement_result_mismatch_properties(entity, property_values):
         )
 
 
-def test_valid_measurement_result_no_properties(entity):
+def test_valid_measurement_result_no_properties(entity) -> None:
 
     import pydantic
 
@@ -67,7 +67,7 @@ def test_valid_measurement_result_no_properties(entity):
         ValidMeasurementResult(entityIdentifier=entity.identifier, measurements=[])
 
 
-def test_invalid_measurement_record(entity):
+def test_invalid_measurement_record(entity) -> None:
 
     # Test init
     InvalidMeasurementResult(
@@ -103,7 +103,7 @@ def test_valid_measurement_result_series_representation(
     random_ml_multi_cloud_benchmark_performance_entities,
     random_ml_multi_cloud_benchmark_performance_measurement_results,
     ml_multi_cloud_benchmark_performance_experiment,
-):
+) -> None:
 
     number_entities = 1
     measurements_per_result = 1
@@ -199,7 +199,7 @@ def test_valid_measurement_result_series_representation(
 def test_measurement_results_series_representation_invalid_method(
     random_ml_multi_cloud_benchmark_performance_entities,
     random_ml_multi_cloud_benchmark_performance_measurement_results,
-):
+) -> None:
 
     random_result: ValidMeasurementResult = (
         random_ml_multi_cloud_benchmark_performance_measurement_results(
@@ -219,7 +219,7 @@ def test_measurement_results_series_representation_invalid_method(
 def test_invalid_measurement_result_series_representation(
     random_ml_multi_cloud_benchmark_performance_entities,
     random_ml_multi_cloud_benchmark_performance_measurement_results,
-):
+) -> None:
 
     number_entities = 1
     measurements_per_result = 1

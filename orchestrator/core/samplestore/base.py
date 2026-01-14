@@ -141,7 +141,7 @@ class PassiveSampleStore(SampleStore, ABC):
     """Subclasses provide access to entities but do not provide updates or store new entities"""
 
     @property
-    def isPassive(self):
+    def isPassive(self) -> bool:
         return True
 
 
@@ -149,7 +149,7 @@ class ActiveSampleStore(SampleStore, ABC):
     """Subclasses provide access to entities but do not provide updates or store new entities"""
 
     @property
-    def isPassive(self):
+    def isPassive(self) -> bool:
         return False
 
     @abc.abstractmethod
@@ -258,7 +258,7 @@ class FailedToDecodeStoredEntityError(Exception):
 
     def __init__(
         self, entity_identifier: str, entity_representation: dict, cause: Exception
-    ):
+    ) -> None:
         self.entity_identifier = entity_identifier
         self.entity_representation = entity_representation
         self.cause = cause
@@ -273,7 +273,7 @@ class FailedToDecodeStoredMeasurementResultForEntityError(Exception):
 
     def __init__(
         self, entity_identifier: str, result_representation: dict, cause: Exception
-    ):
+    ) -> None:
         self.entity_identifier = entity_identifier
         self.result_representation = result_representation
         self.cause = cause

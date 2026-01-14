@@ -227,7 +227,7 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: typing.Any = None,
         metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
-    ):
+    ) -> None:
         # Common code for StateSubscribingDiscoveryOperations
         self.state = state
         self.actorName = operationActorName
@@ -278,7 +278,7 @@ class Learn(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMe
     pass
 
 
-def add_operation_output_to_metastore(operation, output, metastore):
+def add_operation_output_to_metastore(operation, output, metastore) -> None:
 
     if output:
         resource: ADOResource
@@ -391,7 +391,7 @@ def warn_deprecated_operator_parameters_model_in_use(
     removed_from_operator_version: str,
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
-):
+) -> None:
     from rich.console import Console
 
     resource_name = "operation"
@@ -450,7 +450,7 @@ class InterruptedOperationError(KeyboardInterrupt):
 
     def __init__(
         self, operation_identifier: str, resources: list["ADOResource"] | None = None
-    ):
+    ) -> None:
         self.operation_identifier = operation_identifier
         self.resources = resources if resources else []
         super().__init__(f"Operation {operation_identifier} was interrupted")

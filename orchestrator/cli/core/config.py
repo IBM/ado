@@ -153,7 +153,7 @@ class AdoConfiguration(pydantic.BaseModel):
         ado_config.store()
         return ado_config
 
-    def store(self):
+    def store(self) -> None:
         Path.mkdir(self._app_dir, parents=True, exist_ok=True)
         self.config_file.write_text(self.model_dump_json())
 

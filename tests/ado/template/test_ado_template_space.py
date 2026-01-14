@@ -10,7 +10,7 @@ from orchestrator.cli.core.cli import app as ado
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 
 
-def test_template_space(tmp_path: pathlib.Path, random_identifier):
+def test_template_space(tmp_path: pathlib.Path, random_identifier) -> None:
     runner = CliRunner()
     file_name = tmp_path / random_identifier()
     result = runner.invoke(
@@ -21,7 +21,9 @@ def test_template_space(tmp_path: pathlib.Path, random_identifier):
     assert f"Success! File saved as {file_name}" in result.output
 
 
-def test_template_space_from_experiment(tmp_path: pathlib.Path, random_identifier):
+def test_template_space_from_experiment(
+    tmp_path: pathlib.Path, random_identifier
+) -> None:
     runner = CliRunner()
     file_name = tmp_path / random_identifier()
     result = runner.invoke(

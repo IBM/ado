@@ -8,7 +8,7 @@ import pydantic
 from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
 
 
-def template_actuator(parameters: AdoTemplateCommandParameters):
+def template_actuator(parameters: AdoTemplateCommandParameters) -> None:
     import orchestrator.modules.actuators.base
     from orchestrator.cli.utils.pydantic.serializers import (
         serialise_pydantic_model,

@@ -30,7 +30,7 @@ from orchestrator.schema.virtual_property import (
 def test_measurement_space_config(
     measurement_space: MeasurementSpace,
     measurement_space_configuration: list[ExperimentReference],
-):
+) -> None:
     assert measurement_space.experimentReferences == measurement_space_configuration
 
 
@@ -38,7 +38,7 @@ def test_measurement_space_from_parameterized_selectors(
     parameterizable_experiments: list[Experiment],
     parameterized_selectors: list[ExperimentReference],
     global_registry,
-):
+) -> None:
 
     # Test does not allow duplicate parameterized experiments
     # Test does allow different parameterization of same base experiment
@@ -102,7 +102,7 @@ def test_measurement_space_from_parameterized_selectors(
 def test_measurement_space_with_parameterized_experiments_ser_dser(
     parameterized_selectors: list[ExperimentReference],
     global_registry,
-):
+) -> None:
 
     ms = MeasurementSpace.measurementSpaceFromSelection(
         selectedExperiments=parameterized_selectors
@@ -135,7 +135,7 @@ def test_measurement_space_from_parameterized_references(
     parameterizable_experiments: list[Experiment],
     parameterized_references: list[ExperimentReference],
     global_registry,
-):
+) -> None:
     # Test does not allow duplicate parameterized experiments
     # Test does allow different parameterization of same base experiment
 
@@ -200,7 +200,7 @@ def test_measurement_space_from_parameterized_references(
         assert len(ms.observedPropertiesForExperimentReference(r)) != 0
 
 
-def test_measurement_space(measurement_space):
+def test_measurement_space(measurement_space) -> None:
     """Test a measurement space"""
 
     space = measurement_space
@@ -232,7 +232,7 @@ def test_measurement_space(measurement_space):
         assert p.targetProperty.identifier in expectedTargets
 
 
-def test_experiment_selector(measurement_space_configuration):
+def test_experiment_selector(measurement_space_configuration) -> None:
     selectedExperiments = measurement_space_configuration
 
     assert len(selectedExperiments) == 1
@@ -245,7 +245,7 @@ def test_experiment_selector(measurement_space_configuration):
     assert selectedExperiments[0].actuatorIdentifier == "replay"
 
 
-def test_space_with_unknown_experiment(parameterized_references):
+def test_space_with_unknown_experiment(parameterized_references) -> None:
     """Test correct error is raised if an experiment cannot be found"""
 
     with pytest.raises(UnknownActuatorError):
@@ -270,7 +270,7 @@ def test_space_with_unknown_experiment(parameterized_references):
         )
 
 
-def test_supported_experiments(parameterized_references):
+def test_supported_experiments(parameterized_references) -> None:
     """Test  MeasurementSpace returns supported/deprecated experiments correctly"""
 
     ms = MeasurementSpace.measurementSpaceFromSelection(
@@ -284,7 +284,7 @@ def test_supported_experiments(parameterized_references):
 
 def test_independent_and_dependent_experiments_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
     """Test MeasurementSpace returns independent and dependent experiments"""
 
     ms = measurement_space_from_single_parameterized_experiment
@@ -299,7 +299,7 @@ def test_independent_and_dependent_experiments_single(
 
 def test_independent_and_dependent_experiments_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
     """Test MeasurementSpace returns independent and dependent experiments"""
 
     ms = measurement_space_from_multiple_parameterized_experiments
@@ -312,7 +312,9 @@ def test_independent_and_dependent_experiments_multiple(
     )
 
 
-def test_is_consistent_single(measurement_space_from_single_parameterized_experiment):
+def test_is_consistent_single(
+    measurement_space_from_single_parameterized_experiment,
+) -> None:
 
     if measurement_space_from_single_parameterized_experiment.dependentExperiments:
         ### If there is only a single experiment, but it requires others, the MeasurementSpace is not consistent
@@ -323,7 +325,7 @@ def test_is_consistent_single(measurement_space_from_single_parameterized_experi
 
 def test_is_consistent_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     ### Need an experiment with dependencies
     assert measurement_space_from_multiple_parameterized_experiments.isConsistent
@@ -331,7 +333,7 @@ def test_is_consistent_multiple(
 
 def _shared_property_with_identifier_tests(
     parameterized_measurement_space: MeasurementSpace,
-):
+) -> None:
     # Test all property types including virtual
     for exp in parameterized_measurement_space.experiments:
         for op in exp.observedProperties:
@@ -361,7 +363,7 @@ def _shared_property_with_identifier_tests(
 
 def test_property_with_identifier_in_space_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
 
     _shared_property_with_identifier_tests(
         measurement_space_from_single_parameterized_experiment
@@ -370,7 +372,7 @@ def test_property_with_identifier_in_space_single(
 
 def test_property_with_identifier_in_space_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     _shared_property_with_identifier_tests(
         measurement_space_from_multiple_parameterized_experiments
@@ -379,7 +381,7 @@ def test_property_with_identifier_in_space_multiple(
 
 def test_check_entity_space_compatibility_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     # In particular test with an experiment that has optional properties
 
@@ -412,7 +414,7 @@ def test_check_entity_space_compatibility_multiple(
 
 def test_check_entity_space_compatibility_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
 
     # In particular test with an experiment that has optional properties
 
@@ -459,7 +461,7 @@ def test_check_entity_space_compatibility_single(
 def test_check_entity_space_compatibility_optional_in_entity_space(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
     optionalProperties: list[ConstitutiveProperty],
-):
+) -> None:
     """Test checkEntitySpaceCompatible works when some optional parameters have been moved to entityspace"""
 
     es = (
@@ -524,7 +526,7 @@ def test_check_entity_space_compatibility_optional_in_entity_space(
 
 def test_experiments_applied_to_entity_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
     es = measurement_space_from_single_parameterized_experiment.compatibleEntitySpace()
     entity = sample_random_entity_from_space(es)
     assert (
@@ -585,7 +587,7 @@ def test_experiments_applied_to_entity_single(
 
 def test_experiments_applied_to_entity_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     es = (
         measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
@@ -645,7 +647,7 @@ def test_experiments_applied_to_entity_multiple(
 
 def test_dependent_experiments_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
     """Test
     - dependentExperimentsThatCanBeAppliedToEntity
     - dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
@@ -796,7 +798,7 @@ def test_dependent_experiments_single(
 
 def test_dependent_experiments_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
     """Test
     - dependentExperimentsThatCanBeAppliedToEntity
     - dependentExperimentsThatCanBeAppliedAfterMeasurementRequest"""
@@ -984,7 +986,7 @@ def test_dependent_experiments_multiple(
 
 def test_measurementspace_pretty(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
 
     from IPython.lib.pretty import pretty
 
@@ -994,7 +996,7 @@ def test_measurementspace_pretty(
 
 def test_measurementspace_pretty_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     from IPython.lib.pretty import pretty
 

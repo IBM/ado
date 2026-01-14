@@ -27,7 +27,7 @@ def test_delete_ml_multi_cloud_operation(
     simulate_ml_multi_cloud_random_walk_operation,
     random_sql_sample_store,
     random_identifier,
-):
+) -> None:
     assert ml_multi_cloud_benchmark_performance_experiment is not None
     runner = CliRunner()
     create_active_ado_context(

@@ -18,7 +18,7 @@ from orchestrator.utilities.location import (
 
 
 class ResourceDoesNotExistError(ValueError):
-    def __init__(self, resource_id: str, kind: CoreResourceKinds | None = None):
+    def __init__(self, resource_id: str, kind: CoreResourceKinds | None = None) -> None:
         self.resource_id = resource_id
         self.kind = kind
         # Value Error will print the args passed to init when the exception is printed
@@ -29,7 +29,7 @@ class ResourceDoesNotExistError(ValueError):
 
 
 class NoRelatedResourcesError(ValueError):
-    def __init__(self, resource_id: str, kind: CoreResourceKinds):
+    def __init__(self, resource_id: str, kind: CoreResourceKinds) -> None:
         self.resource_id = resource_id
         self.kind = kind
         super().__init__(
@@ -50,7 +50,7 @@ class DeleteFromDatabaseError(DatabaseOperationError):
         resource_kind: CoreResourceKinds,
         rollback_occurred: bool,
         message: str | None = None,
-    ):
+    ) -> None:
         self.resource_id = resource_id
         self.resource_kind = resource_kind
         self.message = message
@@ -72,7 +72,7 @@ class NonEmptySampleStorePreventingDeletionError(DatabaseOperationError):
     sample_store_id: str
     results_in_source: int
 
-    def __init__(self, sample_store_id: str, results_in_source: int):
+    def __init__(self, sample_store_id: str, results_in_source: int) -> None:
         self.sample_store_id = sample_store_id
         self.results_in_source = results_in_source
 
@@ -83,7 +83,7 @@ class NonEmptySampleStorePreventingDeletionError(DatabaseOperationError):
 
 
 class RunningOperationsPreventingDeletionError(DatabaseOperationError):
-    def __init__(self, operation_id: str, running_operations: list[str]):
+    def __init__(self, operation_id: str, running_operations: list[str]) -> None:
         self.operation_id = operation_id
         self.running_operations = running_operations
         super().__init__(

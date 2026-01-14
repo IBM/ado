@@ -25,7 +25,7 @@ class SpaceDetails:
         entities_matching_the_space: int,
         matching_entities_in_sample_store_with_measurement_space_applied: int,
         size_of_entity_space: int,
-    ):
+    ) -> None:
         # Entities sampled from space with all measurements applied
         self.entities_sampled_from_space_with_all_measurements_applied = (
             entities_sampled_from_space_with_all_measurements_applied
@@ -196,7 +196,7 @@ class SpaceSummary:
         self,
         space_id: str,
         project_context: orchestrator.metastore.project.ProjectContext,
-    ):
+    ) -> None:
         import orchestrator.metastore.sqlstore
 
         sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)

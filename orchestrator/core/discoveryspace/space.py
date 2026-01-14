@@ -291,7 +291,7 @@ class DiscoverySpace:
             orchestrator.core.discoveryspace.config.DiscoverySpaceProperties | None
         ) = None,
         metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
-    ):
+    ) -> None:
         """
 
         Parameters:
@@ -364,7 +364,7 @@ class DiscoverySpace:
             else f"space-{str(uuid.uuid4())[:6]}-{self._sample_store.identifier}"
         )
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -461,7 +461,7 @@ class DiscoverySpace:
             identifier=self._identifier, config=self.config
         )
 
-    def saveSpace(self):
+    def saveSpace(self) -> None:
         """Record this space in the metadata store"""
 
         if self.metadataStore is not None:
@@ -525,7 +525,7 @@ class DiscoverySpace:
 
         return entities
 
-    def addMeasurement(self, request: MeasurementRequest):
+    def addMeasurement(self, request: MeasurementRequest) -> None:
         """Adds a measurement on an entity to the space
 
         Params:
@@ -764,7 +764,7 @@ class DiscoverySpace:
             kind=orchestrator.core.resources.CoreResourceKinds.OPERATION.value,
         )
 
-    def addOperation(self, operation: OperationResource):
+    def addOperation(self, operation: OperationResource) -> None:
         """Add information on a new operation on the space
 
         Param:

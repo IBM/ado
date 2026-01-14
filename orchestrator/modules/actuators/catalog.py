@@ -56,7 +56,7 @@ class ExperimentCatalog(BaseCatalog):
 
     def __init__(
         self, experiments: dict | None = None, catalogIdentifier="UnnamedCatalog"
-    ):
+    ) -> None:
         """
         Parameters:
             experiments: A dictionary whose keys are experiment identifiers
@@ -73,7 +73,7 @@ class ExperimentCatalog(BaseCatalog):
         self._identifier = catalogIdentifier
         self._experiments = experiments if experiments is not None else {}
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"Catalog {self._identifier} with {len(self._experiments)} experiments"
 
@@ -113,7 +113,7 @@ class ExperimentCatalog(BaseCatalog):
         ]
         return None if len(match) == 0 else match[0]
 
-    def addExperiment(self, experiment: Experiment):
+    def addExperiment(self, experiment: Experiment) -> None:
 
         if self._experiments.get(experiment.identifier) is not None:
             self.log.warning(

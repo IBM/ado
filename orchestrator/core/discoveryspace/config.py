@@ -22,7 +22,7 @@ class SpaceHierarchy(enum.Enum):
     UNDEFINED = "undefined"
 
 
-def ms_config_type_discriminator(ms_config):
+def ms_config_type_discriminator(ms_config) -> str:
 
     if isinstance(ms_config, list):
         return "ExperimentReferenceList"
@@ -133,7 +133,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             }
         )
 
-    def is_sub_space(self, reference_space: "DiscoverySpaceConfiguration"):
+    def is_sub_space(self, reference_space: "DiscoverySpaceConfiguration") -> bool:
 
         if not self.entitySpace:
             raise ValueError("The target entity space was empty")

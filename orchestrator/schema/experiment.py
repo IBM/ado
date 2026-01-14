@@ -232,7 +232,7 @@ class Experiment(pydantic.BaseModel):
             )
         return False
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
@@ -243,7 +243,7 @@ class Experiment(pydantic.BaseModel):
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -761,7 +761,7 @@ class ParameterizedExperiment(Experiment):
 
         return retval
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
@@ -772,7 +772,7 @@ class ParameterizedExperiment(Experiment):
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         # This should print the parameterized id and base id
         p.text(f"Parameterized Identifier:{self.parameterizedIdentifier}")
@@ -878,7 +878,7 @@ class ParameterizedExperiment(Experiment):
         return retval
 
 
-def experiment_type_discriminator(experiment):
+def experiment_type_discriminator(experiment) -> str:
 
     if isinstance(experiment, ParameterizedExperiment):
         return "Parameterized"

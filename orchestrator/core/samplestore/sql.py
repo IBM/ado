@@ -96,7 +96,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         return sql_sample_store
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:
             p.text("Cycle detected")
@@ -105,7 +105,7 @@ class SQLSampleStore(ActiveSampleStore):
             p.breakable()
             p.text(f"Number of entities: {self.numberOfEntities}")
 
-    def commit(self):
+    def commit(self) -> None:
         pass
 
     @classmethod
@@ -197,7 +197,7 @@ class SQLSampleStore(ActiveSampleStore):
             experiments=experiments, catalogIdentifier="sqlstore_catalog"
         )
 
-    def _create_source_table(self):
+    def _create_source_table(self) -> None:
 
         from sqlalchemy import CHAR, JSON, DateTime, Integer, String, Text
 
@@ -279,7 +279,7 @@ class SQLSampleStore(ActiveSampleStore):
         identifier: str | None,
         storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
         parameters: dict | None,
-    ):
+    ) -> None:
 
         import uuid
 
@@ -429,7 +429,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         return self._identifier
 
-    def addEntities(self, entities: list[Entity]):
+    def addEntities(self, entities: list[Entity]) -> None:
         """
         Add the entities to the sample store.
 
@@ -470,7 +470,7 @@ class SQLSampleStore(ActiveSampleStore):
                     f"Failed to insert entity batch starting from {index}. Error: {error}"
                 ) from error
 
-    def add_external_entities(self, entities: list[Entity]):
+    def add_external_entities(self, entities: list[Entity]) -> None:
 
         existing_entity_ids = self.entity_identifiers()
         missing_entities = [
@@ -490,7 +490,7 @@ class SQLSampleStore(ActiveSampleStore):
     def addMeasurement(
         self,
         measurementRequest: orchestrator.schema.request.MeasurementRequest,
-    ):
+    ) -> None:
         """Adds the results of a measurement to a set of entities
 
         Implementations of this method can require that the results have been already added to the
@@ -529,7 +529,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         entities: list[Entity],
         experiment: Experiment,
-    ):
+    ) -> None:
 
         self.upsertEntities(entities, [experiment])
 
@@ -537,7 +537,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         entities: list[Entity],
         experiments: list[Experiment] | None = None,
-    ):
+    ) -> None:
         """Raises:
         SystemError: If there are any errors encountered with upserting entities to SQL DB
         """
@@ -608,11 +608,11 @@ class SQLSampleStore(ActiveSampleStore):
                     f"Failed to upsert entity batch starting from {index}. Error: {error}"
                 ) from error
 
-    def close(self):
+    def close(self) -> None:
 
         pass
 
-    def delete(self):
+    def delete(self) -> None:
 
         pass
 
@@ -760,7 +760,7 @@ class SQLSampleStore(ActiveSampleStore):
         results: list[MeasurementResult],
         skip_relationship_to_request: bool,
         request_db_id: uuid.UUID | None = None,
-    ):
+    ) -> None:
         if len(results) == 0:
             return
 
@@ -803,7 +803,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         request_db_id: uuid.uuid4,
         results: list[MeasurementResult],
-    ):
+    ) -> None:
 
         # 24/04/2025 AP:
         # casting the UUIDs to string because SQLite

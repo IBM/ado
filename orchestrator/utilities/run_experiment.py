@@ -260,7 +260,7 @@ def run(
     request_timeout: Annotated[
         int, typer.Option(help="Timeout for web requests.")
     ] = 60,
-):
+) -> None:
     from orchestrator.modules.actuators.registry import ActuatorRegistry
 
     logging.getLogger().setLevel(os.environ.get("LOGLEVEL", 40))
@@ -319,7 +319,7 @@ def run(
             graceful_orchestrate_shutdown()
 
 
-def main():
+def main() -> None:
     try:
         app()
     except Exception as e:

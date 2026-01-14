@@ -34,7 +34,7 @@ def run_experiment(
     request: MeasurementRequest,
     experiment: Experiment | ParameterizedExperiment,
     measurement_queue: MeasurementQueue,
-):
+) -> None:
 
     # This function
     # 1. Performs the measurement represented by MeasurementRequest

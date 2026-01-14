@@ -34,7 +34,7 @@ if typing.TYPE_CHECKING:
     from orchestrator.schema.entity import Entity
 
 
-def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters):
+def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) -> None:
 
     import pandas as pd
 

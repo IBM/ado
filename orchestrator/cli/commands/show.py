@@ -41,7 +41,7 @@ register_show_results_command(show_command)
 register_show_summary_command(show_command)
 
 
-def register_show_command(app: typer.Typer):
+def register_show_command(app: typer.Typer) -> None:
     app.add_typer(
         show_command,
         name="show",

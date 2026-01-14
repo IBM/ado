@@ -30,21 +30,21 @@ valid_model_names_no_transform = {
 }
 
 
-def test_mapping_invalid_to_valid():
+def test_mapping_invalid_to_valid() -> None:
     assert all(
         map_valid_model_name(k) == v
         for k, v in invalid_model_names_transform_to_valid.items()
     )
 
 
-def test_mapping_invalid_no_transform():
+def test_mapping_invalid_no_transform() -> None:
     assert all(
         map_valid_model_name(k) == v
         for k, v in invalid_model_names_no_transform.items()
     )
 
 
-def test_mapping_valid_no_transform():
+def test_mapping_valid_no_transform() -> None:
     assert all(
         map_valid_model_name(k) == v for k, v in valid_model_names_no_transform.items()
     )

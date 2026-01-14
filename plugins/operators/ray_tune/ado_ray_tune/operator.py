@@ -669,7 +669,7 @@ class RayTune(Search):
         return RayTuneConfiguration.model_validate(parameters)
 
     @classmethod
-    def description(cls):
+    def description(cls) -> str:
 
         return """RayTune provides capabilities for sampling points in an entity space and applying
                measurements to them via optimization algorithms.
@@ -687,7 +687,7 @@ class RayTune(Search):
         state: DiscoverySpaceManager,
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: dict | None = None,
-    ):
+    ) -> None:
         import os
 
         enable_ray_actor_coverage("ado_ray_tune")
@@ -716,13 +716,13 @@ class RayTune(Search):
             actuators=actuators,
         )
 
-    def onUpdate(self, measurementRequest: MeasurementRequest):
+    def onUpdate(self, measurementRequest: MeasurementRequest) -> None:
         self._finishedMeasurements[measurementRequest.requestid] = measurementRequest
 
-    def onCompleted(self):
+    def onCompleted(self) -> None:
         pass
 
-    def onError(self, error: Exception):
+    def onError(self, error: Exception) -> None:
 
         self.criticalError = error
         self.received_critical_error_notification = True
@@ -869,11 +869,11 @@ class RayTune(Search):
         # FIXME: This is not correct. Its request*experiments per entity
         return self._requestIndex
 
-    def operationIdentifier(self):
+    def operationIdentifier(self) -> str:
         return f"{self.__class__.operatorIdentifier()}-{self.params.tuneConfig.search_alg.name}-{self.runid}"
 
     @classmethod
-    def operatorIdentifier(cls):
+    def operatorIdentifier(cls) -> str:
         from importlib.metadata import version
 
         version = version("ado-core")

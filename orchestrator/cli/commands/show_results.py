@@ -61,7 +61,7 @@ def show_results_for_resources(
             "Different resource types might support different fields.",
         ),
     ] = None,
-):
+) -> None:
     """
     Show the timeseries of results for an operation.
 
@@ -120,7 +120,7 @@ def show_results_for_resources(
     method_mapping[resource_type](parameters=parameters)
 
 
-def register_show_results_command(app: typer.Typer):
+def register_show_results_command(app: typer.Typer) -> None:
     app.command(
         name="results",
         no_args_is_help=True,

@@ -13,7 +13,7 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
 
 
-def describe_data_container(parameters: AdoDescribeCommandParameters):
+def describe_data_container(parameters: AdoDescribeCommandParameters) -> None:
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:

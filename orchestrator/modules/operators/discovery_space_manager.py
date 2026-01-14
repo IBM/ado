@@ -115,7 +115,7 @@ class DiscoverySpaceManager:
         queue: MeasurementQueue,
         space: orchestrator.core.discoveryspace.space.DiscoverySpace,
         namespace=None,
-    ):
+    ) -> None:
         """
         :param queue: A MeasurementQueue instance for this operation
             All actuators in the same operation must use this queue
@@ -159,7 +159,7 @@ class DiscoverySpaceManager:
 
         return self._discoverySpace.measurementSpace
 
-    def saveSpace(self):
+    def saveSpace(self) -> None:
 
         self._discoverySpace.saveSpace()
 
@@ -167,7 +167,7 @@ class DiscoverySpaceManager:
 
         return self._discoverySpace.entitySpace
 
-    def startMonitoring(self):
+    def startMonitoring(self) -> None:
 
         # See https://github.com/python/cpython/issues/88831 for the reason you need to keep the ref
         self.monitoringTask = asyncio.get_event_loop().create_task(
@@ -221,7 +221,7 @@ class DiscoverySpaceManager:
 
         return len(self._discoverySpace.matchingEntities())
 
-    async def monitorUpdates(self, debug=False):
+    async def monitorUpdates(self, debug=False) -> None:
 
         # Unexpected exceptions from async functions in ray are silently swallowed
         # The purpose of this wrapper is to ensure any such error from the
@@ -232,7 +232,7 @@ class DiscoverySpaceManager:
         except Exception as error:
             self.log.critical(f"Unexpected error {error}")
 
-    async def _monitor_updates_private(self):
+    async def _monitor_updates_private(self) -> None:
         promises = []
         monitoringError = False
         self.log.debug("Beginning observation of measurement queue")
@@ -306,7 +306,7 @@ class DiscoverySpaceManager:
 
         self.iscompleted = True
 
-    def subscribeToUpdates(self, subscriberName: str):
+    def subscribeToUpdates(self, subscriberName: str) -> bool:
 
         self.log.debug(f"Subscription request {subscriberName}")
         self._subscribers[subscriberName] = ray.get_actor(
@@ -314,7 +314,7 @@ class DiscoverySpaceManager:
         )
         return True
 
-    def unsubscribeFromUpdates(self, subscriberName):
+    def unsubscribeFromUpdates(self, subscriberName) -> None:
 
         try:
             self._subscribers.pop(subscriberName)
@@ -324,7 +324,7 @@ class DiscoverySpaceManager:
                 f" it was already unsubscribed - ignoring"
             )
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
 
         self.isalive = False
         self.log.info(

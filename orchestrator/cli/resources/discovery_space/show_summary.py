@@ -23,7 +23,7 @@ from orchestrator.cli.utils.output.prints import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
-def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters):
+def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters) -> None:
     import pandas as pd
 
     if parameters.query and parameters.resource_ids:

@@ -21,7 +21,7 @@ def set_plugin():
     del os.environ["RAY_RUNTIME_ENV_PLUGINS"]
 
 
-def test_detect_support_pip_install_options():
+def test_detect_support_pip_install_options() -> None:
     import ray
 
     version = tuple(int(x) for x in ray.__version__.split("."))
@@ -32,7 +32,7 @@ def test_detect_support_pip_install_options():
     assert supported == utils.ray_version_supports_pip_install_options()
 
 
-def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
+def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin) -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -95,7 +95,7 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin):
         }
 
 
-def test_pip_find_links_option():
+def test_pip_find_links_option() -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -134,7 +134,7 @@ def test_pip_find_links_option():
         }
 
 
-def test_ray_runtime_env_with_vanilla_pip():
+def test_ray_runtime_env_with_vanilla_pip() -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -180,7 +180,7 @@ def test_ray_runtime_env_with_vanilla_pip():
         }
 
 
-def test_ordered_pip_plugin(set_plugin):
+def test_ordered_pip_plugin(set_plugin) -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -201,7 +201,7 @@ def test_ordered_pip_plugin(set_plugin):
             },
         },
     )
-    def try_import_packages():
+    def try_import_packages() -> bool:
         import yaml
 
         _ = dir(yaml)

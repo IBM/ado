@@ -27,7 +27,7 @@ configure_logging()
 moduleLog = logging.getLogger("setup")
 
 
-def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict):
+def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict) -> None:
     paths = [f"{base_path}/{env_var}" for env_var in vars_to_load]
 
     for p in paths:
@@ -39,7 +39,7 @@ def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict):
             env_var_dict[os.path.basename(p)] = f.readlines()[0].strip()
 
 
-def load_secrets_from_env(vars_to_load, env_var_dict):
+def load_secrets_from_env(vars_to_load, env_var_dict) -> None:
     for var in vars_to_load:
 
         value = os.getenv(var)
@@ -208,7 +208,7 @@ def setup_operator(
 def write_entities(
     entities_output_file: str | pathlib.Path | None,
     discovery_space: DiscoverySpace,
-):
+) -> None:
 
     print("Requested to write entities to original sample store format")
     print(

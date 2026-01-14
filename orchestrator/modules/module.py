@@ -76,7 +76,7 @@ class ModuleConf(pydantic.BaseModel):
 
         return value
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         description = f"{self.moduleType}:"
         if self.moduleClass:

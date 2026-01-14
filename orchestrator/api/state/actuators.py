@@ -18,7 +18,7 @@ class ActuatorDictionaryActor:
 
     actuators_actors: dict[str, ActorHandle]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.actuators_actors = {}
 
     def get_actuator_actor(self, actuator_id: str) -> ActorHandle:

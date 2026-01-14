@@ -6,7 +6,7 @@ from orchestrator.cli.utils.resources.handlers import handle_edit_resource_metad
 from orchestrator.core.resources import CoreResourceKinds
 
 
-def edit_discovery_space(parameters: AdoEditCommandParameters):
+def edit_discovery_space(parameters: AdoEditCommandParameters) -> None:
     handle_edit_resource_metadata(
         resource_id=parameters.resource_id,
         resource_type=CoreResourceKinds.DISCOVERYSPACE,

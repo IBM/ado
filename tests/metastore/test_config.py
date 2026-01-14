@@ -13,7 +13,7 @@ from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.module import ModuleTypeEnum, load_module_class_or_function
 
 
-def test_discovery_storage_conf_dump_reload(orchestrator_project_name):
+def test_discovery_storage_conf_dump_reload(orchestrator_project_name) -> None:
 
     conf = ProjectContext(
         project=orchestrator_project_name,
@@ -47,7 +47,7 @@ def test_discovery_storage_conf_dump_reload(orchestrator_project_name):
     assert newconf.metadataStore.host == conf.metadataStore.host
 
 
-def test_default_plugin_configs(module_config):
+def test_default_plugin_configs(module_config) -> None:
     if module_config.moduleType == ModuleTypeEnum.OPERATION:
         assert (
             load_module_class_or_function(module_config)

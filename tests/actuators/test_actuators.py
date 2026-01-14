@@ -78,7 +78,9 @@ def actuatorCatalogExtensionConfiguration(
     )
 
 
-def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs):
+def test_custom_experiments(
+    objectiveFunctionConfiguration, experiment_catalogs
+) -> None:
 
     import ray
 
@@ -135,7 +137,7 @@ def test_custom_experiments(objectiveFunctionConfiguration, experiment_catalogs)
         assert c.experimentForReference(e.reference) is not None
 
 
-def test_execute_nevergrad_opt_3d_test_func(experiment_catalogs):
+def test_execute_nevergrad_opt_3d_test_func(experiment_catalogs) -> None:
     import orchestrator.modules.actuators.registry
     import orchestrator.schema.request
     from orchestrator.schema.point import SpacePoint

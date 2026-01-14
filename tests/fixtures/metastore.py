@@ -25,7 +25,7 @@ from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
 @pytest.fixture
-def orchestrator_project_name():
+def orchestrator_project_name() -> str:
     return "spark-opt"
 
 
@@ -140,7 +140,7 @@ def create_active_ado_context():
         runner: typer.testing.CliRunner,
         path: pathlib.Path,
         project_context: ProjectContext,
-    ):
+    ) -> None:
         context_file = path / "test_context.yaml"
         context_file.write_text(pydantic_model_as_yaml(project_context))
 

@@ -32,13 +32,15 @@ from orchestrator.schema.virtual_property import (
 )
 
 
-def test_value_per_property(entity: Entity, abstract_properties):
+def test_value_per_property(entity: Entity, abstract_properties) -> None:
     for ap in abstract_properties:
         value = entity.valuesForTargetProperty(ap)
         assert value is not None
 
 
-def test_retrieve_properties_by_experiment(entity: Entity, experiment: Experiment):
+def test_retrieve_properties_by_experiment(
+    entity: Entity, experiment: Experiment
+) -> None:
     assert experiment.reference in entity.experimentReferences
 
     pvs = entity.propertyValuesFromExperiment(experiment)
@@ -51,7 +53,7 @@ def test_retrieve_properties_by_experiment(entity: Entity, experiment: Experimen
 
 def test_retrieve_properties_by_experiment_reference(
     entity, experiment_reference, experiment
-):
+) -> None:
     assert experiment_reference in entity.experimentReferences
 
     pvs = entity.propertyValuesFromExperimentReference(experiment_reference)
@@ -62,7 +64,7 @@ def test_retrieve_properties_by_experiment_reference(
     assert len(ops) == len(experiment.observedProperties)
 
 
-def test_property_types(entity):
+def test_property_types(entity) -> None:
     """Test that created properties have the correct type as per the enum"""
 
     assert len(entity.propertyValues) != 0
@@ -74,7 +76,7 @@ def test_property_types(entity):
         assert p.propertyType == NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
 
 
-def test_number_and_type_of_property_method_return_values(entity):
+def test_number_and_type_of_property_method_return_values(entity) -> None:
     """Test that the property methods return what's expected in type and number"""
 
     # Add extra duplicate measurement result to entity to test it can handle it
@@ -138,7 +140,7 @@ def test_multiple_values_per_observed_property(
     entity: Entity,
     experiment: Experiment,
     property_values: [],
-):
+) -> None:
     # Add a second set of values for each observed property to the entity
 
     numberValues = len(entity.observedPropertyValues)
@@ -164,7 +166,7 @@ def test_multiple_values_per_observed_property(
     assert len(entity.valuesForProperty(testProperty)) > 1
 
 
-def test_entity_series_representation(entity: Entity):
+def test_entity_series_representation(entity: Entity) -> None:
 
     rep = entity.seriesRepresentation()
     assert rep.get("identifier") is not None
@@ -174,7 +176,7 @@ def test_entity_series_representation(entity: Entity):
             assert rep.get(prop.identifier) is not None
 
 
-def test_virtual_property_request(entity: Entity, abstract_properties):
+def test_virtual_property_request(entity: Entity, abstract_properties) -> None:
     for obs in entity.observedProperties:
         for e in PropertyAggregationMethodEnum:
             vps = entity.virtualObservedPropertiesFromIdentifier(
@@ -228,7 +230,7 @@ def test_virtual_property_request(entity: Entity, abstract_properties):
 
 def test_virtual_property_request_no_values(
     entity: Entity, abstract_properties, experiment
-):
+) -> None:
     # Create the virtual property - the mean
     aggregation_method = PropertyAggregationMethod(
         identifier=PropertyAggregationMethodEnum("mean")
@@ -244,7 +246,7 @@ def test_virtual_property_request_no_values(
     assert entity.valueForProperty(virtualProperty) is None
 
 
-def test_virtual_property_request_invalid_identifier(entity: Entity):
+def test_virtual_property_request_invalid_identifier(entity: Entity) -> None:
 
     # Check that if the identifier is not a virtual property id a ValueError is raises
     with pytest.raises(
@@ -259,7 +261,7 @@ def test_virtual_property_request_invalid_identifier(entity: Entity):
     )
 
 
-def test_entity_pretty(entity):
+def test_entity_pretty(entity) -> None:
     from IPython.lib.pretty import pretty
 
     pretty(entity)
@@ -267,7 +269,7 @@ def test_entity_pretty(entity):
 
 def test_entity_to_dict(
     csv_sample_store: CSVSampleStore,
-):
+) -> None:
 
     e = csv_sample_store.entities[0]
     # Ensure the entity has some properties and values
@@ -278,7 +280,7 @@ def test_entity_to_dict(
 
 def test_entity_to_json(
     csv_sample_store: CSVSampleStore,
-):
+) -> None:
 
     e = csv_sample_store.entities[0]
     assert len(e.properties) != 0
@@ -290,7 +292,7 @@ def test_entity_to_json(
 
 def test_identifier_from_property_values(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
-):
+) -> None:
 
     test_entity, _test_experiment = entity_for_parameterized_experiment
 
@@ -331,7 +333,7 @@ def test_identifier_from_property_values(
 
 def test_value_error_duplicate_constitutive_properties(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
-):
+) -> None:
     test_entity, _test_experiment = entity_for_parameterized_experiment
     constitutive_property_values = test_entity.constitutive_property_values
 
@@ -353,7 +355,7 @@ def test_value_error_duplicate_constitutive_properties(
 
 def test_value_error_duplicate_measurement_results(
     valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
-):
+) -> None:
 
     test_entity, result = valid_measurement_result_and_entity
     # On init and via add_measurement_result
@@ -384,7 +386,7 @@ def test_value_error_duplicate_measurement_results(
 def test_observed_properties_from_experiment_reference(
     valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
-):
+) -> None:
 
     test_entity, result = valid_measurement_result_and_entity
 
@@ -416,7 +418,7 @@ def test_observed_properties_from_experiment_reference(
 def test_series_representation_with_observed_property_values(
     valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
-):
+) -> None:
 
     test_entity, result = valid_measurement_result_and_entity
     ref = result.experimentReference
@@ -500,7 +502,7 @@ def test_series_representation_with_observed_property_values(
 def test_series_representation_multiple_observed(
     valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
-):
+) -> None:
 
     test_entity, result = valid_measurement_result_and_entity
     test_entity.add_measurement_result(result)
@@ -575,7 +577,7 @@ def test_series_representation_multiple_observed(
 def test_experiment_series(
     valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
-):
+) -> None:
     test_entity, result = valid_measurement_result_and_entity
     ref = result.experimentReference
     assert not test_entity.observedPropertiesFromExperimentReference(
@@ -664,7 +666,7 @@ def test_experiment_series(
 def test_experiment_series_multiple_observed(
     valid_measurement_result_and_entity: tuple[Entity, ValidMeasurementResult],
     global_registry: ActuatorRegistry,
-):
+) -> None:
 
     test_entity, result = valid_measurement_result_and_entity
     test_entity.add_measurement_result(result)
@@ -744,7 +746,7 @@ def test_experiment_series_multiple_observed(
 
 def test_required_constitutive_properties_present(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
-):
+) -> None:
 
     test_entity, test_experiment = entity_for_parameterized_experiment
     if not test_experiment.requiredProperties:

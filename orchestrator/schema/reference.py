@@ -12,7 +12,7 @@ from orchestrator.schema.property_value import (
 )
 
 
-def reference_string_from_fields(actuator_identifier, experiment_identifier):
+def reference_string_from_fields(actuator_identifier, experiment_identifier) -> str:
     """This method defines the identifier string used by ExperimentReference and Experiment"""
 
     return f"{actuator_identifier}.{experiment_identifier}"
@@ -69,12 +69,12 @@ class ExperimentReference(pydantic.BaseModel):
             and self.experimentIdentifier == other.experimentIdentifier
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return reference_string_from_fields(
             self.actuatorIdentifier, self.parameterizedExperimentIdentifier
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return reference_string_from_fields(
             self.actuatorIdentifier, self.parameterizedExperimentIdentifier
         )
@@ -97,7 +97,7 @@ class ExperimentReference(pydantic.BaseModel):
     def __hash__(self):
         return hash(str(self))
 
-    def validate_parameterization(self):
+    def validate_parameterization(self) -> None:
 
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
@@ -148,7 +148,7 @@ class ExperimentReference(pydantic.BaseModel):
         )
 
 
-def identifier_for_parameterized_experiment(identifier, parameterization):
+def identifier_for_parameterized_experiment(identifier, parameterization) -> str:
 
     # Check the parameterized experiments id is as expected.
     # We construct it here as it's expected to be done

@@ -72,7 +72,9 @@ catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
 )
 
 
-def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCatalog):
+def _init_catalog(
+    catalog: orchestrator.modules.actuators.catalog.ExperimentCatalog,
+) -> None:
     full_finetune.add_experiments(catalog=catalog)
     prompt_tuning.add_experiments(catalog=catalog)
     lora.add_experiments(catalog=catalog)
@@ -352,7 +354,7 @@ class FinetuneContext:
         extra: dict[str, typing.Any],
         actuator_params: ActuatorParameters,
         request_id: str,
-    ):
+    ) -> None:
         """Helper class that holds all information related to 1 measurement on 1 entity
 
         Args:
@@ -490,7 +492,7 @@ def get_ip(host: str) -> str:
 def update_dict(
     target: dict[typing.Any, dict[typing.Any, typing.Any]],
     updates: dict[typing.Any, dict[typing.Any, typing.Any]],
-):
+) -> None:
     """Merges 2 dictionaries of dictionaries
 
     Args:
@@ -520,7 +522,7 @@ class SFTTrainer(ActuatorBase):
         self,
         queue: "MeasurementQueue",
         params: "GenericActuatorParameters",
-    ):
+    ) -> None:
         enable_ray_actor_coverage("sfttrainer")
         super().__init__(queue, params)
         self.log = logging.getLogger("SFTTrainer")

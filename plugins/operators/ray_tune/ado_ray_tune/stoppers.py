@@ -11,7 +11,7 @@ import ray.tune
 
 class SimpleStopper(ray.tune.Stopper):
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.min_trials = None
         self.trials_num = 0
         self._is_better = None
@@ -36,7 +36,7 @@ class SimpleStopper(ray.tune.Stopper):
         buffer_states=2,
         stop_on_repeat=True,
         count_nan=True,
-    ):
+    ) -> None:
         # self.mode = mode
         self.min_trials = int(min_trials)
 
@@ -61,7 +61,7 @@ class SimpleStopper(ray.tune.Stopper):
             f"buffer_states {buffer_states}; stop_on_repeat {stop_on_repeat}"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"SimpleStopper({self.wait_until_stop}, minimum trials: {self.min_trials})"
         )
@@ -107,7 +107,7 @@ class SimpleStopper(ray.tune.Stopper):
 
 class GrowthStopper(ray.tune.Stopper):
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._fist_call = True
         self.metric = None
         self.last_result = None
@@ -118,7 +118,7 @@ class GrowthStopper(ray.tune.Stopper):
         self.log = logging.getLogger("GrowthStopper")
 
     # TODO: I don't know why init isn't accepting parameters...
-    def set_config(self, mode, metric, growth_threshold=1.0, grace_trials=2):
+    def set_config(self, mode, metric, growth_threshold=1.0, grace_trials=2) -> None:
 
         if mode not in {"max", "min"}:
             raise ValueError(f"mode must be either max or min (was {mode})")
@@ -138,7 +138,7 @@ class GrowthStopper(ray.tune.Stopper):
             f"configured: growth_threshold {self.growth_threshold}; grace trials {self.grace_trials};"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"GrowthStopper({self.growth_threshold}, grace {self.grace_trials})"
 
     def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
@@ -174,7 +174,7 @@ class MaxSamplesStopper(ray.tune.Stopper):
     # also, for different optimizers, "num_samples" doesn't mean the same, some count it without random iterations,
     # some then without the historic data, etc.
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.max_samples = None
         self.trials_num = 0
         self.should_stop = False
@@ -182,11 +182,11 @@ class MaxSamplesStopper(ray.tune.Stopper):
         self.log = logging.getLogger("MaxSamplesStopper")
 
     # TODO: I don't know why init isn't accepting parameters...
-    def set_config(self, max_samples):
+    def set_config(self, max_samples) -> None:
         self.max_samples = max_samples
         self.log.debug(f"onfigured: max_samples {max_samples}")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"MaxSamplesStopper({self.max_samples})"
 
     def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
@@ -212,7 +212,7 @@ class InformationGainStopper(ray.tune.Stopper):
     # also, for different optimizers, "num_samples" doesn't mean the same, some count it without random iterations,
     # some then without the historic data, etc.
 
-    def __init__(self):
+    def __init__(self) -> None:
         # to check dependencies...
 
         self.min_samples = None
@@ -245,7 +245,7 @@ class InformationGainStopper(ray.tune.Stopper):
     # TODO: I don't know why init isn't accepting parameters...
     def set_config(
         self, mi_diff_limit, samples_below_limit, consider_pareto_front_convergence
-    ):
+    ) -> None:
         self.mi_diff_limit = mi_diff_limit
         self.samples_below_limit = samples_below_limit
         self.consider_pareto_front_convergence = consider_pareto_front_convergence
@@ -262,7 +262,7 @@ class InformationGainStopper(ray.tune.Stopper):
         min_samples="auto",
         search_columns=None,
         total_size="N/A",
-    ):
+    ) -> None:
         self.data_columns = data_columns
         # self.targeted_value = 'values__' + targeted_value
         self.targeted_value = targeted_value
@@ -290,7 +290,7 @@ class InformationGainStopper(ray.tune.Stopper):
             f"data_columns: {self.data_columns}; targeted_value: {self.targeted_value}."
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"InformationGainStopper({self.mi_diff_limit}, {self.samples_below_limit})"
         )

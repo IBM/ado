@@ -59,7 +59,7 @@ class GT4SDTransformer(CSVSampleStore):
         self,
         storageLocation: orchestrator.utilities.location.FilePathLocation,
         parameters: CSVSampleStoreDescription,
-    ):
+    ) -> None:
         """
 
         :param parameters: A dictionary the fields of CSVSampleStoreDescription

@@ -9,7 +9,7 @@ from orchestrator.core.resources import CoreResourceKinds
 
 def test_resource_creation(
     resource_generator_from_file, create_resources, sql_store, request
-):
+) -> None:
     _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
     create_resources(resources=[resource], db=sql_store)
@@ -18,7 +18,7 @@ def test_resource_creation(
 
 def test_invalid_resource_creation(
     resource_generator_from_file, create_resources, sql_store, request
-):
+) -> None:
     _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
     with pytest.raises(
@@ -30,7 +30,7 @@ def test_invalid_resource_creation(
 
 def test_resource_cannot_be_created_twice(
     resource_generator_from_file, create_resources, sql_store, request
-):
+) -> None:
     _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
     create_resources(resources=[resource], db=sql_store)
@@ -49,7 +49,7 @@ def test_create_operation_with_related_space(
     sql_store,
     get_single_resource_by_identifier,
     get_related_resource_identifiers_by_identifier,
-):
+) -> None:
     quantity = 3
 
     operation = random_operation_resource_from_file()
@@ -78,7 +78,7 @@ def test_exception_on_resource_with_related_identifier_if_related_id_does_not_ex
     random_space_resource_from_db,
     create_resource_with_related_identifiers,
     sql_store,
-):
+) -> None:
     operation = random_operation_resource_from_file()
     nonexistent_related_id = "IDoNotExist"
     with pytest.raises(
@@ -96,7 +96,7 @@ def test_add_entities_to_sample_store(
     random_entities,
     random_sql_sample_store,
     add_entities_to_sample_store,
-):
+) -> None:
     quantity = 3
     entities = random_entities(quantity=quantity)
     add_entities_to_sample_store(random_sql_sample_store(), entities)
@@ -106,7 +106,7 @@ def test_upsert_entities_to_sample_store(
     random_entities,
     random_sql_sample_store,
     upsert_entities_to_sample_store,
-):
+) -> None:
     quantity = 3
     entities = random_entities(quantity=quantity)
     upsert_entities_to_sample_store(random_sql_sample_store(), entities)
@@ -116,7 +116,7 @@ def test_add_measurement_request_to_sample_store(
     ml_multi_cloud_benchmark_performance_experiment,
     random_ml_multi_cloud_benchmark_performance_measurement_requests,
     random_sql_sample_store,
-):
+) -> None:
     assert ml_multi_cloud_benchmark_performance_experiment is not None
 
     number_entities = 3
@@ -134,7 +134,7 @@ def test_add_measurement_request_to_sample_store(
     )
 
 
-def test_add_external_entities(random_sql_sample_store, entity):
+def test_add_external_entities(random_sql_sample_store, entity) -> None:
 
     sample_store = random_sql_sample_store()
 

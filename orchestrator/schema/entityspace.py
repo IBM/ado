@@ -24,7 +24,7 @@ class EntitySpaceRepresentation:
     def __init__(
         self,
         constitutiveProperties: list[ConstitutiveProperty],
-    ):
+    ) -> None:
 
         self._propertyLookup = {c.identifier: c for c in constitutiveProperties}
         # Update open-categorical type to categorical -> once in an entityspace the category can't be open anymore
@@ -94,14 +94,14 @@ class EntitySpaceRepresentation:
         # However for typing we cast it
         return int(size)
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return (
             f"Explicit entity-space defined by {len(self._constitutiveProperties)}"
             f" constitutive properties: {[cp.identifier for cp in self._constitutiveProperties]}"
         )
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         import pandas as pd
 

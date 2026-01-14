@@ -157,7 +157,7 @@ class CSVSampleStore(PassiveSampleStore):
         self,
         storageLocation: orchestrator.utilities.location.FilePathLocation,
         parameters: CSVSampleStoreDescription,
-    ):
+    ) -> None:
         """
 
         :param parameters: A dictionary that describes how parse the CSV file. It contains the following keys
@@ -327,7 +327,7 @@ class CSVSampleStore(PassiveSampleStore):
         return entity_id in self._entity_ids
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
 
         # hash file
         import hashlib

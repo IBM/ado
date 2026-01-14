@@ -13,7 +13,7 @@ from orchestrator.schema.domain import (
 )
 
 
-def test_comparison_with_non_domain():
+def test_comparison_with_non_domain() -> None:
     discretePropertyDomain = PropertyDomain(interval=1, domainRange=[-10, 10])
     assert (
         discretePropertyDomain != "somestring"
@@ -22,7 +22,7 @@ def test_comparison_with_non_domain():
     assert discretePropertyDomain != 3, "PropertyDomain evaluate equal to an int"
 
 
-def test_probability_function_equivalanece():
+def test_probability_function_equivalanece() -> None:
 
     uniform = ProbabilityFunction(
         identifier=ProbabilityFunctionsEnum.UNIFORM, parameters={"a": "0", "b": 5}
@@ -77,7 +77,7 @@ def test_probability_function_equivalanece():
     assert uniform != ["a", "b"]
 
 
-def test_valid_property_domains():
+def test_valid_property_domains() -> None:
 
     # Test that variableType of domain is assigned properly given valid inputs
 
@@ -246,7 +246,7 @@ def test_valid_property_domains():
         )
 
 
-def test_categorical_and_continuous_property_is_subdomain():
+def test_categorical_and_continuous_property_is_subdomain() -> None:
     """Tests the issubdomain method of PropertyDomain works"""
 
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
@@ -288,7 +288,7 @@ def test_categorical_and_continuous_property_is_subdomain():
     assert continuousSubdomain.isSubDomain(continuousPropertyDomain)
 
 
-def test_unknown_property_is_subdomain():
+def test_unknown_property_is_subdomain() -> None:
     """Tests isSubDomain works when one or other of the domains is UNKNOWN_VARIABLE_TYPE"""
 
     # UNKNOWN_VARIABLE_TYPE cannot be a subdomain of any other variable type
@@ -324,7 +324,7 @@ def test_unknown_property_is_subdomain():
     assert not unknownPropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_discrete_property_is_subdomain_for_domain_range():
+def test_discrete_property_is_subdomain_for_domain_range() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for discrete properties where otherDomain is defined with domainRange"""
 
@@ -379,7 +379,7 @@ def test_discrete_property_is_subdomain_for_domain_range():
     assert not discretePropertySubDomain.isSubDomain(discretePropertyDomain)
 
 
-def test_discrete_property_is_subdomain_for_values():
+def test_discrete_property_is_subdomain_for_values() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for discrete properties where otherDomain is defined with values and interval"""
 
@@ -419,7 +419,7 @@ def test_discrete_property_is_subdomain_for_values():
     assert not discretePropertySubDomain.isSubDomain(discretePropertyDomain)
 
 
-def test_discrete_property_is_subdomain_of_continuous():
+def test_discrete_property_is_subdomain_of_continuous() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for discrete properties where otherDomain is defined as a continuous domain"""
 
@@ -469,7 +469,7 @@ def test_discrete_property_is_subdomain_of_continuous():
     assert discretePropertyDomain.isSubDomain(continuousPropertyDomain)
 
 
-def test_binary_property_is_subdomain_of_discrete():
+def test_binary_property_is_subdomain_of_discrete() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for binary properties where otherDomain is defined as a discrete domain
 
@@ -509,7 +509,7 @@ def test_binary_property_is_subdomain_of_discrete():
     assert discretePropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_binary_property_is_subdomain_of_categorical():
+def test_binary_property_is_subdomain_of_categorical() -> None:
     """Tests the issubdomain method of PropertyDomain works
     for binary properties where otherDomain is defined as a categorical domain"""
 
@@ -535,7 +535,7 @@ def test_binary_property_is_subdomain_of_categorical():
     assert categoricalPropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_binary_property_is_subdomain_of_continuous():
+def test_binary_property_is_subdomain_of_continuous() -> None:
 
     binaryPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE
@@ -564,7 +564,7 @@ def test_binary_property_is_subdomain_of_continuous():
     assert not continuousPropertyDomain.isSubDomain(binaryPropertyDomain)
 
 
-def test_domain_sizes():
+def test_domain_sizes() -> None:
 
     import math
 
@@ -610,7 +610,7 @@ def test_domain_sizes():
     assert unknownPropertyDomain.size == math.inf
 
 
-def test_range_in_pretty():
+def test_range_in_pretty() -> None:
 
     from IPython.lib.pretty import pretty
 
@@ -665,7 +665,7 @@ def test_range_in_pretty():
     assert "Range" not in pretty(unknownPropertyDomain)
 
 
-def test_value_in_domain():
+def test_value_in_domain() -> None:
 
     # continuous variable with no range - everything is in domain
     continuousPropertyDomain = PropertyDomain(
@@ -715,7 +715,7 @@ def test_value_in_domain():
 
 def test_property_domain_minimization_is_correct(
     property_domain_all_types: PropertyDomain,
-):
+) -> None:
     from orchestrator.cli.utils.pydantic.constants import minimize_output_context
 
     current_model = property_domain_all_types
@@ -724,7 +724,7 @@ def test_property_domain_minimization_is_correct(
     assert reloaded_model == current_model
 
 
-def test_float_behaviour_discrete_variable_sub_domain():
+def test_float_behaviour_discrete_variable_sub_domain() -> None:
     """Test sub_domain behaviour for domains with discrete variables that include floats
 
     floating point arithmetic introduces very rounding issues that should be handled
@@ -764,7 +764,7 @@ def test_float_behaviour_discrete_variable_sub_domain():
     ), "Expected value set [0.1,0.2,0.4] to not be a subdomain of continuous var with range [0.1,0.4]"
 
 
-def test_float_behaviour_discrete_variable_value_in_domain():
+def test_float_behaviour_discrete_variable_value_in_domain() -> None:
 
     d1 = PropertyDomain(values=[0.1, 0.2, 0.3])
     d2 = PropertyDomain(interval=0.1, domainRange=[0.1, 0.4])
@@ -783,7 +783,7 @@ def test_float_behaviour_discrete_variable_value_in_domain():
     assert not d1.valueInDomain(0.4)
 
 
-def test_domain_values():
+def test_domain_values() -> None:
 
     # Test the same intervals and ranges given as int or float give same values
     d1 = PropertyDomain(interval=4, domainRange=[1, 128])
@@ -828,7 +828,7 @@ def test_domain_values():
     assert d.domain_values == [0]
 
 
-def test_open_categorical_variable_type_property_domain():
+def test_open_categorical_variable_type_property_domain() -> None:
     import math
 
     import pydantic

@@ -18,7 +18,7 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
 
 
-def describe_discovery_space(parameters: AdoDescribeCommandParameters):
+def describe_discovery_space(parameters: AdoDescribeCommandParameters) -> None:
 
     if parameters.resource_id:
         sql = get_sql_store(

@@ -77,7 +77,7 @@ def get_model_hash(path_model: str):
     }
 
 
-def main():
+def main() -> None:
     ray.init()
 
     model_information: dict[str, dict[str, typing.Any]] = {}

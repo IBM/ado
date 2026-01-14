@@ -250,8 +250,6 @@ def recursive_aggregation_high_dimensional_sampling(
             # first = cprod[-len(out)]
             first = cprod[-len(out) - 1]
             last = dims[-len(out)]
-            if i != 0 and dims[-len(out)] != cprod[-len(out)] / cprod[-len(out) - 1]:
-                raise ValueError("Dimension mismatch!")
             this_iter_gcd = math.gcd(first, last)
             this_iter_lcm = math.lcm(first, last)
             this_iter_index = out[0]

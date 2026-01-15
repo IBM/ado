@@ -17,6 +17,9 @@ from orchestrator.schema.property import ConstitutiveProperty
 from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
 
+if typing.TYPE_CHECKING:
+    from orchestrator.schema.observed_property import ObservedProperty
+
 
 class SampleStore(abc.ABC):
     """Subclasses provide access to entities and may provide storage capability"""
@@ -55,7 +58,7 @@ class SampleStore(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def containsEntityWithIdentifier(self, entity_id) -> bool:  # pragma: nocover
+    def containsEntityWithIdentifier(self, entity_id: str) -> bool:  # pragma: nocover
         pass
 
     def entitiesWithConstitutivePropertyValues(
@@ -75,7 +78,7 @@ class SampleStore(abc.ABC):
             If there are no matches the list will be empty.
         """
 
-        def _same(entity, searchValues: list[PropertyValue]):
+        def _same(entity: Entity, searchValues: list[PropertyValue]) -> bool:
             # Does this entity have the same properties
             unmatchedProperties = [
                 val
@@ -102,7 +105,7 @@ class SampleStore(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def config(self) -> typing.Any:  # pragma: nocover
+    def config(self) -> typing.Any:  # noqa: ANN401 # pragma: nocover
         """Returns the parameter object used to initialise the receiver"""
 
     @property
@@ -114,7 +117,9 @@ class SampleStore(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def validate_parameters(parameters: dict) -> typing.Any:  # pragma: nocover
+    def validate_parameters(
+        parameters: dict,
+    ) -> typing.Any:  # noqa: ANN401 # pragma: nocover
         """
         Validates the parameters to be passed to the class
         according to the concrete class's logic.
@@ -153,17 +158,21 @@ class ActiveSampleStore(SampleStore, ABC):
         return False
 
     @abc.abstractmethod
-    def add_external_entities(self, entities: list[Entity]): ...  # pragma: nocover
+    def add_external_entities(
+        self, entities: list[Entity]
+    ) -> None: ...  # pragma: nocover
 
     @abc.abstractmethod
-    def addEntities(self, entities: list[Entity]):  # pragma: nocover
+    def addEntities(self, entities: list[Entity]) -> None:  # pragma: nocover
         """Add the entities to the sample store
 
         Check implementation for details on behaviour e.g. add v upsert.
         """
 
     @abc.abstractmethod
-    def addMeasurement(self, measurementRequest: MeasurementRequest):  # pragma: nocover
+    def addMeasurement(
+        self, measurementRequest: MeasurementRequest
+    ) -> None:  # pragma: nocover
         """Adds the results of a measurement to a set of entities
 
         Implementations of this method can require that the results have been already added to the
@@ -177,18 +186,18 @@ class ActiveSampleStore(SampleStore, ABC):
 
     @abc.abstractmethod
     def entityWithIdentifier(
-        self, entityIdentifier
+        self, entityIdentifier: str
     ) -> Entity | None:  # pragma: nocover
         # TODO: Probably this should also be supported by PassiveSampleStore
         pass
 
     @property
     @abc.abstractmethod
-    def uri(self):  # pragma: nocover
+    def uri(self) -> str:  # pragma: nocover
         """Returns a URI for the Active Source"""
 
     @abc.abstractmethod
-    def commit(self):  # pragma: nocover
+    def commit(self) -> None:  # pragma: nocover
         """Commits all the changes to the source and prevents any further changes"""
 
 
@@ -215,7 +224,7 @@ class SampleStoreDescription(pydantic.BaseModel):
     )
 
     @property
-    def catalog(self):
+    def catalog(self) -> ExperimentCatalog:
 
         experiments = {}
         for desc in self.experiments:
@@ -234,15 +243,15 @@ class SampleStoreDescription(pydantic.BaseModel):
         )
 
     @property
-    def experimentDescriptionMap(self):
+    def experimentDescriptionMap(self) -> dict[str, ExperimentDescription]:
 
         return {e.experimentIdentifier: e for e in self.experiments}
 
     @property
-    def observedProperties(self):
+    def observedProperties(self) -> list["ObservedProperty"]:
         """Return all observed properties defined by the receiver"""
 
-        observedProperties = []
+        observedProperties: list[ObservedProperty] = []
         for e in self.catalog.experiments:
             observedProperties.extend(e.observedProperties)
 

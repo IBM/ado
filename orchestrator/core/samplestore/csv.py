@@ -41,7 +41,7 @@ class CSVSampleStoreDescription(SampleStoreDescription):
     )
 
     @pydantic.field_validator("identifierColumn")
-    def identifier_is_lowercase(cls, value):
+    def identifier_is_lowercase(cls, value: str) -> str:
         return value.lower()
 
     @property
@@ -54,7 +54,7 @@ class CSVSampleStoreDescription(SampleStoreDescription):
         ]
 
     @property
-    def observedPropertyColumns(self):
+    def observedPropertyColumns(self) -> list[str]:
         """Returns the headers of the columns containing the observed properties"""
 
         columns = []
@@ -78,11 +78,13 @@ class CSVSampleStore(PassiveSampleStore):
     """
 
     @staticmethod
-    def validate_parameters(parameters: dict):
+    def validate_parameters(parameters: dict) -> CSVSampleStoreDescription:
         return CSVSampleStoreDescription.model_validate(parameters)
 
     @staticmethod
-    def storage_location_class():
+    def storage_location_class() -> (
+        type[orchestrator.utilities.location.FilePathLocation]
+    ):
 
         return orchestrator.utilities.location.FilePathLocation
 
@@ -100,7 +102,7 @@ class CSVSampleStore(PassiveSampleStore):
 
         return reference.parameters.catalog
 
-    def experimentCatalog(self):
+    def experimentCatalog(self) -> ExperimentCatalog:
 
         return self.sourceDescription.catalog
 
@@ -113,7 +115,7 @@ class CSVSampleStore(PassiveSampleStore):
         experimentIdentifier: str | None = None,
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
-    ):
+    ) -> "CSVSampleStore":
 
         # Create a schema of the contents of the CSV file
         # This is used to convert its contents to entities
@@ -182,7 +184,7 @@ class CSVSampleStore(PassiveSampleStore):
         self._observedProperties = self.sourceDescription.observedProperties
 
         # TODO: necessary to merge entities...
-        self._entities = []
+        self._entities: list[Entity] = []
         self._ent_by_id: dict[str, Entity] = {}
         # TODO: improve
         for _i, row in self._data.T.items():  # noqa: PERF102
@@ -309,16 +311,16 @@ class CSVSampleStore(PassiveSampleStore):
         return self.sourceDescription
 
     @property
-    def entities(self):
+    def entities(self) -> list[Entity]:
 
         return self._entities
 
     @property
-    def numberOfEntities(self):
+    def numberOfEntities(self) -> int:
 
         return len(self._entities)
 
-    def containsEntityWithIdentifier(self, entity_id):
+    def containsEntityWithIdentifier(self, entity_id: str) -> bool:
 
         return entity_id in self._entity_ids
 

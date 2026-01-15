@@ -23,7 +23,7 @@ class CoreResourceKinds(enum.Enum):
     DATACONTAINER = "datacontainer"
 
 
-def VersionIsGreaterThan(v1: str, v2: str):
+def VersionIsGreaterThan(v1: str, v2: str) -> bool:
     """Returns True if resource version v1 is greater than resource version v2"""
 
     return int(v1[1:]) > int(v2[1:])

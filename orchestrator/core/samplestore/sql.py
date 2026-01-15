@@ -8,9 +8,6 @@ import uuid
 from typing import TYPE_CHECKING
 
 import pydantic
-
-if TYPE_CHECKING:
-    import pandas as pd
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -50,6 +47,10 @@ from orchestrator.utilities.pandas import (
     reorder_dataframe_columns,
 )
 
+if TYPE_CHECKING:
+    import pandas as pd
+    from IPython.lib.pretty import PrettyPrinter
+
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
     identifier: str | None = pydantic.Field(description="id for this sample store")
@@ -76,7 +77,7 @@ class SQLSampleStore(ActiveSampleStore):
         experimentIdentifier: str | None = None,
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
-    ):
+    ) -> "SQLSampleStore":
 
         csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
             csvPath=csvPath,
@@ -96,7 +97,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         return sql_sample_store
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:
             p.text("Cycle detected")
@@ -111,7 +112,7 @@ class SQLSampleStore(ActiveSampleStore):
     @classmethod
     def experimentCatalogFromReference(
         cls, reference: orchestrator.core.samplestore.config.SampleStoreReference
-    ):
+    ) -> ExperimentCatalog:
         import pandas as pd
 
         if reference.identifier is not None:
@@ -322,12 +323,12 @@ class SQLSampleStore(ActiveSampleStore):
         self.log.debug(f"SQLSampleStore id {self.uri}")
 
     @property
-    def engine(self):
+    def engine(self) -> sqlalchemy.Engine:
 
         return engine_for_sql_store(configuration=self._configuration)
 
     @property
-    def config(self):
+    def config(self) -> dict:
         """Returns the parameters used to initialise the receiver"""
 
         return self._parameters.copy()
@@ -412,7 +413,7 @@ class SQLSampleStore(ActiveSampleStore):
             exe = connectable.execute(query)
             return exe.scalar()
 
-    def containsEntityWithIdentifier(self, entity_id) -> bool:
+    def containsEntityWithIdentifier(self, entity_id: str) -> bool:
         query = sqlalchemy.text(
             "SELECT COUNT(1) FROM :table_name WHERE identifier=:identifier"
         ).bindparams(table_name=self._tablename, identifier=entity_id)
@@ -424,7 +425,7 @@ class SQLSampleStore(ActiveSampleStore):
         return row_count != 0
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         """Return a unique identifier for this configuration of the sample store"""
 
         return self._identifier
@@ -616,7 +617,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         pass
 
-    def entityWithIdentifier(self, entityIdentifier):
+    def entityWithIdentifier(self, entityIdentifier: str) -> Entity | None:
         """Returns entity if its in receiver otherwise returns None"""
 
         query = sqlalchemy.text(
@@ -682,7 +683,7 @@ class SQLSampleStore(ActiveSampleStore):
         return entity
 
     @property
-    def uri(self):
+    def uri(self) -> str:
         """Returns a URI for the Active Source - password is elided"""
 
         return (
@@ -692,13 +693,15 @@ class SQLSampleStore(ActiveSampleStore):
         ) + f"/{self._tablename}"
 
     @staticmethod
-    def validate_parameters(parameters: dict):
+    def validate_parameters(parameters: dict) -> dict:
 
         # No parameters to validate
         return parameters
 
     @staticmethod
-    def storage_location_class():
+    def storage_location_class() -> (
+        type[SQLiteStoreConfiguration | SQLStoreConfiguration]
+    ):
         return SQLiteStoreConfiguration | SQLStoreConfiguration
 
     def add_measurement_request(self, request: MeasurementRequest) -> uuid.uuid4:
@@ -842,7 +845,7 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         experiment_filter: str | None = None,
         status_filter: MeasurementRequestStateEnum | None = None,
-    ):
+    ) -> int:
 
         query_text = f"""
                         SELECT COUNT(uid)
@@ -873,7 +876,7 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         experiment_filter: str | None = None,
         status_filter: MeasurementResultStateEnum | None = None,
-    ):
+    ) -> int:
         result_state_map = {
             MeasurementResultStateEnum.VALID: "measurements",
             MeasurementResultStateEnum.INVALID: "reason",
@@ -1211,7 +1214,7 @@ class SQLSampleStore(ActiveSampleStore):
                 ["request_id", "entity_index", "experiment_id"], axis="columns"
             )
 
-            def _aggregate_to_list_if_meaningful(series: pd.Series):
+            def _aggregate_to_list_if_meaningful(series: pd.Series) -> pd.Series:
                 filtered_series = list(
                     filter(lambda val: val != "not_measured", series)
                 )

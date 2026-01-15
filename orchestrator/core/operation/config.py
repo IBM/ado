@@ -176,7 +176,7 @@ class OperatorModuleConf(ModuleConf):
     moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.OPERATION)
 
     @property
-    def operationType(self):
+    def operationType(self) -> DiscoveryOperationEnum:
         c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )

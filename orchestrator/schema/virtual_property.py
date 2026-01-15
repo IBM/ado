@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+from typing import Any
 
 import numpy as np
 import pydantic
@@ -28,7 +29,7 @@ class PropertyAggregationMethod(pydantic.BaseModel):
         default=PropertyAggregationMethodEnum.mean
     )
 
-    def function(self, values: list):
+    def function(self, values: list) -> float | tuple[Any, Any] | tuple[Any, None]:
         """
         Apply property aggregation methods to values.
 
@@ -48,7 +49,7 @@ class PropertyAggregationMethod(pydantic.BaseModel):
         return functionMap[self.identifier](values)
 
 
-def median(values):
+def median(values: list) -> float:
     x = np.asarray(values)
     return np.median(values), np.median(np.absolute(x - np.median(x)))
 
@@ -71,7 +72,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
     aggregationMethod: PropertyAggregationMethod
 
     @classmethod
-    def isVirtualPropertyIdentifier(cls, identifier):
+    def isVirtualPropertyIdentifier(cls, identifier: str) -> bool:
 
         components = identifier.split("-")
 
@@ -88,7 +89,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
         return retval
 
     @classmethod
-    def parseIdentifier(cls, identifier):
+    def parseIdentifier(cls, identifier: str) -> str:
 
         components = identifier.split("-")
 

@@ -22,7 +22,9 @@ class SpaceHierarchy(enum.Enum):
     UNDEFINED = "undefined"
 
 
-def ms_config_type_discriminator(ms_config) -> str:
+def ms_config_type_discriminator(
+    ms_config: list | dict | MeasurementSpaceConfiguration,
+) -> str:
 
     if isinstance(ms_config, list):
         return "ExperimentReferenceList"

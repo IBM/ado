@@ -37,6 +37,8 @@ from orchestrator.schema.virtual_property import (
 )
 
 if typing.TYPE_CHECKING:  # pragma: nocover
+    from IPython.lib.pretty import PrettyPrinter
+
     from orchestrator.schema.entity import Entity
 
 
@@ -101,7 +103,7 @@ class Experiment(pydantic.BaseModel):
         requiredConstitutiveProperties: [str] = None,
         metadata: dict | None = None,
         deprecated: bool = False,
-    ):
+    ) -> "Experiment":
         """Factory method for creating an Experiment instance when you have a list of abstract property ids
 
         :param identifier: The name of the measurement
@@ -145,7 +147,7 @@ class Experiment(pydantic.BaseModel):
         cls,
         optionalProperties: list[ConstitutiveProperty],
         values: "pydantic.FieldValidationInfo",
-    ):
+    ) -> list[ConstitutiveProperty]:
 
         # Check all optional properties have unique identifiers
         optional_properties_identifiers = {p.identifier for p in optionalProperties}
@@ -188,7 +190,7 @@ class Experiment(pydantic.BaseModel):
         cls,
         value: list[ConstitutivePropertyValue],
         values: "pydantic.FieldValidationInfo",
-    ):
+    ) -> list[ConstitutivePropertyValue]:
 
         if not value:
             if values.data.get("optionalProperties"):
@@ -221,7 +223,7 @@ class Experiment(pydantic.BaseModel):
 
         return value
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Experiments are equal if they have the same identifier"""
 
         if isinstance(other, Experiment):
@@ -239,11 +241,11 @@ class Experiment(pydantic.BaseModel):
             experiment_identifier=self.identifier,
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -302,7 +304,7 @@ class Experiment(pydantic.BaseModel):
 
     def isValidParameterization(
         self, parameterization: list[ConstitutivePropertyValue]
-    ):
+    ) -> bool:
         """Returns True if the list of values given by parameterization is valid, otherwise False"""
 
         try:
@@ -350,42 +352,44 @@ class Experiment(pydantic.BaseModel):
 
         return None if len(v) == 0 else v[0]
 
-    def hasTargetPropertyWithIdentifier(self, identifier):
+    def hasTargetPropertyWithIdentifier(self, identifier: str) -> bool:
         """Returns True if the receiver has a target property called identifier"""
 
         v = [p for p in self.targetProperties if p.identifier == identifier]
 
         return len(v) != 0
 
-    def hasTargetProperty(self, prop: Property):
+    def hasTargetProperty(self, prop: Property) -> bool:
         """Returns True if  prop is one of the receivers target properties"""
 
         return self.hasTargetPropertyWithIdentifier(prop.identifier)
 
-    def hasObservedPropertyWithIdentifier(self, identifier):
+    def hasObservedPropertyWithIdentifier(self, identifier: str) -> bool:
         """Returns True if the receiver has a target property called identifier"""
 
         v = [p for p in self.observedProperties if p.identifier == identifier]
 
         return len(v) != 0
 
-    def hasObservedProperty(self, prop: ObservedProperty):
+    def hasObservedProperty(self, prop: ObservedProperty) -> bool:
         """Returns True if  prop is one of the receivers observed properties"""
 
         return self.hasObservedPropertyWithIdentifier(prop.identifier)
 
-    def has_same_base_as_experiment(self, otherExperiment: "Experiment"):
+    def has_same_base_as_experiment(self, otherExperiment: "Experiment") -> bool:
         """Returns True if the base experiment is the same as the base experiment of otherExperiment"""
 
         return self.identifier == otherExperiment.identifier
 
-    def has_same_base_as_experiment_reference(self, reference: "ExperimentReference"):
+    def has_same_base_as_experiment_reference(
+        self, reference: "ExperimentReference"
+    ) -> bool:
         """Returns True if the base experiment is the same as the base experiment of reference"""
 
         return self.identifier == reference.experimentIdentifier
 
     def experimentProvidesRequirements(
-        self, experiment: "Experiment", exactMatch=True
+        self, experiment: "Experiment", exactMatch: bool = True
     ) -> bool:
         """Returns True if experiment would measure ALL required observed properties of the receiver
 
@@ -421,7 +425,7 @@ class Experiment(pydantic.BaseModel):
         return retval
 
     def virtualObservedPropertyFromIdentifier(
-        self, identifier
+        self, identifier: str
     ) -> VirtualObservedProperty | None:
         """Returns a list of VirtualObservedProperty instances that could be calculated by the receiver given a virtual property identifier
 
@@ -563,7 +567,7 @@ class Experiment(pydantic.BaseModel):
 
         return values[0]
 
-    def propertyValuesFromEntity(self, entity: "Entity", target=False) -> dict:
+    def propertyValuesFromEntity(self, entity: "Entity", target: bool = False) -> dict:
         """Given an entity returns the values for the required and optional properties of the Experiment instance
 
         If a required property is an ObservedProperty it may have multiple values.
@@ -633,7 +637,10 @@ class Experiment(pydantic.BaseModel):
         return identifierValueMap
 
     def validate_entity(
-        self, entity: "Entity", disallow_extra_properties=False, verbose=False
+        self,
+        entity: "Entity",
+        disallow_extra_properties: bool = False,
+        verbose: bool = False,
     ) -> bool:
         """Returns True if Experiment can be applied to entity, false otherwise
 
@@ -746,7 +753,7 @@ class ParameterizedExperiment(Experiment):
             self.identifier, self.parameterization
         )
 
-    def __eq__(self, other: "ParameterizedExperiment"):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """ParameterizedExperiments are equal if they have the same parameterizedIdentifier
 
         A ParameterizedExperiment can only be equal to another ParameterizedExperiment
@@ -768,11 +775,11 @@ class ParameterizedExperiment(Experiment):
             experiment_identifier=self.parameterizedIdentifier,
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         # This should print the parameterized id and base id
         p.text(f"Parameterized Identifier:{self.parameterizedIdentifier}")
@@ -792,8 +799,8 @@ class ParameterizedExperiment(Experiment):
 
     @pydantic.field_validator("parameterization")
     def validate_not_empty_parameterization(
-        cls, parameterization: list[PropertyValue], values
-    ):
+        cls, parameterization: list[PropertyValue], values: "pydantic.ValidationInfo"
+    ) -> list[PropertyValue]:
 
         # Check it's not empty - it is raise error as should use ParameterizedExperiment
         if not parameterization:
@@ -814,7 +821,7 @@ class ParameterizedExperiment(Experiment):
         return parameterization
 
     @pydantic.model_validator(mode="after")
-    def validate_parameterization(self):
+    def validate_parameterization(self) -> "ParameterizedExperiment":
 
         check_parameterization_validity(
             list(self.optionalProperties), self.parameterization
@@ -861,7 +868,7 @@ class ParameterizedExperiment(Experiment):
         )
 
     def valueForOptionalProperty(
-        self, property_identifier
+        self, property_identifier: str
     ) -> ConstitutivePropertyValue:
         """Returns the parameterized value of the optional property property_identifier
 
@@ -878,7 +885,7 @@ class ParameterizedExperiment(Experiment):
         return retval
 
 
-def experiment_type_discriminator(experiment) -> str:
+def experiment_type_discriminator(experiment: typing.Any) -> str:  # noqa: ANN401
 
     if isinstance(experiment, ParameterizedExperiment):
         return "Parameterized"

@@ -4,7 +4,9 @@
 import logging
 import os
 import typing
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 import orchestrator.core.discoveryspace.resource
 import orchestrator.core.metadata
@@ -35,6 +37,7 @@ from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import MeasurementResult
 
 if typing.TYPE_CHECKING:
+    from IPython.lib.pretty import PrettyPrinter
     from pandas import DataFrame
 
     import orchestrator.metastore.sqlstore
@@ -46,7 +49,9 @@ logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 moduleLogger = logging.getLogger("discoveryspace")
 
 
-def _perform_preflight_checks_for_sample_store_methods(f):
+def _perform_preflight_checks_for_sample_store_methods(
+    f: Callable[..., Any],  # noqa: ANN401
+) -> Callable[["DiscoverySpace", tuple[Any, ...], dict[str, Any]], Any]:  # noqa: ANN401
     """
     Performs common checks on DiscoverySpace methods that wrap
     SQLSampleStore methods.
@@ -57,7 +62,9 @@ def _perform_preflight_checks_for_sample_store_methods(f):
     """
 
     @wraps(f)
-    def perform_checks(self, *args, **kwargs):
+    def perform_checks(
+        self: "DiscoverySpace", *args: Any, **kwargs: Any  # noqa: ANN401
+    ) -> Any:  # noqa: ANN401
 
         import orchestrator.core.samplestore.sql
 
@@ -123,7 +130,7 @@ class DiscoverySpace:
         conf: "DiscoverySpaceConfiguration",
         project_context: ProjectContext,
         identifier: str | None = None,
-    ):
+    ) -> "DiscoverySpace":
         """Creates a discovery space from a config
 
         Params:
@@ -208,7 +215,7 @@ class DiscoverySpace:
     @classmethod
     def from_stored_configuration(
         cls, project_context: ProjectContext, space_identifier: str
-    ):
+    ) -> "DiscoverySpace":
 
         import orchestrator.metastore.sqlstore
 
@@ -244,7 +251,9 @@ class DiscoverySpace:
         )
 
     @classmethod
-    def from_operation_id(cls, operation_id: str, project_context: ProjectContext):
+    def from_operation_id(
+        cls, operation_id: str, project_context: ProjectContext
+    ) -> "DiscoverySpace":
         """
         Creates a DiscoverySpace instance of the class from the given operation id and project context.
 
@@ -364,7 +373,7 @@ class DiscoverySpace:
             else f"space-{str(uuid.uuid4())[:6]}-{self._sample_store.identifier}"
         )
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -422,7 +431,7 @@ class DiscoverySpace:
         return self._entitySpace
 
     @property
-    def properties(self):
+    def properties(self) -> DiscoverySpaceProperties:
 
         return self._properties
 
@@ -481,7 +490,7 @@ class DiscoverySpace:
                 f"Unable to store space {self._identifier} as no metadata storage provided"
             )
 
-    def sampledEntities(self):
+    def sampledEntities(self) -> list[Entity]:
         """Returns the entities sampled so far in the space"""
 
         # find all sampled entities in this space
@@ -506,7 +515,7 @@ class DiscoverySpace:
             and self.entitySpace.isEntityInSpace(e)
         ]
 
-    def matchingEntities(self):
+    def matchingEntities(self) -> list[Entity]:
         """Returns all entities in the sample store that match the space
 
         Note: They do not have to have any measurements from the measurement space
@@ -538,7 +547,7 @@ class DiscoverySpace:
     def measuredEntitiesTable(
         self,
         property_type: PropertyFormatType = "observed",
-        virtualPropertyIdentifiers=None,
+        virtualPropertyIdentifiers: list[str] | None = None,
         aggregationMethod: (
             orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
         ) = None,
@@ -641,8 +650,8 @@ class DiscoverySpace:
     def storedEntitiesWithConstitutivePropertyValues(
         self,
         values: list[orchestrator.schema.property_value.PropertyValue],
-        mode="strict",
-    ) -> list[orchestrator.schema.entity.Entity]:
+        mode: typing.Literal["strict"] = "strict",
+    ) -> list[None | orchestrator.schema.entity.Entity]:
         """Returns entities in the discoveryspace that have the given values for their constitutive properties and that are stored in the sample-store
 
         All entities returned will be strict members of this receivers entity space i.e. they will not have constitutive
@@ -696,7 +705,7 @@ class DiscoverySpace:
 
     def entity_for_point(
         self,
-        point: dict[str, tuple[typing.Any]],
+        point: dict[str, tuple[Any]],
     ) -> Entity:
         """
         Returns an Entity instance for the given point.
@@ -780,7 +789,7 @@ class DiscoverySpace:
     def updateOperation(
         self,
         operationResource: OperationResource,
-    ):
+    ) -> None:
         """Update an operation resources metadata
 
         Params:

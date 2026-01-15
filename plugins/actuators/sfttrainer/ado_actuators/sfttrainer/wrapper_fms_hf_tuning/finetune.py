@@ -14,6 +14,8 @@ import typing
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 
 if typing.TYPE_CHECKING:
+    from transformers.tokenization_utils_base import BatchEncoding
+
     from .callbacks import metrics_tracker
 
 import dataclasses
@@ -461,7 +463,7 @@ def get_available_open_port() -> int:
         return s.getsockname()[1]
 
 
-def extract_metrics(aim_info_path: str, number_gpus: int):
+def extract_metrics(aim_info_path: str, number_gpus: int) -> metrics_tracker.Metrics:
     import json
 
     with open(aim_info_path, encoding="utf-8") as f:
@@ -844,7 +846,7 @@ def calculate_tokens_in_image_text_dataset(
     path_model: str,
     path_data: str,
     dataset_text_field: str,
-):
+) -> list[int]:
     import pandas as pd
     from datasets import Dataset
     from transformers import AutoProcessor
@@ -854,7 +856,7 @@ def calculate_tokens_in_image_text_dataset(
 
     processor = AutoProcessor.from_pretrained(path_model)
 
-    def tokenize_samples(sample):
+    def tokenize_samples(sample: dict) -> BatchEncoding:
         return processor.apply_chat_template(
             sample[dataset_text_field],
             add_generation_prompt=False,
@@ -961,7 +963,7 @@ def get_tokens_per_sample_in_dataset(
     model_id: str | None,
     num_tokens_cache_dir: str | None,
     dataset_text_field: str,
-):
+) -> list[int]:
     """Returns the tokens per sample for each sample in a dataset
 
     Args:

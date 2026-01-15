@@ -14,6 +14,12 @@ from orchestrator.modules.module import (
     load_module_class_or_function,
 )
 
+if typing.TYPE_CHECKING:
+    from orchestrator.utilities.location import (
+        SQLiteStoreConfiguration,
+        SQLStoreConfiguration,
+    )
+
 
 class SampleStoreModuleConf(ModuleConf):
     moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.SAMPLE_STORE)
@@ -43,7 +49,9 @@ class SampleStoreSpecification(pydantic.BaseModel):
 
     @pydantic.field_validator("storageLocation", mode="after")
     @classmethod
-    def check_is_resource_location_subclass(cls, storageLocation: typing.Any):
+    def check_is_resource_location_subclass(
+        cls, storageLocation: typing.Any | None  # noqa: ANN401
+    ) -> typing.Any | None:  # noqa: ANN401
 
         if storageLocation is not None and not isinstance(
             storageLocation, orchestrator.utilities.location.ResourceLocation
@@ -58,7 +66,7 @@ class SampleStoreSpecification(pydantic.BaseModel):
     @classmethod
     def check_parameters_valid_for_sample_store_module(
         cls, parameters: dict, context: pydantic.ValidationInfo
-    ):
+    ) -> typing.Any:  # noqa: ANN401
         module = load_module_class_or_function(context.data["module"])
         return module.validate_parameters(parameters=parameters)
 
@@ -66,7 +74,7 @@ class SampleStoreSpecification(pydantic.BaseModel):
     @classmethod
     def set_correct_resource_location_class_for_sample_store_module(
         cls, storageLocation: dict, context: pydantic.ValidationInfo
-    ):
+    ) -> "SQLiteStoreConfiguration | SQLStoreConfiguration | None":
         # Only do this if storageLocation is not None
         # Note: The default is None, in which case if storageLocation is not explicitly give
         # this method  is not called
@@ -114,7 +122,9 @@ class SampleStoreConfiguration(pydantic.BaseModel):
     )
 
     @pydantic.field_validator("specification")
-    def check_sample_store_specification_class_is_active(cls, value):
+    def check_sample_store_specification_class_is_active(
+        cls, value: SampleStoreSpecification
+    ) -> SampleStoreSpecification:
 
         import orchestrator.core.samplestore.base
 

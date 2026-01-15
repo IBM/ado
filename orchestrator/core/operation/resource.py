@@ -46,7 +46,7 @@ class OperationResourceStatus(ADOResourceStatus):
     )
 
     @pydantic.model_validator(mode="after")
-    def check_status(self):
+    def check_status(self) -> "OperationResourceStatus":
 
         if self.exit_state and self.event != OperationResourceEventEnum.FINISHED:
             raise ValueError(
@@ -74,7 +74,7 @@ class OperationResource(ADOResource):
     )
 
     @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self):
+    def generate_identifier_if_not_provided(self) -> "OperationResource":
 
         if self.identifier is None:
             self.identifier = (

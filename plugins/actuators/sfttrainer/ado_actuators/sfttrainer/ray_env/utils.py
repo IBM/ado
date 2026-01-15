@@ -83,7 +83,7 @@ def is_ordered_pip_available() -> bool:
     )
 
 
-def packages_requiring_nvidia_development_binaries():
+def packages_requiring_nvidia_development_binaries() -> list[str]:
     return [
         "fms-acceleration-foak",
         "fms-acceleration-moe",

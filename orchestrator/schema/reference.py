@@ -12,7 +12,9 @@ from orchestrator.schema.property_value import (
 )
 
 
-def reference_string_from_fields(actuator_identifier, experiment_identifier) -> str:
+def reference_string_from_fields(
+    actuator_identifier: str, experiment_identifier: str
+) -> str:
     """This method defines the identifier string used by ExperimentReference and Experiment"""
 
     return f"{actuator_identifier}.{experiment_identifier}"
@@ -33,7 +35,7 @@ class ExperimentReference(pydantic.BaseModel):
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def referenceFromString(cls, stringRepresentation):
+    def referenceFromString(cls, stringRepresentation: str) -> "ExperimentReference":
         """Convert a string representation of a reference into a ExperimentReference instance, if possible
 
         This method relied on the actuator id not containing any periods as this is the separator
@@ -58,7 +60,7 @@ class ExperimentReference(pydantic.BaseModel):
                 actuatorIdentifier=actuatorIdentifier,
             )
 
-    def compareWithoutParameterization(self, other: "ExperimentReference"):
+    def compareWithoutParameterization(self, other: "ExperimentReference") -> bool:
         """Compares to other using actuator id and base experiment id, no parameterization
 
         If this method returns true if the two references refer to the same experiment in the same actuator,
@@ -79,7 +81,7 @@ class ExperimentReference(pydantic.BaseModel):
             self.actuatorIdentifier, self.parameterizedExperimentIdentifier
         )
 
-    def __eq__(self, other: "ExperimentReference"):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Two references, refer to same experiment if they have same parameterizedExperimentIdentifier
 
                 Note: when the references have no parameterization this is equivalent to comparing the experimentIdentifier
@@ -94,7 +96,7 @@ class ExperimentReference(pydantic.BaseModel):
 
         return retval
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
     def validate_parameterization(self) -> None:
@@ -148,7 +150,9 @@ class ExperimentReference(pydantic.BaseModel):
         )
 
 
-def identifier_for_parameterized_experiment(identifier, parameterization) -> str:
+def identifier_for_parameterized_experiment(
+    identifier: str, parameterization: list[ConstitutivePropertyValue]
+) -> str:
 
     # Check the parameterized experiments id is as expected.
     # We construct it here as it's expected to be done

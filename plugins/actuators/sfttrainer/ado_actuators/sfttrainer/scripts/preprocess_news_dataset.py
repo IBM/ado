@@ -17,7 +17,7 @@ import os
 import datasets
 
 
-def format_alpaca_fn(example):
+def format_alpaca_fn(example: dict[str, str]) -> dict[str, str]:
     prompt = (
         "Write a response that appropriately completes the remainder of the following input text.\n\n"
         "### Input:\n{input}\n\n### Response: {output}"

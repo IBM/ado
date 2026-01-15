@@ -5,21 +5,19 @@ import numpy as np
 from ado_ray_tune.stoppers import BayesianMetricDifferenceStopper
 
 
-def test_bayesian_stopper_mode_greater_difference_is_greater():
-    """Test that stopper correctly detects a significant difference."""
+def test_bayesian_stopper_difference_exceeds_threshold():
+    """Test that stopper correctly detects when difference exceeds threshold."""
 
-    # Create stopper
     stopper = BayesianMetricDifferenceStopper()
     stopper.set_config(
         metric_a="accuracy",
         metric_b="baseline_accuracy",
         threshold=0.05,
         target_probability=0.95,
-        mode="greater",
         min_samples=10,
     )
 
-    # Simulate trials where metric_a is consistently higher than metric_b
+    # Simulate trials where difference is ~0.10 (above threshold of 0.05)
     rng = np.random.default_rng(42)
     stopped = False
 
@@ -42,30 +40,27 @@ def test_bayesian_stopper_mode_greater_difference_is_greater():
             stopped = True
             break
 
-    assert (
-        stopped
-    ), "Expected stopper to stop if mean difference 0.1 and threshold 0.05 within 50 samples"
+    assert stopped, "Expected stopper to stop when difference exceeds threshold"
+    assert stopper.stop_reason == "exceeds_threshold"
+    assert stopper.stop_probability >= 0.95
 
 
-def test_bayesian_stopper_mode_greater_difference_is_less():
-    """Test that stopper does not trigger when difference is below threshold."""
+def test_bayesian_stopper_difference_within_threshold():
+    """Test that stopper correctly detects when difference is within threshold."""
 
-    # Create stopper
     stopper = BayesianMetricDifferenceStopper()
     stopper.set_config(
         metric_a="accuracy",
         metric_b="baseline_accuracy",
-        threshold=0.10,  # Larger threshold
+        threshold=0.10,
         target_probability=0.95,
-        mode="greater",
         min_samples=10,
     )
 
-    # Simulate trials where difference is small (below threshold)
+    # Simulate trials where difference is ~0.02 (below threshold of 0.10)
     rng = np.random.default_rng(123)
-    stopped = False
 
-    for i in range(30):
+    for i in range(50):
         trial_id = f"trial_{i}"
 
         # Generate metrics with small difference ~0.02 (below threshold of 0.10)
@@ -83,29 +78,26 @@ def test_bayesian_stopper_mode_greater_difference_is_less():
         if should_stop:
             break
 
-    assert (
-        not stopped
-    ), "Did not expect stopper to trigger for mean difference 0.02 and threshold 0.10 in 30 samples"
+    # NOW EXPECT IT TO STOP (was broken before - this is the fix!)
+    assert should_stop, "Expected stopper to stop when confident difference < threshold"
+    assert stopper.stop_reason == "within_threshold"
+    assert stopper.stop_probability >= 0.95
 
 
-def test_bayesian_stopper_mode_less_difference_is_less():
+def test_bayesian_stopper_convergence_case():
+    """Test convergence detection use case (train vs val loss)."""
 
-    # Create stopper in 'less' mode
     stopper = BayesianMetricDifferenceStopper()
     stopper.set_config(
         metric_a="train_loss",
         metric_b="val_loss",
-        threshold=0.10,  # Threshold of 0.10
-        target_probability=0.95,  # Stop when P(|diff| ≤ 0.10) ≥ 0.95
-        mode="less",
+        threshold=0.10,
+        target_probability=0.95,
         min_samples=10,
     )
 
-    # Simulating trials where difference is ~0.02 (well within threshold of 0.10)..."
-
-    # Simulate trials where difference is small (metrics converged)
+    # Simulate converged metrics (small difference ~0.02)
     rng = np.random.default_rng(456)
-    stopped = False
 
     for i in range(50):
         trial_id = f"trial_{i}"
@@ -123,25 +115,58 @@ def test_bayesian_stopper_mode_less_difference_is_less():
         should_stop = stopper(trial_id, result)
 
         if should_stop:
-            stopped = True
             break
 
-    assert (
-        stopped
-    ), "Stopper in 'less' mode should trigger when difference is within threshold"
+    assert should_stop, "Expected stopper to detect convergence"
+    assert stopper.stop_reason == "within_threshold"  # Converged = within threshold
+
+
+def test_bayesian_stopper_divergence_case():
+    """Test divergence detection use case (train vs val loss diverging)."""
+
+    stopper = BayesianMetricDifferenceStopper()
+    stopper.set_config(
+        metric_a="train_loss",
+        metric_b="val_loss",
+        threshold=0.10,
+        target_probability=0.95,
+        min_samples=10,
+    )
+
+    # Simulate diverging metrics (large difference ~0.50)
+    rng = np.random.default_rng(789)
+
+    for i in range(50):
+        trial_id = f"trial_{i}"
+
+        # Much lower train loss - indicates overfitting
+        val_loss = 0.50 + rng.normal(0, 0.02)
+        train_loss = val_loss - 0.50 + rng.normal(0, 0.02)
+
+        result = {
+            "train_loss": train_loss,
+            "val_loss": val_loss,
+            "trial_id": trial_id,
+        }
+
+        should_stop = stopper(trial_id, result)
+
+        if should_stop:
+            break
+
+    assert should_stop, "Expected stopper to detect divergence"
+    assert stopper.stop_reason == "exceeds_threshold"  # Diverged = exceeds threshold
 
 
 def test_min_samples_requirement():
     """Test that stopper waits for minimum samples before applying criteria."""
 
-    # Create stopper with min_samples=15
     stopper = BayesianMetricDifferenceStopper()
     stopper.set_config(
         metric_a="metric_a",
         metric_b="metric_b",
         threshold=0.01,
         target_probability=0.95,
-        mode="greater",
         min_samples=15,
     )
 
@@ -171,14 +196,12 @@ def test_min_samples_requirement():
 def test_min_samples_with_skipped_trials():
     """Test that skipped trials (missing/NaN metrics) don't count toward min_samples."""
 
-    # Create stopper with min_samples=10
     stopper = BayesianMetricDifferenceStopper()
     stopper.set_config(
         metric_a="metric_a",
         metric_b="metric_b",
         threshold=0.01,
         target_probability=0.95,
-        mode="greater",
         min_samples=10,
     )
 

@@ -446,11 +446,14 @@ class InformationGainStopper(ray.tune.Stopper):
 
 class BayesianMetricDifferenceStopper(ray.tune.Stopper):
     """
-    Stopper that uses Bayesian sequential analysis to detect when the absolute mean
-    difference between two metrics exceeds a threshold with high probability.
+    Stopper that uses Bayesian sequential analysis to detect with high confidence
+    which side of a threshold the mean difference between two metrics lies on.
 
     Uses a Bayesian t-posterior with Jeffreys prior for the difference between metrics.
-    Stops when P(|A-B| > threshold) meets the specified probability condition.
+    Stops when we're confident (e.g., 95%) that |A-B| is either above OR below the threshold.
+
+    The stopper is agnostic to interpretation - it simply reports which side with confidence.
+    Users interpret the result based on their context (improvement detection, convergence, etc).
     """
 
     def __init__(self):
@@ -458,10 +461,11 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
         self.metric_b = None
         self.threshold = None
         self.target_probability = None
-        self.mode = None  # 'greater' or 'less'
         self.min_samples = 10
         self.differences = []
         self.should_stop = False
+        self.stop_reason = None  # "exceeds_threshold" or "within_threshold"
+        self.stop_probability = None  # The actual probability when stopped
         self.seen_trial_ids = []
         self.trials_num = 0
         self.log = logging.getLogger("BayesianMetricDifferenceStopper")
@@ -472,48 +476,52 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
         metric_b: str,
         threshold: float,
         target_probability: float = 0.95,
-        mode: str = "greater",
         min_samples: int = 10,
     ):
         """
         Configure the stopper.
 
         Args:
-            metric_a: Name of the first metric
-            metric_b: Name of the second metric
+            metric_a: Name of the first metric to compare
+            metric_b: Name of the second metric to compare
             threshold: Threshold value for |A-B|
-            target_probability: Target probability p (default: 0.95)
-            mode: 'greater' to stop when P(|A-B| > threshold) > p (confident difference exceeds threshold),
-                  'less' to stop when P(|A-B| > threshold) ≤ (1-p) (confident difference within threshold) (default: 'greater')
+            target_probability: Probability threshold for stopping (default: 0.95)
+                Stop when we're this confident the difference is above OR below threshold
             min_samples: Minimum number of samples before applying stopping criteria (default: 10)
         """
         self.metric_a = metric_a
         self.metric_b = metric_b
         self.threshold = abs(threshold)  # Ensure threshold is positive
         self.target_probability = target_probability
-        self.mode = mode.lower()
         self.min_samples = int(min_samples)
         self.differences = []
         self.should_stop = False
+        self.stop_reason = None
+        self.stop_probability = None
         self.seen_trial_ids = []
         self.trials_num = 0
 
-        assert self.mode in ["greater", "less"], "mode must be 'greater' or 'less'"
-        assert (
-            0.0 < self.target_probability < 1.0
-        ), "target_probability must be between 0 and 1"
+        # Validation
+        if not 0 < target_probability < 1:
+            raise ValueError(
+                f"target_probability must be between 0 and 1, got {target_probability}"
+            )
 
-        self.log.debug(
-            f"Configured: metric_a={metric_a}, metric_b={metric_b}, "
-            f"threshold={self.threshold}, target_probability={target_probability}, "
-            f"mode={mode}, min_samples={min_samples}"
+        self.log.info(
+            f"Configured BayesianMetricDifferenceStopper:\n"
+            f"  Metrics: |{metric_a} - {metric_b}|\n"
+            f"  Threshold: {self.threshold}\n"
+            f"  Target Probability: {target_probability}\n"
+            f"  Min Samples: {min_samples}\n"
+            f"  Stopping: When {target_probability*100:.0f}% confident difference is "
+            f"above OR below threshold"
         )
 
     def __str__(self):
         return (
             f"BayesianMetricDifferenceStopper("
-            f"|{self.metric_a}-{self.metric_b}| > {self.threshold}, "
-            f"P={self.target_probability}, mode={self.mode}, min_n={self.min_samples})"
+            f"|{self.metric_a}-{self.metric_b}| vs {self.threshold}, "
+            f"P={self.target_probability}, min_n={self.min_samples})"
         )
 
     def _compute_bayesian_t_probability(
@@ -662,28 +670,41 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             f"P(|{self.metric_a}-{self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
         )
 
-        # Apply stopping criterion based on mode
-        if self.mode == "greater":
-            # Stop when P > target_probability
-            if prob_abs_greater > self.target_probability:
-                self.should_stop = True
-                self.log.info(
-                    f"Stopping criteria met: P(|diff| > {self.threshold}) = {prob_abs_greater:.4f} "
-                    f"> {self.target_probability} after {self.trials_num} trials"
-                )
-                return True
-        else:  # mode == "less"
-            # Stop when P(|diff| > threshold) ≤ (1 - target_probability)
-            # Equivalently: P(|diff| ≤ threshold) ≥ target_probability
-            # This detects when we're confident the difference is WITHIN the threshold
-            if prob_abs_greater <= (1.0 - self.target_probability):
-                self.should_stop = True
-                self.log.info(
-                    f"Stopping criteria met: P(|diff| > {self.threshold}) = {prob_abs_greater:.4f} "
-                    f"≤ {1.0 - self.target_probability} (confident difference within threshold) "
-                    f"after {self.trials_num} trials"
-                )
-                return True
+        # Apply stopping criterion - check if confident about EITHER side
+        # Stop when we're target_probability confident difference is above OR below threshold
+        prob_abs_less = 1.0 - prob_abs_greater  # P(|diff| ≤ threshold)
+
+        # Check if difference significantly EXCEEDS threshold
+        if prob_abs_greater >= self.target_probability:
+            self.should_stop = True
+            self.stop_reason = "exceeds_threshold"
+            self.stop_probability = prob_abs_greater
+
+            self.log.info(
+                f"✓ Stopping after {self.trials_num} trials\n"
+                f"  {prob_abs_greater*100:.1f}% confident mean difference is ABOVE threshold\n"
+                f"  Mean difference: {mean_diff:.4f}\n"
+                f"  Standard error: ±{stats_result['std']:.4f}\n"
+                f"  Threshold: {self.threshold}\n"
+                f"  P(|{self.metric_a} - {self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
+            )
+            return True
+
+        # Check if difference is confidently WITHIN threshold
+        if prob_abs_less >= self.target_probability:
+            self.should_stop = True
+            self.stop_reason = "within_threshold"
+            self.stop_probability = prob_abs_less
+
+            self.log.info(
+                f"✓ Stopping after {self.trials_num} trials\n"
+                f"  {prob_abs_less*100:.1f}% confident mean difference is BELOW threshold\n"
+                f"  Mean difference: {mean_diff:.4f}\n"
+                f"  Standard error: ±{stats_result['std']:.4f}\n"
+                f"  Threshold: {self.threshold}\n"
+                f"  P(|{self.metric_a} - {self.metric_b}| < {self.threshold}) = {prob_abs_less:.4f}"
+            )
+            return True
 
         return False
 

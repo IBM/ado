@@ -117,7 +117,6 @@ def _run_operation_harness(
             f"during operation {operation_resource.identifier}."
         )
 
-
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,

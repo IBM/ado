@@ -18,7 +18,7 @@ from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.reference import ExperimentReference
 
 
-def describe_experiment(parameters: AdoDescribeCommandParameters):
+def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
     from IPython.lib.pretty import pretty
 
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY):

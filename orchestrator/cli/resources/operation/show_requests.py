@@ -22,7 +22,7 @@ from orchestrator.schema.request import ReplayedMeasurement
 from orchestrator.schema.result import ValidMeasurementResult
 
 
-def show_operation_requests(parameters: AdoShowRequestsCommandParameters):
+def show_operation_requests(parameters: AdoShowRequestsCommandParameters) -> None:
 
     class _COLUMN(enum.Enum):
         REQUEST_ID = "Request ID"

@@ -62,7 +62,7 @@ def virtual_properties(
     )
 
 
-def test_property_aggregation(aggregation_test_data):
+def test_property_aggregation(aggregation_test_data) -> None:
     identifier, values, results = aggregation_test_data
     method = PropertyAggregationMethod(identifier=identifier)
     assert method.function(values) == results
@@ -74,7 +74,7 @@ def test_property_aggregation(aggregation_test_data):
         method.function(values=[])
 
 
-def test_virtual_properties(virtual_properties):
+def test_virtual_properties(virtual_properties) -> None:
     virtual_property, values, results = virtual_properties
     assert virtual_property.aggregationMethod.function(values) == results
     assert virtual_property.aggregate(values) == VirtualObservedPropertyValue(
@@ -82,7 +82,7 @@ def test_virtual_properties(virtual_properties):
     )
 
 
-def test_virtual_property_identifiers(virtual_properties):
+def test_virtual_property_identifiers(virtual_properties) -> None:
     virtual_property, _values, _results = virtual_properties
 
     assert (
@@ -97,7 +97,7 @@ def test_virtual_property_identifiers(virtual_properties):
     assert str(virtual_property) == f"vp-{virtual_property.identifier}"
 
 
-def test_is_virtual_property_identifier():
+def test_is_virtual_property_identifier() -> None:
     for e in PropertyAggregationMethodEnum:
         e = e.value
         assert VirtualObservedProperty.isVirtualPropertyIdentifier(f"my-property-{e}")
@@ -117,7 +117,7 @@ def test_is_virtual_property_identifier():
         assert VirtualObservedProperty.isVirtualPropertyIdentifier(f"{e}") is False
 
 
-def test_parse_identifier():
+def test_parse_identifier() -> None:
     for e in PropertyAggregationMethodEnum:
         e = e.value
         component, method = VirtualObservedProperty.parseIdentifier(f"my-property-{e}")

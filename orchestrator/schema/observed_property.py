@@ -49,13 +49,13 @@ class ObservedProperty(pydantic.BaseModel):
         return hash(str(self))
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         return f"{self.experimentReference.parameterizedExperimentIdentifier}-{self.targetProperty.identifier}"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"op-{self.identifier}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"op-{self.identifier}"
 
     @property

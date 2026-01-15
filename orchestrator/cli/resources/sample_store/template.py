@@ -11,7 +11,7 @@ from orchestrator.core.samplestore.config import (
 )
 
 
-def template_sample_store(parameters: AdoTemplateCommandParameters):
+def template_sample_store(parameters: AdoTemplateCommandParameters) -> None:
     from orchestrator.cli.utils.pydantic.serializers import (
         serialise_pydantic_model,
         serialise_pydantic_model_json_schema,

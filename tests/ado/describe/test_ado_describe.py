@@ -14,7 +14,7 @@ def test_describe_nonexistent_space(
     mysql_test_instance,
     valid_ado_project_context,
     create_active_ado_context,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -40,7 +40,7 @@ def test_describe_valid_space(
     valid_ado_project_context,
     create_active_ado_context,
     pfas_space,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -53,7 +53,7 @@ def test_describe_valid_space(
     # AP: TODO: find something actually meaningful to test
 
 
-def test_describe_peptide_mineralization_experiment():
+def test_describe_peptide_mineralization_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "peptide_mineralization"])
     assert result.exit_code == 0

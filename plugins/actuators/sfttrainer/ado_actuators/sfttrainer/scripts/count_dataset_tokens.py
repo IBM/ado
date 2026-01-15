@@ -94,7 +94,7 @@ def tokenize_text(
     return ret
 
 
-def main():
+def main() -> None:
     ray.init()
     root_data = os.environ.get("DATA_PATH", "/data/fms-hf-tuning/artificial-dataset/")
 

@@ -22,7 +22,7 @@ import ray
         },
     },
 )
-def convert_weights(path_model: str, destination: str, model_type="llama"):
+def convert_weights(path_model: str, destination: str, model_type="llama") -> None:
     import json
     import os
 

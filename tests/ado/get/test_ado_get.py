@@ -26,7 +26,7 @@ def test_space_exists(
     valid_ado_project_context,
     create_active_ado_context,
     pfas_space,
-):
+) -> None:
 
     runner = CliRunner()
     create_active_ado_context(
@@ -40,7 +40,7 @@ def test_space_exists(
         assert pfas_space.uri in result.output
 
 
-def test_get_robotic_lab_actuator():
+def test_get_robotic_lab_actuator() -> None:
 
     runner = CliRunner()
 
@@ -69,7 +69,7 @@ def test_field_querying(
     create_active_ado_context,
     empty_sample_store,
     sample_store_resource,
-):
+) -> None:
 
     runner = CliRunner()
     create_active_ado_context(

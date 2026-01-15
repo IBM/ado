@@ -282,7 +282,9 @@ def resource_select_metadata_field(
 
 
 def resource_select_created_field(
-    as_age: bool = False, needs_select: bool = False, dialect="mysql"
+    as_age: bool = False,
+    needs_select: bool = False,
+    dialect: Literal["mysql", "sqlite"] = "mysql",
 ) -> str:
 
     #
@@ -329,7 +331,7 @@ def resource_upsert(
     resource: ADOResource,
     json_representation: dict,
     dialect: Literal["mysql", "sqlite"] = "mysql",
-):
+) -> sqlalchemy.TextClause:
     if dialect == "sqlite":
         return sqlalchemy.text(
             r"INSERT INTO resources "
@@ -357,7 +359,7 @@ def resource_upsert(
 
 def insert_entities_ignore_on_duplicate(
     sample_store_name: str, dialect: Literal["mysql", "sqlite"] = "mysql"
-):
+) -> sqlalchemy.TextClause:
     if dialect == "sqlite":
         query = sqlalchemy.text(
             f"""
@@ -380,7 +382,7 @@ def insert_entities_ignore_on_duplicate(
 
 def upsert_entities(
     sample_store_name: str, dialect: Literal["mysql", "sqlite"] = "mysql"
-):
+) -> sqlalchemy.TextClause:
     if dialect == "sqlite":
         query = sqlalchemy.text(
             rf"""

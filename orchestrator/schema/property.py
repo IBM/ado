@@ -59,7 +59,7 @@ class PropertyDescriptor(pydantic.BaseModel):
             and self.identifier == other.identifier
         )
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: no cover
             p.text("Cycle detected")
@@ -87,7 +87,7 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
 
         return value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"ap-{self.identifier}"
 
 
@@ -96,7 +96,7 @@ class ConstitutivePropertyDescriptor(PropertyDescriptor):
         default=NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"cp-{self.identifier}"
 
     model_config = ConfigDict(frozen=True)
@@ -110,7 +110,7 @@ class ConcretePropertyDescriptor(PropertyDescriptor):
     abstractProperty: AbstractPropertyDescriptor | None = None
     model_config = ConfigDict(frozen=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"cp-{self.identifier}"
 
 
@@ -147,7 +147,7 @@ class Property(pydantic.BaseModel):
 
         return retval
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: no cover
             p.text("Cycle detected")
@@ -184,7 +184,7 @@ class AbstractProperty(Property):
             identifier=descriptor.identifier,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"ap-{self.identifier}"
 
     def __eq__(self, other):
@@ -213,7 +213,7 @@ class ConstitutiveProperty(Property):
             identifier=descriptor.identifier,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"cp-{self.identifier}"
 
     model_config = ConfigDict(frozen=True)
@@ -242,7 +242,7 @@ class ConcreteProperty(Property):
             ),
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"cp-{self.identifier}"
 
     def descriptor(self):

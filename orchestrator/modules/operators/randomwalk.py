@@ -52,6 +52,9 @@ from orchestrator.utilities.logging import configure_logging
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
 if typing.TYPE_CHECKING:
+    from queue import Queue
+
+    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
     from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 import sys
@@ -140,21 +143,25 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
     )
     grouping: list[str] = pydantic.Field(
-        default=[],
+        default_factory=list,
         description="List of variable names that need to be grouped together",
     )
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("grouping")
     def validate_mode_and_grouping(
-        cls, grouping, values: "pydantic.FieldValidationInfo"
-    ):
+        cls, grouping: list[str], values: "pydantic.FieldValidationInfo"
+    ) -> list[str]:
 
         if (
-            values.data.get("mode") == CombinedWalkModeEnum.RANDOMGROUPED
-            or values.data.get("mode") == CombinedWalkModeEnum.SEQUENTIALGROUPED
+            values.data.get("mode")
+            in {
+                CombinedWalkModeEnum.RANDOMGROUPED,
+                CombinedWalkModeEnum.SEQUENTIALGROUPED,
+            }
+            and len(grouping) == 0
         ):
-            assert len(grouping) > 0, (
+            raise ValueError(
                 f"grouping {grouping} has to contain some names for the grouping "
                 f'mode {values.data.get("mode")}'
             )
@@ -162,7 +169,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         return grouping
 
     @pydantic.field_validator("samplerType")
-    def validate_sample_type(cls, samplerType: str):
+    def validate_sample_type(cls, samplerType: str) -> str:
 
         try:
             SamplerTypeEnum(samplerType)
@@ -175,7 +182,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         return samplerType
 
     @pydantic.field_validator("mode")
-    def validate_mode(cls, mode: str):
+    def validate_mode(cls, mode: str) -> str:
 
         try:
             CombinedWalkModeEnum(mode)
@@ -243,7 +250,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
 
         return sampler
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         s = f"sampler: {self.samplerType} walk mode: {self.mode}."
         if self.grouping:
@@ -269,12 +276,12 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
     )
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"custom sampler class: {self.module}. parameters: {self.parameters}"
 
     @pydantic.field_validator("module")
-    def validate_sampler_exists(cls, module: ModuleConf):
+    def validate_sampler_exists(cls, module: ModuleConf) -> ModuleConf:
 
         if not load_module_class_or_function(module):
             raise ValueError(f"Unable to find custom sampler {module}")
@@ -282,7 +289,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return module
 
     @pydantic.model_validator(mode="after")
-    def validate_parameters(self):
+    def validate_parameters(self) -> "CustomSamplerConfiguration":
 
         cls = load_module_class_or_function(self.module)
         if cls.parameters_model():
@@ -305,7 +312,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return sampler
 
 
-def sampler_type_discriminator(sampler_config):
+def sampler_type_discriminator(sampler_config: typing.Any) -> str:  # noqa: ANN401
 
     if isinstance(sampler_config, CustomSamplerConfiguration):
         return "Custom"
@@ -358,10 +365,15 @@ class RandomWalkParameters(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("batchSize")
-    def validate_runtime_config(cls, value, values: "pydantic.FieldValidationInfo"):
+    def validate_runtime_config(
+        cls, value: int, values: "pydantic.FieldValidationInfo"
+    ) -> int:
 
-        if values.data.get("numberEntities") != "all":
-            assert values.data.get("numberEntities") >= value, (
+        if (
+            values.data.get("numberEntities") != "all"
+            and values.data.get("numberEntities") < value
+        ):
+            raise ValueError(
                 f'Number of entities to sample {values.data.get("numberEntities")} '
                 f"cannot be less than batch size {value}"
             )
@@ -381,7 +393,7 @@ class RequestRetry(pydantic.BaseModel):
         default=None, description="The final status"
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return (
             f"Request {self.measurementRequest.requestid}. Entity: {self.measurementRequest.entities[0]}. "
@@ -402,12 +414,12 @@ class RandomWalk(Characterize):
         return RandomWalkParameters()
 
     @classmethod
-    def validateOperationParameters(cls, parameters) -> RandomWalkParameters:
+    def validateOperationParameters(cls, parameters: dict) -> RandomWalkParameters:
 
         return RandomWalkParameters.model_validate(parameters)
 
     @classmethod
-    def description(cls):
+    def description(cls) -> str:
 
         return """RandomWalk provides capabilities for sampling points in an entity space and applying
             measurements to them via a variety of walk and sampling filters.
@@ -422,8 +434,8 @@ class RandomWalk(Characterize):
         namespace: str,
         state: DiscoverySpaceManager,
         actuators: dict[str, "ActuatorBase"],
-        params=None,
-    ):
+        params: dict | None = None,
+    ) -> None:
 
         enable_ray_actor_coverage("random_walk")
         configure_logging()
@@ -457,19 +469,19 @@ class RandomWalk(Characterize):
             actuators=actuators,
         )
 
-    def onUpdate(self, measurementRequest):
+    def onUpdate(self, measurementRequest: MeasurementRequest) -> None:
 
         self.update_queue.put_nowait(measurementRequest)
 
-    def onCompleted(self):
+    def onCompleted(self) -> None:
 
         self.log.info("Completed")
 
-    def onError(self, error: Exception):
+    def onError(self, error: Exception) -> None:
 
         self.update_queue.put_nowait(error)
 
-    async def run(self):
+    async def run(self) -> None:
 
         from orchestrator.modules.operators.console_output import (
             RichConsoleProgressMessage,
@@ -822,8 +834,11 @@ class RandomWalk(Characterize):
         return completed
 
     async def _getAndSubmitMeasurement(
-        self, completedExperiments, continuousBatchingQueue, updateQueue
-    ):
+        self,
+        completedExperiments: int,
+        continuousBatchingQueue: "Queue",
+        updateQueue: "MeasurementQueue",
+    ) -> None:
         """
         Gets an experiment+entity for continuousBatchingQueue and submits it
 
@@ -920,20 +935,20 @@ class RandomWalk(Characterize):
 
         return entities
 
-    def numberEntitiesSampled(self):
+    def numberEntitiesSampled(self) -> int:
 
         return self._entitiesSampled
 
-    def numberMeasurementsRequested(self):
+    def numberMeasurementsRequested(self) -> int:
 
         return self._experimentsRequested
 
-    def operationIdentifier(self):
+    def operationIdentifier(self) -> str:
 
         return f"{self.__class__.operatorIdentifier()}-{self.runid}"
 
     @classmethod
-    def operatorIdentifier(cls):
+    def operatorIdentifier(cls) -> str:
 
         from importlib.metadata import version
 

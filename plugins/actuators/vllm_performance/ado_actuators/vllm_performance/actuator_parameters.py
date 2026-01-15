@@ -1,15 +1,12 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import Annotated, Any
+from typing import Annotated
 
 import pydantic
 from pydantic import AfterValidator
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
-from orchestrator.modules.operators.base import (
-    warn_deprecated_operator_parameters_model_in_use,
-)
 from orchestrator.utilities.pydantic import validate_rfc_1123
 
 
@@ -68,45 +65,3 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     max_environments: int = pydantic.Field(
         default=1, description="Maximum amount of concurrent environments"
     )
-
-    @pydantic.model_validator(mode="before")
-    @classmethod
-    def make_node_selector_dict(cls, values: Any):
-        import json
-        from json import JSONDecodeError
-
-        updated = False
-        if isinstance(values, dict):
-            node_selector = values.get("node_selector", None)
-            if node_selector is not None and isinstance(node_selector, str):
-                try:
-                    values["node_selector"] = (
-                        {} if len(node_selector) == 0 else json.loads(node_selector)
-                    )
-                except JSONDecodeError as error:
-                    raise ValueError(
-                        "The node_selector field does not contain a valid dict"
-                    ) from error
-                updated = True
-        elif isinstance(values, GenericActuatorParameters):
-            try:
-                node_selector = values.node_selector
-                if isinstance(node_selector, str):
-                    values.node_selector = (
-                        {} if len(node_selector) == 0 else json.loads(node_selector)
-                    )
-                    updated = True
-            except JSONDecodeError as error:
-                raise ValueError(
-                    "The node_selector field does not contain a valid dict"
-                ) from error
-            except AttributeError:
-                pass
-        if updated:
-            warn_deprecated_operator_parameters_model_in_use(
-                affected_operator="vllm_performance",
-                deprecated_from_operator_version="v1.2.2",
-                removed_from_operator_version="v1.3",
-                latest_format_documentation_url="https://example.com",
-            )
-        return values

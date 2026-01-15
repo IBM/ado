@@ -33,7 +33,7 @@ from orchestrator.modules.operators.base import (
 moduleLog = logging.getLogger("orchestrate_core")
 
 
-def log_space_details(discovery_space: "DiscoverySpace"):
+def log_space_details(discovery_space: "DiscoverySpace") -> None:
 
     from IPython.lib import pretty
 
@@ -96,7 +96,8 @@ def _run_operation_harness(
     )
 
     operation_output = None
-    interrupted_nested_operations: list[str] = []
+
+    interrupted_nested_operation: str | None = None
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,
         exit_state=OperationExitStateEnum.ERROR,
@@ -116,14 +117,22 @@ def _run_operation_harness(
             f"during operation {operation_resource.identifier}."
         )
 
-        # Add the nested operation identifier to the list
-        interrupted_nested_operations.append(error.operation_identifier)
 
         operationStatus = OperationResourceStatus(
             event=OperationResourceEventEnum.FINISHED,
             exit_state=OperationExitStateEnum.ERROR,
             message="Operation exited due to SIGINT propagated from nested operation",
         )
+
+        # Record the identifier of the interrupted nested operation
+        interrupted_nested_operation = error.operation_identifier
+        if error.resources:
+            # Create an OperationOutput to hold the resources created before interrupt
+            operation_output = OperationOutput(
+                operation=operation_resource,
+                resources=error.resources,
+                exitStatus=operationStatus,
+            )
 
         raise InterruptedOperationError(operation_resource.identifier) from error
     except KeyboardInterrupt as error:
@@ -228,18 +237,17 @@ def _run_operation_harness(
         discovery_space.metadataStore.updateResource(operation_resource)
 
         # Establish relationships with interrupted nested operations
-        if interrupted_nested_operations:
-            for nested_operation_id in interrupted_nested_operations:
-                try:
-                    discovery_space.metadataStore.addRelationship(
-                        subjectIdentifier=operation_resource.identifier,
-                        objectIdentifier=nested_operation_id,
-                    )
-                except Exception as e:  #  noqa: PERF203
-                    moduleLog.warning(
-                        f"Failed to establish relationship with nested operation "
-                        f"{nested_operation_id}: {e}"
-                    )
+        if interrupted_nested_operation:
+            try:
+                discovery_space.metadataStore.addRelationship(
+                    subjectIdentifier=operation_resource.identifier,
+                    objectIdentifier=interrupted_nested_operation,
+                )
+            except Exception as e:
+                moduleLog.warning(
+                    f"Failed to establish relationship with nested operation "
+                    f"{interrupted_nested_operation}: {e}"
+                )
 
         print("=========== Operation Details ============\n")
         print(f"Space ID: {operation_resource.config.spaces[0]}")

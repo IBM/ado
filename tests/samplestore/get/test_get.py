@@ -17,7 +17,7 @@ sqlite3_version = sqlite3.sqlite_version_info
 
 def test_get_single_resource_by_id(
     resource_generator_from_db, get_single_resource_by_identifier, request
-):
+) -> None:
     resource_kind, generator = resource_generator_from_db
     resource = request.getfixturevalue(generator)()
     assert resource.identifier is not None
@@ -35,7 +35,7 @@ def test_get_single_resource_by_id(
 )
 def test_get_all_resources_of_kind(
     resource_generator_from_db, get_resource_identifiers_by_resource_kind, request
-):
+) -> None:
     resource_kind, generator = resource_generator_from_db
     quantity = 3
     for _ in range(quantity):
@@ -47,14 +47,14 @@ def test_get_all_resources_of_kind(
 
 def test_cannot_get_resources_of_kind_for_wrong_kind(
     get_resource_identifiers_by_resource_kind,
-):
+) -> None:
     with pytest.raises(ValueError, match="Unknown kind specified: IDoNotExist"):
         get_resource_identifiers_by_resource_kind(kind="IDoNotExist")
 
 
 def test_get_multiple_resources_by_id(
     resource_generator_from_db, get_multiple_resources_by_identifier, request
-):
+) -> None:
     resource_kind, generator = resource_generator_from_db
     quantity = 3
     resource_ids = [
@@ -73,7 +73,7 @@ def test_count_measurement_requests_and_results(
     simulate_ml_multi_cloud_random_walk_operation,
     random_sql_sample_store,
     random_identifier,
-):
+) -> None:
     assert ml_multi_cloud_benchmark_performance_experiment is not None
 
     number_entities = 3
@@ -100,7 +100,7 @@ def test_count_measurement_requests_and_results(
 
 def test_measurement_results_for_operation(
     random_identifier, simulate_ml_multi_cloud_random_walk_operation
-):
+) -> None:
 
     number_entities = 3
     number_requests = 3
@@ -148,7 +148,7 @@ def test_measurement_results_for_operation(
 
 def test_measurement_requests_for_operation(
     random_identifier, simulate_ml_multi_cloud_random_walk_operation
-):
+) -> None:
 
     number_entities = 3
     number_requests = 3
@@ -212,7 +212,7 @@ def test_measurement_requests_for_operation(
 
 def test_measurement_request_by_id(
     random_identifier, simulate_ml_multi_cloud_random_walk_operation
-):
+) -> None:
 
     number_entities = 3
     number_requests = 3
@@ -259,7 +259,7 @@ def test_experiments_in_operation(
     random_identifier,
     simulate_ml_multi_cloud_random_walk_operation,
     ml_multi_cloud_benchmark_performance_experiment,
-):
+) -> None:
 
     number_entities = 3
     number_requests = 3
@@ -288,7 +288,7 @@ def test_experiments_in_operation(
 def test_entity_identifiers_in_operation(
     random_identifier,
     simulate_ml_multi_cloud_random_walk_operation,
-):
+) -> None:
 
     number_entities = 3
     number_requests = 3
@@ -317,7 +317,7 @@ def test_entity_identifiers_in_operation(
 
 def test_entity_identifiers_in_sample_store(
     ml_multi_cloud_sample_store,
-):
+) -> None:
 
     expected_identifiers = [e.identifier for e in ml_multi_cloud_sample_store.entities]
     retrieved_identifiers = ml_multi_cloud_sample_store.entity_identifiers()
@@ -328,7 +328,7 @@ def test_entity_identifiers_in_sample_store(
     )
 
 
-def test_entity_results_keep_uids(entity, ml_multi_cloud_sample_store):
+def test_entity_results_keep_uids(entity, ml_multi_cloud_sample_store) -> None:
 
     ml_multi_cloud_sample_store.add_external_entities([entity])
     retrieved_entity = ml_multi_cloud_sample_store.entityWithIdentifier(
@@ -346,7 +346,7 @@ def test_entity_results_keep_uids(entity, ml_multi_cloud_sample_store):
 def test_float_precision_errors_when_retrieving_results(
     ml_multi_cloud_sample_store,
     random_ml_multi_cloud_benchmark_performance_measurement_requests,
-):
+) -> None:
 
     measurement_request = (
         random_ml_multi_cloud_benchmark_performance_measurement_requests(

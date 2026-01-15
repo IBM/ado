@@ -81,7 +81,7 @@ def get_actuator_configurations(
 def validate_actuator_configurations_against_space_configuration(
     actuator_configurations: list[ActuatorConfiguration],
     discovery_space_configuration: DiscoverySpaceConfiguration,
-):
+) -> None:
     """Validates that actuator configurations are compatible with a discovery space
 
     Checks that all actuators referenced in the actuator configurations are used
@@ -200,26 +200,25 @@ class OperatorFunctionConf(pydantic.BaseModel):
     )
     operatorName: str = pydantic.Field(description="The name of the operator")
 
-    def validateOperatorExists(self):
+    def validateOperatorExists(self) -> bool:
 
         # Note: this is not implemented as a pydantic validator to avoid a
         # recursive import of agents.operations
         # This happens if an operator registers  a default operation configuration which instantiates this class
         # because the registrations happen on import of each operator
 
-        import orchestrator.modules.operators.collections
+        from orchestrator.modules.operators.collections import operationCollectionMap
 
-        try:
-            collection = (
-                orchestrator.modules.operators.collections.operationCollectionMap[
-                    self.operationType
-                ]
+        if self.operationType not in operationCollectionMap:
+            raise ValueError(f"Unknown operation type {self.operationType}")
+
+        if (
+            self.operatorName
+            not in operationCollectionMap[self.operationType].function_operations
+        ):
+            raise ValueError(
+                f"Operator {self.operatorName} had no functions of type {self.operationType}"
             )
-        except KeyError as e:
-            raise ValueError(f"Unknown operation type {self.operationType}") from e
-
-        function = collection.function_operations.get(self.operatorName)
-        assert function is not None
 
         return True
 

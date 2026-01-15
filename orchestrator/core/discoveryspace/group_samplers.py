@@ -272,10 +272,10 @@ class SequentialGroupSampleSelector(GroupSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
-    ):
+    ) -> bool:
         return True
 
-    def __init__(self, group: list[str]):
+    def __init__(self, group: list[str]) -> None:
         """
         Creates sampler based on group of variables that should have the same values
         :param group: List of variable names that should have the same values
@@ -344,10 +344,10 @@ class RandomGroupSampleSelector(GroupSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
-    ):
+    ) -> bool:
         return True
 
-    def __init__(self, group: list[str]):
+    def __init__(self, group: list[str]) -> None:
         """
         Creates sampler based on group of variables that should have the same values
         :param group: List of variable names that should have the same values
@@ -419,7 +419,7 @@ class ExplicitEntitySpaceGroupedGridSampleGenerator(
     Here we are only overwriting remoteEntityIterator of the base implementation
     """
 
-    def __init__(self, mode: WalkModeEnum, group: list[str]):
+    def __init__(self, mode: WalkModeEnum, group: list[str]) -> None:
         """
         Initialization
         :param mode: operation mode - sequential, random, grouped

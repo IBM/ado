@@ -157,7 +157,7 @@ class MeasurementSpace:
 
         return cls.measurementSpaceFromSelection(selectedExperiments=references)
 
-    def __init__(self, configuration: MeasurementSpaceConfiguration):
+    def __init__(self, configuration: MeasurementSpaceConfiguration) -> None:
         """
         configuration: A MeasurementSpaceConfiguration object describing the space.
         """
@@ -173,7 +173,7 @@ class MeasurementSpace:
             f"{[op.identifier for op in self._observedProperties]}"
         )
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         import pandas as pd
 
@@ -597,7 +597,7 @@ class MeasurementSpace:
 
         return count
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return (
             f"Measurement space consisting of {len(self._observedProperties)} properties "

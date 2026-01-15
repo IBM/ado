@@ -35,7 +35,7 @@ class QueueMonitorActor:
     continuously pulls from the queue until the actor is terminated.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a new :class:`QueueMonitorActor`.
 
         The constructor configures logging, obtains the shared queue, and

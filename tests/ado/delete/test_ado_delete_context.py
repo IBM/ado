@@ -11,7 +11,7 @@ from orchestrator.cli.core.cli import app as ado
 
 def test_delete_nonexistent_context(
     tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context

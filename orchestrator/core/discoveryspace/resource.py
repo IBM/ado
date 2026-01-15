@@ -28,7 +28,7 @@ class DiscoverySpaceResource(ADOResource):
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")

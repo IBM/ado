@@ -23,7 +23,7 @@ from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasuremen
 # missing test: multiple results per entity, increases results index
 def test_invalid_series_representation_format_raises_error(
     valid_measurement_result, entity
-):
+) -> None:
     request = MeasurementRequest(
         entities=[entity],
         experimentReference=valid_measurement_result.experimentReference,
@@ -38,7 +38,7 @@ def test_invalid_series_representation_format_raises_error(
         request.series_representation(output_format="blah")
 
 
-def test_can_assign_none_cannot_reset(valid_measurement_result, entity):
+def test_can_assign_none_cannot_reset(valid_measurement_result, entity) -> None:
 
     # We do not set a value for the measurement field - this will work
     request = MeasurementRequest(
@@ -59,7 +59,7 @@ def test_can_assign_none_cannot_reset(valid_measurement_result, entity):
         request.measurements = [valid_measurement_result]
 
 
-def test_cannot_assign_empty(valid_measurement_result, entity):
+def test_cannot_assign_empty(valid_measurement_result, entity) -> None:
 
     # We do not set a value for the measurement field - this will work
     request = MeasurementRequest(
@@ -76,7 +76,7 @@ def test_cannot_assign_empty(valid_measurement_result, entity):
 
 def test_string_representation(
     valid_measurement_result, invalid_measurement_result, entity, property_values
-):
+) -> None:
 
     import copy
 
@@ -134,7 +134,7 @@ def test_string_representation(
 
 def test_string_representation_replayed(
     valid_measurement_result, invalid_measurement_result, entity, property_values
-):
+) -> None:
 
     import copy
 
@@ -188,7 +188,7 @@ def test_string_representation_replayed(
 
 def test_cannot_reassign_measurements_field_in_measurement_request(
     valid_measurement_result, entity, property_values
-):
+) -> None:
     """This tests that once the measurement field of MeasurementRequest is assigned a set of MeasurementResults
     that set cannot be changed or set to None"""
 
@@ -244,7 +244,9 @@ def test_cannot_reassign_measurements_field_in_measurement_request(
         request.measurements = None
 
 
-def test_measurement_request_measurement_for_entity(valid_measurement_result, entity):
+def test_measurement_request_measurement_for_entity(
+    valid_measurement_result, entity
+) -> None:
     request = MeasurementRequest(
         entities=[entity],
         measurements=(valid_measurement_result,),
@@ -262,7 +264,7 @@ def test_measurement_request_measurement_for_entity(valid_measurement_result, en
         request.measurement_for_entity("incorrect_id")
 
 
-def test_measurement_request_valid(valid_measurement_result, entity):
+def test_measurement_request_valid(valid_measurement_result, entity) -> None:
 
     MeasurementRequest(
         entities=[entity],
@@ -274,7 +276,7 @@ def test_measurement_request_valid(valid_measurement_result, entity):
     )
 
 
-def test_measurement_request_invalid(invalid_measurement_result, entity):
+def test_measurement_request_invalid(invalid_measurement_result, entity) -> None:
 
     MeasurementRequest(
         entities=[entity],
@@ -286,7 +288,9 @@ def test_measurement_request_invalid(invalid_measurement_result, entity):
     )
 
 
-def test_measurement_request_mismatched_entities(valid_measurement_result, entity):
+def test_measurement_request_mismatched_entities(
+    valid_measurement_result, entity
+) -> None:
     """Tests all entity ids in the request measurements field must have a matching entity in request entities field"""
 
     # Create a InvalidResult for a different entity
@@ -325,7 +329,9 @@ def test_measurement_request_mismatched_entities(valid_measurement_result, entit
         request.measurements = [valid_measurement_result, invalid_result]
 
 
-def test_measurement_request_mismatched_experiments(entity, valid_measurement_result):
+def test_measurement_request_mismatched_experiments(
+    entity, valid_measurement_result
+) -> None:
     """Tests all experiments in request.measurements match request.experimentReference"""
 
     # Create a InvalidResult for the same entity with a different experiment
@@ -367,7 +373,7 @@ def test_measurement_request_mismatched_experiments(entity, valid_measurement_re
 
 def test_measurement_request_multiple_entity_measurement(
     valid_measurement_result, entity
-):
+) -> None:
 
     # Tests that the same entity can't have multiple measurement results
 
@@ -406,7 +412,7 @@ def test_measurement_request_series_representation(
     random_ml_multi_cloud_benchmark_performance_entities,
     random_ml_multi_cloud_benchmark_performance_measurement_requests,
     random_identifier,
-):
+) -> None:
 
     number_entities = 2
     measurements_per_result = 1
@@ -457,7 +463,7 @@ def test_measurement_request_series_representation(
 def test_populate_measurement_results_in_entities(
     random_ml_multi_cloud_benchmark_performance_entities,
     random_ml_multi_cloud_benchmark_performance_measurement_results,
-):
+) -> None:
 
     random_entity = random_ml_multi_cloud_benchmark_performance_entities(quantity=1)[0]
     shared_uid = uuid.uuid4()

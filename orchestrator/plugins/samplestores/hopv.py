@@ -14,7 +14,9 @@ from orchestrator.core.samplestore.csv import (
 class HOPV(CSVSampleStore):
 
     @staticmethod
-    def validate_parameters(parameters=None):
+    def validate_parameters(
+        parameters: dict,
+    ) -> CSVSampleStoreDescription:
 
         properties = ["homo", "lumo", "pce", "voc", "jsc"]
 
@@ -38,7 +40,7 @@ class HOPV(CSVSampleStore):
         self,
         storageLocation: orchestrator.utilities.location.FilePathLocation,
         parameters: CSVSampleStoreDescription,
-    ):
+    ) -> None:
         """
 
         :param parameters: A dictionary containing one field "data-file" which is the location of the HOPV CSV

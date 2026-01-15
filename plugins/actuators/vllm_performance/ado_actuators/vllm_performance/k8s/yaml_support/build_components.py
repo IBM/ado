@@ -231,7 +231,7 @@ class ComponentsYaml:
                 [
                     {
                         "name": "HOME",
-                        "value": "/tmp",
+                        "value": "/tmp",  # noqa: S108
                     },
                     {
                         "name": "HF_HOME",
@@ -326,7 +326,6 @@ if __name__ == "__main__":
         model=t_model,
         claim_name="vllm-support",
         node_selector={"kubernetes.io/hostname": "cpu16"},
-        hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
     print(f"Deployment YAML: \n{yaml.dump(deployment)}")

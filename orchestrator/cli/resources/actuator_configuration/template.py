@@ -22,7 +22,7 @@ from orchestrator.modules.actuators.registry import (
 )
 
 
-def template_actuator_configuration(parameters: AdoTemplateCommandParameters):
+def template_actuator_configuration(parameters: AdoTemplateCommandParameters) -> None:
     from orchestrator.cli.utils.pydantic.serializers import (
         serialise_pydantic_model,
         serialise_pydantic_model_json_schema,

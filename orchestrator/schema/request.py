@@ -82,7 +82,9 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     @classmethod
     def fail_on_measurements_reassignment(cls, data, handler):
 
-        def populate_measurement_results_in_entities(request: MeasurementRequest):
+        def populate_measurement_results_in_entities(
+            request: MeasurementRequest,
+        ) -> None:
 
             if not request.measurements:
                 return
@@ -190,7 +192,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
 
         return value
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         if len(self.entities) == 1:
             return "request-{}-experiment-{}-entities-{}-requester-{}-time-{}".format(  # noqa: UP032
@@ -316,7 +318,7 @@ class ReplayedMeasurement(MeasurementRequest):
         default_factory=lambda: f"replayed-measurement-{str(uuid.uuid4())[:6]}",
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         if len(self.entities) == 1:
             return "{}-experiment-{}-entities-{}-time-{}".format(  # noqa: UP032

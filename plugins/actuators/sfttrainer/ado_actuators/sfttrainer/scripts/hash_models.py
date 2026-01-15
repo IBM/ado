@@ -55,7 +55,9 @@ def get_model_hash(path_model: str):
     num_parameters = sum(m[1] for m in hash_info)
     hash_info.append(["architectures", architectures])
 
-    the_hash = hashlib.md5(str(hash_info).encode("utf-8")).hexdigest()
+    the_hash = hashlib.md5(
+        str(hash_info).encode("utf-8"), usedforsecurity=False
+    ).hexdigest()
 
     print(
         path_model,
@@ -75,7 +77,7 @@ def get_model_hash(path_model: str):
     }
 
 
-def main():
+def main() -> None:
     ray.init()
 
     model_information: dict[str, dict[str, typing.Any]] = {}

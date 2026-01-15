@@ -6,7 +6,7 @@ from orchestrator.cli.utils.resources.handlers import handle_edit_resource_metad
 from orchestrator.core.resources import CoreResourceKinds
 
 
-def edit_sample_store(parameters: AdoEditCommandParameters):
+def edit_sample_store(parameters: AdoEditCommandParameters) -> None:
     handle_edit_resource_metadata(
         resource_id=parameters.resource_id,
         resource_type=CoreResourceKinds.SAMPLESTORE,

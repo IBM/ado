@@ -51,7 +51,7 @@ def resource_type_callback(
     ctx: typer.Context,
     param: typer.CallbackParam,
     value: AdoCreateSupportedResourceTypes,
-):
+) -> str:
     # AP: 27/05/2025
     # To avoid making it impossible to run ado create context
     # when there is no default context, we need to disable
@@ -170,7 +170,7 @@ def create_resource(
             help="Validate the resource configuration file without creating the associated resource.",
         ),
     ] = False,
-):
+) -> None:
     """
     Create resources, contexts, and start operations.
 
@@ -267,7 +267,7 @@ def create_resource(
     ado_configuration.store()
 
 
-def register_create_command(app: typer.Typer):
+def register_create_command(app: typer.Typer) -> None:
     app.command(
         name="create",
         no_args_is_help=True,

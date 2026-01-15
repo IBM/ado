@@ -13,7 +13,7 @@ def test_delete_actuator_configuration_no_related(
     valid_ado_project_context,
     create_active_ado_context,
     ml_multi_cloud_correct_actuatorconfiguration,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -40,7 +40,7 @@ def test_delete_actuator_configuration_with_related_resource(
     sql_store,
     ml_multi_cloud_correct_actuatorconfiguration,
     ml_multi_cloud_space,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -74,7 +74,7 @@ def test_delete_nonexistent_actuator_configuration(
     tmp_path: pathlib.Path,
     valid_ado_project_context,
     create_active_ado_context,
-):
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context

@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-
 import typer
 
 from orchestrator.cli.exceptions.actuators import (
@@ -13,7 +12,7 @@ from orchestrator.cli.utils.output.prints import ERROR, HINT, console_print, mag
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 
 
-def get_actuators_implementing_experiment(experiment_id: str):
+def get_actuators_implementing_experiment(experiment_id: str) -> set[str]:
     """
     Returns a set of actuators that implement a given experiment.
 
@@ -21,23 +20,23 @@ def get_actuators_implementing_experiment(experiment_id: str):
         experiment_id (str): The identifier of the experiment.
 
     Returns:
-        set: A set of actuators that implement the experiment.
+        set[str]: A set of actuator identifiers that implement the experiment.
     """
     registry = ActuatorRegistry.globalRegistry()
-    actuators_with_target_experiment = set()
+    actuators_with_target_experiment: set[str] = set()
 
-    for actuator in registry.actuatorIdentifierMap:
-        catalog = registry.catalogForActuatorIdentifier(actuator)
+    for actuator_id in registry.actuatorIdentifierMap:
+        catalog = registry.catalogForActuatorIdentifier(actuator_id)
         for experiment in catalog.experiments:
             if experiment.identifier == experiment_id:
-                actuators_with_target_experiment.add(actuator)
+                actuators_with_target_experiment.add(actuator_id)
 
     return actuators_with_target_experiment
 
 
 def get_actuators_from_experiment_id(
     experiment_id: str,
-) -> set:
+) -> set[str]:
     """
     Retrieves a set of actuators that implement a given experiment ID.
 
@@ -45,7 +44,7 @@ def get_actuators_from_experiment_id(
         experiment_id (str): The ID of the experiment.
 
     Returns:
-        typing.Set: A set of actuators that implement the experiment.
+        set[str]: A set of actuator identifiers that implement the experiment.
 
     Raises:
         NoActuatorWithExperimentError: If no actuators implement the experiment.
@@ -61,7 +60,9 @@ def get_actuators_from_experiment_id(
     return actuators_with_target_experiment
 
 
-def get_actuator_from_experiment_id(experiment_id: str, actuator_id: str | None = None):
+def get_actuator_from_experiment_id(
+    experiment_id: str, actuator_id: str | None = None
+) -> str:
     """
     Retrieves the ID of the actuator that implements an experiment ID.
     If an actuator ID is also provided, the method will validate that the
@@ -102,7 +103,7 @@ def get_actuator_from_experiment_id(experiment_id: str, actuator_id: str | None 
 
 def _ado_get_actuator_from_experiment_id(
     experiment_id: str, actuator_id: str | None = None
-):
+) -> str:
     try:
         return get_actuator_from_experiment_id(experiment_id, actuator_id)
     except NoActuatorWithExperimentError as e:

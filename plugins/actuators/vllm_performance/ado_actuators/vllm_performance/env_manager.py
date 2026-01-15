@@ -35,7 +35,7 @@ class Environment:
     environment class
     """
 
-    def __init__(self, model: str, configuration: str):
+    def __init__(self, model: str, configuration: str) -> None:
         """
         Defines an environment for a model
         :param model: LLM model name
@@ -48,7 +48,7 @@ class Environment:
 
 
 class EnvironmentsQueue:
-    def __init__(self):
+    def __init__(self) -> None:
         self.environments_queue = []
 
     async def wait(self) -> None:
@@ -76,7 +76,7 @@ class EnvironmentManager:
         verify_ssl: bool = False,
         pvc_name: str | None = None,
         pvc_template: str | None = None,
-    ):
+    ) -> None:
         """
         Initialize
         :param namespace: deployment namespace
@@ -125,7 +125,7 @@ class EnvironmentManager:
 
         return {"max": self.max_concurrent, "in_use": self.active_environments}
 
-    async def wait_for_env(self):
+    async def wait_for_env(self) -> None:
         await self.environments_queue.wait()
 
     def get_environment(self, model: str, definition: str) -> Environment | None:

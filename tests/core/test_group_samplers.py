@@ -41,7 +41,7 @@ def check_group_order(
     group_order: list[frozenset[tuple[str, Any]]],
     space: DiscoverySpace,
     group: list[str],
-):
+) -> None:
 
     # For selectors the sequential order depends on the order returned by the samplestore which may differ
     # for the same data across samplestores e.g. MySQL based SQL store performs sorts on primary keys, sqlite does not
@@ -100,7 +100,7 @@ def group_sampler_ml_multi_cloud_space(request):
 def test_group_sampler_local(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
 
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
@@ -161,7 +161,7 @@ def test_group_sampler_local(
 def test_group_sampler_sequential_local(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
     assert (
@@ -196,7 +196,7 @@ def test_group_sampler_sequential_local(
 async def test_group_sampler_remote(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
     assert (
@@ -260,7 +260,7 @@ async def test_group_sampler_remote(
 async def test_group_sampler_sequential_remote(
     group_sampler_ml_multi_cloud_space: GroupSampler,
     ml_multi_cloud_space: DiscoverySpace,
-):
+) -> None:
 
     sampler = group_sampler_ml_multi_cloud_space
     space = ml_multi_cloud_space
@@ -303,7 +303,7 @@ async def test_group_sampler_sequential_remote(
 
 
 @pytest.mark.asyncio
-async def test_group_sample_generator_fail_on_continuous_space():
+async def test_group_sample_generator_fail_on_continuous_space() -> None:
 
     pytest.xfail(
         "We don't have a fixture for a discoveryspace with a continuous dimension"

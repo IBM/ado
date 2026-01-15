@@ -7,9 +7,6 @@ import os
 from typing import TYPE_CHECKING
 
 import pydantic
-
-if TYPE_CHECKING:
-    import pandas as pd
 import sqlalchemy
 
 import orchestrator.core
@@ -33,11 +30,14 @@ from orchestrator.metastore.sql.utils import (
     engine_for_sql_store,
 )
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 
 class SQLStore(ResourceStore):
     """Base class for SQLStores"""
 
-    def __new__(cls, project_context: ProjectContext):
+    def __new__(cls, project_context: ProjectContext) -> "SQLResourceStore":
 
         engine = engine_for_sql_store(configuration=project_context.metadataStore)
         inspector = sqlalchemy.inspect(engine)
@@ -48,7 +48,7 @@ class SQLStore(ResourceStore):
             ensureExists=not inspector.has_table("resources"),
         )
 
-    def __init__(self, project_context: ProjectContext):
+    def __init__(self, project_context: ProjectContext) -> None:
 
         pass
 
@@ -66,7 +66,9 @@ class SQLResourceStore(ResourceStore):
 
     """
 
-    def __init__(self, project_context: ProjectContext, ensureExists=True):
+    def __init__(
+        self, project_context: ProjectContext, ensureExists: bool = True
+    ) -> None:
         """
         Creates a SQLResourceStore instance based on the ProjectContext
 
@@ -104,11 +106,11 @@ class SQLResourceStore(ResourceStore):
         super().__init__()
 
     @property
-    def engine(self):
+    def engine(self) -> sqlalchemy.Engine:
 
         return engine_for_sql_store(configuration=self.configuration)
 
-    def getResourceRaw(self, identifier) -> dict | None:
+    def getResourceRaw(self, identifier: str) -> dict | None:
         """Retrieve the raw JSON data for a resource.
 
         The method queries the ``resources`` table for a row with the
@@ -484,7 +486,7 @@ class SQLResourceStore(ResourceStore):
 
         return output_df[columns]
 
-    def resourceTable(self):
+    def resourceTable(self) -> "pd.DataFrame":
         import pandas as pd
 
         query = """SELECT * FROM resources"""
@@ -539,7 +541,7 @@ class SQLResourceStore(ResourceStore):
         return self.getResources(identifiers=identifiers["IDENTIFIER"])
 
     def getRelatedSubjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """Retrieve identifiers of resources that have a relationship to the
         supplied ``identifier`` where that identifier acts as the *object*.
@@ -611,7 +613,7 @@ class SQLResourceStore(ResourceStore):
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def getRelatedObjectResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """Retrieve identifiers of resources that have a relationship to the
         supplied ``identifier`` where that identifier acts as the *subject*.
@@ -684,7 +686,7 @@ class SQLResourceStore(ResourceStore):
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
 
     def getRelatedResourceIdentifiers(
-        self, identifier, kind: str | None = None, version: str | None = None
+        self, identifier: str, kind: str | None = None, version: str | None = None
     ) -> "pd.DataFrame":
         """
         Retrieve identifiers of resources that are related to ``identifier`` either as a
@@ -782,7 +784,7 @@ class SQLResourceStore(ResourceStore):
 
         return row_count != 0
 
-    def addResource(self, resource: orchestrator.core.resources.ADOResource):
+    def addResource(self, resource: orchestrator.core.resources.ADOResource) -> None:
 
         if not isinstance(resource, orchestrator.core.resources.ADOResource):
             raise ValueError(
@@ -823,7 +825,7 @@ class SQLResourceStore(ResourceStore):
         self,
         subjectIdentifier: str,
         objectIdentifier: str,
-    ):
+    ) -> None:
 
         # Connect to SQL and add entry
         with self.engine.begin() as connectable:
@@ -839,7 +841,7 @@ class SQLResourceStore(ResourceStore):
 
     def addRelationshipForResources(
         self, subjectResource: pydantic.BaseModel, objectResource: pydantic.BaseModel
-    ):
+    ) -> None:
 
         self.addRelationship(
             subjectIdentifier=subjectResource.identifier,
@@ -850,7 +852,7 @@ class SQLResourceStore(ResourceStore):
         self,
         resource: orchestrator.core.resources.ADOResource,
         relatedIdentifiers: list,
-    ):
+    ) -> None:
         """For the relationship, the resource id is stored as object and the other ids as subjects
 
         This is because the others ids must already exist"""
@@ -869,7 +871,7 @@ class SQLResourceStore(ResourceStore):
                 subjectIdentifier=identifier, objectIdentifier=resource.identifier
             )
 
-    def updateResource(self, resource: orchestrator.core.resources.ADOResource):
+    def updateResource(self, resource: orchestrator.core.resources.ADOResource) -> None:
         """Replaces any data stored against "resource.identifier" with resource
 
         Raises:
@@ -897,7 +899,7 @@ class SQLResourceStore(ResourceStore):
 
             connectable.execute(query)
 
-    def deleteResource(self, identifier):
+    def deleteResource(self, identifier: str) -> None:
 
         if not self.containsResourceWithIdentifier(identifier):
             raise ValueError(
@@ -921,7 +923,7 @@ class SQLResourceStore(ResourceStore):
             ).bindparams(identifier=identifier)
             connectable.execute(query)
 
-    def deleteObjectRelationships(self, identifier):
+    def deleteObjectRelationships(self, identifier: str) -> None:
         """Deletes all recorded relationships for identifier where it is the object
 
         Only works if it is not the subject of another relationship"""
@@ -941,7 +943,9 @@ class SQLResourceStore(ResourceStore):
             ).bindparams(identifier=identifier)
             connectable.execute(query)
 
-    def delete_sample_store(self, identifier: str, force_deletion: bool = False):
+    def delete_sample_store(
+        self, identifier: str, force_deletion: bool = False
+    ) -> None:
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
@@ -1053,7 +1057,7 @@ class SQLResourceStore(ResourceStore):
 
     def delete_operation(
         self, identifier: str, ignore_running_operations: bool = False
-    ):
+    ) -> None:
         import sqlalchemy.orm
 
         if self.engine.dialect.name == "sqlite" and not ignore_running_operations:
@@ -1216,7 +1220,7 @@ class SQLResourceStore(ResourceStore):
                     rollback_occurred=True,
                 ) from e
 
-    def delete_discovery_space(self, identifier: str):
+    def delete_discovery_space(self, identifier: str) -> None:
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
@@ -1247,7 +1251,7 @@ class SQLResourceStore(ResourceStore):
                     rollback_occurred=True,
                 ) from e
 
-    def delete_data_container(self, identifier: str):
+    def delete_data_container(self, identifier: str) -> None:
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:
@@ -1278,7 +1282,7 @@ class SQLResourceStore(ResourceStore):
                     rollback_occurred=True,
                 ) from e
 
-    def delete_actuator_configuration(self, identifier: str):
+    def delete_actuator_configuration(self, identifier: str) -> None:
         import sqlalchemy.orm
 
         with sqlalchemy.orm.Session(self.engine) as session:

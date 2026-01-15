@@ -7,7 +7,7 @@ from ado_actuators.sfttrainer.ray_env.utils import (
 )
 
 
-def test_exclude_packages():
+def test_exclude_packages() -> None:
     packages = [
         "yarl==1.20.0",
         "bitsandbytes==0.43.3",

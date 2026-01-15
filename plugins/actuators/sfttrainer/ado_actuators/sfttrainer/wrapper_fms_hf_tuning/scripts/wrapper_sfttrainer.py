@@ -200,7 +200,7 @@ class CustomAimCallback(AimCallback):
         aim_metadata: dict[str, Any] | None = None,
         stop_after_seconds: float = -1.0,
         auto_stop_method: constants.AutoStopMethod | None = None,
-    ):
+    ) -> None:
 
         self._additional_metrics = additional_metrics or {}
         self._aim_info_path = aim_info_path
@@ -226,7 +226,7 @@ class CustomAimCallback(AimCallback):
             capture_terminal_logs,
         )
 
-    def on_train_begin(self, args, state, control, model=None, **kwargs):
+    def on_train_begin(self, args, state, control, model=None, **kwargs) -> None:
         super().on_train_begin(args, state, control, model, **kwargs)
 
         self._time_started = datetime.datetime.now()
@@ -248,7 +248,7 @@ class CustomAimCallback(AimCallback):
         state: TrainerState,
         control: TrainerControl,
         **kwargs,
-    ):
+    ) -> None:
         self._optimization_step_started = datetime.datetime.now()
 
     def on_step_end(
@@ -257,7 +257,7 @@ class CustomAimCallback(AimCallback):
         state: TrainerState,
         control: TrainerControl,
         **kwargs,
-    ):
+    ) -> None:
         super().on_step_end(args, state, control, **kwargs)
 
         CustomAimCallback.training_steps += 1
@@ -342,7 +342,7 @@ class CustomAimCallback(AimCallback):
             if control.should_training_stop:
                 print("All local-rank 0 workers agree to stop early")
 
-    def on_train_end(self, args, state, control, **kwargs):
+    def on_train_end(self, args, state, control, **kwargs) -> None:
         try:
             if self._aim_info_path and state.is_local_process_zero:
                 format_time = "%d%m%y-%H%M%S"
@@ -509,7 +509,7 @@ class CustomArgs:
     )
 
 
-def main():
+def main() -> None:
     """Utility method that invokes the main() method of sft_trainer.py, catches GPU OOM exceptions and logs them
     to the --aim_info_path JSON file as well as STDERR"""
     import json
@@ -553,7 +553,7 @@ def main():
         print("Could not construct measurement id due to", e, file=sys.stderr)
         measurement_id = "unknown/unknown"
 
-    def report_error(exception: Exception, warning: str, exception_type: str):
+    def report_error(exception: Exception, warning: str, exception_type: str) -> None:
         print(warning, file=sys.stderr)
         # Standard
         import traceback

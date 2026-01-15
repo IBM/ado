@@ -117,7 +117,7 @@ def discovery_space_resource_no_replay(
 
 
 @pytest.fixture
-def test_space_identifier():
+def test_space_identifier() -> str:
     """Fixture providing a space id that can be used for add/update/remove tests"""
 
     return "space-82aecb-b48040"

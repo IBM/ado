@@ -78,11 +78,7 @@ class CSVSampleStore(PassiveSampleStore):
     """
 
     @staticmethod
-    def validate_parameters(parameters=None):
-        # AP: parameters are used to instantiate a CSVSampleStoreDescription
-        if parameters is None:
-            raise ValueError("parameters cannot be None for CSVSampleStore")
-
+    def validate_parameters(parameters: dict):
         return CSVSampleStoreDescription.model_validate(parameters)
 
     @staticmethod
@@ -157,7 +153,7 @@ class CSVSampleStore(PassiveSampleStore):
         self,
         storageLocation: orchestrator.utilities.location.FilePathLocation,
         parameters: CSVSampleStoreDescription,
-    ):
+    ) -> None:
         """
 
         :param parameters: A dictionary that describes how parse the CSV file. It contains the following keys
@@ -327,14 +323,14 @@ class CSVSampleStore(PassiveSampleStore):
         return entity_id in self._entity_ids
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
 
         # hash file
         import hashlib
 
         # hash experiment/properties
-        h = (
-            hashlib.md5()
+        h = hashlib.md5(
+            usedforsecurity=False
         )  # Construct a hash object using our selected hashing algorithm
         for op in self._observedProperties:
             h.update(

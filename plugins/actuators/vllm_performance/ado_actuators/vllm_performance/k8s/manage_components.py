@@ -40,7 +40,7 @@ class ComponentsManager:
         init_pvc: bool = False,
         pvc_name: None | str = None,
         pvc_template: None | str = None,
-    ):
+    ) -> None:
         """
         set up for configuration usage
         :param namespace: cluster namespace to use
@@ -406,7 +406,6 @@ if __name__ == "__main__":
         k8s_name=t_k8s_name,
         model="meta-llama/Llama-3.1-8B-Instruct",
         claim_name="vllm-support",
-        hf_token="token",
         image="quay.io/dataprep1/data-prep-kit/vllm_image:0.1",
     )
     c_manager.wait_deployment_ready(k8s_name=t_k8s_name)

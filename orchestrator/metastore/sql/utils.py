@@ -7,8 +7,8 @@ from orchestrator.utilities.location import SQLStoreConfiguration
 
 
 def engine_for_sql_store(
-    configuration: SQLStoreConfiguration, database=None
-) -> sqlalchemy.engine.Engine:
+    configuration: SQLStoreConfiguration, database: str | None = None
+) -> sqlalchemy.Engine:
     if configuration is None:
         raise ValueError("engine_for_sql_store requires a valid SQLStoreConfiguration")
 
@@ -30,7 +30,7 @@ def engine_for_sql_store(
     return sqlalchemy.create_engine(db_location, echo=False)
 
 
-def create_sql_resource_store(engine):
+def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:
     from sqlalchemy import JSON, String
 
     # Create the tables if they don't exist

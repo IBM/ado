@@ -97,7 +97,7 @@ entity_data = """
 
 
 @pytest.fixture
-def csv_sample_store_identifier():
+def csv_sample_store_identifier() -> str:
     return "gt4sd-pfas-molgx-model-one-92f4b88651b213bf3cf742db1ce84138"
 
 

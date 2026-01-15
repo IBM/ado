@@ -38,7 +38,7 @@ class TabularData(pydantic.BaseModel):
 
         return pd.DataFrame(self.data)
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -80,13 +80,14 @@ class DataContainer(pydantic.BaseModel):
     @pydantic.model_validator(mode="after")
     def test_data_present(self):
 
-        assert (
-            self.tabularData or self.locationData or self.data
-        ), "All data fields empty in DataContainer"
+        if not (self.tabularData or self.locationData or self.data):
+            raise ValueError(
+                "All data fields of the DataContainer (tabularData, locationData, data) were empty."
+            )
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -144,7 +145,7 @@ class DataContainerResource(ADOResource):
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p, cycle=False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")

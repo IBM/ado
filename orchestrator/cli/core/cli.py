@@ -62,7 +62,7 @@ register_version_command(app)
 
 
 # Load CLI plugins via entrypoints
-def load_cli_plugins():
+def load_cli_plugins() -> None:
     """Load and register CLI plugins from entry points."""
     from importlib.metadata import entry_points
 
@@ -124,7 +124,7 @@ def common_options(
     override_ado_app_dir: Annotated[
         pathlib.Path | None, typer.Option(help="For testing only", hidden=True)
     ] = None,
-):
+) -> None:
     logging.getLogger().setLevel(log_level.value)
 
     # AP: 25/06/2025

@@ -153,7 +153,7 @@ class WeightsFormat(str, enum.Enum):
     Vanilla = "Vanilla"
     GPTQQuantized = "GPTQ-Quantized"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -161,7 +161,7 @@ class ExperimentPurpose(str, enum.Enum):
     Performance = "Performance"
     Stability = "Stability"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 
@@ -808,7 +808,7 @@ class EntitySpace(SFTTrainerCLIArgs):
         "[2] SHARD_GRAD_OP (shards optimizer states and gradients), "
         "[3] NO_SHARD (DDP), "
         "[4] HYBRID_SHARD (shards optimizer states, gradients and parameters within each node "
-        "while each node has full copy), "
+        "while each node has full copy - equivalent to FULL_SHARD for single-node runs), "
         "[5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients within each node while each node has "
         "full copy). For more information, please refer the official PyTorch docs.",
         examples=[
@@ -954,7 +954,7 @@ class EntitySpace(SFTTrainerCLIArgs):
 
     def validate_and_update(
         self, exp_params: "ExperimentParameters", logger: logging.Logger
-    ):
+    ) -> None:
         """Method updates both @self and @exp_params to make the 2 consistent with each other, also validates them
 
         Args:

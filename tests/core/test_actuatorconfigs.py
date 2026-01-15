@@ -14,7 +14,7 @@ from orchestrator.core.operation.config import (
 )
 
 
-def test_nonexistent_actuatorconfig_raises_error():
+def test_nonexistent_actuatorconfig_raises_error() -> None:
     configuration = "tests/resources/nonexistent_actuatorconfiguration.yaml"
 
     with pytest.raises(
@@ -30,7 +30,7 @@ def test_ml_multi_cloud_operation_valid(
     valid_ado_project_context,
     ml_multi_cloud_correct_actuatorconfiguration,
     ml_multi_cloud_space,
-):
+) -> None:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
         yaml.safe_load(
@@ -55,7 +55,7 @@ def test_ml_multi_cloud_operation_invalid(
     valid_ado_project_context,
     ml_multi_cloud_invalid_actuatorconfiguration,
     ml_multi_cloud_space,
-):
+) -> None:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
         yaml.safe_load(
@@ -86,7 +86,7 @@ def test_ml_multi_cloud_operation_base_get(
     valid_ado_project_context,
     ml_multi_cloud_correct_actuatorconfiguration,
     ml_multi_cloud_space,
-):
+) -> None:
     """Tests directly that BaseOperationRunConfiguration works"""
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
         yaml.safe_load(

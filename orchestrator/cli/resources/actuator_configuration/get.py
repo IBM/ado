@@ -6,7 +6,7 @@ from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.core.resources import CoreResourceKinds
 
 
-def get_actuator_configuration(parameters: AdoGetCommandParameters):
+def get_actuator_configuration(parameters: AdoGetCommandParameters) -> None:
     from orchestrator.cli.utils.resources.handlers import (
         handle_ado_get_default_format,
         handle_ado_get_special_formats,

@@ -6,7 +6,9 @@ import typer
 from orchestrator.cli.utils.output.prints import ERROR, console_print, cyan
 
 
-def remove_fields_from_dictionary(input_dictionary: dict, fields_to_remove: list[str]):
+def remove_fields_from_dictionary(
+    input_dictionary: dict, fields_to_remove: list[str]
+) -> dict:
     import jsonpath_ng.ext
     from jsonpath_ng.exceptions import JsonPathLexerError, JsonPathParserError
 

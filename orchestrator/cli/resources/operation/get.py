@@ -8,7 +8,7 @@ from orchestrator.cli.models.types import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
-def get_operation(parameters: AdoGetCommandParameters):
+def get_operation(parameters: AdoGetCommandParameters) -> None:
     from orchestrator.cli.utils.resources.handlers import (
         handle_ado_get_default_format,
         handle_ado_get_special_formats,

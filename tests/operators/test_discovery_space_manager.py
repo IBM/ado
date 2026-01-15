@@ -12,7 +12,7 @@ from orchestrator.schema.entity import Entity
 
 def test_internal_state_direct_init(
     pfas_space: DiscoverySpace,
-):
+) -> None:
     """Tests InternalState actor can be initialised with a DiscoverySpace instance"""
 
     queue = MeasurementQueue()
@@ -45,7 +45,7 @@ def test_internal_state_direct_init(
 def test_internal_state_conf_init(
     pfas_space_configuration: DiscoverySpaceConfiguration,
     pfas_space: DiscoverySpace,
-):
+) -> None:
     """Tests InternalState actor can be initialised with a DiscoverySpaceConfiguration"""
 
     pfas_space_configuration.sampleStoreIdentifier = pfas_space.sample_store.identifier

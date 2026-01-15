@@ -105,17 +105,17 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
         return "-".join(components[:-1]), method.value
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"vp-{self.identifier}"
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
 
         return f"{self.baseObservedProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
     @property
-    def virtualTargetPropertyIdentifier(self):
+    def virtualTargetPropertyIdentifier(self) -> str:
 
         return f"{self.baseObservedProperty.targetProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
@@ -189,9 +189,10 @@ class VirtualObservedProperty(pydantic.BaseModel):
             )
 
             # This can only ha
-            assert (
-                virtual_observed_property.identifier == identifier
-            ), f"InternalInconsistency: A VirtualObservedProperty instance created by parsing the identifier string, {identifier}, has a different value of the identifier property, {virtual_observed_property.identifier}, when it should be the same"
+            if virtual_observed_property.identifier != identifier:
+                raise ValueError(
+                    f"InternalInconsistency: A VirtualObservedProperty instance created by parsing the identifier string, {identifier}, has a different value of the identifier property, {virtual_observed_property.identifier}, when it should be the same"
+                )
 
             virtual_observed_properties = [virtual_observed_property]
 

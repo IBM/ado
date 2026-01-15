@@ -315,7 +315,7 @@ def _connect_to_vllm_server(
             f"{port}:80",
         ]
         try:
-            pf = subprocess.Popen(
+            pf = subprocess.Popen(  # noqa: S603 - namespace is sanitized to be RFC1123
                 pf_command_args,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -347,7 +347,7 @@ def run_resource_and_workload_experiment(
     node_selector: dict[str, str],
     env_manager: ActorHandle,
     local_port: int,
-):
+) -> None:
     """
     Runs an experiment on a specific compute resource and inference workload configuration.
 
@@ -519,7 +519,7 @@ def run_workload_experiment(
     experiment: Experiment | ParameterizedExperiment,
     state_update_queue: MeasurementQueue,
     actuator_parameters: VLLMPerformanceTestParameters,
-):
+) -> None:
     """
     Runs an experiment with a specific inference workload configuration on a given endpoint.
 

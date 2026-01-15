@@ -45,42 +45,42 @@ class ExperimentError(Exception):
 
 
 class NumberOfExpertsNotDivisibleByEpDegreeError(ExperimentError):
-    def __init__(self, underlying_error: str):
+    def __init__(self, underlying_error: str) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.underlying_error
 
 
 class AccelerateError(ExperimentError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         self.reason = reason
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.reason
 
 
 class OutOfGPUMemoryError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Out of GPU memory, underlying error was {self.underlying_error}"
 
 
 class NCCLError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"NCCL error, underlying error was {self.underlying_error}"
 
 
 class UnhandledError(NotImplementedError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"Unhandled experiment error, underlying error was {self.underlying_error}"
         )
@@ -115,7 +115,7 @@ class DistributedSettings:
             "[2] SHARD_GRAD_OP (shards optimizer states and gradients), "
             "[3] NO_SHARD (DDP), "
             "[4] HYBRID_SHARD (shards optimizer states, gradients and parameters within each node "
-            "while each node has full copy), "
+            "while each node has full copy - equivalent to FULL_SHARD for single-node runs), "
             "[5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients within each node while each node has "
             "full copy). For more information, please refer the official PyTorch docs."
         },
@@ -456,7 +456,7 @@ def get_available_open_port() -> int:
     import socket
 
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("0.0.0.0", 0))
+        s.bind(("0.0.0.0", 0))  # noqa: S104
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 
@@ -576,7 +576,7 @@ def _finetune_launch_kernel(
             with contextlib.closing(
                 socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             ) as s:
-                s.bind(("0.0.0.0", multi_node.port))
+                s.bind(("0.0.0.0", multi_node.port))  # noqa: S104
 
         # VV: Accelerate refers to DDP with the name "MULTI_GPU"
         backend_name_map = {"FSDP": "FSDP", "DDP": "MULTI_GPU"}[
@@ -705,7 +705,7 @@ def _finetune_launch_kernel(
         env["LOGLEVEL"] = env["LOGLEVEL"].upper()
 
     log.info(f"Environment variables {env}")
-    proc = subprocess.Popen(
+    proc = subprocess.Popen(  # noqa: S603
         command,
         stdout=sys.stdout,
         stderr=sys.stderr,
@@ -767,7 +767,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
     tokens_per_sample: list[int],
     model_id: str,
     path_data: str,
-):
+) -> None:
     import json
 
     parent_dir = os.path.dirname(cache_file)
@@ -877,10 +877,10 @@ def calculate_tokens_in_text_dataset(
     tokenizer = AutoTokenizer.from_pretrained(path_model)
     special_tokens_dict = {}
 
-    DEFAULT_PAD_TOKEN = "<PAD>"
-    DEFAULT_EOS_TOKEN = "</s>"
-    DEFAULT_BOS_TOKEN = "<s>"
-    DEFAULT_UNK_TOKEN = "<unk>"
+    DEFAULT_PAD_TOKEN = "<PAD>"  # noqa: S105
+    DEFAULT_EOS_TOKEN = "</s>"  # noqa: S105
+    DEFAULT_BOS_TOKEN = "<s>"  # noqa: S105
+    DEFAULT_UNK_TOKEN = "<unk>"  # noqa: S105
 
     if tokenizer.pad_token is None:
         log.warning("PAD token set to default, missing in tokenizer")
@@ -930,7 +930,7 @@ def get_cache_file_for_tokens_per_sample(
     # we use the md5 hash of the file as part of the cache id
     import hashlib
 
-    digest = hashlib.md5()
+    digest = hashlib.md5(usedforsecurity=False)
 
     with open(path_data, "rb") as f:
         b = f.read(32768)

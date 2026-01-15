@@ -2,11 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import typing
 
 import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.schema.domain import PropertyDomain
+
+if typing.TYPE_CHECKING:
+    from IPython.lib.pretty import PrettyPrinter
 
 
 class MeasuredPropertyTypeEnum(str, enum.Enum):
@@ -37,7 +41,9 @@ class PropertyDescriptor(pydantic.BaseModel):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def property_to_descriptor(cls, value):
+    def property_to_descriptor(
+        cls, value: typing.Any  # noqa: ANN401
+    ) -> "PropertyDescriptor | dict | typing.Any":  # noqa: ANN401
 
         if isinstance(value, Property):
             value = value.descriptor()
@@ -47,7 +53,7 @@ class PropertyDescriptor(pydantic.BaseModel):
 
         return value
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:
         """Two PropertyDescriptors are considered the same if they have the same identifier
 
         A PropertyDescriptor will be equal to a Property if it has the same identifier.
@@ -59,7 +65,7 @@ class PropertyDescriptor(pydantic.BaseModel):
             and self.identifier == other.identifier
         )
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: no cover
             p.text("Cycle detected")
@@ -76,7 +82,9 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def property_to_descriptor(cls, value):
+    def property_to_descriptor(
+        cls, value: typing.Any  # noqa: ANN401
+    ) -> PropertyDescriptor | dict | typing.Any:  # noqa: ANN401
 
         if isinstance(value, Property):
             value = value.descriptor()
@@ -128,11 +136,11 @@ class Property(pydantic.BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     @classmethod
-    def from_descriptor(cls, descriptor: PropertyDescriptor):
+    def from_descriptor(cls, descriptor: PropertyDescriptor) -> "Property":
 
         return cls(identifier=descriptor.identifier)
 
-    def __eq__(self, other: "Property"):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Two properties are considered the same if they have the same identifier and domain.
 
         Metadata is not included"""
@@ -147,7 +155,7 @@ class Property(pydantic.BaseModel):
 
         return retval
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: no cover
             p.text("Cycle detected")
@@ -163,7 +171,7 @@ class Property(pydantic.BaseModel):
 
             p.breakable()
 
-    def descriptor(self):
+    def descriptor(self) -> PropertyDescriptor:
 
         return PropertyDescriptor(identifier=self.identifier)
 
@@ -178,7 +186,9 @@ class AbstractProperty(Property):
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def from_descriptor(cls, descriptor: AbstractPropertyDescriptor):
+    def from_descriptor(
+        cls, descriptor: AbstractPropertyDescriptor
+    ) -> "AbstractProperty":
 
         return cls(
             identifier=descriptor.identifier,
@@ -187,7 +197,7 @@ class AbstractProperty(Property):
     def __str__(self) -> str:
         return f"ap-{self.identifier}"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
 
         retval = super().__eq__(other)
         return (
@@ -196,7 +206,7 @@ class AbstractProperty(Property):
             and self.concretePropertyIdentifiers == other.concretePropertyIdentifiers
         )
 
-    def descriptor(self):
+    def descriptor(self) -> AbstractPropertyDescriptor:
 
         return AbstractPropertyDescriptor(identifier=self.identifier)
 
@@ -207,7 +217,9 @@ class ConstitutiveProperty(Property):
     )
 
     @classmethod
-    def from_descriptor(cls, descriptor: AbstractPropertyDescriptor):
+    def from_descriptor(
+        cls, descriptor: AbstractPropertyDescriptor
+    ) -> "ConstitutiveProperty":
 
         return cls(
             identifier=descriptor.identifier,
@@ -218,7 +230,7 @@ class ConstitutiveProperty(Property):
 
     model_config = ConfigDict(frozen=True)
 
-    def descriptor(self):
+    def descriptor(self) -> ConstitutivePropertyDescriptor:
 
         return ConstitutivePropertyDescriptor(identifier=self.identifier)
 
@@ -231,7 +243,9 @@ class ConcreteProperty(Property):
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def from_descriptor(cls, descriptor: ConcretePropertyDescriptor):
+    def from_descriptor(
+        cls, descriptor: ConcretePropertyDescriptor
+    ) -> "ConcreteProperty":
 
         return cls(
             identifier=descriptor.identifier,
@@ -245,7 +259,7 @@ class ConcreteProperty(Property):
     def __str__(self) -> str:
         return f"cp-{self.identifier}"
 
-    def descriptor(self):
+    def descriptor(self) -> ConcretePropertyDescriptor:
         return ConcretePropertyDescriptor(
             identifier=self.identifier,
             abstractProperty=(

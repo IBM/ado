@@ -12,12 +12,17 @@ from orchestrator.schema.property_value import (
 )
 from orchestrator.schema.result import MeasurementResult
 
+if typing.TYPE_CHECKING:
+    from IPython.lib.pretty import PrettyPrinter
+
 
 class EntitySpaceRepresentation:
     """Provides explicit details of the dimensions of the space"""
 
     @classmethod
-    def representationFromConfiguration(cls, conf: list[ConstitutiveProperty]):
+    def representationFromConfiguration(
+        cls, conf: list[ConstitutiveProperty]
+    ) -> "EntitySpaceRepresentation":
 
         return cls(constitutiveProperties=conf)
 
@@ -60,7 +65,7 @@ class EntitySpaceRepresentation:
         return self._constitutiveProperties.copy()
 
     @property
-    def isDiscreteSpace(self):
+    def isDiscreteSpace(self) -> bool:
 
         non_discrete_dims = [
             d
@@ -101,7 +106,7 @@ class EntitySpaceRepresentation:
             f" constitutive properties: {[cp.identifier for cp in self._constitutiveProperties]}"
         )
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         import pandas as pd
 
@@ -237,7 +242,7 @@ class EntitySpaceRepresentation:
 
     def isPointInSpace(
         self, point: dict[str, typing.Any], allow_partial_matches: bool = False
-    ):
+    ) -> bool:
         """
         Determines if a given point is within this space based on constitutive property matches.
 
@@ -259,7 +264,7 @@ class EntitySpaceRepresentation:
             allow_partial_matches=allow_partial_matches,
         )
 
-    def isEntityInSpace(self, entity: Entity):
+    def isEntityInSpace(self, entity: Entity) -> bool:
         """Returns True if entity is in the space otherwise false
 
         Specifically False is returned if the entity's constitutive properties are not identical to the entityspaces
@@ -274,7 +279,9 @@ class EntitySpaceRepresentation:
         }
         return self.isPointInSpace(point)
 
-    def isPointCompatibleWithSpace(self, point: dict[str, typing.Any]):
+    def isPointCompatibleWithSpace(
+        self, point: dict[str, typing.Any]
+    ) -> bool:  # noqa: ANN401
         """A point is compatible if the identifiers of all the entityspaces constitutive properties are keys in point
 
         Note: This means the point may have more dimensions (keys/constitutive properties) than the entityspace.
@@ -297,7 +304,7 @@ class EntitySpaceRepresentation:
 
         return retval
 
-    def isEntityCompatibleWithSpace(self, entity: Entity):
+    def isEntityCompatibleWithSpace(self, entity: Entity) -> bool:
         """An entity is compatible if all the entityspaces constitutive properties are also constitutive properties of the entity
 
         Note: This means an entity may have more constitutive properties than the entityspace.

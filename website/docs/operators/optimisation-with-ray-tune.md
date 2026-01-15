@@ -771,7 +771,7 @@ keywordParams:
 ### BayesianMetricDifferenceStopper
 
 Stops a run when it can tell with high confidence if the
-average (absolute) difference between the two metrics is above
+average (absolute) difference between two metrics is above
 or below a threshold.
 It is designed to be used with a non-correlated, random, sampler e.g.,
 the [LHU Sampler](#latin-hypercube-sampler)

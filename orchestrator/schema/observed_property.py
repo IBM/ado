@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+import typing
 
 import pydantic
 from pydantic import ConfigDict
@@ -12,6 +12,12 @@ from orchestrator.schema.property import (
 )
 from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.reference import ExperimentReference
+
+if typing.TYPE_CHECKING:
+    from orchestrator.schema.property import (
+        MeasuredPropertyTypeEnum,
+        PropertyDescriptor,
+    )
 
 
 class ObservedProperty(pydantic.BaseModel):
@@ -31,7 +37,9 @@ class ObservedProperty(pydantic.BaseModel):
 
     @pydantic.field_validator("targetProperty", mode="before")
     @classmethod
-    def convert_property_to_descriptor(cls, value):
+    def convert_property_to_descriptor(
+        cls, value: typing.Any  # noqa: ANN401
+    ) -> "PropertyDescriptor | typing.Any":  # noqa: ANN401
 
         # We allow instantiation with Property models and their subclass but they are converted
         # to the equivalent descriptors
@@ -40,12 +48,12 @@ class ObservedProperty(pydantic.BaseModel):
 
         return value
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Two properties are considered the same if they have the same identifier"""
 
         return self.identifier == other.identifier
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
     @property
@@ -59,7 +67,7 @@ class ObservedProperty(pydantic.BaseModel):
         return f"op-{self.identifier}"
 
     @property
-    def propertyType(self):
+    def propertyType(self) -> "MeasuredPropertyTypeEnum":
         return self.targetProperty.propertyType
 
 

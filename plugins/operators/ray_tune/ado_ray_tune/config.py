@@ -96,9 +96,7 @@ class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
     @classmethod
     def validate_mode(cls, v):
         if v not in ["target", "observed"]:
-            raise ValueError(
-                f"metric_identifier_mode must be 'target' or 'observed', got: {v}"
-            )
+            raise ValueError(f"metric_format must be 'target' or 'observed', got: {v}")
         return v
 
 

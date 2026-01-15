@@ -684,7 +684,7 @@ are required.
 name: SimpleStopper
 keywordParams:
   mode: # `min` or `max`: Whether to search for min or max of the target property/metric. Required
-  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_identifier_mode. Required.
+  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_format. Required.
   min_trials: 5 # The number of trials to perform (samples to take) before applying any stopping criteria
   buffer_states: 2 # The number of samples/optimization steps to wait before declaring no improvement.
   stop_on_repeat: True # If True, the stopper will stop the optimization if it sees the same sample twice.
@@ -718,7 +718,7 @@ are required.
 name: GrowthStopper
 keywordParams:
   mode: # `min` or `max`: Whether to search for min or max of the target property/metric. Required
-  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_identifier_mode. Required.
+  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_format. Required.
   growth_threshold: 1.0 # If the difference in two samples is less than this threshold the optimization is considered to be not improving
   grace_trials: 2 # The number of samples/optimization steps to wait before declaring the metric is not improving. Same as buffer_states for SimpleStopper.
 ```

@@ -254,7 +254,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     single_measurement = (
         trainable_params.orchestrator_config.single_measurement_per_property
     )
-    metric_mode = trainable_params.orchestrator_config.metric_identifier_mode
+    metric_mode = trainable_params.orchestrator_config.metric_format
 
     entity_space = trainable_params.entity_space
     actuators = trainable_params.actuators
@@ -774,7 +774,7 @@ class RayTune(Search):
             )  # type: MeasurementSpace
 
             metric_or_metrics = self.params.tuneConfig.metric
-            metric_mode = self.params.orchestratorConfig.metric_identifier_mode
+            metric_mode = self.params.orchestratorConfig.metric_format
 
             # Validate metrics match the configured mode
             metrics_to_check = (

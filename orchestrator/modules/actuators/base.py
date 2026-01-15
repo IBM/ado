@@ -53,7 +53,7 @@ class ActuatorBase(abc.ABC):
     identifier: str
     parameters_class: type[GenericActuatorParameters] = GenericActuatorParameters
 
-    def __init__(self, queue: MeasurementQueue, params=None) -> None:
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
         """
         :param queue: A StateUpdateQueue the actuator can use to put results.
         :return: An ActuatorBase subclass

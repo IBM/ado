@@ -88,7 +88,9 @@ class OperationCollections(pydantic.BaseModel):
 
         return self.function_operation_descriptions.get(name)
 
-    def __getattr__(self, item):
+    def __getattr__(
+        self, item: str
+    ) -> typing.Callable[..., object] | DiscoveryOperationBase:
         if item in self.function_operations:
             retval = self.function_operations[item]
         elif item in self.object_operations:
@@ -139,12 +141,16 @@ operationCollectionMap = {
 #
 
 
-def register_characterize_operation(func):
+def register_characterize_operation(
+    func: typing.Callable[..., object],
+) -> typing.Callable[
+    [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
+]:
     @functools.wraps(func)
     def characterize_operation_wrapper(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **kwargs,
+        **kwargs: dict,
     ) -> OperationOutput:
 
         return orchestrate_general_operation(
@@ -169,7 +175,12 @@ def characterize_operation(
     version: str | None = "v0.1",
     configuration_model: type[pydantic.BaseModel] | None = None,
     configuration_model_default: pydantic.BaseModel | None = None,
-):
+) -> typing.Callable[
+    [typing.Callable[..., object]],
+    typing.Callable[
+        [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
+    ],
+]:
     characterize.add_operation_configuration_model(name, configuration_model)
     characterize.add_operation_configuration_model_default(
         name, configuration_model_default
@@ -180,7 +191,9 @@ def characterize_operation(
     return register_characterize_operation
 
 
-def register_explore_operation(func):
+def register_explore_operation(
+    func: typing.Callable[..., object],
+) -> typing.Callable[..., object]:
     """Registers a function that performs an explore operation on a DiscoverySpace"""
 
     # All explore operation function must call explore_operation_function_wrapper
@@ -197,7 +210,7 @@ def explore_operation(
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
-):
+) -> typing.Callable[[typing.Callable[..., object]], typing.Callable[..., object]]:
     explore.add_operation_configuration_model(name, configuration_model)
     explore.add_operation_configuration_model_default(name, configuration_model_default)
     explore.add_operation_version(name, version)
@@ -206,14 +219,16 @@ def explore_operation(
     return register_explore_operation
 
 
-def register_modify_operation(func):
+def register_modify_operation(
+    func: typing.Callable[..., object],
+) -> typing.Callable[[typing.Callable[..., object]], OperationCollections]:
     """Registers a function that modifies a discovery space to return a new discovery space"""
 
     @functools.wraps(func)
     def modify_operation_wrapper(
         discoverySpace: DiscoverySpace,
         operationInfo: FunctionOperationInfo | None = None,
-        **kwargs,
+        **kwargs: dict,
     ) -> OperationOutput:
 
         return orchestrate_general_operation(
@@ -238,7 +253,7 @@ def modify_operation(
     version: str | None = "v0.1",
     configuration_model: type[pydantic.BaseModel] | None = None,
     configuration_model_default: pydantic.BaseModel | None = None,
-):
+) -> typing.Callable[[typing.Callable[..., object]], OperationCollections]:
     modify.add_operation_configuration_model(name, configuration_model)
     modify.add_operation_configuration_model_default(name, configuration_model_default)
     modify.add_operation_version(name, version)
@@ -247,7 +262,11 @@ def modify_operation(
     return register_modify_operation
 
 
-def register_export_operation(func):
+def register_export_operation(
+    func: typing.Callable[..., object],
+) -> typing.Callable[
+    [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
+]:
     """Registers a function that performs a lakehouse operation on a DiscoverySpace"""
 
     @functools.wraps(func)
@@ -278,7 +297,12 @@ def export_operation(
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
-):
+) -> typing.Callable[
+    [typing.Callable[..., object]],
+    typing.Callable[
+        [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
+    ],
+]:
     export.add_operation_configuration_model(name, configuration_model)
     export.add_operation_configuration_model_default(name, configuration_model_default)
     export.add_operation_version(name, version)

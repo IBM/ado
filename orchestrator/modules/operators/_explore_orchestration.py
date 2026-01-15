@@ -52,7 +52,7 @@ def graceful_explore_operation_shutdown(
     state: "DiscoverySpaceManagerActor",
     actuators: list["ActuatorActor"],
     namespace: str,
-    timeout=60,
+    timeout: int = 60,
 ) -> None:
 
     from rich.status import Status
@@ -303,7 +303,9 @@ def orchestrate_explore_operation(
         signalnum=signal.SIGTERM, handler=graceful_operation_shutdown_signal_handler()
     )
 
-    def finalize_callback_closure(operator_actor: "OperatorActor"):
+    def finalize_callback_closure(
+        operator_actor: "OperatorActor",
+    ) -> typing.Callable[[OperationResource], None]:
         from ray.exceptions import GetTimeoutError
 
         def finalize_callback(operation_resource: OperationResource) -> None:

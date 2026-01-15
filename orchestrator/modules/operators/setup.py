@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-import os
 import pathlib
 import typing
 
@@ -22,33 +21,12 @@ from orchestrator.utilities.logging import configure_logging
 if typing.TYPE_CHECKING:
     from orchestrator.modules.actuators.base import ActuatorActor
     from orchestrator.modules.operators.base import OperatorActor
+    from orchestrator.modules.operators.discovery_space_manager import (
+        DiscoverySpaceManagerActor,
+    )
 
 configure_logging()
 moduleLog = logging.getLogger("setup")
-
-
-def load_secrets_from_files(base_path: str, vars_to_load, env_var_dict) -> None:
-    paths = [f"{base_path}/{env_var}" for env_var in vars_to_load]
-
-    for p in paths:
-
-        if not os.path.exists(p):
-            raise Exception(f"Secret {p} does not exist")
-
-        with open(p) as f:
-            env_var_dict[os.path.basename(p)] = f.readlines()[0].strip()
-
-
-def load_secrets_from_env(vars_to_load, env_var_dict) -> None:
-    for var in vars_to_load:
-
-        value = os.getenv(var)
-        if value is None:
-            moduleLog.warning(
-                f"Env variable {var} wasn't set - assuming config provided"
-            )
-
-        env_var_dict[var] = value
 
 
 def setup_actuators(
@@ -157,7 +135,7 @@ def setup_operator(
     parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
-    state,
+    state: "DiscoverySpaceManagerActor",
     actuators: dict,
 ) -> "OperatorActor":
     """Sets up and creates an operator actor for class-based operations

@@ -107,7 +107,9 @@ def generate_sequence(words: list[str], start: int, length: int) -> tuple[str, i
 
 
 def compute_population_size(
-    num_max_batch_size=128, num_max_gpus=8, num_gradient_accumulation_steps=4
+    num_max_batch_size: int = 128,
+    num_max_gpus: int = 8,
+    num_gradient_accumulation_steps: int = 4,
 ) -> int:
     return num_max_batch_size * num_max_gpus * num_gradient_accumulation_steps
 

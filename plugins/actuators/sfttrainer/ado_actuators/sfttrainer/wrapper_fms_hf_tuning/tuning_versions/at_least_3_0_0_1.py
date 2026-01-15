@@ -9,12 +9,13 @@ import tuning.sft_trainer
 
 if typing.TYPE_CHECKING:
     import transformers.trainer_callback
+    from tuning.sft_trainer import SFTTrainer
 
 
 def parse_arguments_and_execute_wrapper(
     callbacks: list["transformers.trainer_callback.TrainerCallback"] | None,
     job_config: dict[str, typing.Any],
-):
+) -> tuple["SFTTrainer", dict]:
 
     parser = tuning.sft_trainer.get_parser()
 

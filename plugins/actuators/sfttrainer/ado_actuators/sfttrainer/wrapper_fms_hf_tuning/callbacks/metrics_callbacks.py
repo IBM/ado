@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+from typing import Any
 
 from transformers import (
     TrainerCallback,
@@ -24,7 +24,7 @@ class ResourceMetricsCallbacks(TrainerCallback):
         args: "TrainingArguments",
         state: "TrainerState",
         control: "TrainerControl",
-        **kwargs,
+        **kwargs: Any,  # noqa: ANN401
     ) -> None:
         self.tracker.begin_track()
 
@@ -33,7 +33,7 @@ class ResourceMetricsCallbacks(TrainerCallback):
         args: "TrainingArguments",
         state: "TrainerState",
         control: "TrainerControl",
-        **kwargs,
+        **kwargs: Any,  # noqa: ANN401
     ) -> None:
         self.tracker.end_track()
 

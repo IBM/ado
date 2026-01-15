@@ -107,7 +107,7 @@ def _get_grouped_sample(
 async def _sequential_iterator_async(
     points: list[dict],
     group: list[str],
-    remote_discovery_space=DiscoverySpaceManager,
+    remote_discovery_space: DiscoverySpaceManager,
 ) -> AsyncGenerator[list[Entity], None]:
     """
     Sequential iterator through discovery space with grouping

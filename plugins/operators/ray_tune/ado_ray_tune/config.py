@@ -70,6 +70,11 @@ def create_general_ray_tune_config(
 class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
     """Model for specific orchestrator options related to ray tune"""
 
+    metric_format: str = pydantic.Field(
+        default="target",
+        description="Format for metric identifiers: 'target' (use target property identifiers) "
+        "or 'observed' (use observed property identifiers)",
+    )
     single_measurement_per_property: bool = pydantic.Field(
         default=True,
         description="Indicate that each property (experiment) "
@@ -86,6 +91,15 @@ class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
     )
 
     model_config = ConfigDict(extra="forbid")
+
+    @pydantic.field_validator("metric_format")
+    @classmethod
+    def validate_mode(cls, v):
+        if v not in ["target", "observed"]:
+            raise ValueError(
+                f"metric_identifier_mode must be 'target' or 'observed', got: {v}"
+            )
+        return v
 
 
 class OrchSearchAlgorithm(pydantic.BaseModel):

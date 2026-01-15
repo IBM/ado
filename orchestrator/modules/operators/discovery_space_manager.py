@@ -208,7 +208,7 @@ class DiscoverySpaceManager:
         entities = await self.matchingEntitiesInSource()
         return entities[start:stop]
 
-    def storedEntityWithIdentifier(self, entityIdentifier: str) -> "Entity" | None:
+    def storedEntityWithIdentifier(self, entityIdentifier: str) -> "Entity | None":
 
         return self._discoverySpace.sample_store.entityWithIdentifier(
             entityIdentifier=entityIdentifier

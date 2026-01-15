@@ -69,7 +69,7 @@ class RoboticLab(ActuatorBase):
             experiments={e: e for e in experiments},
         )
 
-    def __init__(self, queue: MeasurementQueue, params=None) -> None:
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
         """
         queue: Queue where experiment results are put for consumers
         params: This actuators configuration parameters (Note: Soon this will be a model defined by the Actuator)

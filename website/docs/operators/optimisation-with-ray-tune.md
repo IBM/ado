@@ -768,6 +768,58 @@ keywordParams:
     Both the mutual information value **and** the property ranking/set must stay
     unchanged for `samples_below_limit` for the stopping criteria to be reached
 
+### BayesianMetricDifferenceStopper
+
+Stops a run when it can tell with high confidence if the
+average (absolute) difference between the two metrics is above
+or below a threshold.
+It is designed to be used with a non-correlated, random, sampler e.g.,
+the [LHU Sampler](#latin-hypercube-sampler)
+
+An example use case is comparing if an experiment with two different
+parameterizations e.g. software version, produce the same or different value
+for a metric.
+
+#### Parameters
+
+- `metric_a` | str | **required** | Name of first metric
+- `metric_b` | str | **required** | Name of second metric
+- `threshold` | float | **required** | Threshold for \|A-B\|
+- `target_probability` | float | 0.95 | Confidence level (0-1)
+- `min_samples` | int | 10 | Min trials before checking
+
+#### Example: Detect significant performance changes
+
+We have an experiment that measures the performance of a framework
+for a task.
+It can be parameterized to use different version of the framework.
+
+```yaml
+runtimeConfig:
+  stop:
+    - name: "BayesianMetricDifferenceStopper"
+      keywordParams:
+        metric_a: "exp-version:1.performance"  # First metric 
+        metric_b: "exp-version:2.performance"  # Second metric  
+        threshold: 100                  # Stop when |A-B| you > 100 tokens per
+        target_probability: 0.95       # 95% confidence
+        min_samples: 10                # Wait for 10 trials minimum
+```
+
+**Interpretation**: Stop when 95% confident that the absolute
+performance difference
+between the framework versions is above or below 100 tokens per second.
+
+#### How It Works
+
+1. **Collect**: Gathers differences from each trial (skips trials
+with missing/NaN metrics)
+2. **Wait**: Waits for `min_samples` usable samples before deciding
+3. **Analyze**: Uses Bayesian statistics to estimate probability P(|A-B| > threshold)
+   - Calculate via sum of two-tails P((A-B) > threshold) + P((A-B) < -threshold)
+4. **Stop**:
+   - When P(|A-B| > threshold) > target_probability OR P(|A-B| < threshold) > target_probability
+
 ## What's next
 
 <!-- markdownlint-disable line-length -->

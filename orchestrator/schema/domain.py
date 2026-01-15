@@ -10,6 +10,9 @@ import numpy as np
 import pydantic
 from pydantic import ConfigDict
 
+if typing.TYPE_CHECKING:
+    from IPython.lib.pretty import PrettyPrinter
+
 
 class VariableTypeEnum(str, enum.Enum):
     """Used to denote if the values of a property are discrete, continuous etc."""
@@ -44,7 +47,7 @@ def is_float_range(
     return any(isinstance(x, float) for x in [interval, *domain_range])
 
 
-def _internal_range_values(lower, upper, interval) -> list:
+def _internal_range_values(lower: float, upper: float, interval: float) -> list:
     """Returns the values in the half-open [lower,upper) range
 
     If all values are integers uses arange
@@ -68,7 +71,9 @@ def _internal_range_values(lower, upper, interval) -> list:
     return list(np.round(values, 10))
 
 
-def is_subdomain_of_unknown_domain(unknownDomain, testDomain) -> bool:
+def is_subdomain_of_unknown_domain(
+    unknownDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the unknownDomain
     Parameters:
         unknownDomain: A PropertyDomain with variableType UNKNOWN_VARIABLE_TYPE
@@ -79,7 +84,9 @@ def is_subdomain_of_unknown_domain(unknownDomain, testDomain) -> bool:
     return True
 
 
-def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
+def is_subdomain_of_continuous_domain(
+    continuousDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the continuousDomain
     Parameters:
         continuousDomain: A PropertyDomain with variableType CONTINUOUS_VARIABLE_TYPE
@@ -116,7 +123,9 @@ def is_subdomain_of_continuous_domain(continuousDomain, testDomain):
     )
 
 
-def is_subdomain_of_discrete_domain(discreteDomain, testDomain):
+def is_subdomain_of_discrete_domain(
+    discreteDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the discreteDomain
     Parameters:
         discreteDomain: A PropertyDomain with variableType DISCRETE_VARIABLE_TYPE
@@ -166,7 +175,9 @@ def is_subdomain_of_discrete_domain(discreteDomain, testDomain):
     return False
 
 
-def is_subdomain_of_categorical_domain(categoricalDomain, testDomain):
+def is_subdomain_of_categorical_domain(
+    categoricalDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the categoricalDomain
     Parameters:
         categoricalDomain: A PropertyDomain with variableType CATEGORICAL_VARIABLE_TYPE
@@ -189,7 +200,9 @@ def is_subdomain_of_categorical_domain(categoricalDomain, testDomain):
     return False
 
 
-def is_subdomain_of_binary_domain(binaryDomain, testDomain):
+def is_subdomain_of_binary_domain(
+    binaryDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the binaryDomain
 
     The cases where this returns True are
@@ -217,7 +230,9 @@ def is_subdomain_of_binary_domain(binaryDomain, testDomain):
     return testDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
 
 
-def is_subdomain_of_open_categorical_domain(openCategoricalDomain, testDomain):
+def is_subdomain_of_open_categorical_domain(
+    openCategoricalDomain: "PropertyDomain", testDomain: "PropertyDomain"
+) -> bool:
     """Returns True if the testDomain is a subdomain of the openCategoricalDomain
 
     The cases where this returns True are:
@@ -256,7 +271,7 @@ class ProbabilityFunction(pydantic.BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    def __eq__(self, other: object):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
 
         # They should both be ProbabilityFunctions
         if not isinstance(other, ProbabilityFunction):
@@ -319,7 +334,7 @@ class PropertyDomain(pydantic.BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -341,8 +356,8 @@ class PropertyDomain(pydantic.BaseModel):
 
     @pydantic.field_validator("interval")
     def interval_requires_no_values(
-        cls, interval, values: "pydantic.FieldValidationInfo"
-    ):
+        cls, interval: float | None, values: "pydantic.FieldValidationInfo"
+    ) -> int | float | None:
 
         if interval is not None and values.data.get("values") is not None:
             raise ValueError(
@@ -357,7 +372,7 @@ class PropertyDomain(pydantic.BaseModel):
         cls,
         passed_range: list[int | float] | None,
         otherFields: "pydantic.FieldValidationInfo",
-    ):
+    ) -> list[int | float] | None:
 
         values = otherFields.data.get("values")
         if passed_range is not None and values:
@@ -375,7 +390,17 @@ class PropertyDomain(pydantic.BaseModel):
         return passed_range
 
     @pydantic.field_validator("variableType")
-    def variableType_matches_values(cls, value, values: "pydantic.FieldValidationInfo"):
+    def variableType_matches_values(
+        cls, value: VariableTypeEnum, values: "pydantic.FieldValidationInfo"
+    ) -> typing.Literal[
+        "CONTINUOUS_VARIABLE_TYPE",
+        "DISCRETE_VARIABLE_TYPE",
+        "CATEGORICAL_VARIABLE_TYPE",
+        "OPEN_CATEGORICAL_VARIABLE_TYPE",
+        "BINARY_VARIABLE_TYPE",
+        "UNKNOWN_VARIABLE_TYPE",
+        "IDENTIFIER_VARIABLE_TYPE",
+    ]:
 
         import numbers
 
@@ -528,7 +553,7 @@ class PropertyDomain(pydantic.BaseModel):
 
         return dict_representation
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
         """Two domains are considered the same if they have identical values for the properties"""
 
         try:
@@ -568,7 +593,7 @@ class PropertyDomain(pydantic.BaseModel):
             interval=self.interval,
         )
 
-    def valueInDomain(self, value):
+    def valueInDomain(self, value: typing.Any) -> bool:  # noqa: ANN401
 
         if self.variableType == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE:
             if self.domainRange is not None:

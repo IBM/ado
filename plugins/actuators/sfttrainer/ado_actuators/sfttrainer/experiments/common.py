@@ -109,7 +109,7 @@ VALUES_TRANSFORMERS_ARGUMENT_OPTIM = [
 ]
 
 
-def packages_requiring_nvidia_development_binaries():
+def packages_requiring_nvidia_development_binaries() -> list[str]:
     return [
         "fms-acceleration-foak",
         "fms-acceleration-moe",

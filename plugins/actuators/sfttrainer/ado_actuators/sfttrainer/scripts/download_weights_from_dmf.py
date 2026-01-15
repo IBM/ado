@@ -12,7 +12,7 @@ class Datalake(export_utils.Datalake):
         revision: str,
         output: str,
         force_download: bool = False,
-        table="model_shared",
+        table: str = "model_shared",
     ) -> None:
 
         from lakehouse.assets import Model

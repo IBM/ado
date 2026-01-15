@@ -37,6 +37,7 @@ from orchestrator.schema.virtual_property import (
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
+    from IPython.lib.pretty import PrettyPrinter
 
 
 class Entity(pydantic.BaseModel):
@@ -114,7 +115,7 @@ class Entity(pydantic.BaseModel):
     @classmethod
     def identifier_from_property_values(
         cls, property_values: typing.Iterable[ConstitutivePropertyValue]
-    ):
+    ) -> str:
         """Returns the identifier that would be generated for an entity with the given constitutive property values
 
         Raise ValueError if all members of property_values do not refer to ConstitutiveProperties
@@ -157,7 +158,7 @@ class Entity(pydantic.BaseModel):
     @classmethod
     def guarantee_unique_measurement_results(
         cls, measurement_results: list["ValidMeasurementResult"]
-    ):
+    ) -> list["ValidMeasurementResult"]:
 
         if not measurement_results:
             return measurement_results
@@ -176,7 +177,7 @@ class Entity(pydantic.BaseModel):
         return measurement_results
 
     @pydantic.model_validator(mode="after")
-    def check_identifier(self):
+    def check_identifier(self) -> "Entity":
         """Checks if an external identifier was passed and if not generates one"""
 
         self.identifier = (
@@ -192,7 +193,7 @@ class Entity(pydantic.BaseModel):
     def __str__(self) -> str:
         return f"{self.identifier} ({self.generatorid})"
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         import pandas as pd
 
@@ -328,7 +329,7 @@ class Entity(pydantic.BaseModel):
         ]
 
     def virtualObservedPropertiesFromIdentifier(
-        self, identifier
+        self, identifier: str
     ) -> list[VirtualObservedProperty] | None:
         """Returns a list of VirtualObservedProperty instances given a virtual property identifier
 
@@ -489,8 +490,8 @@ class Entity(pydantic.BaseModel):
         def add_value(
             value: ConstitutivePropertyValue | ObservedPropertyValue,
             references: list[ExperimentReference],
-            restrictConstitutive=False,
-        ):
+            restrictConstitutive: bool = False,
+        ) -> bool:
             """Checks if a property value should be added to the series
 
             The rules are
@@ -579,7 +580,7 @@ class Entity(pydantic.BaseModel):
         experimentReferences: list[ExperimentReference] | None = None,
         virtualTargetPropertyIdentifiers: list[str] | None = None,
         aggregationMethod: PropertyAggregationMethodEnum | None = None,
-    ):
+    ) -> list["pd.Series"]:
         """Returns a tuple of series' where each series contains the observed property values for a specific experiment (protocol).
 
         The key of each observed property value is the target property identifier c.f. seriesRepresentation where it is the observed property identifier

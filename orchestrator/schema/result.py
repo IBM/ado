@@ -46,7 +46,7 @@ class MeasurementResult(pydantic.BaseModel):
         description="Metadata about the MeasurementResult",
     )
 
-    def __eq__(self, other):
+    def __eq__(self, other: "MeasurementResult") -> bool:
         return self.uid == other.uid
 
     @abc.abstractmethod
@@ -72,7 +72,9 @@ class ValidMeasurementResult(MeasurementResult):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("measurements")
-    def validate_measurements(cls, value):
+    def validate_measurements(
+        cls, value: list[ObservedPropertyValue]
+    ) -> list[ObservedPropertyValue]:
 
         if len(value) == 0:
             raise ValueError(
@@ -90,7 +92,7 @@ class ValidMeasurementResult(MeasurementResult):
         return value
 
     @property
-    def experimentReference(self):
+    def experimentReference(self) -> ExperimentReference:
 
         # All the PropertyValues should have the same reference as it's checked on init
         return self.measurements[0].property.experimentReference
@@ -193,7 +195,9 @@ class InvalidMeasurementResult(MeasurementResult):
 class DuplicateMeasurementResultError(ValueError): ...
 
 
-def measurement_result_type_discriminator(result) -> str:
+def measurement_result_type_discriminator(
+    result: dict | ValidMeasurementResult | InvalidMeasurementResult,
+) -> str:
 
     if isinstance(result, ValidMeasurementResult):
         return "Valid"

@@ -5,6 +5,7 @@ import datetime
 import enum
 import typing
 import uuid
+from typing import Any
 
 import pydantic
 from dateutil.tz import tzlocal
@@ -19,6 +20,7 @@ from orchestrator.schema.result import (
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
+    from pydantic import ValidatorFunctionWrapHandler
 
 
 class MeasurementRequestStateEnum(str, enum.Enum):
@@ -27,7 +29,7 @@ class MeasurementRequestStateEnum(str, enum.Enum):
     FAILED = "Failed"
 
 
-def timestamp():
+def timestamp() -> datetime.datetime:
     """For use in MeasurementRequest timestamp creation"""
 
     return datetime.datetime.now(tzlocal())
@@ -80,10 +82,12 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
 
     @pydantic.model_validator(mode="wrap")
     @classmethod
-    def fail_on_measurements_reassignment(cls, data, handler):
+    def fail_on_measurements_reassignment(
+        cls, data: Any, handler: "ValidatorFunctionWrapHandler"  # noqa: ANN401
+    ) -> "MeasurementRequest":
 
         def populate_measurement_results_in_entities(
-            request: MeasurementRequest,
+            request: "MeasurementRequest",
         ) -> None:
 
             if not request.measurements:
@@ -149,7 +153,7 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
         cls,
         value: list[ValidMeasurementResult | InvalidMeasurementResult] | None,
         values: pydantic.ValidationInfo,
-    ):
+    ) -> list[ValidMeasurementResult | InvalidMeasurementResult] | None:
 
         # None is allowed
         if value is None:

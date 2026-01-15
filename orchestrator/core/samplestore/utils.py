@@ -67,7 +67,9 @@ def initialize_sample_store_from_reference(
     )
 
 
-def load_sample_store_from_resource(sample_store_resource: SampleStoreResource):
+def load_sample_store_from_resource(
+    sample_store_resource: SampleStoreResource,
+) -> SampleStore:
     """Returns a SampleStore instance for the SampleStore described by sample_store_resource
 
     Params:

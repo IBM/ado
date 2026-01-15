@@ -293,7 +293,9 @@ class Metrics:
         return scalar_observations
 
     @classmethod
-    def from_aim_info_dict(cls, aim_info: dict[str, typing.Any], num_gpus: int):
+    def from_aim_info_dict(
+        cls, aim_info: dict[str, typing.Any], num_gpus: int
+    ) -> "Metrics":
         json_metrics = aim_info["metrics"]
 
         training_metrics = {
@@ -414,7 +416,7 @@ class Metrics:
             pass
 
 
-def round10e5(val):
+def round10e5(val: float) -> float:
     return round(val * 10e5) / 10e5
 
 
@@ -427,7 +429,7 @@ class ResourceTracker:
     AGG_DEFAULT = AGG_NOTHING
 
     @classmethod
-    def aggregate(cls, items: list, mode: str):
+    def aggregate(cls, items: list, mode: str) -> float | list:
         """
         Aggregates array of numbers by a given 'mode'
         """
@@ -522,7 +524,7 @@ class ResourceTracker:
         cls,
         items: list[aim.ext.resource.stat.StatDict],
         agg_mode: str = AGG_NOTHING,
-    ):
+    ) -> aim.ext.resource.stat.StatDict:
         """
         Aggregates array of `StatDict` items by a given `mode`
         """

@@ -37,7 +37,7 @@ def run_general_operation_core_closure(
     discovery_space: DiscoverySpace,
     operationInfo: FunctionOperationInfo,
     operation_parameters: dict,
-):
+) -> typing.Callable[[], OperationOutput | None]:
 
     def _run_general_operation_core() -> OperationOutput:
         return operation_function(

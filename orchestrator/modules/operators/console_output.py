@@ -96,7 +96,7 @@ class RichConsoleQueue:
         self._queue.put(message)
 
     def get(
-        self, timeout=None
+        self, timeout: float | None = None
     ) -> RichConsoleSpinnerMessage | RichConsoleProgressMessage | None:
         """
         Pop and return the next queued RichConsoleMessage, or None if queue is empty.

@@ -18,7 +18,7 @@ class ActuatorCatalogExtensionConf(pydantic.BaseModel):
     location: str = pydantic.Field(description="The location of the catalog extension")
 
     @property
-    def catalogExtensionLocation(self):
+    def catalogExtensionLocation(self) -> str:
         import os
 
         return os.path.join(self.location, self.name)
@@ -55,7 +55,7 @@ class ExperimentCatalog(BaseCatalog):
     """Base class for class that provide information on the available experiments"""
 
     def __init__(
-        self, experiments: dict | None = None, catalogIdentifier="UnnamedCatalog"
+        self, experiments: dict | None = None, catalogIdentifier: str = "UnnamedCatalog"
     ) -> None:
         """
         Parameters:

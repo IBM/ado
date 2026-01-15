@@ -42,6 +42,7 @@ from orchestrator.schema.reference import ExperimentReference
 if typing.TYPE_CHECKING:
     import orchestrator.modules.actuators.base
     from orchestrator.core.resources import ADOResource
+    from orchestrator.metastore.base import ResourceStore
 
 moduleLog = logging.getLogger("operation_base")
 
@@ -53,14 +54,14 @@ moduleLog = logging.getLogger("operation_base")
 class DiscoveryOperationBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def operationIdentifier(self):
+    def operationIdentifier(self) -> str:
         """A unique id for the operation instance being run by the operator
 
         should have form $operatorIdentifier-$version-$uid"""
 
     @classmethod
     @abc.abstractmethod
-    def operatorIdentifier(cls):
+    def operatorIdentifier(cls) -> str:
         """The identifier of this operator
 
         should have form method-version"""
@@ -119,7 +120,7 @@ def measure_or_replay(
     actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
     measurement_queue: MeasurementQueue,
     memoize: bool,
-):
+) -> list[str]:
     """Checks if entities have been measured by experimentReference before and takes appropriate action
 
     If an entity has been measured by referenced experiment and memoize is True:
@@ -151,7 +152,7 @@ def measure_or_replay(
         f"Checking application of {experimentReference} to {[e.identifier for e in entities]}. Memoize is: {memoize}"
     )
 
-    request_ids = []
+    request_ids: list[str] = []
     if memoize:
         # This will only memoize entities that can be memoized
         replayed_requests = orchestrator.modules.actuators.replay.replay(
@@ -225,7 +226,7 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         state: DiscoverySpaceManager,
         # Will actually be ray.actor.ActorHandle accessing InternalState
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
-        params: typing.Any = None,
+        params: dict | None = None,
         metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
     ) -> None:
         # Common code for StateSubscribingDiscoveryOperations
@@ -278,7 +279,11 @@ class Learn(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMe
     pass
 
 
-def add_operation_output_to_metastore(operation, output, metastore) -> None:
+def add_operation_output_to_metastore(
+    operation: "OperationResource",
+    output: "OperationOutput",
+    metastore: "ResourceStore",
+) -> None:
 
     if output:
         resource: ADOResource

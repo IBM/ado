@@ -3,6 +3,7 @@
 
 import enum
 import itertools
+import typing
 
 import pandas as pd
 import pydantic
@@ -108,7 +109,7 @@ class DetectAnomalousSeries(pydantic.BaseModel):
 def detect_anomalous_series(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters,
+    **parameters: typing.Any,  # noqa: ANN401
 ) -> OperationOutput:
     """
     This function checks if the behaviour of an observed property versus
@@ -121,10 +122,10 @@ def detect_anomalous_series(
     properties, other than the selected independent property.
     """
 
-    def monotonically_increasing(samples):
+    def monotonically_increasing(samples: pd.Series) -> bool:
         return all(x < y for x, y in itertools.pairwise(samples))
 
-    def monotonically_decreasing(samples):
+    def monotonically_decreasing(samples: pd.Series) -> bool:
         return all(x > y for x, y in itertools.pairwise(samples))
 
     config = DetectAnomalousSeries.model_validate(parameters)

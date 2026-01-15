@@ -28,7 +28,7 @@ import ray
         },
     },
 )
-def get_linear_layers(path_model: str):
+def get_linear_layers(path_model: str) -> set[str]:
     from accelerate import init_empty_weights
     from transformers import (
         AutoConfig,

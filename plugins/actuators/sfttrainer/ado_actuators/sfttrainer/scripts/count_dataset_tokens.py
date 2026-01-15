@@ -69,7 +69,7 @@ def tokenize_text(
     path_data: str,
     model_id: str | None,
     num_tokens_cache_dir: str | None,
-):
+) -> dict[str, float | str | None]:
     num_tokens = finetune.get_tokens_per_sample_in_dataset(
         path_model=path_model,
         path_data=path_data,

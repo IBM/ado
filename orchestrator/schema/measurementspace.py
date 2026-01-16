@@ -307,7 +307,9 @@ class MeasurementSpace:
         return len(missingDependencies) == 0
 
     def propertyWithIdentifierInSpace(
-        self, identifier: str, format: str = "any"
+        self,
+        identifier: str,
+        format: typing.Literal["any", "target", "observed"] = "any",
     ) -> bool:
         """Returns True if the space contains a property with the given identifier
 

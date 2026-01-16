@@ -787,7 +787,7 @@ It is designed to be used with a non-correlated, random, sampler e.g.,
 the [LHU Sampler](#latin-hypercube-sampler)
 
 An example use case is comparing if an experiment with two different
-parameterizations e.g. software version, produce the same or different value
+parameterizations e.g. software version, produces the same or different value
 for a metric.
 
 #### Parameters

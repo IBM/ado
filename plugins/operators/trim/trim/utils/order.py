@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularPredictor
 
+from trim.trim_pydantic import AutoGluonArgs
 from trim.utils.high_dimensional_sampling import get_order_list_nn_high_dimensional
 from trim.utils.miscellaneous import delete_dir
 
@@ -19,7 +20,7 @@ def get_feature_importance_order(
     source_df: pd.DataFrame,
     target_output: str,
     min_measured_entities: int,
-    autoGluonArgs,
+    autoGluonArgs: AutoGluonArgs,
 ) -> tuple[tuple[str, ...], dict[str, float]]:
     """
     Train a TabularPredictor on the source space and return:
@@ -162,7 +163,7 @@ def order_df_for_sampling_with_no_priors(
         n = min(n, len(df_unique))
 
     # Build dictionaries
-    def _get_sorted_uniques(prop):
+    def _get_sorted_uniques(prop: str):
         """Helper to safely sort unique values for a property."""
         # Note: using set() handles duplicates, but be aware that set({nan, nan})
         # can result in multiple NaNs. consider df_unique[prop].unique() for safer handling.

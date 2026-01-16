@@ -7,7 +7,7 @@ def stopping_bool_from_ratios(
     std_ratio: float,
     mean_ratio_threshold: float = 0.9,
     std_ratio_threshold: float = 0.75,
-):
+) -> bool:
     """
     Determine whether sampling should stop based on mean and standard deviation ratios.
 

@@ -6,7 +6,7 @@ import os
 import shutil
 
 
-def delete_dir(model_dir) -> None:
+def delete_dir(model_dir: str | None) -> None:
     if model_dir and os.path.isdir(model_dir):
         try:
             shutil.rmtree(model_dir, ignore_errors=True)

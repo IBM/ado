@@ -4,13 +4,18 @@
 import logging
 import operator
 import typing
+from collections.abc import Hashable
 from functools import reduce
+from typing import Any
 
 import pandas as pd
 import ray
+from ray.actor import ActorHandle
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.project import ProjectContext
+from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
+from orchestrator.schema.entity import Entity
 from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
 
 logger = logging.getLogger(__name__)
@@ -41,11 +46,11 @@ def get_space(
 
 def get_df_all_entities_no_measurements(
     discoverySpace: typing.Union["DiscoverySpace", str],
-    discoverySpaceManager=None,
+    discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,
 ) -> pd.DataFrame:
     """
     Return a DataFrame of all entities in the given Discovery Space, regardless of whether
-    they have any measured target outputs.
+    they have any mea sured target outputs.
 
     - Each row represents an entity from the entity space.
     - Includes the entity identifier and all constitutive property values.
@@ -115,10 +120,9 @@ def get_df_all_entities_no_measurements(
 
 def get_df_at_least_one_measured_value(
     discoverySpace: typing.Union["DiscoverySpace", str],
-    targetOutput_list=None,
-    # discoverySpaceManager: DiscoverySpaceManager | None = None, This makes the operator disappear
-    discoverySpaceManager=None,
-    add_measurement_id=False,
+    targetOutput_list: list[str] | None = None,
+    discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,  # type: ignore =None,
+    add_measurement_id: bool = False,
 ) -> pd.DataFrame:
     """
     Return a DataFrame of entities that have at least one measured target output from the
@@ -135,7 +139,7 @@ def get_df_at_least_one_measured_value(
         The Discovery Space object or its identifier.
     targetOutput_list : list
         List of target output names to include in the DataFrame.
-    add_measurement_id : bool, optional
+    add_measurement_id : bool
         If True, include the entity identifier column in the output.
 
     Returns
@@ -160,30 +164,6 @@ def get_df_at_least_one_measured_value(
                 )
             )
         )
-
-        # logger.debug("Using manager in getting entities one measurement")
-        # logger.warning(f"len source with manager is {len(df)}")
-        # df = pd.DataFrame(
-        #     discoverySpaceManager.matchingEntitiesTable.remote(
-        #         property_type="target",
-        #         aggregationMethod=PropertyAggregationMethodEnum.mean,
-        #     )
-        # )
-    #
-    #      line 153, in get_df_at_least_one_measured_value\n    df = pd.DataFrame(\n  \
-    #     \       ^^^^^^^^^^^^^\n  File \"/Users/danielelotito/Documents/github/ad-orchestrator/.venv/lib/python3.12/site-packages/pandas/core/frame.py\"\
-    #     , line 890, in __init__\n    raise ValueError(\"DataFrame constructor not properly\
-    #     \ called!\")\nValueError: DataFrame constructor not properly called!."
-    #   recorded_at: '2025-12-15T16:35:55.915448Z'
-    # using async def in the class method does not change the result
-
-    #     without '.remote' I have the following error
-
-    #     discoverySpaceManager.matchingEntitiesTable(\n\
-    # \  File \"/Users/danielelotito/Documents/github/ad-orchestrator/.venv/lib/python3.12/site-packages/ray/actor.py\"\
-    # , line 659, in __call__\n    raise TypeError(\nTypeError: Actor methods cannot\
-    # \ be called directly. Instead of running 'object.matchingEntitiesTable()', try\
-    # \ 'object.matchingEntitiesTable.remote()'.."
 
     else:
         df = pd.DataFrame(
@@ -274,7 +254,7 @@ def get_df_at_least_one_measured_value(
 def get_source_and_target(
     discoverySpace: typing.Union["DiscoverySpace", str],
     targetOutput: str,
-    discoverySpaceManager=None,
+    discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,
     log_string: str = "",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -394,7 +374,12 @@ def validate_points_in_space(
     return valid_points, invalid_indices
 
 
-def df_to_points(df, cols=None, dropna=True, drop_duplicates=False):
+def df_to_points(
+    df: pd.DataFrame,
+    cols: list[str] | None = None,
+    dropna: bool = True,
+    drop_duplicates: bool = False,
+) -> list[dict[Hashable, Any]]:
     """
     Convert DataFrame rows to list of "point" dicts {prop_id: value}.
     - cols: list of columns to use. If None use all df.columns.
@@ -415,7 +400,7 @@ def df_to_points(df, cols=None, dropna=True, drop_duplicates=False):
         sub = sub.drop_duplicates()
 
     # Convert numpy scalars to python builtins for safety
-    def to_py(x):
+    def to_py(x: Any):
         import numpy as np
 
         if isinstance(x, (np.generic)):
@@ -429,13 +414,13 @@ def df_to_points(df, cols=None, dropna=True, drop_duplicates=False):
     return sub.to_dict(orient="records")
 
 
-# Copyright (c) IBM Corporation
-# SPDX-License-Identifier: MIT
-
 # TODO: check if these are actually needed
-
-
-def df_to_points_parsing(df, cols=None, dropna=True, parse_values=False):
+def df_to_points_parsing(
+    df: pd.DataFrame,
+    cols: list[str] | None = None,
+    dropna: bool = True,
+    parse_values: bool = False,
+) -> list[dict]:
     import ast
 
     points = df_to_points(df, cols=cols, dropna=dropna)
@@ -514,7 +499,9 @@ def make_points_from_df(
     return df_to_points_parsing(df, cols=cols, dropna=dropna, parse_values=parse_values)
 
 
-def get_list_of_entities_from_df_and_space(df: pd.DataFrame, space):
+def get_list_of_entities_from_df_and_space(
+    df: pd.DataFrame, space: DiscoverySpace
+) -> list[Entity]:
     """
     A utility to start from a df and a space and obtain a list of entities.
     """

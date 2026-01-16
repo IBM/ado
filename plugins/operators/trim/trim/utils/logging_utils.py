@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def describe_source_spaces(
     this_iteration_source_df: pd.DataFrame,
     previous_iteration_source_df: pd.DataFrame,
-    filter_cols=None,
+    filter_cols: list[str] | None = None,
 ) -> None:
     """
     Logs information about the current and previous source DataFrames:
@@ -262,7 +262,7 @@ def log_before_first_holdout_update(
         )
 
 
-def training_guardrail(train_df: pd.DataFrame, targetOutput: str):
+def training_guardrail(train_df: pd.DataFrame, targetOutput: str) -> pd.DataFrame:
     if not train_df.equals(train_df.dropna(subset=[str(targetOutput)])):
         logger.warning(
             "There are rows in train dataframe where the target is NaN! Dropping them now.\n\n"

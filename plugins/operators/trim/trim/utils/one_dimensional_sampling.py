@@ -3,6 +3,8 @@
 #
 import logging
 
+from pandas import DataFrame
+
 logger = logging.getLogger(__name__)
 
 
@@ -96,21 +98,32 @@ def get_index_list_nn(
         if len(index_list) == tot_points_to_sample:
             return sorted(index_list)
 
-    def build_prefix_and_len():
+    def build_prefix_and_len(index_list: list[int]) -> tuple[list[int], int]:
         """
         Builds prefix sums over a truncated mask: M = max(index_list)+1.
         prefix[j] = sum(mask[0:j]) with prefix length M+1.
         """
+        if not index_list:
+            return [0], 0
+
         M = max(index_list) + 1
+
+        # You must define sampled_set based on the input list
+        sampled_set = set(index_list)
+
         prefix = [0] * (M + 1)
         s = 0
 
         for i in range(M):
+            # i represents the current index in the imaginary mask array
             s += 1 if i in sampled_set else 0
             prefix[i + 1] = s
+
         return prefix, M
 
-    def get_list_min_weight(prefix, M, d, selectable_indices):
+    def get_list_min_weight(
+        prefix: list[int], M: int, d: int, selectable_indices: list[int]
+    ):
         """
         uses prefix sums instead of numpy.mean.
         Only considers indices i in selectable_indices intersected with [0, M-1],
@@ -149,7 +162,7 @@ def get_index_list_nn(
         return out
 
     # Secret sauce - electable indices function: same order as OG (ascending)
-    def get_selectable_indices():
+    def get_selectable_indices() -> list[int]:
         # OG did O(N*m) with "i not in list", but we do O(N) with a set, but order identical.
         return [i for i in range(length_segment) if i not in sampled_set]
 
@@ -161,7 +174,7 @@ def get_index_list_nn(
         selectable_indices = get_selectable_indices()
 
         # prefix sums for the current (truncated) mask once per outer iteration
-        prefix, M = build_prefix_and_len()
+        prefix, M = build_prefix_and_len(index_list=index_list)
 
         d = 1
         # keeping "previous set" semantics exactly (used when l becomes empty)
@@ -255,7 +268,7 @@ def get_index_list_ordered_partitions(n: int, tot_points: int) -> list[int]:
 # %%
 
 
-def sorting_and_check(target_metric, source_space_df):
+def sorting_and_check(target_metric: str, source_space_df: DataFrame):
     """NOTE: this is the old function
     This function is responsible of the ordering in the 1-D sampling"""
 
@@ -273,7 +286,7 @@ def sorting_and_check(target_metric, source_space_df):
     return df_copy.sort_values(by=valid_cols).reset_index(drop=True)
 
 
-def generate_df_and_point_mask(df, k):
+def generate_df_and_point_mask(df: DataFrame, k: int):
     """Do not shuffle here or after, and the index of the df must be reset!"""
     selected_points = get_index_list_ordered_partitions(len(df), k)
     mask = [i in selected_points for i in range(len(df))]

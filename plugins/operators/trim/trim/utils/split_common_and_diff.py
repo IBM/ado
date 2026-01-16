@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def split_common_and_diff(
     shorter_df_that_you_subtract: pd.DataFrame,
     longer_df_from_which_you_subtract: pd.DataFrame,
-    on=None,
+    on: list[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     shorter_df_that_you_subtract = d1

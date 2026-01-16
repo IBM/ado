@@ -53,7 +53,7 @@ class TrimSampleSelector(BaseSampler):
         return True
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace, batchsize=1
+        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1  # type: ignore[name-defined]
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
@@ -248,6 +248,7 @@ class TrimSampleSelector(BaseSampler):
                         f"in the training set:\n {entity}"
                     )
                     # ensures we only train on rows where the target is measured
+                    # TODO: monitor if this is needed
                     train_df = training_guardrail(
                         train_df, targetOutput=self.params.targetOutput
                     )
@@ -463,7 +464,7 @@ class TrimSampleSelector(BaseSampler):
         # Returning an async generator object # Ready to iterate on with async for ...
         return retval()
 
-    def finalize_model(self, discoverySpace):
+    def finalize_model(self, discoverySpace: DiscoverySpace) -> TabularPredictor:
         # FIT ON FULL SOURCE SPACE DATA
         source_df, _target_df = get_source_and_target(
             discoverySpace, self.params.targetOutput

@@ -5,7 +5,7 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import pydantic
 import ray
@@ -117,7 +117,7 @@ def run_dependent_experiments(
 def retrieve_results(
     entity: Entity,
     experimentReference: ExperimentReference,
-    mode: typing.Literal["target", "observed"] = "target",
+    mode: Literal["target", "observed"] = "target",
 ) -> dict[str, Any]:
     """Returns a dictionary mapping property identifiers to their measured values.
 

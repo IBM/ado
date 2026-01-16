@@ -80,10 +80,10 @@ def trim(
         len(source_df) < params.samplingBudget.minPoints
     ) and current_iter < max_iter:
         logger_trim.warning(
-            f"""Only {len(source_df)} points in the source space.
-                Starting with no-prior characterization for {params.samplingBudget.minPoints - len(source_df)}
-                Note: Trim sampler has been called with a minimum budget of {params.samplingBudget.minPoints} points.
-            """
+            f"Only {len(source_df)} points in the source space.\n"
+            "Starting with no-prior characterization operation, "
+            f"it will sample {params.samplingBudget.minPoints - len(source_df)} points.\n"
+            f"Note: Trim sampler has been called with a minimum budget of {params.samplingBudget.minPoints} points."
         )
 
         no_priors_params = params.noPriorParameters

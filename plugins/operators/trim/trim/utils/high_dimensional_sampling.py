@@ -130,7 +130,7 @@ def distinct_sobol_sampling(dims, n, seed=None):
 
     # 2. Setup Sobol
     # We scramble to get better coverage.
-    sampler = Sobol(d=len(dims), scramble=True, seed=seed)
+    sampler = Sobol(d=len(dims), scramble=True, rng=seed)
 
     unique_points = set()
     results = []

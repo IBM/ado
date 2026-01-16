@@ -368,11 +368,11 @@ class TrimSampleSelector(BaseSampler):
                         )
 
                         scores_previous_iteration = [
-                            metric_dict[el]["holdout_score"]
+                            float(metric_dict[el]["holdout_score"])
                             for el in prev_iter_list_range
                         ]
                         scores_this_iteration = [
-                            metric_dict[el]["holdout_score"]
+                            float(metric_dict[el]["holdout_score"])
                             for el in this_iter_list_range
                         ]
 
@@ -388,7 +388,7 @@ class TrimSampleSelector(BaseSampler):
                             if (
                                 np.array(scores_previous_iteration).std()
                                 * np.array(scores_this_iteration).std()
-                                != 0
+                                == 0
                             ):
                                 logger_trim_sampler.info(
                                     "Product of standard deviation of the scores across batches is 0."

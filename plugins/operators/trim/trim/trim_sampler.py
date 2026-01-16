@@ -292,9 +292,10 @@ class TrimSampleSelector(BaseSampler):
                         ],
                     }
 
-                    log_metric_string = f"""[Batch under consideration: {i}] Training metric: {training_metric};
-                    Best model: {best_model_name}; score_val: {best_score_val}; holdout_score: {metric_dict[i]['holdout_score']}"""
-                    logger_trim_sampler.info(log_metric_string)
+                    logger_trim_sampler.info(
+                        f"[Batch under consideration: {i}] Training metric: {training_metric};\n"
+                        f"Best model: {best_model_name}; score_val: {best_score_val:.2f}; holdout_score: {metric_dict[i]['holdout_score']:.2f}",
+                    )
 
                     # Capture model path and delete the folder
                     if not logger_trim_sampler.isEnabledFor(logging.DEBUG):
@@ -360,21 +361,21 @@ class TrimSampleSelector(BaseSampler):
                         ]
 
                         logger_trim_sampler.info(
-                            f"""Since iterationSize is {self.params.iterationSize}. We now
-                            compare models at the following batch indices\n{prev_iter_list_range}\nand\n{this_iter_list_range}"""
+                            f"Since iterationSize is {self.params.iterationSize}, "
+                            f"We now compare models at the following batch indices\n{prev_iter_list_range}\nand\n{this_iter_list_range}"
                         )
 
                         scores_previous_iteration = [
-                            metric_dict[el]["best_score_val"]
+                            metric_dict[el]["holdout_score"]
                             for el in prev_iter_list_range
                         ]
                         scores_this_iteration = [
-                            metric_dict[el]["best_score_val"]
+                            metric_dict[el]["holdout_score"]
                             for el in this_iter_list_range
                         ]
 
                         logger_trim_sampler.info(
-                            f"Scores that correspond to these i-ranges are:\n{prev_iter_list_range}\nand\n{this_iter_list_range}"
+                            f"Scores that correspond to these i-ranges are:\n{scores_previous_iteration}\nand\n{scores_this_iteration}"
                         )
 
                         try:
@@ -428,12 +429,12 @@ class TrimSampleSelector(BaseSampler):
                             ]
                         )
 
-                        stop_info = f"""Stopping criteria hit after measuring {i} entities.
-                                        On a iteration of batch size {self.params.iterationSize}.
-                                        Performance of the model on the holdout set
-                                        {final_model_path}:\nmean: {_best_score_val}\t\tstd: {std_ratio}\n.
-                                        """
-                        logger_trim_sampler.info(stop_info)
+                        logger_trim_sampler.info(
+                            f"Stopping criteria hit after measuring {i} entities.\n"
+                            f"On a iteration of batch size {self.params.iterationSize}.\n"
+                            "Performance of the model on the holdout set"
+                            f"{final_model_path}:\nmean: {_best_score_val}\t\tstd: {std_ratio}\n."
+                        )
                         _predictor = self.finalize_model(discoverySpace=discoverySpace)
                         break
 

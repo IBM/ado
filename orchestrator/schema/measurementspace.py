@@ -317,6 +317,15 @@ class MeasurementSpace:
             identifier: The property identifier to check
             format: The format to check - "any", "target", or "observed"
                 - "any" (default): Checks both target and observed properties, plus virtual properties
+                - "target": Only checks target properties
+                - "observed": Only checks observed properties and virtual properties based on observed
+
+        Returns:
+            bool: True if the identifier is found in the specified format, False otherwise
+
+        Note:
+            Virtual property identifiers are only checked when format is "observed" or "any"
+        """
         # Build set of property identifiers to check based on format
         identifiers_to_check: set[str] = set()
         if format in {"target", "any"}:

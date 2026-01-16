@@ -72,6 +72,8 @@ def trim(
 
     # TODO: think about a better solution for the fact that the target output may
     # not be acquired for every entity of your space given your experiment.
+    # e.g. you want throughput and throughput is only measured for valid runs
+    # and some of the runs are not valid
     max_iter = 3
     current_iter = 0
     while (
@@ -88,7 +90,9 @@ def trim(
         if current_iter != 0:
             # Computing number of missing samples
             missing_points = params.samplingBudget.minPoints - len(source_df)
-            no_priors_params.samples = no_priors_params.samples + missing_points
+            no_priors_params.samples = (
+                no_priors_params.samples + missing_points + current_iter
+            )
             logger_trim.warning(
                 f"After {current_iter} prior characterizations, we still need {missing_points} additional samples. "
                 f"This is likely because the target output '{params.targetOutput}' may not be acquired for every entity "

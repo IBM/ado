@@ -52,7 +52,7 @@ class NoPriorsParameters(BaseModel):
     )
 
     sampling_strategy: str = Field(
-        default="random",
+        default="clhs",
         description=(
             "Sampling subroutine. Supported values:\n"
             " - 'random': selects random points from the beginning\n"

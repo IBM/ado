@@ -26,7 +26,7 @@ VALID_N_GPUS = [1, 2, 4, 8, 16, 32]
 
 
 def get_model_prediction_and_metadata(
-    config: pd.DataFrame | dict | JobConfig, predictor: str | TabularPredictor
+    config: pd.DataFrame | dict | JobConfig, predictor: TabularPredictor
 ) -> tuple[int, dict]:
     """Gets valid/invalid prediction and reason why"""
     if isinstance(config, dict):

@@ -63,7 +63,9 @@ class TrimSampleSelector(BaseSampler):
             stateHandle: DiscoverySpaceManager,  # type: ignore[name-defined]
         ) -> typing.Callable[[], typing.AsyncGenerator[list[Entity], None]]:
 
-            logger_trim_sampler.info(f"Trim starts with parameters:\n{self.params}\n\n")
+            logger_trim_sampler.debug(
+                f"Trim starts with parameters:\n{self.params}\n\n"
+            )
 
             if logger_trim_sampler.isEnabledFor(logging.DEBUG):
                 debug_dir = Path(self.params.debugDirectory).expanduser().resolve()
@@ -102,8 +104,8 @@ class TrimSampleSelector(BaseSampler):
                 ]
                 train_target_cols = [*train_cols, self.params.targetOutput]
                 logger_trim_sampler.info(
-                    f"Trim iterator will measure up to {numberEntities} entities.\
-                    These entities have been ordered using {len(initial_source_df)} measurements from the discovery space."
+                    f"Trim iterator will measure up to {numberEntities} entities.\n"
+                    f"These entities have been ordered using {len(initial_source_df)} measurements from the discovery space."
                 )
 
                 logger_trim_sampler.info(

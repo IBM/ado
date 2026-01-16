@@ -17,7 +17,7 @@ def describe_source_spaces(
     this_iteration_source_df: pd.DataFrame,
     previous_iteration_source_df: pd.DataFrame,
     filter_cols=None,
-):
+) -> None:
     """
     Logs information about the current and previous source DataFrames:
       - lengths (rows, columns)
@@ -134,7 +134,7 @@ def log_after_split_common_and_diff(
     previous_source_df: pd.DataFrame,
     one_additional_row: pd.DataFrame,
     directory: str,
-):
+) -> None:
     if not previous_source_from_split_df.reset_index(drop=True).equals(
         previous_source_df.reset_index(drop=True)
     ):
@@ -210,7 +210,7 @@ def log_after_first_holdout_creation(
 def log_and_save_characterization(
     source_df: pd.DataFrame,
     target_df: pd.DataFrame,
-):
+) -> None:
     """
     Logs characterization details and saves source/target DataFrames.
     Assumes caller already checked logger level.
@@ -244,7 +244,7 @@ def log_before_first_holdout_update(
     iter_index: int,
     debugDirectory: str,
     batchsize: int = 1,
-):
+) -> None:
     if len(one_additional_row) != 1:
         logger.setLevel(logging.DEBUG)
         logger.error(
@@ -284,7 +284,7 @@ def save_source_train_holdout_dfs(
     current_holdout_df: pd.DataFrame,
     iter: int,
     directory: str,
-):
+) -> None:
     current_source_df.to_csv(
         os.path.join(
             directory,

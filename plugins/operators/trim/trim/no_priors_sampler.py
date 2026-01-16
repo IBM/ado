@@ -26,7 +26,7 @@ class NoPriorsSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager  # type: ignore[name-defined]
-    ):
+    ) -> bool:
         return True
 
     async def remoteEntityIterator(
@@ -116,5 +116,5 @@ class NoPriorsSampleSelector(BaseSampler):
     def parameters_model(cls) -> type[BaseModel] | None:
         return NoPriorsParameters
 
-    def __init__(self, parameters: NoPriorsParameters):
+    def __init__(self, parameters: NoPriorsParameters) -> None:
         self.params = parameters

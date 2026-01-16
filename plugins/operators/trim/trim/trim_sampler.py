@@ -48,7 +48,7 @@ class TrimSampleSelector(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager  # type: ignore[name-defined]
-    ):
+    ) -> bool:
         # do you want to return False if no point has been measured?
         return True
 
@@ -701,5 +701,5 @@ class TrimSampleSelector(BaseSampler):
     def parameters_model(cls) -> type[BaseModel] | None:
         return TrimParameters
 
-    def __init__(self, parameters: TrimParameters):
+    def __init__(self, parameters: TrimParameters) -> None:
         self.params = parameters

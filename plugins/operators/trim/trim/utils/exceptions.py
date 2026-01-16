@@ -7,6 +7,6 @@ class InsufficientDataError(Exception):
     Raised when the dataset is too small to allow for reliable validation or testing.
     """
 
-    def __init__(self, message="Not enough Data retrieved from the space"):
+    def __init__(self, message="Not enough Data retrieved from the space") -> None:
         self.message = message
         super().__init__(self.message)

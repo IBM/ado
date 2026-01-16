@@ -755,7 +755,7 @@ def unique_in_order_list_of_lists(lists: Sequence[Sequence[Any]]):
     return out
 
 
-def plot_grid(ax, dims, points, title):
+def plot_grid(ax, dims, points, title) -> None:
     from collections import defaultdict
 
     import matplotlib.patches as patches

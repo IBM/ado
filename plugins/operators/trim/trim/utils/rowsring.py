@@ -24,7 +24,7 @@ class RowsRing:
         self,
         maxlen: int,
         validator: Callable[[pd.DataFrame, pd.Series], bool] | None = None,
-    ):
+    ) -> None:
         if maxlen <= 0:
             raise ValueError("capacity must be a positive integer")
         self.capacity = int(maxlen)

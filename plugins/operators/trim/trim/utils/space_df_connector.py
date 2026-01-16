@@ -131,7 +131,7 @@ def get_df_at_least_one_measured_value(
     - Each row represents an entity with measurements.
     - Includes identifier (optional), constitutive properties, and the requested target outputs.
     - Drops rows with missing values for the selected targets.
-    - May Return an empty df
+    - May Return an empty DataFrame
 
     Parameters
     ----------
@@ -176,7 +176,7 @@ def get_df_at_least_one_measured_value(
     if df.empty:
         # NOTE: this condition is hit when there are no measurements at all existing in the space
         logger.warning(
-            "No measured properties found in the discovery space\nReturning empty df\n "
+            "No measured properties found in the discovery space\nReturning empty DataFrame\n "
         )
         return df
 
@@ -210,7 +210,7 @@ def get_df_at_least_one_measured_value(
     if valid_targetOutput_list != targetOutput_list:
         if len(valid_targetOutput_list) == 0:
             logger.error(
-                "No valid target in the columns of the df."
+                "No valid target in the columns of the DataFrame."
                 f"columns are:\t{list(df.columns)}."
                 f"First rows are:\n{df.head(5)}"
             )
@@ -237,14 +237,14 @@ def get_df_at_least_one_measured_value(
     # because I am taking points for which I have at least one of the measured properties of the experiment
     df.dropna(inplace=True)
 
-    # The resulting dataframe can be empty
+    # The resulting DataFrame can be empty
     if df.empty:
         logger.warning(
             "Although there were some measured properties in the discovery space."
         )
         logger.warning(
             "All measured properties in the discovery space"
-            f"are different from the desired outputs {targetOutput_list}.Returning empty df\n "
+            f"are different from the desired outputs {targetOutput_list}.Returning empty DataFrame\n "
         )
 
     return df
@@ -298,12 +298,12 @@ def get_source_and_target(
     # following logic safely
     if targetOutput not in list(df.columns):
         logger.info(
-            f"""The target output was not present in the columns of the measured+unmeasured dataframe,' \
+            f"""The target output was not present in the columns of the measured+unmeasured DataFrame,' \
                         meaning that '{targetOutput}' has never been measured in this space.
-                        dfm.empty = {df.empty}. Adding an empty column to the dataframe.
+                        dfm.empty = {df.empty}. Adding an empty column to the DataFrame.
                     """
         )
-        logger.debug("Adding an empty column to the dataframe.")
+        logger.debug("Adding an empty column to the DataFrame.")
         df[targetOutput] = pd.NA
 
     if targetOutput in list(df.columns):
@@ -324,7 +324,7 @@ def get_source_and_target(
         return df_measured_drop_na, df_unmeasured_drop_na
     save_path = "df_with_no_targetOutput_columns.csv"
     logger.error(
-        f"'{targetOutput}' column is missing, saving df in {save_path}, returning unmerged dataframes"
+        f"'{targetOutput}' column is missing, saving df in {save_path}, returning unmerged DataFrames"
     )
     df.to_csv(save_path)
     return dfm, dfu

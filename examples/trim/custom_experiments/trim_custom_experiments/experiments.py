@@ -48,7 +48,9 @@ mol = ConstitutiveProperty(
     required_properties=[mol, temperature, volume],
     output_property_identifiers=["pressure"],
 )
-def calculate_pressure_ideal_gas(mol, temperature, volume) -> dict[str, Any]:
+def calculate_pressure_ideal_gas(
+    mol: float, temperature: float, volume: float
+) -> dict[str, Any]:
     """
     Compute pressure from the Ideal Gas Law:
         p = n * R * T / V
@@ -83,7 +85,9 @@ gas = ConstitutiveProperty(
     required_properties=[mol, temperature, volume, gas],
     output_property_identifiers=["pressure"],
 )
-def calculate_pressure_gas(mol, temperature, volume, gas) -> dict[str, Any]:
+def calculate_pressure_gas(
+    mol: float, temperature: float, volume: float, gas: str
+) -> dict[str, Any]:
     """
     Compute pressure using Van der Waals equation in SI units (no checks):
         P = (n R T) / (V - n b) - a (n / V)^2

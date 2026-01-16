@@ -37,16 +37,16 @@ class NoPriorsParameters(BaseModel):
     )
 
     samples: int = Field(
-        default=18,
+        default=20,
         ge=1,
         description="Number of unique points to sample (must be >= 1).",
     )
 
     batchSize: int = Field(
-        default=5,
+        default=1,
         ge=1,
         description=(
-            "Batch size parameter used by certain samplers (e.g., randomWalk); "
+            "Batch size parameter used by certain samplers (e.g., randomWalk) via continuous batching; "
             "by default set equal to iterationSize in those contexts. Must be >= 1."
         ),
     )

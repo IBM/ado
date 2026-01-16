@@ -16,7 +16,7 @@ from trim.no_priors_pydantic import NoPriorsParameters
 
 class SamplingBudget(pydantic.BaseModel):
     minPoints: int = pydantic.Field(
-        default=10,
+        default=18,
         description="Minimum number of points to sample, a suggestion is setting this equal to twice the number of features",
     )
     maxPoints: int = pydantic.Field(
@@ -147,6 +147,18 @@ class TrimParameters(BaseModel):
                 "Currently the holdout size must be equal to the iterationSize."
                 f"Setting it equals to it. Batch size = {self.iterationSize}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def set_no_priors_sample(self):
+        if self.samplingBudget.minPoints != self.noPriorParameters.samples:
+            logging.info(
+                "Overwriting the 'sample' Field of the no-priors characterization:\n Details: "
+                f"samplingBudget.minPoints, which is equal to {self.samplingBudget.minPoints}, "
+                f"is different from noPriorParameters.samples, which is equal to {self.noPriorParameters.samples}; "
+                "setting noPriorParameters.samples equals to samplingBudget.minPoints."
+            )
+        self.samplingBudget.minPoints = self.noPriorParameters.samples
         return self
 
     @model_validator(mode="after")

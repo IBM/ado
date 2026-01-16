@@ -119,7 +119,7 @@ def retrieve_results(
     experimentReference: ExperimentReference,
     mode: typing.Literal["target", "observed"] = "target",
 ) -> dict[str, Any]:
-    """Returns measurement results in the specified format.
+    """Returns a dictionary mapping property identifiers to their measured values.
 
     Args:
         entity: The entity that was measured

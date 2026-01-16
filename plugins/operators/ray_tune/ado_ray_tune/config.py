@@ -92,13 +92,6 @@ class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    @pydantic.field_validator("metric_format")
-    @classmethod
-    def validate_mode(cls, v):
-        if v not in ["target", "observed"]:
-            raise ValueError(f"metric_format must be 'target' or 'observed', got: {v}")
-        return v
-
 
 class OrchSearchAlgorithm(pydantic.BaseModel):
     name: str = pydantic.Field(description="The name of the search alg")

@@ -115,7 +115,9 @@ def run_dependent_experiments(
 
 
 def retrieve_results(
-    entity: Entity, experimentReference: ExperimentReference, mode: str = "target"
+    entity: Entity,
+    experimentReference: ExperimentReference,
+    mode: typing.Literal["target", "observed"] = "target",
 ) -> dict[str, Any]:
     """Returns measurement results in the specified format.
 

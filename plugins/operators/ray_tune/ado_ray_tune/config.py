@@ -70,7 +70,7 @@ def create_general_ray_tune_config(
 class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
     """Model for specific orchestrator options related to ray tune"""
 
-    metric_format: str = pydantic.Field(
+    metric_format: typing.Literal["target", "observed"] = pydantic.Field(
         default="target",
         description="Format for metric identifiers: 'target' (use target property identifiers) "
         "or 'observed' (use observed property identifiers)",

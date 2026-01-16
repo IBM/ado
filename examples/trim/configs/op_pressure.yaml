@@ -7,14 +7,11 @@ operation:
     operationType: characterize
     operatorName: trim
   parameters:
-    batchSize: 5 # added
+    batchSize: 1
     autoGluonArgs:
       fitArgs:
         time_limit: 20
         presets: medium
-        # tabularPredictorArgs:
-        # problem_type: regression
-        # eval_metric: mean_absolute_percentage_error
     iterationSize: 5
     outputDirectory: trim_models
     stoppingCriterion:
@@ -22,7 +19,7 @@ operation:
       meanThreshold: 0.9
       stdThreshold: 0.75
     noPriorsParameters:
-      targetOutput: pressure # it is not properly set here
+      targetOutput: pressure
     targetOutput: pressure
     taskId: null
     taskValue: null

@@ -39,7 +39,7 @@ from trim.utils.split_common_and_diff import (
 from trim.utils.stopping_criterion import stopping_bool_from_ratios
 
 logger_trim_sampler = logging.getLogger(__name__)
-logger_trim_sampler.setLevel(logging.DEBUG)
+# logger_trim_sampler.setLevel(logging.DEBUG)
 
 
 # NOTE: to repeat the operation on the same space you can delete the operation
@@ -133,7 +133,9 @@ class TrimSampleSelector(BaseSampler):
 
                     if len(entity) == 0:
                         logger_trim_sampler.warning("No Entities remaining.")
-                        _ = self.finalize_model(discoverySpace)
+                        _ = self.finalize_model(
+                            discoverySpace, discoverySpaceManager=stateHandle
+                        )
                         break
 
                     current_source_df, _current_batch_size_target_df = (
@@ -407,7 +409,10 @@ class TrimSampleSelector(BaseSampler):
                             )
                             mean_ratio = 1
                             std_ratio = 1
-
+                        logger_trim_sampler.info(
+                            f"Testing stopping criterion after measuring {i} points, "
+                            "mean_ratio={mean_ratio} and std_ratio={std_ratio}"
+                        )
                         should_stop = (
                             _best_score_val is not None
                             and stopping_bool_from_ratios(
@@ -437,7 +442,10 @@ class TrimSampleSelector(BaseSampler):
                             "Performance of the model on the holdout set"
                             f"{final_model_path}:\nmean: {_best_score_val}\t\tstd: {std_ratio}\n."
                         )
-                        _predictor = self.finalize_model(discoverySpace=discoverySpace)
+                        _predictor = self.finalize_model(
+                            discoverySpace=discoverySpace,
+                            discoverySpaceManager=stateHandle,
+                        )
                         break
 
                     else:
@@ -467,11 +475,17 @@ class TrimSampleSelector(BaseSampler):
         # Returning an async generator object # Ready to iterate on with async for ...
         return retval()
 
-    def finalize_model(self, discoverySpace: DiscoverySpace) -> TabularPredictor:
+    def finalize_model(
+        self, discoverySpace: DiscoverySpace, discoverySpaceManager: DiscoverySpaceManager  # type: ignore[name-defined]
+    ) -> TabularPredictor:
         # FIT ON FULL SOURCE SPACE DATA
         source_df, _target_df = get_source_and_target(
-            discoverySpace, self.params.targetOutput
+            discoverySpace,
+            self.params.targetOutput,
+            discoverySpaceManager=discoverySpaceManager,
         )
+
+        # TODO: check why len(source_df) is minor than max(i) of the iterative modeling phase
         logger_trim_sampler.info(
             f"Finalizing the predictive model:"
             f"Fitting AutoGluon TabularPredictor on full Source Space data of {len(source_df)} rows."
@@ -520,11 +534,11 @@ class TrimSampleSelector(BaseSampler):
             else None
         )
         training_metric = getattr(predictor, "eval_metric", None)
-        save_info = f"""Model finalized using as training set all sampled points, of len {len(train_data)}.\n
-                        Final model {training_metric}={final_model_metric}.
-                        Saving predicted model to: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}.
-                        """
-        logger_trim_sampler.info(save_info)
+        logger_trim_sampler.info(
+            f"Model finalized using as training set all sampled points, of cardinality {len(train_data)}.\n"
+            f"Final model {training_metric}={final_model_metric}."
+            f"Saving predicted model to: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}."
+        )
         return predictor
 
     def entities_for_iterative_modeling_from_discovery_space(

@@ -346,6 +346,8 @@ def get_order_list_nn_high_dimensional(
     # Set the seed for the random number generator
     if seed is not None:
         random.seed(seed)
+    else:
+        seed = 123
 
     # Log space details if provided
     if space:
@@ -399,13 +401,13 @@ def get_order_list_nn_high_dimensional(
     logging.debug("Preparing to sample %d out of %d possible points.", n, maximum_n)
 
     if strategy == "random":
-        return random_high_dimensional_sampling(dims, n)
+        return random_high_dimensional_sampling(dims, n, seed=seed)
 
     if strategy == "clhs":
-        return concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=SEED)
+        return concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=seed)
 
     if strategy == "sobol":
-        return sobol_sampling(dims=dims, n=n, seed=SEED)
+        return sobol_sampling(dims=dims, n=n, seed=seed)
 
     raise NotImplementedError(f"Strategy {strategy} is unknown")
 

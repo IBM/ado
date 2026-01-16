@@ -668,10 +668,11 @@ class TrimSampleSelector(BaseSampler):
             )
             ordered_data_log_string = f"DataFrame successfully ordered, saving it now to {ordered_df_path_and_name}"
             logger_trim_sampler.info(ordered_data_log_string)
-            list_of_entities_identifiers_log = f"""Ordered list of inferred entities identifiers is:\n{list_of_entities_identifiers}\n\n
-            Proceeding to sample entities in this order.\n
-            Valid entities are built and validated using the dataframe contained in {ordered_df_path_and_name}"""
-            logger_trim_sampler.info(list_of_entities_identifiers_log)
+            logger_trim_sampler.info(
+                f"Ordered list of inferred entities identifiers is:\n{list_of_entities_identifiers}\n"
+                "Proceeding to sample entities in this order.\n"
+                f"Valid entities are built and validated using the dataframe contained in {ordered_df_path_and_name}"
+            )
             df_ordered_to_sample.to_csv(ordered_df_path_and_name)
 
         return list_of_entities, df_ordered_to_sample

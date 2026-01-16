@@ -317,33 +317,24 @@ class MeasurementSpace:
             identifier: The property identifier to check
             format: The format to check - "any", "target", or "observed"
                 - "any" (default): Checks both target and observed properties, plus virtual properties
-                - "target": Only checks target properties
-                - "observed": Only checks observed properties and virtual properties based on observed
-
-        Returns:
-            bool: True if the identifier is found in the specified format, False otherwise
-
-        Note:
-            Virtual property identifiers are only checked when format is "observed" or "any"
-        """
-
-        # Build array of property identifiers to check based on format
-        identifiers_to_check = []
-        if format in ("target", "any"):
-            identifiers_to_check.extend(
-                [op.targetProperty.identifier for op in self.observedProperties]
-            )
-        if format in ("observed", "any"):
-            identifiers_to_check.extend(
-                [op.identifier for op in self.observedProperties]
+        # Build set of property identifiers to check based on format
+        identifiers_to_check: set[str] = set()
+        if format in {"target", "any"}:
+            identifiers_to_check.update(
+                {op.targetProperty.identifier for op in self.observedProperties}
             )
 
-        # Check if identifier is in the array
+        if format in {"observed", "any"}:
+            identifiers_to_check.update(
+                {op.identifier for op in self.observedProperties}
+            )
+
+        # Check if identifier is in the set
         if identifier in identifiers_to_check:
             return True
 
         # If not found and format is any/observed, check if it's a virtual property
-        if format in ("any", "observed"):
+        if format in {"any", "observed"}:
             try:
                 prop, _ = VirtualObservedProperty.parseIdentifier(identifier)
             except ValueError:

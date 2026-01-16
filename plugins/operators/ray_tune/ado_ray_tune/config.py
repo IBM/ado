@@ -8,12 +8,13 @@ import pydantic
 import ray
 from pydantic import ConfigDict
 
-from ado_ray_tune.samplers import LhuSampler
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
+
+from .samplers import LhuSampler
 
 
 def create_optuna_ray_tune_config(

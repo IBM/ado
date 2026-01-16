@@ -16,14 +16,6 @@ from ray.actor import ActorHandle
 
 import orchestrator.core
 import orchestrator.modules
-from ado_ray_tune.config import (
-    OrchRunConfig,
-    OrchSearchAlgorithm,
-    OrchTuneConfig,
-    RayTuneConfiguration,
-    RayTuneOrchestratorConfiguration,
-)
-from ado_ray_tune.samplers import LhuSampler
 from orchestrator.core.datacontainer.resource import (
     DataContainer,
     DataContainerResource,
@@ -60,6 +52,15 @@ from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.support import prepare_dependent_experiment_input
+
+from .config import (
+    OrchRunConfig,
+    OrchSearchAlgorithm,
+    OrchTuneConfig,
+    RayTuneConfiguration,
+    RayTuneOrchestratorConfiguration,
+)
+from .samplers import LhuSampler
 
 if TYPE_CHECKING:  # pragma: nocover
     import orchestrator.modules.actuators.base

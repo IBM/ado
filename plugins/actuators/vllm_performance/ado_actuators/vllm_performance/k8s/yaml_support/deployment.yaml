@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: vllm
-          image: "vllm/vllm-openai:v0.11.1"
+          image: "vllm/vllm-openai:v0.13.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

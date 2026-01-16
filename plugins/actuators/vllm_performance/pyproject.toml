@@ -35,7 +35,7 @@ dependencies = [
     "huggingface_hub",
     "datasets",
     "numpy>=2",
-    "vllm==0.11.1",
+    "vllm>=0.12.0",
     "ado-core"
 ]
 

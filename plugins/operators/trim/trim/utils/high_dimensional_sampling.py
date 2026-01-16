@@ -793,19 +793,36 @@ def plot_grid(ax, dims, points, title):
         ax.add_patch(rect)
 
         # Label is the comma-separated list of indices
-        # label = ",".join(map(str, indices))
+        label = ",".join(map(str, indices))
 
-        # # Add text
-        # ax.text(x + 0.5, y + 0.5, label,
-        #         ha='center', va='center', color='white', fontweight='bold')
+        # Add text
+
+        ax.text(
+            x + 0.52,
+            y + 0.52,
+            label,
+            ha="center",
+            va="center",
+            color="#D4FF00",
+            fontweight="bold",
+        )
+        ax.text(
+            x + 0.5,
+            y + 0.5,
+            label,
+            ha="center",
+            va="center",
+            color="#000000",
+            fontweight="bold",
+        )
 
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     # --- Configuration ---
-    DIMS = [80, 80]  # 4 columns, 6 rows (Total 24 cells)
-    N = 300  # Number of samples to draw
+    DIMS = [40, 6]  # 4 columns, 6 rows (Total 24 cells)
+    N = 50  # Number of samples to draw
     SEED = 42
 
     # --- Plotting ---

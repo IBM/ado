@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
+from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.core.samplestore.config import SampleStoreConfiguration
+from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
@@ -64,7 +68,11 @@ def test_create_sample_store_dry_run_failure(tmp_path: pathlib.Path) -> None:
 
 
 def test_create_sample_store_success(
-    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
 ) -> None:
     sample_store_configuration_file = pathlib.Path(
         "tests/resources/ml_multicloud_sample_store.yaml"
@@ -92,7 +100,11 @@ def test_create_sample_store_success(
 
 
 def test_create_sample_store_success_new_sample_store(
-    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(
@@ -119,10 +131,12 @@ def test_create_sample_store_success_new_sample_store(
 
 def test_create_sample_store_failure_because_hardcoded_storage_location(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ado_sql_sample_store_with_storagelocation,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ado_sql_sample_store_with_storagelocation: SampleStoreConfiguration,
 ) -> None:
 
     runner = CliRunner()

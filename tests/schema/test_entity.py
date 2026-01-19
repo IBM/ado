@@ -32,7 +32,9 @@ from orchestrator.schema.virtual_property import (
 )
 
 
-def test_value_per_property(entity: Entity, abstract_properties) -> None:
+def test_value_per_property(
+    entity: Entity, abstract_properties: list[AbstractPropertyDescriptor]
+) -> None:
     for ap in abstract_properties:
         value = entity.valuesForTargetProperty(ap)
         assert value is not None
@@ -52,7 +54,7 @@ def test_retrieve_properties_by_experiment(
 
 
 def test_retrieve_properties_by_experiment_reference(
-    entity, experiment_reference, experiment
+    entity: Entity, experiment_reference: ExperimentReference, experiment: Experiment
 ) -> None:
     assert experiment_reference in entity.experimentReferences
 
@@ -64,7 +66,7 @@ def test_retrieve_properties_by_experiment_reference(
     assert len(ops) == len(experiment.observedProperties)
 
 
-def test_property_types(entity) -> None:
+def test_property_types(entity: Entity) -> None:
     """Test that created properties have the correct type as per the enum"""
 
     assert len(entity.propertyValues) != 0
@@ -76,7 +78,7 @@ def test_property_types(entity) -> None:
         assert p.propertyType == NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
 
 
-def test_number_and_type_of_property_method_return_values(entity) -> None:
+def test_number_and_type_of_property_method_return_values(entity: Entity) -> None:
     """Test that the property methods return what's expected in type and number"""
 
     # Add extra duplicate measurement result to entity to test it can handle it
@@ -176,7 +178,9 @@ def test_entity_series_representation(entity: Entity) -> None:
             assert rep.get(prop.identifier) is not None
 
 
-def test_virtual_property_request(entity: Entity, abstract_properties) -> None:
+def test_virtual_property_request(
+    entity: Entity, abstract_properties: list[AbstractPropertyDescriptor]
+) -> None:
     for obs in entity.observedProperties:
         for e in PropertyAggregationMethodEnum:
             vps = entity.virtualObservedPropertiesFromIdentifier(
@@ -229,7 +233,9 @@ def test_virtual_property_request(entity: Entity, abstract_properties) -> None:
 
 
 def test_virtual_property_request_no_values(
-    entity: Entity, abstract_properties, experiment
+    entity: Entity,
+    abstract_properties: list[AbstractPropertyDescriptor],
+    experiment: Experiment,
 ) -> None:
     # Create the virtual property - the mean
     aggregation_method = PropertyAggregationMethod(
@@ -261,7 +267,7 @@ def test_virtual_property_request_invalid_identifier(entity: Entity) -> None:
     )
 
 
-def test_entity_pretty(entity) -> None:
+def test_entity_pretty(entity: Entity) -> None:
     from IPython.lib.pretty import pretty
 
     pretty(entity)

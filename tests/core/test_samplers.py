@@ -11,6 +11,7 @@ from orchestrator.core.discoveryspace.samplers import (
     WalkModeEnum,
     sample_random_entity_from_space,
 )
+from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
@@ -18,22 +19,25 @@ from orchestrator.modules.operators.discovery_space_manager import (
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 from orchestrator.schema.measurementspace import MeasurementSpace
+from orchestrator.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=[WalkModeEnum.RANDOM, WalkModeEnum.SEQUENTIAL])
-def walk_mode(request):
+def walk_mode(request: pytest.FixtureRequest) -> WalkModeEnum:
 
     return request.param
 
 
 @pytest.fixture
-def explicit_entity_space(constitutive_property_configuration_general):
+def explicit_entity_space(
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+) -> EntitySpaceRepresentation:
 
     return EntitySpaceRepresentation(constitutive_property_configuration_general)
 
 
 def test_explicit_space_grid_sampler_entity_space_iterator(
-    explicit_entity_space, walk_mode
+    explicit_entity_space: EntitySpaceRepresentation, walk_mode: WalkModeEnum
 ) -> None:
 
     if not explicit_entity_space.isDiscreteSpace:
@@ -110,7 +114,7 @@ def test_explicit_space_grid_sampler_entity_space_iterator(
 
 @pytest.mark.asyncio
 async def test_explicit_space_grid_sampler_async_entity_iterator(
-    ml_multi_cloud_space, walk_mode
+    ml_multi_cloud_space: DiscoverySpace, walk_mode: WalkModeEnum
 ) -> None:
 
     space = ml_multi_cloud_space
@@ -193,7 +197,7 @@ async def test_explicit_space_grid_sampler_async_entity_iterator(
 
 
 def test_explicit_space_grid_sampler_entity_iterator(
-    ml_multi_cloud_space, walk_mode
+    ml_multi_cloud_space: DiscoverySpace, walk_mode: WalkModeEnum
 ) -> None:
 
     space = ml_multi_cloud_space
@@ -266,7 +270,7 @@ def test_explicit_space_grid_sampler_entity_iterator(
 
 @pytest.mark.asyncio
 async def test_random_sample_selector(
-    ml_multi_cloud_space,
+    ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
 
     space = ml_multi_cloud_space
@@ -306,7 +310,7 @@ async def test_random_sample_selector(
 
 @pytest.mark.asyncio
 async def test_sequential_sample_selector(
-    ml_multi_cloud_space,
+    ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
 
     space = ml_multi_cloud_space

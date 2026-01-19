@@ -22,7 +22,9 @@ from orchestrator.core.resources import CoreResourceKinds
         ),
     ]
 )
-def resource_generator_from_file(request):
+def resource_generator_from_file(
+    request: pytest.FixtureRequest,
+) -> tuple[CoreResourceKinds, str]:
     return request.param
 
 
@@ -42,5 +44,7 @@ def resource_generator_from_file(request):
         ),
     ]
 )
-def resource_generator_from_db(request):
+def resource_generator_from_db(
+    request: pytest.FixtureRequest,
+) -> tuple[CoreResourceKinds, str]:
     return request.param

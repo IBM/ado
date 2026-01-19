@@ -6,6 +6,7 @@ import pytest
 
 from orchestrator.core.discoveryspace.samplers import sample_random_entity_from_space
 from orchestrator.modules.actuators.registry import (
+    ActuatorRegistry,
     UnknownActuatorError,
     UnknownExperimentError,
 )
@@ -37,7 +38,7 @@ def test_measurement_space_config(
 def test_measurement_space_from_parameterized_selectors(
     parameterizable_experiments: list[Experiment],
     parameterized_selectors: list[ExperimentReference],
-    global_registry,
+    global_registry: ActuatorRegistry,
 ) -> None:
 
     # Test does not allow duplicate parameterized experiments
@@ -101,7 +102,7 @@ def test_measurement_space_from_parameterized_selectors(
 
 def test_measurement_space_with_parameterized_experiments_ser_dser(
     parameterized_selectors: list[ExperimentReference],
-    global_registry,
+    global_registry: ActuatorRegistry,
 ) -> None:
 
     ms = MeasurementSpace.measurementSpaceFromSelection(
@@ -134,7 +135,7 @@ def test_measurement_space_with_parameterized_experiments_ser_dser(
 def test_measurement_space_from_parameterized_references(
     parameterizable_experiments: list[Experiment],
     parameterized_references: list[ExperimentReference],
-    global_registry,
+    global_registry: ActuatorRegistry,
 ) -> None:
     # Test does not allow duplicate parameterized experiments
     # Test does allow different parameterization of same base experiment
@@ -200,7 +201,7 @@ def test_measurement_space_from_parameterized_references(
         assert len(ms.observedPropertiesForExperimentReference(r)) != 0
 
 
-def test_measurement_space(measurement_space) -> None:
+def test_measurement_space(measurement_space: MeasurementSpace) -> None:
     """Test a measurement space"""
 
     space = measurement_space
@@ -232,7 +233,9 @@ def test_measurement_space(measurement_space) -> None:
         assert p.targetProperty.identifier in expectedTargets
 
 
-def test_experiment_selector(measurement_space_configuration) -> None:
+def test_experiment_selector(
+    measurement_space_configuration: list[ExperimentReference],
+) -> None:
     selectedExperiments = measurement_space_configuration
 
     assert len(selectedExperiments) == 1
@@ -245,7 +248,9 @@ def test_experiment_selector(measurement_space_configuration) -> None:
     assert selectedExperiments[0].actuatorIdentifier == "replay"
 
 
-def test_space_with_unknown_experiment(parameterized_references) -> None:
+def test_space_with_unknown_experiment(
+    parameterized_references: list[ExperimentReference],
+) -> None:
     """Test correct error is raised if an experiment cannot be found"""
 
     with pytest.raises(UnknownActuatorError):
@@ -270,7 +275,9 @@ def test_space_with_unknown_experiment(parameterized_references) -> None:
         )
 
 
-def test_supported_experiments(parameterized_references) -> None:
+def test_supported_experiments(
+    parameterized_references: list[ExperimentReference],
+) -> None:
     """Test  MeasurementSpace returns supported/deprecated experiments correctly"""
 
     ms = MeasurementSpace.measurementSpaceFromSelection(
@@ -313,7 +320,7 @@ def test_independent_and_dependent_experiments_multiple(
 
 
 def test_is_consistent_single(
-    measurement_space_from_single_parameterized_experiment,
+    measurement_space_from_single_parameterized_experiment: MeasurementSpace,
 ) -> None:
 
     if measurement_space_from_single_parameterized_experiment.dependentExperiments:

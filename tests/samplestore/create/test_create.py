@@ -1,14 +1,25 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import re
+from collections.abc import Callable
 
+import pandas as pd
 import pytest
 
-from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.core import DiscoverySpaceResource, OperationResource
+from orchestrator.core.resources import ADOResource, CoreResourceKinds
+from orchestrator.core.samplestore.sql import SQLSampleStore
+from orchestrator.metastore.sqlstore import SQLStore
+from orchestrator.schema.entity import Entity
+from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.request import MeasurementRequestStateEnum, ReplayedMeasurement
 
 
 def test_resource_creation(
-    resource_generator_from_file, create_resources, sql_store, request
+    resource_generator_from_file: tuple[CoreResourceKinds, str],
+    create_resources: Callable[[list[ADOResource], SQLStore], None],
+    sql_store: SQLStore,
+    request: pytest.FixtureRequest,
 ) -> None:
     _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
@@ -17,7 +28,10 @@ def test_resource_creation(
 
 
 def test_invalid_resource_creation(
-    resource_generator_from_file, create_resources, sql_store, request
+    resource_generator_from_file: tuple[CoreResourceKinds, str],
+    create_resources: Callable[[list[ADOResource], SQLStore], None],
+    sql_store: SQLStore,
+    request: pytest.FixtureRequest,
 ) -> None:
     _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
@@ -29,7 +43,10 @@ def test_invalid_resource_creation(
 
 
 def test_resource_cannot_be_created_twice(
-    resource_generator_from_file, create_resources, sql_store, request
+    resource_generator_from_file: tuple[CoreResourceKinds, str],
+    create_resources: Callable[[list[ADOResource], SQLStore], None],
+    sql_store: SQLStore,
+    request: pytest.FixtureRequest,
 ) -> None:
     _resource_kind, generator = resource_generator_from_file
     resource = request.getfixturevalue(generator)()
@@ -43,12 +60,18 @@ def test_resource_cannot_be_created_twice(
 
 
 def test_create_operation_with_related_space(
-    random_operation_resource_from_file,
-    random_space_resource_from_db,
-    create_resource_with_related_identifiers,
-    sql_store,
-    get_single_resource_by_identifier,
-    get_related_resource_identifiers_by_identifier,
+    random_operation_resource_from_file: Callable[
+        [str | None, str | None], OperationResource
+    ],
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    create_resource_with_related_identifiers: Callable[
+        [ADOResource, list[str], SQLStore], None
+    ],
+    sql_store: SQLStore,
+    get_single_resource_by_identifier: Callable[
+        [str, CoreResourceKinds], ADOResource | None
+    ],
+    get_related_resource_identifiers_by_identifier: Callable[[str], pd.DataFrame],
 ) -> None:
     quantity = 3
 
@@ -74,10 +97,14 @@ def test_create_operation_with_related_space(
 
 
 def test_exception_on_resource_with_related_identifier_if_related_id_does_not_exist(
-    random_operation_resource_from_file,
-    random_space_resource_from_db,
-    create_resource_with_related_identifiers,
-    sql_store,
+    random_operation_resource_from_file: Callable[
+        [str | None, str | None], OperationResource
+    ],
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    create_resource_with_related_identifiers: Callable[
+        [ADOResource, list[str], SQLStore], None
+    ],
+    sql_store: SQLStore,
 ) -> None:
     operation = random_operation_resource_from_file()
     nonexistent_related_id = "IDoNotExist"
@@ -93,9 +120,9 @@ def test_exception_on_resource_with_related_identifier_if_related_id_does_not_ex
 
 
 def test_add_entities_to_sample_store(
-    random_entities,
-    random_sql_sample_store,
-    add_entities_to_sample_store,
+    random_entities: Callable[[int], list[Entity]],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    add_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
 ) -> None:
     quantity = 3
     entities = random_entities(quantity=quantity)
@@ -103,9 +130,9 @@ def test_add_entities_to_sample_store(
 
 
 def test_upsert_entities_to_sample_store(
-    random_entities,
-    random_sql_sample_store,
-    upsert_entities_to_sample_store,
+    random_entities: Callable[[int], list[Entity]],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    upsert_entities_to_sample_store: Callable[[SQLSampleStore, list[Entity]], None],
 ) -> None:
     quantity = 3
     entities = random_entities(quantity=quantity)
@@ -113,9 +140,12 @@ def test_upsert_entities_to_sample_store(
 
 
 def test_add_measurement_request_to_sample_store(
-    ml_multi_cloud_benchmark_performance_experiment,
-    random_ml_multi_cloud_benchmark_performance_measurement_requests,
-    random_sql_sample_store,
+    ml_multi_cloud_benchmark_performance_experiment: Experiment,
+    random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
+        [int, int, MeasurementRequestStateEnum | None, str | None],
+        ReplayedMeasurement,
+    ],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
 ) -> None:
     assert ml_multi_cloud_benchmark_performance_experiment is not None
 
@@ -134,7 +164,9 @@ def test_add_measurement_request_to_sample_store(
     )
 
 
-def test_add_external_entities(random_sql_sample_store, entity) -> None:
+def test_add_external_entities(
+    random_sql_sample_store: Callable[[], SQLSampleStore], entity: Entity
+) -> None:
 
     sample_store = random_sql_sample_store()
 

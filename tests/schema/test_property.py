@@ -15,25 +15,26 @@ from orchestrator.schema.property import (
     Property,
     PropertyDescriptor,
 )
+from orchestrator.schema.reference import ExperimentReference
 
 
 @pytest.fixture
-def property_descriptor():
+def property_descriptor() -> PropertyDescriptor:
     return PropertyDescriptor(identifier="my_prop")
 
 
 @pytest.fixture
-def abstract_property_descriptor():
+def abstract_property_descriptor() -> AbstractPropertyDescriptor:
     return AbstractPropertyDescriptor(identifier="my_abs_prop")
 
 
 @pytest.fixture
-def concrete_property_descriptor():
+def concrete_property_descriptor() -> ConcretePropertyDescriptor:
     return ConcretePropertyDescriptor(identifier="my_conc_prop")
 
 
 @pytest.fixture
-def constitutive_property_descriptor():
+def constitutive_property_descriptor() -> ConstitutivePropertyDescriptor:
     return ConstitutivePropertyDescriptor(identifier="my_conc_prop")
 
 
@@ -123,7 +124,14 @@ def test_property_pretty(prop: Property) -> None:
 
 # For use in next two tests
 @pytest.fixture
-def descriptor(request):
+def descriptor(
+    request: pytest.FixtureRequest,
+) -> (
+    PropertyDescriptor
+    | AbstractPropertyDescriptor
+    | ConcretePropertyDescriptor
+    | ConstitutivePropertyDescriptor
+):
     return request.getfixturevalue(request.param)
 
 
@@ -137,7 +145,14 @@ def descriptor(request):
     ],
     indirect=True,
 )
-def test_descriptor_pretty(descriptor) -> None:
+def test_descriptor_pretty(
+    descriptor: (
+        PropertyDescriptor
+        | AbstractPropertyDescriptor
+        | ConcretePropertyDescriptor
+        | ConstitutivePropertyDescriptor
+    ),
+) -> None:
     """Test pretty print of descriptors is as expected"""
 
     from IPython.lib.pretty import pretty
@@ -156,7 +171,14 @@ def test_descriptor_pretty(descriptor) -> None:
     ],
     indirect=True,  # Resolve strings to fixtures - you can't use them directly
 )
-def test_descriptor_string_representation(descriptor) -> None:
+def test_descriptor_string_representation(
+    descriptor: (
+        PropertyDescriptor
+        | AbstractPropertyDescriptor
+        | ConcretePropertyDescriptor
+        | ConstitutivePropertyDescriptor
+    ),
+) -> None:
     """Test __str__ of descriptors is as expected"""
     # NOTE PropertyDescriptor does not have custom __str__ method
 
@@ -167,7 +189,7 @@ def test_descriptor_string_representation(descriptor) -> None:
     ), f"Expected str rep of descriptor to be {prefix}-{descriptor.identifier}, was {descriptor}"
 
 
-def test_observed_property_hashable(experiment_reference) -> None:
+def test_observed_property_hashable(experiment_reference: ExperimentReference) -> None:
 
     ap = AbstractPropertyDescriptor(identifier="test")
     op = ObservedProperty(targetProperty=ap, experimentReference=experiment_reference)
@@ -175,7 +197,9 @@ def test_observed_property_hashable(experiment_reference) -> None:
     assert d
 
 
-def test_property_equivalence_non_property(requiredProperties) -> None:
+def test_property_equivalence_non_property(
+    requiredProperties: list[ConstitutiveProperty],
+) -> None:
     """Test the property equivalence works"""
 
     # non-equivalence to non-Property subclass is determined by missing attributes identifier and propertyDomain
@@ -186,7 +210,8 @@ def test_property_equivalence_non_property(requiredProperties) -> None:
 
 
 def test_abstract_property_identifier_and_string_representation(
-    target_property_list, abstract_properties: list[AbstractPropertyDescriptor]
+    target_property_list: list[str],
+    abstract_properties: list[AbstractPropertyDescriptor],
 ) -> None:
 
     for t, p in zip(target_property_list, abstract_properties, strict=True):
@@ -201,7 +226,8 @@ def test_abstract_property_identifier_and_string_representation(
 
 
 def test_constitutive_property_identifier_and_string_representation(
-    constitutive_property_list, constitutive_properties
+    constitutive_property_list: list[str],
+    constitutive_properties: list[ConstitutiveProperty],
 ) -> None:
     for t, p in zip(constitutive_property_list, constitutive_properties, strict=True):
         assert p.identifier == t

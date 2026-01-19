@@ -3,15 +3,23 @@
 
 import datetime
 import re
+from collections.abc import Callable
 
 import pytest
 import yaml
 
 import orchestrator.core
+from orchestrator.core import DiscoverySpaceResource
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import (
     DiscoverySpace,
     SpaceInconsistencyError,
+)
+from orchestrator.core.samplestore.base import ActiveSampleStore
+from orchestrator.core.samplestore.config import (
+    SampleStoreConfiguration,
+    SampleStoreModuleConf,
+    SampleStoreSpecification,
 )
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.actuators.registry import ActuatorRegistry
@@ -25,7 +33,9 @@ from orchestrator.schema.reference import (
 )
 
 
-def test_discovery_space(pfas_space, pfas_space_configuration) -> None:
+def test_discovery_space(
+    pfas_space: DiscoverySpace, pfas_space_configuration: DiscoverySpaceConfiguration
+) -> None:
     assert not pfas_space.sample_store.isPassive
 
     # Since discovery_space was created using a non-builtin sample store we can't
@@ -40,7 +50,7 @@ def test_discovery_space(pfas_space, pfas_space_configuration) -> None:
     )
 
 
-def test_space_describe(pfas_space) -> None:
+def test_space_describe(pfas_space: DiscoverySpace) -> None:
     # Try pretty print
     from IPython.lib import pretty
 
@@ -53,13 +63,11 @@ def test_discovery_space_with_parameterized_experiments(
     parameterized_references: list[ExperimentReference],
     valid_ado_project_context: ProjectContext,
     global_registry: ActuatorRegistry,
-    create_sample_store,
+    create_sample_store: Callable[[SampleStoreConfiguration], ActiveSampleStore],
 ) -> None:
 
     from orchestrator.core.samplestore.config import (
         SampleStoreConfiguration,
-        SampleStoreModuleConf,
-        SampleStoreSpecification,
     )
 
     ms = MeasurementSpace.measurementSpaceFromExperimentReferences(
@@ -136,7 +144,7 @@ def test_discovery_space_with_parameterized_experiments(
 #     assert "identifier" in table.columns
 @pytest.mark.xfail
 def test_discoveryspace_with_replay_actuator_and_references_pretty(
-    discovery_space_resource,
+    discovery_space_resource: DiscoverySpaceResource,
 ) -> None:
 
     ### This is expected to fail
@@ -153,7 +161,7 @@ def test_discoveryspace_with_replay_actuator_and_references_pretty(
 
 
 def test_discoveryspace_with_normal_actuator_pretty(
-    discovery_space_resource_no_replay,
+    discovery_space_resource_no_replay: DiscoverySpaceResource,
 ) -> None:
 
     from IPython.lib.pretty import pretty
@@ -162,7 +170,9 @@ def test_discoveryspace_with_normal_actuator_pretty(
     pretty(discovery_space_resource_no_replay)
 
 
-def test_discovery_space_resource(discovery_space_resource) -> None:
+def test_discovery_space_resource(
+    discovery_space_resource: DiscoverySpaceResource,
+) -> None:
 
     assert discovery_space_resource.identifier is not None
     assert discovery_space_resource.identifier == "test_space"
@@ -182,7 +192,9 @@ def test_discovery_space_resource(discovery_space_resource) -> None:
     assert len(discovery_space_resource.status) == 1
 
 
-def test_discovery_space_config_file_valid(valid_discovery_space_config_file) -> None:
+def test_discovery_space_config_file_valid(
+    valid_discovery_space_config_file: str,
+) -> None:
     import pathlib
 
     valid_discovery_space_config_file = pathlib.Path(valid_discovery_space_config_file)
@@ -192,8 +204,8 @@ def test_discovery_space_config_file_valid(valid_discovery_space_config_file) ->
 
 
 def test_discovery_space_config_experiment_field_conversion_parameterized(
-    measurement_space_from_multiple_parameterized_experiments,
-    global_registry,
+    measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
+    global_registry: ActuatorRegistry,
 ) -> None:
 
     es = (
@@ -229,7 +241,8 @@ def test_discovery_space_config_experiment_field_conversion_parameterized(
 
 
 def test_discovery_space_config_experiment_field_conversion(
-    measurement_space_from_discovery_configuration, global_registry
+    measurement_space_from_discovery_configuration: MeasurementSpace,
+    global_registry: ActuatorRegistry,
 ) -> None:
     ms = measurement_space_from_discovery_configuration
     es = ms.compatibleEntitySpace()
@@ -263,26 +276,26 @@ def test_discovery_space_config_experiment_field_conversion(
     assert config_copy.convert_experiments_to_reference_list() == ds_config
 
 
-def test_sampled_entities(ml_multi_cloud_space) -> None:
+def test_sampled_entities(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert (len(ml_multi_cloud_space.sampledEntities())) == 0
 
 
-def test_measured_entities_table(ml_multi_cloud_space) -> None:
+def test_measured_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert ml_multi_cloud_space.measuredEntitiesTable().shape[0] == 0
 
 
-def test_matching_entities(ml_multi_cloud_space) -> None:
+def test_matching_entities(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert (len(ml_multi_cloud_space.matchingEntities())) == 42
 
 
-def test_matching_entities_table(ml_multi_cloud_space) -> None:
+def test_matching_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert ml_multi_cloud_space.matchingEntitiesTable().shape[0] == 42
 
 
-def test_missing_entities_table(ml_multi_cloud_space) -> None:
+def test_missing_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert ml_multi_cloud_space.matchingEntitiesTable().shape[0] == 42

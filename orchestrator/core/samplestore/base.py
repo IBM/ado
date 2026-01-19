@@ -225,13 +225,14 @@ class SampleStoreDescription(pydantic.BaseModel):
     experiments: Annotated[
         list[ExperimentDescription],
         pydantic.Field(
-            default=[], description="A list describing the experiments in the source"
+            default_factory=list,
+            description="A list describing the experiments in the source",
         ),
     ]
     generatorIdentifier: Annotated[
         str | None,
-        pydantic.Field(default=None, description="The id of the entity generator"),
-    ]
+        pydantic.Field(description="The id of the entity generator"),
+    ] = None
 
     @property
     def catalog(self) -> ExperimentCatalog:

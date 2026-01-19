@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-from typing import Any
+from typing import Annotated, Any
 
 import numpy as np
 import pydantic
@@ -25,8 +25,8 @@ class PropertyAggregationMethodEnum(enum.Enum):
 
 
 class PropertyAggregationMethod(pydantic.BaseModel):
-    identifier: PropertyAggregationMethodEnum = pydantic.Field(
-        default=PropertyAggregationMethodEnum.mean
+    identifier: Annotated[PropertyAggregationMethodEnum, pydantic.Field()] = (
+        PropertyAggregationMethodEnum.mean
     )
 
     def function(self, values: list) -> float | tuple[Any, Any] | tuple[Any, None]:
@@ -219,6 +219,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
 class VirtualObservedPropertyValue(PropertyValue):
 
-    property: VirtualObservedProperty = pydantic.Field(
-        description="The ConstitutiveProperty with the value"
-    )
+    property: Annotated[
+        VirtualObservedProperty,
+        pydantic.Field(description="The ConstitutiveProperty with the value"),
+    ]

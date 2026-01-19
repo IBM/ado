@@ -39,8 +39,8 @@ def mycustomexperiment(entity):
 def acid_test(
     entity: orchestrator.schema.entity.Entity,
     experiment: orchestrator.schema.experiment.Experiment,
-    parameters=None,
-):
+    parameters: dict | None = None,
+) -> list[ObservedPropertyValue]:
     """
 
     :param entity: The entity to be measured

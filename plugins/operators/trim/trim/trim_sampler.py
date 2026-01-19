@@ -322,7 +322,10 @@ class TrimSampleSelector(BaseSampler):
                     # i<iter_size: no models
                     # itersize =< i< itersize *2 : 1st iter of models
                     # itersize*2 =< i< itersize *3 : 2nd iter of models
-                    if i < self.params.iterationSize * 3 - 1:
+                    if (
+                        i < self.params.iterationSize * 3 - 1
+                        or not self.params.stoppingCriterion.enabled
+                    ):
                         yield entity
                         yielded_entities += entity
                         continue

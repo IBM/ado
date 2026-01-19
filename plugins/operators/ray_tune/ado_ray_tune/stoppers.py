@@ -692,7 +692,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             self.stop_probability = prob_abs_greater
 
             self.log.info(
-                f"✓ Stopping after {self.trials_num} trials\n"
+                f"✓ Stopping after {self.trials_num} trials  - usable differences collected {len(self.differences)} \n"
                 f"  {prob_abs_greater*100:.1f}% confident mean difference is ABOVE threshold\n"
                 f"  Mean difference: {mean_diff:.4f}\n"
                 f"  Standard error: ±{stats_result['se']:.4f}\n"

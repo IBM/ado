@@ -557,6 +557,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
                 "n": n,
                 "mean": np.nan if n == 0 else differences[0],
                 "std": np.nan,
+                "se": np.nan,
                 "prob_greater_than_threshold": 0.0,
                 "prob_less_than_neg_threshold": 0.0,
                 "prob_abs_greater_than_threshold": 0.0,
@@ -600,6 +601,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             "n": n,
             "mean": mean_diff,
             "std": std_diff,
+            "se": std_diff / np.sqrt(n),
             "prob_greater_than_threshold": prob_greater,
             "prob_less_than_neg_threshold": prob_less,
             "prob_abs_greater_than_threshold": prob_abs_greater,
@@ -693,7 +695,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
                 f"✓ Stopping after {self.trials_num} trials\n"
                 f"  {prob_abs_greater*100:.1f}% confident mean difference is ABOVE threshold\n"
                 f"  Mean difference: {mean_diff:.4f}\n"
-                f"  Standard error: ±{stats_result['std']:.4f}\n"
+                f"  Standard error: ±{stats_result['se']:.4f}\n"
                 f"  Threshold: {self.threshold}\n"
                 f"  P(|{self.metric_a} - {self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
             )
@@ -709,7 +711,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
                 f"✓ Stopping after {self.trials_num} trials\n"
                 f"  {prob_abs_less*100:.1f}% confident mean difference is BELOW threshold\n"
                 f"  Mean difference: {mean_diff:.4f}\n"
-                f"  Standard error: ±{stats_result['std']:.4f}\n"
+                f"  Standard error: ±{stats_result['se']:.4f}\n"
                 f"  Threshold: {self.threshold}\n"
                 f"  P(|{self.metric_a} - {self.metric_b}| < {self.threshold}) = {prob_abs_less:.4f}"
             )

@@ -204,7 +204,7 @@ class ActiveSampleStore(SampleStore, ABC):
 
 class MockParams(pydantic.BaseModel):
 
-    numberOfEntities: Annotated[int, pydantic.Field(default=100)]
+    numberOfEntities: Annotated[int, pydantic.Field()] = 100
     model_config = ConfigDict(extra="forbid")
 
 

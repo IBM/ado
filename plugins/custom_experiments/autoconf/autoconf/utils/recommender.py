@@ -104,18 +104,14 @@ def recommend_min_gpu(
             min_number_gpus = candidate_number_gpus
             break
 
-    logger.info(
-        f"""Metadata related to the model prediction
+    logger.info(f"""Metadata related to the model prediction
         (number_gpus={job_config.number_gpus if job_config.number_gpus else 'Not provided'})
-        :{metadata}"""
-    )
+        :{metadata}""")
 
     if min_number_gpus == -1:
-        logger.info(
-            f"""A recommendation for 'number_gpus' cannot be provided because
+        logger.info(f"""A recommendation for 'number_gpus' cannot be provided because
             no values for 'number_gpus' of the list {valid_n_gpu_list} would result
-            in a valid run according to the predictive model."""
-        )
+            in a valid run according to the predictive model.""")
     else:
         logger.info(f"The recommended number_gpus={min_number_gpus}.")
 

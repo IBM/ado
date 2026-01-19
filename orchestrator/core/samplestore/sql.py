@@ -343,13 +343,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         if not self._entities:
 
-            query = sqlalchemy.text(
-                f"""
+            query = sqlalchemy.text(f"""
                     SELECT ent.identifier, ent.representation, res.data
                     FROM {self._tablename} ent
                     LEFT OUTER JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
-                """  # noqa: S608 - self._tablename is not untrusted
-            )
+                """)  # noqa: S608 - self._tablename is not untrusted
 
             try:
                 with self.engine.begin() as connectable:
@@ -620,8 +618,7 @@ class SQLSampleStore(ActiveSampleStore):
     def entityWithIdentifier(self, entityIdentifier: str) -> Entity | None:
         """Returns entity if its in receiver otherwise returns None"""
 
-        query = sqlalchemy.text(
-            f"""
+        query = sqlalchemy.text(f"""
                 SELECT ent.identifier, ent.representation, res.data
                 FROM (
                     SELECT identifier, representation
@@ -629,8 +626,9 @@ class SQLSampleStore(ActiveSampleStore):
                     WHERE identifier = :identifier
                 ) ent
                 LEFT OUTER JOIN {self._tablename}_measurement_results res ON ent.identifier = res.entity_id
-            """  # noqa: S608 - self._tablename is not untrusted
-        ).bindparams(identifier=entityIdentifier)
+            """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+            identifier=entityIdentifier
+        )
 
         try:
             with self.engine.begin() as connectable:
@@ -716,13 +714,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     INSERT INTO {self._tablename}_measurement_requests
                     (uid, experiment_reference, operation_id, request_index, request_id, type, status, metadata, timestamp)
                     VALUES (:uid, :experiment_reference, :operation_id, :request_index, :request_id, :type, :status, :metadata, :timestamp)
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
                     uid=str(db_id),
                     experiment_reference=str(request.experimentReference),
                     operation_id=request.operation_id,
@@ -783,13 +779,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     INSERT INTO {self._tablename}_measurement_results
                     (uid, entity_id, data)
                     VALUES (:uid, :entity_id, :data)
-                    """  # noqa: S608 - self._tablename is not untrusted
-                )
+                    """)  # noqa: S608 - self._tablename is not untrusted
                 connectable.execute(query, prepared_results)
         except SQLAlchemyError as error:
             self.log.critical(f"Failed to add measurement results. Error: {error}")
@@ -824,13 +818,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     INSERT INTO {self._tablename}_measurement_requests_results
                     (uid, request_uid, result_uid, entity_index)
                     VALUES (:uid, :request_uid, :result_uid, :entity_index)
-                    """  # noqa: S608 - self._tablename is not untrusted
-                )
+                    """)  # noqa: S608 - self._tablename is not untrusted
                 connectable.execute(query, prepared_relationships)
         except SQLAlchemyError as error:
             self.log.critical(
@@ -918,8 +910,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT req.uid, req.experiment_reference, req.operation_id,
                            req.request_index, req.request_id, req.type, req.status,
                            req.metadata, req.timestamp, res.entity_id, res.data
@@ -931,8 +922,9 @@ class SQLSampleStore(ActiveSampleStore):
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement results for operation {operation_id}"
@@ -947,8 +939,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT req.uid, req.experiment_reference, req.operation_id,
                            req.request_index, req.request_id, req.type, req.status,
                            req.metadata, req.timestamp, res.entity_id, res.data
@@ -960,8 +951,9 @@ class SQLSampleStore(ActiveSampleStore):
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(measurement_request_id=measurement_request_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    measurement_request_id=measurement_request_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement request for measurement request id {measurement_request_id}"
@@ -976,8 +968,7 @@ class SQLSampleStore(ActiveSampleStore):
     ) -> list[MeasurementResult]:
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT res.data
                     FROM (
                         SELECT *
@@ -987,8 +978,9 @@ class SQLSampleStore(ActiveSampleStore):
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement results for operation {operation_id}"
@@ -1098,13 +1090,13 @@ class SQLSampleStore(ActiveSampleStore):
     def experiments_in_operation(self, operation_id: str) -> list[Experiment]:
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT DISTINCT(experiment_reference)
                     FROM {self._tablename}_measurement_requests
                     WHERE operation_id = :operation_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the experiments for operation {operation_id}"
@@ -1121,8 +1113,7 @@ class SQLSampleStore(ActiveSampleStore):
     def entity_identifiers_in_operation(self, operation_id: str) -> set[str]:
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT DISTINCT(res.entity_id)
                     FROM (
                         SELECT *
@@ -1131,8 +1122,9 @@ class SQLSampleStore(ActiveSampleStore):
                     ) req
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the entity ids for operation {operation_id}"

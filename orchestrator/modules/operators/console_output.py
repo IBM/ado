@@ -6,6 +6,7 @@ Module providing Rich Console output helpers for live operation progress, spinne
 Designed to be used for real-time visualization of long-running Discovery operations using Ray actors and the rich library for advanced command line UI.
 Contains message definitions, FIFO Ray actor queue for cross-process safe messaging, and utilities for rendering and updating progress/spinner views as well as result tables from DiscoverySpace data.
 """
+
 import queue
 from typing import Literal
 

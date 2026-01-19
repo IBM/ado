@@ -48,10 +48,8 @@ class Experiment(pydantic.BaseModel):
     actuatorIdentifier: str = pydantic.Field(
         description="""The id of the actuator that can execute this experiment or parameterized versions of it"""
     )
-    identifier: str = pydantic.Field(
-        description="""The name of the experiment.
-            Must be unique in the scope of the catalog of this experiments actuator."""
-    )
+    identifier: str = pydantic.Field(description="""The name of the experiment.
+            Must be unique in the scope of the catalog of this experiments actuator.""")
     metadata: dict = pydantic.Field(
         default={},
         description=""" Metadata about the experiment. Sufficient to track its source. Can be custom format per actuator""",

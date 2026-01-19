@@ -536,7 +536,9 @@ class TrimSampleSelector(BaseSampler):
         return predictor
 
     def entities_for_iterative_modeling_from_discovery_space(
-        self, discoverySpace: DiscoverySpace, discoverySpaceManager=None
+        self,
+        discoverySpace: DiscoverySpace,
+        discoverySpaceManager: DiscoverySpaceManager | None = None,
     ) -> tuple[list, pd.DataFrame]:
         """
         Generate an ordered list of entities for iterative modeling from a discovery space.
@@ -689,7 +691,7 @@ class TrimSampleSelector(BaseSampler):
 
     # NOTE: I do not know if I have to insert trim logic inside the not-remote entity iterator
     def entityIterator(
-        self, discoverySpace: DiscoverySpace, batchsize=1
+        self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 

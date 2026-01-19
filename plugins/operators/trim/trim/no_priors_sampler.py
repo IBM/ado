@@ -30,7 +30,7 @@ class NoPriorsSampleSelector(BaseSampler):
         return True
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace, batchsize=1
+        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
@@ -92,7 +92,7 @@ class NoPriorsSampleSelector(BaseSampler):
         return retval()
 
     def entityIterator(
-        self, discoverySpace: DiscoverySpace, batchsize=1
+        self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 

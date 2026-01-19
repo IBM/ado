@@ -116,7 +116,9 @@ def sobol_sampling(dims: list[int], n: int, seed: int | None = None) -> list[lis
 
 
 # TODO: test this function
-def distinct_sobol_sampling(dims: list[int], n: int, seed: int | None = None):
+def distinct_sobol_sampling(
+    dims: list[int], n: int, seed: int | None = None
+) -> list[list[int]]:
     """
     Generates 'n' distinct points on a grid of size 'dims' using a Sobol sequence.
     Guarantees no collisions by skipping duplicates in the sequence.

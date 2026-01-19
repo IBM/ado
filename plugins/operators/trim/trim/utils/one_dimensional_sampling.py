@@ -123,7 +123,7 @@ def get_index_list_nn(
 
     def get_list_min_weight(
         prefix: list[int], M: int, d: int, selectable_indices: list[int]
-    ):
+    ) -> list[int]:
         """
         uses prefix sums instead of numpy.mean.
         Only considers indices i in selectable_indices intersected with [0, M-1],
@@ -268,7 +268,7 @@ def get_index_list_ordered_partitions(n: int, tot_points: int) -> list[int]:
 # %%
 
 
-def sorting_and_check(target_metric: str, source_space_df: DataFrame):
+def sorting_and_check(target_metric: str, source_space_df: DataFrame) -> DataFrame:
     """NOTE: this is the old function
     This function is responsible of the ordering in the 1-D sampling"""
 
@@ -286,7 +286,7 @@ def sorting_and_check(target_metric: str, source_space_df: DataFrame):
     return df_copy.sort_values(by=valid_cols).reset_index(drop=True)
 
 
-def generate_df_and_point_mask(df: DataFrame, k: int):
+def generate_df_and_point_mask(df: DataFrame, k: int) -> tuple[DataFrame, list[bool]]:
     """Do not shuffle here or after, and the index of the df must be reset!"""
     selected_points = get_index_list_ordered_partitions(len(df), k)
     mask = [i in selected_points for i in range(len(df))]

@@ -400,7 +400,7 @@ def df_to_points(
         sub = sub.drop_duplicates()
 
     # Convert numpy scalars to python builtins for safety
-    def to_py(x: Any):
+    def to_py(x: object) -> object:
         import numpy as np
 
         if isinstance(x, (np.generic)):

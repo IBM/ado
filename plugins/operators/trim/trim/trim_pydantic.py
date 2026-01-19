@@ -113,7 +113,7 @@ class TrimParameters(BaseModel):
     # )
 
     @classmethod
-    def defaultOperation(cls):
+    def defaultOperation(cls) -> DiscoveryOperationConfiguration:
         return DiscoveryOperationConfiguration(
             module=OperatorFunctionConf(
                 operatorName="trim",
@@ -123,13 +123,13 @@ class TrimParameters(BaseModel):
         )
 
     @model_validator(mode="after")
-    def set_final_model_args(self):
+    def set_final_model_args(self) -> "TrimParameters":
         if self.finalModelAutoGluonArgs == AutoGluonArgs():
             self.finalModelAutoGluonArgs = self.autoGluonArgs
         return self
 
     @model_validator(mode="after")
-    def set_holdout_size(self):
+    def set_holdout_size(self) -> "TrimParameters":
         if not self.holdoutSize:
             self.holdoutSize = self.iterationSize
         if self.holdoutSize != self.iterationSize:
@@ -140,7 +140,7 @@ class TrimParameters(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def set_no_priors_sample(self):
+    def set_no_priors_sample(self) -> "TrimParameters":
         if self.samplingBudget.minPoints != self.noPriorParameters.samples:
             logging.info(
                 "Overwriting the 'sample' Field of the no-priors characterization:\n Details: "
@@ -152,7 +152,7 @@ class TrimParameters(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def set_model_folder(self):
+    def set_model_folder(self) -> "TrimParameters":
         if self.autoGluonArgs.tabularPredictorArgs.get("path", None):
             if self.outputDirectory:
                 if (
@@ -178,7 +178,7 @@ class TrimParameters(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def set_no_priors_target_output(self):
+    def set_no_priors_target_output(self) -> "TrimParameters":
         if self.noPriorParameters.targetOutput != self.targetOutput:
             logging.debug(
                 f"A call to the model has been done. It probably retrieved the model with default options,"

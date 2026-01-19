@@ -34,7 +34,7 @@ logger_trim = logging.getLogger(__name__)
 def trim(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]
     operationInfo: FunctionOperationInfo | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> OperationOutput:
     # Lazy import to avoid circular import issues during plugin loading
     from orchestrator.modules.operators.randomwalk import (

@@ -3,9 +3,9 @@
 
 from collections import deque
 from collections.abc import Callable
-from typing import Any
 
 import pandas as pd
+from typing_extensions import Self
 
 
 class RowsRing:
@@ -32,7 +32,7 @@ class RowsRing:
         self._columns: list[str] | None = None
         self._validator = validator
 
-    def _normalize_row(self, row: Any) -> pd.Series:
+    def _normalize_row(self, row: dict | pd.Series | pd.DataFrame) -> pd.Series:
         """Convert input (dict / Series / single-row DataFrame) to a Series aligned to the schema."""
         if isinstance(row, pd.DataFrame):
             if len(row) != 1:
@@ -60,7 +60,7 @@ class RowsRing:
         # Reorder to canonical column order
         return ser[self._columns]
 
-    def append(self, row: Any) -> None:
+    def append(self, row: dict | pd.Series | pd.DataFrame) -> None:
         """Append a new row after schema and optional domain validation."""
         ser = self._normalize_row(row)
 
@@ -73,7 +73,7 @@ class RowsRing:
 
         self._rows.append(ser)
 
-    def __iadd__(self, row: Any):
+    def __iadd__(self, row: dict | pd.Series | pd.DataFrame) -> Self:
         """
         Enable in-place add: `ring += row`
         `row` can be a dict, pd.Series, or single-row pd.DataFrame.

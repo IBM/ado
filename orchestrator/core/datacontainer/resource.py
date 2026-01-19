@@ -57,7 +57,7 @@ class DataContainer(pydantic.BaseModel):
     tabularData: Annotated[
         dict[str, TabularData] | None,
         pydantic.Field(
-            description="Contains a dictionary whose values are string representations of dataframes"
+            description="Contains a dictionary whose values are TabularData objects representing dataframes"
         ),
     ] = None
     locationData: Annotated[

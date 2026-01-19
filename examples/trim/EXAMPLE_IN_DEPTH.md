@@ -75,8 +75,6 @@ parameter space.
 
 **How it works:**
 
-- Launches a background `RandomWalk` operation with a specialized
-  sampler
 - Uses a space-filling sampling strategy (Latin Hypercube, Sobol,
   etc.)
 - Samples until `samplingBudget.minPoints` is reached
@@ -118,7 +116,7 @@ For each iteration:
 > The holdout set is made up of the last `holdoutSize` points that
 > have been sampled.
 
-#### Step 4: Intelligent Stopping
+#### Step 4: Stopping
 
 After every point:
 

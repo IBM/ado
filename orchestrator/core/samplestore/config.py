@@ -50,12 +50,11 @@ class SampleStoreSpecification(pydantic.BaseModel):
     storageLocation: Annotated[
         typing.Any | None,
         pydantic.Field(
-            default=None,
             description="Defines where the SampleStore is stored. Must be compatible with module and "
             "be and an instance of ResourceLocation or a subclass "
             "Optional: if not provided the user of the class can later add it",
         ),
-    ]
+    ] = None
 
     @pydantic.field_validator("storageLocation", mode="after")
     @classmethod
@@ -109,11 +108,10 @@ class SampleStoreReference(SampleStoreSpecification):
     identifier: Annotated[
         str | None,
         pydantic.Field(
-            default=None,
             description="The identifier of the sample store. "
             "Required if this information is not specified in the storageLocation",
         ),
-    ]
+    ] = None
 
 
 class SampleStoreConfiguration(pydantic.BaseModel):
@@ -128,18 +126,17 @@ class SampleStoreConfiguration(pydantic.BaseModel):
     copyFrom: Annotated[
         list[SampleStoreReference],
         pydantic.Field(
-            default=[],
+            default_factory=list,
             description="List of additional sample stores whose data is used to initialise the main sample store",
         ),
     ]
     metadata: Annotated[
         ConfigurationMetadata,
         pydantic.Field(
-            default=ConfigurationMetadata(),
-            description="User defined metadata about the configuration. A set of keys and values. "
-            "Two optional keys that are used by convention are name and description",
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
         ),
-    ]
+    ] = ConfigurationMetadata()
 
     @pydantic.field_validator("specification")
     def check_sample_store_specification_class_is_active(

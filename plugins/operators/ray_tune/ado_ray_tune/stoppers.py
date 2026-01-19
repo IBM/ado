@@ -668,7 +668,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
         mean_diff = stats_result["mean"]
 
         self.log.info(
-            f"Trial {self.trials_num}: Mean difference = {mean_diff:.4f} ± {stats_result['std']:.4f}, "
+            f"Trial {self.trials_num}: Mean difference = {mean_diff:.4f} ± {stats_result['se']:.4f}, "
             f"P(|{self.metric_a}-{self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
         )
 

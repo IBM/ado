@@ -47,16 +47,20 @@ target = "is_valid"
 
 
 def filter_valid_with_hard_logic(df: pd.DataFrame):
-    logger.debug(f"l before {len(df)}")
+    logger.info(f"Length of the DataFrame before filtering: {len(df)}")
     valid_indices = [i for i, config in df.iterrows() if is_row_valid(config)[0]]
     df_filtered = df.loc[valid_indices].copy()
-    logger.debug(f"l after {len(df_filtered)}")
+    logger.info(f"Length of the DataFrame after filtering {len(df_filtered)}")
     return df_filtered
 
 
 # Our default is filtering valid rows with hard logic first
 df = filter_valid_with_hard_logic(df_original)
 df = df.sample(frac=1).reset_index(drop=True)
+
+logger.info(
+    f"Percentage of valid runs in the filtered DataFrame: {len(df[df['is_valid']==1]) / len(df)}"
+)
 
 
 # %% TRAININING FUNCTION
@@ -112,11 +116,11 @@ path_clone_opt = predictor.clone_for_deployment(path=save_path_refit_clone_opt)
 predictor_clone_opt = TabularPredictor.load(path=save_path_refit_clone_opt)
 
 # %% Logging size comparison
-size_refit_opt = predictor_clone_opt.disk_usage()
+size_opt = predictor_clone_opt.disk_usage()
 logger.info(f"Size Original:  {size_original} bytes")
-logger.info(f"Size Optimized: {size_refit_opt} bytes")
+logger.info(f"Size Optimized: {size_opt} bytes")
 logger.info(
-    f"Optimized predictor achieved a {round((1 - (size_refit_opt/size_original)) * 100, 1)}% reduction in disk usage."
+    f"Optimized predictor achieved a {round((1 - (size_opt/size_original)) * 100, 1)}% reduction in disk usage."
 )
 metrics = log_metrics(predictor_clone_opt, df_test=df_test, df_train=df_train)
 # %% cleaning up files, keeping only the refit-opt model
@@ -140,11 +144,9 @@ model_card_data = {
     "train_fraction": TRAIN_FRACTION,
     "preset_quality": PRESET_QUALITY,
     "size_original_bytes": size_original,
-    "size_optimized_bytes": size_refit_opt,
+    "size_optimized_bytes": size_opt,
     "elapsed_time": elapsed_time,
-    "disk_usage_reduction_percent": round(
-        (1 - (size_refit_opt / size_original)) * 100, 1
-    ),
+    "disk_usage_reduction_percent": round((1 - (size_opt / size_original)) * 100, 1),
 }
 
 # 2. Merge the metrics dictionary into the metadata dictionary

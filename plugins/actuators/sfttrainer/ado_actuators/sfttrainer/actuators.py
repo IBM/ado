@@ -286,8 +286,13 @@ def prepare_runtime_environment(
     additional_wheels = [
         x
         for x in additional_packages
-        # VV: Do not install the ado_core wheel. Its dependencies may conflict with those in fms-hf-tuning
-        if x.endswith(".whl") and not os.path.basename(x).startswith("ado_core-")
+        # VV: Do not install ado wheels other than sfttrainer. Their dependencies may conflict with
+        # those in fms-hf-tuning
+        if x.endswith(".whl")
+        and not (
+            os.path.basename(x).startswith("ado_")
+            and not os.path.basename(x).startswith("ado_sfttrainer-")
+        )
     ]
 
     if additional_wheels:

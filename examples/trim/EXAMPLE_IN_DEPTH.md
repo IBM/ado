@@ -10,43 +10,44 @@
 
 ## Overview
 
-The **TRIM** (Transfer Refined Iterative Modeling) operator is
- a _characterize_ operator
-that intelligently samples a `discoveryspace` to build a predictive model
- for a target property.
-Unlike simple random sampling, TRIM uses active learning to focus measurements
- on the most
-informative points, minimizing the number of experiments needed
-to achieve good model accuracy.
+The **TRIM** (Transfer Refined Iterative Modeling) operator is a
+_characterize_ operator that intelligently samples a `discoveryspace` to
+build a predictive model for a target property. Unlike simple random
+sampling, TRIM uses active learning to focus measurements on the most
+informative points, minimizing the number of experiments needed to
+achieve good model accuracy.
 
 ### What does the TRIM operator do?
 
-TRIM builds a machine learning model (using AutoGluon)
- that predicts a target property
-across your entire `discoveryspace`. It does this by:
+TRIM builds a machine learning model (using AutoGluon) that predicts a
+target property across your entire `discoveryspace`. It does this by:
 
 1. **Assessing existing data** in your space
 2. **Gathering initial samples** if needed (no-priors characterization)
-3. **Iteratively sampling** ensuring uniform coverage
-   of the space prioritizing uniformity on the most informative features
+3. **Iteratively sampling** ensuring uniform coverage of the space,
+   prioritizing uniformity on the most informative features
 4. **Training intermediate models** and evaluating the
    expected improvement upon sampling additional points
-5. **Producing a final model** trained on all collected data,
-    when the stopping criterion is met.
+5. **Producing a final model** trained on all collected data when the
+   stopping criterion is met.
 
 ### When should you use the TRIM operator?
 
 Use TRIM when you want to:
 
-- **Build a predictive model** for a target property across a large parameter space
-- **Minimize measurement costs** by sampling only the most informative points
-- **Automatically stop** when additional measurements provide diminishing returns
+- **Build a predictive model** for a target property across a large
+  parameter space
+- **Minimize measurement costs** by sampling only the most informative
+  points
+- **Automatically stop** when additional measurements provide
+  diminishing returns
 - **Characterize high-dimensional spaces** efficiently
 
 TRIM is particularly valuable when:
 
 - Measurements are expensive or time-consuming
-- Your parameter space is large (hundreds to thousands of possible configurations)
+- Your parameter space is large (hundreds to thousands of possible
+  configurations)
 - You want a model that can predict unmeasured points
 - You need to balance exploration and exploitation
 
@@ -58,28 +59,31 @@ Understanding TRIM's internal workflow helps you configure it effectively.
 
 When you launch a TRIM operation, it first inspects your `discoveryspace`:
 
-1. Counts how many entities already have measured values for your `targetOutput`
+1. Counts how many entities already have measured values for your
+   `targetOutput`
 2. Compares this count against `samplingBudget.minPoints`
-3. Decides whether to proceed directly to iterative modeling
-  or gather more initial data via no-priors characterization
+3. Decides whether to proceed directly to iterative modeling or gather
+   more initial data via no-priors characterization
 
 ### Phase 2: No-Priors Characterization (Conditional)
 
-This phase runs **only if** existing measured points < `samplingBudget.minPoints`.
+This phase runs **only if** existing measured points <
+`samplingBudget.minPoints`.
 
-**Goal:** Build a small,
-initial dataset with uniform coverage of the parameter space.
+**Goal:** Build a small initial dataset with uniform coverage of the
+parameter space.
 
 **How it works:**
 
-- Launches a background `RandomWalk` operation with a specialized sampler
-- Uses a space-filling sampling strategy (Latin Hypercube, Sobol, etc.)
+- Launches a background `RandomWalk` operation with a specialized
+  sampler
+- Uses a space-filling sampling strategy (Latin Hypercube, Sobol,
+  etc.)
 - Samples until `samplingBudget.minPoints` is reached
 - All other parameters controlled via `noPriorsParameters`
 
-**Why it matters:** Starting with good initial coverage ensures
-the iterative
-modeling phase has a solid foundation
+**Why it matters:** Starting with good initial coverage ensures the
+iterative modeling phase has a solid foundation.
 
 ### Phase 3: Iterative Modeling
 
@@ -96,23 +100,23 @@ Once sufficient initial data exists, TRIM begins its main loop:
 
 - Sorts all unmeasured points in the space
 - Uses feature importance to prioritize a uniform projection of points
- on the most important feature dimensions
+  on the most important feature dimensions
 
 #### Step 3: Iterative Sampling and Training
 
 For each iteration:
 
 1. **Sample**
-2. **Update** the training+validation and holdout datasets with new results
+2. **Update** the training+validation and holdout datasets with new
+   results
 3. **Train** a new intermediate AutoGluon model
 4. **Evaluate** model performance on the holdout set
 5. **Check** stopping criterion
 
 > [!NOTE] The holdout set
 >
-> The holdout set is made up of the last `holdoutSize` points that have been
-> sampled.
->
+> The holdout set is made up of the last `holdoutSize` points that
+> have been sampled.
 
 #### Step 4: Intelligent Stopping
 
@@ -130,7 +134,8 @@ After every point:
 
 #### Step 5: Final Model Generation
 
-When stopping criterion is met (or `samplingBudget.maxPoints` is reached):
+When the stopping criterion is met (or `samplingBudget.maxPoints` is
+reached):
 
 - Trains one final, high-quality AutoGluon model
 - Uses **all** data collected across all phases
@@ -141,7 +146,8 @@ When stopping criterion is met (or `samplingBudget.maxPoints` is reached):
 
 ## Complete Parameter Reference
 
-All parameters are configured under the `parameters` key in your operation YAML.
+All parameters are configured under the `parameters` key in your
+operation YAML.
 
 ### Core Configuration
 
@@ -149,10 +155,11 @@ All parameters are configured under the `parameters` key in your operation YAML.
 
 **Type:** `str` (required)
 
-**Purpose:** The measured property you want to predict. This is your "y" variable.
+**Purpose:** The measured property you want to predict. This is your
+"y" variable.
 
-**Tuning Guidance:** Must exactly match an output property identifier from your
-experiment. All of TRIM's logic revolves around this target.
+**Tuning Guidance:** Must exactly match an output property identifier
+from your experiment. All of TRIM's logic revolves around this target.
 
 **Example:**
 
@@ -167,11 +174,11 @@ parameters:
 
 **Default:** `None`
 
-**Purpose:** Directory where AutoGluon models are saved. The final model is saved
-in a subfolder with `_finalized` suffix.
+**Purpose:** Directory where AutoGluon models are saved. The final
+model is saved in a subfolder with `_finalized` suffix.
 
-**Tuning Guidance:** Always set this explicitly. If not set, models may be saved
-to a temporary location and lost.
+**Tuning Guidance:** Always set this explicitly. If not set, models
+may be saved to a temporary location and lost.
 
 **Example:**
 
@@ -194,15 +201,16 @@ Controls the overall sampling constraints.
 
 **Default:** `18`
 
-**Purpose:** Minimum number of measured points required
-before iterative modeling begins.
-If fewer points exist, triggers no-priors characterization.
+**Purpose:** Minimum number of measured points required before
+iterative modeling begins. If fewer points exist, triggers no-priors
+characterization.
 
 **Tuning Guidance:**
 
 - **Higher values** (e.g., 30-50): More robust initial dataset, better for
   high-dimensional spaces
-- **Lower values** (e.g., 10-15): Faster start, but may lead to poor initial models
+- **Lower values** (e.g., 10-15): Faster start, but may lead to poor
+  initial models
 - **Rule of thumb:** Set to at least 2× the number of input features
 
 **Example:**
@@ -219,12 +227,14 @@ parameters:
 
 **Default:** `40`
 
-**Purpose:** Hard cap on total new points to measure. Acts as a cost-control backstop.
+**Purpose:** Hard cap on total new points to measure. Acts as a
+cost-control backstop.
 
 **Tuning Guidance:**
 
 - Set based on your measurement budget
-- Operation stops when this limit is reached, regardless of model performance
+- Operation stops when this limit is reached, regardless of model
+  performance
 - Should be significantly larger than `minPoints`
   to allow iterative improvement. Aim for at least `minPoints`×5.
 
@@ -253,7 +263,8 @@ Configures the initial characterization phase (if triggered).
 
 **Supported values:**
 
-- `'clhs'` (Concatenated Latin Hypercube): Excellent default, ensures even spread
+- `'clhs'` (Concatenated Latin Hypercube): Excellent default, ensures
+  even spread
 - `'sobol'`: Quasi-random, often provides best uniform coverage
 - `'random'`: Simple random sampling, can leave gaps
 
@@ -279,13 +290,15 @@ parameters:
 
 **Default:** `5`
 
-**Purpose:** Number of points sampled per iteration. Also defines the window size
-for stopping criterion evaluation.
+**Purpose:** Number of points sampled per iteration. Also defines the
+window size for stopping criterion evaluation.
 
 **Tuning Guidance:**
 
-- **Larger values** (e.g., 8-10): More stable stopping decisions, less responsive
-- **Smaller values** (e.g., 3-4): More responsive, but may stop prematurely
+- **Larger values** (e.g., 8-10): More stable stopping decisions, less
+  responsive
+- **Smaller values** (e.g., 3-4): More responsive, but may stop
+  prematurely
 - **Trade-off:** Stability vs. responsiveness,
    5 was a good value in almost all our tests.
 
@@ -312,7 +325,8 @@ Controls when the iterative loop terminates.
 
 **Default:** `0.9`
 
-**Purpose:** Threshold for mean performance ratio between consecutive windows.
+**Purpose:** Threshold for mean performance ratio between consecutive
+windows.
 
 **How it works:** TRIM calculates:
 
@@ -320,7 +334,8 @@ Controls when the iterative loop terminates.
 mean_ratio = mean(recent_window_scores) / mean(previous_window_scores)
 ```
 
-If `1/meanThreshold < mean_ratio < meanThreshold`, the mean has stabilized
+If `1/meanThreshold < mean_ratio < meanThreshold`, the mean has
+stabilized.
 
 **Tuning Guidance:**
 
@@ -334,7 +349,8 @@ If `1/meanThreshold < mean_ratio < meanThreshold`, the mean has stabilized
 
 **Default:** `0.75`
 
-**Purpose:** Threshold for standard deviation ratio between consecutive windows.
+**Purpose:** Threshold for standard deviation ratio between consecutive
+windows.
 
 **How it works:** TRIM calculates:
 
@@ -366,19 +382,25 @@ parameters:
 
 ### Phase 3: Model Configuration
 
+For detailed information about AutoGluon configuration options, see:
+
+- [AutoGluon Tabular Tutorials](https://auto.gluon.ai/dev/tutorials/tabular/index.html)
+- [TabularPredictor API](https://auto.gluon.ai/dev/api/autogluon.tabular.TabularPredictor.html)
+- [TabularPredictor.fit() API](https://auto.gluon.ai/cloud/stable/api/autogluon.cloud.TabularCloudPredictor.fit.html)
+
 #### `autoGluonArgs`
 
 Configures **intermediate** models trained during the iterative loop.
 
 ##### `tabularPredictorArgs`
 
-Dictionary passed to `TabularPredictor()` constructor.
-Refer to autogluon documentation for details
+Dictionary passed to `TabularPredictor()` constructor. Refer to
+AutoGluon documentation for details.
 
 ##### `fitArgs`
 
-Dictionary passed to `TabularPredictor.fit()`.
-Refer to autogluon documentation for details
+Dictionary passed to `TabularPredictor.fit()`. Refer to AutoGluon
+documentation for details.
 
 **Tuning Guidance for Intermediate Models:**
 
@@ -490,8 +512,8 @@ To see the entities sampled during a TRIM operation:
 ado show entities operation $OPERATION_IDENTIFIER
 ```
 
-This displays entities in the order they were sampled, showing the progression
-through the no-priors and iterative phases.
+This displays entities in the order they were sampled, showing the
+progression through the no-priors and iterative phases.
 
 ### Accessing the Final Model
 
@@ -535,7 +557,8 @@ TRIM internally uses the `RandomWalk` operator with custom samplers:
 - **No-priors phase:** Uses `NoPriorsSampleSelector`
 - **Iterative phase:** Uses `TrimSampleSelector`
 
-This means TRIM inherits RandomWalk's capabilities like  measurement replay.
+This means TRIM inherits RandomWalk's capabilities like measurement
+replay.
 
 ### Feature Importance and Dimensionality Reduction
 
@@ -563,7 +586,8 @@ Set logging level when you launch your operation, for example:
 <!-- markdownlint-disable line-length -->
 
 ```bash
-LOGLEVEL=DEBUG ado -l DEBUG create operation -f operation_pressure.yaml --use-latest space
+LOGLEVEL=DEBUG ado -l DEBUG create operation -f \
+  operation_pressure.yaml --use-latest space
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -593,7 +617,8 @@ This saves:
 
     ---
 
-    Get started quickly with a hands-on tutorial using the ideal gas law example.
+    Get started quickly with a hands-on tutorial using the ideal gas
+    law example.
 
     [TRIM Quickstart :octicons-arrow-right-24:](EXAMPLE_SIMPLE.md)
 
@@ -601,7 +626,8 @@ This saves:
 
     ---
 
-    Learn about other exploration operators like RandomWalk and ray_tune.
+    Learn about other exploration operators like RandomWalk and
+    ray_tune.
 
     [Explore Operators :octicons-arrow-right-24:](../../website/docs/operators/explore_operators.md)
 
@@ -617,7 +643,8 @@ This saves:
 
     ---
 
-    Use ray_tune for optimization tasks instead of characterization.
+    Use ray_tune for optimization tasks instead of
+    characterization.
 
     [Ray Tune Documentation :octicons-arrow-right-24:](../../website/docs/operators/optimisation-with-ray-tune.md)
 

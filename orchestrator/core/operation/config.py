@@ -275,8 +275,8 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     metadata: Annotated[
         ConfigurationMetadata,
         pydantic.Field(
-            description="User defined metadata about the configuration. A set of keys and values. "
-            "Two optional keys that are used by convention are name and description"
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
         ),
     ] = ConfigurationMetadata()
     actuatorConfigurationIdentifiers: Annotated[list[str], pydantic.Field()] = []

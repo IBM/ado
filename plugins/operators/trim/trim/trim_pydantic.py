@@ -98,16 +98,6 @@ class TrimParameters(BaseModel):
         default=SamplingBudget(), description="Sampling budget configuration"
     )
 
-    independentVariablesToKeep: int = pydantic.Field(
-        default=7,
-        description="Number of independent variables to retain based on importance",
-    )
-
-    minMeasuredEntities: int = pydantic.Field(
-        default=16,
-        description="Minimum number of entities already Measured in the given Discovery Space, otherwise I will have an error",
-    )
-
     stoppingCriterion: StoppingCriterion = pydantic.Field(
         default=StoppingCriterion(), description="Stopping criterion configuration"
     )

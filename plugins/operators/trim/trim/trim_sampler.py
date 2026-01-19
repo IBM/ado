@@ -329,7 +329,6 @@ class TrimSampleSelector(BaseSampler):
 
                     # NOTE: at the moment comparison does NOT happen at every params.iterationSize steps
                     # instead, it happens at every batchsize=1 step, in a rolling fashion,
-                    # thus the parameters set for the threshold in trim parameters are not the same as in the paper!
                     else:
                         comparison_indices.append(i)
                         # NOTE: if batchsize==iterationSize will compare just two models,
@@ -615,7 +614,7 @@ class TrimSampleSelector(BaseSampler):
         ordered_features, _importance_dict = get_feature_importance_order(
             source_df=source_df,
             target_output=self.params.targetOutput,
-            min_measured_entities=self.params.minMeasuredEntities,
+            min_measured_entities=self.params.samplingBudget.minPoints,
             autoGluonArgs=self.params.autoGluonArgs,
         )
 

@@ -10,7 +10,6 @@ import ray.tune
 
 
 class SimpleStopper(ray.tune.Stopper):
-
     def __init__(self) -> None:
         self.min_trials = None
         self.trials_num = 0
@@ -29,13 +28,13 @@ class SimpleStopper(ray.tune.Stopper):
     # TODO: I don't know why init isn't accepting parameters...
     def set_config(
         self,
-        mode,
-        metric,
-        experiment_key="config",
-        min_trials=5,
-        buffer_states=2,
-        stop_on_repeat=True,
-        count_nan=True,
+        mode: str,
+        metric: str,
+        experiment_key: str = "config",
+        min_trials: int = 5,
+        buffer_states: int = 2,
+        stop_on_repeat: bool = True,
+        count_nan: bool = True,
     ) -> None:
         # self.mode = mode
         self.min_trials = int(min_trials)
@@ -106,7 +105,6 @@ class SimpleStopper(ray.tune.Stopper):
 
 
 class GrowthStopper(ray.tune.Stopper):
-
     def __init__(self) -> None:
         self._fist_call = True
         self.metric = None
@@ -118,8 +116,13 @@ class GrowthStopper(ray.tune.Stopper):
         self.log = logging.getLogger("GrowthStopper")
 
     # TODO: I don't know why init isn't accepting parameters...
-    def set_config(self, mode, metric, growth_threshold=1.0, grace_trials=2) -> None:
-
+    def set_config(
+        self,
+        mode: str,
+        metric: str,
+        growth_threshold: float = 1.0,
+        grace_trials: int = 2,
+    ) -> None:
         if mode not in {"max", "min"}:
             raise ValueError(f"mode must be either max or min (was {mode})")
 
@@ -182,7 +185,7 @@ class MaxSamplesStopper(ray.tune.Stopper):
         self.log = logging.getLogger("MaxSamplesStopper")
 
     # TODO: I don't know why init isn't accepting parameters...
-    def set_config(self, max_samples) -> None:
+    def set_config(self, max_samples: int) -> None:
         self.max_samples = max_samples
         self.log.debug(f"onfigured: max_samples {max_samples}")
 
@@ -244,7 +247,10 @@ class InformationGainStopper(ray.tune.Stopper):
 
     # TODO: I don't know why init isn't accepting parameters...
     def set_config(
-        self, mi_diff_limit, samples_below_limit, consider_pareto_front_convergence
+        self,
+        mi_diff_limit: float,
+        samples_below_limit: int,
+        consider_pareto_front_convergence: bool,
     ) -> None:
         self.mi_diff_limit = mi_diff_limit
         self.samples_below_limit = samples_below_limit
@@ -257,17 +263,16 @@ class InformationGainStopper(ray.tune.Stopper):
 
     def configure_details(
         self,
-        data_columns,
-        targeted_value,
-        min_samples="auto",
-        search_columns=None,
-        total_size="N/A",
+        data_columns: list[str],
+        targeted_value: str,
+        min_samples: int | str = "auto",
+        search_columns: list[str] | None = None,
+        total_size: int | str = "N/A",
     ) -> None:
         self.data_columns = data_columns
         # self.targeted_value = 'values__' + targeted_value
         self.targeted_value = targeted_value
         if min_samples == "auto":
-
             if not search_columns:
                 raise ValueError("search_columns cannot be None")
 

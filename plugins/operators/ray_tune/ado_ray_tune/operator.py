@@ -16,14 +16,6 @@ from ray.actor import ActorHandle
 
 import orchestrator.core
 import orchestrator.modules
-from ado_ray_tune.config import (
-    OrchRunConfig,
-    OrchSearchAlgorithm,
-    OrchTuneConfig,
-    RayTuneConfiguration,
-    RayTuneOrchestratorConfiguration,
-)
-from ado_ray_tune.samplers import LhuSampler
 from orchestrator.core.datacontainer.resource import (
     DataContainer,
     DataContainerResource,
@@ -61,7 +53,18 @@ from orchestrator.schema.result import ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
+from .config import (
+    OrchRunConfig,
+    OrchSearchAlgorithm,
+    OrchTuneConfig,
+    RayTuneConfiguration,
+    RayTuneOrchestratorConfiguration,
+)
+from .samplers import LhuSampler
+
 if TYPE_CHECKING:  # pragma: nocover
+    import ray.tune.search.sample
+
     import orchestrator.modules.actuators.base
 
 
@@ -72,7 +75,7 @@ def run_dependent_experiments(
     queue: MeasurementQueue,
     requestIndex: int,
     singleMeasurement: bool,
-    log,
+    log: logging.Logger,
 ) -> list[str]:
     """Checks what dependent experiments can run based on a completed MeasureRequest and executes them
 
@@ -148,7 +151,7 @@ def process_metric(
     all_results: dict[str, list[Any]],
     entity: Entity,
     trainable_params: OrchTrainableParameters,
-) -> Any:
+) -> float | int | str | None:
     """
     Processes a single metric for a given entity.
 
@@ -385,7 +388,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
                 else:
                     log.warning(
                         f"Experiment {request.experimentReference} did produce any property measurements. "
-                        f"Will set values of all properties to { trainable_params.orchestrator_config.failed_metric_value}"
+                        f"Will set values of all properties to {trainable_params.orchestrator_config.failed_metric_value}"
                     )
                     # Record failure for all observed properties
                     experiment = measurement_space.experimentForReference(
@@ -455,7 +458,6 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
 
 
 class TuneOutput(NamedTuple):
-
     result: ray.tune.Result
     exit_state: OperationExitStateEnum
     error: str = None
@@ -463,7 +465,9 @@ class TuneOutput(NamedTuple):
 
 @ray.remote
 def tune(
-    search_space, config: RayTuneConfiguration, parameters: OrchTrainableParameters
+    search_space: dict,
+    config: RayTuneConfiguration,
+    parameters: OrchTrainableParameters,
 ) -> TuneOutput:
     """ "
     Parameters:
@@ -576,7 +580,9 @@ def tune(
     )
 
 
-def property_domain_to_ray_distribution(domain: PropertyDomain):
+def property_domain_to_ray_distribution(
+    domain: PropertyDomain,
+) -> ray.tune.search.sample.Domain:
     # Later we can use sample_from to support any distribution
 
     from orchestrator.schema.domain import ProbabilityFunctionsEnum, VariableTypeEnum
@@ -637,7 +643,7 @@ def property_domain_to_ray_distribution(domain: PropertyDomain):
 
 def search_space_from_explicit_entity_space(
     entitySpace: EntitySpaceRepresentation,
-):
+) -> dict:
     """Returns a ray tune search space dictionary from an explicit entity space"""
 
     space = {}
@@ -655,7 +661,6 @@ class RayTune(Search):
     def defaultOperationParameters(
         cls,
     ) -> RayTuneConfiguration:
-
         return RayTuneConfiguration(
             tuneConfig=OrchTuneConfig(
                 metric="wallclock_time", search_alg=OrchSearchAlgorithm(name="bayesopt")
@@ -664,13 +669,11 @@ class RayTune(Search):
         )
 
     @classmethod
-    def validateOperationParameters(cls, parameters) -> RayTuneConfiguration:
-
+    def validateOperationParameters(cls, parameters: dict) -> RayTuneConfiguration:
         return RayTuneConfiguration.model_validate(parameters)
 
     @classmethod
     def description(cls) -> str:
-
         return """RayTune provides capabilities for sampling points in an entity space and applying
                measurements to them via optimization algorithms.
 
@@ -723,18 +726,16 @@ class RayTune(Search):
         pass
 
     def onError(self, error: Exception) -> None:
-
         self.criticalError = error
         self.received_critical_error_notification = True
 
     def isCriticalError(self) -> bool:
-
         return self.received_critical_error_notification
 
-    def isRequestCompleted(self, requestid) -> bool:
+    def isRequestCompleted(self, requestid: str) -> bool:
         return self._finishedMeasurements.get(requestid) is not None
 
-    def getRequest(self, requestid) -> MeasurementRequest:
+    def getRequest(self, requestid: str) -> MeasurementRequest:
         return self._finishedMeasurements.get(requestid)
 
     def getNextRequestIndex(self) -> int:
@@ -743,8 +744,7 @@ class RayTune(Search):
 
         return retval
 
-    async def run(self):
-
+    async def run(self) -> OperationOutput:
         try:
             # noinspection PyUnresolvedReferences
             entity_space = (
@@ -862,10 +862,10 @@ class RayTune(Search):
 
         return operation_output
 
-    def numberEntitiesSampled(self):
+    def numberEntitiesSampled(self) -> int:
         return self._requestIndex
 
-    def numberMeasurementsRequested(self):
+    def numberMeasurementsRequested(self) -> int:
         # FIXME: This is not correct. Its request*experiments per entity
         return self._requestIndex
 
@@ -882,5 +882,4 @@ class RayTune(Search):
 
     @classmethod
     def operationType(cls) -> DiscoveryOperationEnum:
-
         return DiscoveryOperationEnum.SEARCH

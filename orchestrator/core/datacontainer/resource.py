@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 class TabularData(pydantic.BaseModel):
 
     data: Annotated[
-        dict, pydantic.Field(description="A valid string description of a table")
+        dict, pydantic.Field(description="A dictionary representation of tabular data")
     ]
 
     @classmethod

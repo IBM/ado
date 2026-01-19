@@ -472,6 +472,16 @@ class TrimSampleSelector(BaseSampler):
     def finalize_model(
         self, discoverySpace: DiscoverySpace, discoverySpaceManager: DiscoverySpaceManager  # type: ignore[name-defined]
     ) -> TabularPredictor:
+        """
+        Train a final predictive model on all sampled source space data.
+
+        Args:
+            discoverySpace: The discovery space containing the entities
+            discoverySpaceManager: Manager for accessing the discovery space state
+
+        Returns:
+            TabularPredictor: The trained AutoGluon predictor on full source data
+        """
         # FIT ON FULL SOURCE SPACE DATA
         source_df, _target_df = get_source_and_target(
             discoverySpace,

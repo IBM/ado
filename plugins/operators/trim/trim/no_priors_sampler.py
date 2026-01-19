@@ -32,7 +32,19 @@ class NoPriorsSampleSelector(BaseSampler):
     async def remoteEntityIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1
     ) -> typing.AsyncGenerator[list[Entity], None]:
-        """Returns an remoteEntityIterator that returns entities in order"""
+        """
+        Generate entities for no-priors characterization sampling.
+
+        Orders the target space using a high-dimensional sampling strategy (e.g., CLHS, Sobol)
+        without relying on prior model knowledge or feature importance.
+
+        Args:
+            remoteDiscoverySpace: Manager for the discovery space state
+            batchsize: Number of entities to yield per iteration
+
+        Yields:
+            List of Entity objects to be measured, in the determined order
+        """
 
         async def iterator_closure(
             stateHandle: DiscoverySpaceManager,  # type: ignore[name-defined]

@@ -36,6 +36,21 @@ def trim(
     operationInfo: FunctionOperationInfo | None = None,
     **kwargs: object,
 ) -> OperationOutput:
+    """
+    Execute the TRIM (Transfer Refined Iterative Modeling) operation on a discovery space.
+
+    TRIM characterizes a discovery space by first ensuring sufficient measured entities exist,
+    then performing iterative modeling to sample additional entities in an informed order.
+    If insufficient data exists, it runs a no-priors characterization first.
+
+    Args:
+        discoverySpace: The discovery space to characterize
+        operationInfo: Optional operation metadata
+        **kwargs: Additional parameters validated against TrimParameters model
+
+    Returns:
+        OperationOutput containing the operation resources and metadata
+    """
     # Lazy import to avoid circular import issues during plugin loading
     from orchestrator.modules.operators.randomwalk import (
         CustomSamplerConfiguration,

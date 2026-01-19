@@ -226,16 +226,20 @@ def get_index_list_nn(
 
 def get_index_list_ordered_partitions(n: int, tot_points: int) -> list[int]:
     """
-    The sampling strategy is the following one.
-    You make the data isomorph to a 1d segment by ordering it according to source space feature importance
-    and then the problem becomes selecting points in this segment.
-    More specifically, the length of the dataframe is equal to the length of the segment + 1.
-    And points can be selected on units, i.e. starting from 0 and going up to len(df)-1.
-    When no point is selected I use
-    Some points may have been already selected.
+    Select indices from a 1D segment using a partition-based sampling strategy.
 
-    NOTE: n is the len(df), greatest acceptable index will be n-1"
+    The data is treated as isomorphic to a 1D segment ordered by feature importance.
+    Points are selected by iteratively finding midpoints of the largest gaps.
 
+    Args:
+        n: Total length of the segment (len(df)), valid indices are 0 to n-1
+        tot_points: Number of points to sample
+
+    Returns:
+        Sorted list of sampled indices
+
+    Raises:
+        ValueError: If tot_points exceeds n
     """
     if tot_points == 0:
         logger.debug("No points selected from the list, return empty list")
@@ -269,8 +273,16 @@ def get_index_list_ordered_partitions(n: int, tot_points: int) -> list[int]:
 
 
 def sorting_and_check(target_metric: str, source_space_df: DataFrame) -> DataFrame:
-    """NOTE: this is the old function
-    This function is responsible of the ordering in the 1-D sampling"""
+    """
+    Sort DataFrame by constitutive properties for 1D sampling (legacy function).
+
+    Args:
+        target_metric: The target metric column name to exclude from sorting
+        source_space_df: DataFrame to sort
+
+    Returns:
+        Sorted DataFrame with reset index
+    """
 
     cols = list(source_space_df.columns)
     valid_cols = [col for col in cols if not col.startswith(target_metric)]
@@ -287,7 +299,16 @@ def sorting_and_check(target_metric: str, source_space_df: DataFrame) -> DataFra
 
 
 def generate_df_and_point_mask(df: DataFrame, k: int) -> tuple[DataFrame, list[bool]]:
-    """Do not shuffle here or after, and the index of the df must be reset!"""
+    """
+    Generate a subset DataFrame and boolean mask using ordered partition sampling.
+
+    Args:
+        df: Input DataFrame with reset index (no shuffling)
+        k: Number of points to sample
+
+    Returns:
+        Tuple of (sampled DataFrame, boolean mask indicating selected rows)
+    """
     selected_points = get_index_list_ordered_partitions(len(df), k)
     mask = [i in selected_points for i in range(len(df))]
     temp_df = df[mask].copy()
@@ -296,7 +317,19 @@ def generate_df_and_point_mask(df: DataFrame, k: int) -> tuple[DataFrame, list[b
 
 
 def midpoint(start: int, end: int) -> int:
-    """n is a valid index for your row/array"""
+    """
+    Calculate the midpoint between two indices.
+
+    Args:
+        start: Starting index
+        end: Ending index
+
+    Returns:
+        Integer midpoint index
+
+    Raises:
+        ValueError: If start is greater than end
+    """
     if end - start < 0:
         raise ValueError("Start is greater than end!")
     return start + ((end - start) // 2)

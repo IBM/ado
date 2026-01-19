@@ -167,123 +167,22 @@ def distinct_sobol_sampling(
     return results
 
 
-def shift_from_permutation(index: int, mcm: int, permutation: list[int]) -> int:
-    """For debugging purposes"""
-    gcd = len(permutation)
-    tot = mcm * gcd
-    if index < 0 or index > tot - 1:
-        raise ValueError("Invalid index")
-    div = index // gcd
-    return permutation[div]
-
-
-def identify_shift_and_position(
-    m: int, n: int, i: int, j: int, first_index_is_0: bool = True
-) -> tuple[int, int]:
-    """
-    Identify the shift of the second list and the position at which the
-    observed pair appears in the shifted zip.
-
-    Parameters
-    ----------
-    m, n : int
-        Lengths of the two lists.
-    i, j : int
-        Observed pair (1-based indexing).
-
-    Returns
-    -------
-    s : int
-        The shift of the second list modulo gcd(m, n).
-    k : int
-        The index (0-based) at which (i, j) appears in the shifted list.
-
-    Mathematical setting
-    --------------------
-    Let m, n ∈ N and define, for a shift s ∈ Z,
-
-        l_{c,s}[k] = ((k mod m) + 1, ((k + s) mod n) + 1),
-        k = 0, …, lcm(m, n) - 1.
-
-    Given an observed pair (i, j), we want to recover:
-      (a) the shift s (as much as it is identifiable),
-      (b) the index k at which (i, j) appears in l_{c,s}.
-
-    This means solving for integers (k, s) such that
-
-        (1)  k ≡ i - 1 (mod m),
-        (2)  k + s ≡ j - 1 (mod n).
-
-    Shift identification
-    --------------------
-    Subtracting (1) from (2) gives
-
-        s ≡ (j - 1) - (i - 1) = j - i   (mod d),
-
-    where d = gcd(m, n). Hence the shift is identifiable uniquely modulo d.
-    We choose the canonical representative
-
-        s = (j - i) mod d.
-
-    Position identification
-    -----------------------
-    Fixing this s, the system becomes
-
-        k ≡ i - 1           (mod m),
-        k ≡ j - 1 - s       (mod n).
-
-    The right-hand sides are congruent modulo d by construction, so by the
-    Chinese Remainder Theorem the system admits a solution k, unique modulo
-    lcm(m, n).
-
-    An explicit solution is obtained as follows. Let
-
-        d = gcd(m, n),
-        m' = m / d,   n' = n / d,
-        a = i - 1,
-        b = j - 1 - s.
-
-    Then k = a + m x, where x solves
-
-        m' x ≡ (b - a)/d   (mod n').
-
-    Since gcd(m', n') = 1, m' is invertible modulo n', yielding a unique x
-    modulo n'.
-    """
-    if first_index_is_0:
-        i += 1
-        j += 1
-
-    d = math.gcd(m, n)
-
-    # shift (canonical representative modulo d)
-    s = (j - i) % d
-
-    # solve for k
-    a = i - 1
-    b = j - 1 - s
-
-    m_, n_ = m // d, n // d
-    rhs = (b - a) // d
-
-    inv_m = pow(m_, -1, n_)
-    x = (rhs * inv_m) % n_
-
-    k = (a + m * x) % (m * n_)
-
-    return s, k
-
-
 def random_high_dimensional_sampling(
     dims: list[int], n: int, seed: int | None = None
 ) -> list[list[int]]:
     """
-    Generates n unique random samples from a high-dimensional space.
+    Generate n unique random samples from a high-dimensional space.
 
     Args:
-        dims (List[int]): Cardinality (size) of each dimension. Must be positive.
-        n (int): Total number of points to sample.
-        seed (Optional[int]): Optional PRNG seed for reproducibility.
+        dims: Cardinality (size) of each dimension. Must be positive.
+        n: Total number of points to sample.
+        seed: Optional PRNG seed for reproducibility.
+
+    Returns:
+        List of n sampled points, each point is a list of indices
+
+    Raises:
+        ValueError: If n exceeds the total number of possible configurations
     """
     import itertools
     import random
@@ -459,6 +358,15 @@ def plot_grid(
     points: np.ndarray | list[list[int]],
     title: str,
 ) -> None:
+    """
+    Plot a 2D grid visualization of sampled points with overlap detection.
+
+    Args:
+        ax: Matplotlib axes object to draw on
+        dims: Dimensions of the grid [width, height]
+        points: List of sampled points as [x, y] coordinates
+        title: Title for the plot
+    """
     from collections import defaultdict
 
     import matplotlib.patches as patches

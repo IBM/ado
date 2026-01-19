@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_project_context() -> "ProjectContext":
+    """
+    Retrieve the current ADO project context from configuration.
+
+    Returns:
+        ProjectContext object for the active project
+    """
     import orchestrator.cli.core.config
 
     ado_configuration = orchestrator.cli.core.config.AdoConfiguration.load()
@@ -31,6 +37,15 @@ def get_project_context() -> "ProjectContext":
 def get_space(
     space_or_space_id: typing.Union["DiscoverySpace", str],
 ) -> DiscoverySpace:
+    """
+    Get a DiscoverySpace object from either a space object or identifier string.
+
+    Args:
+        space_or_space_id: Either a DiscoverySpace object or its string identifier
+
+    Returns:
+        DiscoverySpace object
+    """
 
     if isinstance(space_or_space_id, DiscoverySpace):
         return space_or_space_id
@@ -381,10 +396,19 @@ def df_to_points(
     drop_duplicates: bool = False,
 ) -> list[dict[Hashable, Any]]:
     """
-    Convert DataFrame rows to list of "point" dicts {prop_id: value}.
-    - cols: list of columns to use. If None use all df.columns.
-    - dropna: drop rows containing any NaN (default True).
-    - drop_duplicates: drop duplicate rows (default False).
+    Convert DataFrame rows to list of point dictionaries.
+
+    Args:
+        df: Input DataFrame
+        cols: Columns to include. If None, uses all columns
+        dropna: If True, drop rows containing any NaN values
+        drop_duplicates: If True, drop duplicate rows
+
+    Returns:
+        List of dictionaries, each representing a point {property_id: value}
+
+    Raises:
+        KeyError: If requested columns are not present in DataFrame
     """
 
     if cols is None:
@@ -421,6 +445,18 @@ def df_to_points_parsing(
     dropna: bool = True,
     parse_values: bool = False,
 ) -> list[dict]:
+    """
+    Convert DataFrame to points with optional string value parsing.
+
+    Args:
+        df: Input DataFrame
+        cols: Columns to include
+        dropna: If True, drop rows with NaN values
+        parse_values: If True, parse string values using ast.literal_eval
+
+    Returns:
+        List of point dictionaries with parsed values
+    """
     import ast
 
     points = df_to_points(df, cols=cols, dropna=dropna)
@@ -503,7 +539,17 @@ def get_list_of_entities_from_df_and_space(
     df: pd.DataFrame, space: DiscoverySpace
 ) -> list[Entity]:
     """
-    A utility to start from a df and a space and obtain a list of entities.
+    Convert DataFrame rows to Entity objects validated against a discovery space.
+
+    Args:
+        df: DataFrame containing constitutive property values
+        space: DiscoverySpace defining the entity space constraints
+
+    Returns:
+        List of valid Entity objects
+
+    Warns:
+        If number of valid entities differs from DataFrame row count
     """
     points = make_points_from_df(df=df, space=space)
     valid_points, __ = validate_points_in_space(points, space)

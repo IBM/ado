@@ -319,9 +319,20 @@ def get_index_list_nn_high_dimensional(
     orders_to_sample: list[list[int]], dims: list[int]
 ) -> list[int]:
     """
-    Maps high-dimensional sampling orders to linear indices.
-    Each order is a list of positions [i0, i1, ..., ik].
-    dims is a list of sizes for each dimension [d0, d1, ..., dk].
+    Map high-dimensional sampling orders to linear (flattened) indices.
+
+    Converts multi-dimensional coordinates to linear indices using row-major ordering,
+    where the last dimension varies fastest.
+
+    Args:
+        orders_to_sample: List of multi-dimensional coordinates [i0, i1, ..., ik]
+        dims: Size of each dimension [d0, d1, ..., dk]
+
+    Returns:
+        List of linear indices corresponding to the input coordinates
+
+    Warns:
+        If duplicate or out-of-bounds indices are detected
     """
     indices = []
     cprod = np.cumprod(np.array(dims), dtype=int).tolist()

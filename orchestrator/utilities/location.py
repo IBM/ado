@@ -33,20 +33,23 @@ class ResourceLocation(pydantic.BaseModel):
             password=url.password,
         )
 
-    scheme: str = pydantic.Field(description="The resource access scheme")
-    host: str | None = pydantic.Field(
-        default=None,
-        description="The host name for the resource. Should not contain port",
-    )
+    scheme: Annotated[str, pydantic.Field(description="The resource access scheme")]
+    host: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The host name for the resource. Should not contain port"
+        ),
+    ] = None
     # validating default of None to allow detecting if the port was placed in the host field
-    port: int | None = pydantic.Field(
-        default=None, description="Port number", validate_default=True
-    )
-    path: str | None = pydantic.Field(
-        default=None, description="The path of the resource"
-    )
-    user: str | None = pydantic.Field(default=None, description="The user")
-    password: str | None = pydantic.Field(default=None, description="The password")
+    port: Annotated[
+        int | None,
+        pydantic.Field(description="Port number", validate_default=True),
+    ] = None
+    path: Annotated[
+        str | None, pydantic.Field(description="The path of the resource")
+    ] = None
+    user: Annotated[str | None, pydantic.Field(description="The user")] = None
+    password: Annotated[str | None, pydantic.Field(description="The password")] = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -125,8 +128,8 @@ class ResourceLocation(pydantic.BaseModel):
 
 class FilePathLocation(ResourceLocation):
 
-    scheme: str = pydantic.Field(
-        default="file", description="The resource access scheme"
+    scheme: Annotated[str, pydantic.Field(description="The resource access scheme")] = (
+        "file"
     )
 
     @pydantic.field_validator("path", mode="before")
@@ -176,10 +179,10 @@ class StorageDatabaseConfiguration(ResourceLocation):
     in fact be used. By: default it is True. Ability to set to False allows for debugging
     """
 
-    sslVerify: bool = pydantic.Field(
-        default=True, description="If False SSL verification is turned of"
-    )
-    database: str = pydantic.Field(description="The database to access")
+    sslVerify: Annotated[
+        bool, pydantic.Field(description="If False SSL verification is turned of")
+    ] = True
+    database: Annotated[str, pydantic.Field(description="The database to access")]
     model_config = ConfigDict(extra="forbid")
 
 

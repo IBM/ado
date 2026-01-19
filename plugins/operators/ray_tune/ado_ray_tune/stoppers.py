@@ -659,15 +659,6 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             f"{self.metric_b}={metric_b_value:.4f}, difference={difference:.4f}"
         )
 
-        # Check if we have enough usable samples (differences collected)
-        n_differences = len(self.differences)
-        if n_differences < self.min_samples:
-            self.log.debug(
-                f"Collected {n_differences}/{self.min_samples} usable samples, "
-                f"not yet applying stopping criteria"
-            )
-            return False
-
         # Compute Bayesian posterior probabilities
         stats_result = self._compute_bayesian_t_probability(
             self.differences, self.threshold
@@ -680,6 +671,15 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             f"Trial {self.trials_num}: Mean difference = {mean_diff:.4f} ± {stats_result['std']:.4f}, "
             f"P(|{self.metric_a}-{self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
         )
+
+        # Check if we have enough usable samples (differences collected)
+        n_differences = len(self.differences)
+        if n_differences < self.min_samples:
+            self.log.debug(
+                f"Collected {n_differences} usable samples, but require {self.min_samples}, "
+                f"to apply stopping criteria."
+            )
+            return False
 
         # Apply stopping criterion - check if confident about EITHER side
         # Stop when we're target_probability confident difference is above OR below threshold

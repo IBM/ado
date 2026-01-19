@@ -199,13 +199,11 @@ class SQLResourceStore(ResourceStore):
 
         import pandas as pd
 
-        query = sqlalchemy.text(
-            """
+        query = sqlalchemy.text("""
             SELECT * FROM resources
             WHERE identifier=:identifier
             AND kind=:kind
-            """
-        ).bindparams(identifier=identifier, kind=kind.value)
+            """).bindparams(identifier=identifier, kind=kind.value)
 
         # self.log.warning("GETTING RESOURCE")
         with self.engine.connect() as connectable:
@@ -1102,16 +1100,14 @@ class SQLResourceStore(ResourceStore):
                         ]
 
                         running_operations = session.execute(
-                            sqlalchemy.text(
-                                """
+                            sqlalchemy.text("""
                                 SELECT identifier
                                 FROM resources
                                 WHERE kind = 'operation'
                                     AND JSON_OVERLAPS(data->'$.config.spaces', :spaces_in_sample_store)
                                     AND JSON_CONTAINS(data->'$.status', '{"event":"started"}')
                                     AND NOT JSON_CONTAINS(data->'$.status', '{"event":"finished"}')
-                                """
-                            ).bindparams(
+                                """).bindparams(
                                 spaces_in_sample_store=json.dumps(
                                     spaces_in_sample_store
                                 )
@@ -1165,33 +1161,25 @@ class SQLResourceStore(ResourceStore):
 
                     # The results that have no link to requests anymore
                     # can now be safely deleted
-                    session.execute(
-                        sqlalchemy.text(
-                            f"""
+                    session.execute(sqlalchemy.text(f"""
                             DELETE
                             FROM sqlsource_{sample_store_id}_measurement_results
                             WHERE uid NOT IN (
                                 SELECT DISTINCT(result_uid)
                                 FROM sqlsource_{sample_store_id}_measurement_requests_results
                             )
-                            """  # noqa: S608 - sample store id is not a user input
-                        )
-                    )
+                            """))  # noqa: S608 - sample store id is not a user input
 
                     # The requests that have no link to results anymore
                     # can now be safely deleted.
-                    session.execute(
-                        sqlalchemy.text(
-                            f"""
+                    session.execute(sqlalchemy.text(f"""
                             DELETE
                             FROM sqlsource_{sample_store_id}_measurement_requests
                             WHERE uid NOT IN (
                                 SELECT DISTINCT(request_uid)
                                 FROM sqlsource_{sample_store_id}_measurement_requests_results
                             )
-                            """  # noqa: S608 - sample store id is not a user input
-                        )
-                    )
+                            """))  # noqa: S608 - sample store id is not a user input
 
                     # We must delete the resource from the relationships table
                     # as we otherwise would break its foreign key constraint

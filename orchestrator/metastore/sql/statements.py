@@ -33,8 +33,7 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
     # the subqueries.
     subqueries = check_field_in_sqlite_json_document(json.loads(candidate), path)
 
-    return (  # noqa: S608 - we don't care about local sql injection
-        """
+    return ("""
         identifier IN (
             WITH F AS (
                 SELECT r.identifier, jt.key, jt.value, jt.path
@@ -44,8 +43,7 @@ def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
             )
             {subqueries}
         )
-        """
-    ).format(
+        """).format(  # noqa: S608 - we don't care about local sql injection
         path=path,
         subqueries="\n            INTERSECT ".join(subqueries),
     )
@@ -361,21 +359,17 @@ def insert_entities_ignore_on_duplicate(
     sample_store_name: str, dialect: Literal["mysql", "sqlite"] = "mysql"
 ) -> sqlalchemy.TextClause:
     if dialect == "sqlite":
-        query = sqlalchemy.text(
-            f"""
+        query = sqlalchemy.text(f"""
              INSERT OR IGNORE INTO {sample_store_name}
              (identifier, representation)
              VALUES (:identifier, :representation)
-             """  # noqa: S608 - sample_store_name is not untrusted
-        )
+             """)  # noqa: S608 - sample_store_name is not untrusted
     else:
-        query = sqlalchemy.text(
-            f"""
+        query = sqlalchemy.text(f"""
             INSERT IGNORE INTO {sample_store_name}
             (identifier, representation)
             VALUES (:identifier, :representation)
-            """  # noqa: S608 - sample_store_name is not untrusted
-        )
+            """)  # noqa: S608 - sample_store_name is not untrusted
 
     return query
 
@@ -384,22 +378,18 @@ def upsert_entities(
     sample_store_name: str, dialect: Literal["mysql", "sqlite"] = "mysql"
 ) -> sqlalchemy.TextClause:
     if dialect == "sqlite":
-        query = sqlalchemy.text(
-            rf"""
+        query = sqlalchemy.text(rf"""
             INSERT INTO {sample_store_name}
             (identifier, representation)
             VALUES (:identifier, :representation)
             ON CONFLICT(identifier) DO UPDATE SET representation = excluded.representation
-            """  # noqa: S608 - sample_store_name is not untrusted
-        )
+            """)  # noqa: S608 - sample_store_name is not untrusted
     else:
-        query = sqlalchemy.text(
-            rf"""
+        query = sqlalchemy.text(rf"""
             INSERT INTO {sample_store_name}
             (identifier, representation)
             VALUES (:identifier, :representation)
             ON DUPLICATE KEY UPDATE representation=values(representation)
-            """  # noqa: S608 - sample_store_name is not untrusted
-        )
+            """)  # noqa: S608 - sample_store_name is not untrusted
 
     return query

@@ -135,9 +135,9 @@ asttokens==3.0.1 \
     --hash=sha256:15a3ebc0f43c2d0a50eeafea25e19046c68398e487b9f1f5b517f7c0f40f976a \
     --hash=sha256:71a4ee5de0bde6a31d64f6b13f2293ac190344478f081c3d1bccfcf5eacb0cb7
     # via stack-data
-async-lru==2.0.5 \
-    --hash=sha256:481d52ccdd27275f42c43a928b4a50c3bfb2d67af4e78b170e3e0bb39c66e5bb \
-    --hash=sha256:ab95404d8d2605310d345932697371a5f40def0487c03d6d0ad9138de52c9943
+async-lru==2.1.0 \
+    --hash=sha256:9eeb2fecd3fe42cc8a787fc32ead53a3a7158cc43d039c3c55ab3e4e5b2a80ed \
+    --hash=sha256:fa12dcf99a42ac1280bc16c634bbaf06883809790f6304d85cdab3f666f33a7e
     # via jupyterlab
 async-timeout==5.0.1 ; python_full_version < '3.11' \
     --hash=sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c \
@@ -774,13 +774,13 @@ jupyter-server==2.17.0 \
     #   jupyterlab-server
     #   notebook
     #   notebook-shim
-jupyter-server-terminals==0.5.3 \
-    --hash=sha256:41ee0d7dc0ebf2809c668e0fc726dfaf258fcd3e769568996ca731b6194ae9aa \
-    --hash=sha256:5ae0295167220e9ace0edcfdb212afd2b01ee8d179fe6f23c899590e9b8a5269
+jupyter-server-terminals==0.5.4 \
+    --hash=sha256:55be353fc74a80bc7f3b20e6be50a55a61cd525626f578dcb66a5708e2007d14 \
+    --hash=sha256:bbda128ed41d0be9020349f9f1f2a4ab9952a73ed5f5ac9f1419794761fb87f5
     # via jupyter-server
-jupyterlab==4.5.1 \
-    --hash=sha256:09da1ddfbd9eec18b5101dbb8515612aa1e47443321fb99503725a88e93d20d9 \
-    --hash=sha256:31b059de96de0754ff1f2ce6279774b6aab8c34d7082e9752db58207c99bd514
+jupyterlab==4.5.2 \
+    --hash=sha256:76466ebcfdb7a9bb7e2fbd6459c0e2c032ccf75be673634a84bee4b3e6b13ab6 \
+    --hash=sha256:c80a6b9f6dace96a566d590c65ee2785f61e7cd4aac5b4d453dcc7d0d5e069b7
     # via
     #   jupyter
     #   notebook
@@ -1035,9 +1035,9 @@ nest-asyncio==1.6.0 \
     --hash=sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe \
     --hash=sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c
     # via ipykernel
-notebook==7.5.1 \
-    --hash=sha256:b2fb4cef4d47d08c33aecce1c6c6e84be05436fbd791f88fce8df9fbca088b75 \
-    --hash=sha256:f4e2451c19910c33b88709b84537e11f6368c1cdff1aa0c43db701aea535dd44
+notebook==7.5.2 \
+    --hash=sha256:17d078a98603d70d62b6b4b3fcb67e87d7a68c398a7ae9b447eb2d7d9aec9979 \
+    --hash=sha256:83e82f93c199ca730313bea1bb24bc279ea96f74816d038a92d26b6b9d5f3e4a
     # via jupyter
 notebook-shim==0.2.4 \
     --hash=sha256:411a5be4e9dc882a074ccbcae671eda64cceb068767e9a3419096986560e1cef \
@@ -1212,9 +1212,9 @@ ply==3.11 \
     --hash=sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3 \
     --hash=sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce
     # via jsonpath-ng
-prometheus-client==0.23.1 \
-    --hash=sha256:6ae8f9081eaaaf153a2e959d2e6c4f4fb57b12ef76c8c7980202f1e57b48b2ce \
-    --hash=sha256:dd1913e6e76b59cfe44e7a4b83e01afc9873c1bdfd2ed8739f1e76aeca115f99
+prometheus-client==0.24.1 \
+    --hash=sha256:150db128af71a5c2482b36e588fc8a6b95e498750da4b17065947c16070f4055 \
+    --hash=sha256:7e0ced7fbbd40f7b84962d5d2ab6f17ef88a72504dcf7c0b40737b43b2a461f9
     # via
     #   jupyter-server
     #   opentelemetry-exporter-prometheus
@@ -1310,15 +1310,15 @@ proto-plus==1.27.0 \
     --hash=sha256:1baa7f81cf0f8acb8bc1f6d085008ba4171eaf669629d1b6d1673b21ed1c0a82 \
     --hash=sha256:873af56dd0d7e91836aee871e5799e1c6f1bda86ac9a983e0bb9f0c266a568c4
     # via google-api-core
-protobuf==6.33.3 \
-    --hash=sha256:08a6ca12f60ba99097dd3625ef4275280f99c9037990e47ce9368826b159b890 \
-    --hash=sha256:1fd18f030ae9df97712fbbb0849b6e54c63e3edd9b88d8c3bb4771f84d8db7a4 \
-    --hash=sha256:642fce7187526c98683c79a3ad68e5d646a5ef5eb004582fe123fc9a33a9456b \
-    --hash=sha256:648b7b0144222eb06cf529a3d7b01333c5f30b4196773b682d388f04db373759 \
-    --hash=sha256:6fa9b5f4baa12257542273e5e6f3c3d3867b30bc2770c14ad9ac8315264bf986 \
-    --hash=sha256:b4046f9f2ede57ad5b1d9917baafcbcad42f8151a73c755a1e2ec9557b0a764f \
-    --hash=sha256:c2bf221076b0d463551efa2e1319f08d4cffcc5f0d864614ccd3d0e77a637794 \
-    --hash=sha256:c8794debeb402963fddff41a595e1f649bcd76616ba56c835645cab4539e810e
+protobuf==6.33.4 \
+    --hash=sha256:1fe3730068fcf2e595816a6c34fe66eeedd37d51d0400b72fabc848811fdc1bc \
+    --hash=sha256:2fe67f6c014c84f655ee06f6f66213f9254b3a8b6bda6cda0ccd4232c73c06f0 \
+    --hash=sha256:3df850c2f8db9934de4cf8f9152f8dc2558f49f298f37f90c517e8e5c84c30e9 \
+    --hash=sha256:757c978f82e74d75cba88eddec479df9b99a42b31193313b75e492c06a51764e \
+    --hash=sha256:8f11ffae31ec67fc2554c2ef891dcb561dae9a2a3ed941f9e134c2db06657dbc \
+    --hash=sha256:918966612c8232fc6c24c78e1cd89784307f5814ad7506c308ee3cf86662850d \
+    --hash=sha256:c7c64f259c618f0bef7bee042075e390debbf9682334be2b67408ec7c1c09ee6 \
+    --hash=sha256:dc2e61bca3b10470c1912d166fe0af67bfc20eb55971dcef8dfa48ce14f0ed91
     # via
     #   google-api-core
     #   googleapis-common-protos
@@ -1359,9 +1359,9 @@ py-spy==0.4.1 \
     --hash=sha256:e53aa53daa2e47c2eef97dd2455b47bb3a7e7f962796a86cc3e7dbde8e6f4db4 \
     --hash=sha256:ee776b9d512a011d1ad3907ed53ae32ce2f3d9ff3e1782236554e22103b5c084
     # via ray
-pyasn1==0.6.1 \
-    --hash=sha256:0d632f46f2ba09143da3a8afe9e33fb6f92fa2320ab7e886e2d0f7672af84629 \
-    --hash=sha256:6f580d2bdd84365380830acf45550f2511469f673cb4a5ae3857a3170128b034
+pyasn1==0.6.2 \
+    --hash=sha256:1eb26d860996a18e9b6ed05e7aae0e9fc21619fcee6af91cca9bad4fbea224bf \
+    --hash=sha256:9b59a2b25ba7e4f8197db7686c09fb33e658b98339fadb826e9512629017833b
     # via
     #   pyasn1-modules
     #   rsa
@@ -1758,9 +1758,9 @@ rsa==4.9.1 \
     --hash=sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762 \
     --hash=sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75
     # via google-auth
-send2trash==2.0.0 \
-    --hash=sha256:1761421da3f9930bfe51ed7c45343948573383ad4c27e3acebc91be324e7770d \
-    --hash=sha256:e70d5ce41dbb890882cc78bc25d137478330b39a391e756fadf82e34da4d85b8
+send2trash==2.1.0 \
+    --hash=sha256:0da2f112e6d6bb22de6aa6daa7e144831a4febf2a87261451c4ad849fe9a873c \
+    --hash=sha256:1c72b39f09457db3c05ce1d19158c2cbef4c32b8bedd02c155e49282b7ea7459
     # via jupyter-server
 setuptools==80.9.0 \
     --hash=sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922 \
@@ -1781,9 +1781,9 @@ smart-open==7.5.0 \
     --hash=sha256:87e695c5148bbb988f15cec00971602765874163be85acb1c9fb8abc012e6599 \
     --hash=sha256:f394b143851d8091011832ac8113ea4aba6b92e6c35f6e677ddaaccb169d7cb9
     # via ray
-soupsieve==2.8.1 \
-    --hash=sha256:4cf733bc50fa805f5df4b8ef4740fc0e0fa6218cf3006269afd3f9d6d80fd350 \
-    --hash=sha256:a11fe2a6f3d76ab3cf2de04eb339c1be5b506a8a47f2ceb6d139803177f85434
+soupsieve==2.8.2 \
+    --hash=sha256:0f4c2f6b5a5fb97a641cf69c0bd163670a0e45e6d6c01a2107f93a6a6f93c51a \
+    --hash=sha256:78a66b0fdee2ab40b7199dc3e747ee6c6e231899feeaae0b9b98a353afd48fd8
     # via beautifulsoup4
 sqlalchemy==2.0.45 \
     --hash=sha256:0209d9753671b0da74da2cfbb9ecf9c02f72a759e4b018b3ab35f244c91842c7 \

@@ -310,10 +310,6 @@ class TrimSampleSelector(BaseSampler):
                         del predictor
                         delete_dir(model_dir=model_dir)
 
-                    # Use the best validation score captured earlier as the "mean ratio" proxy for stopping
-                    _metric_entry = metric_dict.get(i, {})
-                    _best_score_val = _metric_entry.get("holdout_score", None)
-
                     should_stop = 0
 
                     # for the first 2*iterationSize we do not have enough data to compare
@@ -415,11 +411,11 @@ class TrimSampleSelector(BaseSampler):
                             f"Testing stopping criterion after measuring {i} points, "
                             "mean_ratio={mean_ratio} and std_ratio={std_ratio}"
                         )
-                        should_stop = (
-                            _best_score_val is not None
-                            and stopping_bool_from_ratios(
-                                mean_ratio=mean_ratio, std_ratio=std_ratio
-                            )
+                        should_stop = stopping_bool_from_ratios(
+                            mean_ratio=mean_ratio,
+                            std_ratio=std_ratio,
+                            mean_ratio_threshold=self.params.stoppingCriterion.meanThreshold,
+                            std_ratio_threshold=self.params.stoppingCriterion.stdThreshold,
                         )
 
                     if should_stop:
@@ -432,17 +428,13 @@ class TrimSampleSelector(BaseSampler):
                             )
                             + "_finalized"
                         )
-                        final_model_path = (
-                            self.params.finalModelAutoGluonArgs.tabularPredictorArgs[
-                                "path"
-                            ]
-                        )
 
                         logger_trim_sampler.info(
                             f"Stopping criteria hit after measuring {i} entities.\n"
                             f"On a iteration of batch size {self.params.iterationSize}.\n"
-                            "Performance of the model on the holdout set"
-                            f"{final_model_path}:\nmean: {_best_score_val}\t\tstd: {std_ratio}\n."
+                            "Performance of the model on the holdout set is estimated as:"
+                            f"Mean performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).mean()}"
+                            f"Standard deviation of the performance of the model on the holdout set over the last iteration: {np.array(scores_this_iteration).std()}"
                         )
                         _predictor = self.finalize_model(
                             discoverySpace=discoverySpace,

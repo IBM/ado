@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
 import yaml
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.metastore.project import ProjectContext
 
 
 def test_create_actuator_configuration_dry_run_success(tmp_path: pathlib.Path) -> None:
@@ -67,7 +69,11 @@ def test_create_actuator_configuration_dry_run_failure(tmp_path: pathlib.Path) -
 
 
 def test_create_actuator_configuration(
-    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
 ) -> None:
     actuator_configuration_file = (
         "tests/resources/actuatorconfiguration/robotic_lab.yaml"

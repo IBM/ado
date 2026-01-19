@@ -17,19 +17,23 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import ValidMeasurementResult
 
 
-def test_parameterized_reference_equality(parameterized_references) -> None:
+def test_parameterized_reference_equality(
+    parameterized_references: list[ExperimentReference],
+) -> None:
 
     for r in parameterized_references:
         assert r == r
         assert r != r.model_copy(update={"actuatorIdentifier": "changed"})
 
 
-def test_experiment_reference_matching(experiment, experiment_reference) -> None:
+def test_experiment_reference_matching(
+    experiment: Experiment, experiment_reference: ExperimentReference
+) -> None:
     assert experiment.reference == experiment_reference
 
 
 def test_reference_of_parameterizable_experiment_has_no_parameters(
-    mock_parameterizable_experiment,
+    mock_parameterizable_experiment: Experiment,
 ) -> None:
 
     assert mock_parameterizable_experiment.reference.parameterization is None

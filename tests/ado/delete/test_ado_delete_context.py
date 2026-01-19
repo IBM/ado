@@ -3,14 +3,20 @@
 
 import os
 import pathlib
+from collections.abc import Callable
 
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.metastore.project import ProjectContext
 
 
 def test_delete_nonexistent_context(
-    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(

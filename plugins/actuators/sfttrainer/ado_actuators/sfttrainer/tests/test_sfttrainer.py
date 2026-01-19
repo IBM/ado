@@ -76,7 +76,7 @@ def try_instantiate_experiment(
         "finetune_pt_benchmark",
     ],
 )
-def test_sfttrainer_parameterised_experiment(exp_name) -> None:
+def test_sfttrainer_parameterised_experiment(exp_name: str) -> None:
     all_experiments = [
         e
         for e in ado_actuators.sfttrainer.actuators.catalog.experiments

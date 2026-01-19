@@ -3,17 +3,23 @@
 
 import os
 import pathlib
+from collections.abc import Callable
 
+from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.metastore.project import ProjectContext
 
 
 def test_describe_nonexistent_space(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(
@@ -36,10 +42,12 @@ def test_describe_nonexistent_space(
 
 def test_describe_valid_space(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    pfas_space,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    pfas_space: DiscoverySpace,
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(

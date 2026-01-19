@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import re
-import typing
 
 import pytest
 
@@ -19,8 +18,10 @@ from orchestrator.schema.virtual_property import (
 
 @pytest.fixture(params=list(PropertyAggregationMethodEnum))
 def aggregation_test_data(
-    request,
-) -> tuple[PropertyAggregationMethodEnum, list, typing.Any]:
+    request: pytest.FixtureRequest,
+) -> tuple[
+    PropertyAggregationMethodEnum, list[int], tuple[float, float] | tuple[float, None]
+]:
     import numpy as np
 
     values = np.asarray([1, 1, 1, 2, 2, 2, 10])
@@ -47,8 +48,15 @@ def aggregation_test_data(
 
 @pytest.fixture
 def virtual_properties(
-    experiment: Experiment, aggregation_test_data
-) -> tuple[VirtualObservedProperty, list, typing.Any]:
+    experiment: Experiment,
+    aggregation_test_data: tuple[
+        PropertyAggregationMethodEnum,
+        list[int],
+        tuple[float, float] | tuple[float, None],
+    ],
+) -> tuple[
+    VirtualObservedProperty, list[int], tuple[float, float] | tuple[float, None]
+]:
     observedProperty = experiment.observedProperties[0]
     identifier, values, results = aggregation_test_data
     method = PropertyAggregationMethod(identifier=identifier)
@@ -62,7 +70,13 @@ def virtual_properties(
     )
 
 
-def test_property_aggregation(aggregation_test_data) -> None:
+def test_property_aggregation(
+    aggregation_test_data: tuple[
+        PropertyAggregationMethodEnum,
+        list[int],
+        tuple[float, float] | tuple[float, None],
+    ],
+) -> None:
     identifier, values, results = aggregation_test_data
     method = PropertyAggregationMethod(identifier=identifier)
     assert method.function(values) == results
@@ -74,7 +88,11 @@ def test_property_aggregation(aggregation_test_data) -> None:
         method.function(values=[])
 
 
-def test_virtual_properties(virtual_properties) -> None:
+def test_virtual_properties(
+    virtual_properties: tuple[
+        VirtualObservedProperty, list[int], tuple[float, float] | tuple[float, None]
+    ],
+) -> None:
     virtual_property, values, results = virtual_properties
     assert virtual_property.aggregationMethod.function(values) == results
     assert virtual_property.aggregate(values) == VirtualObservedPropertyValue(
@@ -82,7 +100,11 @@ def test_virtual_properties(virtual_properties) -> None:
     )
 
 
-def test_virtual_property_identifiers(virtual_properties) -> None:
+def test_virtual_property_identifiers(
+    virtual_properties: tuple[
+        VirtualObservedProperty, list[int], tuple[float, float] | tuple[float, None]
+    ],
+) -> None:
     virtual_property, _values, _results = virtual_properties
 
     assert (

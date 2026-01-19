@@ -12,7 +12,7 @@ from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
 def test_create_context_dry_run_success(
-    tmp_path: pathlib.Path, valid_ado_mysql_context_yaml
+    tmp_path: pathlib.Path, valid_ado_mysql_context_yaml: str
 ) -> None:
     context_file = tmp_path / "temp_context.yaml"
     context_file.write_text(valid_ado_mysql_context_yaml)
@@ -39,7 +39,7 @@ def test_create_context_dry_run_success(
 
 
 def test_create_context_dry_run_failure(
-    tmp_path: pathlib.Path, valid_ado_sqlite_context_yaml
+    tmp_path: pathlib.Path, valid_ado_sqlite_context_yaml: str
 ) -> None:
     from orchestrator.utilities.output import pydantic_model_as_yaml
 
@@ -71,7 +71,9 @@ def test_create_context_dry_run_failure(
     )
 
 
-def test_create_context(tmp_path: pathlib.Path, valid_ado_project_context) -> None:
+def test_create_context(
+    tmp_path: pathlib.Path, valid_ado_project_context: ProjectContext
+) -> None:
     context_file = tmp_path / "temp_context.yaml"
     context_file.write_text(pydantic_model_as_yaml(valid_ado_project_context))
 

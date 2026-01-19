@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+from typing import Any
 
 import pytest
 
@@ -156,8 +156,8 @@ def test_entity_space_compatibility_with_measurement_space() -> None:
 
 
 def test_entity_space_representation(
-    constitutive_property_configuration_general,
-    constitutive_property_configuration_general_yaml,
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+    constitutive_property_configuration_general_yaml: dict[str, Any],  # noqa: ANN401
 ) -> None:
     rep = EntitySpaceRepresentation.representationFromConfiguration(
         constitutive_property_configuration_general
@@ -281,7 +281,7 @@ def test_entity_space_pretty(
 
 
 def test_entity_space_dimension_values(
-    measurement_space_from_single_parameterized_experiment,
+    measurement_space_from_single_parameterized_experiment: MeasurementSpace,
 ) -> None:
 
     es = measurement_space_from_single_parameterized_experiment.compatibleEntitySpace()
@@ -322,7 +322,7 @@ def test_entity_space_dimension_values(
 
 
 def test_entity_space_iterators(
-    measurement_space_from_single_parameterized_experiment,
+    measurement_space_from_single_parameterized_experiment: MeasurementSpace,
 ) -> None:
 
     exp = measurement_space_from_single_parameterized_experiment.experiments[0]

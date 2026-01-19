@@ -8,10 +8,13 @@ import pydantic
 import pytest
 import yaml
 
+from orchestrator.core import ActuatorConfigurationResource
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
+from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
 )
+from orchestrator.metastore.project import ProjectContext
 
 
 def test_nonexistent_actuatorconfig_raises_error() -> None:
@@ -27,9 +30,9 @@ def test_nonexistent_actuatorconfig_raises_error() -> None:
 
 
 def test_ml_multi_cloud_operation_valid(
-    valid_ado_project_context,
-    ml_multi_cloud_correct_actuatorconfiguration,
-    ml_multi_cloud_space,
+    valid_ado_project_context: ProjectContext,
+    ml_multi_cloud_correct_actuatorconfiguration: ActuatorConfigurationResource,
+    ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
@@ -52,9 +55,9 @@ def test_ml_multi_cloud_operation_valid(
 
 
 def test_ml_multi_cloud_operation_invalid(
-    valid_ado_project_context,
-    ml_multi_cloud_invalid_actuatorconfiguration,
-    ml_multi_cloud_space,
+    valid_ado_project_context: ProjectContext,
+    ml_multi_cloud_invalid_actuatorconfiguration: ActuatorConfigurationResource,
+    ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
@@ -83,9 +86,9 @@ def test_ml_multi_cloud_operation_invalid(
 
 
 def test_ml_multi_cloud_operation_base_get(
-    valid_ado_project_context,
-    ml_multi_cloud_correct_actuatorconfiguration,
-    ml_multi_cloud_space,
+    valid_ado_project_context: ProjectContext,
+    ml_multi_cloud_correct_actuatorconfiguration: ActuatorConfigurationResource,
+    ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
     """Tests directly that BaseOperationRunConfiguration works"""
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(

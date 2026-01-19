@@ -4,12 +4,13 @@
 
 import os
 import pathlib
+from collections.abc import Callable
 
 import pytest
 import sqlalchemy
 import testcontainers.mysql
-import typer.testing
 import yaml
+from typer.testing import CliRunner
 
 import orchestrator.core
 import orchestrator.metastore
@@ -36,7 +37,7 @@ def orchestrator_project_name() -> str:
         ModuleTypeEnum.OPERATION,
     ]
 )
-def module_config(request):
+def module_config(request: pytest.FixtureRequest) -> ModuleConf:
     return ModuleConf(moduleType=request.param)
 
 
@@ -75,7 +76,7 @@ def mysql_test_instance(
 
 @pytest.fixture
 def valid_ado_mysql_context_yaml(
-    random_identifier,
+    random_identifier: Callable[[], str],
     mysql_test_password: str,
     mysql_test_port: int,
     mysql_test_instance: testcontainers.mysql.MySqlContainer,
@@ -102,7 +103,7 @@ def valid_ado_mysql_context_yaml(
 
 
 @pytest.fixture
-def valid_ado_sqlite_context_yaml(random_identifier) -> str:
+def valid_ado_sqlite_context_yaml(random_identifier: Callable[[], str]) -> str:
     # AP: adding a string before random_identifier as it would
     # otherwise fail validation if it's only numbers
     project_id = f"sqlite-{random_identifier()}"
@@ -119,7 +120,9 @@ def valid_ado_sqlite_context_yaml(random_identifier) -> str:
 
 @pytest.fixture(params=["mysql", "sqlite"])
 def valid_ado_project_context(
-    valid_ado_mysql_context_yaml, valid_ado_sqlite_context_yaml, request
+    valid_ado_mysql_context_yaml: str,
+    valid_ado_sqlite_context_yaml: str,
+    request: pytest.FixtureRequest,
 ) -> orchestrator.metastore.project.ProjectContext:
 
     context = (
@@ -134,10 +137,12 @@ def valid_ado_project_context(
 
 
 @pytest.fixture
-def create_active_ado_context():
+def create_active_ado_context() -> (
+    Callable[[CliRunner, pathlib.Path, ProjectContext], None]
+):
 
     def _create_active_ado_context(
-        runner: typer.testing.CliRunner,
+        runner: CliRunner,
         path: pathlib.Path,
         project_context: ProjectContext,
     ) -> None:
@@ -174,7 +179,7 @@ def create_active_ado_context():
 
 
 @pytest.fixture(scope="module", params=["mysql", "sqlite"])
-def ado_test_file_project_context(request) -> ProjectContext | None:
+def ado_test_file_project_context(request: pytest.FixtureRequest) -> ProjectContext:
 
     import yaml
 
@@ -189,7 +194,7 @@ def ado_test_file_project_context(request) -> ProjectContext | None:
 
 @pytest.fixture
 def resource_store(
-    valid_ado_project_context,
+    valid_ado_project_context: ProjectContext,
 ) -> orchestrator.metastore.sqlstore.SQLStore:
 
     return orchestrator.metastore.sqlstore.SQLStore(
@@ -198,13 +203,13 @@ def resource_store(
 
 
 @pytest.fixture(params=list(CoreResourceKinds))
-def resource_type(request):
+def resource_type(request: pytest.FixtureRequest) -> CoreResourceKinds:
     return request.param
 
 
 @pytest.fixture
 def discovery_space_resource_and_store(
-    resource_store,
+    resource_store: SQLStore,
 ) -> (DiscoverySpaceResource, SQLStore):
     """Returns a DiscoverySpace resource that can be used to test additions"""
 
@@ -223,7 +228,7 @@ def discovery_space_resource_and_store(
 
 @pytest.fixture
 def active_contest_test_sample_store_resource(
-    ado_test_file_project_context,
+    ado_test_file_project_context: ProjectContext,
 ) -> orchestrator.core.samplestore.resource.SampleStoreResource:
 
     return orchestrator.core.samplestore.resource.SampleStoreResource(

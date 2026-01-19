@@ -5,9 +5,10 @@ import orchestrator.core
 import orchestrator.utilities.location
 from orchestrator.core import DataContainerResource
 from orchestrator.core.datacontainer.resource import DataContainer, TabularData
+from orchestrator.utilities.location import SQLStoreConfiguration
 
 
-def test_tabular_data(testTabularDataString) -> None:
+def test_tabular_data(testTabularDataString: TabularData) -> None:
 
     df = testTabularDataString.dataframe()
     newdf = TabularData.from_dataframe(df)
@@ -15,7 +16,9 @@ def test_tabular_data(testTabularDataString) -> None:
 
 
 def test_data_container_resource(
-    data_container_resource, testTabularDataString, test_sample_store_location
+    data_container_resource: DataContainerResource,
+    testTabularDataString: TabularData,
+    test_sample_store_location: SQLStoreConfiguration,
 ) -> None:
 
     assert (
@@ -63,7 +66,7 @@ def test_data_container_resource(
     )
 
 
-def test_datacontainer_pretty(data_container_resource) -> None:
+def test_datacontainer_pretty(data_container_resource: DataContainerResource) -> None:
     from IPython.lib.pretty import pretty
 
     assert hasattr(data_container_resource, "_repr_pretty_")

@@ -11,7 +11,7 @@ import orchestrator.utilities.ray_env.ordered_pip as ordered_pip
 
 
 @pytest.fixture
-def set_plugin():
+def set_plugin() -> None:
     os.environ["RAY_RUNTIME_ENV_PLUGINS"] = (
         '[{"class":"' + ordered_pip.OrderedPipPlugin.ClassPath + '"}]'
     )
@@ -32,7 +32,7 @@ def test_detect_support_pip_install_options() -> None:
     assert supported == utils.ray_version_supports_pip_install_options()
 
 
-def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin) -> None:
+def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin: None) -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
@@ -180,7 +180,7 @@ def test_ray_runtime_env_with_vanilla_pip() -> None:
         }
 
 
-def test_ordered_pip_plugin(set_plugin) -> None:
+def test_ordered_pip_plugin(set_plugin: None) -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 

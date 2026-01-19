@@ -22,10 +22,10 @@ def stopping_bool_from_ratios(
     std_ratio : float
         Ratio of the current standard deviation compared to a reference standard deviation.
     mean_ratio_threshold : float, optional
-        Lower bound threshold for the mean ratio (default is 0.9).
+        Lower bound threshold for the mean ratio.
         The upper bound is taken as the reciprocal (1 / mean_ratio_threshold).
     std_ratio_threshold : float, optional
-        Upper bound threshold for the standard deviation ratio (default is 0.75).
+        Upper bound threshold for the standard deviation ratio.
 
     Returns
     -------

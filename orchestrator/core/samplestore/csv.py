@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import pydantic
 
@@ -27,18 +27,27 @@ from orchestrator.schema.result import ValidMeasurementResult
 
 
 class CSVSampleStoreDescription(SampleStoreDescription):
-    identifierColumn: str = pydantic.Field(
-        description="The header of the column that contains the entity ids"
-    )
+    identifierColumn: Annotated[
+        str,
+        pydantic.Field(
+            description="The header of the column that contains the entity ids"
+        ),
+    ]
 
-    generatorIdentifier: str | None = pydantic.Field(
-        default=None,
-        validate_default=True,
-        description="The id of the entity generator",
-    )
-    constitutivePropertyColumns: list[str] = pydantic.Field(
-        description="List of headers of columns containing constitutive properties",
-    )
+    generatorIdentifier: Annotated[
+        str | None,
+        pydantic.Field(
+            default=None,
+            validate_default=True,
+            description="The id of the entity generator",
+        ),
+    ]
+    constitutivePropertyColumns: Annotated[
+        list[str],
+        pydantic.Field(
+            description="List of headers of columns containing constitutive properties"
+        ),
+    ]
 
     @pydantic.field_validator("identifierColumn")
     def identifier_is_lowercase(cls, value: str) -> str:

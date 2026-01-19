@@ -5,7 +5,7 @@ import json
 import logging
 import typing
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import pydantic
 import sqlalchemy
@@ -53,10 +53,13 @@ if TYPE_CHECKING:
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
-    identifier: str | None = pydantic.Field(description="id for this sample store")
-    configuration: SQLStoreConfiguration | None = pydantic.Field(
-        None, description="connection information for database"
-    )
+    identifier: Annotated[
+        str | None, pydantic.Field(description="id for this sample store")
+    ]
+    configuration: Annotated[
+        SQLStoreConfiguration | None,
+        pydantic.Field(description="connection information for database"),
+    ] = None
 
 
 class SQLSampleStore(ActiveSampleStore):

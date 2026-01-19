@@ -283,8 +283,10 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     spaces: Annotated[
         list[str],
         pydantic.Field(
-            description="List of ids of the spaces the operation will be applied to",
+            description="List of ids of the spaces the operation will be applied to. "
+            "Currently, only one identifier is supported.",
             min_length=1,
+            max_length=1,
         ),
     ]
     model_config = ConfigDict(

@@ -34,7 +34,7 @@ def test_create_operation_dry_run_success(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
+    operations_to_be_run: DiscoveryOperationResourceConfiguration,
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(

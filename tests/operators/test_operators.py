@@ -584,7 +584,7 @@ def test_run_ray_tune_operation(
 
 
 def test_operator_default_and_validate(
-    optimizer_operator: type[RandomWalk | RayTune],
+    optimizer_operator: type[RandomWalk] | type[RayTune],
 ) -> None:
 
     assert optimizer_operator

@@ -91,6 +91,6 @@ def raytuneConf() -> DiscoveryOperationResourceConfiguration:
 @pytest.fixture(params=[RandomWalk, RayTune])
 def optimizer_operator(
     request: pytest.FixtureRequest,
-) -> type[RandomWalk | RayTune]:
+) -> type[RandomWalk] | type[RayTune]:
 
     return request.param

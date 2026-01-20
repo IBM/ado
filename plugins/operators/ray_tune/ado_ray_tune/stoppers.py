@@ -456,3 +456,274 @@ class InformationGainStopper(ray.tune.Stopper):
 
     def stop_all(self) -> bool:
         return self.should_stop
+
+
+class BayesianMetricDifferenceStopper(ray.tune.Stopper):
+    """
+    Stopper that uses Bayesian sequential analysis to detect with high confidence
+    which side of a threshold the mean difference between two metrics lies on.
+
+    Uses a Bayesian t-posterior with Jeffreys prior for the difference between metrics.
+    Stops when we're confident (e.g., 95%) that |A-B| is either above OR below the threshold.
+
+    The stopper is agnostic to interpretation - it simply reports which side with confidence.
+    Users interpret the result based on their context (improvement detection, convergence, etc).
+    """
+
+    def __init__(self):
+        self.metric_a = None
+        self.metric_b = None
+        self.threshold = None
+        self.target_probability = None
+        self.min_samples = 10
+        self.differences = []
+        self.should_stop = False
+        self.stop_reason = None  # "exceeds_threshold" or "within_threshold"
+        self.stop_probability = None  # The actual probability when stopped
+        self.seen_trial_ids = []
+        self.trials_num = 0
+        self.log = logging.getLogger("BayesianMetricDifferenceStopper")
+
+    def set_config(
+        self,
+        metric_a: str,
+        metric_b: str,
+        threshold: float,
+        target_probability: float = 0.95,
+        min_samples: int = 10,
+    ):
+        """
+        Configure the stopper.
+
+        Args:
+            metric_a: Name of the first metric to compare
+            metric_b: Name of the second metric to compare
+            threshold: Threshold value for |A-B|
+            target_probability: Probability threshold for stopping (default: 0.95)
+                Stop when we're this confident the difference is above OR below threshold
+            min_samples: Minimum number of samples before applying stopping criteria (default: 10)
+        """
+        self.metric_a = metric_a
+        self.metric_b = metric_b
+        self.threshold = abs(threshold)  # Ensure threshold is positive
+        self.target_probability = target_probability
+        self.min_samples = int(min_samples)
+        self.differences = []
+        self.should_stop = False
+        self.stop_reason = None
+        self.stop_probability = None
+        self.seen_trial_ids = []
+        self.trials_num = 0
+
+        # Validation
+        if not 0 < target_probability < 1:
+            raise ValueError(
+                f"target_probability must be between 0 and 1, got {target_probability}"
+            )
+
+        self.log.info(
+            f"Configured BayesianMetricDifferenceStopper:\n"
+            f"  Metrics: |{metric_a} - {metric_b}|\n"
+            f"  Threshold: {self.threshold}\n"
+            f"  Target Probability: {target_probability}\n"
+            f"  Min Samples: {min_samples}\n"
+            f"  Stopping: When {target_probability*100:.0f}% confident difference is "
+            f"above OR below threshold"
+        )
+
+    def __str__(self):
+        return (
+            f"BayesianMetricDifferenceStopper("
+            f"|{self.metric_a}-{self.metric_b}| vs {self.threshold}, "
+            f"P={self.target_probability}, min_n={self.min_samples})"
+        )
+
+    def _compute_bayesian_t_probability(
+        self, differences: list, threshold: float
+    ) -> dict:
+        """
+        Compute Bayesian t-posterior probability for the difference.
+
+        Uses Jeffreys prior: p(μ, σ²) ∝ 1/σ²
+        The posterior for μ is: μ | data ~ t(n-1, x̄, s/√n)
+
+        Args:
+            differences: List of observed differences (A-B)
+            threshold: Threshold value to test against
+
+        Returns:
+            Dictionary with probabilities and statistics
+        """
+        import scipy.stats as stats
+
+        n = len(differences)
+        if n < 2:
+            return {
+                "n": n,
+                "mean": np.nan if n == 0 else differences[0],
+                "std": np.nan,
+                "se": np.nan,
+                "prob_greater_than_threshold": 0.0,
+                "prob_less_than_neg_threshold": 0.0,
+                "prob_abs_greater_than_threshold": 0.0,
+            }
+
+        # Compute sample statistics
+        mean_diff = np.mean(differences)
+        std_diff = np.std(differences, ddof=1)  # Sample std deviation
+
+        # Avoid division by zero
+        if std_diff < 1e-10:
+            # If std is essentially zero, use deterministic decision
+            if abs(mean_diff) > threshold:
+                prob_greater = 1.0 if mean_diff > threshold else 0.0
+                prob_less = 1.0 if mean_diff < -threshold else 0.0
+            else:
+                prob_greater = 0.0
+                prob_less = 0.0
+        else:
+            # Standard error of the mean
+            se = std_diff / np.sqrt(n)
+
+            # Degrees of freedom for t-distribution
+            df = n - 1
+
+            # Compute P(difference > threshold) using t-distribution
+            # t = (threshold - mean_diff) / se
+            # P(diff > threshold) = P(T > t) where T ~ t(df)
+            t_stat_upper = (threshold - mean_diff) / se
+            prob_greater = 1.0 - stats.t.cdf(t_stat_upper, df)
+
+            # Compute P(difference < -threshold)
+            # P(diff < -threshold) = P(T < t) where t = (-threshold - mean_diff) / se
+            t_stat_lower = (-threshold - mean_diff) / se
+            prob_less = stats.t.cdf(t_stat_lower, df)
+
+        # Total probability P(|difference| > threshold)
+        prob_abs_greater = prob_greater + prob_less
+
+        return {
+            "n": n,
+            "mean": mean_diff,
+            "std": std_diff,
+            "se": std_diff / np.sqrt(n),
+            "prob_greater_than_threshold": prob_greater,
+            "prob_less_than_neg_threshold": prob_less,
+            "prob_abs_greater_than_threshold": prob_abs_greater,
+        }
+
+    def __call__(self, trial_id: str, result: dict[str, Any]) -> bool:
+        """
+        Check if stopping criteria is met for this trial.
+
+        Args:
+            trial_id: Unique identifier for the trial
+            result: Dictionary containing trial results including metrics
+
+        Returns:
+            True if stopping criteria is met, False otherwise
+        """
+        if self.should_stop:
+            return True
+
+        if trial_id in self.seen_trial_ids:
+            self.log.debug(f"Already seen trial {trial_id}, skipping...")
+            return False
+
+        self.seen_trial_ids.append(trial_id)
+        self.trials_num += 1
+
+        # Extract metrics
+        metric_a_value = result.get(self.metric_a)
+        metric_b_value = result.get(self.metric_b)
+
+        # Check if both metrics are available
+        if metric_a_value is None:
+            self.log.warning(
+                f"Metric '{self.metric_a}' not found in trial {trial_id} results"
+            )
+            return False
+
+        if metric_b_value is None:
+            self.log.warning(
+                f"Metric '{self.metric_b}' not found in trial {trial_id} results"
+            )
+            return False
+
+        # Check for NaN values
+        if np.isnan(metric_a_value) or np.isnan(metric_b_value):
+            self.log.debug(f"Trial {trial_id} has NaN metric values, skipping...")
+            return False
+
+        # Compute difference A - B
+        difference = metric_a_value - metric_b_value
+        self.differences.append(difference)
+
+        self.log.debug(
+            f"Trial {trial_id}: {self.metric_a}={metric_a_value:.4f}, "
+            f"{self.metric_b}={metric_b_value:.4f}, difference={difference:.4f}"
+        )
+
+        # Compute Bayesian posterior probabilities
+        stats_result = self._compute_bayesian_t_probability(
+            self.differences, self.threshold
+        )
+
+        prob_abs_greater = stats_result["prob_abs_greater_than_threshold"]
+        mean_diff = stats_result["mean"]
+
+        self.log.info(
+            f"Trial {self.trials_num}: Mean difference = {mean_diff:.4f} ± {stats_result['se']:.4f}, "
+            f"P(|{self.metric_a}-{self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
+        )
+
+        # Check if we have enough usable samples (differences collected)
+        n_differences = len(self.differences)
+        if n_differences < self.min_samples:
+            self.log.debug(
+                f"Collected {n_differences} usable samples, but require {self.min_samples}, "
+                f"to apply stopping criteria."
+            )
+            return False
+
+        # Apply stopping criterion - check if confident about EITHER side
+        # Stop when we're target_probability confident difference is above OR below threshold
+        prob_abs_less = 1.0 - prob_abs_greater  # P(|diff| ≤ threshold)
+
+        # Check if difference significantly EXCEEDS threshold
+        if prob_abs_greater >= self.target_probability:
+            self.should_stop = True
+            self.stop_reason = "exceeds_threshold"
+            self.stop_probability = prob_abs_greater
+
+            print(
+                f"  Stopping after {self.trials_num} trials  - usable differences collected {len(self.differences)} \n"
+                f"  {prob_abs_greater*100:.1f}% confident mean difference is ABOVE threshold\n"
+                f"  Mean difference: {mean_diff:.4f}\n"
+                f"  Standard error: ±{stats_result['se']:.4f}\n"
+                f"  Threshold: {self.threshold}\n"
+                f"  P(|{self.metric_a} - {self.metric_b}| > {self.threshold}) = {prob_abs_greater:.4f}"
+            )
+            return True
+
+        # Check if difference is confidently WITHIN threshold
+        if prob_abs_less >= self.target_probability:
+            self.should_stop = True
+            self.stop_reason = "within_threshold"
+            self.stop_probability = prob_abs_less
+
+            print(
+                f"  Stopping after {self.trials_num} trials\n"
+                f"  {prob_abs_less*100:.1f}% confident mean difference is BELOW threshold\n"
+                f"  Mean difference: {mean_diff:.4f}\n"
+                f"  Standard error: ±{stats_result['se']:.4f}\n"
+                f"  Threshold: {self.threshold}\n"
+                f"  P(|{self.metric_a} - {self.metric_b}| < {self.threshold}) = {prob_abs_less:.4f}"
+            )
+            return True
+
+        return False
+
+    def stop_all(self) -> bool:
+        """Check if all trials should be stopped."""
+        return self.should_stop

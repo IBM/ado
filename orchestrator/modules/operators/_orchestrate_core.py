@@ -96,6 +96,7 @@ def _run_operation_harness(
     )
 
     operation_output = None
+
     interrupted_nested_operation: str | None = None
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,

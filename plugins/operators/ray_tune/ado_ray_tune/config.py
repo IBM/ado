@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 
+import typing
+
 import pydantic
 import ray
 from pydantic import ConfigDict
@@ -71,6 +73,11 @@ def create_general_ray_tune_config(
 class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
     """Model for specific orchestrator options related to ray tune"""
 
+    metric_format: typing.Literal["target", "observed"] = pydantic.Field(
+        default="target",
+        description="Format for metric identifiers: 'target' (use target property identifiers) "
+        "or 'observed' (use observed property identifiers)",
+    )
     single_measurement_per_property: bool = pydantic.Field(
         default=True,
         description="Indicate that each property (experiment) "
@@ -252,6 +259,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "GrowthStopper",
                     "MaxSamplesStopper",
                     "InformationGainStopper",
+                    "BayesianMetricDifferenceStopper",
                 ]:
                     module_name = "ado_ray_tune.stoppers"
                 else:
@@ -270,6 +278,7 @@ class OrchRunConfig(pydantic.BaseModel):
                     "GrowthStopper",
                     "MaxSamplesStopper",
                     "InformationGainStopper",
+                    "BayesianMetricDifferenceStopper",
                 ]:
                     # There is some problem passing the in-build stoppers params via init
                     stopper = stopper_class()

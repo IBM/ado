@@ -5,7 +5,7 @@ import logging
 import time
 import uuid
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import pydantic
 import ray
@@ -118,13 +118,29 @@ def run_dependent_experiments(
 
 
 def retrieve_results(
-    entity: Entity, experimentReference: ExperimentReference
+    entity: Entity,
+    experimentReference: ExperimentReference,
+    mode: Literal["target", "observed"] = "target",
 ) -> dict[str, Any]:
+    """Returns a dictionary mapping property identifiers to their measured values.
+
+    Args:
+        entity: The entity that was measured
+        experimentReference: Reference to the experiment that was applied
+        mode: "target" returns target property identifiers as keys,
+              "observed" returns observed property identifiers as keys
+
+    Returns:
+        Dictionary mapping property identifiers to their measured values
+    """
     property_values = entity.propertyValuesFromExperimentReference(
         experimentReference=experimentReference
     )
 
-    return {p.property.targetProperty.identifier: p.value for p in property_values}
+    if mode == "target":
+        return {p.property.targetProperty.identifier: p.value for p in property_values}
+    # observed
+    return {p.property.identifier: p.value for p in property_values}
 
 
 class OrchTrainableParameters(pydantic.BaseModel):
@@ -243,6 +259,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     single_measurement = (
         trainable_params.orchestrator_config.single_measurement_per_property
     )
+    metric_mode = trainable_params.orchestrator_config.metric_format
 
     entity_space = trainable_params.entity_space
     actuators = trainable_params.actuators
@@ -369,7 +386,9 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
                 newCompletedRequests.append(request.requestid)
                 if isinstance(request.measurements[0], ValidMeasurementResult):
                     for k, v in retrieve_results(
-                        request.entities[0], request.experimentReference
+                        request.entities[0],
+                        request.experimentReference,
+                        mode=metric_mode,
                     ).items():
                         allResults[k].append(v)
 
@@ -435,6 +454,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     # The trainable can only return one.
     # The following code either returns the last available value or if the metric is virtual, aggregates it.
     # It also handles the case where no value of target metric is available
+    # All results will be in the same format (target or observed) based on metric_mode
     final_results = {}
 
     target_metrics = (
@@ -449,7 +469,7 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
             entity=entity,
             trainable_params=trainable_params,
         )
-    # Add non target metrics to final results - skip any already handled
+    # Add non-target metrics to final results in the same format - skip any already handled
     skip_metrics = list(target_metrics)
     for k, v in allResults.items():
         if k not in skip_metrics:
@@ -756,17 +776,28 @@ class RayTune(Search):
             )  # type: MeasurementSpace
 
             metric_or_metrics = self.params.tuneConfig.metric
-            # Check all if list, single if str
-            if isinstance(metric_or_metrics, list):
-                present = all(
-                    measurement_space.propertyWithIdentifierInSpace(m)
-                    for m in metric_or_metrics
+            metric_mode = self.params.orchestratorConfig.metric_format
+
+            # Validate metrics match the configured mode
+            metrics_to_check = (
+                metric_or_metrics
+                if isinstance(metric_or_metrics, list)
+                else [metric_or_metrics]
+            )
+
+            metrics_valid = all(
+                measurement_space.propertyWithIdentifierInSpace(m, format=metric_mode)
+                for m in metrics_to_check
+            )
+
+            if not metrics_valid:
+                error_message = (
+                    f"Metric(s) {metric_or_metrics} not found as {metric_mode} "
+                    f"properties in measurement space"
                 )
-            else:
-                present = measurement_space.propertyWithIdentifierInSpace(
-                    metric_or_metrics
-                )
-            if present:
+                self.log.error(error_message)
+
+            if metrics_valid:
                 internal_parameters = OrchTrainableParameters(
                     operation_id=self.operationIdentifier(),
                     ray_tune_actor_name=self.actorName,
@@ -841,9 +872,7 @@ class RayTune(Search):
             else:
                 operation_output = OperationOutput(
                     exitStatus=OperationResourceStatus(
-                        message=f"Ray Tune operation did not start. "
-                        f"Requested tune metric(s) {self.params.tuneConfig.metric} is/are not a target, observed or virtual "
-                        f"property of the measurement space.",
+                        message=f"Ray Tune operation did not start. {error_message}",
                         exit_state=OperationExitStateEnum.FAIL,
                         event=OperationResourceEventEnum.FINISHED,
                     ),

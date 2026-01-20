@@ -91,7 +91,9 @@ class ADOResource(pydantic.BaseModel):
             description="A list of status objects. A status object describes something notable that happened to the resource",
         ),
     ]
-    metadata: Annotated[dict, pydantic.Field(description="Metadata dictionary")] = {}
+    metadata: Annotated[
+        dict, pydantic.Field(default_factory=dict, description="Metadata dictionary")
+    ]
 
     model_config = pydantic.ConfigDict(extra="forbid")
 

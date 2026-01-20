@@ -33,15 +33,13 @@ class CSVSampleStoreDescription(SampleStoreDescription):
             description="The header of the column that contains the entity ids"
         ),
     ]
-
     generatorIdentifier: Annotated[
         str | None,
         pydantic.Field(
-            default=None,
             validate_default=True,
             description="The id of the entity generator",
         ),
-    ]
+    ] = None
     constitutivePropertyColumns: Annotated[
         list[str],
         pydantic.Field(

@@ -174,9 +174,7 @@ def validate_actuator_configuration_ids_against_space_ids(
 
 
 class OperatorModuleConf(ModuleConf):
-    moduleType: Annotated[
-        ModuleTypeEnum, pydantic.Field(default=ModuleTypeEnum.OPERATION)
-    ]
+    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.OPERATION
 
     @property
     def operationType(self) -> DiscoveryOperationEnum:
@@ -263,9 +261,10 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     parameters: Annotated[
         typing.Any,
         pydantic.Field(
-            description="The parameters for the operation. Operation provider dependent"
+            default_factory=dict,
+            description="The parameters for the operation. Operation provider dependent",
         ),
-    ] = {}
+    ]
 
 
 class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
@@ -279,7 +278,9 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
             "labels for filtering, and any additional custom fields"
         ),
     ] = ConfigurationMetadata()
-    actuatorConfigurationIdentifiers: Annotated[list[str], pydantic.Field()] = []
+    actuatorConfigurationIdentifiers: Annotated[
+        list[str], pydantic.Field(default_factory=list)
+    ]
     spaces: Annotated[
         list[str],
         pydantic.Field(
@@ -357,7 +358,9 @@ class FunctionOperationInfo(pydantic.BaseModel):
             "labels for filtering, and any additional custom fields"
         ),
     ] = ConfigurationMetadata()
-    actuatorConfigurationIdentifiers: Annotated[list[str], pydantic.Field()] = []
+    actuatorConfigurationIdentifiers: Annotated[
+        list[str], pydantic.Field(default_factory=list)
+    ]
     ray_namespace: Annotated[
         str | None,
         pydantic.Field(

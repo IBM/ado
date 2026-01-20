@@ -4,6 +4,7 @@
 import functools
 import logging
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -22,22 +23,26 @@ moduleLog = logging.getLogger("operation_collections")
 
 class OperationCollections(pydantic.BaseModel):
     type: DiscoveryOperationEnum
-    function_operations: dict[typing.AnyStr, typing.Callable] = pydantic.Field(
-        default={}
-    )
-    object_operations: dict[typing.AnyStr, DiscoveryOperationBase] = pydantic.Field(
-        default={}
-    )
-    function_operation_models: dict[typing.AnyStr, type[pydantic.BaseModel]] = (
-        pydantic.Field(default={})
-    )
-    function_operation_model_defaults: dict[typing.AnyStr, pydantic.BaseModel] = (
-        pydantic.Field(default={})
-    )
-    function_operation_versions: dict[typing.AnyStr, str] = pydantic.Field(default={})
-    function_operation_descriptions: dict[typing.AnyStr, str] = pydantic.Field(
-        default={}
-    )
+    function_operations: Annotated[
+        dict[typing.AnyStr, typing.Callable], pydantic.Field(default_factory=dict)
+    ]
+    object_operations: Annotated[
+        dict[typing.AnyStr, DiscoveryOperationBase],
+        pydantic.Field(default_factory=dict),
+    ]
+    function_operation_models: Annotated[
+        dict[typing.AnyStr, type[pydantic.BaseModel]],
+        pydantic.Field(default_factory=dict),
+    ]
+    function_operation_model_defaults: Annotated[
+        dict[typing.AnyStr, pydantic.BaseModel], pydantic.Field(default_factory=dict)
+    ]
+    function_operation_versions: Annotated[
+        dict[typing.AnyStr, str], pydantic.Field(default_factory=dict)
+    ]
+    function_operation_descriptions: Annotated[
+        dict[typing.AnyStr, str], pydantic.Field(default_factory=dict)
+    ]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

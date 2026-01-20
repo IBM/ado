@@ -45,33 +45,49 @@ if typing.TYPE_CHECKING:  # pragma: nocover
 class Experiment(pydantic.BaseModel):
     """Represents an experiment that can measure properties of an entities"""
 
-    actuatorIdentifier: str = pydantic.Field(
-        description="""The id of the actuator that can execute this experiment or parameterized versions of it"""
-    )
-    identifier: str = pydantic.Field(description="""The name of the experiment.
-            Must be unique in the scope of the catalog of this experiments actuator.""")
-    metadata: dict = pydantic.Field(
-        default={},
-        description=""" Metadata about the experiment. Sufficient to track its source. Can be custom format per actuator""",
-    )
-    targetProperties: list[AbstractPropertyDescriptor | ConcretePropertyDescriptor] = (
+    actuatorIdentifier: Annotated[
+        str,
         pydantic.Field(
-            description="""The target properties this experiment aims to measure
-            (can be ConcreteProperty or AbstractProperty instances)"""
-        )
-    )
-    requiredProperties: tuple[ObservedProperty | ConstitutiveProperty, ...] = (
+            description="The id of the actuator that can execute this experiment or parameterized versions of it"
+        ),
+    ]
+    identifier: Annotated[
+        str,
         pydantic.Field(
-            default=(),
+            description="The name of the experiment. "
+            "Must be unique in the scope of the catalog of this experiments actuator."
+        ),
+    ]
+    metadata: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict,
+            description="Metadata about the experiment. Sufficient to track its source. "
+            "Can be custom format per actuator.",
+        ),
+    ]
+    targetProperties: Annotated[
+        list[AbstractPropertyDescriptor | ConcretePropertyDescriptor],
+        pydantic.Field(
+            description="The target properties this experiment aims to measure "
+            "(can be ConcreteProperty or AbstractProperty instances)"
+        ),
+    ]
+    requiredProperties: Annotated[
+        tuple[ObservedProperty | ConstitutiveProperty, ...],
+        pydantic.Field(
+            default_factory=tuple,
             frozen=True,
-            description="""The properties this experiment needs values of as inputs
-            (ObservedProperty or ConstitutiveProperty)""",
-        )
-    )
-    deprecated: bool = pydantic.Field(
-        default=False,
-        description="Marks whether an experiment is deprecated or not. Defaults to False.",
-    )
+            description="The properties this experiment needs values of as inputs "
+            "(ObservedProperty or ConstitutiveProperty)",
+        ),
+    ]
+    deprecated: Annotated[
+        bool,
+        pydantic.Field(
+            description="Marks whether an experiment is deprecated or not. Defaults to False."
+        ),
+    ] = False
     model_config = ConfigDict(
         frozen=True,
         extra="forbid",
@@ -79,17 +95,24 @@ class Experiment(pydantic.BaseModel):
             "version": importlib.metadata.version(distribution_name="ado-core")
         },
     )
-    optionalProperties: tuple[ConstitutiveProperty, ...] = pydantic.Field(
-        default=(),
-        frozen=True,
-        description="""The optional properties this experiment can take as input. Must have default values specified in parameterization""",
-    )
-    defaultParameterization: tuple[ConstitutivePropertyValue, ...] = pydantic.Field(
-        validate_default=True,
-        default=(),
-        frozen=True,
-        description="""Default values for the optional properties""",
-    )
+    optionalProperties: Annotated[
+        tuple[ConstitutiveProperty, ...],
+        pydantic.Field(
+            default_factory=tuple,
+            frozen=True,
+            description="The optional properties this experiment can take as input. "
+            "Must have default values specified in parameterization",
+        ),
+    ]
+    defaultParameterization: Annotated[
+        tuple[ConstitutivePropertyValue, ...],
+        pydantic.Field(
+            default_factory=tuple,
+            validate_default=True,
+            frozen=True,
+            description="Default values for the optional properties",
+        ),
+    ]
 
     @classmethod
     def experimentWithAbstractPropertyIdentifiers(
@@ -726,14 +749,19 @@ class ParameterizedExperiment(Experiment):
     Note: The parameterization cannot be empty or have any values which are the same as default values
     """
 
-    parameterization: list[ConstitutivePropertyValue] = pydantic.Field(
-        default=[],
-        description="Values for optional properties",
-    )
+    parameterization: Annotated[
+        list[ConstitutivePropertyValue],
+        pydantic.Field(
+            default_factory=list, description="Values for optional properties"
+        ),
+    ]
+    mapping: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="Private attribute", exclude=True
+        ),
+    ]
     model_config = ConfigDict(extra="forbid", frozen=True)
-    mapping: dict = pydantic.Field(
-        description="Private attribute", default={}, exclude=True
-    )
 
     @property
     def parameterizedIdentifier(self) -> str:

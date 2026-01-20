@@ -3,6 +3,7 @@
 
 import enum
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -100,8 +101,8 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
 
 
 class ConstitutivePropertyDescriptor(PropertyDescriptor):
-    propertyType: NonMeasuredPropertyTypeEnum = pydantic.Field(
-        default=NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+    propertyType: Annotated[NonMeasuredPropertyTypeEnum, pydantic.Field()] = (
+        NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
     )
 
     def __str__(self) -> str:
@@ -112,8 +113,8 @@ class ConstitutivePropertyDescriptor(PropertyDescriptor):
 
 class ConcretePropertyDescriptor(PropertyDescriptor):
 
-    propertyType: MeasuredPropertyTypeEnum = pydantic.Field(
-        default=MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
+    propertyType: Annotated[MeasuredPropertyTypeEnum, pydantic.Field()] = (
+        MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
     abstractProperty: AbstractPropertyDescriptor | None = None
     model_config = ConfigDict(frozen=True)
@@ -126,13 +127,15 @@ class Property(pydantic.BaseModel):
     """A named property with a domain"""
 
     identifier: str
-    metadata: dict | None = pydantic.Field(
-        default=None, description="Metadata on the property"
-    )
-    propertyDomain: PropertyDomain = pydantic.Field(
-        default=PropertyDomain(),
-        description="Provides information on the variable type and the valid values it can take",
-    )
+    metadata: Annotated[
+        dict | None, pydantic.Field(description="Metadata on the property")
+    ] = None
+    propertyDomain: Annotated[
+        PropertyDomain,
+        pydantic.Field(
+            description="Provides information on the variable type and the valid values it can take"
+        ),
+    ] = PropertyDomain()
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     @classmethod
@@ -212,8 +215,8 @@ class AbstractProperty(Property):
 
 
 class ConstitutiveProperty(Property):
-    propertyType: NonMeasuredPropertyTypeEnum = pydantic.Field(
-        default=NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+    propertyType: Annotated[NonMeasuredPropertyTypeEnum, pydantic.Field()] = (
+        NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
     )
 
     @classmethod
@@ -236,8 +239,8 @@ class ConstitutiveProperty(Property):
 
 
 class ConcreteProperty(Property):
-    propertyType: MeasuredPropertyTypeEnum = pydantic.Field(
-        default=MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
+    propertyType: Annotated[MeasuredPropertyTypeEnum, pydantic.Field()] = (
+        MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
     abstractProperty: AbstractProperty | None = None
     model_config = ConfigDict(frozen=True)

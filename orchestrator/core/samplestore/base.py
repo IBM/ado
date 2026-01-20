@@ -4,6 +4,7 @@
 import abc
 import typing
 from abc import ABC
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -203,25 +204,35 @@ class ActiveSampleStore(SampleStore, ABC):
 
 class MockParams(pydantic.BaseModel):
 
-    numberOfEntities: int = pydantic.Field(default=100)
+    numberOfEntities: Annotated[int, pydantic.Field()] = 100
     model_config = ConfigDict(extra="forbid")
 
 
 class ExperimentDescription(pydantic.BaseModel):
-    experimentIdentifier: str = pydantic.Field(description="The name of the experiment")
-    propertyMap: dict = pydantic.Field(
-        description="A dictionary that maps the names of the properties exposed by the"
-        " experiment to potential other names used for those properties by the sample store"
-    )
+    experimentIdentifier: Annotated[
+        str, pydantic.Field(description="The name of the experiment")
+    ]
+    propertyMap: Annotated[
+        dict,
+        pydantic.Field(
+            description="A dictionary that maps the names of the properties exposed by the"
+            " experiment to potential other names used for those properties by the sample store"
+        ),
+    ]
 
 
 class SampleStoreDescription(pydantic.BaseModel):
-    experiments: list[ExperimentDescription] = pydantic.Field(
-        default=[], description="A list describing the experiments in the source"
-    )
-    generatorIdentifier: str | None = pydantic.Field(
-        default=None, description="The id of the entity generator"
-    )
+    experiments: Annotated[
+        list[ExperimentDescription],
+        pydantic.Field(
+            default_factory=list,
+            description="A list describing the experiments in the source",
+        ),
+    ]
+    generatorIdentifier: Annotated[
+        str | None,
+        pydantic.Field(description="The id of the entity generator"),
+    ] = None
 
     @property
     def catalog(self) -> ExperimentCatalog:

@@ -3,6 +3,7 @@
 
 import enum
 import uuid
+from typing import Annotated
 
 import pydantic
 
@@ -36,14 +37,18 @@ class OperationExitStateEnum(enum.Enum):
 class OperationResourceStatus(ADOResourceStatus):
     """Records information on the status of an operation resource - a life-cycle event that occurred or an exit status"""
 
-    event: ADOResourceEventEnum | OperationResourceEventEnum = pydantic.Field(
-        default=None,
-        description="An event that happened to an operation resource: created, added, started, finished, updated",
-    )
-    exit_state: OperationExitStateEnum | None = pydantic.Field(
-        default=None,
-        description="The exit state of the operation: success, failed, error. Only can be set if on a FINISHED event",
-    )
+    event: Annotated[
+        ADOResourceEventEnum | OperationResourceEventEnum,
+        pydantic.Field(
+            description="An event that happened to an operation resource: created, added, started, finished, updated"
+        ),
+    ] = None
+    exit_state: Annotated[
+        OperationExitStateEnum | None,
+        pydantic.Field(
+            description="The exit state of the operation: success, failed, error. Only can be set if on a FINISHED event"
+        ),
+    ] = None
 
     @pydantic.model_validator(mode="after")
     def check_status(self) -> "OperationResourceStatus":
@@ -61,17 +66,25 @@ class OperationResource(ADOResource):
 
     version: str = "v1"
     kind: CoreResourceKinds = CoreResourceKinds.OPERATION
-    operationType: DiscoveryOperationEnum = pydantic.Field(
-        description="The type of this operation"
-    )
-    operatorIdentifier: str = pydantic.Field(
-        description="The id of the operator resource that executed this operation"
-    )
+    operationType: Annotated[
+        DiscoveryOperationEnum, pydantic.Field(description="The type of this operation")
+    ]
+    operatorIdentifier: Annotated[
+        str,
+        pydantic.Field(
+            description="The id of the operator resource that executed this operation"
+        ),
+    ]
     config: DiscoveryOperationResourceConfiguration
-    status: list[OperationResourceStatus] = pydantic.Field(
-        default=[OperationResourceStatus(event=ADOResourceEventEnum.CREATED)],
-        description="A list of status objects",
-    )
+    status: Annotated[
+        list[OperationResourceStatus],
+        pydantic.Field(
+            default_factory=lambda: [
+                OperationResourceStatus(event=ADOResourceEventEnum.CREATED)
+            ],
+            description="A list of status objects",
+        ),
+    ]
 
     @pydantic.model_validator(mode="after")
     def generate_identifier_if_not_provided(self) -> "OperationResource":

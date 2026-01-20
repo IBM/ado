@@ -4,6 +4,7 @@
 import enum
 import logging
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -28,31 +29,40 @@ class ModuleConf(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    moduleType: ModuleTypeEnum = pydantic.Field(
-        description="The type of resource the module contains"
-    )
-    moduleName: str | None = pydantic.Field(
-        default=None,
-        validate_default=True,
-        description="The name or module path of the python module "
-        "with the resource. If None a guess will be made based on the type",
-    )
-    modulePath: str = pydantic.Field(
-        default=".",
-        description="The location of the module on filesystem. Required if its not in sys.path",
-    )
-    moduleClass: str | None = pydantic.Field(
-        default=None,
-        validate_default=True,
-        description="A class in the module that provides the resource. "
-        "Some module may not supply resources in a class. "
-        "If None a guess will be made based on moduleType",
-    )
-    moduleFunction: str | None = pydantic.Field(
-        default=None,
-        validate_default=True,
-        description="The function for the function actuators.",
-    )
+    moduleType: Annotated[
+        ModuleTypeEnum,
+        pydantic.Field(description="The type of resource the module contains"),
+    ]
+    moduleName: Annotated[
+        str | None,
+        pydantic.Field(
+            validate_default=True,
+            description="The name or module path of the python module "
+            "with the resource. If None a guess will be made based on the type",
+        ),
+    ] = None
+    modulePath: Annotated[
+        str,
+        pydantic.Field(
+            description="The location of the module on filesystem. Required if its not in sys.path"
+        ),
+    ] = "."
+    moduleClass: Annotated[
+        str | None,
+        pydantic.Field(
+            validate_default=True,
+            description="A class in the module that provides the resource. "
+            "Some module may not supply resources in a class. "
+            "If None a guess will be made based on moduleType",
+        ),
+    ] = None
+    moduleFunction: Annotated[
+        str | None,
+        pydantic.Field(
+            validate_default=True,
+            description="The function for the function actuators.",
+        ),
+    ] = None
 
     @pydantic.field_validator("moduleName")
     def set_default_module_name_for_type(

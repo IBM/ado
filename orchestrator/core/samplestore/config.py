@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -22,7 +23,9 @@ if typing.TYPE_CHECKING:
 
 
 class SampleStoreModuleConf(ModuleConf):
-    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.SAMPLE_STORE)
+    moduleType: Annotated[
+        ModuleTypeEnum, pydantic.Field(default=ModuleTypeEnum.SAMPLE_STORE)
+    ]
 
 
 class SampleStoreSpecification(pydantic.BaseModel):
@@ -30,22 +33,28 @@ class SampleStoreSpecification(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    module: SampleStoreModuleConf = pydantic.Field(
-        description="The SampleStore module and class to use",
-    )
-    parameters: dict = pydantic.Field(
-        default_factory=dict,
-        description="SampleStore specific parameters that configure its behaviour ",
-    )
+    module: Annotated[
+        SampleStoreModuleConf,
+        pydantic.Field(description="The SampleStore module and class to use"),
+    ]
+    parameters: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict,
+            description="SampleStore specific parameters that configure its behaviour ",
+        ),
+    ]
 
     # Note: type is Any as using ResourceLocation causes the serialisation
     # to use ResourceLocation for some reason (pydantic 2.8)
-    storageLocation: typing.Any | None = pydantic.Field(
-        default=None,
-        description="Defines where the SampleStore is stored. Must be compatible with module and "
-        "be and an instance of ResourceLocation or a subclass "
-        "Optional: if not provided the user of the class can later add it",
-    )
+    storageLocation: Annotated[
+        typing.Any | None,
+        pydantic.Field(
+            description="Defines where the SampleStore is stored. Must be compatible with module and "
+            "be and an instance of ResourceLocation or a subclass "
+            "Optional: if not provided the user of the class can later add it",
+        ),
+    ] = None
 
     @pydantic.field_validator("storageLocation", mode="after")
     @classmethod
@@ -96,11 +105,13 @@ class SampleStoreReference(SampleStoreSpecification):
 
     model_config = ConfigDict(extra="forbid")
 
-    identifier: str | None = pydantic.Field(
-        default=None,
-        description="The identifier of the sample store. "
-        "Required if this information is not specified in the storageLocation",
-    )
+    identifier: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The identifier of the sample store. "
+            "Required if this information is not specified in the storageLocation",
+        ),
+    ] = None
 
 
 class SampleStoreConfiguration(pydantic.BaseModel):
@@ -108,18 +119,24 @@ class SampleStoreConfiguration(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    specification: SampleStoreSpecification = pydantic.Field(
-        description="The specification of the sample store",
-    )
-    copyFrom: list[SampleStoreReference] = pydantic.Field(
-        default=[],
-        description="List of additional sample stores whose data is used to initialise the main sample store",
-    )
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
+    specification: Annotated[
+        SampleStoreSpecification,
+        pydantic.Field(description="The specification of the sample store"),
+    ]
+    copyFrom: Annotated[
+        list[SampleStoreReference],
+        pydantic.Field(
+            default_factory=list,
+            description="List of additional sample stores whose data is used to initialise the main sample store",
+        ),
+    ]
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
 
     @pydantic.field_validator("specification")
     def check_sample_store_specification_class_is_active(

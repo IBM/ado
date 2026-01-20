@@ -1009,3 +1009,73 @@ def test_measurementspace_pretty_multiple(
 
     print(pretty(measurement_space_from_multiple_parameterized_experiments))
     print(measurement_space_from_multiple_parameterized_experiments)
+
+
+def test_property_with_identifier_format_target(
+    measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
+) -> None:
+    """Test propertyWithIdentifierInSpace with format='target'"""
+
+    ms = measurement_space_from_multiple_parameterized_experiments
+
+    # Get a valid target property identifier
+    target_property = ms.targetProperties[0]
+    target_id = target_property.identifier
+
+    # Test with valid target identifier
+    assert ms.propertyWithIdentifierInSpace(
+        target_id, format="target"
+    ), f"Expected target identifier '{target_id}' to be found with format='target'"
+
+    # Test with observed identifier in target format (should fail)
+    observed_property = ms.observedProperties[0]
+    observed_id = observed_property.identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        observed_id, format="target"
+    ), f"Expected observed identifier '{observed_id}' to fail with format='target'"
+
+    # Test with invalid identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        "invalid_metric", format="target"
+    ), "Expected invalid identifier to fail with format='target'"
+
+
+def test_property_with_identifier_format_observed(
+    measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
+) -> None:
+    """Test propertyWithIdentifierInSpace with format='observed'"""
+
+    ms = measurement_space_from_multiple_parameterized_experiments
+
+    # Get a valid observed property identifier
+    observed_property = ms.observedProperties[0]
+    observed_id = observed_property.identifier
+
+    # Test with valid observed identifier
+    assert ms.propertyWithIdentifierInSpace(
+        observed_id, format="observed"
+    ), f"Expected observed identifier '{observed_id}' to be found with format='observed'"
+
+    # Test with target identifier in observed format (should fail unless it matches an observed)
+    target_property = ms.targetProperties[0]
+    target_id = target_property.identifier
+    # This should fail because target_id is not the full observed property identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        target_id, format="observed"
+    ), f"Expected target identifier '{target_id}' to fail with format='observed'"
+
+    # Test with invalid identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        "invalid_metric", format="observed"
+    ), "Expected invalid identifier to fail with format='observed'"
+
+    # Test virtual property based on observed
+    vp = VirtualObservedProperty(
+        baseObservedProperty=observed_property,
+        aggregationMethod=PropertyAggregationMethod(
+            identifier=PropertyAggregationMethodEnum.mean
+        ),
+    )
+    assert ms.propertyWithIdentifierInSpace(
+        vp.identifier, format="observed"
+    ), f"Expected virtual observed property '{vp.identifier}' to be found with format='observed'"

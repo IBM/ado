@@ -4,6 +4,7 @@
 import abc
 import enum
 import logging
+from typing import Annotated
 
 import pydantic
 
@@ -14,8 +15,12 @@ from orchestrator.schema.reference import ExperimentReference
 class ActuatorCatalogExtensionConf(pydantic.BaseModel):
     """Represents a dynamically loadable set of experiments for an actuator"""
 
-    name: str = pydantic.Field(description="The name of the catalog extension")
-    location: str = pydantic.Field(description="The location of the catalog extension")
+    name: Annotated[
+        str, pydantic.Field(description="The name of the catalog extension")
+    ]
+    location: Annotated[
+        str, pydantic.Field(description="The location of the catalog extension")
+    ]
 
     @property
     def catalogExtensionLocation(self) -> str:
@@ -31,7 +36,9 @@ class ActuatorCatalogExtension(pydantic.BaseModel):
     Holding off on this as ExperimentCatalog has internal data-structures that need to change
     """
 
-    experiments: list[Experiment] = pydantic.Field(description="A list of experiments")
+    experiments: Annotated[
+        list[Experiment], pydantic.Field(description="A list of experiments")
+    ]
 
 
 class BaseCatalog(abc.ABC):

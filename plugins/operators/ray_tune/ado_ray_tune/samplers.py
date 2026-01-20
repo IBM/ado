@@ -88,7 +88,7 @@ class LhuSampler(ray.tune.search.Searcher):
         metric: str | None,
         mode: str | None,
         config: dict,
-        **spec,
+        **spec: dict,
     ) -> bool:
         space = self.convert_search_space(config)
         self._space = space
@@ -126,7 +126,7 @@ class LhuSampler(ray.tune.search.Searcher):
 
         return config
 
-    def convert_search_space(self, spec: dict):
+    def convert_search_space(self, spec: dict) -> dict:
 
         import math
 

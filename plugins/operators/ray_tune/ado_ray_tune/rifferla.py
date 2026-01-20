@@ -66,7 +66,7 @@ class RifferlaParameters(pydantic.BaseModel):
     )
 
     @classmethod
-    def defaultOperation(cls):
+    def defaultOperation(cls) -> DiscoveryOperationConfiguration:
         return DiscoveryOperationConfiguration(
             module=OperatorFunctionConf(
                 operatorName="rifferla",
@@ -92,7 +92,7 @@ class RifferlaParameters(pydantic.BaseModel):
 def rifferla(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
-    **parameters,
+    **parameters: object,
 ) -> OperationOutput:
     """
     This function assumes the given space *was* already sampled using LHU_sampler. This operation then analyzes the result

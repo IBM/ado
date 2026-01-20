@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -21,16 +22,24 @@ def reference_string_from_fields(
 
 
 class ExperimentReference(pydantic.BaseModel):
-    experimentIdentifier: str = pydantic.Field(
-        description="The identifier of an experiment in an actuator experiment catalog"
-    )
-    actuatorIdentifier: str = pydantic.Field(
-        description="The identifier of the actuator that supplies the experiment"
-    )
-    parameterization: list[ConstitutivePropertyValue] | None = pydantic.Field(
-        default=None,
-        description="A list of values for optional properties of the experiment",
-    )
+    experimentIdentifier: Annotated[
+        str,
+        pydantic.Field(
+            description="The identifier of an experiment in an actuator experiment catalog"
+        ),
+    ]
+    actuatorIdentifier: Annotated[
+        str,
+        pydantic.Field(
+            description="The identifier of the actuator that supplies the experiment"
+        ),
+    ]
+    parameterization: Annotated[
+        list[ConstitutivePropertyValue] | None,
+        pydantic.Field(
+            description="A list of values for optional properties of the experiment"
+        ),
+    ] = None
 
     model_config = ConfigDict(frozen=True)
 

@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -21,18 +22,25 @@ if typing.TYPE_CHECKING:
 
 
 class ObservedProperty(pydantic.BaseModel):
-    targetProperty: AbstractPropertyDescriptor | ConcretePropertyDescriptor = (
+    targetProperty: Annotated[
+        AbstractPropertyDescriptor | ConcretePropertyDescriptor,
         pydantic.Field(
             description="The property the receiver is an (attempted) observation of"
-        )
-    )
-    experimentReference: ExperimentReference = pydantic.Field(
-        description=" A reference to the experiment that produces measurements of this observed property"
-    )
-    metadata: dict | None = pydantic.Field(
-        default={},
-        description="Metadata on the instance of the measurement that observed this property",
-    )
+        ),
+    ]
+    experimentReference: Annotated[
+        ExperimentReference,
+        pydantic.Field(
+            description="A reference to the experiment that produces measurements of this observed property"
+        ),
+    ]
+    metadata: Annotated[
+        dict | None,
+        pydantic.Field(
+            default_factory=dict,
+            description="Metadata on the instance of the measurement that observed this property",
+        ),
+    ]
     model_config = ConfigDict(frozen=True)
 
     @pydantic.field_validator("targetProperty", mode="before")
@@ -72,6 +80,7 @@ class ObservedProperty(pydantic.BaseModel):
 
 
 class ObservedPropertyValue(PropertyValue):
-    property: ObservedProperty = pydantic.Field(
-        description="The ObservedProperty with the value"
-    )
+    property: Annotated[
+        ObservedProperty,
+        pydantic.Field(description="The ObservedProperty with the value"),
+    ]

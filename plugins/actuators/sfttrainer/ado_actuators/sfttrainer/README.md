@@ -159,6 +159,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt](packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -297,8 +300,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, `2.8.2`, `2.7.1`,
+  `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.
@@ -538,6 +541,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt](packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -788,6 +794,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt](packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -927,8 +936,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, `2.8.2`, `2.7.1`,
+  `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.
@@ -1244,6 +1253,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt](packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -1375,8 +1387,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,`2.7.1`,
+  `2.6.0`,`2.5.0`,`2.4.0`,`2.3.1`,`2.2.1`,`2.1.2`,`2.1.0`,`2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.
@@ -1654,6 +1666,9 @@ Versioning:
 
 - Actuator version: `2.1.0`
 - fms-hf-tuning versions:
+  - 3.1.0
+    - The full list of packages is at
+      [packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt](packages/fms-hf-tuning_v3.1.0_890725c78d84a5be47ea5d64512573b304d0494d.txt)
   - 3.0.0.1 (this is a phony release)
     - The full list of packages is at
       [packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt](packages/fms-hf-tuning_v3.0.0.1_51875160343064a1056e0105b7971ed8d9f26854.txt)
@@ -1793,8 +1808,8 @@ Optional:
   nodes. Each Node will use number_gpus/number_nodes GPUs. Each Node will use 1
   process for each GPU it uses
 - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning to
-  use. Available options are: `3.0.0`, `2.8.2`, `2.7.1`, `2.6.0`, `2.5.0`,
-  `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`, `2.0.1`
+  use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,`2.7.1`,
+  `2.6.0`,`2.5.0`,`2.4.0`,`2.3.1`,`2.2.1`,`2.1.2`,`2.1.0`,`2.0.1`
 - enable_roce: Default is `False`. This setting is only in effect for multi-node
   runs. It controls whether RDMA over Converged Ethernet (RoCE) is switched on
   or not.

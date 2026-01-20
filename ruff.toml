@@ -41,7 +41,7 @@ target-version = "py310"
 # McCabe complexity (`C901`) by default.
 select = [
 #    "A",
-#    "ANN",
+    "ANN",
     "ASYNC",
     "B",
     "C4",

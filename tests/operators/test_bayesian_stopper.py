@@ -5,7 +5,7 @@ import numpy as np
 from ado_ray_tune.stoppers import BayesianMetricDifferenceStopper
 
 
-def test_bayesian_stopper_difference_exceeds_threshold():
+def test_bayesian_stopper_difference_exceeds_threshold() -> None:
     """Test that stopper correctly detects when difference exceeds threshold."""
 
     stopper = BayesianMetricDifferenceStopper()
@@ -45,7 +45,7 @@ def test_bayesian_stopper_difference_exceeds_threshold():
     assert stopper.stop_probability >= 0.95
 
 
-def test_bayesian_stopper_difference_within_threshold():
+def test_bayesian_stopper_difference_within_threshold() -> None:
     """Test that stopper correctly detects when difference is within threshold."""
 
     stopper = BayesianMetricDifferenceStopper()
@@ -84,7 +84,7 @@ def test_bayesian_stopper_difference_within_threshold():
     assert stopper.stop_probability >= 0.95
 
 
-def test_bayesian_stopper_convergence_case():
+def test_bayesian_stopper_convergence_case() -> None:
     """Test convergence detection use case (train vs val loss)."""
 
     stopper = BayesianMetricDifferenceStopper()
@@ -121,7 +121,7 @@ def test_bayesian_stopper_convergence_case():
     assert stopper.stop_reason == "within_threshold"  # Converged = within threshold
 
 
-def test_bayesian_stopper_divergence_case():
+def test_bayesian_stopper_divergence_case() -> None:
     """Test divergence detection use case (train vs val loss diverging)."""
 
     stopper = BayesianMetricDifferenceStopper()
@@ -158,7 +158,7 @@ def test_bayesian_stopper_divergence_case():
     assert stopper.stop_reason == "exceeds_threshold"  # Diverged = exceeds threshold
 
 
-def test_min_samples_requirement():
+def test_min_samples_requirement() -> None:
     """Test that stopper waits for minimum samples before applying criteria."""
 
     stopper = BayesianMetricDifferenceStopper()
@@ -193,7 +193,7 @@ def test_min_samples_requirement():
     assert should_stop, "Stopper should  trigger when min samples (15) reached"
 
 
-def test_min_samples_with_skipped_trials():
+def test_min_samples_with_skipped_trials() -> None:
     """Test that skipped trials (missing/NaN metrics) don't count toward min_samples."""
 
     stopper = BayesianMetricDifferenceStopper()

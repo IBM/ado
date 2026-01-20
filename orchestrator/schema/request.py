@@ -91,8 +91,11 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
     ] = None
 
     metadata: Annotated[
-        dict, pydantic.Field(description="Metadata about the measurement request")
-    ] = {}
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="Metadata about the measurement request"
+        ),
+    ]
 
     @pydantic.model_validator(mode="wrap")
     @classmethod

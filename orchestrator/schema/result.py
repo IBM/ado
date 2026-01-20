@@ -45,8 +45,11 @@ class MeasurementResult(pydantic.BaseModel):
     ]
 
     metadata: Annotated[
-        dict, pydantic.Field(description="Metadata about the MeasurementResult")
-    ] = {}
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="Metadata about the MeasurementResult"
+        ),
+    ]
 
     def __eq__(self, other: "MeasurementResult") -> bool:
         return self.uid == other.uid

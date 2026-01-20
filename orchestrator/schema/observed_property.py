@@ -31,15 +31,16 @@ class ObservedProperty(pydantic.BaseModel):
     experimentReference: Annotated[
         ExperimentReference,
         pydantic.Field(
-            description=" A reference to the experiment that produces measurements of this observed property"
+            description="A reference to the experiment that produces measurements of this observed property"
         ),
     ]
     metadata: Annotated[
         dict | None,
         pydantic.Field(
-            description="Metadata on the instance of the measurement that observed this property"
+            default_factory=dict,
+            description="Metadata on the instance of the measurement that observed this property",
         ),
-    ] = {}
+    ]
     model_config = ConfigDict(frozen=True)
 
     @pydantic.field_validator("targetProperty", mode="before")

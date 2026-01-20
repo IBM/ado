@@ -5,6 +5,8 @@ import inspect
 import logging
 import typing
 import uuid
+from collections.abc import Callable
+from typing import Any
 
 import pydantic
 import ray
@@ -63,7 +65,7 @@ class ExperimentModuleConf(ModuleConf):
 
 
 def _infer_domain_and_property(
-    identifier: str, annotation: type, default: typing.Any
+    identifier: str, annotation: type, default: Any  # noqa: ANN401
 ) -> ConstitutiveProperty:
     """This function infers the domain of a parameter from its type and default value.
     Parameters:
@@ -113,7 +115,7 @@ def _infer_domain_and_property(
 
 
 def derive_required_properties_from_signature(
-    func: typing.Callable, optional_property_identifiers: list[str]
+    func: Callable, optional_property_identifiers: list[str]
 ) -> list[ConstitutiveProperty]:
     """This function derives the required properties from the function signature.
 
@@ -148,7 +150,7 @@ def derive_required_properties_from_signature(
 
 def get_parameterization(
     properties: list[ConstitutiveProperty], func_signature: inspect.Signature
-) -> dict[str, typing.Any]:
+) -> dict[str, Any]:
     """This function derives the parameterization of properties and function signature.
 
     The parameterization of a property is the default value of the corresponding parameter in func_signature
@@ -175,8 +177,8 @@ def get_parameterization(
 
 
 def derive_optional_properties_and_parameterization(
-    func: typing.Callable, required_properties: list[ConstitutiveProperty]
-) -> tuple[list[ConstitutiveProperty], dict[str, typing.Any]]:
+    func: Callable, required_properties: list[ConstitutiveProperty]
+) -> tuple[list[ConstitutiveProperty], dict[str, Any]]:
     """This function derives the optional properties and their parameterization from the function signature.
 
     The optional properties are the keyword parameters of the function that are not in required_properties.
@@ -210,11 +212,15 @@ def derive_optional_properties_and_parameterization(
 
 
 def check_parameters_and_infer(
-    func,
+    func: Callable[..., Any],
     _required_properties: list[ConstitutiveProperty] | None,
     _optional_properties: list[ConstitutiveProperty] | None = None,
     _parameterization: dict | None = None,
-):
+) -> tuple[
+    list[ConstitutiveProperty] | list[Any],
+    dict | None | dict[str, Any],
+    list[ConstitutiveProperty],
+]:
     logger = logging.getLogger("custom_experiment_decorator")
 
     # Set up dynamic optional_properties and parameterization if none were provided
@@ -256,7 +262,11 @@ def check_parameters_and_infer(
     return _optional_properties, _parameterization, _required_properties
 
 
-def check_parameters_valid(func, _required_properties, _optional_properties) -> None:
+def check_parameters_valid(
+    func: Callable[..., Any],
+    _required_properties: list[ConstitutiveProperty | ObservedProperty] | None,
+    _optional_properties: list[ConstitutiveProperty] | None,
+) -> None:
     # Validate that the property identifiers match the function parameters
     func_signature = inspect.signature(func)
     func_param_names = set(func_signature.parameters.keys())
@@ -278,11 +288,14 @@ def custom_experiment(
     output_property_identifiers: list[str],
     required_properties: list[ConstitutiveProperty | ObservedProperty] | None = None,
     optional_properties: list[ConstitutiveProperty] | None = None,
-    parameterization: dict[str, typing.Any] | None = None,
-    metadata: dict[str, typing.Any] | None = None,
+    parameterization: dict[str, Any] | None = None,  # noqa: ANN401
+    metadata: dict[str, Any] | None = None,  # noqa: ANN401
     use_ray: bool = True,
     ray_options: dict | None = None,
-):
+) -> Callable[
+    [Callable[..., Any]],  # noqa: ANN401
+    Callable[[tuple[Any, ...], dict[str, Any]], Any],  # noqa: ANN401
+]:
     """
     Decorator for custom experiment functions.
 
@@ -338,7 +351,9 @@ def custom_experiment(
         except pydantic.ValidationError as e:
             raise ValueError("Invalid ray_options") from e
 
-    def decorator(func):
+    def decorator(
+        func: Callable[..., Any],  # noqa: ANN401
+    ) -> Callable[[tuple[Any, ...], dict[str, Any]], Any]:  # noqa: ANN401
         # If we were not given information on required/optional properties
         # or parameterization try to infer it
         # This function will log a critical error message and raise exception
@@ -401,7 +416,9 @@ def custom_experiment(
         from functools import wraps
 
         @wraps(func)
-        def validated_func(*args, **kwargs):
+        def validated_func(
+            *args: Any, **kwargs: Any  # noqa: ANN401
+        ) -> Any:  # noqa: ANN401
             # Build property dict from either kwargs or args
             # Prefer kwargs, but support positional for backwards compatibility
             import inspect
@@ -436,7 +453,7 @@ def custom_experiment(
     return decorator
 
 
-def load_custom_experiments_from_catalog_extensions(identifier) -> None:
+def load_custom_experiments_from_catalog_extensions(identifier: str) -> None:
     import importlib.resources
     import logging
     import pkgutil
@@ -530,7 +547,7 @@ def get_custom_experiments_catalog() -> (
 
 
 def _call_decorated_custom_experiment(
-    function: typing.Callable, target_experiment: Experiment, entity: Entity
+    function: Callable, target_experiment: Experiment, entity: Entity
 ) -> list[ObservedPropertyValue]:
 
     # Build input dict using experiment values from entity
@@ -576,7 +593,7 @@ def _call_decorated_custom_experiment(
 
 
 def _call_legacy_custom_experiment(
-    function: typing.Callable,
+    function: Callable,
     target_experiment: Experiment,
     entity: Entity,
     parameters: dict | None = None,
@@ -592,7 +609,7 @@ def _call_legacy_custom_experiment(
 
 
 def custom_experiment_executor(
-    function: typing.Callable,
+    function: Callable,
     parameters: dict,
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
@@ -655,10 +672,10 @@ class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments
     """
 
-    def __init__(self, queue, params: dict | None = None) -> None:
+    def __init__(self, queue: "MeasurementQueue", params: dict | None = None) -> None:
         """
 
-        :param queue: The StateUpdates queue instance
+        :param queue: The MeasurementQueue instance
         :param params: The params for the objective-function
 
         """
@@ -703,7 +720,7 @@ class CustomExperiments(ActuatorBase):
     def loadedExperiment(
         self,
         experimentReference: ExperimentReference,
-    ):
+    ) -> bool:
 
         return (
             self._functionImplementations.get(experimentReference.experimentIdentifier)
@@ -716,7 +733,7 @@ class CustomExperiments(ActuatorBase):
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ):
+    ) -> list[str]:
 
         self.log.debug(
             f"Received a request to measure {experimentReference} on {[e.identifier for e in entities]}"

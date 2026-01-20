@@ -6,25 +6,27 @@ import pytest
 from ado_ray_tune.operator import RayTune
 
 import orchestrator.core
-from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
-from orchestrator.modules.operators.base import DiscoveryOperationBase
+from orchestrator.core.operation.config import (
+    DiscoveryOperationResourceConfiguration,
+    OperatorModuleConf,
+)
 from orchestrator.modules.operators.randomwalk import RandomWalk
 
 
 @pytest.fixture
-def expected_characterize_operators():
+def expected_characterize_operators() -> list[str]:
 
     return ["profile", "detect_anomalous_series"]
 
 
 @pytest.fixture
-def expected_explore_operators():
+def expected_explore_operators() -> list[str]:
 
     return ["random_walk", "ray_tune"]
 
 
 @pytest.fixture(params=["RandomWalk", "RayTune"])
-def operator_module_conf(request):
+def operator_module_conf(request: pytest.FixtureRequest) -> OperatorModuleConf:
 
     if request.param == "RandomWalk":
         return orchestrator.core.operation.config.OperatorModuleConf(
@@ -39,7 +41,7 @@ def operator_module_conf(request):
 
 @pytest.fixture(params=["all", "value"])
 def randomWalkConf(
-    request,
+    request: pytest.FixtureRequest,
 ) -> DiscoveryOperationResourceConfiguration | None:
 
     import yaml
@@ -56,8 +58,8 @@ def randomWalkConf(
 
 @pytest.fixture(params=["valueGreaterThanSize", "extraField"])
 def invalidRandomWalkConf(
-    request,
-) -> DiscoveryOperationResourceConfiguration | None:
+    request: pytest.FixtureRequest,
+) -> DiscoveryOperationResourceConfiguration:
 
     import yaml
 
@@ -77,7 +79,7 @@ def invalidRandomWalkConf(
 
 
 @pytest.fixture
-def raytuneConf() -> DiscoveryOperationResourceConfiguration | None:
+def raytuneConf() -> DiscoveryOperationResourceConfiguration:
 
     import yaml
 
@@ -88,7 +90,7 @@ def raytuneConf() -> DiscoveryOperationResourceConfiguration | None:
 
 @pytest.fixture(params=[RandomWalk, RayTune])
 def optimizer_operator(
-    request,
-) -> DiscoveryOperationBase:
+    request: pytest.FixtureRequest,
+) -> type[RandomWalk] | type[RayTune]:
 
     return request.param

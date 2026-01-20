@@ -31,8 +31,8 @@ def objective_function(
 def cost(
     entity: Entity,
     experiment: Experiment,
-    parameters=None,
-):
+    parameters: dict | None = None,
+) -> list[ObservedPropertyValue]:
     """
 
     :param entity: The entity to be measured

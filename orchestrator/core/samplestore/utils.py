@@ -67,7 +67,9 @@ def initialize_sample_store_from_reference(
     )
 
 
-def load_sample_store_from_resource(sample_store_resource: SampleStoreResource):
+def load_sample_store_from_resource(
+    sample_store_resource: SampleStoreResource,
+) -> SampleStore:
     """Returns a SampleStore instance for the SampleStore described by sample_store_resource
 
     Params:
@@ -102,7 +104,7 @@ def create_sample_store(
             for reference in conf.copyFrom
         ]
 
-    for s in additional_sample_stores:  # type:SampleStore
+    for s in additional_sample_stores:  # type: SampleStore
         moduleLogger.debug(
             f"Copying {s.numberOfEntities} entities from {s.identifier} to {sample_store.identifier}"
         )

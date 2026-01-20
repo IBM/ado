@@ -12,9 +12,8 @@ from orchestrator.core.samplestore.csv import (
 )
 
 
-def fill_gt4sd_transformer_csv_parameters(parameters: dict | None) -> dict:
+def fill_gt4sd_transformer_csv_parameters(parameters: dict) -> dict:
 
-    parameters = {} if parameters is None else parameters
     experimentDescription = ExperimentDescription(
         experimentIdentifier="transformer-toxicity-inference-experiment",
         propertyMap=GT4SDTransformer.propertyMap,
@@ -43,12 +42,8 @@ class GT4SDTransformer(CSVSampleStore):
 
     @staticmethod
     def validate_parameters(
-        parameters: dict | None = None,
+        parameters: dict,
     ) -> CSVSampleStoreDescription:
-        # AP: parameters are used to instantiate a CSVSampleStoreDescription
-        if parameters is None:
-            raise ValueError("parameters cannot be None for GT4SDTransformer")
-
         parameters = fill_gt4sd_transformer_csv_parameters(parameters)
         log = logging.getLogger("GT4SDTransformerSampleStore")
         log.debug(

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import typing
 
 import pydantic
 
@@ -24,6 +25,9 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.logging import configure_logging
+
+if typing.TYPE_CHECKING:
+    from IPython.lib.pretty import PrettyPrinter
 
 configure_logging()
 
@@ -53,7 +57,7 @@ class MeasurementSpace:
         cls,
         selectedExperiments: list[ExperimentReference],
         experimentCatalogs: list[ExperimentCatalog] | None = None,
-    ):
+    ) -> "MeasurementSpace":
         """
         A class method to create a MeasurementSpace that uses the actuator registry to find the selected experiments.
         This is useful as it is easier to let user specify experiments in an abbreviated form and then
@@ -133,7 +137,7 @@ class MeasurementSpace:
     def measurementSpaceFromExperimentReferences(
         cls,
         experimentReferences: list[str | ExperimentReference],
-    ):
+    ) -> "MeasurementSpace":
         """
         Class method for creating a MeasurementSpace from a list of experiment references.
 
@@ -146,10 +150,10 @@ class MeasurementSpace:
 
         stringRepresentations = [
             r for r in experimentReferences if not isinstance(r, ExperimentReference)
-        ]  # type: typing.List[str]
+        ]
         referenceModels = [
             r for r in experimentReferences if isinstance(r, ExperimentReference)
-        ]  # type: import orchestrator.schema.experiment_reference
+        ]
 
         references = [
             ExperimentReference.referenceFromString(x) for x in stringRepresentations
@@ -173,7 +177,7 @@ class MeasurementSpace:
             f"{[op.identifier for op in self._observedProperties]}"
         )
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         import pandas as pd
 
@@ -302,36 +306,56 @@ class MeasurementSpace:
 
         return len(missingDependencies) == 0
 
-    def propertyWithIdentifierInSpace(self, identifier):
+    def propertyWithIdentifierInSpace(
+        self,
+        identifier: str,
+        format: typing.Literal["any", "target", "observed"] = "any",
+    ) -> bool:
         """Returns True if the space contains a property with the given identifier
 
-        Virtual property identifiers will return True if there are corresponding observed properties
+        Args:
+            identifier: The property identifier to check
+            format: The format to check - "any", "target", or "observed"
+                - "any" (default): Checks both target and observed properties, plus virtual properties
+                - "target": Only checks target properties
+                - "observed": Only checks observed properties and virtual properties based on observed
+
+        Returns:
+            bool: True if the identifier is found in the specified format, False otherwise
+
+        Note:
+            Virtual property identifiers are only checked when format is "observed" or "any"
         """
+        # Build set of property identifiers to check based on format
+        identifiers_to_check: set[str] = set()
+        if format in {"target", "any"}:
+            identifiers_to_check.update(
+                {op.targetProperty.identifier for op in self.observedProperties}
+            )
 
-        targetPropertyIdentifiers = [
-            op.targetProperty.identifier for op in self.observedProperties
-        ]
-        observedPropertyIdentifiers = [op.identifier for op in self.observedProperties]
+        if format in {"observed", "any"}:
+            identifiers_to_check.update(
+                {op.identifier for op in self.observedProperties}
+            )
 
-        if identifier not in targetPropertyIdentifiers + observedPropertyIdentifiers:
-            # Check if its virtual
+        # Check if identifier is in the set
+        if identifier in identifiers_to_check:
+            return True
+
+        # If not found and format is any/observed, check if it's a virtual property
+        if format in {"any", "observed"}:
             try:
                 prop, _ = VirtualObservedProperty.parseIdentifier(identifier)
             except ValueError:
-                validMetric = False
+                return False
             else:
-                if prop in observedPropertyIdentifiers + targetPropertyIdentifiers:
-                    validMetric = True
-                else:
-                    validMetric = False
-        else:
-            validMetric = True
+                return prop in identifiers_to_check
 
-        return validMetric
+        return False
 
     def dependentExperimentsThatCanBeAppliedToEntity(
-        self, entity: Entity, excludeApplied=True
-    ) -> [Experiment]:
+        self, entity: Entity, excludeApplied: bool = True
+    ) -> list[Experiment]:
         """
         Returns a list of dependent Experiments which can be applied to entity given its currently known properties
 
@@ -447,8 +471,8 @@ class MeasurementSpace:
         return EntitySpaceRepresentation(constitutiveProperties=cps)
 
     def checkEntitySpaceCompatible(
-        self, entitySpace: "EntitySpaceRepresentation", strict=True
-    ):
+        self, entitySpace: "EntitySpaceRepresentation", strict: bool = True
+    ) -> bool:
         """Checks if all required experiment inputs are in the entity space
 
         If strict is True also checks that all entitySpace dimensions are required for at least one experiment
@@ -583,7 +607,7 @@ class MeasurementSpace:
         s = [e for e in self._experiments if e.reference == reference]
         return s[0] if len(s) > 0 else None
 
-    def numberExperimentsApplied(self, entity: Entity):
+    def numberExperimentsApplied(self, entity: Entity) -> int:
         """Returns the number of experiments in the MeasurementSpace which have been applied to entity"""
 
         count = 0

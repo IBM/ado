@@ -64,12 +64,12 @@ class BaseSampler(abc.ABC):
     @abc.abstractmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
-    ):  # pragma: nocover
+    ) -> bool:  # pragma: nocover
         """Return True if this remoteEntityIterator can be used with the given DiscoverySpace"""
 
     @abc.abstractmethod
     def entityIterator(
-        self, discoverySpace: DiscoverySpace, batchsize=1
+        self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:  # pragma: nocover
         """Returns an iterator that samples entities from the discovery space in batchsize groups
 
@@ -81,7 +81,7 @@ class BaseSampler(abc.ABC):
 
     @abc.abstractmethod
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize=1
+        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1
     ) -> typing.AsyncGenerator[list[Entity], None]:  # pragma: nocover
         """Returns an async iterator that samples entities from an InternalState actor in batchsize groups
 
@@ -144,7 +144,7 @@ class RandomSampleSelector(BaseSampler):
         return True
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace, batchsize=1
+        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an iterator that returns entities in a random order"""
 
@@ -177,7 +177,7 @@ class RandomSampleSelector(BaseSampler):
         return func()
 
     def entityIterator(
-        self, discoverySpace, batchsize=1
+        self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
         """Returns an iterator that returns entities in a random order"""
 
@@ -212,13 +212,13 @@ class SequentialSampleSelector(BaseSampler):
         return True
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace, batchsize=1
+        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
         async def iterator_closure(
             stateHandle: DiscoverySpaceManager,
-        ):
+        ) -> typing.Callable[[], typing.AsyncGenerator[list[Entity], None]]:
 
             # Note: We rely on the return value of numberOfMatchingEntitiesInSource is the size of `matchingEntities`
             # However this may not be the case if, for example, some entities could not be retrieved from a
@@ -251,7 +251,7 @@ class SequentialSampleSelector(BaseSampler):
         return retval()
 
     def entityIterator(
-        self, discoverySpace: DiscoverySpace, batchsize=1
+        self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 
@@ -294,7 +294,9 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
     """
 
     @classmethod
-    def samplerCompatibleWithEntitySpace(cls, entitySpace: EntitySpaceRepresentation):
+    def samplerCompatibleWithEntitySpace(
+        cls, entitySpace: EntitySpaceRepresentation
+    ) -> bool:
 
         return bool(
             entitySpace is not None
@@ -305,14 +307,16 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
     @classmethod
     def samplerCompatibleWithDiscoverySpaceRemote(
         cls, remoteDiscoverySpace: DiscoverySpaceManager
-    ):
+    ) -> bool:
 
         # noinspection PyUnresolvedReferences
         entitySpace = ray.get(remoteDiscoverySpace.entitySpace.remote())
         return cls.samplerCompatibleWithEntitySpace(entitySpace)
 
     @classmethod
-    def samplerCompatibleWithDiscoverySpace(cls, discoverySpace: DiscoverySpace):
+    def samplerCompatibleWithDiscoverySpace(
+        cls, discoverySpace: DiscoverySpace
+    ) -> bool:
 
         # noinspection PyUnresolvedReferences
         return cls.samplerCompatibleWithEntitySpace(discoverySpace.entitySpace)
@@ -330,7 +334,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
             self.mode = mode
 
     def entityIterator(
-        self, discoverySpace: DiscoverySpace, batchsize=1
+        self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
         """Returns an iterator over the entity space of the discovery space
 
@@ -395,8 +399,8 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
     def entitySpaceIterator(
         self,
         entitySpace: EntitySpaceRepresentation,
-        batchsize=1,
-    ):
+        batchsize: int = 1,
+    ) -> typing.Generator[list[Entity], None, None]:
         """Returns an iterator that iterates over an explicit entity space.
 
         Note: this does not return any measured entities as the entitySpace object does not contain this information.
@@ -456,7 +460,7 @@ class ExplicitEntitySpaceGridSampleGenerator(BaseSampler):
         return retval()
 
     async def remoteEntityIterator(
-        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize=1
+        self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1
     ) -> typing.AsyncGenerator[list[Entity], None]:
         """Returns an remoteEntityIterator that returns entities in order"""
 

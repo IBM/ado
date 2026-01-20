@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import typing
 
 import pytest
 
@@ -13,25 +12,25 @@ from orchestrator.schema.property import (
 
 
 @pytest.fixture
-def target_property_list() -> list[typing.AnyStr]:
+def target_property_list() -> list[str]:
     return ["pka", "wall_time", "ld50"]
 
 
 @pytest.fixture
 def abstract_properties(
-    target_property_list: list[typing.AnyStr],
+    target_property_list: list[str],
 ) -> list[AbstractPropertyDescriptor]:
     return [AbstractPropertyDescriptor(identifier=t) for t in target_property_list]
 
 
 @pytest.fixture
-def constitutive_property_list() -> list[typing.AnyStr]:
+def constitutive_property_list() -> list[str]:
     return ["number-carbons", "is-ionic", "total-electrons"]
 
 
 @pytest.fixture
 def constitutive_properties(
-    constitutive_property_list: list,
+    constitutive_property_list: list[str],
 ) -> list[ConstitutiveProperty]:
     return [ConstitutiveProperty(identifier=t) for t in constitutive_property_list]
 

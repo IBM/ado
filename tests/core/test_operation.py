@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import datetime
-import typing
 
 import pydantic
 import pytest
@@ -24,14 +23,16 @@ from orchestrator.modules.module import load_module_class_or_function
 
 
 @pytest.fixture
-def operation_result() -> typing.Any:
+def operation_result() -> dict:
 
     # Return the default
     return {}
 
 
 @pytest.fixture
-def operation_resource(operation_configuration) -> OperationResource:
+def operation_resource(
+    operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> OperationResource:
 
     # This auto-generates the operation identifier
     return OperationResource(
@@ -41,7 +42,7 @@ def operation_resource(operation_configuration) -> OperationResource:
     )
 
 
-def test_operation_resource(operation_resource) -> None:
+def test_operation_resource(operation_resource: OperationResource) -> None:
 
     assert operation_resource.operatorIdentifier is not None
     assert operation_resource.operatorIdentifier == "test_operator"
@@ -126,7 +127,7 @@ def test_operation_resource_exit_state() -> None:
     assert status.recorded_at
 
 
-def test_operation_config_file_valid(valid_operation_config_file) -> None:
+def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
 
     with open(valid_operation_config_file) as f:
         content = f.read()
@@ -146,7 +147,9 @@ def test_operation_config_file_valid(valid_operation_config_file) -> None:
         moduleClass.validateOperationParameters(parameters=op_cfg.parameters)
 
 
-def test_set_manual_operation_identifier(operation_configuration) -> None:
+def test_set_manual_operation_identifier(
+    operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
 
     test = OperationResource(
         operatorIdentifier="test",
@@ -157,7 +160,9 @@ def test_set_manual_operation_identifier(operation_configuration) -> None:
     assert test.identifier == "test-xxxdd3"
 
 
-def test_setting_space_id(operation_configuration) -> None:
+def test_setting_space_id(
+    operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
 
     import pydantic
 
@@ -174,6 +179,8 @@ def test_setting_space_id(operation_configuration) -> None:
         )
 
 
-def test_add_operation_result(operation_resource, operation_result) -> None:
+def test_add_operation_result(
+    operation_resource: OperationResource, operation_result: dict
+) -> None:
 
     pass

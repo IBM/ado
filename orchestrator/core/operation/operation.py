@@ -21,9 +21,9 @@ class OperationException(Exception):
 
     def __init__(
         self,
-        message,
+        message: str,
         operation: OperationResource,
-        *args,
+        *args: typing.Any,  # noqa: ANN401
     ) -> None:
         self.operation = operation
         super().__init__(message, operation, *args)

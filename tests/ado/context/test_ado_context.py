@@ -1,15 +1,19 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+from collections.abc import Callable
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
 from orchestrator.cli.core.config import AdoConfiguration
+from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
 # ado context
-def test_ado_context_print_active_context(tmp_path) -> None:
+def test_ado_context_print_active_context(tmp_path: Path) -> None:
     """
     We expect ado to create the local context and have it as default.
     """
@@ -31,7 +35,9 @@ def test_ado_context_print_active_context(tmp_path) -> None:
 
 
 def test_ado_context_override_sets_active_context(
-    valid_ado_project_context, tmp_path, random_identifier
+    valid_ado_project_context: ProjectContext,
+    tmp_path: Path,
+    random_identifier: Callable[[], str],
 ) -> None:
     """
     We expect ado to have the context from valid_ado_project_context
@@ -59,7 +65,7 @@ def test_ado_context_override_sets_active_context(
 
 
 def test_ado_context_cannot_set_nonexisting_context(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     """
     We expect ado to disallow setting a context that does not exist.
@@ -97,7 +103,7 @@ def test_ado_context_cannot_set_nonexisting_context(
 
 
 def test_ado_context_set_context(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     """
     We expect ado to allow activating contexts
@@ -126,7 +132,7 @@ def test_ado_context_set_context(
 
 
 # ado contexts
-def test_ado_contexts_list_contexts(tmp_path) -> None:
+def test_ado_contexts_list_contexts(tmp_path: Path) -> None:
     """
     We expect ado to list three contexts
     """
@@ -184,7 +190,9 @@ def test_ado_contexts_list_contexts(tmp_path) -> None:
 
 
 def test_ado_contexts_list_contexts_with_context_and_empty_dir_override(
-    valid_ado_project_context, random_identifier, tmp_path
+    valid_ado_project_context: ProjectContext,
+    random_identifier: Callable[[], str],
+    tmp_path: Path,
 ) -> None:
     """
     We expect ado to fail as there are no contexts available
@@ -235,7 +243,9 @@ def test_ado_contexts_list_contexts_with_context_and_empty_dir_override(
 
 
 def test_ado_contexts_list_contexts_with_context_and_valid_dir_override(
-    valid_ado_project_context, random_identifier, tmp_path
+    valid_ado_project_context: ProjectContext,
+    random_identifier: Callable[[], str],
+    tmp_path: Path,
 ) -> None:
     """
     We expect ado to list the available contexts.

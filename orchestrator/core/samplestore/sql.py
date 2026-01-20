@@ -8,9 +8,6 @@ import uuid
 from typing import TYPE_CHECKING
 
 import pydantic
-
-if TYPE_CHECKING:
-    import pandas as pd
 import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -50,6 +47,10 @@ from orchestrator.utilities.pandas import (
     reorder_dataframe_columns,
 )
 
+if TYPE_CHECKING:
+    import pandas as pd
+    from IPython.lib.pretty import PrettyPrinter
+
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
     identifier: str | None = pydantic.Field(description="id for this sample store")
@@ -76,7 +77,7 @@ class SQLSampleStore(ActiveSampleStore):
         experimentIdentifier: str | None = None,
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
-    ):
+    ) -> "SQLSampleStore":
 
         csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
             csvPath=csvPath,
@@ -96,7 +97,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         return sql_sample_store
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:
             p.text("Cycle detected")
@@ -111,7 +112,7 @@ class SQLSampleStore(ActiveSampleStore):
     @classmethod
     def experimentCatalogFromReference(
         cls, reference: orchestrator.core.samplestore.config.SampleStoreReference
-    ):
+    ) -> ExperimentCatalog:
         import pandas as pd
 
         if reference.identifier is not None:
@@ -278,7 +279,7 @@ class SQLSampleStore(ActiveSampleStore):
         self,
         identifier: str | None,
         storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
-        parameters: dict | None,
+        parameters: dict,
     ) -> None:
 
         import uuid
@@ -322,12 +323,12 @@ class SQLSampleStore(ActiveSampleStore):
         self.log.debug(f"SQLSampleStore id {self.uri}")
 
     @property
-    def engine(self):
+    def engine(self) -> sqlalchemy.Engine:
 
         return engine_for_sql_store(configuration=self._configuration)
 
     @property
-    def config(self):
+    def config(self) -> dict:
         """Returns the parameters used to initialise the receiver"""
 
         return self._parameters.copy()
@@ -342,13 +343,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         if not self._entities:
 
-            query = sqlalchemy.text(
-                f"""
+            query = sqlalchemy.text(f"""
                     SELECT ent.identifier, ent.representation, res.data
                     FROM {self._tablename} ent
                     LEFT OUTER JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
-                """  # noqa: S608 - self._tablename is not untrusted
-            )
+                """)  # noqa: S608 - self._tablename is not untrusted
 
             try:
                 with self.engine.begin() as connectable:
@@ -412,7 +411,7 @@ class SQLSampleStore(ActiveSampleStore):
             exe = connectable.execute(query)
             return exe.scalar()
 
-    def containsEntityWithIdentifier(self, entity_id) -> bool:
+    def containsEntityWithIdentifier(self, entity_id: str) -> bool:
         query = sqlalchemy.text(
             "SELECT COUNT(1) FROM :table_name WHERE identifier=:identifier"
         ).bindparams(table_name=self._tablename, identifier=entity_id)
@@ -424,7 +423,7 @@ class SQLSampleStore(ActiveSampleStore):
         return row_count != 0
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
         """Return a unique identifier for this configuration of the sample store"""
 
         return self._identifier
@@ -616,11 +615,10 @@ class SQLSampleStore(ActiveSampleStore):
 
         pass
 
-    def entityWithIdentifier(self, entityIdentifier):
+    def entityWithIdentifier(self, entityIdentifier: str) -> Entity | None:
         """Returns entity if its in receiver otherwise returns None"""
 
-        query = sqlalchemy.text(
-            f"""
+        query = sqlalchemy.text(f"""
                 SELECT ent.identifier, ent.representation, res.data
                 FROM (
                     SELECT identifier, representation
@@ -628,8 +626,9 @@ class SQLSampleStore(ActiveSampleStore):
                     WHERE identifier = :identifier
                 ) ent
                 LEFT OUTER JOIN {self._tablename}_measurement_results res ON ent.identifier = res.entity_id
-            """  # noqa: S608 - self._tablename is not untrusted
-        ).bindparams(identifier=entityIdentifier)
+            """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+            identifier=entityIdentifier
+        )
 
         try:
             with self.engine.begin() as connectable:
@@ -682,7 +681,7 @@ class SQLSampleStore(ActiveSampleStore):
         return entity
 
     @property
-    def uri(self):
+    def uri(self) -> str:
         """Returns a URI for the Active Source - password is elided"""
 
         return (
@@ -692,13 +691,15 @@ class SQLSampleStore(ActiveSampleStore):
         ) + f"/{self._tablename}"
 
     @staticmethod
-    def validate_parameters(parameters=None):
+    def validate_parameters(parameters: dict) -> dict:
 
         # No parameters to validate
         return parameters
 
     @staticmethod
-    def storage_location_class():
+    def storage_location_class() -> (
+        type[SQLiteStoreConfiguration | SQLStoreConfiguration]
+    ):
         return SQLiteStoreConfiguration | SQLStoreConfiguration
 
     def add_measurement_request(self, request: MeasurementRequest) -> uuid.uuid4:
@@ -713,13 +714,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     INSERT INTO {self._tablename}_measurement_requests
                     (uid, experiment_reference, operation_id, request_index, request_id, type, status, metadata, timestamp)
                     VALUES (:uid, :experiment_reference, :operation_id, :request_index, :request_id, :type, :status, :metadata, :timestamp)
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
                     uid=str(db_id),
                     experiment_reference=str(request.experimentReference),
                     operation_id=request.operation_id,
@@ -780,13 +779,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     INSERT INTO {self._tablename}_measurement_results
                     (uid, entity_id, data)
                     VALUES (:uid, :entity_id, :data)
-                    """  # noqa: S608 - self._tablename is not untrusted
-                )
+                    """)  # noqa: S608 - self._tablename is not untrusted
                 connectable.execute(query, prepared_results)
         except SQLAlchemyError as error:
             self.log.critical(f"Failed to add measurement results. Error: {error}")
@@ -821,13 +818,11 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     INSERT INTO {self._tablename}_measurement_requests_results
                     (uid, request_uid, result_uid, entity_index)
                     VALUES (:uid, :request_uid, :result_uid, :entity_index)
-                    """  # noqa: S608 - self._tablename is not untrusted
-                )
+                    """)  # noqa: S608 - self._tablename is not untrusted
                 connectable.execute(query, prepared_relationships)
         except SQLAlchemyError as error:
             self.log.critical(
@@ -842,7 +837,7 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         experiment_filter: str | None = None,
         status_filter: MeasurementRequestStateEnum | None = None,
-    ):
+    ) -> int:
 
         query_text = f"""
                         SELECT COUNT(uid)
@@ -873,7 +868,7 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         experiment_filter: str | None = None,
         status_filter: MeasurementResultStateEnum | None = None,
-    ):
+    ) -> int:
         result_state_map = {
             MeasurementResultStateEnum.VALID: "measurements",
             MeasurementResultStateEnum.INVALID: "reason",
@@ -915,8 +910,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT req.uid, req.experiment_reference, req.operation_id,
                            req.request_index, req.request_id, req.type, req.status,
                            req.metadata, req.timestamp, res.entity_id, res.data
@@ -928,8 +922,9 @@ class SQLSampleStore(ActiveSampleStore):
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement results for operation {operation_id}"
@@ -944,8 +939,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT req.uid, req.experiment_reference, req.operation_id,
                            req.request_index, req.request_id, req.type, req.status,
                            req.metadata, req.timestamp, res.entity_id, res.data
@@ -957,8 +951,9 @@ class SQLSampleStore(ActiveSampleStore):
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(measurement_request_id=measurement_request_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    measurement_request_id=measurement_request_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement request for measurement request id {measurement_request_id}"
@@ -973,8 +968,7 @@ class SQLSampleStore(ActiveSampleStore):
     ) -> list[MeasurementResult]:
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT res.data
                     FROM (
                         SELECT *
@@ -984,8 +978,9 @@ class SQLSampleStore(ActiveSampleStore):
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
                     ORDER BY req.request_index, req.insert_id , reqres.entity_index , reqres.insert_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the measurement results for operation {operation_id}"
@@ -1095,13 +1090,13 @@ class SQLSampleStore(ActiveSampleStore):
     def experiments_in_operation(self, operation_id: str) -> list[Experiment]:
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT DISTINCT(experiment_reference)
                     FROM {self._tablename}_measurement_requests
                     WHERE operation_id = :operation_id
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the experiments for operation {operation_id}"
@@ -1118,8 +1113,7 @@ class SQLSampleStore(ActiveSampleStore):
     def entity_identifiers_in_operation(self, operation_id: str) -> set[str]:
         try:
             with self.engine.begin() as connectable:
-                query = sqlalchemy.text(
-                    f"""
+                query = sqlalchemy.text(f"""
                     SELECT DISTINCT(res.entity_id)
                     FROM (
                         SELECT *
@@ -1128,8 +1122,9 @@ class SQLSampleStore(ActiveSampleStore):
                     ) req
                     JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
                     JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                    """  # noqa: S608 - self._tablename is not untrusted
-                ).bindparams(operation_id=operation_id)
+                    """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+                    operation_id=operation_id
+                )
                 cur = connectable.execute(query)
         except SQLAlchemyError as error:
             msg = f"Unable to get the entity ids for operation {operation_id}"
@@ -1211,7 +1206,7 @@ class SQLSampleStore(ActiveSampleStore):
                 ["request_id", "entity_index", "experiment_id"], axis="columns"
             )
 
-            def _aggregate_to_list_if_meaningful(series: pd.Series):
+            def _aggregate_to_list_if_meaningful(series: pd.Series) -> pd.Series:
                 filtered_series = list(
                     filter(lambda val: val != "not_measured", series)
                 )

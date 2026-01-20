@@ -52,6 +52,9 @@ from orchestrator.utilities.logging import configure_logging
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
 if typing.TYPE_CHECKING:
+    from queue import Queue
+
+    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
     from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 import sys
@@ -140,15 +143,15 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
     )
     grouping: list[str] = pydantic.Field(
-        default=[],
+        default_factory=list,
         description="List of variable names that need to be grouped together",
     )
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("grouping")
     def validate_mode_and_grouping(
-        cls, grouping, values: "pydantic.FieldValidationInfo"
-    ):
+        cls, grouping: list[str], values: "pydantic.FieldValidationInfo"
+    ) -> list[str]:
 
         if (
             values.data.get("mode")
@@ -166,7 +169,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         return grouping
 
     @pydantic.field_validator("samplerType")
-    def validate_sample_type(cls, samplerType: str):
+    def validate_sample_type(cls, samplerType: str) -> str:
 
         try:
             SamplerTypeEnum(samplerType)
@@ -179,7 +182,7 @@ class BaseSamplerConfiguration(pydantic.BaseModel):
         return samplerType
 
     @pydantic.field_validator("mode")
-    def validate_mode(cls, mode: str):
+    def validate_mode(cls, mode: str) -> str:
 
         try:
             CombinedWalkModeEnum(mode)
@@ -278,7 +281,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return f"custom sampler class: {self.module}. parameters: {self.parameters}"
 
     @pydantic.field_validator("module")
-    def validate_sampler_exists(cls, module: ModuleConf):
+    def validate_sampler_exists(cls, module: ModuleConf) -> ModuleConf:
 
         if not load_module_class_or_function(module):
             raise ValueError(f"Unable to find custom sampler {module}")
@@ -286,7 +289,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return module
 
     @pydantic.model_validator(mode="after")
-    def validate_parameters(self):
+    def validate_parameters(self) -> "CustomSamplerConfiguration":
 
         cls = load_module_class_or_function(self.module)
         if cls.parameters_model():
@@ -309,7 +312,7 @@ class CustomSamplerConfiguration(pydantic.BaseModel):
         return sampler
 
 
-def sampler_type_discriminator(sampler_config) -> str:
+def sampler_type_discriminator(sampler_config: typing.Any) -> str:  # noqa: ANN401
 
     if isinstance(sampler_config, CustomSamplerConfiguration):
         return "Custom"
@@ -362,7 +365,9 @@ class RandomWalkParameters(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("batchSize")
-    def validate_runtime_config(cls, value, values: "pydantic.FieldValidationInfo"):
+    def validate_runtime_config(
+        cls, value: int, values: "pydantic.FieldValidationInfo"
+    ) -> int:
 
         if (
             values.data.get("numberEntities") != "all"
@@ -409,7 +414,7 @@ class RandomWalk(Characterize):
         return RandomWalkParameters()
 
     @classmethod
-    def validateOperationParameters(cls, parameters) -> RandomWalkParameters:
+    def validateOperationParameters(cls, parameters: dict) -> RandomWalkParameters:
 
         return RandomWalkParameters.model_validate(parameters)
 
@@ -429,7 +434,7 @@ class RandomWalk(Characterize):
         namespace: str,
         state: DiscoverySpaceManager,
         actuators: dict[str, "ActuatorBase"],
-        params=None,
+        params: dict | None = None,
     ) -> None:
 
         enable_ray_actor_coverage("random_walk")
@@ -464,7 +469,7 @@ class RandomWalk(Characterize):
             actuators=actuators,
         )
 
-    def onUpdate(self, measurementRequest) -> None:
+    def onUpdate(self, measurementRequest: MeasurementRequest) -> None:
 
         self.update_queue.put_nowait(measurementRequest)
 
@@ -829,7 +834,10 @@ class RandomWalk(Characterize):
         return completed
 
     async def _getAndSubmitMeasurement(
-        self, completedExperiments, continuousBatchingQueue, updateQueue
+        self,
+        completedExperiments: int,
+        continuousBatchingQueue: "Queue",
+        updateQueue: "MeasurementQueue",
     ) -> None:
         """
         Gets an experiment+entity for continuousBatchingQueue and submits it
@@ -927,11 +935,11 @@ class RandomWalk(Characterize):
 
         return entities
 
-    def numberEntitiesSampled(self):
+    def numberEntitiesSampled(self) -> int:
 
         return self._entitiesSampled
 
-    def numberMeasurementsRequested(self):
+    def numberMeasurementsRequested(self) -> int:
 
         return self._experimentsRequested
 

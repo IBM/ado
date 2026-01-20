@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+import typing
 import uuid
 
 import pydantic
@@ -8,6 +8,9 @@ import pydantic
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
+
+if typing.TYPE_CHECKING:
+    from IPython.lib.pretty import PrettyPrinter
 
 
 class DiscoverySpaceResource(ADOResource):
@@ -17,7 +20,7 @@ class DiscoverySpaceResource(ADOResource):
     config: DiscoverySpaceConfiguration
 
     @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self):
+    def generate_identifier_if_not_provided(self) -> "DiscoverySpaceResource":
 
         # We can't reliably get the sample store identifier from a SampleStoreConfiguration
         # This is because (A) it may represent an uncreated SampleStore and (B) if created the location
@@ -28,7 +31,7 @@ class DiscoverySpaceResource(ADOResource):
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False) -> None:
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")

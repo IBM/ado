@@ -49,10 +49,10 @@ mock_rbc_invalid = (0, ["Invalid configuration"])
 
 
 @pytest.fixture
-def mock_predictor_valid():
+def mock_predictor_valid() -> MagicMock:
     mock = MagicMock()
 
-    def mock_predict(df):
+    def mock_predict(df: pd.DataFrame) -> pd.Series:
         # Simulate prediction logic based on gpus_per_worker
         print(df)
         val = 1 if int(df["number_gpus"].values[0]) == 2 else 0
@@ -63,10 +63,10 @@ def mock_predictor_valid():
 
 
 @pytest.fixture
-def mock_predictor_invalid():
+def mock_predictor_invalid() -> MagicMock:
     mock = MagicMock()
 
-    def mock_predict(df):
+    def mock_predict(df: pd.DataFrame) -> pd.Series:
         val = -1
         return pd.Series([val])
 
@@ -79,7 +79,7 @@ def mock_predictor_invalid():
     return_value=mock_rbc_valid,
 )
 def test_get_model_prediction_and_metadata_valid(
-    mock_is_row_valid, mock_predictor_valid
+    mock_is_row_valid: MagicMock, mock_predictor_valid: MagicMock
 ) -> None:
     print(valid_job_config)
     pred, metadata = get_model_prediction_and_metadata(
@@ -95,7 +95,7 @@ def test_get_model_prediction_and_metadata_valid(
     return_value=mock_rbc_invalid,
 )
 def test_get_model_prediction_and_metadata_invalid(
-    mock_is_row_valid, mock_predictor_valid
+    mock_is_row_valid: MagicMock, mock_predictor_valid: MagicMock
 ) -> None:
     pred, metadata = get_model_prediction_and_metadata(
         invalid_job_config, predictor=mock_predictor_valid
@@ -108,7 +108,9 @@ def test_get_model_prediction_and_metadata_invalid(
     "autoconf.utils.rule_based_classifier.is_row_valid",
     return_value=mock_rbc_valid,
 )
-def test_recommend_min_gpu_valid(mock_is_row_valid, mock_predictor_valid) -> None:
+def test_recommend_min_gpu_valid(
+    mock_is_row_valid: MagicMock, mock_predictor_valid: MagicMock
+) -> None:
     min_gpu, metadata = recommend_min_gpu(
         valid_job_config, valid_n_gpu_list=[1, 2, 4], predictor=mock_predictor_valid
     )
@@ -120,7 +122,9 @@ def test_recommend_min_gpu_valid(mock_is_row_valid, mock_predictor_valid) -> Non
     "autoconf.utils.rule_based_classifier.is_row_valid",
     return_value=mock_rbc_invalid,
 )
-def test_recommend_min_gpu_invalid(mock_is_row_valid, mock_predictor_invalid) -> None:
+def test_recommend_min_gpu_invalid(
+    mock_is_row_valid: MagicMock, mock_predictor_invalid: MagicMock
+) -> None:
     min_gpu, metadata = recommend_min_gpu(
         invalid_job_config, valid_n_gpu_list=[1, 2, 4], predictor=mock_predictor_invalid
     )

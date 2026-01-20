@@ -2,17 +2,24 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.core import ActuatorConfigurationResource
+from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.metastore.project import ProjectContext
+from orchestrator.metastore.sqlstore import SQLStore
 
 
 def test_delete_actuator_configuration_no_related(
     tmp_path: pathlib.Path,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ml_multi_cloud_correct_actuatorconfiguration,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_correct_actuatorconfiguration: ActuatorConfigurationResource,
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(
@@ -35,11 +42,13 @@ def test_delete_actuator_configuration_no_related(
 
 def test_delete_actuator_configuration_with_related_resource(
     tmp_path: pathlib.Path,
-    valid_ado_project_context,
-    create_active_ado_context,
-    sql_store,
-    ml_multi_cloud_correct_actuatorconfiguration,
-    ml_multi_cloud_space,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+    ml_multi_cloud_correct_actuatorconfiguration: ActuatorConfigurationResource,
+    ml_multi_cloud_space: DiscoverySpace,
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(
@@ -72,8 +81,10 @@ def test_delete_actuator_configuration_with_related_resource(
 
 def test_delete_nonexistent_actuator_configuration(
     tmp_path: pathlib.Path,
-    valid_ado_project_context,
-    create_active_ado_context,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
 ) -> None:
     runner = CliRunner()
     create_active_ado_context(

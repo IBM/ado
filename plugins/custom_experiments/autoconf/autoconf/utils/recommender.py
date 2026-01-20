@@ -26,7 +26,7 @@ VALID_N_GPUS = [1, 2, 4, 8, 16, 32]
 
 
 def get_model_prediction_and_metadata(
-    config: pd.DataFrame | dict | JobConfig, predictor
+    config: pd.DataFrame | dict | JobConfig, predictor: TabularPredictor
 ) -> tuple[int, dict]:
     """Gets valid/invalid prediction and reason why"""
     if isinstance(config, dict):
@@ -55,7 +55,9 @@ def get_model_prediction_and_metadata(
 
 
 def recommend_min_gpu(
-    job_config: JobConfig, predictor, valid_n_gpu_list: list[int] | None = None
+    job_config: JobConfig,
+    predictor: str | TabularPredictor,
+    valid_n_gpu_list: list[int] | None = None,
 ) -> tuple[int, dict]:
     """Recommends the minimum number of GPUs required for a SFT job defined by the fields of the pydantic model :job_config:
     Returns
@@ -102,18 +104,14 @@ def recommend_min_gpu(
             min_number_gpus = candidate_number_gpus
             break
 
-    logger.info(
-        f"""Metadata related to the model prediction
+    logger.info(f"""Metadata related to the model prediction
         (number_gpus={job_config.number_gpus if job_config.number_gpus else 'Not provided'})
-        :{metadata}"""
-    )
+        :{metadata}""")
 
     if min_number_gpus == -1:
-        logger.info(
-            f"""A recommendation for 'number_gpus' cannot be provided because
+        logger.info(f"""A recommendation for 'number_gpus' cannot be provided because
             no values for 'number_gpus' of the list {valid_n_gpu_list} would result
-            in a valid run according to the predictive model."""
-        )
+            in a valid run according to the predictive model.""")
     else:
         logger.info(f"The recommended number_gpus={min_number_gpus}.")
 
@@ -121,7 +119,9 @@ def recommend_min_gpu(
 
 
 class MinGpuRecommender:
-    def __init__(self, predictor, valid_n_gpu: list[int] | None = None) -> None:
+    def __init__(
+        self, predictor: str | TabularPredictor, valid_n_gpu: list[int] | None = None
+    ) -> None:
         self.valid_n_gpu = valid_n_gpu or list(VALID_N_GPUS)
 
         if isinstance(predictor, str):
@@ -131,10 +131,10 @@ class MinGpuRecommender:
         else:
             self.predictor = predictor
 
-    def recommend_min_gpu(self, job_config):
+    def recommend_min_gpu(self, job_config: JobConfig) -> tuple[int, dict]:
         return recommend_min_gpu(job_config, self.predictor, self.valid_n_gpu)
 
-    def predict(self, job_config: JobConfig | pd.DataFrame):
+    def predict(self, job_config: JobConfig | pd.DataFrame) -> list[int]:
         if isinstance(job_config, pd.DataFrame):
             # Convert DataFrame rows to JobConfig instances
             job_configs = [

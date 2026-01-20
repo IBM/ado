@@ -29,7 +29,8 @@ def python_type_value_examples() -> dict[type, tuple[ValueTypeEnum, typing.Any]]
 
 @pytest.fixture(params=[int, float, str, bytes, list, type(None)])
 def value_example(
-    python_type_value_examples, request
+    python_type_value_examples: dict[type, tuple[ValueTypeEnum, typing.Any]],
+    request: pytest.FixtureRequest,
 ) -> tuple[ValueTypeEnum, typing.Any]:
 
     return python_type_value_examples[request.param]
@@ -37,14 +38,17 @@ def value_example(
 
 @pytest.fixture(params=[int, float, str, bytes, list, type(None)])
 def test_value_example(
-    python_type_value_examples, request
+    python_type_value_examples: dict[type, tuple[ValueTypeEnum, typing.Any]],
+    request: pytest.FixtureRequest,
 ) -> tuple[ValueTypeEnum, typing.Any]:
 
     return python_type_value_examples[request.param]
 
 
 @pytest.fixture(params=[int, float, str, bytes, list, type(None)])
-def property_value(request) -> tuple[ConstitutivePropertyValue, type]:
+def property_value(
+    request: pytest.FixtureRequest,
+) -> tuple[ConstitutivePropertyValue, type]:
     """Returns PropertyValue instance of different types.
 
     Note: Does not set the valueType field explicitly in order to test that it is detected correctly
@@ -122,7 +126,10 @@ def test_property_value_preserves_value_type_after_serialization(
     ), f"PropertyValue did not store a {value_type} value as {value_type}. Instead returned {type(val.value)}"
 
 
-def test_property_value_checks_value_type(value_example, test_value_example) -> None:
+def test_property_value_checks_value_type(
+    value_example: tuple[ValueTypeEnum, typing.Any],
+    test_value_example: tuple[ValueTypeEnum, typing.Any],
+) -> None:
     """Tests if PropertyValue validates the type of the value against the valueType field"""
 
     prop = ConstitutiveProperty(identifier="cons_prop")
@@ -209,7 +216,9 @@ def test_type_detection(property_value: tuple[PropertyValue, type]) -> None:
         pytest.fail(f"Test of value type {value_type} with value {val} not implemented")
 
 
-def test_uncertain_property_value(property_value) -> None:
+def test_uncertain_property_value(
+    property_value: tuple[ConstitutivePropertyValue, type],
+) -> None:
     """Test the uncertain property works"""
 
     val, _value_type = property_value

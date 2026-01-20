@@ -25,21 +25,28 @@ from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.logging import configure_logging
 
+if typing.TYPE_CHECKING:
+    from orchestrator.metastore.sqlstore import SQLStore
+    from orchestrator.schema.entity import Entity
+    from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
+    from orchestrator.schema.observed_property import ObservedProperty
+    from orchestrator.schema.property import AbstractPropertyDescriptor
+
 configure_logging()
 
 
 class DiscoverySpaceUpdateSubscriber(abc.ABC):
 
     @abc.abstractmethod
-    def onUpdate(self, measurementRequest: MeasurementRequest):
+    def onUpdate(self, measurementRequest: MeasurementRequest) -> None:
         pass
 
     @abc.abstractmethod
-    def onCompleted(self):
+    def onCompleted(self) -> None:
         pass
 
     @abc.abstractmethod
-    def onError(self, error: Exception):
+    def onError(self, error: Exception) -> None:
         pass
 
 
@@ -63,8 +70,8 @@ class DiscoverySpaceManager:
         name: str,
         definition: DiscoverySpaceConfiguration,
         project_context: ProjectContext,
-        namespace=None,
-    ):
+        namespace: str | None = None,
+    ) -> ActorHandle["DiscoverySpaceManager"]:
 
         configure_logging()
 
@@ -92,8 +99,8 @@ class DiscoverySpaceManager:
         name: str,
         project_context: ProjectContext,
         space_identifier: str,
-        namespace=None,
-    ):
+        namespace: str | None = None,
+    ) -> ActorHandle["DiscoverySpaceManager"]:
 
         log = logging.getLogger("space_manager")
         log.debug("Initialising InternalState from DiscoverySpace configuration")
@@ -114,7 +121,7 @@ class DiscoverySpaceManager:
         self,
         queue: MeasurementQueue,
         space: orchestrator.core.discoveryspace.space.DiscoverySpace,
-        namespace=None,
+        namespace: str | None = None,
     ) -> None:
         """
         :param queue: A MeasurementQueue instance for this operation
@@ -139,7 +146,7 @@ class DiscoverySpaceManager:
         self._discoverySpace = space
 
         self.log.debug(f"Accessing DiscoverySpace {self._discoverySpace.uri}")
-        self._subscribers = {}  # type: {str:DiscoverySpaceUpdateSubscriber}
+        self._subscribers: dict[str, DiscoverySpaceUpdateSubscriber] = {}
         self.isalive = True
         self.iscompleted = False
         # Required to keep a strong ref to the co-routine created by create_task in startMonitoring
@@ -174,7 +181,9 @@ class DiscoverySpaceManager:
             self.monitorUpdates(debug=False)
         )
 
-    async def matchingEntitiesInSource(self, selection: list[int] | None = None):
+    async def matchingEntitiesInSource(
+        self, selection: list[int] | None = None
+    ) -> list["Entity"]:
         """Returns an ordered list of all matchingEntities or a selected subset of them
 
         :param: selection: A list of ints. If supplied the entities at these indexes are returned.
@@ -189,17 +198,17 @@ class DiscoverySpaceManager:
 
         return entities
 
-    async def entity(self, index=0):
+    async def entity(self, index: int = 0) -> "Entity":
 
         entities = await self.matchingEntitiesInSource()
         return entities[index]
 
-    async def entitiesSlice(self, start=0, stop=1):
+    async def entitiesSlice(self, start: int = 0, stop: int = 1) -> list["Entity"]:
 
         entities = await self.matchingEntitiesInSource()
         return entities[start:stop]
 
-    def storedEntityWithIdentifier(self, entityIdentifier):
+    def storedEntityWithIdentifier(self, entityIdentifier: str) -> "Entity | None":
 
         return self._discoverySpace.sample_store.entityWithIdentifier(
             entityIdentifier=entityIdentifier
@@ -207,21 +216,21 @@ class DiscoverySpaceManager:
 
     def storedEntitiesWithConstitutivePropertyValues(
         self, propVals: list[PropertyValue]
-    ):
+    ) -> list["Entity"]:
 
         return self._discoverySpace.storedEntitiesWithConstitutivePropertyValues(
             values=propVals
         )
 
-    def entity_for_point(self, point: dict[str, typing.Any]):
+    def entity_for_point(self, point: dict[str, typing.Any]) -> "Entity":
 
         return self._discoverySpace.entity_for_point(point)
 
-    def numberOfMatchingEntitiesInSource(self):
+    def numberOfMatchingEntitiesInSource(self) -> int:
 
         return len(self._discoverySpace.matchingEntities())
 
-    async def monitorUpdates(self, debug=False) -> None:
+    async def monitorUpdates(self, debug: bool = False) -> None:
 
         # Unexpected exceptions from async functions in ray are silently swallowed
         # The purpose of this wrapper is to ensure any such error from the
@@ -314,7 +323,7 @@ class DiscoverySpaceManager:
         )
         return True
 
-    def unsubscribeFromUpdates(self, subscriberName) -> None:
+    def unsubscribeFromUpdates(self, subscriberName: str) -> None:
 
         try:
             self._subscribers.pop(subscriberName)
@@ -336,23 +345,23 @@ class DiscoverySpaceManager:
         self._discoverySpace.sample_store.commit()
         self.log.info("Shutdown complete")
 
-    def stateIdentifier(self):
+    def stateIdentifier(self) -> str:
 
         return self._discoverySpace.uri
 
-    def targetProperties(self):
+    def targetProperties(self) -> list["AbstractPropertyDescriptor"]:
 
         return self._discoverySpace.measurementSpace.targetProperties
 
-    def observedProperties(self):
+    def observedProperties(self) -> list["ObservedProperty"]:
 
         return self._discoverySpace.measurementSpace.observedProperties
 
-    def experiments(self):
+    def experiments(self) -> "list[Experiment | ParameterizedExperiment]":
 
         return self._discoverySpace.measurementSpace.experiments
 
-    def metadataStore(self):
+    def metadataStore(self) -> "SQLStore":
 
         return self._discoverySpace.metadataStore
 

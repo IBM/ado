@@ -26,6 +26,10 @@ import torch.distributed
 from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
 
+if typing.TYPE_CHECKING:
+    import torch.nn
+    from transformers import PreTrainedModel
+
 
 def has_gathered_enough_samples(
     duration_of_optimization_steps: list[float],
@@ -133,7 +137,7 @@ def get_cuda_device_indices(cuda_visible_devices: str) -> list[int]:
 
 def calculate_gpu_power_percent(
     run_metrics: list[tuple[str, dict[str, int], list[float]]],
-):
+) -> list[tuple[str, dict[str, int], list[float]]]:
     """Calculates __system__gpu_power_percent using __system__gpu_power_watts and inserts it into existing run metrics
 
     Args:
@@ -226,7 +230,14 @@ class CustomAimCallback(AimCallback):
             capture_terminal_logs,
         )
 
-    def on_train_begin(self, args, state, control, model=None, **kwargs) -> None:
+    def on_train_begin(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        model: "PreTrainedModel | torch.nn.Module | None" = None,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         super().on_train_begin(args, state, control, model, **kwargs)
 
         self._time_started = datetime.datetime.now()
@@ -247,7 +258,7 @@ class CustomAimCallback(AimCallback):
         args: TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        **kwargs,
+        **kwargs: Any,  # noqa: ANN401
     ) -> None:
         self._optimization_step_started = datetime.datetime.now()
 
@@ -256,7 +267,7 @@ class CustomAimCallback(AimCallback):
         args: TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        **kwargs,
+        **kwargs: Any,  # noqa: ANN401
     ) -> None:
         super().on_step_end(args, state, control, **kwargs)
 
@@ -342,7 +353,13 @@ class CustomAimCallback(AimCallback):
             if control.should_training_stop:
                 print("All local-rank 0 workers agree to stop early")
 
-    def on_train_end(self, args, state, control, **kwargs) -> None:
+    def on_train_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> None:
         try:
             if self._aim_info_path and state.is_local_process_zero:
                 format_time = "%d%m%y-%H%M%S"
@@ -587,14 +604,14 @@ def main() -> None:
             file=sys.stderr,
         )
 
-    def report_oom(exception: Exception):
+    def report_oom(exception: Exception) -> None:
         return report_error(
             exception,
             warning="SFTTRAINER_EXCEPTION: OUT_OF_MEMORY",
             exception_type="OutOfGPUMemoryError",
         )
 
-    def report_nccl_error(exception: Exception):
+    def report_nccl_error(exception: Exception) -> None:
         return report_error(
             exception,
             warning="SFTTRAINER_EXCEPTION: NCCL_ERROR",

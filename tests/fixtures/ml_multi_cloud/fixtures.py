@@ -3,6 +3,7 @@
 
 import pathlib
 import random
+from collections.abc import Callable
 
 import pytest
 import yaml
@@ -11,17 +12,20 @@ import orchestrator.core.actuatorconfiguration.config
 import orchestrator.core.discoveryspace.config
 import orchestrator.core.samplestore.csv
 import orchestrator.utilities.location
-from orchestrator.core import OperationResource
+from orchestrator.core import ActuatorConfigurationResource, OperationResource
+from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
+from orchestrator.core.samplestore.base import ActiveSampleStore
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreReference,
 )
 from orchestrator.core.samplestore.csv import CSVSampleStore
 from orchestrator.core.samplestore.sql import SQLSampleStore
+from orchestrator.metastore.project import ProjectContext
 from orchestrator.metastore.sqlstore import SQLResourceStore
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.entity import Entity
@@ -46,7 +50,9 @@ from orchestrator.schema.result import (
 
 
 @pytest.fixture
-def ml_multi_cloud_sample_store(create_sample_store) -> SQLSampleStore:
+def ml_multi_cloud_sample_store(
+    create_sample_store: Callable[[SampleStoreConfiguration], ActiveSampleStore],
+) -> SQLSampleStore:
     sample_store_configuration = SampleStoreConfiguration.model_validate(
         yaml.safe_load(
             pathlib.Path("tests/resources/ml_multicloud_sample_store.yaml").read_text()
@@ -79,9 +85,12 @@ def ml_multi_cloud_csv_sample_store() -> CSVSampleStore:
 
 @pytest.fixture
 def ml_multi_cloud_space(
-    ml_multi_cloud_sample_store,
-    create_space,
-):
+    ml_multi_cloud_sample_store: SQLSampleStore,
+    create_space: Callable[
+        [orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration, str],
+        DiscoverySpace,
+    ],
+) -> DiscoverySpace:
     space_configuration = orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration.model_validate(
         yaml.safe_load(
             pathlib.Path("examples/ml-multi-cloud/ml_multicloud_space.yaml").read_text()
@@ -92,7 +101,7 @@ def ml_multi_cloud_space(
 
 @pytest.fixture
 def ml_multi_cloud_operation_configuration(
-    ml_multi_cloud_space,
+    ml_multi_cloud_space: DiscoverySpace,
 ) -> DiscoveryOperationResourceConfiguration:
 
     operation_configuration = DiscoveryOperationResourceConfiguration.model_validate(
@@ -107,7 +116,12 @@ def ml_multi_cloud_operation_configuration(
 
 
 @pytest.fixture
-def ml_multi_cloud_correct_actuatorconfiguration(create_actuatorconfiguration):
+def ml_multi_cloud_correct_actuatorconfiguration(
+    create_actuatorconfiguration: Callable[
+        [orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration],
+        ActuatorConfigurationResource,
+    ],
+) -> ActuatorConfigurationResource:
     actuator_configuration = orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
         yaml.safe_load(
             pathlib.Path(
@@ -119,7 +133,12 @@ def ml_multi_cloud_correct_actuatorconfiguration(create_actuatorconfiguration):
 
 
 @pytest.fixture
-def ml_multi_cloud_invalid_actuatorconfiguration(create_actuatorconfiguration):
+def ml_multi_cloud_invalid_actuatorconfiguration(
+    create_actuatorconfiguration: Callable[
+        [orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration],
+        ActuatorConfigurationResource,
+    ],
+) -> ActuatorConfigurationResource:
     actuator_configuration = orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
         yaml.safe_load(
             pathlib.Path("tests/resources/mock_actuatorconfiguration.yaml").read_text()
@@ -140,7 +159,7 @@ def ml_multi_cloud_cost_experiment() -> Experiment:
 
 @pytest.fixture
 def ml_multi_cloud_benchmark_performance_experiment(
-    ml_multi_cloud_csv_sample_store,
+    ml_multi_cloud_csv_sample_store: CSVSampleStore,
 ) -> Experiment:
     return ml_multi_cloud_csv_sample_store.experimentCatalog().experimentForReference(
         ExperimentReference(
@@ -152,8 +171,8 @@ def ml_multi_cloud_benchmark_performance_experiment(
 
 @pytest.fixture
 def random_ml_multi_cloud_benchmark_performance_entities(
-    ml_multi_cloud_csv_sample_store,
-):
+    ml_multi_cloud_csv_sample_store: CSVSampleStore,
+) -> Callable[[int], list[Entity]]:
     def _random_ml_multi_cloud_benchmark_performance_entities(
         quantity: int,
     ) -> list[Entity]:
@@ -166,8 +185,8 @@ def random_ml_multi_cloud_benchmark_performance_entities(
 
 @pytest.fixture
 def random_ml_multi_cloud_benchmark_performance_measurement_results(
-    random_identifier,
-):
+    random_identifier: str,
+) -> Callable[[Entity, int, MeasurementResultStateEnum | None], MeasurementResult]:
     def _random_ml_multi_cloud_benchmark_performance_measurement_results(
         entity: Entity,
         measurements_per_result: int,
@@ -211,10 +230,16 @@ def random_ml_multi_cloud_benchmark_performance_measurement_results(
 
 @pytest.fixture
 def random_ml_multi_cloud_benchmark_performance_measurement_requests(
-    random_identifier,
-    random_ml_multi_cloud_benchmark_performance_entities,
-    random_ml_multi_cloud_benchmark_performance_measurement_results,
-):
+    random_identifier: Callable[[], str],
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+) -> Callable[
+    [int, int, MeasurementRequestStateEnum | None, str | None],
+    ReplayedMeasurement,
+]:
+
     def _random_ml_multi_cloud_benchmark_performance_measurement_requests(
         number_entities: int,
         measurements_per_result: int,
@@ -251,13 +276,19 @@ def random_ml_multi_cloud_benchmark_performance_measurement_requests(
 
 @pytest.fixture
 def simulate_ml_multi_cloud_random_walk_operation(
-    valid_ado_project_context,
-    ml_multi_cloud_operation_configuration,
-    ml_multi_cloud_sample_store,
-    random_identifier,
-    random_ml_multi_cloud_benchmark_performance_measurement_requests,
-    ml_multi_cloud_benchmark_performance_experiment,
-):
+    valid_ado_project_context: ProjectContext,
+    ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
+    ml_multi_cloud_sample_store: SQLSampleStore,
+    random_identifier: Callable[[], str],
+    random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
+        [int, int, MeasurementRequestStateEnum | None, str | None],
+        ReplayedMeasurement,
+    ],
+    ml_multi_cloud_benchmark_performance_experiment: Experiment,
+) -> Callable[
+    [int, int, int, str | None],
+    tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+]:
     def _simulate_ml_multi_cloud_random_walk_operation(
         number_entities: int = 3,
         number_requests: int = 3,

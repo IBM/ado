@@ -105,7 +105,7 @@ class Replay(ActuatorBase):
 
     identifier = "replay"
 
-    def __init__(self, queue, params=None) -> None:
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
         enable_ray_actor_coverage("replay")
         super().__init__(queue=queue, params=params)
         self.log = logging.getLogger("replay")
@@ -118,7 +118,7 @@ class Replay(ActuatorBase):
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ):
+    ) -> list[str]:
 
         # submit a request to the Replay actuator to run an experimentReference always results in InvalidMeasurementResults
         # The replay actuator cannot perform any of these experiments - they can only be replayed/memoized

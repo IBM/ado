@@ -46,7 +46,7 @@ logger.info("Models supported are", set(df_original["model_name"].values))
 target = "is_valid"
 
 
-def filter_valid_with_hard_logic(df: pd.DataFrame):
+def filter_valid_with_hard_logic(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"Length of the DataFrame before filtering: {len(df)}")
     valid_indices = [i for i, config in df.iterrows() if is_row_valid(config)[0]]
     df_filtered = df.loc[valid_indices].copy()

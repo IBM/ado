@@ -17,7 +17,7 @@ import os
 import datasets
 
 
-def format_alpaca_fn(example):
+def format_alpaca_fn(example: dict[str, str]) -> dict[str, str]:
     ex_input = example["input"]
     ex_output = ". ".join([example["output"] for _ in range(100)])
 

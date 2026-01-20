@@ -6,12 +6,13 @@ import pydantic
 import ray
 from pydantic import ConfigDict
 
-from ado_ray_tune.samplers import LhuSampler
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
+
+from .samplers import LhuSampler
 
 
 def create_optuna_ray_tune_config(
@@ -95,7 +96,7 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
     )
 
     @pydantic.model_validator(mode="after")
-    def map_optuna_sampler_name_to_instance(self):
+    def map_optuna_sampler_name_to_instance(self) -> "OrchSearchAlgorithm":
 
         if self.name.lower() != "optuna":
             return self
@@ -127,7 +128,7 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
         return self
 
     @pydantic.model_validator(mode="after")
-    def map_nevergrad_optimizer_name_to_type(self):
+    def map_nevergrad_optimizer_name_to_type(self) -> "OrchSearchAlgorithm":
 
         if self.name != "nevergrad":
             return self
@@ -185,7 +186,7 @@ class OrchTuneConfig(pydantic.BaseModel):
     search_alg: OrchSearchAlgorithm
     model_config = ConfigDict(extra="allow")
 
-    def rayTuneConfig(self):
+    def rayTuneConfig(self) -> ray.tune.TuneConfig:
         tune_options = self.model_dump()
         if self.search_alg.name.lower() == "optuna":
             return create_optuna_ray_tune_config(
@@ -315,14 +316,14 @@ class RayTuneConfiguration(pydantic.BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     @pydantic.field_validator("runtimeConfig")
-    def validate_runtime_config(cls, value):
+    def validate_runtime_config(cls, value: OrchRunConfig) -> OrchRunConfig:
         # Check we can create the runtime config
         _ = value.rayRuntimeConfig()
 
         return value
 
     @pydantic.field_validator("tuneConfig")
-    def validate_tune_config(cls, value):
+    def validate_tune_config(cls, value: OrchTuneConfig) -> OrchTuneConfig:
         # If BOTH metric/mode are lists, ensure they have the same length
         if (
             isinstance(value.metric, list)

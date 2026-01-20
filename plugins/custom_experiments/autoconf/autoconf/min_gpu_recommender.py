@@ -51,6 +51,18 @@ def load_model(model_version: str) -> TabularPredictor:
             / "AutoGluonModels"
             / "v2-0-0_ag-20251113_154241-refit-clone-opt"
         )
+    elif model_version == "3.0.0":
+        path_weights = str(
+            importlib.resources.files("autoconf")
+            / "AutoGluonModels"
+            / "v3-0-0_ag-20260113_144447-clone-opt-train_frac_1"
+        )
+    elif model_version == "3.1.0":
+        path_weights = str(
+            importlib.resources.files("autoconf")
+            / "AutoGluonModels"
+            / "v3-1-0_ag-20260113_144232-refit-clone-opt-train_frac_1"
+        )
     else:
         raise ValueError("Unknown model_version", model_version)
 
@@ -61,7 +73,7 @@ ModelVersion = ConstitutiveProperty(
     identifier="model_version",
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-        values=["1.1.0", "2.0.0"],
+        values=["1.1.0", "2.0.0", "3.0.0", "3.1.0"],
     ),
 )
 

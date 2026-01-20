@@ -758,7 +758,7 @@ class ParameterizedExperiment(Experiment):
     mapping: Annotated[
         dict,
         pydantic.Field(
-            default_factory=list, description="Private attribute", exclude=True
+            default_factory=dict, description="Private attribute", exclude=True
         ),
     ]
     model_config = ConfigDict(extra="forbid", frozen=True)

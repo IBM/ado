@@ -64,8 +64,8 @@ class OperationResourceStatus(ADOResourceStatus):
 
 class OperationResource(ADOResource):
 
-    version: str = "v1"
-    kind: CoreResourceKinds = CoreResourceKinds.OPERATION
+    version: Annotated[str, pydantic.Field()] = "v1"
+    kind: Annotated[CoreResourceKinds, pydantic.Field()] = CoreResourceKinds.OPERATION
     operationType: Annotated[
         DiscoveryOperationEnum, pydantic.Field(description="The type of this operation")
     ]

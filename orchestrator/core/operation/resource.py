@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+import typing
 import uuid
 from typing import Annotated
 
@@ -86,12 +87,25 @@ class OperationResource(ADOResource):
         ),
     ]
 
-    @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self) -> "OperationResource":
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def generate_identifier_if_not_provided(
+        cls, data: typing.Any  # noqa: ANN401
+    ) -> "OperationResource":
 
-        if self.identifier is None:
-            self.identifier = (
-                f"{self.kind.value}-{self.operatorIdentifier}-{str(uuid.uuid4())[:8]}"
-            )
+        if isinstance(data, dict):
 
-        return self
+            # Do not do anything if the identifier is already present
+            if data.get("identifier", None) is not None:
+                return data
+
+            # Do not attempt to generate anything if operatorIdentifier
+            # (a required field) has not been provided
+            if "operatorIdentifier" not in data:
+                return data
+
+            kind = CoreResourceKinds.OPERATION.value
+            operator_identifier = data["operatorIdentifier"]
+            data["identifier"] = f"{kind}-{operator_identifier}-{str(uuid.uuid4())[:8]}"
+
+        return data

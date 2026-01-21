@@ -2,23 +2,27 @@
 # SPDX-License-Identifier: MIT
 
 import uuid
+from typing import Annotated, Any
 
 import pydantic
 
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
+from orchestrator.utilities.pydantic import Defaultable
 
 
 class ActuatorConfigurationResource(ADOResource):
 
+    @staticmethod
+    def _identifier_from_data(data: dict[str, Any]) -> str:
+        return f"{data['kind'].value}-{data['config'].actuatorIdentifier}-{str(uuid.uuid4())[:8]}"
+
     version: str = "v1"
     kind: CoreResourceKinds = CoreResourceKinds.ACTUATORCONFIGURATION
     config: ActuatorConfiguration
-
-    @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self) -> "ActuatorConfigurationResource":
-
-        if self.identifier is None:
-            self.identifier = f"{self.kind.value}-{self.config.actuatorIdentifier}-{str(uuid.uuid4())[:8]}"
-
-        return self
+    identifier: Annotated[
+        Defaultable[str],
+        pydantic.Field(
+            default_factory=_identifier_from_data,
+        ),
+    ]

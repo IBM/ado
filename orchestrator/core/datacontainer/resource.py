@@ -10,6 +10,7 @@ import pydantic
 import orchestrator.utilities.location
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
+from orchestrator.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
@@ -143,19 +144,21 @@ class DataContainerResource(ADOResource):
     Note: Contained data must be a supported pydantic type.
     This model does not allow storage of arbitrary types"""
 
+    @staticmethod
+    def _identifier_from_data(data: dict[str, typing.Any]) -> str:
+        return f"{data['kind'].value}-{str(uuid.uuid4())[:8]}"
+
     version: Annotated[str, pydantic.Field()] = "v1"
     kind: Annotated[CoreResourceKinds, pydantic.Field()] = (
         CoreResourceKinds.DATACONTAINER
     )
     config: Annotated[DataContainer, pydantic.Field(description="A collection of data")]
-
-    @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self) -> "DataContainerResource":
-
-        if self.identifier is None:
-            self.identifier = f"{self.kind.value}-{str(uuid.uuid4())[:8]}"
-
-        return self
+    identifier: Annotated[
+        Defaultable[str],
+        pydantic.Field(
+            default_factory=_identifier_from_data,
+        ),
+    ]
 
     def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 

@@ -34,7 +34,7 @@ def semver_cmp(v1: tuple[int, ...], v2: tuple[int, ...]) -> int:
         v1 = tuple(list(v1) + [0] * (max_len - len(v1)))
 
     if max_len != len(v2):
-        v1 = tuple(list(v2) + [0] * (max_len - len(v2)))
+        v2 = tuple(list(v2) + [0] * (max_len - len(v2)))
 
     if v1 < v2:
         return -1
@@ -96,27 +96,24 @@ def _select_compatible_version(
     )
 
 
-def import_tuning_version(
-    version: str, path_to_thin_wrappers_directory: str | None = None
-) -> types.ModuleType:
-    """Loads the appropriate thin wrapper to fms-hf-tuning based on the desired version
+def get_wrapper_name_for_version(
+    version: str,
+    path_to_thin_wrappers_directory: str,
+) -> str:
+    """Returns the name of the wrapper script for a fms-hf-tuning version
 
     Args:
         version:
-            The version string, must be in the form %d.%d.%d
+            The version string, must be in the form %d(.%d)*
         path_to_thin_wrappers_directory:
-            The path to the directory containing the thin wrappers. When None uses the directory of this
-            file.
+            The path to the directory containing the thin wrappers
 
     Returns:
-        The python module
+        A string with the name of the python wrapper script (e.g. "at_least_3_0_0_1.py")
     """
     version = semver_parse(version)
 
     # VV: Make a list of all the candidate files, they are in the form of "at_least_$semver.py"
-    if path_to_thin_wrappers_directory is None:
-        path_to_thin_wrappers_directory = os.path.dirname(__file__)
-
     candidates: list[tuple[int, ...]] = []
 
     for name in os.listdir(path_to_thin_wrappers_directory):
@@ -137,7 +134,33 @@ def import_tuning_version(
         candidates=candidates, version=version
     )
 
-    module_name = "".join(("at_least_", "_".join(map(str, compatible_version))))
+    return "".join(("at_least_", "_".join(map(str, compatible_version))))
+
+
+def import_tuning_version(
+    version: str,
+    path_to_thin_wrappers_directory: str | None = None,
+) -> types.ModuleType:
+    """Loads the appropriate thin wrapper to fms-hf-tuning based on the desired version
+
+    Args:
+        version:
+            The version string, must be in the form %d(.%d)*
+        path_to_thin_wrappers_directory:
+            The path to the directory containing the thin wrappers. When None uses the directory of this
+            file.
+
+    Returns:
+        The python module
+    """
+    if path_to_thin_wrappers_directory is None:
+        path_to_thin_wrappers_directory = os.path.dirname(__file__)
+
+    module_name = get_wrapper_name_for_version(
+        version,
+        path_to_thin_wrappers_directory=path_to_thin_wrappers_directory,
+    )
+
     filename = "".join((module_name, ".py"))
     wrapper_file = os.path.join(
         path_to_thin_wrappers_directory,

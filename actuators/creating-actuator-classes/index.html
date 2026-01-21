@@ -50,53 +50,68 @@
 <span class=w>    </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">ado_actuators.myplugin.actuators</span>
 </code></pre></div> <h3 id=what-an-actuator-is-expected-to-do-on-submit>What an actuator is expected to do on <code>submit</code><a class=headerlink href=#what-an-actuator-is-expected-to-do-on-submit title="Permanent link">&para;</a></h3> <p>The key method of an <code>actuator</code> is the <code>submit</code> method as this is what runs an experiment. On a call to this method three things are expected to happen in the Actuator:</p> <ul> <li>One or more <code>MeasurementRequest</code> instances are created representing an execution of the experiment that was requested</li> <li><code>One or more</code> as the actuator can launch a separate experiment for each entity or one for them all. Which method is used depends on developer choice</li> <li>Launch the experiment asynchronously and return the <code>MeasurementRequest</code> identifier(s)</li> <li>i.e. It is expected that the <code>submit</code> method will return almost immediately and the requested experiments will be executed asynchronously</li> <li>When an experiment has finished</li> <li>Add the results to the relevant <code>MeasurementRequest</code> instance</li> <li>Put the <code>MeasurementRequest</code> on the <code>MeasurementQueue</code> that was provided to the actuator on <code>__init__</code></li> </ul> <p>From the <code>submit</code> callers point of view this means:</p> <ol type=1> <li>It expects to immediately get back a set of strings that are MeasurementRequest ids</li> <li>At some later time it will find MeasurementRequests with these ids on the <code>MeasurementQueue</code> containing the experiment results.</li> </ol> <p>For everything else the actuator developer is free to implement as they want.</p> <h2 id=enabling-custom-configuration-of-an-actuator>Enabling custom configuration of an actuator<a class=headerlink href=#enabling-custom-configuration-of-an-actuator title="Permanent link">&para;</a></h2> <p>Actuators may require a custom configuration (i.e., parameters) to be provided. For example, an actuator calling an inference server can require an endpoint to connect and its related authorisation token.</p> <p><code>ado</code> provides this capability through the <code>GenericActuatorParameters</code> class, which allows developers to define a Pydantic model of the parameters expected by the actuator. This model will be validated at runtime.</p> <p>To write your own actuator parameters class, simply create a class that inherits from <code>GenericActuatorParameters</code> and add a reference to it in the <code>parameters_class</code> class variable of your Actuator, as such:</p> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.core.actuatorconfiguration.config</span><span class=w> </span><span class=kn>import</span> <span class=n>GenericActuatorParameters</span>
 <span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.modules.actuators.base</span><span class=w> </span><span class=kn>import</span> <span class=n>ActuatorBase</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Annotated</span>
 <span class=kn>import</span><span class=w> </span><span class=nn>pydantic</span>
+
 
 <span class=k>class</span><span class=w> </span><span class=nc>InferenceActuatorParameters</span><span class=p>(</span><span class=n>GenericActuatorParameters</span><span class=p>):</span>
     <span class=n>model_config</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>ConfigDict</span><span class=p>(</span><span class=n>extra</span><span class=o>=</span><span class=s2>&quot;forbid&quot;</span><span class=p>)</span>
 
-    <span class=n>endpoint</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
-    <span class=n>authToken</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
+    <span class=n>endpoint</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>authToken</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+
 
 <span class=nd>@ray</span><span class=o>.</span><span class=n>remote</span>
 <span class=k>class</span><span class=w> </span><span class=nc>Actuator</span><span class=p>(</span><span class=n>ActuatorBase</span><span class=p>):</span>
     <span class=n>identifier</span> <span class=o>=</span> <span class=s2>&quot;my_actuator&quot;</span>
     <span class=n>parameters_class</span> <span class=o>=</span> <span class=n>InferenceActuatorParameters</span>
 </code></pre></div> <h3 id=example-custom-configurations>Example custom configurations<a class=headerlink href=#example-custom-configurations title="Permanent link">&para;</a></h3> <p>Users can obtain an example configuration for your actuator using:</p> <div class=highlight><pre><span></span><code>ado template actuatorconfiguration --actuator-identifier $YOUR_ACTUATOR_ID`
-</code></pre></div> <p>This example is generated by calling <code>model_construct()</code> on your actuator parameter class. This means</p> <ul> <li>default values you specify for fields are output</li> <li>you need default values for all fields</li> <li>the defaults are not validated</li> </ul> <p>This is useful when your configuration has required fields, i.e., you need the user to supply them and can't set a default value for them. This way, the generated example template will include those fields, but <code>ado</code> will catch any missing or incorrect values when the user is creating the <code>actuatorconfiguration</code> resource.</p> <p>For example, you can declare a required field like this</p> <div class=highlight><pre><span></span><code><span class=n>authToken</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-    <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
-    <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>              <span class=c1># &lt;--- value that will be written for examples. It is actually invalid</span>
-    <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>     <span class=c1># &lt;--- This will check if the value is None and raise an error if it is i.e. if the example value was not changed</span>
-<span class=p>)</span>
+</code></pre></div> <p>This example is generated by calling <code>model_construct()</code> on your actuator parameter class. This means</p> <ul> <li>default values you specify for fields are output</li> <li>you need default values for all fields</li> <li>the defaults are not validated</li> </ul> <p>This is useful when your configuration has required fields, i.e., you need the user to supply them and can't set a default value for them. This way, the generated example template will include those fields, but <code>ado</code> will catch any missing or incorrect values when the user is creating the <code>actuatorconfiguration</code> resource.</p> <p>For example, you can declare a required field like this</p> <div class=highlight><pre><span></span><code><span class=n>authToken</span><span class=p>:</span> <span class=n>typing</span><span class=o>.</span><span class=n>Annotated</span><span class=p>[</span>
+    <span class=nb>str</span><span class=p>,</span>
+    <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
+        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>  <span class=c1># &lt;--- This will check if the value is None and raise an error if it is i.e. if the example value was not changed</span>
+    <span class=p>),</span>
+<span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>  <span class=c1># &lt;--- value that will be written for examples. It is actually invalid</span>
 </code></pre></div> <p>If you have no required fields, you may want <code>ado</code> to validate your default values before outputting them. This is useful for e.g. tests, to ensure there isn't an error with the defaults. To do this you can override the <code>default_parameters</code> method in your Actuator to turn validation on e.g.</p> <div class=highlight><pre><span></span><code><span class=nd>@override</span>
 <span class=k>def</span><span class=w> </span><span class=nf>default_parameters</span><span class=p>(</span><span class=bp>self</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>GenericActuatorParameters</span><span class=p>:</span>
     <span class=k>return</span> <span class=n>MyActuatorParams</span><span class=p>()</span>
 </code></pre></div> <h3 id=using-custom-actuatorconfiguration-parameters>Using custom ActuatorConfiguration parameters<a class=headerlink href=#using-custom-actuatorconfiguration-parameters title="Permanent link">&para;</a></h3> <p>Once users have set the relevant values for your actuator in a YAML file they can create an <code>actuatorconfiguration</code> resource from them</p> <div class=highlight><pre><span></span><code>ado create actuatorconfiguration -f $FILLED_IN_TEMPLATE
 </code></pre></div> <p>The <a href=../../resources/actuatorconfig/ >actuatorconfiguration resource documentation</a> contains for more information on how users will create and supply actuator parameters to your actuator.</p> <h3 id=how-the-custom-configuration-is-stored-and-output>How the custom configuration is stored and output<a class=headerlink href=#how-the-custom-configuration-is-stored-and-output title="Permanent link">&para;</a></h3> <p>When storing an instance of your custom configuration model in <a href=../../resources/metastore/ >the metastore</a>, the serialized representation is obtained using <code>model_dump_json()</code> with <strong>no options</strong>.</p> <p>When outputting for <code>ado get actuatorconfiguration</code>, the serialized representation is also obtained with <code>model_dump_json()</code>, and the schema with <code>model_json_schema()</code>. In this case various options to <code>model_dump_json</code> or <code>model_json_schema</code> may be used, e.g. <code>exclude_unset=True</code>.</p> <p>When outputting for <code>ado template actuatorconfiguration</code>, <code>model_construct()</code> is used by default as described in the previous section.</p> <h2 id=how-to-update-your-actuators-custom-configuration>How to update your actuator's custom configuration<a class=headerlink href=#how-to-update-your-actuators-custom-configuration title="Permanent link">&para;</a></h2> <p>During development, there will be times when you might need to update the input parameter model for your actuator, adding, removing or modifying fields. In these cases, it's important not to break backwards compatibility (where possible) while making sure that users are aware of the changes to the model and do not rely indefinitely on the model being auto upgraded.</p> <p>In ado, we recommend using Pydantic before validators coupled with the <code>ado upgrade</code> command. At a high level, you should:</p> <ol type=1> <li>Use a before validator to create a temporary upgrade path for your model.</li> <li>Enable a warning in this validator using the provided support functions (described below). This warning will inform users that an upgrade is needed. The support function will automatically print the command to upgrade stored model versions and remove the warning. It will also display a message indicating that auto-upgrade functionality will be removed in a future release.</li> <li>Remove the upgrade path in the specified future version.</li> </ol> <p>Let's see a practical example using <code>MyActuatorParams</code>. We will consider two cases:</p> <ul> <li>We want to deprecate a field.</li> <li>We want to apply changes to a field without deprecating it.</li> </ul> <h3 id=deprecating-a-field-in-your-actuators-custom-configuration>Deprecating a field in your actuator's custom configuration<a class=headerlink href=#deprecating-a-field-in-your-actuators-custom-configuration title="Permanent link">&para;</a></h3> <p>Let's imagine we want to change the name of the <code>authToken</code> field to be <code>authorization_token</code>. The model for our actuator v2 would then be:</p> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.core.actuatorconfiguration.config</span><span class=w> </span><span class=kn>import</span> <span class=n>GenericActuatorParameters</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Annotated</span>
 <span class=kn>import</span><span class=w> </span><span class=nn>pydantic</span>
+
 
 <span class=k>class</span><span class=w> </span><span class=nc>InferenceActuatorParameters</span><span class=p>(</span><span class=n>GenericActuatorParameters</span><span class=p>):</span>
     <span class=n>model_config</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>ConfigDict</span><span class=p>(</span><span class=n>extra</span><span class=o>=</span><span class=s2>&quot;forbid&quot;</span><span class=p>)</span>
 
-    <span class=n>endpoint</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
-    <span class=n>authorization_token</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
-</code></pre></div> <p>To enable upgrading of the previous model versions when fields are being deprecated, we recommended using a <a href=https://docs.pydantic.dev/latest/concepts/validators/#model-before-validator>Pydantic Before Model Validator</a>. This allows the dictionary content of the model to be changed as appropriate before validation is applied. To ensure the users are aware of the change, we will also use the <code>warn_deprecated_actuator_parameters_model_in_use</code> method in the validator:</p> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Any</span>
+    <span class=n>endpoint</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>authorization_token</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+</code></pre></div> <p>To enable upgrading of the previous model versions when fields are being deprecated, we recommended using a <a href=https://docs.pydantic.dev/latest/concepts/validators/#model-before-validator>Pydantic Before Model Validator</a>. This allows the dictionary content of the model to be changed as appropriate before validation is applied. To ensure the users are aware of the change, we will also use the <code>warn_deprecated_actuator_parameters_model_in_use</code> method in the validator:</p> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Annotated</span><span class=p>,</span> <span class=n>Any</span>
 
 <span class=kn>import</span><span class=w> </span><span class=nn>pydantic</span>
 
@@ -105,16 +120,20 @@
 <span class=k>class</span><span class=w> </span><span class=nc>InferenceActuatorParameters</span><span class=p>(</span><span class=n>GenericActuatorParameters</span><span class=p>):</span>
     <span class=n>model_config</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>ConfigDict</span><span class=p>(</span><span class=n>extra</span><span class=o>=</span><span class=s2>&quot;forbid&quot;</span><span class=p>)</span>
 
-    <span class=n>endpoint</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
-    <span class=n>authorization_token</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
+    <span class=n>endpoint</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>authorization_token</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
 
     <span class=nd>@pydantic</span><span class=o>.</span><span class=n>model_validator</span><span class=p>(</span><span class=n>mode</span><span class=o>=</span><span class=s2>&quot;before&quot;</span><span class=p>)</span>
     <span class=nd>@classmethod</span>
@@ -193,37 +212,47 @@
 HINT:   Run ado upgrade actuatorconfigurations to upgrade the stored actuatorconfigurations.
         Update your actuatorconfiguration YAML files to use the latest format: https://example.com
 </code></pre></div> <h3 id=updating-a-field-in-your-actuators-configuration-without-deprecating-it>Updating a field in your actuator's configuration without deprecating it<a class=headerlink href=#updating-a-field-in-your-actuators-configuration-without-deprecating-it title="Permanent link">&para;</a></h3> <p>Let's imagine we want to change the type of the <code>endpoint</code> field to be <code>pydantic.HttpUrl</code>. The model for our actuator v2 would then be:</p> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.core.actuatorconfiguration.config</span><span class=w> </span><span class=kn>import</span> <span class=n>GenericActuatorParameters</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Annotated</span>
 <span class=kn>import</span><span class=w> </span><span class=nn>pydantic</span>
 
 <span class=k>class</span><span class=w> </span><span class=nc>InferenceActuatorParameters</span><span class=p>(</span><span class=n>GenericActuatorParameters</span><span class=p>):</span>
     <span class=n>model_config</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>ConfigDict</span><span class=p>(</span><span class=n>extra</span><span class=o>=</span><span class=s2>&quot;forbid&quot;</span><span class=p>)</span>
 
-    <span class=n>endpoint</span><span class=p>:</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>HttpUrl</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
-    <span class=n>authToken</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
+    <span class=n>endpoint</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>HttpUrl</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>authToken</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
 </code></pre></div> <p>To enable upgrading of the previous model versions when fields are not being deprecated, we recommended using a <a href=https://docs.pydantic.dev/latest/concepts/validators/#field-before-validator>Pydantic Before Field Validator</a>. This allows the specific field to be changed as appropriate before validation is applied. To ensure the users are aware of the change, we will also use the <code>warn_deprecated_actuator_parameters_model_in_use</code> method in the validator:</p> <div class="admonition note"> <p class=admonition-title>Note</p> <p>The method being called is the same as the one for <a href=#deprecating-a-field-in-your-actuators-custom-configuration>warning about deprecated fields</a>, but we omit the <code>deprecated_fields</code> parameter.</p> </div> <div class=highlight><pre><span></span><code><span class=kn>from</span><span class=w> </span><span class=nn>orchestrator.core.actuatorconfiguration.config</span><span class=w> </span><span class=kn>import</span> <span class=n>GenericActuatorParameters</span>
+<span class=kn>from</span><span class=w> </span><span class=nn>typing</span><span class=w> </span><span class=kn>import</span> <span class=n>Annotated</span>
 <span class=kn>import</span><span class=w> </span><span class=nn>pydantic</span>
 
 <span class=k>class</span><span class=w> </span><span class=nc>InferenceActuatorParameters</span><span class=p>(</span><span class=n>GenericActuatorParameters</span><span class=p>):</span>
     <span class=n>model_config</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>ConfigDict</span><span class=p>(</span><span class=n>extra</span><span class=o>=</span><span class=s2>&quot;forbid&quot;</span><span class=p>)</span>
 
-    <span class=n>endpoint</span><span class=p>:</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>HttpUrl</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
-    <span class=n>authToken</span><span class=p>:</span> <span class=nb>str</span> <span class=o>=</span> <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
-        <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
-        <span class=n>default</span><span class=o>=</span><span class=kc>None</span><span class=p>,</span>
-        <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-    <span class=p>)</span>
+    <span class=n>endpoint</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>HttpUrl</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;Endpoint to an inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
+    <span class=n>authToken</span><span class=p>:</span> <span class=n>Annotated</span><span class=p>[</span>
+        <span class=nb>str</span><span class=p>,</span>
+        <span class=n>pydantic</span><span class=o>.</span><span class=n>Field</span><span class=p>(</span>
+            <span class=n>description</span><span class=o>=</span><span class=s2>&quot;The token to access the inference service&quot;</span><span class=p>,</span>
+            <span class=n>validate_default</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+        <span class=p>),</span>
+    <span class=p>]</span> <span class=o>=</span> <span class=kc>None</span>
 
     <span class=nd>@pydantic</span><span class=o>.</span><span class=n>field_validator</span><span class=p>(</span><span class=s2>&quot;endpoint&quot;</span><span class=p>,</span> <span class=n>mode</span><span class=o>=</span><span class=s2>&quot;before&quot;</span><span class=p>)</span>
     <span class=nd>@classmethod</span>

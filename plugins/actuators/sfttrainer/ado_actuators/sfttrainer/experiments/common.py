@@ -12,6 +12,7 @@ import functools
 import logging
 import os
 import typing
+from typing import Annotated
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import pydantic
@@ -527,104 +528,141 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
 
     # VV: If you're updating these, then make sure you also update domain_for_constitutive_property()
     # the code uses `examples` to populate the categorical values of the constitutive property's domain
-    model_name: str = pydantic.Field(
-        examples=sorted(ModelMap.keys()),
-        description="The huggingface name or path to the model",
-    )
-    model_max_length: int = pydantic.Field(
-        examples=[512, 2048, 8192],
-        description="The maximum context size. Dataset entries with more tokens they are truncated. Entries with "
-        "fewer are padded",
-    )
+    model_name: Annotated[
+        str,
+        pydantic.Field(
+            examples=sorted(ModelMap.keys()),
+            description="The huggingface name or path to the model",
+        ),
+    ]
+    model_max_length: Annotated[
+        int,
+        pydantic.Field(
+            examples=[512, 2048, 8192],
+            description="The maximum context size. Dataset entries with more tokens they are truncated. Entries with "
+            "fewer are padded",
+        ),
+    ]
 
-    dataset_id: str = pydantic.Field(
-        default="news-tokens-16384plus-entries-4096",
-        examples=sorted(DatasetMap.keys()),
-        description="The identifier of the dataset to use for training",
-    )
+    dataset_id: Annotated[
+        str,
+        pydantic.Field(
+            examples=sorted(DatasetMap.keys()),
+            description="The identifier of the dataset to use for training",
+        ),
+    ] = "news-tokens-16384plus-entries-4096"
 
-    batch_size: int = pydantic.Field(
-        examples=[1, 16, 128], description="The total batch size to use"
-    )
+    batch_size: Annotated[
+        int,
+        pydantic.Field(
+            examples=[1, 16, 128], description="The total batch size to use"
+        ),
+    ]
 
     # VV: These represent optional properties
-    peft_method: typing.Literal["pt", "lora"] | None = pydantic.Field(
-        # VV: We auto convert `"full"` into `None`
-        examples=["full", "lora", "pt"],
-        description='The tuning method. Set to "full" to perform full finetuning',
-    )
+    peft_method: Annotated[
+        typing.Literal["pt", "lora"] | None,
+        pydantic.Field(
+            # VV: We auto convert `"full"` into `None`
+            examples=["full", "lora", "pt"],
+            description='The tuning method. Set to "full" to perform full finetuning',
+        ),
+    ]
 
-    gradient_checkpointing: bool = pydantic.Field(
-        default=True,
-        examples=[True, False],
-        description="If True, use gradient checkpointing to save memory (i.e. higher batchsizes) at the expense "
-        "of slower backward pass",
-    )
+    gradient_checkpointing: Annotated[
+        bool,
+        pydantic.Field(
+            examples=[True, False],
+            description="If True, use gradient checkpointing to save memory (i.e. higher batchsizes) at the expense "
+            "of slower backward pass",
+        ),
+    ] = True
 
-    torch_dtype: str = pydantic.Field(
-        default="bfloat16",
-        examples=["bfloat16", "float16", "float32"],
-        description="The torch datatype to use",
-    )
+    torch_dtype: Annotated[
+        str,
+        pydantic.Field(
+            examples=["bfloat16", "float16", "float32"],
+            description="The torch datatype to use",
+        ),
+    ] = "bfloat16"
 
-    gradient_accumulation_steps: int = pydantic.Field(
-        default=4,
-        examples=[4],
-        description="Number of update steps to accumulate before performing a backward/update pass.",
-    )
+    gradient_accumulation_steps: Annotated[
+        int,
+        pydantic.Field(
+            examples=[4],
+            description="Number of update steps to accumulate before performing a backward/update pass.",
+        ),
+    ] = 4
 
     # VV: tuning.sft_trainer interprets max_steps and num_train_epochs together
-    max_steps: int = pydantic.Field(
-        -1,
-        examples=[-1, 5],
-        description="The number of optimization steps to perform. Set to -1 to respect num_train_epochs instead",
-    )
-    num_train_epochs: float = pydantic.Field(
-        1.0,
-        examples=[1.0],
-        description="How many epochs to run. Ignored if max_steps is greater than 0",
-    )
-    stop_after_seconds: float = pydantic.Field(
-        default=-1.0,
-        examples=[-1, 60 * 10],
-        description="If set, the optimizer will be asked to stop after the specified time elapses. "
-        "The check is performed after the end of each training step.",
-    )
+    max_steps: Annotated[
+        int,
+        pydantic.Field(
+            examples=[-1, 5],
+            description="The number of optimization steps to perform. Set to -1 to respect num_train_epochs instead",
+        ),
+    ] = -1
+    num_train_epochs: Annotated[
+        float,
+        pydantic.Field(
+            examples=[1.0],
+            description="How many epochs to run. Ignored if max_steps is greater than 0",
+        ),
+    ] = 1.0
+    stop_after_seconds: Annotated[
+        float,
+        pydantic.Field(
+            examples=[-1, 60 * 10],
+            description="If set, the optimizer will be asked to stop after the specified time elapses. "
+            "The check is performed after the end of each training step.",
+        ),
+    ] = -1.0
 
-    auto_stop_method: constants.AutoStopMethod | None = pydantic.Field(
-        default=None,
-        examples=[
-            constants.AutoStopMethod.WARMUP_60S_STABLE_120S_OR_10_STEPS.value,
-            None,
-        ],
-        description="The default value is `None`. This parameter defines the method used to automatically "
-        "stop the fine-tuning job. Supported values are `WARMUP_60S_STABLE_120S_OR_10_STEPS` and "
-        "`None`. If set to `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least "
-        "60 seconds in the warmup phase plus the longer of 120 seconds or the duration of 10 "
-        "optimization steps. This method excludes the first 60 seconds of training when calculating "
-        "throughput and system metrics.",
-    )
+    auto_stop_method: Annotated[
+        constants.AutoStopMethod | None,
+        pydantic.Field(
+            examples=[
+                constants.AutoStopMethod.WARMUP_60S_STABLE_120S_OR_10_STEPS.value,
+                None,
+            ],
+            description="The default value is `None`. This parameter defines the method used to automatically "
+            "stop the fine-tuning job. Supported values are `WARMUP_60S_STABLE_120S_OR_10_STEPS` and "
+            "`None`. If set to `WARMUP_60S_STABLE_120S_OR_10_STEPS`, the job stops after spending at least "
+            "60 seconds in the warmup phase plus the longer of 120 seconds or the duration of 10 "
+            "optimization steps. This method excludes the first 60 seconds of training when calculating "
+            "throughput and system metrics.",
+        ),
+    ] = None
 
     # VV: lora specific parameters
-    r: int = pydantic.Field(4, examples=[4, 8, 16], description="The LORA rank")
+    r: Annotated[
+        int, pydantic.Field(examples=[4, 8, 16], description="The LORA rank")
+    ] = 4
 
-    lora_alpha: int = pydantic.Field(
-        16, examples=[16], description="LORA Alpha scales the learning weights"
-    )
+    lora_alpha: Annotated[
+        int,
+        pydantic.Field(
+            examples=[16], description="LORA Alpha scales the learning weights"
+        ),
+    ] = 16
 
-    fast_moe: list[int] | None = pydantic.Field(
-        # VV: Here "0" is a stand in for "disabled" -> we translate this into a None via pydantic
-        default=0,
-        examples=[0, 1, 2, 4, 8],
-        description="Configures the amount of expert parallel sharding. number_gpus must be divisible by it",
-    )
+    fast_moe: Annotated[
+        list[int] | None,
+        pydantic.Field(
+            # VV: Here "0" is a stand in for "disabled" -> we translate this into a None via pydantic
+            examples=[0, 1, 2, 4, 8],
+            description="Configures the amount of expert parallel sharding. number_gpus must be divisible by it",
+        ),
+    ] = 0
 
-    fast_kernels: list[str] | None = pydantic.Field(
-        default=None,
-        description="Switches on fast kernels, the value is a list with strings of boolean values for "
-        "[fast_loss, fast_rms_layernorm, fast_rope_embeddings]",
-        examples=[None, ["True", "True", "True"]],
-    )
+    fast_kernels: Annotated[
+        list[str] | None,
+        pydantic.Field(
+            description="Switches on fast kernels, the value is a list with strings of boolean values for "
+            "[fast_loss, fast_rms_layernorm, fast_rope_embeddings]",
+            examples=[None, ["True", "True", "True"]],
+        ),
+    ] = None
 
     # VV: TAG: @HF_RAM_Efficient_Training
     # VV: These are all parameters that the huggingface blogpost on RAM efficient training uses
@@ -632,65 +670,81 @@ class SFTTrainerCLIArgs(pydantic.BaseModel):
     # The default values are all set to those we used for the default finetune v1.0.0 experiment i.e.
     # transformers v4.45.2 as that's the version fms-hf-tuning v2.1.2 uses
 
-    optim: str = pydantic.Field(
-        default="adamw_torch",
-        description="The optimizer to use.",
-        examples=VALUES_TRANSFORMERS_ARGUMENT_OPTIM,
-    )
+    optim: Annotated[
+        str,
+        pydantic.Field(
+            description="The optimizer to use.",
+            examples=VALUES_TRANSFORMERS_ARGUMENT_OPTIM,
+        ),
+    ] = "adamw_torch"
 
-    bf16: bool = pydantic.Field(
-        default=False,
-        description="Whether to use bf16 (mixed) precision instead of 32-bit. "
-        "Requires Ampere or higher NVIDIA add bf16 mixed precision support for NPU "
-        "architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental API and it may change.",
-        examples=[False, True],
-    )
+    bf16: Annotated[
+        bool,
+        pydantic.Field(
+            description="Whether to use bf16 (mixed) precision instead of 32-bit. "
+            "Requires Ampere or higher NVIDIA add bf16 mixed precision support for NPU "
+            "architecture or using CPU (use_cpu) or Ascend NPU. This is an experimental API and it may change.",
+            examples=[False, True],
+        ),
+    ] = False
 
-    gradient_checkpointing_use_reentrant: bool = pydantic.Field(
-        default=False,
-        description="Specify whether to use the activation checkpoint variant that requires reentrant autograd. "
-        "This parameter should be passed explicitly. Torch version 2.5 will raise an exception "
-        "if use_reentrant is not passed. If use_reentrant=False, checkpoint will use an implementation "
-        "that does not require reentrant autograd. This allows checkpoint to support additional functionality, "
-        "such as working as expected with torch.autograd.grad and support for keyword arguments input "
-        "into the checkpointed function.",
-        examples=[False, True],
-    )
+    gradient_checkpointing_use_reentrant: Annotated[
+        bool,
+        pydantic.Field(
+            description="Specify whether to use the activation checkpoint variant that requires reentrant autograd. "
+            "This parameter should be passed explicitly. Torch version 2.5 will raise an exception "
+            "if use_reentrant is not passed. If use_reentrant=False, checkpoint will use an implementation "
+            "that does not require reentrant autograd. This allows checkpoint to support additional functionality, "
+            "such as working as expected with torch.autograd.grad and support for keyword arguments input "
+            "into the checkpointed function.",
+            examples=[False, True],
+        ),
+    ] = False
 
     # VV: for image-to-text (vision) models
-    dataset_text_field: str | None = pydantic.Field(
-        default="output",
-        examples=["output", "messages"],
-        description="Training dataset text field containing single sequence. "
-        "Either the dataset_text_field "
-        "or data_formatter_template need to be supplied. "
-        "For running vision language model tuning pass the column name for text data.",
-    )
+    dataset_text_field: Annotated[
+        str | None,
+        pydantic.Field(
+            examples=["output", "messages"],
+            description="Training dataset text field containing single sequence. "
+            "Either the dataset_text_field "
+            "or data_formatter_template need to be supplied. "
+            "For running vision language model tuning pass the column name for text data.",
+        ),
+    ] = "output"
 
-    dataset_image_field: str | None = pydantic.Field(
-        default=None,
-        examples=[None, "images"],
-        description="For running vision language model tuning pass "
-        "the column name of the image data in the dataset.",
-    )
+    dataset_image_field: Annotated[
+        str | None,
+        pydantic.Field(
+            examples=[None, "images"],
+            description="For running vision language model tuning pass "
+            "the column name of the image data in the dataset.",
+        ),
+    ] = None
 
-    remove_unused_columns: bool | None = pydantic.Field(
-        default=True,
-        examples=[True, False],
-        description="Remove columns not required by the model when using an nlp.Dataset.",
-    )
+    remove_unused_columns: Annotated[
+        bool | None,
+        pydantic.Field(
+            examples=[True, False],
+            description="Remove columns not required by the model when using an nlp.Dataset.",
+        ),
+    ] = True
 
-    dataset_kwargs_skip_prepare_dataset: bool | None = pydantic.Field(
-        default=False,
-        examples=[True, False],
-        description="When True, configures trl to skip preparing the dataset.",
-    )
+    dataset_kwargs_skip_prepare_dataset: Annotated[
+        bool | None,
+        pydantic.Field(
+            examples=[True, False],
+            description="When True, configures trl to skip preparing the dataset.",
+        ),
+    ] = False
 
-    flash_attn: bool = pydantic.Field(
-        default=True,
-        examples=[True, False],
-        description="Use Flash attention v2 from transformers",
-    )
+    flash_attn: Annotated[
+        bool,
+        pydantic.Field(
+            examples=[True, False],
+            description="Use Flash attention v2 from transformers",
+        ),
+    ] = True
 
     @pydantic.field_validator("peft_method", mode="before")
     def upgrade_peft_method(cls, value: str) -> str | None:
@@ -743,127 +797,152 @@ class EntitySpace(SFTTrainerCLIArgs):
     # the code uses `examples` to populate the categorical values of the constitutive property's domain
 
     # VV: no examples as the number of gpus depends on whether you're using FSDP, DDP, or DP
-    number_gpus: int = pydantic.Field(
-        examples=[0, 1, 2, 4, 8],
-        description="The total number of GPUs to use",
-        exclude=True,
-    )
+    number_gpus: Annotated[
+        int,
+        pydantic.Field(
+            examples=[0, 1, 2, 4, 8],
+            description="The total number of GPUs to use",
+            exclude=True,
+        ),
+    ]
 
-    gpu_model: str | None = pydantic.Field(
-        default=None,
-        examples=[
-            None,
-            "NVIDIA-A100-SXM4-80GB",
-            "NVIDIA-A100-80GB-PCIe",
-            "Tesla-T4",
-            "L40S",
-            "Tesla-V100-PCIE-16GB",
-            "NVIDIA-H100-PCIe",
-            "NVIDIA-H100-80GB-HBM3",
-        ],
-        description="The GPU model to use",
-        exclude=True,
-    )
+    gpu_model: Annotated[
+        str | None,
+        pydantic.Field(
+            examples=[
+                None,
+                "NVIDIA-A100-SXM4-80GB",
+                "NVIDIA-A100-80GB-PCIe",
+                "Tesla-T4",
+                "L40S",
+                "Tesla-V100-PCIE-16GB",
+                "NVIDIA-H100-PCIe",
+                "NVIDIA-H100-80GB-HBM3",
+            ],
+            description="The GPU model to use",
+            exclude=True,
+        ),
+    ] = None
 
-    distributed_backend: typing.Literal["DDP", "FSDP"] | None = pydantic.Field(
-        default="FSDP",
-        examples=["DDP", "FSDP", "None"],
-        description="Which pytorch backend to use when training with multiple GPU devices",
-        exclude=True,
-    )
+    distributed_backend: Annotated[
+        typing.Literal["DDP", "FSDP"] | None,
+        pydantic.Field(
+            examples=["DDP", "FSDP", "None"],
+            description="Which pytorch backend to use when training with multiple GPU devices",
+            exclude=True,
+        ),
+    ] = "FSDP"
 
-    number_nodes: int = pydantic.Field(
-        1,
-        examples=[1, 2, 3, 4],
-        description="If set, actuator distributes tasks on multiple nodes. "
-        "Each Node will use number_gpus/number_nodes GPUs. "
-        "Each Node will use 1 process for each GPU it uses",
-        exclude=True,
-    )
+    number_nodes: Annotated[
+        int,
+        pydantic.Field(
+            examples=[1, 2, 3, 4],
+            description="If set, actuator distributes tasks on multiple nodes. "
+            "Each Node will use number_gpus/number_nodes GPUs. "
+            "Each Node will use 1 process for each GPU it uses",
+            exclude=True,
+        ),
+    ] = 1
 
-    fms_hf_tuning_version: str | None = pydantic.Field(
-        # VV: In #1175 we decided that we're not going to update the default value of this experiment
-        default="2.1.2",
-        examples=list(FMS_HF_TUNING_VERSION),
-        description="The version of fms-hf-tuning to use - controls which wrapper to use "
-        "as well as python dependencies",
-        exclude=True,
-    )
+    # VV: In #1175 we decided that we're not going to update the default value of this experiment
+    fms_hf_tuning_version: Annotated[
+        str | None,
+        pydantic.Field(
+            examples=list(FMS_HF_TUNING_VERSION),
+            description="The version of fms-hf-tuning to use - controls which wrapper to use "
+            "as well as python dependencies",
+            exclude=True,
+        ),
+    ] = "2.1.2"
 
-    enable_roce: bool = pydantic.Field(
-        False,
-        examples=[False, True],
-        description="This setting is only in effect for multi-node runs. "
-        "It controls whether RDMA over Converged Ethernet (RoCE) is switched on or not",
-        exclude=True,
-    )
+    enable_roce: Annotated[
+        bool,
+        pydantic.Field(
+            examples=[False, True],
+            description="This setting is only in effect for multi-node runs. "
+            "It controls whether RDMA over Converged Ethernet (RoCE) is switched on or not",
+            exclude=True,
+        ),
+    ] = False
 
     # VV: TAG: @HF_RAM_Efficient_Training
     # VV: These are settings we need to replicate the huggingface post we store them in DistributedSettings
-    fsdp_sharding_strategy: typing.Literal[
-        "FULL_SHARD", "SHARD_GRAD_OP", "NO_SHARD", "HYBRID_SHARD", "HYBRID_SHARD_ZERO2"
-    ] = pydantic.Field(
-        default="FULL_SHARD",
-        description="[1] FULL_SHARD (shards optimizer states, gradients and parameters), "
-        "[2] SHARD_GRAD_OP (shards optimizer states and gradients), "
-        "[3] NO_SHARD (DDP), "
-        "[4] HYBRID_SHARD (shards optimizer states, gradients and parameters within each node "
-        "while each node has full copy - equivalent to FULL_SHARD for single-node runs), "
-        "[5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients within each node while each node has "
-        "full copy). For more information, please refer the official PyTorch docs.",
-        examples=[
+    fsdp_sharding_strategy: Annotated[
+        typing.Literal[
             "FULL_SHARD",
             "SHARD_GRAD_OP",
             "NO_SHARD",
             "HYBRID_SHARD",
             "HYBRID_SHARD_ZERO2",
         ],
-        exclude=True,
-    )
-
-    fsdp_state_dict_type: typing.Literal[
-        "FULL_STATE_DICT", "LOCAL_STATE_DICT", "SHARDED_STATE_DICT"
-    ] = pydantic.Field(
-        default="FULL_STATE_DICT",
-        description="[1] FULL_STATE_DICT, [2] LOCAL_STATE_DICT, [3] SHARDED_STATE_DICT",
-        examples=["FULL_STATE_DICT", "LOCAL_STATE_DICT", "SHARDED_STATE_DICT"],
-        exclude=True,
-    )
-
-    fsdp_use_orig_params: bool = pydantic.Field(
-        default=True,
-        description="If True, allows non-uniform `requires_grad` during init, which means support for "
-        "interspersed frozen and trainable parameters. (useful only when `use_fsdp` flag is passed).",
-        exclude=True,
-        examples=[False, True],
-    )
-
-    accelerate_config_mixed_precision: typing.Literal["no", "fp16", "bf16", "fp8"] = (
         pydantic.Field(
-            default="no",
-            examples=["no", "fp16", "bf16", "fp8"],
-            description="Whether or not to use mixed precision training. Choose from 'no', 'fp16', 'bf16' or 'fp8'. "
-            "'fp8' requires the installation of transformers-engine.",
+            description="[1] FULL_SHARD (shards optimizer states, gradients and parameters), "
+            "[2] SHARD_GRAD_OP (shards optimizer states and gradients), "
+            "[3] NO_SHARD (DDP), "
+            "[4] HYBRID_SHARD (shards optimizer states, gradients and parameters within each node "
+            "while each node has full copy - equivalent to FULL_SHARD for single-node runs), "
+            "[5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients within each node while each node has "
+            "full copy). For more information, please refer the official PyTorch docs.",
+            examples=[
+                "FULL_SHARD",
+                "SHARD_GRAD_OP",
+                "NO_SHARD",
+                "HYBRID_SHARD",
+                "HYBRID_SHARD_ZERO2",
+            ],
             exclude=True,
-        )
-    )
-
-    accelerate_config_fsdp_transformer_layer_cls_to_wrap: str | None = pydantic.Field(
-        default=None,
-        examples=[
-            None,
-            "GraniteDecoderLayer",
-            "LlamaDecoderLayer",
-            "MistralDecoderLayer",
-            "GPTJBlock",
-            "T5Block",
-        ],
-        description=(
-            "List of transformer layer class names (case-sensitive) to wrap, e.g, BertLayer, "
-            "GraniteDecoderLayer, GPTJBlock, T5Block ... (useful only when using FSDP)"
         ),
-        exclude=True,
-    )
+    ] = "FULL_SHARD"
+
+    fsdp_state_dict_type: Annotated[
+        typing.Literal["FULL_STATE_DICT", "LOCAL_STATE_DICT", "SHARDED_STATE_DICT"],
+        pydantic.Field(
+            description="[1] FULL_STATE_DICT, [2] LOCAL_STATE_DICT, [3] SHARDED_STATE_DICT",
+            examples=["FULL_STATE_DICT", "LOCAL_STATE_DICT", "SHARDED_STATE_DICT"],
+            exclude=True,
+        ),
+    ] = "FULL_STATE_DICT"
+
+    fsdp_use_orig_params: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True, allows non-uniform `requires_grad` during init, which means support for "
+            "interspersed frozen and trainable parameters. (useful only when `use_fsdp` flag is passed).",
+            exclude=True,
+            examples=[False, True],
+        ),
+    ] = True
+
+    accelerate_config_mixed_precision: Annotated[
+        typing.Literal["no", "fp16", "bf16", "fp8"],
+        (
+            pydantic.Field(
+                examples=["no", "fp16", "bf16", "fp8"],
+                description="Whether or not to use mixed precision training. Choose from 'no', 'fp16', 'bf16' or 'fp8'. "
+                "'fp8' requires the installation of transformers-engine.",
+                exclude=True,
+            )
+        ),
+    ] = "no"
+
+    accelerate_config_fsdp_transformer_layer_cls_to_wrap: Annotated[
+        str | None,
+        pydantic.Field(
+            examples=[
+                None,
+                "GraniteDecoderLayer",
+                "LlamaDecoderLayer",
+                "MistralDecoderLayer",
+                "GPTJBlock",
+                "T5Block",
+            ],
+            description=(
+                "List of transformer layer class names (case-sensitive) to wrap, e.g, BertLayer, "
+                "GraniteDecoderLayer, GPTJBlock, T5Block ... (useful only when using FSDP)"
+            ),
+            exclude=True,
+        ),
+    ] = None
 
     @pydantic.field_validator("dataset_id")
     def val_dataset_id(cls, value: str) -> str:
@@ -1044,29 +1123,37 @@ class ExperimentParameters(pydantic.BaseModel):
         extra="forbid", protected_namespaces=(), use_enum_values=True
     )
 
-    multi_node: bool | None = pydantic.Field(
-        None,
-        description="Set for experiments which can only do one of multi-node or single-gpu measurements",
-        exclude=True,
-    )
-    # VV: For example 4.0
-    num_train_epochs: float = 1.0
-    max_steps: int = -1
+    multi_node: Annotated[
+        bool | None,
+        pydantic.Field(
+            description="Set for experiments which can only do one of multi-node or single-gpu measurements",
+            exclude=True,
+        ),
+    ] = None
 
-    gradient_checkpointing: bool
+    # VV: For example 4.0
+    num_train_epochs: Annotated[float, pydantic.Field()] = 1.0
+    max_steps: Annotated[int, pydantic.Field()] = -1
+
+    gradient_checkpointing: Annotated[bool, pydantic.Field()]
 
     # VV: Describes the goals of this experiment (e.g. measure performance metrics, get stability statistics, etc)
-    purpose: ExperimentPurpose = pydantic.Field(
-        ExperimentPurpose.Performance,
-        description="What this experiment is aiming to measure",
-        exclude=True,
-    )
+    purpose: Annotated[
+        ExperimentPurpose,
+        pydantic.Field(
+            description="What this experiment is aiming to measure",
+            exclude=True,
+        ),
+    ] = ExperimentPurpose.Performance
 
     # VV: Different experiments expect different weight formats
-    weights_format: WeightsFormat = pydantic.Field(
-        description="The kind of weights this experiment can load",
-        exclude=True,
-    )
+    weights_format: Annotated[
+        WeightsFormat,
+        pydantic.Field(
+            description="The kind of weights this experiment can load",
+            exclude=True,
+        ),
+    ]
 
     def args_for_entity_space(
         self, entity_space: EntitySpace, model_map: dict[WeightsFormat, str]
@@ -1084,15 +1171,16 @@ class ExperimentParameters(pydantic.BaseModel):
 
 
 class PromptTuningExperimentParameters(ExperimentParameters):
-    peft_method: typing.Literal["pt"] = pydantic.Field(
-        description="This is a prompt-tuning experiment"
-    )
+    peft_method: Annotated[
+        typing.Literal["pt"],
+        pydantic.Field(description="This is a prompt-tuning experiment"),
+    ]
 
 
 class FullFinetuningExperimentsParameters(ExperimentParameters):
-    peft_method: None = pydantic.Field(
-        description="This is a full fine-tuning experiment"
-    )
+    peft_method: Annotated[
+        None, pydantic.Field(description="This is a full fine-tuning experiment")
+    ]
 
     @pydantic.field_validator("peft_method", mode="before")
     def upgrade_peft_method(cls, value: str) -> str | None:
@@ -1102,18 +1190,21 @@ class FullFinetuningExperimentsParameters(ExperimentParameters):
 
 
 class LoraExperimentParameters(ExperimentParameters):
-    peft_method: typing.Literal["lora"] = pydantic.Field(
-        description="This is a LORA experiment"
-    )
+    peft_method: Annotated[
+        typing.Literal["lora"], pydantic.Field(description="This is a LORA experiment")
+    ]
 
     # r: int
     #
     # lora_alpha: int
 
-    target_modules_map: dict[str, list[str]] = pydantic.Field(
-        description="A map of model_name to list of target_modules for LORA",
-        exclude=True,
-    )
+    target_modules_map: Annotated[
+        dict[str, list[str]],
+        pydantic.Field(
+            description="A map of model_name to list of target_modules for LORA",
+            exclude=True,
+        ),
+    ]
 
     def args_for_entity_space(
         self, entity_space: EntitySpace, model_map: dict[WeightsFormat, str]
@@ -1133,15 +1224,15 @@ class LoraExperimentParameters(ExperimentParameters):
 
 
 class GPTQLoraExperimentParameters(LoraExperimentParameters):
-    auto_gptq: str
+    auto_gptq: Annotated[str, pydantic.Field()]
 
-    fp16: str
+    fp16: Annotated[str, pydantic.Field()]
 
-    fast_kernels: list[str]
+    fast_kernels: Annotated[list[str], pydantic.Field()]
 
-    fused_lora: list[str]
+    fused_lora: Annotated[list[str], pydantic.Field()]
 
-    torch_dtype: typing.Literal["float16"]
+    torch_dtype: Annotated[typing.Literal["float16"], pydantic.Field()]
 
     # VV: Anh Uong said that padding_free is not required as GPTQ-LoRA was tested before support for
     # padding_free was available

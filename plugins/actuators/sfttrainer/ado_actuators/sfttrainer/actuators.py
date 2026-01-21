@@ -12,7 +12,7 @@ import os
 import traceback
 import typing
 from collections.abc import Callable
-from typing import Any
+from typing import Annotated, Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.callbacks.metrics_tracker as metrics_tracker
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.finetune as finetune
@@ -137,59 +137,77 @@ class ActuatorParameters(
         extra="forbid", use_enum_values=True, protected_namespaces=()
     )
 
-    match_exact_dependencies: bool = pydantic.Field(
-        default=True,
-        description="If True, runs the measurement in a virtual environment that exactly matches the Python "
-        "packages of the selected fms-hf-tuning version, enabling all optional features like "
-        "fast_kernels, fast_moe, and flash_attn. If False, the system checks whether the machine initiating "
-        "the measurement has NVIDIA development binaries or an ARM CPU, and excludes incompatible packages "
-        "and features. Useful for running on limited-support devices like MacBooks.",
-    )
+    match_exact_dependencies: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True, runs the measurement in a virtual environment that exactly matches the Python "
+            "packages of the selected fms-hf-tuning version, enabling all optional features like "
+            "fast_kernels, fast_moe, and flash_attn. If False, the system checks whether the machine initiating "
+            "the measurement has NVIDIA development binaries or an ARM CPU, and excludes incompatible packages "
+            "and features. Useful for running on limited-support devices like MacBooks.",
+        ),
+    ] = True
 
-    output_dir: str = pydantic.Field(
-        "output",
-        description="The prefix directory path, under which "
-        "to store the finetuned weights.",
-    )
-    data_directory: str = pydantic.Field(
-        "/data/fms-hf-tuning/artificial-dataset/",
-        description="The directory that contains the data files",
-    )
+    output_dir: Annotated[
+        str,
+        pydantic.Field(
+            description="The prefix directory path, under which "
+            "to store the finetuned weights.",
+        ),
+    ] = "output"
 
-    aim_dashboard_url: str | None = pydantic.Field(
-        default=None,
-        description="The AIM Dashboard endpoint. When set, the actuator inserts the aim_url field "
-        "in the MeasurementResult.metadata object that is associated with the measurement.",
-    )
+    data_directory: Annotated[
+        str,
+        pydantic.Field(
+            description="The directory that contains the data files",
+        ),
+    ] = "/data/fms-hf-tuning/artificial-dataset/"
 
-    aim_db: str | None = pydantic.Field(
-        default=None,
-        description="The AIM server endpoint. When set to None the "
-        "measurement will use a temporary AIM repository that will be garbage collected after the termination "
-        "of the measurement.",
-    )
+    aim_dashboard_url: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The AIM Dashboard endpoint. When set, the actuator inserts the aim_url field "
+            "in the MeasurementResult.metadata object that is associated with the measurement.",
+        ),
+    ] = None
 
-    hf_home: str = pydantic.Field(
-        default="/hf-models-pvc/huggingface_home",
-        description="To configure where huggingface_hub will locally store data. In particular, "
-        "your token and the cache will be stored in this folder.",
-    )
+    aim_db: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The AIM server endpoint. When set to None the "
+            "measurement will use a temporary AIM repository that will be garbage collected after the termination "
+            "of the measurement.",
+        ),
+    ] = None
 
-    model_map: dict[str, dict[WeightsFormat, str]] = pydantic.Field(
-        default_factory=lambda: copy.deepcopy(ModelMap),
-        description="Maps model identifiers to their corresponding Hugging Face model ids and absolute paths."
-        "The contents of this dictionary will override the defaults that ship with the Actuator.",
-    )
+    hf_home: Annotated[
+        str,
+        pydantic.Field(
+            description="To configure where huggingface_hub will locally store data. In particular, "
+            "your token and the cache will be stored in this folder.",
+        ),
+    ] = "/hf-models-pvc/huggingface_home"
 
-    num_tokens_cache_directory: str | None = pydantic.Field(
-        default="cache",
-        description="Use this to cache the number of tokens in the dataset so that we don't compute it over and over. "
-        "It can take a few minutes to compute how many tokens are in a dataset, and that number depends on "
-        "which model you're using, as well as the effective max sequence length (i.e. the min of the "
-        "inherent max sequence length of the model and the value of --max_seq_length). "
-        "The value is treated as a path to a directory that is relevant to the value of @data_dir. "
-        "If num_tokens_cache_directory is None then the cache will not be used.",
-    )
+    model_map: Annotated[
+        dict[str, dict[WeightsFormat, str]],
+        pydantic.Field(
+            default_factory=lambda: copy.deepcopy(ModelMap),
+            description="Maps model identifiers to their corresponding Hugging Face model ids and absolute paths."
+            "The contents of this dictionary will override the defaults that ship with the Actuator.",
+        ),
+    ]
+
+    num_tokens_cache_directory: Annotated[
+        str | None,
+        pydantic.Field(
+            description="Use this to cache the number of tokens in the dataset so that we don't compute it over and over. "
+            "It can take a few minutes to compute how many tokens are in a dataset, and that number depends on "
+            "which model you're using, as well as the effective max sequence length (i.e. the min of the "
+            "inherent max sequence length of the model and the value of --max_seq_length). "
+            "The value is treated as a path to a directory that is relevant to the value of @data_dir. "
+            "If num_tokens_cache_directory is None then the cache will not be used.",
+        ),
+    ] = "cache"
 
     @pydantic.field_validator("model_map", mode="before")
     @classmethod

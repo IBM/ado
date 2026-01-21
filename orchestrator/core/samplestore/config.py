@@ -23,9 +23,9 @@ if typing.TYPE_CHECKING:
 
 
 class SampleStoreModuleConf(ModuleConf):
-    moduleType: Annotated[
-        ModuleTypeEnum, pydantic.Field(default=ModuleTypeEnum.SAMPLE_STORE)
-    ]
+    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = (
+        ModuleTypeEnum.SAMPLE_STORE
+    )
 
 
 class SampleStoreSpecification(pydantic.BaseModel):

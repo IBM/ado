@@ -126,7 +126,7 @@ class ConcretePropertyDescriptor(PropertyDescriptor):
 class Property(pydantic.BaseModel):
     """A named property with a domain"""
 
-    identifier: str
+    identifier: Annotated[str, pydantic.Field()]
     metadata: Annotated[
         dict | None, pydantic.Field(description="Metadata on the property")
     ] = None
@@ -242,7 +242,7 @@ class ConcreteProperty(Property):
     propertyType: Annotated[MeasuredPropertyTypeEnum, pydantic.Field()] = (
         MeasuredPropertyTypeEnum.MEASURED_PROPERTY_TYPE
     )
-    abstractProperty: AbstractProperty | None = None
+    abstractProperty: Annotated[AbstractProperty | None, pydantic.Field()] = None
     model_config = ConfigDict(frozen=True)
 
     @classmethod

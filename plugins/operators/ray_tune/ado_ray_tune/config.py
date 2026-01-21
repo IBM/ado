@@ -3,6 +3,7 @@
 
 
 import typing
+from typing import Annotated
 
 import pydantic
 import ray
@@ -73,34 +74,45 @@ def create_general_ray_tune_config(
 class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
     """Model for specific orchestrator options related to ray tune"""
 
-    metric_format: typing.Literal["target", "observed"] = pydantic.Field(
-        default="target",
-        description="Format for metric identifiers: 'target' (use target property identifiers) "
-        "or 'observed' (use observed property identifiers)",
-    )
-    single_measurement_per_property: bool = pydantic.Field(
-        default=True,
-        description="Indicate that each property (experiment) "
-        "should only be executed once",
-    )
-    failed_metric_value: float = pydantic.Field(
-        default=float("nan"),
-        description="Assign this value as the metric value for points if the measurements fail",
-    )
-    result_dump: str = pydantic.Field(
-        default="none",
-        deprecated=True,
-        description="Location to store the result of ray.tune() (Not Used)",
-    )
+    metric_format: Annotated[
+        typing.Literal["target", "observed"],
+        pydantic.Field(
+            description="Format for metric identifiers: 'target' (use target property identifiers) "
+            "or 'observed' (use observed property identifiers)",
+        ),
+    ] = "target"
+    single_measurement_per_property: Annotated[
+        bool,
+        pydantic.Field(
+            description="Indicate that each property (experiment) "
+            "should only be executed once",
+        ),
+    ] = True
+    failed_metric_value: Annotated[
+        float,
+        pydantic.Field(
+            description="Assign this value as the metric value for points if the measurements fail",
+        ),
+    ] = float("nan")
+    result_dump: Annotated[
+        str,
+        pydantic.Field(
+            deprecated=True,
+            description="Location to store the result of ray.tune() (Not Used)",
+        ),
+    ] = "none"
 
     model_config = ConfigDict(extra="forbid")
 
 
 class OrchSearchAlgorithm(pydantic.BaseModel):
-    name: str = pydantic.Field(description="The name of the search alg")
-    params: dict = pydantic.Field(
-        default={}, description="The params of the search alg"
-    )
+    name: Annotated[str, pydantic.Field(description="The name of the search alg")]
+    params: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="The params of the search alg"
+        ),
+    ]
 
     @pydantic.model_validator(mode="after")
     def map_optuna_sampler_name_to_instance(self) -> "OrchSearchAlgorithm":
@@ -153,13 +165,19 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
 
 
 class OrchStopperAlgorithm(pydantic.BaseModel):
-    name: str = pydantic.Field(description="The name of the stopper")
-    positionalParams: list = pydantic.Field(
-        default=[], description="The positional params of the stopper"
-    )
-    keywordParams: dict = pydantic.Field(
-        default={}, description="The keyword params of the stopper"
-    )
+    name: Annotated[str, pydantic.Field(description="The name of the stopper")]
+    positionalParams: Annotated[
+        list,
+        pydantic.Field(
+            default_factory=list, description="The positional params of the stopper"
+        ),
+    ]
+    keywordParams: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="The keyword params of the stopper"
+        ),
+    ]
 
 
 class OrchTuneConfig(pydantic.BaseModel):
@@ -178,19 +196,22 @@ class OrchTuneConfig(pydantic.BaseModel):
     """
 
     # The following fields are required
-    mode: str | list[str] = pydantic.Field(
-        default="min", description="Mode(s) to use for optimization"
-    )
-    metric: str | list[str] = pydantic.Field(
-        description="Metric(s) to optimize (str or list[str])"
-    )
-    max_concurrent_trials: int = pydantic.Field(
-        default=1,
-        description="The maximum number of trials to have running at a time. Default 1",
-    )
+    mode: Annotated[
+        str | list[str], pydantic.Field(description="Mode(s) to use for optimization")
+    ] = "min"
+    metric: Annotated[
+        str | list[str],
+        pydantic.Field(description="Metric(s) to optimize (str or list[str])"),
+    ]
+    max_concurrent_trials: Annotated[
+        int,
+        pydantic.Field(
+            description="The maximum number of trials to have running at a time. Default 1",
+        ),
+    ] = 1
 
     # Here are the special fields that are used to create the inputs for TuneConfig
-    search_alg: OrchSearchAlgorithm
+    search_alg: Annotated[OrchSearchAlgorithm, pydantic.Field()]
     model_config = ConfigDict(extra="allow")
 
     def rayTuneConfig(self) -> ray.tune.TuneConfig:
@@ -239,10 +260,12 @@ class OrchRunConfig(pydantic.BaseModel):
     """
 
     # Here are the special fields that are used to create the inputs for RayConfig
-    stop: list[OrchStopperAlgorithm] | None = pydantic.Field(
-        default=None,
-        description="A list of stopper(s) to use. If more than one will be combined with CombinedStopper",
-    )
+    stop: Annotated[
+        list[OrchStopperAlgorithm] | None,
+        pydantic.Field(
+            description="A list of stopper(s) to use. If more than one will be combined with CombinedStopper",
+        ),
+    ] = None
     model_config = ConfigDict(extra="allow")
 
     def rayRuntimeConfig(self) -> ray.tune.RunConfig:
@@ -308,20 +331,21 @@ class OrchRunConfig(pydantic.BaseModel):
 class RayTuneConfiguration(pydantic.BaseModel):
     """Model for options related to using ray tune"""
 
-    tuneConfig: OrchTuneConfig = pydantic.Field(
-        description="ray tune configuration options"
-    )
+    tuneConfig: Annotated[
+        OrchTuneConfig, pydantic.Field(description="ray tune configuration options")
+    ]
     # This is a ray.tune.config.RunConfig object which is also pydantic model
     # However pydantic is throwing "pydantic.errors.ConfigError: field "callbacks"
     # not yet prepared so type is still a ForwardRef, you might need to call RunConfig.update_forward_refs()." error
     # When it is explicitly typed.
     # To get around this were are using Any and then converting any dicts to RunConfig in a validator
-    runtimeConfig: OrchRunConfig | None = pydantic.Field(
-        default=OrchRunConfig(), description="ray tune runtime options"
-    )
-    orchestratorConfig: RayTuneOrchestratorConfiguration = pydantic.Field(
-        default=RayTuneOrchestratorConfiguration(), description="orchestrator options"
-    )
+    runtimeConfig: Annotated[
+        OrchRunConfig | None, pydantic.Field(description="ray tune runtime options")
+    ] = OrchRunConfig()
+    orchestratorConfig: Annotated[
+        RayTuneOrchestratorConfiguration,
+        pydantic.Field(description="orchestrator options"),
+    ] = RayTuneOrchestratorConfiguration()
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
     @pydantic.field_validator("runtimeConfig")

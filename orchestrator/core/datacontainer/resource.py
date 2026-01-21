@@ -143,8 +143,10 @@ class DataContainerResource(ADOResource):
     Note: Contained data must be a supported pydantic type.
     This model does not allow storage of arbitrary types"""
 
-    version: str = "v1"
-    kind: CoreResourceKinds = CoreResourceKinds.DATACONTAINER
+    version: Annotated[str, pydantic.Field()] = "v1"
+    kind: Annotated[CoreResourceKinds, pydantic.Field()] = (
+        CoreResourceKinds.DATACONTAINER
+    )
     config: Annotated[DataContainer, pydantic.Field(description="A collection of data")]
 
     @pydantic.model_validator(mode="after")

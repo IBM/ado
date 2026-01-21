@@ -64,11 +64,10 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
     sampleStoreIdentifier: Annotated[
         str,
         pydantic.Field(
-            default="default",  # The name of the default sample store
             description="The id of the sample store to use.",
             coerce_numbers_to_str=True,
         ),
-    ]
+    ] = "default"
     entitySpace: Annotated[
         list[ConstitutiveProperty] | None,
         pydantic.Field(

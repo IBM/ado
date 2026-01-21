@@ -6,6 +6,7 @@ import pytest
 
 from orchestrator.core.discoveryspace.samplers import sample_random_entity_from_space
 from orchestrator.modules.actuators.registry import (
+    ActuatorRegistry,
     UnknownActuatorError,
     UnknownExperimentError,
 )
@@ -30,15 +31,15 @@ from orchestrator.schema.virtual_property import (
 def test_measurement_space_config(
     measurement_space: MeasurementSpace,
     measurement_space_configuration: list[ExperimentReference],
-):
+) -> None:
     assert measurement_space.experimentReferences == measurement_space_configuration
 
 
 def test_measurement_space_from_parameterized_selectors(
     parameterizable_experiments: list[Experiment],
     parameterized_selectors: list[ExperimentReference],
-    global_registry,
-):
+    global_registry: ActuatorRegistry,
+) -> None:
 
     # Test does not allow duplicate parameterized experiments
     # Test does allow different parameterization of same base experiment
@@ -101,8 +102,8 @@ def test_measurement_space_from_parameterized_selectors(
 
 def test_measurement_space_with_parameterized_experiments_ser_dser(
     parameterized_selectors: list[ExperimentReference],
-    global_registry,
-):
+    global_registry: ActuatorRegistry,
+) -> None:
 
     ms = MeasurementSpace.measurementSpaceFromSelection(
         selectedExperiments=parameterized_selectors
@@ -134,8 +135,8 @@ def test_measurement_space_with_parameterized_experiments_ser_dser(
 def test_measurement_space_from_parameterized_references(
     parameterizable_experiments: list[Experiment],
     parameterized_references: list[ExperimentReference],
-    global_registry,
-):
+    global_registry: ActuatorRegistry,
+) -> None:
     # Test does not allow duplicate parameterized experiments
     # Test does allow different parameterization of same base experiment
 
@@ -200,7 +201,7 @@ def test_measurement_space_from_parameterized_references(
         assert len(ms.observedPropertiesForExperimentReference(r)) != 0
 
 
-def test_measurement_space(measurement_space):
+def test_measurement_space(measurement_space: MeasurementSpace) -> None:
     """Test a measurement space"""
 
     space = measurement_space
@@ -232,7 +233,9 @@ def test_measurement_space(measurement_space):
         assert p.targetProperty.identifier in expectedTargets
 
 
-def test_experiment_selector(measurement_space_configuration):
+def test_experiment_selector(
+    measurement_space_configuration: list[ExperimentReference],
+) -> None:
     selectedExperiments = measurement_space_configuration
 
     assert len(selectedExperiments) == 1
@@ -245,7 +248,9 @@ def test_experiment_selector(measurement_space_configuration):
     assert selectedExperiments[0].actuatorIdentifier == "replay"
 
 
-def test_space_with_unknown_experiment(parameterized_references):
+def test_space_with_unknown_experiment(
+    parameterized_references: list[ExperimentReference],
+) -> None:
     """Test correct error is raised if an experiment cannot be found"""
 
     with pytest.raises(UnknownActuatorError):
@@ -270,7 +275,9 @@ def test_space_with_unknown_experiment(parameterized_references):
         )
 
 
-def test_supported_experiments(parameterized_references):
+def test_supported_experiments(
+    parameterized_references: list[ExperimentReference],
+) -> None:
     """Test  MeasurementSpace returns supported/deprecated experiments correctly"""
 
     ms = MeasurementSpace.measurementSpaceFromSelection(
@@ -284,7 +291,7 @@ def test_supported_experiments(parameterized_references):
 
 def test_independent_and_dependent_experiments_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
     """Test MeasurementSpace returns independent and dependent experiments"""
 
     ms = measurement_space_from_single_parameterized_experiment
@@ -299,7 +306,7 @@ def test_independent_and_dependent_experiments_single(
 
 def test_independent_and_dependent_experiments_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
     """Test MeasurementSpace returns independent and dependent experiments"""
 
     ms = measurement_space_from_multiple_parameterized_experiments
@@ -312,7 +319,9 @@ def test_independent_and_dependent_experiments_multiple(
     )
 
 
-def test_is_consistent_single(measurement_space_from_single_parameterized_experiment):
+def test_is_consistent_single(
+    measurement_space_from_single_parameterized_experiment: MeasurementSpace,
+) -> None:
 
     if measurement_space_from_single_parameterized_experiment.dependentExperiments:
         ### If there is only a single experiment, but it requires others, the MeasurementSpace is not consistent
@@ -323,7 +332,7 @@ def test_is_consistent_single(measurement_space_from_single_parameterized_experi
 
 def test_is_consistent_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     ### Need an experiment with dependencies
     assert measurement_space_from_multiple_parameterized_experiments.isConsistent
@@ -331,7 +340,7 @@ def test_is_consistent_multiple(
 
 def _shared_property_with_identifier_tests(
     parameterized_measurement_space: MeasurementSpace,
-):
+) -> None:
     # Test all property types including virtual
     for exp in parameterized_measurement_space.experiments:
         for op in exp.observedProperties:
@@ -361,7 +370,7 @@ def _shared_property_with_identifier_tests(
 
 def test_property_with_identifier_in_space_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
 
     _shared_property_with_identifier_tests(
         measurement_space_from_single_parameterized_experiment
@@ -370,7 +379,7 @@ def test_property_with_identifier_in_space_single(
 
 def test_property_with_identifier_in_space_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     _shared_property_with_identifier_tests(
         measurement_space_from_multiple_parameterized_experiments
@@ -379,7 +388,7 @@ def test_property_with_identifier_in_space_multiple(
 
 def test_check_entity_space_compatibility_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     # In particular test with an experiment that has optional properties
 
@@ -412,7 +421,7 @@ def test_check_entity_space_compatibility_multiple(
 
 def test_check_entity_space_compatibility_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
 
     # In particular test with an experiment that has optional properties
 
@@ -459,7 +468,7 @@ def test_check_entity_space_compatibility_single(
 def test_check_entity_space_compatibility_optional_in_entity_space(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
     optionalProperties: list[ConstitutiveProperty],
-):
+) -> None:
     """Test checkEntitySpaceCompatible works when some optional parameters have been moved to entityspace"""
 
     es = (
@@ -524,7 +533,7 @@ def test_check_entity_space_compatibility_optional_in_entity_space(
 
 def test_experiments_applied_to_entity_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
     es = measurement_space_from_single_parameterized_experiment.compatibleEntitySpace()
     entity = sample_random_entity_from_space(es)
     assert (
@@ -585,7 +594,7 @@ def test_experiments_applied_to_entity_single(
 
 def test_experiments_applied_to_entity_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     es = (
         measurement_space_from_multiple_parameterized_experiments.compatibleEntitySpace()
@@ -645,7 +654,7 @@ def test_experiments_applied_to_entity_multiple(
 
 def test_dependent_experiments_single(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
     """Test
     - dependentExperimentsThatCanBeAppliedToEntity
     - dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
@@ -796,7 +805,7 @@ def test_dependent_experiments_single(
 
 def test_dependent_experiments_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
     """Test
     - dependentExperimentsThatCanBeAppliedToEntity
     - dependentExperimentsThatCanBeAppliedAfterMeasurementRequest"""
@@ -984,7 +993,7 @@ def test_dependent_experiments_multiple(
 
 def test_measurementspace_pretty(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
-):
+) -> None:
 
     from IPython.lib.pretty import pretty
 
@@ -994,9 +1003,79 @@ def test_measurementspace_pretty(
 
 def test_measurementspace_pretty_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
-):
+) -> None:
 
     from IPython.lib.pretty import pretty
 
     print(pretty(measurement_space_from_multiple_parameterized_experiments))
     print(measurement_space_from_multiple_parameterized_experiments)
+
+
+def test_property_with_identifier_format_target(
+    measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
+) -> None:
+    """Test propertyWithIdentifierInSpace with format='target'"""
+
+    ms = measurement_space_from_multiple_parameterized_experiments
+
+    # Get a valid target property identifier
+    target_property = ms.targetProperties[0]
+    target_id = target_property.identifier
+
+    # Test with valid target identifier
+    assert ms.propertyWithIdentifierInSpace(
+        target_id, format="target"
+    ), f"Expected target identifier '{target_id}' to be found with format='target'"
+
+    # Test with observed identifier in target format (should fail)
+    observed_property = ms.observedProperties[0]
+    observed_id = observed_property.identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        observed_id, format="target"
+    ), f"Expected observed identifier '{observed_id}' to fail with format='target'"
+
+    # Test with invalid identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        "invalid_metric", format="target"
+    ), "Expected invalid identifier to fail with format='target'"
+
+
+def test_property_with_identifier_format_observed(
+    measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
+) -> None:
+    """Test propertyWithIdentifierInSpace with format='observed'"""
+
+    ms = measurement_space_from_multiple_parameterized_experiments
+
+    # Get a valid observed property identifier
+    observed_property = ms.observedProperties[0]
+    observed_id = observed_property.identifier
+
+    # Test with valid observed identifier
+    assert ms.propertyWithIdentifierInSpace(
+        observed_id, format="observed"
+    ), f"Expected observed identifier '{observed_id}' to be found with format='observed'"
+
+    # Test with target identifier in observed format (should fail unless it matches an observed)
+    target_property = ms.targetProperties[0]
+    target_id = target_property.identifier
+    # This should fail because target_id is not the full observed property identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        target_id, format="observed"
+    ), f"Expected target identifier '{target_id}' to fail with format='observed'"
+
+    # Test with invalid identifier
+    assert not ms.propertyWithIdentifierInSpace(
+        "invalid_metric", format="observed"
+    ), "Expected invalid identifier to fail with format='observed'"
+
+    # Test virtual property based on observed
+    vp = VirtualObservedProperty(
+        baseObservedProperty=observed_property,
+        aggregationMethod=PropertyAggregationMethod(
+            identifier=PropertyAggregationMethodEnum.mean
+        ),
+    )
+    assert ms.propertyWithIdentifierInSpace(
+        vp.identifier, format="observed"
+    ), f"Expected virtual observed property '{vp.identifier}' to be found with format='observed'"

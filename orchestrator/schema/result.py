@@ -29,24 +29,29 @@ class MeasurementResultStateEnum(str, enum.Enum):
 
 class MeasurementResult(pydantic.BaseModel):
 
-    uid: str = pydantic.Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        frozen=True,
-        min_length=36,
-        max_length=36,
-        description="A unique identifier for this MeasurementResult",
-    )
+    uid: Annotated[
+        str,
+        pydantic.Field(
+            default_factory=lambda: str(uuid.uuid4()),
+            frozen=True,
+            min_length=36,
+            max_length=36,
+            description="A unique identifier for this MeasurementResult",
+        ),
+    ]
 
-    entityIdentifier: str = pydantic.Field(
-        description="The unique identifier of the entity"
-    )
+    entityIdentifier: Annotated[
+        str, pydantic.Field(description="The unique identifier of the entity")
+    ]
 
-    metadata: dict = pydantic.Field(
-        default={},
-        description="Metadata about the MeasurementResult",
-    )
+    metadata: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="Metadata about the MeasurementResult"
+        ),
+    ]
 
-    def __eq__(self, other):
+    def __eq__(self, other: "MeasurementResult") -> bool:
         return self.uid == other.uid
 
     @abc.abstractmethod
@@ -65,14 +70,19 @@ class ValidMeasurementResult(MeasurementResult):
     ValidMeasurementResult.measurements[0].property.experimentReference
     """
 
-    measurements: list[ObservedPropertyValue] = pydantic.Field(
-        description="A list of the observed property values measured. Cannot be empty"
-    )
+    measurements: Annotated[
+        list[ObservedPropertyValue],
+        pydantic.Field(
+            description="A list of the observed property values measured. Cannot be empty"
+        ),
+    ]
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("measurements")
-    def validate_measurements(cls, value):
+    def validate_measurements(
+        cls, value: list[ObservedPropertyValue]
+    ) -> list[ObservedPropertyValue]:
 
         if len(value) == 0:
             raise ValueError(
@@ -90,7 +100,7 @@ class ValidMeasurementResult(MeasurementResult):
         return value
 
     @property
-    def experimentReference(self):
+    def experimentReference(self) -> ExperimentReference:
 
         # All the PropertyValues should have the same reference as it's checked on init
         return self.measurements[0].property.experimentReference
@@ -163,12 +173,18 @@ class ValidMeasurementResult(MeasurementResult):
 class InvalidMeasurementResult(MeasurementResult):
     """Used to record an invalid measurement"""
 
-    experimentReference: ExperimentReference = pydantic.Field(
-        description="Reference to the experiment that attempted the measurement"
-    )
-    reason: str = pydantic.Field(
-        description="A string describing why the measurement was deemed invalid"
-    )
+    experimentReference: Annotated[
+        ExperimentReference,
+        pydantic.Field(
+            description="Reference to the experiment that attempted the measurement"
+        ),
+    ]
+    reason: Annotated[
+        str,
+        pydantic.Field(
+            description="A string describing why the measurement was deemed invalid"
+        ),
+    ]
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
@@ -193,7 +209,9 @@ class InvalidMeasurementResult(MeasurementResult):
 class DuplicateMeasurementResultError(ValueError): ...
 
 
-def measurement_result_type_discriminator(result):
+def measurement_result_type_discriminator(
+    result: dict | ValidMeasurementResult | InvalidMeasurementResult,
+) -> str:
 
     if isinstance(result, ValidMeasurementResult):
         return "Valid"

@@ -4,6 +4,7 @@
 import abc
 import logging
 import typing
+from typing import Annotated
 
 import pydantic
 from ray.actor import ActorHandle
@@ -53,7 +54,7 @@ class ActuatorBase(abc.ABC):
     identifier: str
     parameters_class: type[GenericActuatorParameters] = GenericActuatorParameters
 
-    def __init__(self, queue: MeasurementQueue, params=None):
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
         """
         :param queue: A StateUpdateQueue the actuator can use to put results.
         :return: An ActuatorBase subclass
@@ -68,7 +69,7 @@ class ActuatorBase(abc.ABC):
         self._parameters = params if params is not None else {}
         self._measurementSpace = None  # type: typing.Optional[MeasurementSpace]
 
-    def ready(self):
+    def ready(self) -> bool:
         """This method is used to determine if the Actuator died on init"""
         return True
 
@@ -136,7 +137,7 @@ class ActuatorBase(abc.ABC):
 
         return CatalogConfigurationRequirementEnum.NOT_REQUIRED
 
-    def setMeasurementSpace(self, measurementSpace: MeasurementSpace):
+    def setMeasurementSpace(self, measurementSpace: MeasurementSpace) -> None:
         """Add a measurement space to the receiver to give it access to experiments beyond its catalog.
 
         It is Actuator implementation specific whether it uses the MeasurementSpace or not
@@ -169,7 +170,7 @@ class ActuatorBase(abc.ABC):
 
 
 class ActuatorModuleConf(ModuleConf):
-    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.ACTUATOR)
+    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.ACTUATOR
 
 
 if typing.TYPE_CHECKING:

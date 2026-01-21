@@ -22,7 +22,9 @@ class SpaceHierarchy(enum.Enum):
     UNDEFINED = "undefined"
 
 
-def ms_config_type_discriminator(ms_config):
+def ms_config_type_discriminator(
+    ms_config: list | dict | MeasurementSpaceConfiguration,
+) -> str:
 
     if isinstance(ms_config, list):
         return "ExperimentReferenceList"
@@ -48,11 +50,13 @@ MeasurementSpaceConfigurationType = typing.Annotated[
 
 
 class DiscoverySpaceProperties(pydantic.BaseModel):
-    stochastic: bool = pydantic.Field(
-        default=False,
-        description="If true the values for properties are drawn from a distribution."
-        "Use this field when this is known to be true for all properties",
-    )
+    stochastic: Annotated[
+        bool,
+        pydantic.Field(
+            description="If true the values for properties are drawn from a distribution."
+            "Use this field when this is known to be true for all properties"
+        ),
+    ] = False
 
 
 class DiscoverySpaceConfiguration(pydantic.BaseModel):
@@ -65,18 +69,23 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             coerce_numbers_to_str=True,
         ),
     ]
-    entitySpace: list[ConstitutiveProperty] | None = pydantic.Field(
-        default=None,
-        description="Describes how entities can be generated in this space",
-    )
-    experiments: MeasurementSpaceConfigurationType | None = pydantic.Field(
-        default=None, description="Defines the measurement space"
-    )
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
+    entitySpace: Annotated[
+        list[ConstitutiveProperty] | None,
+        pydantic.Field(
+            description="Describes how entities can be generated in this space"
+        ),
+    ] = None
+    experiments: Annotated[
+        MeasurementSpaceConfigurationType | None,
+        pydantic.Field(description="Defines the measurement space"),
+    ] = None
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
     model_config = ConfigDict(extra="forbid")
 
     def convert_experiments_to_reference_list(self) -> "DiscoverySpaceConfiguration":
@@ -133,7 +142,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             }
         )
 
-    def is_sub_space(self, reference_space: "DiscoverySpaceConfiguration"):
+    def is_sub_space(self, reference_space: "DiscoverySpaceConfiguration") -> bool:
 
         if not self.entitySpace:
             raise ValueError("The target entity space was empty")

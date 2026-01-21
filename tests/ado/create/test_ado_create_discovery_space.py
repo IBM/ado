@@ -2,16 +2,19 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
 import yaml
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
+from orchestrator.core.samplestore.sql import SQLSampleStore
+from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
-def test_create_discovery_space_dry_run_success(tmp_path: pathlib.Path):
+def test_create_discovery_space_dry_run_success(tmp_path: pathlib.Path) -> None:
     space_configuration_file = "examples/ml-multi-cloud/ml_multicloud_space.yaml"
     runner = CliRunner()
     result = runner.invoke(
@@ -34,7 +37,7 @@ def test_create_discovery_space_dry_run_success(tmp_path: pathlib.Path):
     assert result.output == expected_output
 
 
-def test_create_discovery_space_dry_run_failure(tmp_path: pathlib.Path):
+def test_create_discovery_space_dry_run_failure(tmp_path: pathlib.Path) -> None:
     space_configuration_file = pathlib.Path(
         "examples/ml-multi-cloud/ml_multicloud_space.yaml"
     )
@@ -64,7 +67,7 @@ def test_create_discovery_space_dry_run_failure(tmp_path: pathlib.Path):
     assert result.output.startswith(expected_output)
 
 
-def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path):
+def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path) -> None:
     space_configuration_file = "examples/ml-multi-cloud/ml_multicloud_space.yaml"
 
     runner = CliRunner()
@@ -98,7 +101,7 @@ def test_create_discovery_space_fail_no_sample_store(tmp_path: pathlib.Path):
 # experiment, causing this test to be able to succeed.
 def test_create_discovery_space_fail_with_default_sample_store_with_replay_actuator(
     tmp_path: pathlib.Path,
-):
+) -> None:
 
     space_configuration_file = pathlib.Path(
         "examples/ml-multi-cloud/ml_multicloud_space.yaml"
@@ -129,10 +132,12 @@ def test_create_discovery_space_fail_with_default_sample_store_with_replay_actua
 
 def test_create_discovery_space_success(
     tmp_path: pathlib.Path,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ml_multi_cloud_sample_store,
-):
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_sample_store: SQLSampleStore,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -166,8 +171,12 @@ def test_create_discovery_space_success(
 
 
 def test_create_discovery_space_success_new_sample_store(
-    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
-):
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
     space_configuration_file = pathlib.Path(
         "plugins/actuators/example_actuator/yamls/discoveryspace.yaml"
     )
@@ -198,8 +207,12 @@ def test_create_discovery_space_success_new_sample_store(
 
 
 def test_create_discovery_space_success_with_latest_samplestore(
-    tmp_path: pathlib.Path, valid_ado_project_context, create_active_ado_context
-):
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
     space_configuration_file = pathlib.Path(
         "plugins/actuators/example_actuator/yamls/discoveryspace.yaml"
     )
@@ -243,7 +256,7 @@ def test_create_discovery_space_success_with_latest_samplestore(
 
 def test_create_discovery_space_fail_new_sample_store_with_replay(
     tmp_path: pathlib.Path,
-):
+) -> None:
     space_configuration_file = pathlib.Path(
         "examples/ml-multi-cloud/ml_multicloud_space.yaml"
     )
@@ -272,10 +285,12 @@ def test_create_discovery_space_fail_new_sample_store_with_replay(
 
 def test_create_discovery_space_success_set_sample_store(
     tmp_path: pathlib.Path,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ml_multi_cloud_sample_store,
-):
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_sample_store: SQLSampleStore,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -307,9 +322,11 @@ def test_create_discovery_space_success_set_sample_store(
 
 def test_create_discovery_space_success_with_sample_store_from_file_with_replay_actuator(
     tmp_path: pathlib.Path,
-    valid_ado_project_context,
-    create_active_ado_context,
-):
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context

@@ -11,7 +11,7 @@ from orchestrator.cli.utils.resources.handlers import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
-def get_data_container(parameters: AdoGetCommandParameters):
+def get_data_container(parameters: AdoGetCommandParameters) -> None:
     from orchestrator.cli.utils.resources.handlers import (
         handle_ado_get_default_format,
     )

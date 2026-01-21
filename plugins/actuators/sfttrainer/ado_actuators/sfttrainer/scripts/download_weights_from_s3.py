@@ -9,7 +9,7 @@ import yaml
 
 
 @ray.remote
-def patch_weights():
+def patch_weights() -> None:
     # VV: Last time I checked, the llama 7b gptq weights on the s3 bucket are broken
     path = "/hf-models-pvc/LLaMa/models/hf/7B-gptq/quantize_config.json"
     if not os.path.isfile(path):
@@ -35,7 +35,7 @@ def patch_weights():
 @ray.remote
 def download(
     uri: str, dest: str, secret_access_key: str, access_key_id: str, endpoint: str
-):
+) -> None:
     import subprocess
     import sys
 
@@ -64,7 +64,7 @@ def download(
 @ray.remote
 def upload(
     src: str, uri: str, secret_access_key: str, access_key_id: str, endpoint: str
-):
+) -> None:
     import subprocess
     import sys
 
@@ -90,7 +90,7 @@ def upload(
         raise ValueError(f"Upload failed with returncode {proc.returncode}")
 
 
-def main():
+def main() -> None:
     ray.init()
 
     warning = """The file {path} should look like this:

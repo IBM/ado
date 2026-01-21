@@ -20,16 +20,16 @@ from orchestrator.utilities.naming import get_random_name_extension
 
 
 def get_clusters(
-    df,
-    data_columns,
-    columns_to_mask,
-    columns_to_unlist,
-    unlist_index,
-    targeted_value,
-    max_range=35,
-    debug=False,
-    verbose=True,
-):
+    df: pd.DataFrame,
+    data_columns: list[str],
+    columns_to_mask: list[str],
+    columns_to_unlist: list[str],
+    unlist_index: int | None,
+    targeted_value: str,
+    max_range: int = 35,
+    debug: bool = False,
+    verbose: bool = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     df_np_prep = df.copy()
     translate_dicts = {}
     # TODO: automatically? but df.dtypes often has 'object'...
@@ -85,15 +85,15 @@ class MutualInformationOutput(NamedTuple):
 
 
 def calculate_mutual_information(
-    df,
-    data_columns,
-    columns_to_mask,
-    columns_to_unlist,
-    unlist_index,
-    targeted_value,
-    discrete_features=True,
-    debug=False,
-    verbose=False,
+    df: pd.DataFrame,
+    data_columns: list[str],
+    columns_to_mask: list[str],
+    columns_to_unlist: list[str],
+    unlist_index: int | None,
+    targeted_value: str,
+    discrete_features: bool = True,
+    debug: bool = False,
+    verbose: bool = False,
 ) -> MutualInformationOutput:
     "Returns a dict whose keys are data_columns and whose value is the MI for that column"
 
@@ -131,11 +131,11 @@ def calculate_mutual_information(
 
 
 def mi_pareto_selection(
-    mi_labeled_orig,
-    min_mi_threshold=0.8,
-    ignore_below=0.0001,
-    return_all_above_threshold=False,
-):
+    mi_labeled_orig: dict[str, float],
+    min_mi_threshold: float = 0.8,
+    ignore_below: float = 0.0001,
+    return_all_above_threshold: bool = False,
+) -> list[str] | tuple[list[str], pd.DataFrame]:
     mi_labeled = {k: v for k, v in mi_labeled_orig.items() if v > ignore_below}
     l1 = list(mi_labeled.values())
     col_1 = list(mi_labeled.keys())
@@ -203,7 +203,7 @@ __ray_tune_keys__ = [
 ]
 
 
-def convert_values_of_dict(d_in):
+def convert_values_of_dict(d_in: dict) -> tuple[dict, list[str]]:
     d_out = {}
     unmaskable = []
     # for k, v in d_in.items():
@@ -246,22 +246,22 @@ def convert_values_of_dict(d_in):
 
 
 def mi_diff_over_time(
-    df,
-    data_columns,
-    columns_to_mask,
-    columns_to_unlist,
-    unlist_index,
-    targeted_value,
-    diffs_over_time,
-    last_mi,
-    threshold_diff,
-    ranks_over_time,
-    pareto_over_time,
-    consider_pareto_instead_ranks,
-    discrete_features=True,
-    debug=False,
-    verbose=False,
-):
+    df: pd.DataFrame,
+    data_columns: list[str],
+    columns_to_mask: list[str],
+    columns_to_unlist: list[str],
+    unlist_index: int | None,
+    targeted_value: str,
+    diffs_over_time: dict | None,
+    last_mi: dict | None,
+    threshold_diff: float,
+    ranks_over_time: dict | None,
+    pareto_over_time: list,
+    consider_pareto_instead_ranks: bool,
+    discrete_features: bool = True,
+    debug: bool = False,
+    verbose: bool = False,
+) -> tuple[MutualInformationOutput, bool, bool, dict | None, dict | None, list]:
     # stateless calculation of diff development
     diff_ds = []
     mi_output = calculate_mutual_information(
@@ -320,7 +320,7 @@ def mi_diff_over_time(
     )
 
 
-def diff_of_values(d1, d2):
+def diff_of_values(d1: dict, d2: dict) -> tuple[dict, float, str]:
     diff_d = {}
     max_diff = -1
     max_diff_label = "none"
@@ -334,16 +334,16 @@ def diff_of_values(d1, d2):
 
 
 def get_valid_value_ranges(
-    df,
-    data_columns,
-    columns_to_mask,
-    columns_to_unlist,
-    unlist_index,
-    targeted_value,
-    failed_values=None,
-    debug=False,
-    verbose=False,
-):
+    df: pd.DataFrame,
+    data_columns: list[str],
+    columns_to_mask: list[str],
+    columns_to_unlist: list[str],
+    unlist_index: int | None,
+    targeted_value: str,
+    failed_values: list | None = None,
+    debug: bool = False,
+    verbose: bool = False,
+) -> dict[str, list]:
 
     if failed_values is None:
         failed_values = [

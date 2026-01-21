@@ -3,9 +3,12 @@
 
 
 import typing
+from collections.abc import Callable
 
 import pytest
 
+from orchestrator.core.samplestore.csv import CSVSampleStore
+from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
@@ -83,7 +86,7 @@ def values_for_properties(
 ]:
     def value_class_for_property(
         p: ConstitutiveProperty | ObservedProperty | ConstitutivePropertyDescriptor,
-    ):
+    ) -> type[ObservedPropertyValue, ConstitutivePropertyValue]:
         return (
             ObservedPropertyValue
             if isinstance(p, ObservedProperty)
@@ -141,10 +144,10 @@ def property_values(
 
 @pytest.fixture
 def entity(
-    experiment,
-    constitutive_properties,
-    property_values,
-    values_for_properties,
+    experiment: Experiment,
+    constitutive_properties: list[ConstitutiveProperty],
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+    values_for_properties: list[ObservedPropertyValue | ConstitutivePropertyValue],
 ) -> Entity:
 
     entity_identifier = "COOH"
@@ -170,7 +173,9 @@ def entity(
 
 @pytest.fixture(params=["required_only_in_es", "optional_in_es"])
 def entity_for_parameterized_experiment(
-    parameterized_experiment: ParameterizedExperiment, global_registry, request
+    parameterized_experiment: ParameterizedExperiment,
+    global_registry: ActuatorRegistry,
+    request: pytest.FixtureRequest,
 ) -> tuple[Entity, ParameterizedExperiment]:
     """Returns various entities that are compatible with parameterized experiments
 
@@ -230,7 +235,7 @@ def entity_for_parameterized_experiment(
 
 
 @pytest.fixture
-def random_entities(csv_sample_store):
+def random_entities(csv_sample_store: CSVSampleStore) -> Callable[[int], list[Entity]]:
     def _random_entities(quantity: int) -> list[Entity]:
         return csv_sample_store.entities[:quantity]
 

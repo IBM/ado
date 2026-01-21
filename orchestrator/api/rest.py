@@ -39,7 +39,7 @@ app.include_router(v0.router, prefix="/api")
 @serve.ingress(app)
 class AdoRESTApi:
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialise the REST API deployment.
 
         The constructor configures coloured logging, then creates and

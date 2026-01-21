@@ -17,7 +17,7 @@ from orchestrator.utilities.support import get_experiment_input_values
 # For initial testing you can place your experiment logic in this function
 # kwargs will be a dictionary with whose keys are the required and optional input parameters of your experiment defined in experiment.yaml
 # the values will be the values to use for those parameters
-def my_experiment(**kwargs) -> dict[str, typing.Any]:
+def my_experiment(**kwargs: typing.Any) -> dict[str, typing.Any]:  # noqa: ANN401
 
     # Put your logic here
     # IMPORTANT: The keys of this dict must match the identifiers given for the outputs of the experiment in experiments.yaml
@@ -34,7 +34,7 @@ def run_experiment(
     request: MeasurementRequest,
     experiment: Experiment | ParameterizedExperiment,
     measurement_queue: MeasurementQueue,
-):
+) -> None:
 
     # This function
     # 1. Performs the measurement represented by MeasurementRequest

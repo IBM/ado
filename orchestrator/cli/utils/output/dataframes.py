@@ -26,7 +26,7 @@ def df_to_output(
     df: "pd.DataFrame",
     output_format: Literal["console", "json", "csv"],
     file_name: str | None = None,
-):
+) -> None:
     if output_format != "console" and not file_name:
         console_print(
             f"Outputting a dataframe as {output_format} requires specifying a file name",

@@ -11,6 +11,8 @@ import math
 import os
 import traceback
 import typing
+from collections.abc import Callable
+from typing import Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.callbacks.metrics_tracker as metrics_tracker
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.finetune as finetune
@@ -72,7 +74,9 @@ catalog = orchestrator.modules.actuators.catalog.ExperimentCatalog(
 )
 
 
-def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCatalog):
+def _init_catalog(
+    catalog: orchestrator.modules.actuators.catalog.ExperimentCatalog,
+) -> None:
     full_finetune.add_experiments(catalog=catalog)
     prompt_tuning.add_experiments(catalog=catalog)
     lora.add_experiments(catalog=catalog)
@@ -98,7 +102,7 @@ def _init_catalog(catalog: orchestrator.modules.actuators.catalog.ExperimentCata
 _init_catalog(catalog)
 
 
-def model_dump_all(model: pydantic.BaseModel) -> dict[str, typing.Any]:
+def model_dump_all(model: pydantic.BaseModel) -> dict[str, Any]:
     """Recursively dumps all fields of a pydantic model ignoring exclude directives
 
     Args:
@@ -209,7 +213,7 @@ def prepare_runtime_environment(
     log: logging.Logger,
     space: EntitySpace,
     args: "finetune.FineTuneArgs",
-) -> dict[str, typing.Any]:
+) -> dict[str, Any]:
     exclude_packages = []
 
     if not actuator_parameters.match_exact_dependencies:
@@ -282,8 +286,13 @@ def prepare_runtime_environment(
     additional_wheels = [
         x
         for x in additional_packages
-        # VV: Do not install the ado_core wheel. Its dependencies may conflict with those in fms-hf-tuning
-        if x.endswith(".whl") and not os.path.basename(x).startswith("ado_core-")
+        # VV: Do not install ado wheels other than sfttrainer. Their dependencies may conflict with
+        # those in fms-hf-tuning
+        if x.endswith(".whl")
+        and not (
+            os.path.basename(x).startswith("ado_")
+            and not os.path.basename(x).startswith("ado_sfttrainer-")
+        )
     ]
 
     if additional_wheels:
@@ -315,7 +324,9 @@ def prepare_runtime_environment(
     return runtime_env
 
 
-def dynamic_name_function(function: typing.Callable[..., typing.Any], new_name: str):
+def dynamic_name_function(
+    function: Callable[..., Any], new_name: str
+) -> Callable[[tuple[Any, ...], dict[str, Any]], Any]:
     """Returns a new function identical to the original, but with a new name.
 
     Parameters:
@@ -325,7 +336,7 @@ def dynamic_name_function(function: typing.Callable[..., typing.Any], new_name: 
             The name for the new function
     """
 
-    def wrapper(*args, **kwargs) -> typing.Any:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         return function(*args, **kwargs)
 
     wrapper.__name__ = new_name
@@ -343,16 +354,16 @@ class FinetuneContext:
     def __init__(
         self,
         args: "finetune.FineTuneArgs",
-        runtime_env: dict[str, typing.Any],
+        runtime_env: dict[str, Any],
         exp: "Experiment",
         exp_params: ExperimentParameters,
         entity_space: EntitySpace,
-        aim_metadata: dict[str, typing.Any],
+        aim_metadata: dict[str, Any],
         log_level: int,
-        extra: dict[str, typing.Any],
+        extra: dict[str, Any],
         actuator_params: ActuatorParameters,
         request_id: str,
-    ):
+    ) -> None:
         """Helper class that holds all information related to 1 measurement on 1 entity
 
         Args:
@@ -415,7 +426,7 @@ class FinetuneContext:
     def postprocess_metrics_tracker_metrics(
         self,
         metrics: "metrics_tracker.Metrics",
-    ) -> dict[str, typing.Any]:
+    ) -> dict[str, Any]:
         world_size = max(1, self.entity_space.number_gpus)
 
         return metrics.to_scalar_observations(
@@ -488,9 +499,9 @@ def get_ip(host: str) -> str:
 
 
 def update_dict(
-    target: dict[typing.Any, dict[typing.Any, typing.Any]],
-    updates: dict[typing.Any, dict[typing.Any, typing.Any]],
-):
+    target: dict[Any, dict[Any, Any]],
+    updates: dict[Any, dict[Any, Any]],
+) -> None:
     """Merges 2 dictionaries of dictionaries
 
     Args:
@@ -520,7 +531,7 @@ class SFTTrainer(ActuatorBase):
         self,
         queue: "MeasurementQueue",
         params: "GenericActuatorParameters",
-    ):
+    ) -> None:
         enable_ray_actor_coverage("sfttrainer")
         super().__init__(queue, params)
         self.log = logging.getLogger("SFTTrainer")
@@ -610,7 +621,7 @@ class SFTTrainer(ActuatorBase):
                 f"supported models are {list(actuator_parameters.model_map)}"
             ) from error
 
-        kwargs: dict[str, typing.Any] = actuator_parameters.model_dump(
+        kwargs: dict[str, Any] = actuator_parameters.model_dump(
             exclude_none=True,
             # VV: Manually exclude fields which are not CLI args of the fms-hf-tuning wrapper
             exclude={
@@ -669,7 +680,7 @@ class SFTTrainer(ActuatorBase):
         entity_id: str,
         exp_id: str,
         args: "finetune.FineTuneArgs",
-        aim_metadata: dict[str, typing.Any],
+        aim_metadata: dict[str, Any],
         method: "ray.actor.ActorMethod",
         distributed_settings: finetune.DistributedSettings,
         multi_node: finetune.MultiNodeSettings | None = None,
@@ -1039,7 +1050,7 @@ class SFTTrainer(ActuatorBase):
         entity: Entity,
         exp: Experiment,
         context: FinetuneContext,
-    ) -> dict[str, typing.Any]:
+    ) -> dict[str, Any]:
         """Runs an experiment on an identity and returns the measured properties
 
         Args:
@@ -1077,7 +1088,7 @@ class SFTTrainer(ActuatorBase):
             )
 
             if not context.exp_params.multi_node:
-                metrics: dict[str, typing.Any] = await self._measurement(
+                metrics: dict[str, Any] = await self._measurement(
                     context=context,
                     entity=entity,
                     method=context.generate_method_call(),
@@ -1143,7 +1154,7 @@ class SFTTrainer(ActuatorBase):
         # VV: This is just to make the linter happy
         exp = None
         context: FinetuneContext | None = None
-        scalar_observations: dict[str, typing.Any] = {}
+        scalar_observations: dict[str, Any] = {}
 
         try:
 

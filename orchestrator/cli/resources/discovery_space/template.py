@@ -18,7 +18,7 @@ from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
 
 
-def template_discovery_space(parameters: AdoTemplateCommandParameters):
+def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
     from orchestrator.cli.utils.pydantic.serializers import (
         serialise_pydantic_model,
         serialise_pydantic_model_json_schema,

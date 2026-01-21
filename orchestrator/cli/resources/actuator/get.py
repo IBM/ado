@@ -17,7 +17,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 
 
-def get_actuator(parameters: AdoGetCommandParameters):
+def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
     console_print(
         f"{WARN}These functionalities are global, and not context-aware\n"

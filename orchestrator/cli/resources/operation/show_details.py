@@ -25,7 +25,7 @@ from orchestrator.metastore.base import (
 )
 
 
-def show_operation_details(parameters: AdoShowDetailsCommandParameters):
+def show_operation_details(parameters: AdoShowDetailsCommandParameters) -> None:
     import rich.rule
     import rich.table
 

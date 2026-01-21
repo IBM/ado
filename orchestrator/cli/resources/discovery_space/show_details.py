@@ -17,7 +17,7 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
 
 
-def show_discovery_space_details(parameters: AdoShowDetailsCommandParameters):
+def show_discovery_space_details(parameters: AdoShowDetailsCommandParameters) -> None:
     import orchestrator.cli.utils.resources.handlers
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)

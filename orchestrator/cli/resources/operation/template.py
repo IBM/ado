@@ -25,7 +25,7 @@ from orchestrator.core.operation.config import (
 )
 
 
-def template_operation(parameters: AdoTemplateCommandParameters):
+def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     import orchestrator.modules.operators.collections
 
     operators = orchestrator.modules.operators.collections.operationCollectionMap

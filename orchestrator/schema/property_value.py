@@ -52,32 +52,43 @@ CustomBytes = Annotated[
 class PropertyValue(pydantic.BaseModel):
     """Represents the value of a property"""
 
-    valueType: ValueTypeEnum | None = pydantic.Field(
-        default=None,
-        description="The type of the value. If not set it is set based on the value.",
-    )
-    value: int | float | list | str | CustomBytes | None = pydantic.Field(
-        description="The measured value."
-    )
-    property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(
-        description="The Property with the value"
-    )
-    uncertainty: float | None = pydantic.Field(
-        default=None, description="The uncertainty in the measured value. Can be None"
-    )
+    valueType: Annotated[
+        ValueTypeEnum | None,
+        pydantic.Field(
+            description="The type of the value. If not set it is set based on the value."
+        ),
+    ] = None
+    value: Annotated[
+        int | float | list | str | CustomBytes | None,
+        pydantic.Field(description="The measured value."),
+    ]
+    property: Annotated[
+        PropertyDescriptor | ConstitutivePropertyDescriptor,
+        pydantic.Field(description="The Property with the value"),
+    ]
+    uncertainty: Annotated[
+        float | None,
+        pydantic.Field(
+            description="The uncertainty in the measured value. Can be None"
+        ),
+    ] = None
 
     @pydantic.field_validator("property", mode="before")
-    def convert_property_to_descriptor(cls, value):
+    def convert_property_to_descriptor(
+        cls, value: PropertyDescriptor | ConstitutivePropertyDescriptor
+    ) -> PropertyDescriptor:
 
         if isinstance(value, Property):
             value = value.descriptor()
 
         return value
 
-    @pydantic.field_validator(
-        "value",
-    )
-    def check_value_type(cls, value, context: pydantic.ValidationInfo):
+    @pydantic.field_validator("value")
+    def check_value_type(
+        cls,
+        value: float | list | str | CustomBytes | None,
+        context: pydantic.ValidationInfo,
+    ) -> int | float | list | str | CustomBytes | None:
 
         valueType = context.data.get("valueType")
         if valueType:
@@ -133,7 +144,7 @@ class PropertyValue(pydantic.BaseModel):
         return value
 
     @pydantic.model_validator(mode="after")
-    def set_value_type(self):
+    def set_value_type(self) -> "PropertyValue":
 
         if self.valueType is None:
             if type(self.value) in [float, int, type(None)]:
@@ -157,13 +168,13 @@ class PropertyValue(pydantic.BaseModel):
 
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"value-{self.property}:{self.value}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"value-{self.property}:{self.value}"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
 
         return bool(
             isinstance(other, PropertyValue)
@@ -171,16 +182,17 @@ class PropertyValue(pydantic.BaseModel):
             and self.value == other.value
         )
 
-    def isUncertain(self):
+    def isUncertain(self) -> bool:
 
         return self.uncertainty is not None
 
 
 class ConstitutivePropertyValue(PropertyValue):
 
-    property: ConstitutivePropertyDescriptor = pydantic.Field(
-        description="The ConstitutiveProperty with the value"
-    )
+    property: Annotated[
+        ConstitutivePropertyDescriptor,
+        pydantic.Field(description="The ConstitutiveProperty with the value"),
+    ]
 
 
 def constitutive_property_values_from_point(
@@ -198,8 +210,8 @@ def validate_point_against_properties(
     point: dict[str, typing.Any],
     constitutive_properties: list[ConstitutiveProperty],
     allow_partial_matches: bool = False,
-    verbose=False,
-):
+    verbose: bool = False,
+) -> bool:
     """point is valid if all its keys have a constitutive_property with
     a matching identifier and all its values are in the domain of this
     property. If allow_partial_matches is False an additional condition is that

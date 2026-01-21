@@ -3,6 +3,7 @@
 import re
 import sqlite3
 import uuid
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -20,12 +21,15 @@ import orchestrator.modules.module
 import orchestrator.modules.operators.base
 import orchestrator.modules.operators.collections
 from orchestrator.core.datacontainer.resource import DataContainerResource
+from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
 from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
 from orchestrator.core.operation.resource import OperationResource
 from orchestrator.core.resources import (
     ADOResourceEventEnum,
     CoreResourceKinds,
 )
+from orchestrator.metastore.project import ProjectContext
+from orchestrator.metastore.sqlstore import SQLStore
 
 # Methods to test:
 # READ
@@ -41,7 +45,9 @@ from orchestrator.core.resources import (
 sqlite3_version = sqlite3.sqlite_version_info
 
 
-def test_get_resources_of_kind(resource_store, resource_type):
+def test_get_resources_of_kind(
+    resource_store: SQLStore, resource_type: CoreResourceKinds
+) -> None:
     """Test can we get resource of the given kind from the resource_store"""
 
     # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
@@ -60,8 +66,8 @@ def test_get_resources_of_kind(resource_store, resource_type):
 
 
 def test_get_resources_and_get_resource_identifiers_of_kind(
-    sql_store_with_resources_preloaded, resource_type
-):
+    sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
+) -> None:
     """
     Test can we get resource of the given kind from the resource_store of type new"""
 
@@ -97,8 +103,8 @@ def test_get_resources_and_get_resource_identifiers_of_kind(
 
 
 def test_get_related_resource_identifiers(
-    sql_store_with_resources_preloaded, resource_type
-):
+    sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
+) -> None:
     """
     Tests getting the identifiers of related resources
 
@@ -155,7 +161,9 @@ def test_get_related_resource_identifiers(
 #
 
 
-def test_add_invalid_resource(resource_store, operation_resource):
+def test_add_invalid_resource(
+    resource_store: SQLStore, operation_resource: OperationResource
+) -> None:
     """
 
     Tests we cannot add non ADOResource models to new store"""
@@ -168,13 +176,18 @@ def test_add_invalid_resource(resource_store, operation_resource):
         resource_store.addResource(resource=operation_resource.config)
 
 
-def test_get_resource_identifiers_of_kind_exception_unknown_kind(resource_store):
+def test_get_resource_identifiers_of_kind_exception_unknown_kind(
+    resource_store: SQLStore,
+) -> None:
 
     with pytest.raises(ValueError, match="Unknown kind specified: unknown_kind"):
         resource_store.getResourceIdentifiersOfKind("unknown_kind")
 
 
-def test_add_and_delete_discovery_space(random_space_resource_from_db, sql_store):
+def test_add_and_delete_discovery_space(
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    sql_store: SQLStore,
+) -> None:
     """Tests adding a discovery space resource"""
 
     space_resource = random_space_resource_from_db()
@@ -209,8 +222,10 @@ def test_add_and_delete_discovery_space(random_space_resource_from_db, sql_store
 
 
 def test_add_update_and_delete_operation_related_to_discovery_space(
-    random_space_resource_from_db, sql_store, operation_resource
-):
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    sql_store: SQLStore,
+    operation_resource: OperationResource,
+) -> None:
     """
     Tests adding an operation and its relation to a discovery space and then deleting it
     """
@@ -312,11 +327,11 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
 
 
 def test_add_operation_and_output(
-    random_space_resource_from_db,
-    sql_store,
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    sql_store: SQLStore,
     random_walk_multicloud_operation_configuration: DiscoveryOperationResourceConfiguration,
     data_container_resource: orchestrator.core.datacontainer.resource.DataContainerResource,
-):
+) -> None:
 
     # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
     # ref: https://sqlite.org/json1.html#jptr
@@ -399,8 +414,8 @@ def test_add_operation_and_output(
 
 
 def test_add_resource_and_relationship_exception_if_resource_does_not_exist(
-    resource_store, operation_resource
-):
+    resource_store: SQLStore, operation_resource: OperationResource
+) -> None:
     """
     - Test if the resource doesn't exist a value error is raised
     """
@@ -417,7 +432,7 @@ def test_add_resource_and_relationship_exception_if_resource_does_not_exist(
         )
 
 
-def test_delete_unknown_resource_raise_exception(resource_store):
+def test_delete_unknown_resource_raise_exception(resource_store: SQLStore) -> None:
 
     fake_identifier = f"space-pytest-fake-{str(uuid.uuid4())[:6]}"
     with pytest.raises(
@@ -434,7 +449,7 @@ def test_delete_unknown_resource_raise_exception(resource_store):
 
 def test_custom_sample_store_dump(
     active_contest_test_sample_store_resource: orchestrator.core.samplestore.resource.SampleStoreResource,
-):
+) -> None:
     """Tests that the custom dumper removes storage location information from sample store
     model dict"""
 
@@ -457,8 +472,8 @@ def test_custom_sample_store_dump(
 
 def test_custom_sample_store_loading(
     active_contest_test_sample_store_resource: orchestrator.core.samplestore.resource.SampleStoreResource,
-    ado_test_file_project_context,
-):
+    ado_test_file_project_context: ProjectContext,
+) -> None:
     """Tests that the custom loader inserts the given storage location information into a sample store
     model dict that does not have storage location"""
 

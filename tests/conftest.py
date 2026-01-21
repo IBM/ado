@@ -30,10 +30,12 @@ from .fixtures.schema.results import *
 # or we will get create_sample_store fixture not found.
 from .fixtures.samplestore.crud_from_configurations import *
 
+from collections.abc import Callable
+
 
 @pytest.fixture(scope="session")
-def random_identifier():
-    def _random_identifier():
+def random_identifier() -> Callable[[], str]:
+    def _random_identifier() -> str:
         return str(uuid.uuid4()).replace("-", "_")[:8]
 
     return _random_identifier

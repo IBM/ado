@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class DeploymentWaiter:
-    def __init__(self, k8s_name: str):
+    def __init__(self, k8s_name: str) -> None:
         self.k8s_name = k8s_name
         self.model_downloaded_event = asyncio.Event()
 
 
 class DeploymentConflictManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.deployments_to_wait_for: dict[str, DeploymentWaiter] = {}
         self.model_already_downloaded: set[str] = set()
 

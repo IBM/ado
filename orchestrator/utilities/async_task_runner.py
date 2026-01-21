@@ -43,10 +43,10 @@ class AsyncTaskRunner:
     """
 
     # class instance
-    __instance = None
+    __instance: "AsyncTaskRunner" | None = None
 
     @staticmethod
-    def get_instance():
+    def get_instance() -> "AsyncTaskRunner":
         """
         Get an AsyncTaskRunner (singleton)
         """
@@ -58,7 +58,7 @@ class AsyncTaskRunner:
             raise ValueError("AsyncTaskRunner.__instance was None")
         return AsyncTaskRunner.__instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize
         """
@@ -73,7 +73,7 @@ class AsyncTaskRunner:
         # register exit handler
         atexit.register(self._close)
 
-    def _close(self):
+    def _close(self) -> None:
         """
         Clean up. Stop the loop if running
         """
@@ -94,7 +94,7 @@ class AsyncTaskRunner:
         finally:
             loop.close()
 
-    def run(self, coro: Coroutine) -> Any:
+    def run(self, coro: Coroutine) -> Any:  # noqa: ANN401
         """
         Synchronously run a coroutine on a background thread.
         """

@@ -53,7 +53,7 @@ default_target_modules = {
 }
 
 
-def add_experiments(catalog: "ExperimentCatalog"):
+def add_experiments(catalog: "ExperimentCatalog") -> None:
 
     method = "lora"
     version = "1.0.0"

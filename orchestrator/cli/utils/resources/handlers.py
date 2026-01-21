@@ -49,7 +49,7 @@ if typing.TYPE_CHECKING:
 def handle_ado_get_special_formats(
     parameters: AdoGetCommandParameters,
     resource_type: CoreResourceKinds,
-):
+) -> None:
 
     if (
         parameters.output_format == AdoGetSupportedOutputFormats.CONFIG
@@ -104,7 +104,7 @@ def handle_ado_get_special_formats(
 def handle_ado_get_default_format(
     parameters: AdoGetCommandParameters,
     resource_type: CoreResourceKinds,
-):
+) -> None:
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
@@ -153,7 +153,7 @@ def print_related_resources(
     resource_type: CoreResourceKinds,
     sql: SQLStore,
     hide_banner: bool = False,
-):
+) -> None:
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         if not sql.containsResourceWithIdentifier(identifier=resource_id):
             status.stop()
@@ -181,7 +181,7 @@ def handle_edit_resource_metadata(
     resource_type: CoreResourceKinds,
     project_context: ProjectContext,
     editor: AdoEditSupportedEditors,
-):
+) -> None:
     import subprocess  # noqa: S404
     import tempfile
 
@@ -226,7 +226,7 @@ def handle_edit_resource_metadata(
 def handle_ado_upgrade(
     parameters: AdoUpgradeCommandParameters,
     resource_type: CoreResourceKinds,
-):
+) -> None:
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context

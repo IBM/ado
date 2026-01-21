@@ -1,7 +1,9 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+from collections.abc import Callable
 
 import pytest
+from testcontainers.mysql import MySqlContainer
 
 import orchestrator.core.actuatorconfiguration.config
 import orchestrator.core.actuatorconfiguration.resource
@@ -10,15 +12,24 @@ import orchestrator.core.discoveryspace.space
 import orchestrator.core.resources
 import orchestrator.core.samplestore.config
 import orchestrator.metastore.project
+from orchestrator.core import ActuatorConfigurationResource
+from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.core.samplestore.base import ActiveSampleStore
+from orchestrator.core.samplestore.config import SampleStoreConfiguration
+from orchestrator.metastore.project import ProjectContext
+from orchestrator.metastore.sqlstore import SQLStore
 
 
 @pytest.fixture
-def create_sample_store(sql_store, valid_ado_project_context):
+def create_sample_store(
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+) -> Callable[[SampleStoreConfiguration], ActiveSampleStore]:
     # Factory as fixture
     # ref: https://docs.pytest.org/en/stable/how-to/fixtures.html#factories-as-fixtures
     def _create_sample_store(
-        configuration: orchestrator.core.samplestore.config.SampleStoreConfiguration,
-    ):
+        configuration: SampleStoreConfiguration,
+    ) -> ActiveSampleStore:
 
         from orchestrator.core.samplestore.utils import create_sample_store_resource
 
@@ -40,15 +51,18 @@ def create_sample_store(sql_store, valid_ado_project_context):
 
 @pytest.fixture
 def create_space(
-    mysql_test_instance,
-    valid_ado_project_context,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+) -> Callable[
+    [orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration, str],
+    DiscoverySpace,
+]:
     # Factory as fixture
     # ref: https://docs.pytest.org/en/stable/how-to/fixtures.html#factories-as-fixtures
     def _create_space(
         configuration: orchestrator.core.discoveryspace.config.DiscoverySpaceConfiguration,
         sample_store_id: str,
-    ):
+    ) -> DiscoverySpace:
 
         # We need to inject into the space configuration the sample store identifier
         configuration.sampleStoreIdentifier = sample_store_id
@@ -69,16 +83,16 @@ def create_space(
 
 @pytest.fixture
 def create_actuatorconfiguration(
-    sql_store,
-):
+    sql_store: SQLStore,
+) -> Callable[
+    [orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration],
+    ActuatorConfigurationResource,
+]:
     def _create_actuatorconfiguration(
         configuration: orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration,
-    ):
-        import orchestrator.metastore.sqlstore
+    ) -> ActuatorConfigurationResource:
 
-        actuatorconfig_resource = orchestrator.core.actuatorconfiguration.resource.ActuatorConfigurationResource(
-            config=configuration
-        )
+        actuatorconfig_resource = ActuatorConfigurationResource(config=configuration)
 
         sql_store.addResource(actuatorconfig_resource)
 

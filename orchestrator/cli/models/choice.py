@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
-from typing import Any, Optional
+from typing import Optional
 
 import click
 from click import Context, Parameter
@@ -11,7 +11,7 @@ from orchestrator.cli.utils.input.parsers import resource_shorthands_to_full_nam
 
 
 class GenericChoiceType(click.Choice):
-    def __init__(self, enum_type: enum.EnumMeta, case_sensitive: bool = True):
+    def __init__(self, enum_type: enum.EnumMeta, case_sensitive: bool = True) -> None:
         choices = [value.value for value in enum_type]
         super().__init__(choices, case_sensitive)
         self.choices = choices
@@ -20,8 +20,8 @@ class GenericChoiceType(click.Choice):
 
 class HiddenShorthandChoice(GenericChoiceType):
     def convert(
-        self, value: Any, param: Optional["Parameter"], ctx: Optional["Context"]
-    ) -> Any:
+        self, value: str, param: Optional["Parameter"], ctx: Optional["Context"]
+    ) -> str:
         value = resource_shorthands_to_full_names(value)
 
         if value not in self.choices:
@@ -35,7 +35,7 @@ class HiddenShorthandChoice(GenericChoiceType):
 class HiddenPluralChoice(HiddenShorthandChoice):
 
     def convert(
-        self, value: Any, param: Optional["Parameter"], ctx: Optional["Context"]
-    ) -> Any:
+        self, value: str, param: Optional["Parameter"], ctx: Optional["Context"]
+    ) -> str:
         value = value.removesuffix("s")
         return super().convert(value=value, param=param, ctx=ctx)

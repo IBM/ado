@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import enum
+from typing import Annotated, Any
 
 import numpy as np
 import pydantic
@@ -24,11 +25,11 @@ class PropertyAggregationMethodEnum(enum.Enum):
 
 
 class PropertyAggregationMethod(pydantic.BaseModel):
-    identifier: PropertyAggregationMethodEnum = pydantic.Field(
-        default=PropertyAggregationMethodEnum.mean
+    identifier: Annotated[PropertyAggregationMethodEnum, pydantic.Field()] = (
+        PropertyAggregationMethodEnum.mean
     )
 
-    def function(self, values: list):
+    def function(self, values: list) -> float | tuple[Any, Any] | tuple[Any, None]:
         """
         Apply property aggregation methods to values.
 
@@ -48,7 +49,7 @@ class PropertyAggregationMethod(pydantic.BaseModel):
         return functionMap[self.identifier](values)
 
 
-def median(values):
+def median(values: list) -> float:
     x = np.asarray(values)
     return np.median(values), np.median(np.absolute(x - np.median(x)))
 
@@ -71,7 +72,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
     aggregationMethod: PropertyAggregationMethod
 
     @classmethod
-    def isVirtualPropertyIdentifier(cls, identifier):
+    def isVirtualPropertyIdentifier(cls, identifier: str) -> bool:
 
         components = identifier.split("-")
 
@@ -88,7 +89,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
         return retval
 
     @classmethod
-    def parseIdentifier(cls, identifier):
+    def parseIdentifier(cls, identifier: str) -> str:
 
         components = identifier.split("-")
 
@@ -105,17 +106,17 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
         return "-".join(components[:-1]), method.value
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"vp-{self.identifier}"
 
     @property
-    def identifier(self):
+    def identifier(self) -> str:
 
         return f"{self.baseObservedProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
     @property
-    def virtualTargetPropertyIdentifier(self):
+    def virtualTargetPropertyIdentifier(self) -> str:
 
         return f"{self.baseObservedProperty.targetProperty.identifier}-{self.aggregationMethod.identifier.value}"
 
@@ -218,6 +219,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
 class VirtualObservedPropertyValue(PropertyValue):
 
-    property: VirtualObservedProperty = pydantic.Field(
-        description="The ConstitutiveProperty with the value"
-    )
+    property: Annotated[
+        VirtualObservedProperty,
+        pydantic.Field(description="The ConstitutiveProperty with the value"),
+    ]

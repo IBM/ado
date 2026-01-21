@@ -28,7 +28,7 @@ configure_logging()
 
 async def mock_experiment_wait(
     request: MeasurementRequest, stateUpdateQueue: MeasurementQueue
-):
+) -> None:
     import functools
 
     import numpy as np
@@ -58,7 +58,7 @@ class MockActuator(ActuatorBase):
     Will make "random" measurements of any requested properties and submit them directly
     to StateUpdatesQueue"""
 
-    def __init__(self, queue, params=None):
+    def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
 
         enable_ray_actor_coverage("mock")
         super().__init__(queue=queue, params=params)
@@ -73,7 +73,7 @@ class MockActuator(ActuatorBase):
         experimentReference: ExperimentReference,
         requesterid: str,
         requestIndex: int,
-    ):
+    ) -> list[str]:
 
         self.log.info(
             f"Remote actuator submitting measurement of {[e.identifier for e in entities]} by {experimentReference}"

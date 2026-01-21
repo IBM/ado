@@ -34,7 +34,7 @@ if typing.TYPE_CHECKING:
     from orchestrator.core.samplestore.sql import SQLSampleStore
 
 
-def get_measurement_request(parameters: AdoGetCommandParameters):
+def get_measurement_request(parameters: AdoGetCommandParameters) -> None:
 
     if not parameters.resource_id:
         console_print(

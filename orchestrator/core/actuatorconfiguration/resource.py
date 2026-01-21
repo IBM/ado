@@ -16,7 +16,7 @@ class ActuatorConfigurationResource(ADOResource):
     config: ActuatorConfiguration
 
     @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self):
+    def generate_identifier_if_not_provided(self) -> "ActuatorConfigurationResource":
 
         if self.identifier is None:
             self.identifier = f"{self.kind.value}-{self.config.actuatorIdentifier}-{str(uuid.uuid4())[:8]}"

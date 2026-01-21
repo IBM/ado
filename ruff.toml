@@ -41,7 +41,7 @@ target-version = "py310"
 # McCabe complexity (`C901`) by default.
 select = [
 #    "A",
-#    "ANN",
+    "ANN",
     "ASYNC",
     "B",
     "C4",
@@ -142,3 +142,6 @@ docstring-code-line-length = "dynamic"
 "plugins/operators/trim/trim/test/*" = ["S101"]
 "plugins/custom_experiments/autoconf/autoconf/test/*" = ["S101"]
 "plugins/actuators/sfttrainer/ado_actuators/sfttrainer/tests/*" = ["S101"]
+# Here we are also testing type inference, annotations may be missing
+# on purpose.
+"tests/actuators/test_custom_experiments.py" = ["ANN"]

@@ -14,6 +14,8 @@ import typing
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 
 if typing.TYPE_CHECKING:
+    from transformers.tokenization_utils_base import BatchEncoding
+
     from .callbacks import metrics_tracker
 
 import dataclasses
@@ -45,42 +47,42 @@ class ExperimentError(Exception):
 
 
 class NumberOfExpertsNotDivisibleByEpDegreeError(ExperimentError):
-    def __init__(self, underlying_error: str):
+    def __init__(self, underlying_error: str) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.underlying_error
 
 
 class AccelerateError(ExperimentError):
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         self.reason = reason
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.reason
 
 
 class OutOfGPUMemoryError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Out of GPU memory, underlying error was {self.underlying_error}"
 
 
 class NCCLError(ExperimentError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"NCCL error, underlying error was {self.underlying_error}"
 
 
 class UnhandledError(NotImplementedError):
-    def __init__(self, underlying_error: Exception | str | None = None):
+    def __init__(self, underlying_error: Exception | str | None = None) -> None:
         self.underlying_error = underlying_error
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"Unhandled experiment error, underlying error was {self.underlying_error}"
         )
@@ -364,10 +366,8 @@ class FineTuneArgs:
 
     dataset_image_field: str | None = dataclasses.field(
         default=None,
-        metadata={
-            "help": "For running vision language model tuning pass \
-                the column name of the image data in the dataset."
-        },
+        metadata={"help": "For running vision language model tuning pass \
+                the column name of the image data in the dataset."},
     )
 
     remove_unused_columns: bool | None = dataclasses.field(
@@ -461,7 +461,7 @@ def get_available_open_port() -> int:
         return s.getsockname()[1]
 
 
-def extract_metrics(aim_info_path: str, number_gpus: int):
+def extract_metrics(aim_info_path: str, number_gpus: int) -> metrics_tracker.Metrics:
     import json
 
     with open(aim_info_path, encoding="utf-8") as f:
@@ -767,7 +767,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
     tokens_per_sample: list[int],
     model_id: str,
     path_data: str,
-):
+) -> None:
     import json
 
     parent_dir = os.path.dirname(cache_file)
@@ -844,7 +844,7 @@ def calculate_tokens_in_image_text_dataset(
     path_model: str,
     path_data: str,
     dataset_text_field: str,
-):
+) -> list[int]:
     import pandas as pd
     from datasets import Dataset
     from transformers import AutoProcessor
@@ -854,7 +854,7 @@ def calculate_tokens_in_image_text_dataset(
 
     processor = AutoProcessor.from_pretrained(path_model)
 
-    def tokenize_samples(sample):
+    def tokenize_samples(sample: dict) -> BatchEncoding:
         return processor.apply_chat_template(
             sample[dataset_text_field],
             add_generation_prompt=False,
@@ -961,7 +961,7 @@ def get_tokens_per_sample_in_dataset(
     model_id: str | None,
     num_tokens_cache_dir: str | None,
     dataset_text_field: str,
-):
+) -> list[int]:
     """Returns the tokens per sample for each sample in a dataset
 
     Args:

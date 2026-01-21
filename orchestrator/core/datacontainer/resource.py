@@ -3,6 +3,7 @@
 
 import typing
 import uuid
+from typing import Annotated
 
 import pydantic
 
@@ -12,19 +13,22 @@ from orchestrator.core.resources import ADOResource, CoreResourceKinds
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
+    from IPython.lib.pretty import PrettyPrinter
 
 
 class TabularData(pydantic.BaseModel):
 
-    data: dict = pydantic.Field(description="A valid string description of a table")
+    data: Annotated[
+        dict, pydantic.Field(description="A dictionary representation of tabular data")
+    ]
 
     @classmethod
-    def from_dataframe(cls, dataframe: "pd.DataFrame"):
+    def from_dataframe(cls, dataframe: "pd.DataFrame") -> "TabularData":
 
         return cls(data=dataframe.to_dict(orient="list"))
 
     @pydantic.field_validator("data")
-    def validate_data(cls, data):
+    def validate_data(cls, data: dict) -> dict:
 
         import pandas as pd
 
@@ -38,7 +42,7 @@ class TabularData(pydantic.BaseModel):
 
         return pd.DataFrame(self.data)
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -50,11 +54,13 @@ class TabularData(pydantic.BaseModel):
 
 class DataContainer(pydantic.BaseModel):
 
-    tabularData: dict[str, TabularData] | None = pydantic.Field(
-        default=None,
-        description="Contains a dictionary whose values are string representations of dataframes",
-    )
-    locationData: (
+    tabularData: Annotated[
+        dict[str, TabularData] | None,
+        pydantic.Field(
+            description="Contains a dictionary whose values are TabularData objects representing dataframes"
+        ),
+    ] = None
+    locationData: Annotated[
         dict[
             str,
             orchestrator.utilities.location.SQLStoreConfiguration
@@ -62,23 +68,27 @@ class DataContainer(pydantic.BaseModel):
             | orchestrator.utilities.location.FilePathLocation
             | orchestrator.utilities.location.ResourceLocation,
         ]
-        | None
-    ) = pydantic.Field(
-        default=None,
-        description="A dictionary whose values are references to data i.e. data locations",
-    )
-    data: dict[str, dict | list | typing.AnyStr] | None = pydantic.Field(
-        default=None,
-        description="A dictionary of other pydantic objects e.g. lists, dicts, strings,",
-    )
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
+        | None,
+        pydantic.Field(
+            description="A dictionary whose values are references to data i.e. data locations"
+        ),
+    ] = None
+    data: Annotated[
+        dict[str, dict | list | typing.AnyStr] | None,
+        pydantic.Field(
+            description="A dictionary of other pydantic objects e.g. lists, dicts, strings,"
+        ),
+    ] = None
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
 
     @pydantic.model_validator(mode="after")
-    def test_data_present(self):
+    def test_data_present(self) -> "DataContainer":
 
         if not (self.tabularData or self.locationData or self.data):
             raise ValueError(
@@ -87,7 +97,7 @@ class DataContainer(pydantic.BaseModel):
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")
@@ -135,17 +145,17 @@ class DataContainerResource(ADOResource):
 
     version: str = "v1"
     kind: CoreResourceKinds = CoreResourceKinds.DATACONTAINER
-    config: DataContainer = pydantic.Field(description="A collection of data")
+    config: Annotated[DataContainer, pydantic.Field(description="A collection of data")]
 
     @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self):
+    def generate_identifier_if_not_provided(self) -> "DataContainerResource":
 
         if self.identifier is None:
             self.identifier = f"{self.kind.value}-{str(uuid.uuid4())[:8]}"
 
         return self
 
-    def _repr_pretty_(self, p, cycle=False):
+    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 
         if cycle:  # pragma: nocover
             p.text("Cycle detected")

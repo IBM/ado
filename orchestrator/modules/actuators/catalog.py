@@ -4,6 +4,7 @@
 import abc
 import enum
 import logging
+from typing import Annotated
 
 import pydantic
 
@@ -14,11 +15,15 @@ from orchestrator.schema.reference import ExperimentReference
 class ActuatorCatalogExtensionConf(pydantic.BaseModel):
     """Represents a dynamically loadable set of experiments for an actuator"""
 
-    name: str = pydantic.Field(description="The name of the catalog extension")
-    location: str = pydantic.Field(description="The location of the catalog extension")
+    name: Annotated[
+        str, pydantic.Field(description="The name of the catalog extension")
+    ]
+    location: Annotated[
+        str, pydantic.Field(description="The location of the catalog extension")
+    ]
 
     @property
-    def catalogExtensionLocation(self):
+    def catalogExtensionLocation(self) -> str:
         import os
 
         return os.path.join(self.location, self.name)
@@ -31,7 +36,9 @@ class ActuatorCatalogExtension(pydantic.BaseModel):
     Holding off on this as ExperimentCatalog has internal data-structures that need to change
     """
 
-    experiments: list[Experiment] = pydantic.Field(description="A list of experiments")
+    experiments: Annotated[
+        list[Experiment], pydantic.Field(description="A list of experiments")
+    ]
 
 
 class BaseCatalog(abc.ABC):
@@ -55,8 +62,8 @@ class ExperimentCatalog(BaseCatalog):
     """Base class for class that provide information on the available experiments"""
 
     def __init__(
-        self, experiments: dict | None = None, catalogIdentifier="UnnamedCatalog"
-    ):
+        self, experiments: dict | None = None, catalogIdentifier: str = "UnnamedCatalog"
+    ) -> None:
         """
         Parameters:
             experiments: A dictionary whose keys are experiment identifiers
@@ -73,7 +80,7 @@ class ExperimentCatalog(BaseCatalog):
         self._identifier = catalogIdentifier
         self._experiments = experiments if experiments is not None else {}
 
-    def __str__(self):
+    def __str__(self) -> str:
 
         return f"Catalog {self._identifier} with {len(self._experiments)} experiments"
 
@@ -113,7 +120,7 @@ class ExperimentCatalog(BaseCatalog):
         ]
         return None if len(match) == 0 else match[0]
 
-    def addExperiment(self, experiment: Experiment):
+    def addExperiment(self, experiment: Experiment) -> None:
 
         if self._experiments.get(experiment.identifier) is not None:
             self.log.warning(

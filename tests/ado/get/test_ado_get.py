@@ -4,13 +4,19 @@
 import os
 import pathlib
 import sqlite3
+from collections.abc import Callable
 
 import pytest
 import yaml
+from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
-from orchestrator.core import OperationResource
+from orchestrator.core import OperationResource, SampleStoreResource
+from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.core.samplestore.sql import SQLSampleStore
+from orchestrator.metastore.project import ProjectContext
+from orchestrator.metastore.sqlstore import SQLStore
 
 sqlite3_version = sqlite3.sqlite_version_info
 
@@ -22,11 +28,13 @@ sqlite3_version = sqlite3.sqlite_version_info
 )
 def test_space_exists(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    pfas_space,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    pfas_space: DiscoverySpace,
+) -> None:
 
     runner = CliRunner()
     create_active_ado_context(
@@ -40,7 +48,7 @@ def test_space_exists(
         assert pfas_space.uri in result.output
 
 
-def test_get_robotic_lab_actuator():
+def test_get_robotic_lab_actuator() -> None:
 
     runner = CliRunner()
 
@@ -63,13 +71,15 @@ def test_get_robotic_lab_actuator():
 )
 def test_field_querying(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    sql_store,
-    valid_ado_project_context,
-    create_active_ado_context,
-    empty_sample_store,
-    sample_store_resource,
-):
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    empty_sample_store: SQLSampleStore,
+    sample_store_resource: SampleStoreResource,
+) -> None:
 
     runner = CliRunner()
     create_active_ado_context(

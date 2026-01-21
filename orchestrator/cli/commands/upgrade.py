@@ -36,7 +36,7 @@ def upgrade_resource(
             click_type=HiddenPluralChoice(AdoUpgradeSupportedResourceTypes),
         ),
     ],
-):
+) -> None:
     """
     Upgrade resources and contexts.
 
@@ -71,7 +71,7 @@ def upgrade_resource(
     method_mapping[resource_type](parameters=parameters)
 
 
-def register_upgrade_command(app: typer.Typer):
+def register_upgrade_command(app: typer.Typer) -> None:
     app.command(
         name="upgrade",
         no_args_is_help=True,

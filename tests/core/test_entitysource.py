@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import datetime
+from typing import Any
 
 import pytest
 import yaml
@@ -12,12 +13,14 @@ import orchestrator.utilities.location
 from orchestrator.core import SampleStoreResource
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
+    SampleStoreModuleConf,
     SampleStoreReference,
 )
 from orchestrator.core.samplestore.csv import (
     CSVSampleStore,
     CSVSampleStoreDescription,
 )
+from orchestrator.core.samplestore.sql import SQLSampleStore
 from orchestrator.core.samplestore.utils import initialize_sample_store_from_reference
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.observed_property import ObservedProperty
@@ -31,12 +34,13 @@ from orchestrator.schema.property_value import (
     ValueTypeEnum,
 )
 from orchestrator.schema.reference import ExperimentReference
+from orchestrator.utilities.location import FilePathLocation, SQLStoreConfiguration
 
 
 def test_state_identifier(
     csv_sample_store: CSVSampleStore,
     csv_sample_store_identifier: str,
-):
+) -> None:
     """Check the csv sample store id is what is expected"""
 
     assert csv_sample_store.identifier == csv_sample_store_identifier
@@ -44,7 +48,7 @@ def test_state_identifier(
 
 def test_csv_sample_store_experiments(
     csv_sample_store: CSVSampleStore,
-):
+) -> None:
     """Check the experiments created in the state are what is expected"""
 
     catalog = csv_sample_store.experimentCatalog()
@@ -61,7 +65,7 @@ def test_csv_sample_store_experiments(
 
 def test_csv_sample_store_entities(
     csv_sample_store: CSVSampleStore,
-):
+) -> None:
     """Tests if the first and last entities are what is expected"""
 
     assert csv_sample_store.entities[0].identifier == "[O-]SC1=C([O-])OCCC1"
@@ -70,8 +74,11 @@ def test_csv_sample_store_entities(
 
 def test_csv_sample_store_config(
     csv_sample_store: CSVSampleStore,
-    csv_sample_store_parameters,
-):
+    csv_sample_store_parameters: tuple[
+        dict[str, str],
+        dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+    ],
+) -> None:
 
     location, parameters = csv_sample_store_parameters
 
@@ -86,8 +93,11 @@ def test_csv_sample_store_config(
 
 
 def test_csv_sample_store_description(
-    csv_sample_store_parameters,
-):
+    csv_sample_store_parameters: tuple[
+        dict[str, str],
+        dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+    ],
+) -> None:
 
     _location, params = csv_sample_store_parameters
     desc = CSVSampleStoreDescription.model_validate(params)
@@ -114,7 +124,7 @@ def test_csv_sample_store_description(
     ]
 
 
-def test_sample_store_resource(sample_store_resource):
+def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> None:
 
     assert sample_store_resource.identifier is not None
     assert sample_store_resource.identifier == "test_source"
@@ -169,7 +179,7 @@ def csv_sample_store_from_reference(
 def test_csv_sample_store_from_reference(
     csv_sample_store_from_reference: CSVSampleStore,
     csv_sample_store_reference: SampleStoreReference,
-):
+) -> None:
     """Test creating a single sample store based on a description"""
 
     print(csv_sample_store_reference)
@@ -197,7 +207,7 @@ def test_csv_sample_store_from_reference(
     )
 
 
-def test_sample_store_smiles(pfas_sample_store):
+def test_sample_store_smiles(pfas_sample_store: SQLSampleStore) -> None:
     """Test creating a single sample store based on a description"""
 
     # sample_store is directly created in the fixture - we expect it to be passive as
@@ -207,7 +217,7 @@ def test_sample_store_smiles(pfas_sample_store):
     assert pfas_sample_store.numberOfEntities == 101
 
 
-def test_sample_store_config_file_valid(valid_sample_store_config_file):
+def test_sample_store_config_file_valid(valid_sample_store_config_file: str) -> None:
     import pathlib
 
     valid_sample_store_config_file = pathlib.Path(valid_sample_store_config_file)
@@ -216,7 +226,11 @@ def test_sample_store_config_file_valid(valid_sample_store_config_file):
     )
 
 
-def test_sample_store_specification(sample_store_module_and_storage_location):
+def test_sample_store_specification(
+    sample_store_module_and_storage_location: tuple[
+        SampleStoreModuleConf, SQLStoreConfiguration
+    ],
+) -> None:
     """Test we can create, dump and load a SampleStoreSpecification"""
 
     module, location = sample_store_module_and_storage_location
@@ -267,7 +281,11 @@ def test_sample_store_specification(sample_store_module_and_storage_location):
     assert m.storageLocation is None
 
 
-def test_sample_store_correct_class(sample_store_test_data):
+def test_sample_store_correct_class(
+    sample_store_test_data: tuple[
+        dict[str, Any], SQLStoreConfiguration | FilePathLocation
+    ],
+) -> None:
 
     config, expectedClass = sample_store_test_data
 
@@ -280,8 +298,8 @@ def test_sample_store_correct_class(sample_store_test_data):
 
 
 def test_base_entity_with_constitutive_property_values(
-    ml_multi_cloud_csv_sample_store,
-):
+    ml_multi_cloud_csv_sample_store: CSVSampleStore,
+) -> None:
 
     ents = ml_multi_cloud_csv_sample_store.entitiesWithConstitutivePropertyValues(
         [
@@ -299,7 +317,9 @@ def test_base_entity_with_constitutive_property_values(
     assert len(ents) == 5
 
 
-def test_csv_sample_store_type_parsing(ml_multi_cloud_csv_sample_store):
+def test_csv_sample_store_type_parsing(
+    ml_multi_cloud_csv_sample_store: CSVSampleStore,
+) -> None:
 
     entity: Entity = ml_multi_cloud_csv_sample_store.entities[0]
     for prop_id in ["cpu_family", "vcpu_size", "nodes", "provider"]:

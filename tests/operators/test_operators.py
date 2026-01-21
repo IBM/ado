@@ -19,6 +19,7 @@ from orchestrator.core.discoveryspace.samplers import (
     SequentialSampleSelector,
     WalkModeEnum,
 )
+from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.resource import (
     DiscoveryOperationResourceConfiguration,
     OperationExitStateEnum,
@@ -38,7 +39,7 @@ from orchestrator.modules.operators.randomwalk import (
 )
 
 
-def test_randomwalk_class_methods():
+def test_randomwalk_class_methods() -> None:
 
     import orchestrator.metastore.project
 
@@ -49,7 +50,7 @@ def test_randomwalk_class_methods():
     assert RandomWalk.operatorIdentifier().split("-")[0] == "randomwalk"
 
 
-def test_raytune_class_methods():
+def test_raytune_class_methods() -> None:
     import orchestrator.metastore.project
 
     assert (
@@ -59,7 +60,7 @@ def test_raytune_class_methods():
     assert RayTune.operatorIdentifier().split("-")[0] == "raytune"
 
 
-def test_operator_function_conf():
+def test_operator_function_conf() -> None:
 
     function = orchestrator.core.operation.config.OperatorFunctionConf(
         operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
@@ -76,7 +77,9 @@ def test_operator_function_conf():
     assert function.operatorIdentifier.split("-")[0] == "rifferla"
 
 
-def test_operator_module_conf(operator_module_conf):
+def test_operator_module_conf(
+    operator_module_conf: orchestrator.core.operation.config.OperatorModuleConf,
+) -> None:
 
     assert (
         operator_module_conf.operationType
@@ -88,7 +91,7 @@ def test_operator_module_conf(operator_module_conf):
     )
 
 
-def test_operator_module_conf_random_walk():
+def test_operator_module_conf_random_walk() -> None:
 
     module = orchestrator.core.operation.config.OperatorModuleConf(
         moduleName="orchestrator.modules.operators.randomwalk",
@@ -104,7 +107,7 @@ def test_operator_module_conf_random_walk():
     assert module.operatorIdentifier.split("-")[0] == "randomwalk"
 
 
-def test_characterize(expected_characterize_operators):
+def test_characterize(expected_characterize_operators: list[str]) -> None:
 
     assert len(
         orchestrator.modules.operators.collections.characterize.list_operations()
@@ -120,7 +123,7 @@ def test_characterize(expected_characterize_operators):
         )
 
 
-def test_explore(expected_explore_operators):
+def test_explore(expected_explore_operators: list[str]) -> None:
 
     assert len(
         orchestrator.modules.operators.collections.explore.list_operations()
@@ -135,8 +138,8 @@ def test_explore(expected_explore_operators):
 
 
 def test_characterize_operator_function_configurations(
-    expected_characterize_operators,
-):
+    expected_characterize_operators: list[str],
+) -> None:
 
     for operationName in expected_characterize_operators:
         operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
@@ -146,7 +149,9 @@ def test_characterize_operator_function_configurations(
         assert operationConf is not None
 
 
-def test_explore_operator_function_configurations(expected_explore_operators):
+def test_explore_operator_function_configurations(
+    expected_explore_operators: list[str],
+) -> None:
 
     for operationName in expected_explore_operators:
         operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
@@ -156,7 +161,9 @@ def test_explore_operator_function_configurations(expected_explore_operators):
         assert operationConf is not None
 
 
-def test_operator_function_configuration_incorrect_type(expected_explore_operators):
+def test_operator_function_configuration_incorrect_type(
+    expected_explore_operators: list[str],
+) -> None:
 
     operation_type = (
         orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
@@ -177,7 +184,7 @@ def test_operator_function_configuration_incorrect_type(expected_explore_operato
             operationConf.validateOperatorExists()
 
 
-def test_operator_function_configuration_unknown_function():
+def test_operator_function_configuration_unknown_function() -> None:
 
     operator_name = "UnknownOperationName"
     operation_type = (
@@ -198,7 +205,7 @@ def test_operator_function_configuration_unknown_function():
         operationConf.validateOperatorExists()
 
 
-def test_operator_function_configuration_unknown_type():
+def test_operator_function_configuration_unknown_type() -> None:
 
     operator_name = "raytune"
     operation_type = orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY
@@ -217,7 +224,7 @@ def test_operator_function_configuration_unknown_type():
         operationConf.validateOperatorExists()
 
 
-def test_random_walk_operation_configuration():
+def test_random_walk_operation_configuration() -> None:
 
     from orchestrator.modules.operators.randomwalk import (
         RandomWalk,
@@ -239,7 +246,9 @@ def test_random_walk_operation_configuration():
     )
 
 
-def test_raytune_operation_configuration(raytuneConf):
+def test_raytune_operation_configuration(
+    raytuneConf: DiscoveryOperationResourceConfiguration,
+) -> None:
 
     import ado_ray_tune.operator_function
     from ado_ray_tune.operator import (
@@ -273,7 +282,7 @@ def test_raytune_operation_configuration(raytuneConf):
 
 def test_random_walk_config(
     randomWalkConf: DiscoveryOperationResourceConfiguration,
-):
+) -> None:
     """Test random walk configuration model"""
 
     import pydantic
@@ -311,7 +320,7 @@ def test_random_walk_config(
         RandomWalk.validateOperationParameters(parameters=parameters)
 
 
-def test_random_walk_custom_sampler_config():
+def test_random_walk_custom_sampler_config() -> None:
 
     config = CustomSamplerConfiguration(
         module=SamplerModuleConf(
@@ -361,8 +370,8 @@ def test_random_walk_custom_sampler_config():
     list(itertools.product(WalkModeEnum, ["generator", "selector"])),
 )
 def test_random_walk_base_sampler_config(
-    mode, samplerType: typing.Literal["generator", "selector"]
-):
+    mode: WalkModeEnum, samplerType: typing.Literal["generator", "selector"]
+) -> None:
     config = BaseSamplerConfiguration(mode=mode.value, samplerType=samplerType)
 
     sampler = config.sampler()
@@ -381,7 +390,7 @@ def test_random_walk_base_sampler_config(
 
 def test_ray_tune_config(
     raytuneConf: DiscoveryOperationResourceConfiguration,
-):
+) -> None:
     """Test running a random_walk operation via the operation functions"""
 
     import pydantic
@@ -399,9 +408,9 @@ def test_ray_tune_config(
 
 
 def test_run_random_walk_operation(
-    ml_multi_cloud_space,
+    ml_multi_cloud_space: DiscoverySpace,
     randomWalkConf: DiscoveryOperationResourceConfiguration,
-):
+) -> None:
     """Test running a random_walk operation via the operation functions"""
 
     import orchestrator.core.resources
@@ -463,9 +472,9 @@ def test_run_random_walk_operation(
 
 
 def test_random_walk_fail_invalid_config(
-    ml_multi_cloud_space,
-    invalidRandomWalkConf: orchestrator.core.operation.config.DiscoveryOperationResourceConfiguration,
-):
+    ml_multi_cloud_space: DiscoverySpace,
+    invalidRandomWalkConf: DiscoveryOperationResourceConfiguration,
+) -> None:
     """Test running a random_walk operation via the operation functions"""
 
     discoverySpace = ml_multi_cloud_space
@@ -514,7 +523,10 @@ def test_random_walk_fail_invalid_config(
         pytest.fail("Expected exception to be raised and none was")
 
 
-def test_run_ray_tune_operation(ml_multi_cloud_space, raytuneConf):
+def test_run_ray_tune_operation(
+    ml_multi_cloud_space: DiscoverySpace,
+    raytuneConf: DiscoveryOperationResourceConfiguration,
+) -> None:
     """Test running a ray_tune operation via the operation functions"""
 
     import orchestrator.core.resources
@@ -571,7 +583,9 @@ def test_run_ray_tune_operation(ml_multi_cloud_space, raytuneConf):
     assert spaces.IDENTIFIER[0] == discoverySpace.uri
 
 
-def test_operator_default_and_validate(optimizer_operator):
+def test_operator_default_and_validate(
+    optimizer_operator: type[RandomWalk] | type[RayTune],
+) -> None:
 
     assert optimizer_operator
     default = optimizer_operator.defaultOperationParameters()

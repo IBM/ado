@@ -25,7 +25,7 @@ default_logger = logging.getLogger(__name__)
 original_create_or_get_virtualenv = virtualenv_utils.create_or_get_virtualenv
 
 
-async def create_or_get_virtualenv(path: str, cwd: str, logger: logging.Logger):
+async def create_or_get_virtualenv(path: str, cwd: str, logger: logging.Logger) -> None:
     virtualenv_path = os.path.join(path, "virtualenv")
     if not os.path.exists(virtualenv_path):
         await original_create_or_get_virtualenv(path=path, cwd=cwd, logger=logger)
@@ -35,7 +35,9 @@ _monkey_patch_lock = threading.RLock()
 
 
 @contextlib.contextmanager
-def patch_create_or_get_virtualenv(phase_index: int):
+def patch_create_or_get_virtualenv(
+    phase_index: int,
+) -> typing.Generator[None, None, None]:
     with _monkey_patch_lock:
         if phase_index > 0:
             virtualenv_utils.create_or_get_virtualenv = create_or_get_virtualenv
@@ -102,7 +104,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
     priority = 100
     ClassPath = "orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"
 
-    def __init__(self, resources_dir: str | None = None):
+    def __init__(self, resources_dir: str | None = None) -> None:
         self._global_mtx = threading.RLock()
         self._create_env_mtx: dict[str, threading.RLock] = {}
         self._pip_resources_dir = resources_dir
@@ -114,7 +116,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         self,
         context: "RuntimeEnvContext",  # noqa: F821
         logger: logging.Logger | None = default_logger,
-    ):
+    ) -> None:
         # VV: When ray instantiates custom RuntimeEnvPlugins it does not provide a resources_dir path.
         # This method is a HACK that the resources_dir based on the RuntimeEnvContext which is known
         # at the time of CREATING a virtual environment i.e. **after** the RuntimeEnvPlugin is initialized.
@@ -155,7 +157,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
             self._switch_resources_dir(unique.pop())
 
-    def _switch_resources_dir(self, resources_dir: str):
+    def _switch_resources_dir(self, resources_dir: str) -> None:
         with self._global_mtx:
             from ray._common.utils import try_to_create_directory
 
@@ -322,7 +324,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         runtime_env: "RuntimeEnv",  # noqa: F821
         context: "RuntimeEnvContext",  # noqa: F821
         logger: logging.Logger = default_logger,
-    ):
+    ) -> None:
         self._try_switch_resources_dir_from_context(context)
 
         runtime_env = self.validate(runtime_env)

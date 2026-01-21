@@ -33,7 +33,7 @@ from orchestrator.modules.operators.base import (
 moduleLog = logging.getLogger("orchestrate_core")
 
 
-def log_space_details(discovery_space: "DiscoverySpace"):
+def log_space_details(discovery_space: "DiscoverySpace") -> None:
 
     from IPython.lib import pretty
 
@@ -96,6 +96,7 @@ def _run_operation_harness(
     )
 
     operation_output = None
+
     interrupted_nested_operation: str | None = None
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,

@@ -15,7 +15,7 @@ from orchestrator.metastore.base import (
 )
 
 
-def show_operation_entities(parameters: AdoShowEntitiesCommandParameters):
+def show_operation_entities(parameters: AdoShowEntitiesCommandParameters) -> None:
 
     entities_type = "timeseries"
 

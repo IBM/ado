@@ -28,7 +28,7 @@ from ado_actuators.sfttrainer.experiments.common import (
         },
     },
 )
-def get_model_hash(path_model: str):
+def get_model_hash(path_model: str) -> bool:
     from accelerate import init_empty_weights
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
@@ -56,7 +56,7 @@ def get_model_hash(path_model: str):
     return True
 
 
-def main():
+def main() -> None:
     ray.init()
 
     model_information: dict[str, dict[str, typing.Any]] = {}

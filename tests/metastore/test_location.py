@@ -7,7 +7,7 @@ import pytest
 import orchestrator.utilities.location
 
 
-def test_resource_location_from_url():
+def test_resource_location_from_url() -> None:
 
     url = "https://user:mypass123@localhost:8080/path"
 
@@ -39,7 +39,7 @@ def test_resource_location_from_url():
         )
 
 
-def test_resource_location_extra_forbid():
+def test_resource_location_extra_forbid() -> None:
 
     # extra should not be allowed
     with pytest.raises(pydantic.ValidationError):
@@ -48,7 +48,7 @@ def test_resource_location_extra_forbid():
         )
 
 
-def test_resource_location_url_formation():
+def test_resource_location_url_formation() -> None:
 
     url = "https://michaelj:mypass123@localhost:8080/path"
 
@@ -64,7 +64,7 @@ def test_resource_location_url_formation():
     assert location.baseUrl().unicode_string() == "https://localhost:8080/path"
 
 
-def test_resource_location_port_in_host_migration():
+def test_resource_location_port_in_host_migration() -> None:
 
     location = orchestrator.utilities.location.ResourceLocation(
         scheme="https", host="localhost:8080"
@@ -74,7 +74,7 @@ def test_resource_location_port_in_host_migration():
     assert location.port == 8080
 
 
-def test_pretty_resource_location():
+def test_pretty_resource_location() -> None:
 
     from IPython.lib.pretty import pretty
 
@@ -85,7 +85,7 @@ def test_pretty_resource_location():
     pretty(location)
 
 
-def test_file_path_location_with_existing():
+def test_file_path_location_with_existing() -> None:
 
     location = orchestrator.utilities.location.FilePathLocation(
         path="examples/pfas-generative-models/operation_transformer_benchmark.yaml"
@@ -93,7 +93,7 @@ def test_file_path_location_with_existing():
     assert location
 
 
-def test_file_path_location_with_non_existing():
+def test_file_path_location_with_non_existing() -> None:
 
     # We don't want FilePathLocation to raise an error if the path doesn't exist
     # Instead it prints a warning
@@ -107,7 +107,7 @@ def test_file_path_location_with_non_existing():
     assert location
 
 
-def test_path_location():
+def test_path_location() -> None:
 
     rl = orchestrator.utilities.location.ResourceLocation(
         scheme="file", path="/tmp/file.db"
@@ -127,7 +127,7 @@ def test_path_location():
 
 
 ### MySQLDsn
-def test_valid_mysql_store_configuration():
+def test_valid_mysql_store_configuration() -> None:
 
     configuration = orchestrator.utilities.location.SQLStoreConfiguration(
         scheme="mysql+pymysql",
@@ -155,7 +155,7 @@ def test_valid_mysql_store_configuration():
     )
 
 
-def test_mysql_store_configuration_user_required():
+def test_mysql_store_configuration_user_required() -> None:
     with pytest.raises(
         ValueError,
         match=r"You must specify the user when using MySQL",
@@ -188,7 +188,7 @@ def test_mysql_store_configuration_user_required():
 
 
 ### SQLiteDsn
-def test_valid_sqlite_store_configuration():
+def test_valid_sqlite_store_configuration() -> None:
 
     configuration = orchestrator.utilities.location.SQLiteStoreConfiguration(
         scheme="sqlite",
@@ -203,7 +203,7 @@ def test_valid_sqlite_store_configuration():
     )
 
 
-def test_sqlite_store_configuration_purges_unused_fields():
+def test_sqlite_store_configuration_purges_unused_fields() -> None:
 
     configuration = orchestrator.utilities.location.SQLiteStoreConfiguration(
         scheme="sqlite",
@@ -224,7 +224,7 @@ def test_sqlite_store_configuration_purges_unused_fields():
 
 
 ### Generic SQLStoreConfiguration tests
-def test_sql_store_configuration_database_required():
+def test_sql_store_configuration_database_required() -> None:
     with pytest.raises(
         ValueError,
         match=r"1 validation error for SQLStoreConfiguration\ndatabase\n  Field required",
@@ -240,7 +240,7 @@ def test_sql_store_configuration_database_required():
         )
 
 
-def test_store_configuration_path_filled_in():
+def test_store_configuration_path_filled_in() -> None:
     configuration = orchestrator.utilities.location.SQLStoreConfiguration(
         scheme="mysql+pymysql",
         host="localhost",

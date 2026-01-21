@@ -2,11 +2,16 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+from collections.abc import Callable
 
 import pytest
+from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
+from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
@@ -16,17 +21,21 @@ from orchestrator.utilities.output import pydantic_model_as_yaml
         "peptide_mineralization_basic_operation_configuration",
     ]
 )
-def operations_to_be_run(request):
+def operations_to_be_run(
+    request: pytest.FixtureRequest,
+) -> DiscoveryOperationResourceConfiguration:
     return request.getfixturevalue(request.param)
 
 
 def test_create_operation_dry_run_success(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    operations_to_be_run,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    operations_to_be_run: DiscoveryOperationResourceConfiguration,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -56,11 +65,13 @@ def test_create_operation_dry_run_success(
 
 def test_create_operation_dry_run_failure(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ml_multi_cloud_operation_configuration,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -92,11 +103,13 @@ def test_create_operation_dry_run_failure(
 
 def test_create_operation_success(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    operations_to_be_run,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    operations_to_be_run: DiscoveryOperationResourceConfiguration,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -121,11 +134,13 @@ def test_create_operation_success(
 
 def test_create_operation_success_set_spaces(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-    ml_multi_cloud_space,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
@@ -153,10 +168,12 @@ def test_create_operation_success_set_spaces(
 
 def test_create_operation_success_with_discovery_space(
     tmp_path: pathlib.Path,
-    mysql_test_instance,
-    valid_ado_project_context,
-    create_active_ado_context,
-):
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context

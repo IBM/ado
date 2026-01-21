@@ -48,7 +48,7 @@ def semver_parse(version: str) -> tuple[int, ...]:
     return tuple(int(x) for x in version.split("."))
 
 
-def import_from_path(module_name: str, file_path: str):
+def import_from_path(module_name: str, file_path: str) -> types.ModuleType:
 
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)

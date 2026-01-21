@@ -107,7 +107,9 @@ def generate_sequence(words: list[str], start: int, length: int) -> tuple[str, i
 
 
 def compute_population_size(
-    num_max_batch_size=128, num_max_gpus=8, num_gradient_accumulation_steps=4
+    num_max_batch_size: int = 128,
+    num_max_gpus: int = 8,
+    num_gradient_accumulation_steps: int = 4,
 ) -> int:
     return num_max_batch_size * num_max_gpus * num_gradient_accumulation_steps
 
@@ -221,7 +223,7 @@ def main(
     image_width: Annotated[int, typer.Option(help="The image width in pixels")] = 384,
     image_height: Annotated[int, typer.Option(help="The image height in pixels")] = 384,
     log_level: Annotated[int, typer.Option("--log-level", "-l", help="Log level")] = 20,
-):
+) -> None:
     logging.basicConfig(
         level=log_level,
         format="%(levelname)-9s %(name)-30s: %(funcName)-20s %(asctime)-15s: %(message)s",

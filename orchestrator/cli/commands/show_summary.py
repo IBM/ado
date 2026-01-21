@@ -138,7 +138,7 @@ def show_summary_for_resources(
             help="Render the output in the console. Only supported for markdown and table output.",
         ),
     ] = False,
-):
+) -> None:
     """
     Show a formatted summary of one or more discovery spaces.
 
@@ -233,7 +233,7 @@ def show_summary_for_resources(
         raise typer.Exit(1) from e
 
 
-def register_show_summary_command(app: typer.Typer):
+def register_show_summary_command(app: typer.Typer) -> None:
     app.command(
         name="summary",
         no_args_is_help=True,

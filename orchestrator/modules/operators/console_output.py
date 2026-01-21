@@ -6,6 +6,7 @@ Module providing Rich Console output helpers for live operation progress, spinne
 Designed to be used for real-time visualization of long-running Discovery operations using Ray actors and the rich library for advanced command line UI.
 Contains message definitions, FIFO Ray actor queue for cross-process safe messaging, and utilities for rendering and updating progress/spinner views as well as result tables from DiscoverySpace data.
 """
+
 import queue
 from typing import Literal
 
@@ -74,10 +75,10 @@ class RichConsoleQueue:
     updating process in a thread-safe way.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._queue = queue.Queue()
 
-    def put(self, message: RichConsoleMessageType):
+    def put(self, message: RichConsoleMessageType) -> None:
         """
         Append a single RichConsoleMessageType instance (progress or spinner message) to the FIFO queue.
 
@@ -96,7 +97,7 @@ class RichConsoleQueue:
         self._queue.put(message)
 
     def get(
-        self, timeout=None
+        self, timeout: float | None = None
     ) -> RichConsoleSpinnerMessage | RichConsoleProgressMessage | None:
         """
         Pop and return the next queued RichConsoleMessage, or None if queue is empty.
@@ -324,7 +325,7 @@ def run_operation_live_updates(
     operation_id: str,
     console_queue: ray.actor.ActorHandle[RichConsoleQueue],
     operation_future: ray.ObjectRef,
-):
+) -> None:
     """
     Continuously updates the live Rich Console display during the execution of a distributed operation.
     Handles periodic refresh of the operation results table and processes all messages from the Ray queue to update progress bars and spinners in real-time.

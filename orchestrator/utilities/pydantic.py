@@ -4,6 +4,13 @@ import re
 import typing
 
 import pydantic
+from pydantic_core import PydanticUseDefault
+
+
+def default_if_none(value: typing.Any) -> typing.Any:  # noqa: ANN401
+    if value is None:
+        raise PydanticUseDefault
+    return value
 
 
 def model_dict_representation_with_field_exclusions_for_custom_model_serializer(

@@ -4,6 +4,7 @@
 import enum
 import itertools
 import typing
+from typing import Annotated
 
 import pandas as pd
 import pydantic
@@ -26,10 +27,13 @@ class SeriesBehaviourEnum(enum.Enum):
 
 
 class ExpectedSeriesBehaviour(pydantic.BaseModel):
-    property: str = pydantic.Field(description="The identifier of an observed property")
-    behaviour: SeriesBehaviourEnum = pydantic.Field(
-        description="The expected behaviour of the series to test"
-    )
+    property: Annotated[
+        str, pydantic.Field(description="The identifier of an observed property")
+    ]
+    behaviour: Annotated[
+        SeriesBehaviourEnum,
+        pydantic.Field(description="The expected behaviour of the series to test"),
+    ]
 
 
 class PropertyTypeEnum(enum.Enum):
@@ -40,35 +44,50 @@ class PropertyTypeEnum(enum.Enum):
 class DetectAnomalousSeries(pydantic.BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    entity_filter: EntityFilter = pydantic.Field(
-        default=EntityFilter.SAMPLED, description="What entities should be used"
-    )
-    test_property_type: PropertyTypeEnum = pydantic.Field(
-        default="observed",
-        description="If target then test_properties must use target property identifiers. "
-        "If observed then they must be observed property identifiers ",
-    )
-    groupby_properties: list[str] = pydantic.Field(
-        description="A list of identifiers of constitutive properties to group by"
-    )
-    independent_properties: list[str] = pydantic.Field(
-        description="Constitutive property to treat as independent variable of each group. "
-        "If there are more than one, then for each property, "
-        "the others are added to group_properties to form the groups"
-    )
-    test_properties: list[ExpectedSeriesBehaviour] = pydantic.Field(
-        description="A list of observed properties and behaviours. "
-        "For each group and each independent variable, the behaviour of the property for the group will be checked"
-    )
-    failed_metric: str | None = pydantic.Field(
-        default=None,
-        description="The target property that indicates measurement validity. Assumed to be a bool",
-    )
-    trim_failed: bool = pydantic.Field(
-        default=True,
-        description="If True entities that have failed_value "
-        "for the failed_metric and trim from start/end of the series.",
-    )
+    entity_filter: Annotated[
+        EntityFilter, pydantic.Field(description="What entities should be used")
+    ] = EntityFilter.SAMPLED
+    test_property_type: Annotated[
+        PropertyTypeEnum,
+        pydantic.Field(
+            description="If target then test_properties must use target property identifiers. "
+            "If observed then they must be observed property identifiers ",
+        ),
+    ] = "observed"
+    groupby_properties: Annotated[
+        list[str],
+        pydantic.Field(
+            description="A list of identifiers of constitutive properties to group by"
+        ),
+    ]
+    independent_properties: Annotated[
+        list[str],
+        pydantic.Field(
+            description="Constitutive property to treat as independent variable of each group. "
+            "If there are more than one, then for each property, "
+            "the others are added to group_properties to form the groups"
+        ),
+    ]
+    test_properties: Annotated[
+        list[ExpectedSeriesBehaviour],
+        pydantic.Field(
+            description="A list of observed properties and behaviours. "
+            "For each group and each independent variable, the behaviour of the property for the group will be checked"
+        ),
+    ]
+    failed_metric: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The target property that indicates measurement validity. Assumed to be a bool",
+        ),
+    ] = None
+    trim_failed: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True entities that have failed_value "
+            "for the failed_metric and trim from start/end of the series.",
+        ),
+    ] = True
 
     @classmethod
     def default_parameters(cls) -> "DetectAnomalousSeries":

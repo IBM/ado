@@ -147,7 +147,7 @@ class DataContainerResource(ADOResource):
     @staticmethod
     def _identifier_from_data(data: dict[str, typing.Any]) -> str:
         return f"{data['kind'].value}-{str(uuid.uuid4())[:8]}"
-    
+
     version: Annotated[str, pydantic.Field()] = "v1"
     kind: Annotated[CoreResourceKinds, pydantic.Field()] = (
         CoreResourceKinds.DATACONTAINER

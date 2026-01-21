@@ -210,7 +210,6 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         str,
         pydantic.Field(
             description="Endpoint to an inference service",
-            default=None,
             validate_default=True,
         ),
     ] = None

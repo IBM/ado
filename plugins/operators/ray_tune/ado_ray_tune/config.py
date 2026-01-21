@@ -260,10 +260,12 @@ class OrchRunConfig(pydantic.BaseModel):
     """
 
     # Here are the special fields that are used to create the inputs for RayConfig
-    stop: list[OrchStopperAlgorithm] | None = pydantic.Field(
-        default=None,
-        description="A list of stopper(s) to use. If more than one will be combined with CombinedStopper",
-    )
+    stop: Annotated[
+        list[OrchStopperAlgorithm] | None,
+        pydantic.Field(
+            description="A list of stopper(s) to use. If more than one will be combined with CombinedStopper",
+        ),
+    ] = None
     model_config = ConfigDict(extra="allow")
 
     def rayRuntimeConfig(self) -> ray.tune.RunConfig:

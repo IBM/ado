@@ -161,7 +161,7 @@ def import_tuning_version(
         path_to_thin_wrappers_directory=path_to_thin_wrappers_directory,
     )
 
-    filename = "".join((module_name, ".py"))
+    filename = f"{module_name}.py"
     wrapper_file = os.path.join(
         path_to_thin_wrappers_directory,
         filename,

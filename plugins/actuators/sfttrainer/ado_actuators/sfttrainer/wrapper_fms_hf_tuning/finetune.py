@@ -942,16 +942,7 @@ def get_cache_file_for_tokens_per_sample(
 
     return os.path.join(
         num_tokens_cache_dir,
-        ".".join(
-            (
-                "num-tokens",
-                model_id,
-                "for",
-                ds_name,
-                digest.hexdigest(),
-                "json",
-            )
-        ),
+        f"num-tokens.{model_id}.for.{ds_name}.{digest.hexdigest()}.json",
     )
 
 

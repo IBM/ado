@@ -97,9 +97,7 @@ def generate_dataset(
         text_input, start = generate_sequence(words, start, words_prompt)
         text_output, start = generate_sequence(words, start, words_response)
 
-        entry = {
-            "output": " ".join((prompt, text_input, response_delimiter, text_output))
-        }
+        entry = {"output": f"{prompt} {text_input} {response_delimiter} {text_output}"}
         dataset.append(entry)
 
     return dataset

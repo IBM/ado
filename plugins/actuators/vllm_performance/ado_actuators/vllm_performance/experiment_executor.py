@@ -31,6 +31,9 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark impo
     execute_geospatial_benchmark,
     execute_random_benchmark,
 )
+from ado_actuators.vllm_performance.vllm_performance_test.execute_guidellm_benchmark import (
+    execute_guidellm_benchmark,
+)
 from ray.actor import ActorHandle
 
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
@@ -131,7 +134,6 @@ def _create_environment(
         )
     )
     while True:
-
         try:
             env: Environment = ray.get(
                 env_manager.get_environment.remote(model=model, definition=definition)
@@ -163,7 +165,6 @@ def _create_environment(
 
     match env.state:
         case EnvironmentState.NONE:
-
             # Environment does not exist, create it
             logger.debug(f"Environment {env.k8s_name} does not exist. Creating it")
             tmout = 1
@@ -179,7 +180,7 @@ def _create_environment(
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
                         id=request_id,
-                        label=f"({request_id}) Creating vLLM deployment {env.k8s_name} (attempt {attempt+1}/3)...",
+                        label=f"({request_id}) Creating vLLM deployment {env.k8s_name} (attempt {attempt + 1}/3)...",
                         state="start",
                     )
                 )
@@ -379,7 +380,6 @@ def run_resource_and_workload_experiment(
 
     # For every entity
     for entity in request.entities:
-
         port_forward = None
         definition = None
         started_benchmarking = False
@@ -436,6 +436,20 @@ def run_resource_and_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     burstiness=float(values.get("burstiness")),
                     dataset=values.get("dataset"),
+                )
+            elif experiment.identifier in [
+                "test-deployment-guidellm-v1",
+            ]:
+                result = execute_guidellm_benchmark(
+                    base_url=base_url,
+                    model=values.get("model"),
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    number_input_tokens=int(values.get("number_input_tokens")),
+                    max_output_tokens=int(values.get("max_output_tokens")),
                 )
             else:
                 result = execute_random_benchmark(
@@ -571,6 +585,18 @@ def run_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     burstiness=float(values.get("burstiness")),
                     dataset=values.get("dataset"),
+                )
+            elif experiment.identifier == "test-endpoint-guidellm-v1":
+                result = execute_guidellm_benchmark(
+                    base_url=values.get("endpoint"),
+                    model=values.get("model"),
+                    num_prompts=int(values.get("num_prompts")),
+                    request_rate=request_rate,
+                    max_concurrency=max_concurrency,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    number_input_tokens=int(values.get("number_input_tokens")),
+                    max_output_tokens=int(values.get("max_output_tokens")),
                 )
             else:
                 result = execute_random_benchmark(

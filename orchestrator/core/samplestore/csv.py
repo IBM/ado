@@ -170,8 +170,10 @@ class CSVSampleStore(PassiveSampleStore):
         idColumn: str,
         generatorIdentifier: str | None = None,
         experimentIdentifier: str | None = None,
+        actuatorIdentifier: str | None = None,
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
+        validate_actuators: bool = True,
     ) -> "CSVSampleStore":
 
         # Create a schema of the contents of the CSV file
@@ -180,6 +182,7 @@ class CSVSampleStore(PassiveSampleStore):
         if observedPropertyColumns:
             experimentDescriptor = ExperimentDescription(
                 experimentIdentifier=experimentIdentifier,
+                actuatorIdentifier=actuatorIdentifier,
                 propertyMap={k: k for k in observedPropertyColumns},
             )
 
@@ -199,6 +202,7 @@ class CSVSampleStore(PassiveSampleStore):
             generatorIdentifier=generatorIdentifier,
             experiments=experiments,
             constitutivePropertyColumns=constitutivePropertyColumns,
+            validate_actuators=validate_actuators,
         )
 
         return CSVSampleStore(

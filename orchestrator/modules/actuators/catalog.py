@@ -4,6 +4,7 @@
 import abc
 import enum
 import logging
+from pathlib import Path
 from typing import Annotated
 
 import pydantic
@@ -23,10 +24,8 @@ class ActuatorCatalogExtensionConf(pydantic.BaseModel):
     ]
 
     @property
-    def catalogExtensionLocation(self) -> str:
-        import os
-
-        return os.path.join(self.location, self.name)
+    def catalogExtensionLocation(self) -> Path:
+        return Path(self.location) / Path(self.name)
 
 
 class ActuatorCatalogExtension(pydantic.BaseModel):

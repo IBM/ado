@@ -93,7 +93,7 @@ class CSVSampleStoreDescription(SampleStoreDescription):
         registry = ActuatorRegistry.globalRegistry()
 
         for exp_desc in self.experiments:
-            actuator_id = exp_desc.actuatorIdentifier or "replay"
+            actuator_id = exp_desc.actuatorIdentifier
             exp_id = exp_desc.experimentIdentifier
 
             # Check 1: Verify actuator exists

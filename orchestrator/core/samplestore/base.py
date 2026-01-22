@@ -17,6 +17,7 @@ from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.property import ConstitutiveProperty
 from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
+from orchestrator.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:
     from orchestrator.schema.observed_property import ObservedProperty
@@ -212,10 +213,13 @@ class ExperimentDescription(pydantic.BaseModel):
     experimentIdentifier: Annotated[
         str, pydantic.Field(description="The name of the experiment")
     ]
-    actuatorIdentifier: str | None = pydantic.Field(
-        default=None,
-        description="The actuator that provides this experiment. Defaults to 'replay' if not specified.",
-    )
+    actuatorIdentifier: Annotated[
+        Defaultable[str],
+        pydantic.Field(
+            default="replay",
+            description="The actuator that provides this experiment. Defaults to 'replay' if not specified.",
+        ),
+    ]
     propertyMap: Annotated[
         dict,
         pydantic.Field(
@@ -243,10 +247,9 @@ class SampleStoreDescription(pydantic.BaseModel):
 
         experiments = {}
         for desc in self.experiments:
-            actuator_id = desc.actuatorIdentifier or "replay"
             experiment = Experiment.experimentWithAbstractPropertyIdentifiers(
                 identifier=desc.experimentIdentifier,
-                actuatorIdentifier=actuator_id,
+                actuatorIdentifier=desc.actuatorIdentifier,
                 targetProperties=desc.propertyMap.keys(),
                 requiredConstitutiveProperties=[
                     cp.identifier for cp in self.constitutiveProperties

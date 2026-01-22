@@ -128,10 +128,14 @@ def test_operation_identifier(operation_resource: OperationResource) -> str:
 def random_walk_multicloud_operation_configuration() -> (
     DiscoveryOperationResourceConfiguration
 ):
-
-    with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
-        conf = DiscoveryOperationResourceConfiguration.model_validate(yaml.safe_load(f))
+    configuration = DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
+            ).read_text()
+        )
+    )
 
     # Remove values for the spaces
-    conf.spaces = []
-    return conf
+    configuration.spaces = []
+    return configuration

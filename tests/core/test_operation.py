@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import datetime
+from pathlib import Path
 
 import pydantic
 import pytest
@@ -129,11 +130,8 @@ def test_operation_resource_exit_state() -> None:
 
 def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
 
-    with open(valid_operation_config_file) as f:
-        content = f.read()
-
     op_cfg = DiscoveryOperationResourceConfiguration.model_validate(
-        yaml.safe_load(content)
+        yaml.safe_load(Path(valid_operation_config_file).read_text())
     )
 
     try:

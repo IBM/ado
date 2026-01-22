@@ -5,6 +5,7 @@
 import json
 import pathlib
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 import yaml
@@ -87,21 +88,21 @@ def valid_discovery_space_config_file(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture
 def discovery_space_configuration() -> DiscoverySpaceConfiguration:
-
-    with open("examples/ml-multi-cloud/ml_multicloud_space.yaml") as f:
-        d = yaml.safe_load(f)
-
-    return DiscoverySpaceConfiguration.model_validate(d)
+    return DiscoverySpaceConfiguration.model_validate(
+        yaml.safe_load(
+            Path("examples/ml-multi-cloud/ml_multicloud_space.yaml").read_text()
+        )
+    )
 
 
 @pytest.fixture
 def discovery_space_configuration_no_replay() -> DiscoverySpaceConfiguration:
     """Returns a discovery space that doesn't use replayed experiment"""
-
-    with open("examples/optimization_test_functions/space.yaml") as f:
-        d = yaml.safe_load(f)
-
-    return DiscoverySpaceConfiguration.model_validate(d)
+    return DiscoverySpaceConfiguration.model_validate(
+        yaml.safe_load(
+            Path("examples/optimization_test_functions/space.yaml").read_text()
+        )
+    )
 
 
 @pytest.fixture
@@ -140,8 +141,12 @@ def discovery_space_resource_from_file() -> DiscoverySpaceResource:
     """Returns a DiscoverySpace resource read from a file
 
     For use with inactive resource-stores where read is not possible"""
-
-    with open("examples/ml-multi-cloud/ml_multicloud_space.yaml") as f:
-        conf = DiscoverySpaceConfiguration(**yaml.safe_load(f))
-
-    return DiscoverySpaceResource(config=conf)
+    return DiscoverySpaceResource(
+        config=DiscoverySpaceConfiguration.model_validate(
+            yaml.safe_load(
+                pathlib.Path(
+                    "examples/ml-multi-cloud/ml_multicloud_space.yaml"
+                ).read_text()
+            )
+        )
+    )

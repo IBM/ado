@@ -177,11 +177,11 @@ def csv_sample_store(
 
 @pytest.fixture
 def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
-
-    with open("tests/resources/ml_multicloud_sample_store.yaml") as f:
-        d = yaml.safe_load(f)
-
-    return SampleStoreConfiguration.model_validate(d)
+    return SampleStoreConfiguration.model_validate(
+        yaml.safe_load(
+            pathlib.Path("tests/resources/ml_multicloud_sample_store.yaml").read_text()
+        )
+    )
 
 
 @pytest.fixture

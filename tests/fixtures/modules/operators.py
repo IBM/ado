@@ -1,8 +1,9 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+from pathlib import Path
 
 import pytest
+import yaml
 from ado_ray_tune.operator import RayTune
 
 import orchestrator.core
@@ -44,11 +45,13 @@ def randomWalkConf(
     request: pytest.FixtureRequest,
 ) -> DiscoveryOperationResourceConfiguration | None:
 
-    import yaml
-
-    with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
-        d = yaml.safe_load(f)
-        config = DiscoveryOperationResourceConfiguration(**d)
+    config = DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(
+            Path(
+                "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
+            ).read_text()
+        )
+    )
 
     if request.param == "all":
         config.operation.parameters["numberEntities"] = "all"
@@ -61,11 +64,13 @@ def invalidRandomWalkConf(
     request: pytest.FixtureRequest,
 ) -> DiscoveryOperationResourceConfiguration:
 
-    import yaml
-
-    with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
-        d = yaml.safe_load(f)
-        config = DiscoveryOperationResourceConfiguration(**d)
+    config = DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(
+            Path(
+                "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
+            ).read_text()
+        )
+    )
 
     if request.param == "valueGreaterThanSize":
         config.operation.parameters["numberEntities"] = 62
@@ -80,12 +85,13 @@ def invalidRandomWalkConf(
 
 @pytest.fixture
 def raytuneConf() -> DiscoveryOperationResourceConfiguration:
-
-    import yaml
-
-    with open("examples/ml-multi-cloud/raytune_ml_multicloud_operation.yaml") as f:
-        d = yaml.safe_load(f)
-        return DiscoveryOperationResourceConfiguration(**d)
+    return DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(
+            Path(
+                "examples/ml-multi-cloud/raytune_ml_multicloud_operation.yaml"
+            ).read_text()
+        )
+    )
 
 
 @pytest.fixture(params=[RandomWalk, RayTune])

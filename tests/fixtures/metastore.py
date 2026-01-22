@@ -181,15 +181,12 @@ def create_active_ado_context() -> (
 @pytest.fixture(scope="module", params=["mysql", "sqlite"])
 def ado_test_file_project_context(request: pytest.FixtureRequest) -> ProjectContext:
 
-    import yaml
-
     if request.param == "sqlite":
         path = "tests/sqlite_test_context.yaml"
     else:
         path = "tests/mysql_test_context.yaml"
 
-    with open(path) as f:
-        return ProjectContext.model_validate(yaml.safe_load(f))
+    return ProjectContext.model_validate(yaml.safe_load(pathlib.Path(path)))
 
 
 @pytest.fixture

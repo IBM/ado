@@ -52,19 +52,26 @@ CustomBytes = Annotated[
 class PropertyValue(pydantic.BaseModel):
     """Represents the value of a property"""
 
-    valueType: ValueTypeEnum | None = pydantic.Field(
-        default=None,
-        description="The type of the value. If not set it is set based on the value.",
-    )
-    value: int | float | list | str | CustomBytes | None = pydantic.Field(
-        description="The measured value."
-    )
-    property: PropertyDescriptor | ConstitutivePropertyDescriptor = pydantic.Field(
-        description="The Property with the value"
-    )
-    uncertainty: float | None = pydantic.Field(
-        default=None, description="The uncertainty in the measured value. Can be None"
-    )
+    valueType: Annotated[
+        ValueTypeEnum | None,
+        pydantic.Field(
+            description="The type of the value. If not set it is set based on the value."
+        ),
+    ] = None
+    value: Annotated[
+        int | float | list | str | CustomBytes | None,
+        pydantic.Field(description="The measured value."),
+    ]
+    property: Annotated[
+        PropertyDescriptor | ConstitutivePropertyDescriptor,
+        pydantic.Field(description="The Property with the value"),
+    ]
+    uncertainty: Annotated[
+        float | None,
+        pydantic.Field(
+            description="The uncertainty in the measured value. Can be None"
+        ),
+    ] = None
 
     @pydantic.field_validator("property", mode="before")
     def convert_property_to_descriptor(
@@ -182,9 +189,10 @@ class PropertyValue(pydantic.BaseModel):
 
 class ConstitutivePropertyValue(PropertyValue):
 
-    property: ConstitutivePropertyDescriptor = pydantic.Field(
-        description="The ConstitutiveProperty with the value"
-    )
+    property: Annotated[
+        ConstitutivePropertyDescriptor,
+        pydantic.Field(description="The ConstitutiveProperty with the value"),
+    ]
 
 
 def constitutive_property_values_from_point(

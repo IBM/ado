@@ -3,9 +3,11 @@
 
 
 import typing
+from typing import Any
 
 import pytest
 
+from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.property import (
@@ -39,10 +41,10 @@ def experiment_reference(
 
 @pytest.fixture
 def experiment(
-    experiment_identifier: typing.AnyStr,
-    actuator_identifier: typing.AnyStr,
+    experiment_identifier: str,
+    actuator_identifier: str,
     abstract_properties: list[AbstractPropertyDescriptor],
-    requiredProperties,
+    requiredProperties: list[ConstitutiveProperty],
 ) -> Experiment:
     return Experiment(
         identifier=experiment_identifier,
@@ -55,9 +57,9 @@ def experiment(
 
 @pytest.fixture
 def expected_observed_property_identifiers(
-    target_property_list: list[typing.AnyStr],
-    experiment_identifier: typing.AnyStr,
-) -> list[typing.AnyStr]:
+    target_property_list: list[str],
+    experiment_identifier: str,
+) -> list[str]:
     return [f"{experiment_identifier}-{t}" for t in target_property_list]
 
 
@@ -91,7 +93,9 @@ def optionalProperties() -> list[ConstitutiveProperty]:
 
 
 @pytest.fixture(scope="module")
-def defaultParameterization(optionalProperties) -> list[ConstitutivePropertyValue]:
+def defaultParameterization(
+    optionalProperties: list[ConstitutivePropertyValue],
+) -> list[ConstitutivePropertyValue]:
     return [
         ConstitutivePropertyValue(
             value="B", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
@@ -106,7 +110,7 @@ def defaultParameterization(optionalProperties) -> list[ConstitutivePropertyValu
 
 
 @pytest.fixture
-def experimentRawNoOptional(experiment) -> dict:
+def experimentRawNoOptional(experiment: Experiment) -> dict[str, Any]:  # noqa: ANN401
     """Returns an experiment model as dict without optionalProperties or defaultParameterization"""
 
     d = experiment.model_dump()
@@ -117,7 +121,9 @@ def experimentRawNoOptional(experiment) -> dict:
 
 
 @pytest.fixture(scope="module")
-def customParameterization(optionalProperties) -> list[ConstitutivePropertyValue]:
+def customParameterization(
+    optionalProperties: list[ConstitutiveProperty],
+) -> list[ConstitutivePropertyValue]:
     return [
         ConstitutivePropertyValue(
             value="C", property=ConstitutivePropertyDescriptor(identifier="test_opt1")
@@ -133,7 +139,9 @@ def customParameterization(optionalProperties) -> list[ConstitutivePropertyValue
 
 @pytest.fixture(scope="module")
 def mock_parameterizable_experiment(
-    requiredProperties, optionalProperties, defaultParameterization
+    requiredProperties: list[ConstitutiveProperty],
+    optionalProperties: list[ConstitutiveProperty],
+    defaultParameterization: list[ConstitutivePropertyValue],
 ) -> Experiment:
     """A parameterizable experiment that has required and optional properties"""
 
@@ -150,7 +158,8 @@ def mock_parameterizable_experiment(
 
 @pytest.fixture(scope="module")
 def mock_parameterizable_experiment_no_required(
-    optionalProperties, defaultParameterization
+    optionalProperties: list[ConstitutiveProperty],
+    defaultParameterization: list[ConstitutivePropertyValue],
 ) -> Experiment:
     """A parameterizable experiment that has no required properties"""
 
@@ -166,11 +175,11 @@ def mock_parameterizable_experiment_no_required(
 
 @pytest.fixture(scope="module")
 def mock_parameterizable_experiment_with_required_observed(
-    requiredProperties,
-    optionalProperties,
-    defaultParameterization,
-    mock_parameterizable_experiment,
-):
+    requiredProperties: list[ConstitutivePropertyValue],
+    optionalProperties: list[ConstitutivePropertyValue],
+    defaultParameterization: list[ConstitutivePropertyValue],
+    mock_parameterizable_experiment: Experiment,
+) -> Experiment:
     """A parameterizable experiment that has a required observed property"""
 
     # We add the observed property of the standard mock experiment
@@ -189,9 +198,9 @@ def mock_parameterizable_experiment_with_required_observed(
 
 @pytest.fixture(scope="module")
 def parameterizable_experiments(
-    mock_parameterizable_experiment_no_required,
-    mock_parameterizable_experiment,
-    mock_parameterizable_experiment_with_required_observed,
+    mock_parameterizable_experiment_no_required: Experiment,
+    mock_parameterizable_experiment: Experiment,
+    mock_parameterizable_experiment_with_required_observed: Experiment,
 ) -> list[Experiment]:
     """Returns a set of parameterizable experiments"""
 
@@ -204,9 +213,9 @@ def parameterizable_experiments(
 
 @pytest.fixture(scope="module")
 def parameterized_experiments(
-    parameterizable_experiments,
-    customParameterization,
-):
+    parameterizable_experiments: list[Experiment],
+    customParameterization: list[ConstitutivePropertyValue],
+) -> list[ParameterizedExperiment]:
     """Returns a set of parameterized experiments"""
 
     # Note: We deliberately leave out the last custom parameterization
@@ -230,18 +239,19 @@ def parameterized_experiments(
 
 @pytest.fixture(scope="module")
 def parameterized_references(
-    parameterized_experiments, global_registry
+    parameterized_experiments: list[ParameterizedExperiment],
+    global_registry: ActuatorRegistry,
 ) -> list[ExperimentReference]:
     return [e.reference for e in parameterized_experiments]
 
 
 @pytest.fixture(params=["standard", "no_required", "with_required_observed"])
 def parameterizable_experiment(
-    mock_parameterizable_experiment,
-    mock_parameterizable_experiment_no_required,
-    mock_parameterizable_experiment_with_required_observed,
-    customParameterization,
-    request,
+    mock_parameterizable_experiment: Experiment,
+    mock_parameterizable_experiment_no_required: Experiment,
+    mock_parameterizable_experiment_with_required_observed: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
+    request: pytest.FixtureRequest,
 ) -> Experiment:
     """Use to obtain a single Experiment instance with optional properties"""
 
@@ -258,7 +268,8 @@ def parameterizable_experiment(
 
 @pytest.fixture
 def parameterized_experiment(
-    parameterizable_experiment: Experiment, customParameterization
+    parameterizable_experiment: Experiment,
+    customParameterization: list[ConstitutivePropertyValue],
 ) -> ParameterizedExperiment:
     """Use to obtain a single ParameterizedExperiment instance"""
 

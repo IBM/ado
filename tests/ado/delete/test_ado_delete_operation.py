@@ -3,11 +3,21 @@
 
 import pathlib
 import sqlite3
+from collections.abc import Callable
 
 import pytest
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.core.samplestore.sql import SQLSampleStore
+from orchestrator.metastore.project import ProjectContext
+from orchestrator.metastore.sqlstore import SQLStore
+from orchestrator.schema.experiment import Experiment
+from orchestrator.schema.request import (
+    MeasurementRequest,
+    MeasurementRequestStateEnum,
+    ReplayedMeasurement,
+)
 
 sqlite3_version = sqlite3.sqlite_version_info
 
@@ -19,14 +29,22 @@ sqlite3_version = sqlite3.sqlite_version_info
 )
 def test_delete_ml_multi_cloud_operation(
     tmp_path: pathlib.Path,
-    valid_ado_project_context,
-    create_active_ado_context,
-    sql_store,
-    ml_multi_cloud_benchmark_performance_experiment,
-    random_ml_multi_cloud_benchmark_performance_measurement_requests,
-    simulate_ml_multi_cloud_random_walk_operation,
-    random_sql_sample_store,
-    random_identifier,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sql_store: SQLStore,
+    ml_multi_cloud_benchmark_performance_experiment: Experiment,
+    random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
+        [int, int, MeasurementRequestStateEnum | None, str | None],
+        ReplayedMeasurement,
+    ],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+    random_sql_sample_store: Callable[[], SQLSampleStore],
+    random_identifier: Callable[[], str],
 ) -> None:
     assert ml_multi_cloud_benchmark_performance_experiment is not None
     runner = CliRunner()

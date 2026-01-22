@@ -4,6 +4,7 @@
 import abc
 import logging
 import typing
+from typing import Annotated
 
 import pydantic
 from ray.actor import ActorHandle
@@ -169,7 +170,7 @@ class ActuatorBase(abc.ABC):
 
 
 class ActuatorModuleConf(ModuleConf):
-    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.ACTUATOR)
+    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.ACTUATOR
 
 
 if typing.TYPE_CHECKING:

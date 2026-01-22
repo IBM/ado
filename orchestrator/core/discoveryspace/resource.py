@@ -8,6 +8,7 @@ import pydantic
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
+from orchestrator.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:
     from IPython.lib.pretty import PrettyPrinter
@@ -19,17 +20,12 @@ class DiscoverySpaceResource(ADOResource):
     kind: CoreResourceKinds = CoreResourceKinds.DISCOVERYSPACE
     config: DiscoverySpaceConfiguration
 
-    @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self) -> "DiscoverySpaceResource":
-
-        # We can't reliably get the sample store identifier from a SampleStoreConfiguration
-        # This is because (A) it may represent an uncreated SampleStore and (B) if created the location
-        # of the identifier in the parameters is unknown
-        # We would need the SampleStore object or SampleStoreResource
-        if self.identifier is None:
-            self.identifier = f"space-{str(uuid.uuid4())[:8]}"
-
-        return self
+    identifier: typing.Annotated[
+        Defaultable[str],
+        pydantic.Field(
+            default_factory=lambda: f"space-{str(uuid.uuid4())[:8]}",
+        ),
+    ]
 
     def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
 

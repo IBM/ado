@@ -22,16 +22,19 @@ from orchestrator.modules.operators.discovery_space_manager import (
     DiscoverySpaceManager,
 )
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
+from orchestrator.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=[WalkModeEnum.RANDOM, WalkModeEnum.SEQUENTIAL])
-def walk_mode(request):
+def walk_mode(request: pytest.FixtureRequest) -> WalkModeEnum:
 
     return request.param
 
 
 @pytest.fixture
-def explicit_entity_space(constitutive_property_configuration_general):
+def explicit_entity_space(
+    constitutive_property_configuration_general: list[ConstitutiveProperty],
+) -> EntitySpaceRepresentation:
 
     return EntitySpaceRepresentation(constitutive_property_configuration_general)
 
@@ -78,7 +81,14 @@ def check_group_order(
         "sequential_generator",
     ]
 )
-def group_sampler_ml_multi_cloud_space(request):
+def group_sampler_ml_multi_cloud_space(
+    request: pytest.FixtureRequest,
+) -> (
+    SequentialGroupSampleSelector
+    | RandomGroupSampleSelector
+    | ExplicitEntitySpaceGroupedGridSampleGenerator
+    | None
+):
 
     samp = None
     if request.param == "sequential_selector":

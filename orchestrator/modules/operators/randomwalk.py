@@ -103,9 +103,9 @@ class CombinedWalkModeEnum(enum.Enum):
 
 class EntityFilter(pydantic.BaseModel):
 
-    filterMode: FilterModeEnum = pydantic.Field(
-        default=FilterModeEnum.noFilter, description="Filtering mode for entities"
-    )
+    filterMode: Annotated[
+        FilterModeEnum, pydantic.Field(description="Filtering mode for entities")
+    ] = FilterModeEnum.noFilter
 
     def applyFilter(
         self,
@@ -131,21 +131,26 @@ class EntityFilter(pydantic.BaseModel):
 class BaseSamplerConfiguration(pydantic.BaseModel):
     """Allows specifying basic sampling options for a RandomWalk"""
 
-    samplerType: Literal["selector", "generator"] = pydantic.Field(
-        default="selector",
-        description="The type of sampler to use. A generator generates entities based on the entityspace, "
-        "selectors select from existing entities",
-    )
-    mode: Literal[
-        "random", "sequential", "randomgrouped", "sequentialgrouped", "custom"
-    ] = pydantic.Field(
-        default="random",
-        description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
-    )
-    grouping: list[str] = pydantic.Field(
-        default_factory=list,
-        description="List of variable names that need to be grouped together",
-    )
+    samplerType: Annotated[
+        Literal["selector", "generator"],
+        pydantic.Field(
+            description="The type of sampler to use. A generator generates entities based on the entityspace, "
+            "selectors select from existing entities",
+        ),
+    ] = "selector"
+    mode: Annotated[
+        Literal["random", "sequential", "randomgrouped", "sequentialgrouped", "custom"],
+        pydantic.Field(
+            description="How the walk should be performed: random, sequential, groupedrandom or groupedsequential",
+        ),
+    ] = "random"
+    grouping: Annotated[
+        list[str],
+        pydantic.Field(
+            default_factory=list,
+            description="List of variable names that need to be grouped together",
+        ),
+    ]
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.field_validator("grouping")
@@ -268,12 +273,14 @@ class SamplerModuleConf(ModuleConf):
 class CustomSamplerConfiguration(pydantic.BaseModel):
     """Allows using arbitrary samplers"""
 
-    module: SamplerModuleConf = pydantic.Field(
-        description="Describes the sampling class to use"
-    )
-    parameters: pydantic.SerializeAsAny[typing.Any | None] = pydantic.Field(
-        default=None, description="Parameters for the sampler if any"
-    )
+    module: Annotated[
+        SamplerModuleConf,
+        pydantic.Field(description="Describes the sampling class to use"),
+    ]
+    parameters: Annotated[
+        pydantic.SerializeAsAny[typing.Any | None],
+        pydantic.Field(description="Parameters for the sampler if any"),
+    ] = None
     model_config = pydantic.ConfigDict(extra="forbid")
 
     def __str__(self) -> str:
@@ -335,32 +342,44 @@ SamplerConfig = Annotated[
 
 class RandomWalkParameters(pydantic.BaseModel):
 
-    samplerConfig: SamplerConfig = pydantic.Field(
-        default_factory=BaseSamplerConfiguration,
-        description="Defines the sampler to use",
-    )
-    numberEntities: int | Literal["all"] = pydantic.Field(
-        default=1,
-        description="Number of entities to sample or 'all' if you want to sample all and discoveryspace is finite. "
-        "Note if discoveryspace is not-finite then specifying 'all' will raise an error at runtime",
-    )
-    batchSize: int = pydantic.Field(
-        default=1,
-        description="The number of concurrent experiments will be maintained at"
-        " this value multiplied by the size of the measurement space",
-    )
-    singleMeasurement: bool = pydantic.Field(
-        default=True,
-        description="If True reuse existing measurements for an experiment",
-    )
-    maxRetries: int = pydantic.Field(
-        default=0, description="The number of times to retry failed measurements"
-    )
-    filter: EntityFilter = pydantic.Field(
-        default=EntityFilter(),
-        description="Filter for entities. Only entities matching filter are considered "
-        "sampled and sent for measurement. Default is noFilter",
-    )
+    samplerConfig: Annotated[
+        SamplerConfig,
+        pydantic.Field(
+            default_factory=BaseSamplerConfiguration,
+            description="Defines the sampler to use",
+        ),
+    ]
+    numberEntities: Annotated[
+        int | Literal["all"],
+        pydantic.Field(
+            description="Number of entities to sample or 'all' if you want to sample all and discoveryspace is finite. "
+            "Note if discoveryspace is not-finite then specifying 'all' will raise an error at runtime",
+        ),
+    ] = 1
+    batchSize: Annotated[
+        int,
+        pydantic.Field(
+            description="The number of concurrent experiments will be maintained at"
+            " this value multiplied by the size of the measurement space",
+        ),
+    ] = 1
+    singleMeasurement: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True reuse existing measurements for an experiment",
+        ),
+    ] = True
+    maxRetries: Annotated[
+        int,
+        pydantic.Field(description="The number of times to retry failed measurements"),
+    ] = 0
+    filter: Annotated[
+        EntityFilter,
+        pydantic.Field(
+            description="Filter for entities. Only entities matching filter are considered "
+            "sampled and sent for measurement. Default is noFilter",
+        ),
+    ] = EntityFilter()
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
@@ -383,15 +402,16 @@ class RandomWalkParameters(pydantic.BaseModel):
 
 class RequestRetry(pydantic.BaseModel):
 
-    measurementRequest: MeasurementRequest = pydantic.Field(
-        description="The request being retried"
-    )
-    retries: int = pydantic.Field(
-        default=0, description="Number of times it has been retried"
-    )
-    finalStatus: MeasurementRequestStateEnum | None = pydantic.Field(
-        default=None, description="The final status"
-    )
+    measurementRequest: Annotated[
+        MeasurementRequest, pydantic.Field(description="The request being retried")
+    ]
+    retries: Annotated[
+        int, pydantic.Field(description="Number of times it has been retried")
+    ] = 0
+    finalStatus: Annotated[
+        MeasurementRequestStateEnum | None,
+        pydantic.Field(description="The final status"),
+    ] = None
 
     def __str__(self) -> str:
 

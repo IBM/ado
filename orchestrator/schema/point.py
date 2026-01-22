@@ -19,9 +19,10 @@ class SpacePoint(pydantic.BaseModel):
         dict[str, typing.Any] | None,
         pydantic.Field(description="A dictionary of property name:value pairs"),
     ] = None
-    experiments: list[ExperimentReference] | None = (
-        pydantic.Field(default=None, description="A list of experiments"),
-    )
+    experiments: Annotated[
+        list[ExperimentReference] | None,
+        pydantic.Field(description="A list of experiments"),
+    ] = None
 
     def to_entity(self) -> Entity:
 

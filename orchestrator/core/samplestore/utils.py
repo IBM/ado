@@ -104,7 +104,7 @@ def create_sample_store(
             for reference in conf.copyFrom
         ]
 
-    for s in additional_sample_stores:  # type:SampleStore
+    for s in additional_sample_stores:  # type: SampleStore
         moduleLogger.debug(
             f"Copying {s.numberOfEntities} entities from {s.identifier} to {sample_store.identifier}"
         )

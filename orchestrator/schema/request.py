@@ -5,7 +5,7 @@ import datetime
 import enum
 import typing
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
 import pydantic
 from dateutil.tz import tzlocal
@@ -50,35 +50,52 @@ class MeasurementRequest(pydantic.BaseModel, validate_assignment=True):
 
     """
 
-    operation_id: str = pydantic.Field(
-        description="The id of the operation that requested this measurement",
-    )
-    requestIndex: int = pydantic.Field(
-        description="An integer set by requester. This can be used to denote that this was the Nth Measurement requested by it"
-    )
-    experimentReference: ExperimentReference = pydantic.Field(
-        description="An reference detailing the experiment to perform"
-    )
-    entities: list[Entity] = pydantic.Field(
-        description="An Entity instance representing the entity being measured"
-    )
-    requestid: str = pydantic.Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        description="The id associate with this request - created by the actuator.",
-    )
-    status: MeasurementRequestStateEnum = pydantic.Field(
-        MeasurementRequestStateEnum.UNKNOWN, description="The status of the measurement"
-    )
-    timestamp: datetime.datetime = pydantic.Field(default_factory=timestamp)
+    operation_id: Annotated[
+        str,
+        pydantic.Field(
+            description="The id of the operation that requested this measurement"
+        ),
+    ]
+    requestIndex: Annotated[
+        int,
+        pydantic.Field(
+            description="An integer set by requester. This can be used to denote that this was the Nth Measurement requested by it"
+        ),
+    ]
+    experimentReference: Annotated[
+        ExperimentReference,
+        pydantic.Field(description="An reference detailing the experiment to perform"),
+    ]
+    entities: Annotated[
+        list[Entity],
+        pydantic.Field(
+            description="An Entity instance representing the entity being measured"
+        ),
+    ]
+    requestid: Annotated[
+        str,
+        pydantic.Field(
+            default_factory=lambda: str(uuid.uuid4()),
+            description="The id associate with this request - created by the actuator.",
+        ),
+    ]
+    status: Annotated[
+        MeasurementRequestStateEnum,
+        pydantic.Field(description="The status of the measurement"),
+    ] = MeasurementRequestStateEnum.UNKNOWN
+    timestamp: Annotated[datetime.datetime, pydantic.Field(default_factory=timestamp)]
 
-    measurements: tuple[MeasurementResultType, ...] | None = pydantic.Field(
-        default=None,
-        description="The results of the measurement",
-    )
+    measurements: Annotated[
+        tuple[MeasurementResultType, ...] | None,
+        pydantic.Field(description="The results of the measurement"),
+    ] = None
 
-    metadata: dict = pydantic.Field(
-        default={}, description="Metadata about the measurement request"
-    )
+    metadata: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="Metadata about the measurement request"
+        ),
+    ]
 
     @pydantic.model_validator(mode="wrap")
     @classmethod
@@ -309,18 +326,26 @@ class ReplayedMeasurement(MeasurementRequest):
     Downstream consumers can filter out instances of this class from MeasurementRequests if necessary
     """
 
-    experimentReference: ExperimentReference = pydantic.Field(
-        description="A reference detailing the experiment that was performed"
-    )
-    entities: list[Entity] = pydantic.Field(
-        description="The Entity instances which are being forwarded"
-    )
-    status: MeasurementRequestStateEnum = pydantic.Field(
-        MeasurementRequestStateEnum.SUCCESS, description="The status of the measurement"
-    )
-    requestid: str = pydantic.Field(
-        default_factory=lambda: f"replayed-measurement-{str(uuid.uuid4())[:6]}",
-    )
+    experimentReference: Annotated[
+        ExperimentReference,
+        pydantic.Field(
+            description="A reference detailing the experiment that was performed"
+        ),
+    ]
+    entities: Annotated[
+        list[Entity],
+        pydantic.Field(description="The Entity instances which are being forwarded"),
+    ]
+    status: Annotated[
+        MeasurementRequestStateEnum,
+        pydantic.Field(description="The status of the measurement"),
+    ] = MeasurementRequestStateEnum.SUCCESS
+    requestid: Annotated[
+        str,
+        pydantic.Field(
+            default_factory=lambda: f"replayed-measurement-{str(uuid.uuid4())[:6]}"
+        ),
+    ]
 
     def __str__(self) -> str:
 

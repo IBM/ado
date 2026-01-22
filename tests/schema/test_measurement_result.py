@@ -1,17 +1,22 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+from collections.abc import Callable
 
 import numpy.random
 import pytest
 
+from orchestrator.schema.entity import Entity
+from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.observed_property import (
     ObservedProperty,
     ObservedPropertyValue,
 )
 from orchestrator.schema.property import AbstractPropertyDescriptor
+from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.result import (
     InvalidMeasurementResult,
+    MeasurementResult,
     MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
@@ -21,7 +26,10 @@ from orchestrator.schema.virtual_property import (
 )
 
 
-def test_valid_measurement_result(entity, property_values) -> None:
+def test_valid_measurement_result(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
 
     # Test init
     result = ValidMeasurementResult(
@@ -32,7 +40,10 @@ def test_valid_measurement_result(entity, property_values) -> None:
     assert property_values[0].property.experimentReference == result.experimentReference
 
 
-def test_valid_measurement_result_mismatch_properties(entity, property_values) -> None:
+def test_valid_measurement_result_mismatch_properties(
+    entity: Entity,
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+) -> None:
 
     import pydantic
 
@@ -58,7 +69,7 @@ def test_valid_measurement_result_mismatch_properties(entity, property_values) -
         )
 
 
-def test_valid_measurement_result_no_properties(entity) -> None:
+def test_valid_measurement_result_no_properties(entity: Entity) -> None:
 
     import pydantic
 
@@ -67,7 +78,7 @@ def test_valid_measurement_result_no_properties(entity) -> None:
         ValidMeasurementResult(entityIdentifier=entity.identifier, measurements=[])
 
 
-def test_invalid_measurement_record(entity) -> None:
+def test_invalid_measurement_record(entity: Entity) -> None:
 
     # Test init
     InvalidMeasurementResult(
@@ -80,7 +91,10 @@ def test_invalid_measurement_record(entity) -> None:
 
 
 @pytest.fixture
-def valid_measurement_result(property_values, entity) -> ValidMeasurementResult:
+def valid_measurement_result(
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+    entity: Entity,
+) -> ValidMeasurementResult:
 
     return ValidMeasurementResult(
         entityIdentifier=entity.identifier, measurements=property_values
@@ -88,7 +102,10 @@ def valid_measurement_result(property_values, entity) -> ValidMeasurementResult:
 
 
 @pytest.fixture
-def invalid_measurement_result(property_values, entity) -> InvalidMeasurementResult:
+def invalid_measurement_result(
+    property_values: list[ObservedPropertyValue | ConstitutivePropertyValue],
+    entity: Entity,
+) -> InvalidMeasurementResult:
 
     return InvalidMeasurementResult(
         entityIdentifier=entity.identifier,
@@ -100,9 +117,11 @@ def invalid_measurement_result(property_values, entity) -> InvalidMeasurementRes
 
 
 def test_valid_measurement_result_series_representation(
-    random_ml_multi_cloud_benchmark_performance_entities,
-    random_ml_multi_cloud_benchmark_performance_measurement_results,
-    ml_multi_cloud_benchmark_performance_experiment,
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    ml_multi_cloud_benchmark_performance_experiment: Experiment,
 ) -> None:
 
     number_entities = 1
@@ -197,8 +216,10 @@ def test_valid_measurement_result_series_representation(
 
 
 def test_measurement_results_series_representation_invalid_method(
-    random_ml_multi_cloud_benchmark_performance_entities,
-    random_ml_multi_cloud_benchmark_performance_measurement_results,
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
 ) -> None:
 
     random_result: ValidMeasurementResult = (
@@ -217,8 +238,10 @@ def test_measurement_results_series_representation_invalid_method(
 
 
 def test_invalid_measurement_result_series_representation(
-    random_ml_multi_cloud_benchmark_performance_entities,
-    random_ml_multi_cloud_benchmark_performance_measurement_results,
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
 ) -> None:
 
     number_entities = 1

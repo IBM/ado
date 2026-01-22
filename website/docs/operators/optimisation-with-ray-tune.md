@@ -125,6 +125,7 @@ For example, the default parameters and values for a `ray_tune` operation are:
 
 ```yaml
 orchestratorConfig:
+  metric_format: target # Format for metric names: "target" (default) or "observed"
   failed_metric_value: None # This will be used for the value of "metric' for any entities where it could not be measured (for any reason)
   result_dump: none # If specified the best result found will be written to this file
   single_measurement_per_property: true # If true memoization is used. If false already measured entities will be re-measured.
@@ -165,6 +166,13 @@ measurements of those points. They are related to `ado` concepts of `entities`
 The `orchestratorConfig` section currently supports the following parameters,
 which are all optional:
 
+- `metric_format` (default "target")
+    - Controls the format for all metric (property) names given in
+      the operation configuration
+    - **"target"**: Use [target property identifiers](../core-concepts/actuators.md#target-and-observed-properties)
+      (e.g., `"latency"`)
+    - **"observed"**: Use [observed property identifiers](../core-concepts/actuators.md#target-and-observed-properties)
+      (e.g., `"actuator.experiment.latency"`)
 - `failed_metric_value` (default None)
     - This will be used for the value of "metric' for any entities where it could
     not be measured (for any reason)
@@ -176,6 +184,10 @@ which are all optional:
      is used.
     - If false already measured entities will be re-measured.
 
+> [!IMPORTANT] Metric format consistency
+>
+> All metrics in a configuration must use the same format
+
 ### Tune Config
 
 The `tuneConfig` section supports many of the
@@ -184,9 +196,7 @@ The `tuneConfig` section supports many of the
 **Supported parameters:**
 
 - `metric` (required)
-    - The
-        [target property identifier](../core-concepts/actuators.md#target-and-observed-properties)
-        to optimize.
+    - The metric to optimize. Format depends on `orchestratorConfig.metric_format`:
 - `mode` (required)
     - `min` or `max`: Whether to search for min or max of the target property
 - `search_alg` (required)
@@ -674,7 +684,7 @@ are required.
 name: SimpleStopper
 keywordParams:
   mode: # `min` or `max`: Whether to search for min or max of the target property/metric. Required
-  metric: # The target property being optimized. Required.
+  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_format. Required.
   min_trials: 5 # The number of trials to perform (samples to take) before applying any stopping criteria
   buffer_states: 2 # The number of samples/optimization steps to wait before declaring no improvement.
   stop_on_repeat: True # If True, the stopper will stop the optimization if it sees the same sample twice.
@@ -708,7 +718,7 @@ are required.
 name: GrowthStopper
 keywordParams:
   mode: # `min` or `max`: Whether to search for min or max of the target property/metric. Required
-  metric: # The target property being optimized. Required.
+  metric: # The metric to optimize. Must match format specified by orchestratorConfig.metric_format. Required.
   growth_threshold: 1.0 # If the difference in two samples is less than this threshold the optimization is considered to be not improving
   grace_trials: 2 # The number of samples/optimization steps to wait before declaring the metric is not improving. Same as buffer_states for SimpleStopper.
 ```
@@ -767,6 +777,63 @@ keywordParams:
 
     Both the mutual information value **and** the property ranking/set must stay
     unchanged for `samples_below_limit` for the stopping criteria to be reached
+
+### BayesianMetricDifferenceStopper
+
+Stops a run when it can tell with high confidence if the
+average (absolute) difference between two metrics is above
+or below a threshold.
+It is designed to be used with a non-correlated, random, sampler e.g.,
+the [LHU Sampler](#latin-hypercube-sampler)
+
+An example use case is comparing if an experiment with two different
+parameterizations e.g. software version, produces the same or different value
+for a metric.
+
+#### Parameters
+
+- `metric_a` | str | **required** | Identifier of first metric
+- `metric_b` | str | **required** | Identifier of second metric
+- `threshold` | float | **required** | Threshold for \|A-B\|
+- `target_probability` | float | 0.95 | Confidence level (0-1)
+- `min_samples` | int | 10 | Min trials before checking
+
+#### Example: Detect significant performance changes
+
+We have an experiment that measures the performance of a framework for a task.
+It can be parameterized to use different versions of the framework.
+We want to know if version 2 performs differently than version 1.
+
+```yaml
+
+name: "BayesianMetricDifferenceStopper"
+keywordParams:
+  metric_a: "test-version:1.performance"  # v1 measurement
+  metric_b: "test-version:2.performance"  # v2 measurement
+  threshold: 100                  # Stop when we know |v1-v2| > or < 100
+  target_probability: 0.95        # 95% confidence
+  min_samples: 10                 # Wait for 10 trials minimum
+```
+
+**Interpretation**: Stop when 95% confident that the absolute performance difference
+between the framework versions is above or below 100 tokens per second.
+
+>![NOTE] Observed format
+>
+> This configuration compares measurements of the same metric
+> from two different parameterizations of the same experiment.
+> This requires setting `metric_format` to `observed`
+> in the [configuration options](#tune-config)
+
+#### How It Works
+
+1. **Collect**: Gathers differences from each trial (skips trials
+with missing/NaN metrics)
+2. **Wait**: Waits for `min_samples` usable samples before deciding
+3. **Analyze**: Uses Bayesian statistics to estimate probability P(|A-B| > threshold)
+   - Calculate via sum of two-tails P((A-B) > threshold) + P((A-B) < -threshold)
+4. **Stop**:
+   - When P(|A-B| > threshold) > target_probability OR P(|A-B| < threshold) > target_probability
 
 ## What's next
 

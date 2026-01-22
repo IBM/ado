@@ -6,11 +6,13 @@ import pytest
 
 from orchestrator.core import DataContainerResource
 from orchestrator.core.datacontainer.resource import DataContainer, TabularData
+from orchestrator.utilities.location import SQLStoreConfiguration
 
 
 @pytest.fixture
 def data_container_resource(
-    testTabularDataString, test_sample_store_location
+    testTabularDataString: TabularData,
+    test_sample_store_location: SQLStoreConfiguration,
 ) -> DataContainerResource:
 
     data = {"person": {"name": "mj", "age": 2}, "important_info": ["t1", 1, "t2"]}
@@ -25,7 +27,7 @@ def data_container_resource(
 
 
 @pytest.fixture
-def testTabularDataString():
+def testTabularDataString() -> TabularData:
 
     import pandas as pd
 

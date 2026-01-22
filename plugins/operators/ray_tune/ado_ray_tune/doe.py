@@ -6,7 +6,7 @@ from scipy.stats import qmc
 
 class LatinHypercubeSampler:
 
-    def __init__(self, dict_space) -> None:
+    def __init__(self, dict_space: dict) -> None:
         self.dict_space = dict_space
         space_int_repr = []
         ts_orig_to_int = {}
@@ -50,7 +50,9 @@ class LatinHypercubeSampler:
             f"[LatinHypercubeSampler] configured for {self.d} actual dimensions, total size of search space is {self.total_size}."
         )
 
-    def generate_new_categorical_samples(self, n=None, n_factor=2):
+    def generate_new_categorical_samples(
+        self, n: int | None = None, n_factor: int = 2
+    ) -> list[dict]:
         if n is None:
             n = n_factor * self.d
         # requires scipy>=1.11.3

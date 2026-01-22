@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -27,14 +28,17 @@ class ActuatorConfiguration(pydantic.BaseModel):
     actuatorIdentifier: str
     # SerializeAsAny to serialise the correct class
     # https://github.com/pydantic/pydantic/discussions/9879#discussioncomment-10102592
-    parameters: pydantic.SerializeAsAny[GenericActuatorParameters | None] = (
-        pydantic.Field(default=None)
-    )
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
+    parameters: Annotated[
+        pydantic.SerializeAsAny[GenericActuatorParameters | None],
+        pydantic.Field(),
+    ] = None
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
 
     @pydantic.model_validator(mode="after")
     def validate_model(self) -> "ActuatorConfiguration":

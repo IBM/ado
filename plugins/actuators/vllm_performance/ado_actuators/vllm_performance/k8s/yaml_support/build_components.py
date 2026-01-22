@@ -193,6 +193,7 @@ class ComponentsYaml:
         if io_processor_plugin is not None:
             vllm_serve_args.append("--io-processor-plugin")
             vllm_serve_args.append(io_processor_plugin)
+            vllm_serve_args.append("--enable-mm-embeds")
 
         # container
         container = spec["containers"][0]

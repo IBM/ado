@@ -366,10 +366,8 @@ class FineTuneArgs:
 
     dataset_image_field: str | None = dataclasses.field(
         default=None,
-        metadata={
-            "help": "For running vision language model tuning pass \
-                the column name of the image data in the dataset."
-        },
+        metadata={"help": "For running vision language model tuning pass \
+                the column name of the image data in the dataset."},
     )
 
     remove_unused_columns: bool | None = dataclasses.field(

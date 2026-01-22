@@ -5,6 +5,8 @@
 import copy
 import json
 import pathlib
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 import yaml
@@ -14,7 +16,7 @@ import orchestrator.core.samplestore.resource
 import orchestrator.modules
 import orchestrator.utilities
 import orchestrator.utilities.location
-from orchestrator.core import SampleStoreResource
+from orchestrator.core import ADOResource, SampleStoreResource
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
@@ -25,16 +27,17 @@ from orchestrator.core.samplestore.csv import (
     CSVSampleStoreDescription,
 )
 from orchestrator.core.samplestore.sql import SQLSampleStore
+from orchestrator.metastore.project import ProjectContext
+from orchestrator.metastore.sqlstore import SQLStore
+from orchestrator.utilities.location import FilePathLocation, SQLStoreConfiguration
 
 
 @pytest.fixture
 def random_sample_store_resource_from_file(
-    valid_ado_project_context, random_identifier
-):
+    valid_ado_project_context: ProjectContext, random_identifier: Callable[[], str]
+) -> Callable[[], SampleStoreResource]:
 
-    def _random_sample_store_resource_from_file() -> (
-        orchestrator.core.samplestore.resource.SampleStoreResource
-    ):
+    def _random_sample_store_resource_from_file() -> SampleStoreResource:
         file = pathlib.Path("tests/resources/samplestore/sample_store_resource.json")
         random_id = random_identifier()
 
@@ -61,11 +64,10 @@ def random_sample_store_resource_from_file(
 
 @pytest.fixture
 def random_sample_store_resource_from_db(
-    random_sample_store_resource_from_file, create_resources
-):
-    def _random_sample_store_resource_from_db() -> (
-        orchestrator.core.samplestore.resource.SampleStoreResource
-    ):
+    random_sample_store_resource_from_file: Callable[[], SampleStoreResource],
+    create_resources: Callable[[list[ADOResource], SQLStore], None],
+) -> Callable[[SampleStoreResource], SampleStoreResource]:
+    def _random_sample_store_resource_from_db() -> SampleStoreResource:
         sample_store = random_sample_store_resource_from_file()
         create_resources(resources=[sample_store])
         return sample_store
@@ -75,8 +77,11 @@ def random_sample_store_resource_from_db(
 
 @pytest.fixture
 def random_sql_sample_store(
-    random_sample_store_resource_from_db, valid_ado_project_context
-):
+    random_sample_store_resource_from_db: Callable[
+        [SampleStoreResource], SampleStoreResource
+    ],
+    valid_ado_project_context: ProjectContext,
+) -> Callable[[], SQLSampleStore]:
     def _random_sql_sample_store() -> SQLSampleStore:
         return SQLSampleStore(
             identifier=random_sample_store_resource_from_db().identifier,
@@ -102,7 +107,10 @@ def csv_sample_store_identifier() -> str:
 
 
 @pytest.fixture
-def csv_sample_store_parameters() -> tuple:
+def csv_sample_store_parameters() -> tuple[
+    dict[str, str],
+    dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+]:
 
     parameters = {
         "generatorIdentifier": "gt4sd-pfas-molgx-model-one",
@@ -129,7 +137,12 @@ def csv_sample_store_parameters() -> tuple:
 
 
 @pytest.fixture
-def csv_sample_store_reference(csv_sample_store_parameters) -> SampleStoreReference:
+def csv_sample_store_reference(
+    csv_sample_store_parameters: tuple[
+        dict[str, str],
+        dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+    ],
+) -> SampleStoreReference:
     """Creates a SampleStoreReference for a CSV file"""
 
     location, parameters = csv_sample_store_parameters
@@ -146,7 +159,10 @@ def csv_sample_store_reference(csv_sample_store_parameters) -> SampleStoreRefere
 
 @pytest.fixture
 def csv_sample_store(
-    csv_sample_store_parameters,
+    csv_sample_store_parameters: tuple[
+        dict[str, str],
+        dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
+    ],
 ) -> CSVSampleStore:
 
     location, parameters = csv_sample_store_parameters
@@ -169,7 +185,7 @@ def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
 
 
 @pytest.fixture
-def sample_store_configuration_smiles_yaml():
+def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
     y = """
     copyFrom:
     - module:
@@ -187,7 +203,7 @@ def sample_store_configuration_smiles_yaml():
 
 @pytest.fixture
 def sample_store_configuration_smiles(
-    sample_store_configuration_smiles_yaml,
+    sample_store_configuration_smiles_yaml: dict[str, Any],
 ) -> orchestrator.core.samplestore.config.SampleStoreConfiguration:
 
     source_conf = (
@@ -203,7 +219,7 @@ def sample_store_configuration_smiles(
 
 @pytest.fixture
 def sample_store_resource(
-    ml_multi_cloud_sample_store_configuration,
+    ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
 ) -> SampleStoreResource:
 
     return SampleStoreResource(
@@ -216,14 +232,14 @@ valid_sample_store_configs = ["tests/resources/ml_multicloud_sample_store.yaml"]
 
 
 @pytest.fixture(params=valid_sample_store_configs)
-def valid_sample_store_config_file(request):
+def valid_sample_store_config_file(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
 @pytest.fixture
-def test_sample_store_location():
+def test_sample_store_location() -> SQLStoreConfiguration:
 
-    return orchestrator.utilities.location.SQLStoreConfiguration(
+    return SQLStoreConfiguration(
         scheme="mysql+pymysql",
         host="localhost",
         port=3306,
@@ -234,7 +250,9 @@ def test_sample_store_location():
 
 
 @pytest.fixture(params=["sql", "csv"])
-def sample_store_test_data(request):
+def sample_store_test_data(
+    request: pytest.FixtureRequest,
+) -> tuple[dict[str, Any], SQLStoreConfiguration | FilePathLocation]:
 
     c = None
     if request.param == "sql":
@@ -284,12 +302,14 @@ storageLocation:
 
 
 @pytest.fixture
-def sample_store_module_and_storage_location(request):
+def sample_store_module_and_storage_location(
+    request: pytest.FixtureRequest,
+) -> tuple[SampleStoreModuleConf, SQLStoreConfiguration]:
 
-    return orchestrator.core.samplestore.config.SampleStoreModuleConf(
+    return SampleStoreModuleConf(
         moduleClass="SQLSampleStore",
         moduleName="orchestrator.core.samplestore.sql",
-    ), orchestrator.utilities.location.SQLStoreConfiguration(
+    ), SQLStoreConfiguration(
         scheme="mysql+pymysql",
         host="localhost",
         port=3306,
@@ -329,7 +349,9 @@ def ado_sql_sample_store_with_storagelocation() -> (
 
 
 @pytest.fixture
-def ado_sql_sample_store_no_storagelocation(ado_sql_sample_store_with_storagelocation):
+def ado_sql_sample_store_no_storagelocation(
+    ado_sql_sample_store_with_storagelocation: SampleStoreConfiguration,
+) -> SampleStoreConfiguration:
     sample_store = copy.deepcopy(ado_sql_sample_store_with_storagelocation)
     sample_store.specification.storageLocation = None
     return sample_store

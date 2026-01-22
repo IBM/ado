@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-
+from typing import Any
 
 import pytest
 
@@ -8,7 +8,9 @@ from orchestrator.schema.property import ConstitutiveProperty
 
 
 @pytest.fixture(params=["discrete", "continuous"])
-def constitutive_property_configuration_general_yaml(request):
+def constitutive_property_configuration_general_yaml(
+    request: pytest.FixtureRequest,
+) -> dict[str, Any]:
     """User this fixture for general tests of constitutive properties not requiring matching to measurement space"""
 
     import yaml
@@ -45,7 +47,7 @@ def constitutive_property_configuration_general_yaml(request):
 
 @pytest.fixture
 def constitutive_property_configuration_general(
-    constitutive_property_configuration_general_yaml,
+    constitutive_property_configuration_general_yaml: dict[str, Any],  # noqa: ANN401
 ) -> list[ConstitutiveProperty]:
 
     return [

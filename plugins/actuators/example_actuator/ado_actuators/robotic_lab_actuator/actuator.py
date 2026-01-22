@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 import os
 import uuid
+from typing import Annotated
 
 import pydantic
 import ray
@@ -34,7 +35,7 @@ from .experiment_executor import run_experiment
 # model_dump to include None values or default values.
 # However, the stored representation is always that produced by model_dump() with no options.
 class RoboticLabParameters(GenericActuatorParameters):
-    my_parameter: str = pydantic.Field(default="hello world")
+    my_parameter: Annotated[str, pydantic.Field()] = "hello world"
 
 
 # An Actuator must do three things

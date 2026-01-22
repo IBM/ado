@@ -1,6 +1,8 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+from typing import Any
+
 import pytest
 import yaml
 
@@ -21,7 +23,7 @@ from orchestrator.modules.actuators.catalog import ExperimentCatalog
 
 
 @pytest.fixture
-def objectiveFunctionConfigurationYAML():
+def objectiveFunctionConfigurationYAML() -> dict[str, Any]:
 
     y = """
 actuatorIdentifier: "custom_experiments"
@@ -31,13 +33,15 @@ actuatorIdentifier: "custom_experiments"
 
 
 @pytest.fixture
-def objectiveFunctionConfiguration(objectiveFunctionConfigurationYAML):
+def objectiveFunctionConfiguration(
+    objectiveFunctionConfigurationYAML: dict[str, Any],
+) -> ActuatorConfiguration:
 
     return ActuatorConfiguration(**objectiveFunctionConfigurationYAML)
 
 
 @pytest.fixture
-def actuatorModuleConfigurationYAML():
+def actuatorModuleConfigurationYAML() -> dict[str, Any]:
 
     y = """
         moduleName: "myactuator"
@@ -49,7 +53,7 @@ def actuatorModuleConfigurationYAML():
 
 
 @pytest.fixture
-def actuatorCatalogExtensionConfigurationYAML():
+def actuatorCatalogExtensionConfigurationYAML() -> dict[str, Any]:
 
     y = """
     name: custom_experiments.yaml
@@ -61,7 +65,7 @@ def actuatorCatalogExtensionConfigurationYAML():
 
 @pytest.fixture
 def actuatorModuleConfiguration(
-    actuatorModuleConfigurationYAML,
+    actuatorModuleConfigurationYAML: dict[str, Any],
 ) -> orchestrator.modules.actuators.base.ActuatorModuleConf:
 
     return orchestrator.modules.actuators.base.ActuatorModuleConf(
@@ -71,7 +75,7 @@ def actuatorModuleConfiguration(
 
 @pytest.fixture
 def actuatorCatalogExtensionConfiguration(
-    actuatorCatalogExtensionConfigurationYAML,
+    actuatorCatalogExtensionConfigurationYAML: dict[str, Any],
 ) -> orchestrator.modules.actuators.catalog.ActuatorCatalogExtensionConf:
     return orchestrator.modules.actuators.catalog.ActuatorCatalogExtensionConf(
         **actuatorCatalogExtensionConfigurationYAML
@@ -79,7 +83,8 @@ def actuatorCatalogExtensionConfiguration(
 
 
 def test_custom_experiments(
-    objectiveFunctionConfiguration, experiment_catalogs
+    objectiveFunctionConfiguration: ActuatorConfiguration,
+    experiment_catalogs: list[ExperimentCatalog],
 ) -> None:
 
     import ray
@@ -137,7 +142,9 @@ def test_custom_experiments(
         assert c.experimentForReference(e.reference) is not None
 
 
-def test_execute_nevergrad_opt_3d_test_func(experiment_catalogs) -> None:
+def test_execute_nevergrad_opt_3d_test_func(
+    experiment_catalogs: list[ExperimentCatalog],
+) -> None:
     import orchestrator.modules.actuators.registry
     import orchestrator.schema.request
     from orchestrator.schema.point import SpacePoint

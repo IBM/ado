@@ -20,10 +20,9 @@ def test_resource_location_from_url() -> None:
     assert location.password == "mypass123"
     assert location.path == "/path"
 
-    # url with no scheme fails
-    # This actual works because it thinks the scheme is user
-    # url = "user:mypass123@localhost:8080/path"
-
+    # URLs with no scheme will raise ValidationErrors.
+    # This also includes URLs like user:mypass123@localhost:8080/path
+    # as Pydantic will think "user" is the scheme
     url = "mypass123@localhost:8080/path"
 
     with pytest.raises(pydantic.ValidationError):
@@ -169,22 +168,6 @@ def test_mysql_store_configuration_user_required() -> None:
             password="somepass",
             path="mydb",
         )
-
-
-# def test_mysql_store_configuration_password_required():
-#     with pytest.raises(
-#         ValueError,
-#         match=r"You must specify the password when using MySQL",
-#     ):
-#         orchestrator.utilities.location.SQLStoreConfiguration(
-#             scheme="mysql+pymysql",
-#             host="localhost",
-#             port=3306,
-#             sslVerify=True,
-#             database="mydb",
-#             user="admin",
-#             path="mydb",
-#         )
 
 
 ### SQLiteDsn

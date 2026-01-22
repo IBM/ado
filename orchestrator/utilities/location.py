@@ -240,8 +240,6 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
 
         if isinstance(m, pydantic.MySQLDsn) and not self.user:
             raise ValueError("You must specify the user when using MySQL")
-            # if not self.password:
-            #     raise ValueError("You must specify the password when using MySQL")
 
         return self
 

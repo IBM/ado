@@ -459,7 +459,6 @@ class RandomWalk(Characterize):
 
         enable_ray_actor_coverage("random_walk")
         configure_logging()
-        # waiting_for_debugger_if_local_mode()
 
         self.runid = str(uuid.uuid4())[:6]
         self.params = (

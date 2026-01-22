@@ -655,8 +655,7 @@ def main() -> None:
             in str(e).lower()
         ):
             report_oom(e)
-            # elif "NCCL Error".lower() in str(e).lower():
-            #     report_nccl_error(e)
+
         else:
             report_error(
                 e,

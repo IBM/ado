@@ -252,9 +252,7 @@ def detect_anomalous_series(
 
                     z = np.trim_zeros(g[config.failed_metric])
                     test_group = g.loc[z.index]
-                # print(
-                #     f"\t\tTrimmed failed entities based on {config.failed_metric}. Before: {g.shape[0]}. After: {test_group.shape[0]}"
-                # )
+
                 else:
                     test_group = g
 

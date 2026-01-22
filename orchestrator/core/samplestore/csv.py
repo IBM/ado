@@ -39,6 +39,10 @@ class CSVSampleStoreDescription(SampleStoreDescription):
     constitutivePropertyColumns: list[str] = pydantic.Field(
         description="List of headers of columns containing constitutive properties",
     )
+    validate_actuators: bool = pydantic.Field(
+        default=True,
+        description="If True, validate that actuators and experiments exist and are compatible",
+    )
 
     @pydantic.field_validator("identifierColumn")
     def identifier_is_lowercase(cls, value: str) -> str:
@@ -68,6 +72,59 @@ class CSVSampleStoreDescription(SampleStoreDescription):
                 columns.append(columnHeader)
 
         return columns
+
+    @pydantic.model_validator(mode="after")
+    def validate_experiments_against_actuators(self) -> "CSVSampleStoreDescription":
+        """Validates experiments against registered actuators if validate_actuators=True"""
+        if not self.validate_actuators:
+            return self
+
+        # Lazy import to avoid circular dependencies
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+        from orchestrator.schema.reference import ExperimentReference
+
+        registry = ActuatorRegistry.globalRegistry()
+
+        for exp_desc in self.experiments:
+            actuator_id = exp_desc.actuatorIdentifier or "replay"
+            exp_id = exp_desc.experimentIdentifier
+
+            # Check 1: Verify actuator exists
+            try:
+                catalog = registry.catalogForActuatorIdentifier(actuator_id)
+            except Exception as e:
+                available_actuators = list(registry.actuatorIdentifierMap.keys())
+                raise ValueError(
+                    f"Actuator '{actuator_id}' not found for experiment '{exp_id}'. "
+                    f"Available actuators: {available_actuators}"
+                ) from e
+
+            # Check 2: Verify experiment exists in actuator
+            exp_ref = ExperimentReference(
+                experimentIdentifier=exp_id, actuatorIdentifier=actuator_id
+            )
+            experiment = catalog.experimentForReference(exp_ref)
+            if experiment is None:
+                available = [e.identifier for e in catalog.experiments]
+                raise ValueError(
+                    f"Experiment '{exp_id}' not found in actuator '{actuator_id}'. "
+                    f"Available experiments: {available}"
+                )
+
+            # Check 3: Validate constitutive properties are sufficient
+            required_props = {
+                p.identifier for p in experiment.requiredConstitutiveProperties
+            }
+            provided_props = {p.identifier for p in self.constitutiveProperties}
+            missing_props = required_props - provided_props
+
+            if missing_props:
+                raise ValueError(
+                    f"Experiment '{actuator_id}.{exp_id}' requires constitutive properties "
+                    f"{missing_props} which are not in CSV columns: {list(provided_props)}"
+                )
+
+        return self
 
 
 class CSVSampleStore(PassiveSampleStore):

@@ -209,6 +209,10 @@ class MockParams(pydantic.BaseModel):
 
 class ExperimentDescription(pydantic.BaseModel):
     experimentIdentifier: str = pydantic.Field(description="The name of the experiment")
+    actuatorIdentifier: str | None = pydantic.Field(
+        default=None,
+        description="The actuator that provides this experiment. Defaults to 'replay' if not specified.",
+    )
     propertyMap: dict = pydantic.Field(
         description="A dictionary that maps the names of the properties exposed by the"
         " experiment to potential other names used for those properties by the sample store"
@@ -228,9 +232,10 @@ class SampleStoreDescription(pydantic.BaseModel):
 
         experiments = {}
         for desc in self.experiments:
+            actuator_id = desc.actuatorIdentifier or "replay"
             experiment = Experiment.experimentWithAbstractPropertyIdentifiers(
                 identifier=desc.experimentIdentifier,
-                actuatorIdentifier="replay",
+                actuatorIdentifier=actuator_id,
                 targetProperties=desc.propertyMap.keys(),
                 requiredConstitutiveProperties=[
                     cp.identifier for cp in self.constitutiveProperties

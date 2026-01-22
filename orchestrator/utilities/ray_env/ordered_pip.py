@@ -6,6 +6,7 @@ import logging
 import os
 import threading
 import typing
+from pathlib import Path
 
 import ray._private.runtime_env.packaging
 from ray._private.runtime_env import virtualenv_utils
@@ -26,8 +27,8 @@ original_create_or_get_virtualenv = virtualenv_utils.create_or_get_virtualenv
 
 
 async def create_or_get_virtualenv(path: str, cwd: str, logger: logging.Logger) -> None:
-    virtualenv_path = os.path.join(path, "virtualenv")
-    if not os.path.exists(virtualenv_path):
+    virtualenv_path = Path(path) / Path("virtualenv")
+    if not virtualenv_path.exists():
         await original_create_or_get_virtualenv(path=path, cwd=cwd, logger=logger)
 
 
@@ -271,7 +272,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         with self._create_env_mtx[uri]:
             logger.info(f"Creating {uri} for {runtime_env}")
             try:
-                if os.path.isdir(self.get_path_to_pip_venv(uri)):
+                if self.get_path_to_pip_venv(uri).is_dir():
                     logger.info(f"Virtual environment for {uri} already exists")
                     return self._cache[uri]
             except KeyError:
@@ -294,9 +295,9 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
         return self._cache[uri]
 
-    def get_path_to_pip_venv(self, uri: str) -> str:
+    def get_path_to_pip_venv(self, uri: str) -> Path:
         _, env_hash = ray._private.runtime_env.packaging.parse_uri(uri)
-        return os.path.join(self._pip_resources_dir, "pip", env_hash)
+        return Path(self._pip_resources_dir) / Path("pip") / Path(env_hash)
 
     def delete_uri(
         self, uri: str, logger: logging.Logger | None = default_logger
@@ -339,7 +340,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
 
         env_dir = self.get_path_to_pip_venv(uris[0])
 
-        if not os.path.isdir(env_dir):
+        if not env_dir.is_dir():
             logger.warning(
                 f"The pip environment at {env_dir} has been garbage collected - recreating it"
             )

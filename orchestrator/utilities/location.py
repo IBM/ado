@@ -4,6 +4,7 @@
 import logging
 import os
 import typing
+from pathlib import Path
 from typing import Annotated
 
 import pydantic
@@ -138,8 +139,8 @@ class FilePathLocation(ResourceLocation):
         import os
 
         value = os.path.expandvars(value)
-        if not os.path.exists(value):
-            moduleLog.debug(f"Specified file-path path, {value}, does not exist")
+        if not Path(value).exists():
+            moduleLog.debug(f"Path {value} does not exist.")
 
         return value
 

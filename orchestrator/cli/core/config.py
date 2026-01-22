@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import os
 from pathlib import Path
 
 import pydantic
@@ -170,9 +169,9 @@ class AdoConfiguration(pydantic.BaseModel):
         """
         Path.mkdir(self.contexts_dir, parents=True, exist_ok=True)
         return [
-            file.removesuffix(".json")
-            for file in os.listdir(self.contexts_dir)
-            if not file.startswith(".")  # Required for macOS's .DS_Store files
+            file.name.removesuffix(".json")
+            for file in self.contexts_dir.iterdir()
+            if not file.name.startswith(".")  # Required for macOS's .DS_Store files
         ]
 
     @property

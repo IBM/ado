@@ -191,7 +191,9 @@ copyFrom:
 
 This is a passive Sample Store that can be used to extract entities from a CSV
 file. It is assumed each row is an entity and the columns are constitutive
-properties or observed properties
+properties or observed properties.
+
+#### Basic Example
 
 <!-- markdownlint-disable line-length -->
 ```yaml
@@ -212,6 +214,51 @@ copyFrom:
             wallClockRuntime: 'wallClockRuntime' # The key is the target property name, the value is the column containing the values for that property
 ```
 <!-- markdownlint-enable line-length -->
+
+#### Importing data from existing actuators
+
+By default, CSV imports associate experiments with the "replay" actuator, which
+indicates the data came from an external source.
+However, if you're importing
+CSV data that was previously exported from `ado` or represents results from an
+actuator available in your current instance, you can specify the actual actuator:
+
+<!-- markdownlint-disable line-length -->
+```yaml
+copyFrom:
+  - module:
+      moduleClass: CSVSampleStore
+      moduleName: orchestrator.core.samplestore.csv
+    storageLocation:
+      path: 'results_export.csv'
+    parameters:
+      generatorIdentifier: 'vllm-benchmark-run'
+      identifierColumn: 'config'
+      constitutivePropertyColumns:
+        - config
+        - model_name
+      experiments:
+        - experimentIdentifier: 'test-deployment-v1'
+          actuatorIdentifier: 'vllm_performance'  # Specify the actual actuator
+```
+<!-- markdownlint-enable line-length -->
+
+For non-replay actuators `ado` will verify that:
+
+1. The specified actuator exists in the current instance
+2. The experiment exists in that actuator's catalog
+3. The CSV contains all required constitutive properties for the experiment
+
+If any validation fails, a detailed error message will indicate what's wrong.
+
+**Backward Compatibility**: If `actuatorIdentifier` is not specified for an
+experiment, it defaults to `"replay"`, maintaining full compatibility with
+existing configurations.
+
+**Note on Parameterized Experiments**: Parameterized experiment identifiers are
+not yet fully supported for CSV import. If you specify a parameterized experiment
+identifier, validation will fail with a "not found" error. Use the base
+experiment identifier instead.
 
 Note, since CSV files contain arbitrary data in general there is no way `ado`
 can know how a particular value was generated or how to generate new such

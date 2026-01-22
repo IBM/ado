@@ -55,7 +55,7 @@ select = [
     "FA",
     "FAST",
 #    "FIX",
-#    "FLY",
+    "FLY",
     "FURB",
 #    "G",
     "I",

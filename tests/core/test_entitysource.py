@@ -343,3 +343,73 @@ def test_csv_sample_store_type_parsing(ml_multi_cloud_csv_sample_store) -> None:
     values = entity.valuesForTargetProperty(Property(identifier="status"))
     for v in values:
         assert v.valueType == ValueTypeEnum.STRING_VALUE_TYPE
+
+
+def test_csv_store_backward_compatibility_no_actuator_field(
+    csv_sample_store_parameters,
+):
+    """Test that existing CSV configs without actuatorIdentifier field still work"""
+    _location, params = csv_sample_store_parameters
+
+    # Verify the fixture doesn't have actuatorIdentifier (simulating legacy config)
+    for exp in params.get("experiments", []):
+        assert "actuatorIdentifier" not in exp
+
+    # Should create successfully with validation enabled
+    # (replay actuator skips experiment validation)
+    desc = CSVSampleStoreDescription.model_validate(params)
+
+    # Should default to replay actuator
+    catalog = desc.catalog
+    for exp in catalog.experiments:
+        assert exp.actuatorIdentifier == "replay"
+
+
+def test_csv_from_csv_method_backward_compatibility():
+    """Test that from_csv class method works with and without new parameters"""
+    import os
+    import tempfile
+
+    import pandas as pd
+
+    # Create a temporary CSV file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+        df = pd.DataFrame(
+            {"id": ["entity1", "entity2"], "param1": [1, 2], "metric1": [100, 200]}
+        )
+        df.to_csv(f.name, index=False)
+        csv_path = f.name
+
+    try:
+        # Test without new parameters (backward compatible)
+        # Uses replay actuator by default, so validation passes
+        store1 = CSVSampleStore.from_csv(
+            csvPath=csv_path,
+            idColumn="id",
+            experimentIdentifier="test_exp",
+            observedPropertyColumns=["metric1"],
+            constitutivePropertyColumns=["param1"],
+        )
+        assert store1 is not None
+        assert len(store1.entities) == 2
+
+        # Test with new parameters
+        store2 = CSVSampleStore.from_csv(
+            csvPath=csv_path,
+            idColumn="id",
+            experimentIdentifier="test_exp",
+            actuatorIdentifier="custom_actuator",
+            observedPropertyColumns=["metric1"],
+            constitutivePropertyColumns=["param1"],
+            validate_actuators=False,  # Don't validate since actuator doesn't exist
+        )
+        assert store2 is not None
+        assert len(store2.entities) == 2
+
+        # Verify the actuator was set correctly
+        catalog = store2.experimentCatalog()
+        assert catalog.experiments[0].actuatorIdentifier == "custom_actuator"
+    finally:
+        # Cleanup
+        if os.path.exists(csv_path):
+            os.unlink(csv_path)

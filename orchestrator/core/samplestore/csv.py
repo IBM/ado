@@ -99,6 +99,10 @@ class CSVSampleStoreDescription(SampleStoreDescription):
                     f"Available actuators: {available_actuators}"
                 ) from e
 
+            # Skip experiment validation for 'replay' actuator as it's a marker for external experiments
+            if actuator_id == "replay":
+                continue
+
             # Check 2: Verify experiment exists in actuator
             exp_ref = ExperimentReference(
                 experimentIdentifier=exp_id, actuatorIdentifier=actuator_id

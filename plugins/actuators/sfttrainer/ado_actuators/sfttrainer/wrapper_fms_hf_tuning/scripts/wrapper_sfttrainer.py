@@ -16,6 +16,7 @@ import datetime
 import os
 import sys
 import typing
+from pathlib import Path
 from typing import Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
@@ -441,8 +442,8 @@ class CustomAimCallback(AimCallback):
                 else:
                     train_time_start = None
 
-                with open(self._aim_info_path, "w", encoding="utf-8") as f:
-                    json.dump(
+                Path(self._aim_info_path).write_text(
+                    json.dumps(
                         {
                             "run_hash": run.hash,
                             "metrics": metrics,
@@ -455,9 +456,10 @@ class CustomAimCallback(AimCallback):
                             "training_steps": CustomAimCallback.training_steps,
                             "warmup_steps": self._warmup_steps,
                             "warmup_seconds": warmup_seconds,
-                        },
-                        f,
-                    )
+                        }
+                    ),
+                    encoding="utf-8",
+                )
         finally:
             super().on_train_end(args=args, state=state, control=control, **kwargs)
             if CustomAimCallback.the_experiment:
@@ -552,8 +554,7 @@ def main() -> None:
         raise ValueError("must set --fms_hf_tuning_version")
 
     if custom_args.aim_metadata_path:
-        with open(custom_args.aim_metadata_path) as f:
-            aim_metadata = json.load(f)
+        aim_metadata = json.load(Path(custom_args.aim_metadata_path).read_text())
     else:
         aim_metadata = {}
 
@@ -581,9 +582,9 @@ def main() -> None:
         # VV: 'accelerate' injects this env-var
         if os.environ.get("RANK", ""):
             rank = os.environ["RANK"]
-            path = f"{custom_args.aim_info_path}_{rank}"
+            path = Path(f"{custom_args.aim_info_path}_{rank}")
         else:
-            path = custom_args.aim_info_path
+            path = Path(custom_args.aim_info_path)
             rank = "?"
 
         report = {
@@ -593,12 +594,7 @@ def main() -> None:
             "training_steps": CustomAimCallback.training_steps,
         }
 
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(
-                report,
-                f,
-            )
-
+        path.write_text(json.dumps(report), encoding="utf-8")
         print(
             f"Worker {rank} of {measurement_id} dumped {report} in {path}",
             file=sys.stderr,

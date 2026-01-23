@@ -10,8 +10,8 @@ import copy
 import enum
 import functools
 import logging
-import os
 import typing
+from pathlib import Path
 from typing import Annotated
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
@@ -43,11 +43,11 @@ ACTUATOR_IDENTIFIER = "SFTTrainer"
 ACTUATOR_VERSION = "2.2.0"
 
 FMS_HF_TUNING_REPOSITORY = "https://github.com/foundation-model-stack/fms-hf-tuning"
-PACKAGES_DIR = f"{os.path.dirname(__file__)}/../packages"
-CONFIG_DIR = f"{os.path.dirname(__file__)}/../config"
-
-with open(os.path.join(CONFIG_DIR, "map_version_to_commit.yaml")) as f:
-    FMS_HF_TUNING_COMMIT = yaml.safe_load(f)
+PACKAGES_DIR = Path(__file__).parent / Path("packages")
+CONFIG_DIR = Path(__file__).parent / Path("config")
+FMS_HF_TUNING_COMMIT = yaml.safe_load(
+    CONFIG_DIR.joinpath("map_version_to_commit.yaml").read_text()
+)
 
 FMS_HF_TUNING_VERSION = {
     version: f"{FMS_HF_TUNING_REPOSITORY}/tree/{commit}"
@@ -56,7 +56,7 @@ FMS_HF_TUNING_VERSION = {
 
 
 PATH_PINNED_PACKAGES = {
-    version: f"{PACKAGES_DIR}/fms-hf-tuning_v{version}_{commit}.txt"
+    version: str(PACKAGES_DIR.joinpath(f"fms-hf-tuning_v{version}_{commit}.txt"))
     for version, commit in FMS_HF_TUNING_COMMIT.items()
 }
 

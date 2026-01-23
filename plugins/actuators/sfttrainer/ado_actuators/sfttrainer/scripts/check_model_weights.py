@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import os
 import sys
 import traceback
 import typing
+from pathlib import Path
 
 import ray
 from ado_actuators.sfttrainer.experiments.common import (
@@ -32,7 +32,7 @@ def get_model_hash(path_model: str) -> bool:
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
     try:
-        if os.path.exists(path_model) is False:
+        if not Path(path_model).exists():
             import huggingface_hub
 
             print(

@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import os
 import sys
+from pathlib import Path
 
 import ray
 
@@ -37,7 +37,7 @@ def get_linear_layers(path_model: str) -> set[str]:
     )
 
     with init_empty_weights():
-        if os.path.exists(path_model) is False:
+        if not Path(path_model).exists():
             import huggingface_hub
 
             print(

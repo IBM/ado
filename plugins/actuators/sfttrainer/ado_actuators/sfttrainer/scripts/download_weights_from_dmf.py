@@ -1,5 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+from pathlib import Path
 
 import lakehouse_export.export_utils as export_utils
 import ray
@@ -51,9 +52,7 @@ def download_from_dmf(
 
 
 # VV: Your lakehouse token in here
-with open("token.txt") as f:
-    token = f.read().rstrip()
-
+token = Path("token.txt").read_text().rstrip()
 ray.get(
     download_from_dmf.remote(
         token=token,

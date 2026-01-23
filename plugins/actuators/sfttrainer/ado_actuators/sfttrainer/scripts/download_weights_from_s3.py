@@ -3,6 +3,7 @@
 
 import json
 import os.path
+from pathlib import Path
 
 import ray
 import yaml
@@ -11,10 +12,10 @@ import yaml
 @ray.remote
 def patch_weights() -> None:
     # VV: Last time I checked, the llama 7b gptq weights on the s3 bucket are broken
-    path = "/hf-models-pvc/LLaMa/models/hf/7B-gptq/quantize_config.json"
-    if not os.path.isfile(path):
-        with open(path, "w") as f:
-            json.dump(
+    path = Path("/hf-models-pvc/LLaMa/models/hf/7B-gptq/quantize_config.json")
+    if not path.is_file():
+        path.write_text(
+            json.dumps(
                 {
                     "bits": 4,
                     "group_size": 128,
@@ -27,9 +28,9 @@ def patch_weights() -> None:
                     "model_file_base_name": None,
                     "is_marlin_format": False,
                     "quant_method": "gptq",
-                },
-                f,
+                }
             )
+        )
 
 
 @ray.remote
@@ -103,15 +104,17 @@ The credentials are in the `SFTTrainer` vault on 1Password, if you don't have ac
 ask Vassilis Vassiliadis or Alessandro Pomponio to grant you access"""
 
     try:
-        with open("fm-openshift_credentials.yaml") as f:
-            fm_openshift_credentials = yaml.safe_load(f)
+        fm_openshift_credentials = yaml.safe_load(
+            Path("fm-openshift_credentials.yaml").read_text()
+        )
     except Exception:
         print(warning.format(path="fm-openshift_credentials.yaml"))
         raise
 
     try:
-        with open("fmas-integration-tests-credentials.yaml") as f:
-            fmas_integration_tests_credentials = yaml.safe_load(f)
+        fmas_integration_tests_credentials = yaml.safe_load(
+            Path("fmas-integration-tests-credentials.yaml").read_text()
+        )
     except Exception:
         print(warning.format(path="fmas-integration-tests-credentials.yaml"))
         raise
@@ -152,7 +155,7 @@ ask Vassilis Vassiliadis or Alessandro Pomponio to grant you access"""
 
             ray.get(
                 download.remote(
-                    uri=os.path.join("s3://", creds["bucket"], src),
+                    uri=f"s3://{creds['bucket']}/{src}",
                     dest=dest,
                     access_key_id=creds["access_key_id"],
                     secret_access_key=creds["secret_access_key"],

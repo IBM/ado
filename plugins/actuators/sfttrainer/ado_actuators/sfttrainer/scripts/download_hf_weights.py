@@ -23,11 +23,11 @@ app = typer.Typer(rich_markup_mode="markdown")
     },
 )
 def download_weights(path_model: str, hf_home: pathlib.Path) -> None:
-    if os.path.isabs(path_model):
+    if pathlib.Path(path_model).is_absolute():
         print("Skipping download - model is stored locally")
         return
 
-    os.makedirs(hf_home, exist_ok=True)
+    hf_home.mkdir(parents=True, exist_ok=True)
 
     import huggingface_hub
 
@@ -72,9 +72,7 @@ def main(
         Vanilla: HuggingFaceTB/SmolLM2-135M
     """
 
-    with open(path_to_models) as f:
-        model_map: dict[str, dict[str, str]] = yaml.safe_load(f)
-
+    model_map: dict[str, dict[str, str]] = yaml.safe_load(path_to_models.read_text())
     for _model_name, items in model_map.items():  # noqa: PERF102
         for _model_type, model_path in items.items():  # noqa: PERF102
             print("Downloading", model_path)

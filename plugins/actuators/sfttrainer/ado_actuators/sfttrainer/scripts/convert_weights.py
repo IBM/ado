@@ -1,5 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+from pathlib import Path
 
 import ray
 
@@ -23,13 +24,12 @@ import ray
     },
 )
 def convert_weights(
-    path_model: str, destination: str, model_type: str = "llama"
+    path_model: Path, destination: Path, model_type: str = "llama"
 ) -> None:
     import json
-    import os
 
-    with open(os.path.join(path_model, "config.json")) as f:
-        config = json.load(f)
+    model_config_file = path_model / Path("config.json")
+    config = json.loads(model_config_file.read_text())
 
     print("Model type", config["model_type"])
     orig_model_type = config["model_type"]
@@ -37,12 +37,11 @@ def convert_weights(
     if config["model_type"] != "gpt_dolomite":
         config["model_type"] = "gpt_dolomite"
 
-        with open(os.path.join(path_model, "config.json"), "w") as f:
-            json.dump(config, f, indent=2)
+        model_config_file.write_text(json.dumps(config, indent=2))
 
     print("converting to format", model_type)
     try:
-        if os.path.isdir(destination):
+        if destination.is_dir():
             print("Path", destination, "already exists, will remove it")
             import shutil
 
@@ -50,13 +49,12 @@ def convert_weights(
 
         from dolomite_engine.hf_models import export_to_huggingface
 
-        export_to_huggingface(path_model, destination, model_type=model_type)
+        export_to_huggingface(str(path_model), str(destination), model_type=model_type)
     finally:
         if orig_model_type != config["model_type"]:
             print("Restoring original config.json")
             config["model_type"] = orig_model_type
-            with open(os.path.join(path_model, "config.json"), "w") as f:
-                json.dump(config, f, indent=2)
+            model_config_file.write_text(json.dumps(config, indent=2))
 
     print(json.dumps(config, indent=2))
 
@@ -68,8 +66,10 @@ linear_layers = {}
 all_models = [
     (
         "granite-8b-japanese",
-        "/hf-models-pvc/granite-8b-japanese-base-v1/granite-8b-japanese-base-v1-20240806T153614",
-        "/hf-models-pvc/granite-8b-japanese-base-v1-llama/",
+        Path(
+            "/hf-models-pvc/granite-8b-japanese-base-v1/granite-8b-japanese-base-v1-20240806T153614"
+        ),
+        Path("/hf-models-pvc/granite-8b-japanese-base-v1-llama/"),
         "llama",
     ),
 ]

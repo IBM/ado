@@ -11,7 +11,8 @@ File structure
 """
 
 # Standard
-import os
+
+from pathlib import Path
 
 # Third Party
 import datasets
@@ -33,15 +34,12 @@ num_gradient_accumulation = 4
 enhanced_size = num_max_batch_size * num_max_gpus * num_gradient_accumulation
 
 for num in [512, 1024, 2048]:
-    path_dir = os.path.abspath(os.path.dirname(__file__))
-    path_input = os.path.join(path_dir, f"common_en_news_combined_{num}.jsonl")
-
-    path_output = os.path.join(
-        path_dir, f"news-chars-{num}-entries-{enhanced_size}.jsonl"
-    )
+    path_dir = Path(__file__).parent.resolve()
+    path_input = path_dir.joinpath(f"common_en_news_combined_{num}.jsonl")
+    path_output = path_dir.joinpath(f"news-chars-{num}-entries-{enhanced_size}.jsonl")
 
     ds: datasets.dataset_dict.DatasetDict = datasets.load_dataset(
-        "json", data_files=path_input
+        "json", data_files=str(path_input)
     )
 
     alpaca_ds: datasets.arrow_dataset.Dataset = ds["train"].map(

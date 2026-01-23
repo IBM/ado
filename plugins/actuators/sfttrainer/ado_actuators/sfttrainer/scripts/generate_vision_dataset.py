@@ -46,7 +46,6 @@ Each dataset entry is crafted such that:
 
 import io
 import logging
-import os.path
 import pathlib
 import sys
 from typing import Annotated
@@ -122,7 +121,7 @@ def generate_dataset(
     words_per_token: float = 0.75,
     population: int = 4096,
 ) -> pandas.DataFrame:
-    with open(seed_file, encoding="utf-8") as f:
+    with seed_file.open(encoding="utf-8") as f:
         words = [x for x in f.read().split() if len(x) > 0]
 
     prompts = []
@@ -244,8 +243,8 @@ def main(
     )
 
     logging.info(f"Saving file under {output}")
-    if not os.path.isdir(output.parent.as_posix()):
-        os.makedirs(output.parent.as_posix(), exist_ok=True)
+    if not output.parent.is_dir():
+        output.parent.mkdir(parents=True, exist_ok=True)
     pandas.io.parquet.to_parquet(ds, output)
     logging.info("Done")
 

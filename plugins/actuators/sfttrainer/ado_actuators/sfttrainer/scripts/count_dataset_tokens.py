@@ -4,6 +4,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.finetune as finetune
 import ray
@@ -84,7 +85,7 @@ def tokenize_text(
         "min": min(num_tokens),
         "max": max(num_tokens),
         "avg": sum_tokens / len(num_tokens),
-        "ds_file": os.path.splitext(os.path.basename(path_data))[0],
+        "ds_file": Path(path_data).stem,
         "model_id": model_id,
     }
 
@@ -96,7 +97,9 @@ def tokenize_text(
 
 def main() -> None:
     ray.init()
-    root_data = os.environ.get("DATA_PATH", "/data/fms-hf-tuning/artificial-dataset/")
+    root_data = Path(
+        os.environ.get("DATA_PATH", "/data/fms-hf-tuning/artificial-dataset/")
+    )
 
     # {dataset_id: {model_id: sum_tokens}}
     dataset_sizes = {}
@@ -135,10 +138,8 @@ def main() -> None:
         "llama3.1-405b": "/hf-models-pvc/LLaMa/models/hf/llama3.1-405b",
     }
 
-    cache_dir = os.path.join(root_data, "cache")
-
-    os.makedirs(cache_dir, exist_ok=True)
-
+    cache_dir = root_data.joinpath("cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
     tasks = []
 
     for dataset_collection, models in [
@@ -147,15 +148,15 @@ def main() -> None:
         (large_dataset_files, large_models),
     ]:
         for ds_file in dataset_collection:
-            path_data = os.path.join(root_data, ds_file)
+            path_data = root_data.joinpath(ds_file)
 
             for model_id, path_model in models.items():
                 tasks.append(
                     tokenize_text.remote(
                         path_model=path_model,
-                        path_data=path_data,
+                        path_data=str(path_data),
                         model_id=model_id,
-                        num_tokens_cache_dir=cache_dir,
+                        num_tokens_cache_dir=str(cache_dir),
                     )
                 )
 

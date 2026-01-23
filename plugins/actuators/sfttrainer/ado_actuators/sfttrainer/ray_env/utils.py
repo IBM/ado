@@ -5,6 +5,7 @@ import contextlib
 import functools
 import os
 import typing
+from pathlib import Path
 
 
 @functools.cache
@@ -172,7 +173,7 @@ def get_pinned_packages(
         An array consisting of pinned packages a-la pip
     """
 
-    with open(path_requirements, encoding="utf-8") as f:
+    with Path(path_requirements).open(encoding="utf-8") as f:
         packages = [x.strip() for x in f if x.strip() and not x.startswith("#")]
 
     def find_matching_packages(package_name: str, packages: list[str]) -> list[str]:

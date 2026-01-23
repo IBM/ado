@@ -3,9 +3,9 @@
 
 import hashlib
 import json
-import os
 import sys
 import typing
+from pathlib import Path
 
 import ray
 
@@ -28,7 +28,7 @@ def get_model_hash(path_model: str) -> dict[str, str | int | list[str]]:
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
     with init_empty_weights():
-        if os.path.exists(path_model) is False:
+        if not Path(path_model).exists():
             import huggingface_hub
 
             print(

@@ -10,6 +10,7 @@ import logging
 import sys
 import time
 import typing
+from pathlib import Path
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 
@@ -464,8 +465,9 @@ def get_available_open_port() -> int:
 def extract_metrics(aim_info_path: str, number_gpus: int) -> metrics_tracker.Metrics:
     import json
 
-    with open(aim_info_path, encoding="utf-8") as f:
-        aim_info: dict[str, typing.Any] = json.load(f)
+    aim_info: dict[str, typing.Any] = json.loads(
+        Path(aim_info_path).read_text(encoding="utf-8")
+    )
 
     if "error" in aim_info:
         exc = aim_info.get("exception")
@@ -524,7 +526,7 @@ def _finetune_launch_kernel(
 
     if args.aim_db is None:
         args = copy.deepcopy(args)
-        args.aim_db = os.path.join(working_directory, "ephemeral_aim")
+        args.aim_db = str(Path(working_directory) / Path("ephemeral_aim"))
         log.info(
             f"aim_db is unset, will use an ephemeral aim repository at {args.aim_db}"
         )
@@ -558,9 +560,7 @@ def _finetune_launch_kernel(
 
     # VV: We're using this file as a thin wrapper to the main method in sft_trainer.py to catch
     # exceptions (e.g. GPU OOM) and report system metrics, it parses cmdline-args and invokes train()
-    wrapper_script = os.path.join(
-        os.path.dirname(__file__), "scripts", "wrapper_sfttrainer.py"
-    )
+    wrapper_script = Path(__file__).parent.joinpath("scripts", "wrapper_sfttrainer.py")
 
     num_processes = max(1, args.number_gpus) * max(1, multi_node.num_machines)
 
@@ -763,30 +763,25 @@ def _finetune_launch_kernel(
 
 
 def _update_num_tokens_cache_for_model_and_dataset(
-    cache_file: str,
+    cache_file: Path,
     tokens_per_sample: list[int],
     model_id: str,
     path_data: str,
 ) -> None:
     import json
 
-    parent_dir = os.path.dirname(cache_file)
-
     log = logging.getLogger("tokens_cache")
     # VV: We know that we'd like to use the cache and that we could not find
     # useful data in it. Therefore, we populate the relevant cache file here
     try:
         for _ in range(5):
-            if not os.path.isdir(parent_dir):
-                os.makedirs(parent_dir, exist_ok=True)
+            if not cache_file.parent.is_dir():
+                cache_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(cache_file, "w") as f:
-                json.dump(tokens_per_sample, f)
+            cache_file.write_text(json.dumps(tokens_per_sample))
             # VV: Verify that we actually stored what we think we stored (there could be multiple
             # tasks populating the cache and them corrupting each other's results)
-            with open(cache_file) as f:
-                fresh = json.load(f)
-
+            fresh = json.loads(cache_file.read_text())
             if fresh == tokens_per_sample:
                 log.info(f"Populated the cache file {cache_file} successfully")
                 break
@@ -804,7 +799,7 @@ def _update_num_tokens_cache_for_model_and_dataset(
 
 def _load_num_tokens_cache_for_model_and_dataset(
     path_data: str,
-    cache_file: str,
+    cache_file: Path,
     model_id: str | None,
     num_tokens_cache_dir: str | None,
 ) -> list[int]:
@@ -815,14 +810,10 @@ def _load_num_tokens_cache_for_model_and_dataset(
     log = logging.getLogger("sft_trainer:cache")
 
     try:
-        os.makedirs(num_tokens_cache_dir, exist_ok=True)
-
-        with open(cache_file, "rb") as f:
-            num_tokens = json.load(f)
-            if isinstance(num_tokens, list) is False:
-                raise NotImplementedError(
-                    f"Unknown type of num_tokens {type(num_tokens)}"
-                )
+        Path.mkdir(num_tokens_cache_dir, parents=True, exist_ok=True)
+        num_tokens = json.load(cache_file.read_bytes())
+        if not isinstance(num_tokens, list):
+            raise NotImplementedError(f"Unknown type of num_tokens {type(num_tokens)}")
 
         log.info(
             f"Loaded cached num_tokens with tokenizer {model_id} and dataset {path_data}"
@@ -902,7 +893,7 @@ def calculate_tokens_in_text_dataset(
 
     num_tokens = []
 
-    with open(path_data) as f:
+    with Path.open(path_data) as f:
         for line in tqdm.tqdm(
             f,
             desc="Counting tokens in samples of dataset",
@@ -922,7 +913,7 @@ def get_cache_file_for_tokens_per_sample(
     path_data: str,
     num_tokens_cache_dir: str | None,
     model_id: str,
-) -> str | None:
+) -> Path | None:
     if num_tokens_cache_dir is None:
         return None
 
@@ -932,17 +923,15 @@ def get_cache_file_for_tokens_per_sample(
 
     digest = hashlib.md5(usedforsecurity=False)
 
-    with open(path_data, "rb") as f:
+    with Path.open(path_data, mode="rb") as f:
         b = f.read(32768)
         while b:
             digest.update(b)
             b = f.read(32768)
 
-    ds_name = os.path.splitext(os.path.basename(path_data))[0]
-
-    return os.path.join(
-        num_tokens_cache_dir,
-        f"num-tokens.{model_id}.for.{ds_name}.{digest.hexdigest()}.json",
+    ds_name = Path(path_data).stem
+    return Path(num_tokens_cache_dir) / Path(
+        f"num-tokens.{model_id}.for.{ds_name}.{digest.hexdigest()}.json"
     )
 
 
@@ -982,7 +971,7 @@ def get_tokens_per_sample_in_dataset(
     )
     tokens_per_sample = []
 
-    if cache_file and os.path.exists(cache_file):
+    if cache_file and cache_file.exists():
         start = time.time()
         tokens_per_sample = _load_num_tokens_cache_for_model_and_dataset(
             path_data=path_data,

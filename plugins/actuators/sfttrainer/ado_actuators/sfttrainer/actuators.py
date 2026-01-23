@@ -12,6 +12,7 @@ import os
 import traceback
 import typing
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated, Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.callbacks.metrics_tracker as metrics_tracker
@@ -306,15 +307,15 @@ def prepare_runtime_environment(
         # those in fms-hf-tuning
         if x.endswith(".whl")
         and not (
-            os.path.basename(x).startswith("ado_")
-            and not os.path.basename(x).startswith("ado_sfttrainer-")
+            Path(x).name.startswith("ado_")
+            and not Path(x).name.startswith("ado_sfttrainer-")
         )
     ]
 
     if additional_wheels:
         log.info(
             "Discovered custom wheels which will be propagated to dynamic virtual environment: "
-            f"{[os.path.basename(x) for x in additional_wheels]}"
+            f"{[Path(x).name for x in additional_wheels]}"
         )
         packages.extend(additional_wheels)
 
@@ -419,10 +420,9 @@ class FinetuneContext:
         self.number_cpus = max(self.entity_space.number_gpus, 1) * 2
 
         if self.typed_parameters.num_tokens_cache_directory is not None:
-            self.num_tokens_cache_dir = os.path.join(
-                self.typed_parameters.data_directory,
-                self.typed_parameters.num_tokens_cache_directory,
-            )
+            self.num_tokens_cache_dir = Path(
+                self.typed_parameters.data_directory
+            ) / Path(self.typed_parameters.num_tokens_cache_directory)
         else:
             self.num_tokens_cache_dir = None
 
@@ -497,12 +497,11 @@ class FinetuneContext:
 
 
 def get_host(pod_ip: str) -> str:
-    with open(
-        "/var/run/secrets/kubernetes.io/serviceaccount/namespace",
-        encoding="utf-8",
-    ) as f:
-        namespace = f.read().strip()
-
+    namespace = (
+        Path("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+        .read_text(encoding="utf-8")
+        .strip()
+    )
     pod_ip = pod_ip.replace(".", "-")
 
     return f"{pod_ip}.{namespace}.pod.cluster.local"
@@ -539,7 +538,7 @@ def update_dict(
 
 @ray.remote
 class SFTTrainer(ActuatorBase):
-    _dir = os.path.abspath(os.path.dirname(__file__))
+    _dir = Path(__file__).parent.resolve()
     identifier = identifier
     parameters_class = ActuatorParameters
 
@@ -555,12 +554,11 @@ class SFTTrainer(ActuatorBase):
         try:
             # VV: HACK This is a temporary hack because the actuator parameters feature in ADO is not working atm
             if "SFTTRAINER_PARAMETERS_FILE" in os.environ:
-                path = os.environ["SFTTRAINER_PARAMETERS_FILE"]
-
+                path = Path(os.environ["SFTTRAINER_PARAMETERS_FILE"])
                 self.log.info(f"Loading actuator parameters from {path}")
-                with open(path, encoding="utf-8") as f:
-                    params = yaml.safe_load(f)
-                params = self.parameters_class.model_validate(params)
+                params = self.parameters_class.model_validate(
+                    yaml.safe_load(path.read_text(encoding="utf-8"))
+                )
 
             # VV: Layer model_map parameters over the default ones.
             # Every other field of ActuatorConfiguration stays as is, this enables users to just override models
@@ -620,8 +618,8 @@ class SFTTrainer(ActuatorBase):
                 If the current implementation of the actuator cannot handle the requested entity
         """
         try:
-            data_path = os.path.join(
-                actuator_parameters.data_directory, DatasetMap[space.dataset_id]
+            data_path = Path(actuator_parameters.data_directory).joinpath(
+                DatasetMap[space.dataset_id]
             )
         except KeyError as error:
             raise NotImplementedError(
@@ -682,7 +680,7 @@ class SFTTrainer(ActuatorBase):
 
         # VV: Here we fill in fields which need to propagate to FinetuneArgs BUT their definition in the
         # pydantic model (e.g. ExperimentParameter, or EntitySpace) contains `exclude=True`
-        args.output_dir = os.path.join(args.output_dir, task_uid)
+        args.output_dir = Path(args.output_dir).joinpath(task_uid)
         args.aim_experiment = entity_identifier
 
         args.aim_db = actuator_parameters.aim_db
@@ -1090,7 +1088,7 @@ class SFTTrainer(ActuatorBase):
                 If the current implementation of the actuator cannot handle the requested entity
         """
         try:
-            if not os.path.isfile(context.args.training_data_path):
+            if not Path(context.args.training_data_path).is_file():
                 raise NotImplementedError(
                     f"training_data_path points to path {context.args.training_data_path} which is not a file. "
                     f"Double check your DiscoverySpace, ActuatorParameters, and the file storage of your cluster. "
@@ -1406,7 +1404,7 @@ class SFTTrainer(ActuatorBase):
                 requestid=str(uuid.uuid4())[:8],
             )
             # VV: This is to support executing the same operation on multiple experiments at the same time
-            task_uid = os.path.join(requesterid, f"{index}-{request.requestid}")
+            task_uid = f"{requesterid}/{index}-{request.requestid}"
             task = asyncio.create_task(
                 self._evaluate_one_entity(entity, task_uid, request)
             )

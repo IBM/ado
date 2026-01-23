@@ -82,7 +82,7 @@ select = [
     "SLOT",
     "T10",
 #    "T20",
-#    "TC",
+    "TC",
 #    "TD",
     "TID",
 #    "TRY",

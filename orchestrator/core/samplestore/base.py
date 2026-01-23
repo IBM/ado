@@ -220,17 +220,16 @@ class ExperimentDescription(pydantic.BaseModel):
     observedPropertyMap: Annotated[
         dict | list[str],
         pydantic.Field(
-            description="A dictionary that maps the names of the observed properties exposed by the"
-            " experiment to the column names used in the sample store source."
-            " Can also be a list of column names if the property names match the column names exactly."
+            description="A dictionary that maps the identifiers of the experiments observed properties to the identifiers used in the sample store source."
+            " Can also be a list of identifiers if the property identifiers match the source identifiers exactly."
         ),
     ]
     constitutivePropertyMap: Annotated[
         dict | list[str],
         pydantic.Field(
-            description="A dictionary that maps the names of the constitutive properties"
-            " to the column names used in the sample store source."
-            " Can also be a list of column names if the property names match the column names exactly."
+            description="A dictionary that maps the identifiers of the experiments constitutive properties"
+            " to the identifiers used in the sample store source."
+            " Can also be a list of identifiers names if the property identifiers match the source identifiers exactly."
         ),
     ]
 
@@ -298,33 +297,30 @@ class InternalExperimentDescription(ExperimentDescription):
         Defaultable[dict | list[str]],
         pydantic.Field(
             default_factory=dict,
-            description="A dictionary that maps target property identifiers to column names"
-            " in the sample store source. Can also be a list if names match exactly."
-            " If not specified, will be auto-inferred from experiment definition.",
+            description="A dictionary that maps the identifiers of the experiments observed properties to the identifiers used in the sample store source."
+            " Can also be a list of identifiers if the property identifiers match the source identifiers exactly.",
         ),
     ]
     constitutivePropertyMap: Annotated[
         Defaultable[dict | list[str]],
         pydantic.Field(
             default_factory=dict,
-            description="A dictionary that maps constitutive property identifiers to column names"
-            " in the sample store source. Can also be a list if names match exactly."
-            " If not specified, will be auto-inferred from experiment definition.",
+            description="A dictionary that maps the identifiers of the experiments constitutive properties"
+            " to the identifiers used in the sample store source."
+            " Can also be a list of identifiers names if the property identifiers match the source identifiers exactly.",
         ),
     ]
     propertyFormat: Annotated[
         Literal["target", "observed"],
         pydantic.Field(
             default="target",
-            description="Whether CSV column names map to target properties (default) or observed properties."
-            " Used for auto-inference when property maps are not specified.",
+            description="Whether source names for observed properties map to experiment target property (default) or observed property identifiers.",
         ),
     ]
 
     @pydantic.model_validator(mode="after")
     def infer_and_validate_property_maps(self) -> "InternalExperimentDescription":
-        """Auto-infer property maps from experiment definition and validate"""
-        # Lazy import to avoid circular dependencies
+        """Infer property maps from experiment definition and validate"""
         from orchestrator.modules.actuators.registry import ActuatorRegistry
         from orchestrator.schema.reference import ExperimentReference
 

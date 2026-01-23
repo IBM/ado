@@ -70,7 +70,7 @@ select = [
     "PGH",
     "PIE",
     "PT",
-#    "PTH",
+    "PTH",
     "PYI",
     "Q",
     "RET",

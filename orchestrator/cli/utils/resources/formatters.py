@@ -8,31 +8,26 @@ import json
 import math
 import typing
 
+import pydantic
+import typer
 import yaml
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
+from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.generic.constants import (
     SECONDS_IN_A_DAY,
     SECONDS_IN_A_MINUTE,
     SECONDS_IN_AN_HOUR,
 )
 from orchestrator.cli.utils.jsonpath.filters import remove_fields_from_dictionary
-from orchestrator.cli.utils.pydantic.constants import (
-    event_importance_order,
-    minimize_output_context,
-)
-
-if typing.TYPE_CHECKING:
-    import pandas as pd
-import pydantic
-import typer
-
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.output.prints import (
     ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE,
     ERROR,
     WARN,
     console_print,
+)
+from orchestrator.cli.utils.pydantic.constants import (
+    event_importance_order,
+    minimize_output_context,
 )
 from orchestrator.core import (
     ADOResource,
@@ -49,6 +44,11 @@ from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
 from orchestrator.utilities.output import (
     printable_pydantic_model,
 )
+
+if typing.TYPE_CHECKING:
+    import pandas as pd
+
+    from orchestrator.cli.models.parameters import AdoGetCommandParameters
 
 
 def format_default_ado_get_single_resource(

@@ -12,10 +12,6 @@ import typer
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.parameters import (
-    AdoGetCommandParameters,
-    AdoUpgradeCommandParameters,
-)
 from orchestrator.cli.models.types import (
     AdoEditSupportedEditors,
     AdoGetSupportedOutputFormats,
@@ -37,12 +33,16 @@ from orchestrator.cli.utils.resources.formatters import (
     format_default_ado_get_single_resource,
     format_resource_for_ado_get_custom_format,
 )
-from orchestrator.core import CoreResourceKinds
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.metastore.base import ResourceDoesNotExistError
-from orchestrator.metastore.project import ProjectContext
 
 if typing.TYPE_CHECKING:
+    from orchestrator.cli.models.parameters import (
+        AdoGetCommandParameters,
+        AdoUpgradeCommandParameters,
+    )
+    from orchestrator.core import CoreResourceKinds
+    from orchestrator.metastore.project import ProjectContext
     from orchestrator.metastore.sqlstore import SQLStore
 
 

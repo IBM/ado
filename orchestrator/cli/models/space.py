@@ -9,16 +9,17 @@ from io import StringIO
 
 import rich.table
 
-import orchestrator.metastore.project
 import orchestrator.schema.property
 from orchestrator.cli.utils.output.prints import console_print
-from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 if typing.TYPE_CHECKING:
     import pandas as pd
+
+    from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
+    from orchestrator.metastore.project import ProjectContext
 
 
 class SpaceDetails:
@@ -201,11 +202,12 @@ class SpaceSummary:
     def __init__(
         self,
         space_id: str,
-        project_context: orchestrator.metastore.project.ProjectContext,
+        project_context: ProjectContext,
     ) -> None:
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLStore
+        from orchestrator.schema.property import NonMeasuredPropertyTypeEnum
 
-        sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
+        sql = SQLStore(project_context=project_context)
 
         space_resource: DiscoverySpaceResource = sql.getResource(
             identifier=space_id,
@@ -241,8 +243,7 @@ class SpaceSummary:
                 else p.propertyDomain.domainRange
             )
             for p in space_resource.config.entitySpace
-            if p.propertyType
-            == orchestrator.schema.property.NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+            if p.propertyType == NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
         }
 
         self.id = space.resource.identifier

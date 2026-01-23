@@ -1,7 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import os
+import pathlib
 import typing
 
 import tuning.config.configs
@@ -36,8 +36,9 @@ def parse_arguments_and_execute_wrapper(
 
     del exp_metadata
 
-    if not os.path.isdir(training_args.output_dir):
-        os.makedirs(training_args.output_dir, exist_ok=True)
+    output_dir = pathlib.Path(training_args.output_dir)
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     training_args = typing.cast(tuning.config.configs.TrainingArguments, training_args)
     training_args.trackers = []

@@ -3,9 +3,9 @@
 
 import functools
 import importlib.util
-import os
 import sys
 import types
+from pathlib import Path
 
 
 def semver_cmp(v1: tuple[int, ...], v2: tuple[int, ...]) -> int:
@@ -48,7 +48,7 @@ def semver_parse(version: str) -> tuple[int, ...]:
     return tuple(int(x) for x in version.split("."))
 
 
-def import_from_path(module_name: str, file_path: str) -> types.ModuleType:
+def import_from_path(module_name: str, file_path: Path) -> types.ModuleType:
 
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
@@ -98,7 +98,7 @@ def _select_compatible_version(
 
 def get_wrapper_name_for_version(
     version: str,
-    path_to_thin_wrappers_directory: str,
+    path_to_thin_wrappers_directory: Path,
 ) -> str:
     """Returns the name of the wrapper script for a fms-hf-tuning version
 
@@ -116,17 +116,18 @@ def get_wrapper_name_for_version(
     # VV: Make a list of all the candidate files, they are in the form of "at_least_$semver.py"
     candidates: list[tuple[int, ...]] = []
 
-    for name in os.listdir(path_to_thin_wrappers_directory):
-        path = os.path.join(path_to_thin_wrappers_directory, name)
-        if not os.path.isfile(path) or not (
-            name.startswith("at_least_") and name.endswith(".py")
+    for file in path_to_thin_wrappers_directory.iterdir():
+        if not file.is_file() or not (
+            file.name.startswith("at_least_") and file.suffix == ".py"
         ):
             continue
 
         candidates.append(
             tuple(
                 int(x)
-                for x in name.removeprefix("at_least_").removesuffix(".py").split("_")
+                for x in file.name.removeprefix("at_least_")
+                .removesuffix(".py")
+                .split("_")
             )
         )
 
@@ -139,7 +140,7 @@ def get_wrapper_name_for_version(
 
 def import_tuning_version(
     version: str,
-    path_to_thin_wrappers_directory: str | None = None,
+    path_to_thin_wrappers_directory: Path | None = None,
 ) -> types.ModuleType:
     """Loads the appropriate thin wrapper to fms-hf-tuning based on the desired version
 
@@ -154,19 +155,14 @@ def import_tuning_version(
         The python module
     """
     if path_to_thin_wrappers_directory is None:
-        path_to_thin_wrappers_directory = os.path.dirname(__file__)
+        path_to_thin_wrappers_directory = Path(__file__).parent
 
     module_name = get_wrapper_name_for_version(
         version,
         path_to_thin_wrappers_directory=path_to_thin_wrappers_directory,
     )
 
-    filename = f"{module_name}.py"
-    wrapper_file = os.path.join(
-        path_to_thin_wrappers_directory,
-        filename,
-    )
-
+    wrapper_file = path_to_thin_wrappers_directory / Path(f"{module_name}.py")
     print("Loading fms-hf-tuning thin wrapper", module_name, file=sys.stderr)
 
     return import_from_path(module_name, wrapper_file)

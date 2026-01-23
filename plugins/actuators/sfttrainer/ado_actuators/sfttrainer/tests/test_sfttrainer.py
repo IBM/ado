@@ -3,9 +3,9 @@
 
 import dataclasses
 import json
-import os
 import re
 import typing
+from pathlib import Path
 
 import ado_actuators.sfttrainer.actuators
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
@@ -184,7 +184,7 @@ def test_semver_cmp() -> None:
 
 def test_select_wrapper() -> None:
     module_name = tuning_versions.get_wrapper_name_for_version(
-        "3.1.0", os.path.dirname(tuning_versions.__file__)
+        "3.1.0", Path(tuning_versions.__file__).parent
     )
     assert module_name == "at_least_3_0_0_1"
 

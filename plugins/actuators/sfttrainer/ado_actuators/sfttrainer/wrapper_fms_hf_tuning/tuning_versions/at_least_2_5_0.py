@@ -1,7 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-import os
+import pathlib
 import typing
 
 import tuning.sft_trainer
@@ -38,8 +38,9 @@ def parse_arguments_and_execute_wrapper(
         _exp_metadata,
     ) = tuning.sft_trainer.parse_arguments(parser, job_config)
 
-    if not os.path.isdir(training_args.output_dir):
-        os.makedirs(training_args.output_dir, exist_ok=True)
+    output_dir = pathlib.Path(training_args.output_dir)
+    if not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     tracker_configs = TrackerConfigFactory(
         hf_resource_scanner_config=hf_resource_scanner_config,

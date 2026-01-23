@@ -79,7 +79,6 @@ def test_csv_sample_store_config(
         dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
     ],
 ) -> None:
-
     location, parameters = csv_sample_store_parameters
 
     assert csv_sample_store.config == CSVSampleStoreDescription.model_validate(
@@ -98,7 +97,6 @@ def test_csv_sample_store_description(
         dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
     ],
 ) -> None:
-
     _location, params = csv_sample_store_parameters
     desc = CSVSampleStoreDescription.model_validate(params)
 
@@ -116,16 +114,17 @@ def test_csv_sample_store_description(
         "biodegradation halflife",
         "ld50",
     ]
-    assert desc.observedPropertyColumns == [
-        "Real_pKa (-0.83, 10.58)",
-        "Real_LogWS (-6.19, 1.13)",
-        "Real_BioDeg (0.47, 2.66)",
-        "Real_LD50 (3.9, 7543.0)",
-    ]
+    assert sorted(desc.source_observed_property_identifiers) == sorted(
+        [
+            "Real_pKa (-0.83, 10.58)",
+            "Real_LogWS (-6.19, 1.13)",
+            "Real_BioDeg (0.47, 2.66)",
+            "Real_LD50 (3.9, 7543.0)",
+        ]
+    )
 
 
 def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> None:
-
     assert sample_store_resource.identifier is not None
     assert sample_store_resource.identifier == "test_source"
 
@@ -172,7 +171,6 @@ def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> No
 def csv_sample_store_from_reference(
     csv_sample_store_reference: SampleStoreReference,
 ) -> orchestrator.core.samplestore.csv.CSVSampleStore:
-
     return initialize_sample_store_from_reference(reference=csv_sample_store_reference)
 
 
@@ -286,7 +284,6 @@ def test_sample_store_correct_class(
         dict[str, Any], SQLStoreConfiguration | FilePathLocation
     ],
 ) -> None:
-
     config, expectedClass = sample_store_test_data
 
     sample_store = (
@@ -300,7 +297,6 @@ def test_sample_store_correct_class(
 def test_base_entity_with_constitutive_property_values(
     ml_multi_cloud_csv_sample_store: CSVSampleStore,
 ) -> None:
-
     ents = ml_multi_cloud_csv_sample_store.entitiesWithConstitutivePropertyValues(
         [
             ConstitutivePropertyValue(
@@ -320,7 +316,6 @@ def test_base_entity_with_constitutive_property_values(
 def test_csv_sample_store_type_parsing(
     ml_multi_cloud_csv_sample_store: CSVSampleStore,
 ) -> None:
-
     entity: Entity = ml_multi_cloud_csv_sample_store.entities[0]
     for prop_id in ["cpu_family", "vcpu_size", "nodes", "provider"]:
         assert entity.valueForConstitutivePropertyIdentifier(
@@ -404,8 +399,8 @@ def test_csv_from_csv_method_backward_compatibility() -> None:
         csv_path = f.name
 
     try:
-        # Test without new parameters (backward compatible)
-        # Uses replay actuator by default, so validation passes
+        # Test backward compatible usage
+        # Uses replay actuator by default
         store1 = CSVSampleStore.from_csv(
             csvPath=csv_path,
             idColumn="id",
@@ -416,23 +411,110 @@ def test_csv_from_csv_method_backward_compatibility() -> None:
         assert store1 is not None
         assert len(store1.entities) == 2
 
-        # Test with new parameters
-        store2 = CSVSampleStore.from_csv(
-            csvPath=csv_path,
-            idColumn="id",
-            experimentIdentifier="test_exp",
-            actuatorIdentifier="custom_actuator",
-            observedPropertyColumns=["metric1"],
-            constitutivePropertyColumns=["param1"],
-            validate_actuators=False,  # Don't validate since actuator doesn't exist
-        )
-        assert store2 is not None
-        assert len(store2.entities) == 2
-
-        # Verify the actuator was set correctly
-        catalog = store2.experimentCatalog()
-        assert catalog.experiments[0].actuatorIdentifier == "custom_actuator"
+        # Verify the actuator was set to replay by default
+        catalog = store1.experimentCatalog()
+        assert catalog.experiments[0].actuatorIdentifier == "replay"
     finally:
         # Cleanup
         if os.path.exists(csv_path):
             os.unlink(csv_path)
+
+
+def test_csv_property_map_list_format() -> None:
+    """Test that property maps can be specified as lists when column names match property names"""
+
+    # Test with list format (simplified)
+    params_list = {
+        "generatorIdentifier": "test-gen",
+        "identifierColumn": "id",
+        "experiments": [
+            {
+                "experimentIdentifier": "test_exp",
+                "observedPropertyMap": ["metric1", "metric2"],
+                "constitutivePropertyMap": ["param1", "param2"],
+            }
+        ],
+    }
+
+    desc_list = CSVSampleStoreDescription.model_validate(params_list)
+    exp_list = desc_list.experiments[0]
+
+    # Verify list was converted to dict with matching keys and values
+    assert exp_list.observedPropertyMap == {
+        "metric1": "metric1",
+        "metric2": "metric2",
+    }
+    assert exp_list.constitutivePropertyMap == {
+        "param1": "param1",
+        "param2": "param2",
+    }
+
+    # Test with dict format (traditional)
+    params_dict = {
+        "generatorIdentifier": "test-gen",
+        "identifierColumn": "id",
+        "experiments": [
+            {
+                "experimentIdentifier": "test_exp",
+                "observedPropertyMap": {"metric1": "col1", "metric2": "col2"},
+                "constitutivePropertyMap": {"param1": "p1", "param2": "p2"},
+            }
+        ],
+    }
+
+    desc_dict = CSVSampleStoreDescription.model_validate(params_dict)
+    exp_dict = desc_dict.experiments[0]
+
+    # Verify dict format is preserved
+    assert exp_dict.observedPropertyMap == {"metric1": "col1", "metric2": "col2"}
+    assert exp_dict.constitutivePropertyMap == {"param1": "p1", "param2": "p2"}
+
+
+def test_csv_old_format_migration() -> None:
+    """Test that old CSVSampleStoreDescription format is migrated to new format
+
+    Old format (the only one stored before these changes):
+    - constitutivePropertyColumns at top level
+    - experiments list with propertyMap (not observedPropertyMap)
+    - No constitutivePropertyMap in experiment descriptions
+    """
+    # Old format matching the stored format
+    old_format = {
+        "identifierColumn": "config",
+        "generatorIdentifier": "multi-cloud-ml",
+        "constitutivePropertyColumns": ["cpu_family", "vcpu_size", "nodes", "provider"],
+        "experiments": [
+            {
+                "experimentIdentifier": "benchmark_performance",
+                "propertyMap": {
+                    "wallClockRuntime": "wallClockRuntime",
+                    "status": "status",
+                },
+            }
+        ],
+    }
+
+    desc = CSVSampleStoreDescription.model_validate(old_format)
+    assert len(desc.experiments) == 1
+    exp = desc.experiments[0]
+
+    # Verify migration: propertyMap -> observedPropertyMap
+    assert exp.observedPropertyMap == {
+        "wallClockRuntime": "wallClockRuntime",
+        "status": "status",
+    }
+
+    # Verify migration: constitutivePropertyColumns -> constitutivePropertyMap
+    assert exp.constitutivePropertyMap == {
+        "cpu_family": "cpu_family",
+        "vcpu_size": "vcpu_size",
+        "nodes": "nodes",
+        "provider": "provider",
+    }
+
+    # Verify it's an ExternalExperimentDescription (replay actuator)
+    assert exp.actuatorIdentifier == "replay"
+    assert exp.experimentIdentifier == "benchmark_performance"
+
+    # Verify constitutivePropertyColumns was removed from top level
+    assert "constitutivePropertyColumns" not in desc.model_dump()

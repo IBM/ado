@@ -350,6 +350,7 @@ class ActuatorRegistry:
             The matching experiment
         Raises:
             Raises UnknownExperimentError if the experiment cannot be found in any catalog
+            Raises UnknownActuatorError if the actuator cannot be found
 
         """
 

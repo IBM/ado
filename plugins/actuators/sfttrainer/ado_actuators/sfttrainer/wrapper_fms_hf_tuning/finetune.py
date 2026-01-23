@@ -11,17 +11,15 @@ import sys
 import time
 import typing
 
-import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
-
 if typing.TYPE_CHECKING:
+    import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
+    import transformers
     from transformers.tokenization_utils_base import BatchEncoding
 
     from .callbacks import metrics_tracker
 
 import dataclasses
 import os
-
-import transformers
 
 # VV: Env vars this script uses:
 # HOME -> Must set this to something like `/tmp` because aim is attempting to generate files under `~/.aim_profile`

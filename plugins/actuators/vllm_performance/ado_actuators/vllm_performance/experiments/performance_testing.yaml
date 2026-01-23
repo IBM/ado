@@ -60,7 +60,7 @@ test-deployment-v1:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["vllm/vllm-openai:v0.13.0"]
+        values: ["vllm/vllm-openai:v0.14.0"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -128,7 +128,7 @@ test-deployment-v1:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "vllm/vllm-openai:v0.13.0"
+      value: "vllm/vllm-openai:v0.14.0"
     - property:
         identifier: n_cpus
       value: 8

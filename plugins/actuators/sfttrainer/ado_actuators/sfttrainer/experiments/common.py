@@ -495,7 +495,6 @@ def generate_parameterisable_finetune_experiment(
             is_true_parameterised = True
             break
 
-    # exp_identifier = "-v".join((exp_name, version))
     return Experiment(
         identifier=exp_identifier,
         actuatorIdentifier=actuator_identifier,

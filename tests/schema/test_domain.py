@@ -136,7 +136,6 @@ def test_valid_property_domains() -> None:
     assert discretePropertyDomainNoRange.valueInDomain(-10) is True
     assert discretePropertyDomainNoRange.valueInDomain(1) is True
     # For discrete variables with an interval we need at least one part of range to anchor the interval!
-    # assert discretePropertyDomainNoRange.valueInDomain(0.5) is False
     assert discretePropertyDomainNoRange.valueInDomain(100) is True
     assert categoricalPropertyDomain.valueInDomain("A") is True
     assert categoricalPropertyDomain.valueInDomain(3) is True

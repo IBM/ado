@@ -581,7 +581,7 @@ def main() -> None:
         # VV: 'accelerate' injects this env-var
         if os.environ.get("RANK", ""):
             rank = os.environ["RANK"]
-            path = "_".join((custom_args.aim_info_path, rank))
+            path = f"{custom_args.aim_info_path}_{rank}"
         else:
             path = custom_args.aim_info_path
             rank = "?"
@@ -655,8 +655,7 @@ def main() -> None:
             in str(e).lower()
         ):
             report_oom(e)
-            # elif "NCCL Error".lower() in str(e).lower():
-            #     report_nccl_error(e)
+
         else:
             report_error(
                 e,

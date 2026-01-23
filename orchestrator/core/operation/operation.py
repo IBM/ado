@@ -14,9 +14,6 @@ from orchestrator.core.operation.resource import (
     OperationResourceStatus,
 )
 
-if typing.TYPE_CHECKING:
-    import orchestrator.modules.operators.base
-
 
 class OperationException(Exception):
 

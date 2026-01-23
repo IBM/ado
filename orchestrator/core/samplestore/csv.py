@@ -46,10 +46,12 @@ class CSVSampleStoreDescription(SampleStoreDescription):
             description="List of headers of columns containing constitutive properties"
         ),
     ]
-    validate_actuators: bool = pydantic.Field(
-        default=True,
-        description="If True, validate that actuators and experiments exist and are compatible",
-    )
+    validate_actuators: Annotated[
+        bool,
+        pydantic.Field(
+            description="If True, validate that actuators and experiments exist and are compatible",
+        ),
+    ] = True
 
     @pydantic.field_validator("identifierColumn")
     def identifier_is_lowercase(cls, value: str) -> str:

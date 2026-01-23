@@ -216,10 +216,9 @@ class ExperimentDescription(pydantic.BaseModel):
     actuatorIdentifier: Annotated[
         Defaultable[str],
         pydantic.Field(
-            default="replay",
             description="The actuator that provides this experiment. Defaults to 'replay' if not specified.",
         ),
-    ]
+    ] = "replay"
     propertyMap: Annotated[
         dict,
         pydantic.Field(

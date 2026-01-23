@@ -217,11 +217,11 @@ copyFrom:
 
 #### Importing data from existing actuators
 
-By default, CSV imports associate experiments with the "replay" actuator, which
-indicates the data came from an external source.
-However, if you're importing
-CSV data that was previously exported from `ado` or represents results from an
-actuator available in your current instance, you can specify the actual actuator:
+By default, when importing data from CSV files, experiments are associated with
+the "replay" actuator, which indicates the data came from an external source.
+However, if you're importing CSV data that was previously exported from `ado` or
+represents results from an actuator available in your current instance, you can
+specify the actuator identifier:
 
 <!-- markdownlint-disable line-length -->
 ```yaml
@@ -252,13 +252,16 @@ For non-replay actuators `ado` will verify that:
 If any validation fails, a detailed error message will indicate what's wrong.
 
 **Backward Compatibility**: If `actuatorIdentifier` is not specified for an
-experiment, it defaults to `"replay"`, maintaining full compatibility with
+experiment, it defaults to `replay"`, maintaining full compatibility with
 existing configurations.
 
 **Note on Parameterized Experiments**: Parameterized experiment identifiers are
 not yet fully supported for CSV import. If you specify a parameterized experiment
 identifier, validation will fail with a "not found" error. Use the base
-experiment identifier instead.
+**Note on Parameterized Experiments**: Parameterized experiment identifiers are
+not yet fully supported for CSV data import. Specifying a parameterized
+experiment identifier will cause validation to fail with a "not found" error.
+Use the base experiment identifier instead.
 
 Note, since CSV files contain arbitrary data in general there is no way `ado`
 can know how a particular value was generated or how to generate new such

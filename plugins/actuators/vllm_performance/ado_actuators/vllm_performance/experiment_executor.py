@@ -416,7 +416,7 @@ def run_resource_and_workload_experiment(
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
                     id=request.requestid,
-                    label=f"({request.requestid}) Executing vllm bench serve",
+                    label=f"({request.requestid}) Executing benchmark",
                     state="start",
                 )
             )
@@ -453,6 +453,7 @@ def run_resource_and_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     number_input_tokens=int(values.get("number_input_tokens")),
                     max_output_tokens=int(values.get("max_output_tokens")),
+                    dataset=values.get("dataset"),
                 )
             else:
                 logger.info("Using vLLM random benchmark for deployment")
@@ -615,6 +616,7 @@ def run_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     number_input_tokens=int(values.get("number_input_tokens")),
                     max_output_tokens=int(values.get("max_output_tokens")),
+                    dataset=values.get("dataset"),
                 )
             else:
                 logger.info("Using vLLM random benchmark for endpoint")

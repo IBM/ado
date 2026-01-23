@@ -39,14 +39,23 @@
 
 ### Available experiments
 
-The `vllm_performance` actuator implements two experiments
+The `vllm_performance` actuator implements four experiments:
 
 - `test-deployment-v1`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
   configuration. It deploys servers with given configuration on kubernetes and
-  runs `vllm bench serve` on them with the given parameters
+  runs [vLLM's
+  built-in benchmarking tool](https://docs.vllm.ai/en/stable/cli/bench/serve/)
+  (`vllm bench serve`) on them with the given parameters.
 - `test-endpoint-v1`: This experiment is equivalent to running
   `vllm bench serve` against an endpoint.
+- `test-deployment-guidellm-v1`: Similar to `test-deployment-v1`, but uses
+  [GuideLLM](https://github.com/neuralmagic/guidellm) (`guidellm benchmark run`)
+  for benchmarking instead of vLLM's built-in benchmarking tool.
+  GuideLLM provides more comprehensive metrics and analysis capabilities.
+- `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses
+  GuideLLM (`guidellm benchmark run`) for benchmarking instead of vLLM's
+  built-in benchmarking tool.
 
 ---
 
@@ -270,9 +279,9 @@ Ray cluster, including environment and package setup, see
 > image used by the RayCluster you can have [ray install it following
 > this guide](../getting-started/remote_run.md).
 >
-> In particular, if a compatible version of vLLM is not installed
-> in the image this step will require installing vLLM on each RayCluster node
-> (so `vllm bench serve` is available).
+> In particular, if a compatible version of vLLM and GuideLLM is not installed
+> in the image this step will require installing vLLM
+> (so `vllm bench serve` is available) and GuideLLM on each RayCluster node.
 > This can take some time so you may see the `ado` `operation` output "hang"
 > while this is happening.
 
@@ -304,9 +313,9 @@ Some notes:
 
 Once deployments are created and the vLLM health endpoint is responding to
 requests (pod running, container ready), or 20 mins has elapsed, the actuator
-runs `vllm bench serve` against it. The 20min timeout is so the wait won't pend
-forever in a case where something goes wrong in K8s that means the health check
-will never pass.
+runs `vllm bench serve` or GuideLLM against it. The 20min timeout is so the
+wait won't pend forever in a case where something goes wrong in K8s that means
+the health check will never pass.
 
 When running the benchmark the actuator will try `benchmark_retries` times
 backing off exponentially based on `retries_timeout` to run the benchmark

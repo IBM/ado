@@ -140,7 +140,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
                 runtime_resources_followup = f"{os.sep}working_dir_files{os.sep}"
                 unique.update(
                     [
-                        os.path.join(
+                        os.path.join(  # noqa: PTH118
                             x.split(runtime_resources_followup, 1)[0], "ordered_pip"
                         )
                         for x in many

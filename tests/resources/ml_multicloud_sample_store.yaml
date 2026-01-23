@@ -16,13 +16,14 @@ copyFrom:
     parameters:
       generatorIdentifier: 'multi-cloud-ml'
       identifierColumn: 'config'
-      constitutivePropertyColumns:
-        - cpu_family
-        - vcpu_size
-        - nodes
-        - provider
       experiments:
         - experimentIdentifier: 'benchmark_performance'
-          propertyMap:
-            wallClockRuntime: 'wallClockRuntime'
-            status: 'status'
+          # Using list format since column names match property names exactly
+          observedPropertyMap:
+            - wallClockRuntime
+            - status
+          constitutivePropertyMap:
+            - cpu_family
+            - vcpu_size
+            - nodes
+            - provider

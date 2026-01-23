@@ -3,9 +3,8 @@
 # SPDX-License-Identifier: MIT
 
 # %% Run this script with IPython
-import glob
 import logging
-import os
+import pathlib
 import shutil
 
 import pandas as pd
@@ -15,7 +14,7 @@ from autoconf.utils.rule_based_classifier import is_row_valid
 
 logger = logging.getLogger(__name__)
 logger.info("These are the available csvs")
-glob.glob("*", root_dir="../../../data")  # %%
+pathlib.Path("../../../data").glob("*.csv")  # %%
 
 # %%
 REFIT = True
@@ -99,7 +98,7 @@ logger.info(
 
 predictor_clone_opt.evaluate(test_data, silent=True)
 # %% cleaning up files, keeping only the refit-opt model
-if model_path and os.path.isdir(model_path):
+if pathlib.Path(model_path).is_dir():
     try:
         shutil.rmtree(model_path, ignore_errors=True)
         logger.info(f"Deleted model directory: {model_path}")

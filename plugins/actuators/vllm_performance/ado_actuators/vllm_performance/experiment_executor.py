@@ -420,10 +420,12 @@ def run_resource_and_workload_experiment(
                     state="start",
                 )
             )
+            logger.info(f"Executing experiment: {experiment.identifier}")
             if experiment.identifier in [
                 "test-geospatial-deployment-v1",
                 "test-geospatial-deployment-custom-dataset-v1",
             ]:
+                logger.info("Using geospatial benchmark for deployment")
                 result = execute_geospatial_benchmark(
                     base_url=base_url,
                     model=values.get("model"),
@@ -440,6 +442,7 @@ def run_resource_and_workload_experiment(
             elif experiment.identifier in [
                 "test-deployment-guidellm-v1",
             ]:
+                logger.info("Using GuideLLM benchmark for deployment")
                 result = execute_guidellm_benchmark(
                     base_url=base_url,
                     model=values.get("model"),
@@ -452,6 +455,10 @@ def run_resource_and_workload_experiment(
                     max_output_tokens=int(values.get("max_output_tokens")),
                 )
             else:
+                logger.info("Using vLLM random benchmark for deployment")
+                number_input_tokens = values.get("number_input_tokens")
+                max_output_tokens = values.get("max_output_tokens")
+                burstiness = values.get("burstiness")
                 result = execute_random_benchmark(
                     base_url=base_url,
                     model=values.get("model"),
@@ -462,9 +469,17 @@ def run_resource_and_workload_experiment(
                     hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    number_input_tokens=int(values.get("number_input_tokens")),
-                    max_output_tokens=int(values.get("max_output_tokens")),
-                    burstiness=float(values.get("burstiness")),
+                    number_input_tokens=(
+                        int(number_input_tokens)
+                        if number_input_tokens is not None
+                        else None
+                    ),
+                    max_output_tokens=(
+                        int(max_output_tokens)
+                        if max_output_tokens is not None
+                        else None
+                    ),
+                    burstiness=float(burstiness) if burstiness is not None else 1.0,
                     dataset=values.get("dataset"),
                 )
 
@@ -572,7 +587,9 @@ def run_workload_experiment(
                 max_concurrency = None
 
             # Will raise VLLMBenchmarkError if there is a problem
+            logger.info(f"Executing experiment: {experiment.identifier}")
             if experiment.identifier == "test-geospatial-endpoint-v1":
+                logger.info("Using geospatial benchmark for endpoint")
                 result = execute_geospatial_benchmark(
                     base_url=values.get("endpoint"),
                     model=values.get("model"),
@@ -587,6 +604,7 @@ def run_workload_experiment(
                     dataset=values.get("dataset"),
                 )
             elif experiment.identifier == "test-endpoint-guidellm-v1":
+                logger.info("Using GuideLLM benchmark for endpoint")
                 result = execute_guidellm_benchmark(
                     base_url=values.get("endpoint"),
                     model=values.get("model"),
@@ -599,6 +617,10 @@ def run_workload_experiment(
                     max_output_tokens=int(values.get("max_output_tokens")),
                 )
             else:
+                logger.info("Using vLLM random benchmark for endpoint")
+                number_input_tokens = values.get("number_input_tokens")
+                max_output_tokens = values.get("max_output_tokens")
+                burstiness = values.get("burstiness")
                 result = execute_random_benchmark(
                     base_url=values.get("endpoint"),
                     model=values.get("model"),
@@ -609,9 +631,17 @@ def run_workload_experiment(
                     hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    number_input_tokens=int(values.get("number_input_tokens")),
-                    max_output_tokens=int(values.get("max_output_tokens")),
-                    burstiness=float(values.get("burstiness")),
+                    number_input_tokens=(
+                        int(number_input_tokens)
+                        if number_input_tokens is not None
+                        else None
+                    ),
+                    max_output_tokens=(
+                        int(max_output_tokens)
+                        if max_output_tokens is not None
+                        else None
+                    ),
+                    burstiness=float(burstiness) if burstiness is not None else 1.0,
                     dataset=values.get("dataset"),
                 )
         except VLLMBenchmarkError as e:

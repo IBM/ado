@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import json
-import os
+import pathlib
 from typing import Any
 
 
@@ -17,9 +17,9 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
     :return: results dictionary
     """
     try:
-        with open(f_name) as f:
-            results = json.load(f)
-        os.remove(f_name)
+        results_file = pathlib.Path(f_name)
+        results = json.load(results_file.read_text())
+        results_file.unlink()
     except Exception as e:
         raise VLLMBenchmarkResultReadError(
             f"Failed to read benchmark result due to {e}"

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import datetime
+import typing
 from typing import Any
 
 import pytest
@@ -22,7 +23,6 @@ from orchestrator.core.samplestore.csv import (
 )
 from orchestrator.core.samplestore.sql import SQLSampleStore
 from orchestrator.core.samplestore.utils import initialize_sample_store_from_reference
-from orchestrator.schema.entity import Entity
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
@@ -35,6 +35,9 @@ from orchestrator.schema.property_value import (
 )
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.utilities.location import FilePathLocation, SQLStoreConfiguration
+
+if typing.TYPE_CHECKING:
+    from orchestrator.schema.entity import Entity
 
 
 def test_state_identifier(

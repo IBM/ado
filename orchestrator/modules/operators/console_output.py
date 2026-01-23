@@ -8,6 +8,7 @@ Contains message definitions, FIFO Ray actor queue for cross-process safe messag
 """
 
 import queue
+import typing
 from typing import Literal
 
 import ray.util.queue
@@ -25,6 +26,9 @@ from rich.progress import (
 from rich.table import Table
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
+
+if typing.TYPE_CHECKING:
+    import pandas as pd
 
 
 class RichConsoleMessage(BaseModel):
@@ -210,7 +214,6 @@ def output_operation_results(
         Table: Rendered rich.Table object containing formatted measurement data.
     """
     import numpy as np
-    import pandas as pd
 
     df: pd.DataFrame = (
         discovery_space.complete_measurement_request_with_results_timeseries(

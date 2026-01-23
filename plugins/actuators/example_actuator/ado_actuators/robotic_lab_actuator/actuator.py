@@ -1,6 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
-import os
+import pathlib
 import uuid
 from typing import Annotated
 
@@ -57,13 +57,11 @@ class RoboticLab(ActuatorBase):
         """Returns the Experiments your actuator provides"""
 
         # The catalog be formed in code here or read from a file containing the Experiments models
-        # This shows reading from a file
-
-        path = os.path.abspath(__file__)
-        path = os.path.split(path)[0]
-        with open(os.path.join(path, "experiments.yaml")) as f:
-            data = yaml.safe_load(f)
-            experiments = [Experiment(**data[e]) for e in data]
+        # This shows reading from a file located in the same directory as this file.
+        robotic_lab_directory = pathlib.Path(__file__).resolve().parent
+        experiments_file = robotic_lab_directory / pathlib.Path("experiments.yaml")
+        data = yaml.safe_load(experiments_file.read_text())
+        experiments = [Experiment.model_validate(data[e]) for e in data]
 
         return ExperimentCatalog(
             catalogIdentifier=cls.identifier,

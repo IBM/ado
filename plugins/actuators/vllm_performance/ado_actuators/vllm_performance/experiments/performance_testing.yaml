@@ -382,6 +382,12 @@ test-deployment-guidellm-v1:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1, 10000]
         interval: 1
+    - identifier: 'burstiness'
+      metadata:
+        description: "(benchmark) The burstiness of the requests - forced to 1.0 to match the meaning of burstiness=1 in vLLM experiments (Poisson distribution). GuideLLM uses poisson profile for this behavior."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [1.0]
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
@@ -477,6 +483,9 @@ test-deployment-guidellm-v1:
     - property:
         identifier: 'max_output_tokens'
       value: 128
+    - property:
+        identifier: 'burstiness'
+      value: 1.0
     - property:
         identifier: 'dataset'
       value: 'random'
@@ -581,6 +590,12 @@ test-endpoint-guidellm-v1:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [1, 10000]
         interval: 1
+    - identifier: 'burstiness'
+      metadata:
+        description: "(benchmark) The burstiness of the requests - forced to 1.0 to match the meaning of burstiness=1 in vLLM experiments (Poisson distribution). GuideLLM uses poisson profile for this behavior."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [1.0]
     - identifier: 'max_concurrency'
       metadata:
         description: "The maximum number of concurrent requests to send"
@@ -607,6 +622,9 @@ test-endpoint-guidellm-v1:
     - value: 128
       property:
         identifier: 'max_output_tokens'
+    - value: 1.0
+      property:
+        identifier: 'burstiness'
     - value: 'random'
       property:
         identifier: 'dataset'

@@ -443,17 +443,38 @@ def run_resource_and_workload_experiment(
                 "test-deployment-guidellm-v1",
             ]:
                 logger.info("Using GuideLLM benchmark for deployment")
+
+                # Safely extract and convert numeric parameters
+                num_prompts_val = values.get("num_prompts")
+                number_input_tokens_val = values.get("number_input_tokens")
+                max_output_tokens_val = values.get("max_output_tokens")
+                burstiness_val = values.get("burstiness")
+
                 result = execute_guidellm_benchmark(
                     base_url=base_url,
                     model=values.get("model"),
-                    num_prompts=int(values.get("num_prompts")),
+                    num_prompts=(
+                        int(num_prompts_val) if num_prompts_val is not None else 500
+                    ),
                     request_rate=request_rate,
                     max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    number_input_tokens=int(values.get("number_input_tokens")),
-                    max_output_tokens=int(values.get("max_output_tokens")),
-                    dataset=values.get("dataset"),
+                    number_input_tokens=(
+                        int(number_input_tokens_val)
+                        if number_input_tokens_val is not None
+                        else None
+                    ),
+                    max_output_tokens=(
+                        int(max_output_tokens_val)
+                        if max_output_tokens_val is not None
+                        else None
+                    ),
+                    dataset=values.get("dataset", "random"),
+                    burstiness=(
+                        float(burstiness_val) if burstiness_val is not None else 1.0
+                    ),
                 )
             else:
                 logger.info("Using vLLM random benchmark for deployment")
@@ -606,17 +627,38 @@ def run_workload_experiment(
                 )
             elif experiment.identifier == "test-endpoint-guidellm-v1":
                 logger.info("Using GuideLLM benchmark for endpoint")
+
+                # Safely extract and convert numeric parameters
+                num_prompts_val = values.get("num_prompts")
+                number_input_tokens_val = values.get("number_input_tokens")
+                max_output_tokens_val = values.get("max_output_tokens")
+                burstiness_val = values.get("burstiness")
+
                 result = execute_guidellm_benchmark(
                     base_url=values.get("endpoint"),
                     model=values.get("model"),
-                    num_prompts=int(values.get("num_prompts")),
+                    num_prompts=(
+                        int(num_prompts_val) if num_prompts_val is not None else 500
+                    ),
                     request_rate=request_rate,
                     max_concurrency=max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    number_input_tokens=int(values.get("number_input_tokens")),
-                    max_output_tokens=int(values.get("max_output_tokens")),
-                    dataset=values.get("dataset"),
+                    number_input_tokens=(
+                        int(number_input_tokens_val)
+                        if number_input_tokens_val is not None
+                        else None
+                    ),
+                    max_output_tokens=(
+                        int(max_output_tokens_val)
+                        if max_output_tokens_val is not None
+                        else None
+                    ),
+                    dataset=values.get("dataset", "random"),
+                    burstiness=(
+                        float(burstiness_val) if burstiness_val is not None else 1.0
+                    ),
                 )
             else:
                 logger.info("Using vLLM random benchmark for endpoint")

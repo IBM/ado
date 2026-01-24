@@ -1,16 +1,19 @@
-<!-- markdownlint-disable line-length -->
 # GuideLLM and vLLM Bench Parameter Mapping
 
-This document provides a comprehensive mapping between vLLM bench parameters and GuideLLM parameters, explaining how the two benchmarking tools can be used interchangeably within the vLLM performance actuator.
+This document provides a comprehensive mapping between vLLM bench
+parameters and GuideLLM parameters, explaining how the two benchmarking
+tools can be used interchangeably within the vLLM performance actuator.
 
 ## Overview
 
 The vLLM performance actuator now supports two benchmarking tools:
 
 1. **vLLM bench** - The built-in benchmarking tool from vLLM
-2. **GuideLLM** - A comprehensive benchmarking suite for LLM serving systems
+2. **GuideLLM** - A comprehensive benchmarking suite for LLM serving
+   systems
 
-Both tools measure similar performance metrics but use different parameter names and have slightly different capabilities.
+Both tools measure similar performance metrics but use different
+parameter names and have slightly different capabilities.
 
 ## GuideLLM CLI Structure
 
@@ -21,25 +24,28 @@ guidellm benchmark run [OPTIONS]
 ```
 
 ## Parameter Mapping Table
-
+<!-- markdownlint-disable line-length -->
 | vLLM Bench Parameter | GuideLLM Parameter | Description | Notes |
 | --------------------- | ------------------- | ------------- | ------- |
 | `--base-url` | `--target` | URL of the LLM endpoint | Both expect OpenAI-compatible endpoints |
 | `--model` | `--model` | Model name/identifier | Same parameter name |
 | `--num-prompts` | `--max-requests` | Total number of requests to send | GuideLLM uses "max-requests" terminology |
 | `--request-rate` | `--profile` + `--rate` | Requests per second | GuideLLM uses profiles (constant, throughput, etc.) |
+| `--max-concurrency` | `--max-concurrency` | Maximum concurrent requests | Same parameter name |
 | `--random-input-len` | `--data` (JSON) | Number of input tokens per request | Part of synthetic data config: `{"prompt_tokens": N}` |
 | `--random-output-len` | `--data` (JSON) | Maximum output tokens per request | Part of synthetic data config: `{"output_tokens": N}` |
 | `--backend` | N/A | vLLM backend type | GuideLLM assumes OpenAI-compatible |
 | `--burstiness` | N/A | Request distribution pattern | Not directly available in GuideLLM |
 | N/A | `--output-path` | Output file path | GuideLLM-specific feature |
 | N/A | `--profile` | Benchmark profile type | GuideLLM-specific: constant, throughput, sweep, etc. |
+<!-- markdownlint-enable line-length -->
 
 ## Key Differences
 
 ### 1. Request Rate and Profiles
 
-- **vLLM bench**: Uses `--request-rate` with numeric values or `-1` for unlimited
+- **vLLM bench**: Uses `--request-rate` with numeric values or `-1`
+  for unlimited
 - **GuideLLM**: Uses `--profile` to select benchmarking strategy:
   - `constant`: Fixed request rate (requires `--rate`)
   - `throughput`: Maximum throughput (unlimited rate)
@@ -50,18 +56,23 @@ guidellm benchmark run [OPTIONS]
 
 ### 2. Synthetic Data Configuration
 
-- **vLLM bench**: Uses `--random-input-len` and `--random-output-len` as separate parameters
-- **GuideLLM**: Uses `--data` with JSON config: `'{"prompt_tokens": 256, "output_tokens": 128}'`
+- **vLLM bench**: Uses `--random-input-len` and `--random-output-len`
+  as separate parameters
+- **GuideLLM**: Uses `--data` with JSON config:
+  `'{"prompt_tokens": 256, "output_tokens": 128}'`
 
 ### 3. Backend Support
 
-- **vLLM bench**: Supports multiple backends (vllm, openai, openai-chat, etc.)
+- **vLLM bench**: Supports multiple backends (vllm, openai,
+  openai-chat, etc.)
 - **GuideLLM**: Focuses on OpenAI-compatible endpoints
 
 ### 4. Burstiness Control
 
-- **vLLM bench**: Supports `--burstiness` parameter for controlling request distribution (Poisson vs Gamma)
-- **GuideLLM**: Uses different profiles (poisson, constant) for request distribution patterns
+- **vLLM bench**: Supports `--burstiness` parameter for controlling
+  request distribution (Poisson vs Gamma)
+- **GuideLLM**: Uses different profiles (poisson, constant) for request
+  distribution patterns
 
 ### 5. Output Format
 
@@ -70,11 +81,14 @@ guidellm benchmark run [OPTIONS]
 
 ## Metrics Mapping
 
-Both tools provide similar performance metrics. The implementation extracts metrics from GuideLLM's JSON output structure and maps them to the vLLM actuator's expected format.
+Both tools provide similar performance metrics. The implementation
+extracts metrics from GuideLLM's JSON output structure and maps them to
+the vLLM actuator's expected format.
 
 ### GuideLLM JSON Structure
 
 GuideLLM outputs results in the following structure:
+<!-- markdownlint-disable line-length -->
 
 ```json
 {
@@ -97,9 +111,10 @@ GuideLLM outputs results in the following structure:
   ]
 }
 ```
+<!-- markdownlint-enable line-length -->
 
 ### Metric Mapping Table
-
+<!-- markdownlint-disable line-length -->
 | Actuator Output Field | GuideLLM Source Path | Notes |
 | ---------------------- | --------------------- | ------- |
 | **Basic Metrics** | | |
@@ -143,15 +158,23 @@ GuideLLM outputs results in the following structure:
 | `p50_e2el_ms` | `benchmarks[0].metrics.request_latency.successful.percentiles.p50` | Converted from seconds to ms (×1000) |
 | `p75_e2el_ms` | `benchmarks[0].metrics.request_latency.successful.percentiles.p75` | Converted from seconds to ms (×1000) |
 | `p99_e2el_ms` | `benchmarks[0].metrics.request_latency.successful.percentiles.p99` | Converted from seconds to ms (×1000) |
+<!-- markdownlint-enable line-length -->
 
 ### Important Notes
 
-1. **Metric Categories**: Each metric in GuideLLM has subcategories: `successful`, `errored`, `incomplete`, and `total`. The implementation uses the `successful` category.
+1. **Metric Categories**: Each metric in GuideLLM has subcategories:
+   `successful`, `errored`, `incomplete`, and `total`. The
+   implementation uses the `successful` category.
 
 2. **Unit Conversions**:
-   - TTFT, TPOT, and ITL metrics are already in milliseconds in GuideLLM output
-   - Request latency (E2EL) is in seconds and must be converted to milliseconds (×1000)
+   - TTFT, TPOT, and ITL metrics are already in milliseconds in
+     GuideLLM output
+   - Request latency (E2EL) is in seconds and must be converted to
+     milliseconds (×1000)
 
-3. **Percentiles**: Percentiles are nested under a `percentiles` object with keys like `p25`, `p50`, `p75`, `p99`
+3. **Percentiles**: Percentiles are nested under a `percentiles` object
+   with keys like `p25`, `p50`, `p75`, `p99`
 
-4. **Statistics**: Each metric category includes: `mean`, `median`, `mode`, `variance`, `std_dev`, `min`, `max`, `count`, `total_sum`, and `percentiles`
+4. **Statistics**: Each metric category includes: `mean`, `median`,
+   `mode`, `variance`, `std_dev`, `min`, `max`, `count`, `total_sum`,
+   and `percentiles`

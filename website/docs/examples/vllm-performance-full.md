@@ -251,7 +251,10 @@ ado show entities space --output-format csv --use-latest
 ## Next steps
 
 <!-- markdownlint-disable MD028 -->
-
+- Try running the same operation with the
+  [GuideLLM](https://github.com/vllm-project/guidellm) benchmarking tool
+  by setting the `experimentIdentifier` field in the entity space definition
+  to `test-deployment-guidellm-v1`.
 - Try varying **`max_batch_tokens`** or **`gpu_memory_utilization`** to explore
   the impact on throughput.
 - Try creating a different `actuatorconfiguration` with more `max_environments`

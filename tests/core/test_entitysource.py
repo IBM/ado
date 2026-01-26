@@ -180,23 +180,19 @@ def test_csv_sample_store_from_reference(
 ) -> None:
     """Test creating a single sample store based on a description"""
 
-    print(csv_sample_store_reference)
-
     assert (
         csv_sample_store_from_reference.sourceDescription.generatorIdentifier
-        == csv_sample_store_reference.parameters.generatorIdentifier
+        == csv_sample_store_reference.parameters["generatorIdentifier"]
     )
 
     # sample_store is directly created in the fixture - we expect it to be passive as
     # is created from a CSV file
     assert csv_sample_store_from_reference.isPassive
 
-    print(csv_sample_store_from_reference.numberOfEntities)
-
     assert csv_sample_store_from_reference.numberOfEntities == 5000
 
     assert (
-        csv_sample_store_from_reference.sourceDescription
+        csv_sample_store_from_reference.sourceDescription.model_dump()
         == csv_sample_store_reference.parameters
     )
     assert (

@@ -111,6 +111,7 @@ class CSVSampleStoreDescription(SampleStoreDescription):
         - For each experiment desc dict, add constitutivePropertyMap = constitutivePropertyColumns
         - For each experiment desc dict, rename propertyMap to observedPropertyMap
         """
+
         if not isinstance(data, dict):
             return data
 

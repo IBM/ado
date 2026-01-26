@@ -5,6 +5,8 @@ import json
 import os
 from typing import Any
 
+from .benchmark_models import BenchmarkResult
+
 
 class VLLMBenchmarkResultReadError(Exception):
     """Raised if there was an issue reading benchmark results"""
@@ -12,9 +14,10 @@ class VLLMBenchmarkResultReadError(Exception):
 
 def get_results(f_name: str = "random.json") -> dict[str, Any]:
     """
-    Get benchmark results
+    Get benchmark results and validate with Pydantic model
+
     :param f_name: file containing results
-    :return: results dictionary
+    :return: results dictionary (from BenchmarkResult.model_dump())
     """
     try:
         with open(f_name) as f:
@@ -24,6 +27,8 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
         raise VLLMBenchmarkResultReadError(
             f"Failed to read benchmark result due to {e}"
         ) from e
+
+    # Remove fields not needed for BenchmarkResult
     del results["date"]
     del results["endpoint_type"]
     del results["tokenizer_id"]
@@ -40,7 +45,10 @@ def get_results(f_name: str = "random.json") -> dict[str, Any]:
     # del results["itls"]
     # del results["generated_texts"]
     # del results["errors"]
-    return results
+
+    # Validate and normalize using Pydantic model
+    benchmark_result = BenchmarkResult.model_validate(results)
+    return benchmark_result.model_dump()
 
 
 if __name__ == "__main__":

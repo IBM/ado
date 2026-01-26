@@ -19,6 +19,10 @@ import uuid
 from pathlib import Path
 from typing import Any, Literal
 
+from pydantic import HttpUrl, TypeAdapter
+
+from .guidellm_models import GuideLLMOutput
+
 logger = logging.getLogger("guidellm-bench")
 
 
@@ -96,6 +100,14 @@ def execute_guidellm_benchmark(
         raise ValueError(f"max_output_tokens must be positive, got {max_output_tokens}")
     if max_concurrency is not None and max_concurrency <= 0:
         raise ValueError(f"max_concurrency must be positive, got {max_concurrency}")
+
+    # Validate URL format using Pydantic
+    try:
+        url_adapter = TypeAdapter(HttpUrl)
+        url_adapter.validate_python(base_url)
+    except Exception as e:
+        raise ValueError(f"Invalid URL format: {base_url}") from e
+
     logger.debug(
         f"Executing GuideLLM benchmark, invoking service at {base_url} with parameters:"
     )
@@ -216,21 +228,13 @@ def execute_guidellm_benchmark(
 
 def _parse_guidellm_results(output_path: Path) -> dict[str, Any]:
     """
-    Parse GuideLLM benchmark results from output file
+    Parse GuideLLM benchmark results from output file using Pydantic model validation
 
-    GuideLLM provides comprehensive metrics including:
-    - Request throughput (requests/sec)
-    - Token throughput (tokens/sec)
-    - Time to First Token (TTFT) statistics
-    - Time Per Output Token (TPOT) statistics
-    - Inter-Token Latency (ITL) statistics
-    - Request Latency statistics
-    - Success/failure rates
-
-    This function maps GuideLLM metrics to the format expected by the vLLM actuator.
+    This function validates the GuideLLM JSON output and transforms it into
+    the standardized benchmark result format using Pydantic models.
 
     :param output_path: Path to the GuideLLM output file
-    :return: Dictionary with parsed metrics
+    :return: Dictionary with parsed metrics (from BenchmarkResult.model_dump())
     """
 
     if not output_path.exists():
@@ -239,118 +243,15 @@ def _parse_guidellm_results(output_path: Path) -> dict[str, Any]:
     if output_path.suffix != ".json":
         raise ValueError(f"Unsupported output format: {output_path.suffix}")
 
+    # Parse JSON and validate with Pydantic model
     data = json.loads(output_path.read_text())
+    guidellm_output = GuideLLMOutput.model_validate(data)
 
-    # Extract the first benchmark result (typically there's only one)
-    if "benchmarks" not in data or len(data["benchmarks"]) == 0:
-        raise ValueError("No benchmark results found in GuideLLM output")
+    # Transform to standardized result format using Pydantic model
+    result = guidellm_output.to_benchmark_result()
 
-    benchmark = data["benchmarks"][0]
-    metrics = benchmark.get("metrics", {})
-
-    # Helper function to safely extract metric values
-    def get_metric(
-        metric_name: str,
-        stat: str,
-        category: Literal["successful", "failed"] = "successful",
-    ) -> float:
-        """Extract a specific statistic from a metric category"""
-        try:
-            value = metrics.get(metric_name, {}).get(category, {}).get(stat, 0.0)
-            return float(value) if value is not None else 0.0
-        except TypeError:
-            # TypeError occurs when value cannot be converted to float
-            # This indicates the metric format may have changed
-            logger.warning(
-                f"Failed to convert metric {metric_name}.{category}.{stat} to float"
-            )
-            return 0.0
-
-    def get_percentile(
-        metric_name: str,
-        percentile: str,
-        category: Literal["successful", "failed"] = "successful",
-    ) -> float:
-        """Extract a specific percentile from a metric category"""
-        try:
-            percentiles = (
-                metrics.get(metric_name, {}).get(category, {}).get("percentiles", {})
-            )
-            if isinstance(percentiles, dict):
-                return float(percentiles.get(percentile, 0.0))
-            return 0.0
-        except TypeError:
-            # TypeError occurs when value cannot be converted to float
-            # This indicates the metric format may have changed
-            logger.warning(
-                f"Failed to convert percentile {metric_name}.{category}.{percentile} to float"
-            )
-            return 0.0
-
-    # Extract duration from benchmark timing
-    duration = benchmark.get("duration", 0)
-
-    # Extract request counts
-    request_totals = metrics.get("request_totals", {})
-    completed = (
-        request_totals.get("successful", {}).get("count", 0)
-        if isinstance(request_totals.get("successful"), dict)
-        else request_totals.get("successful", 0)
-    )
-
-    # Extract token counts
-    prompt_tokens_total = get_metric("prompt_token_count", "total_sum", "successful")
-    output_tokens_total = get_metric("output_token_count", "total_sum", "successful")
-
-    # Map GuideLLM metrics to vLLM bench format
-    # This mapping ensures compatibility with existing result processing
-    return {
-        # Basic metrics
-        "duration": duration,
-        "completed": completed,
-        "total_input_tokens": prompt_tokens_total,
-        "total_output_tokens": output_tokens_total,
-        # Throughput metrics
-        "request_throughput": get_metric("requests_per_second", "mean", "successful"),
-        "output_throughput": get_metric(
-            "output_tokens_per_second", "mean", "successful"
-        ),
-        "total_token_throughput": get_metric("tokens_per_second", "mean", "successful"),
-        # Time to First Token (TTFT) metrics - in milliseconds
-        "mean_ttft_ms": get_metric("time_to_first_token_ms", "mean", "successful"),
-        "median_ttft_ms": get_metric("time_to_first_token_ms", "median", "successful"),
-        "std_ttft_ms": get_metric("time_to_first_token_ms", "std_dev", "successful"),
-        "p25_ttft_ms": get_percentile("time_to_first_token_ms", "p25", "successful"),
-        "p50_ttft_ms": get_percentile("time_to_first_token_ms", "p50", "successful"),
-        "p75_ttft_ms": get_percentile("time_to_first_token_ms", "p75", "successful"),
-        "p99_ttft_ms": get_percentile("time_to_first_token_ms", "p99", "successful"),
-        # Time Per Output Token (TPOT) metrics - in milliseconds
-        "mean_tpot_ms": get_metric("time_per_output_token_ms", "mean", "successful"),
-        "median_tpot_ms": get_metric(
-            "time_per_output_token_ms", "median", "successful"
-        ),
-        "std_tpot_ms": get_metric("time_per_output_token_ms", "std_dev", "successful"),
-        "p25_tpot_ms": get_percentile("time_per_output_token_ms", "p25", "successful"),
-        "p50_tpot_ms": get_percentile("time_per_output_token_ms", "p50", "successful"),
-        "p75_tpot_ms": get_percentile("time_per_output_token_ms", "p75", "successful"),
-        "p99_tpot_ms": get_percentile("time_per_output_token_ms", "p99", "successful"),
-        # Inter-Token Latency (ITL) metrics - in milliseconds
-        "mean_itl_ms": get_metric("inter_token_latency_ms", "mean", "successful"),
-        "median_itl_ms": get_metric("inter_token_latency_ms", "median", "successful"),
-        "std_itl_ms": get_metric("inter_token_latency_ms", "std_dev", "successful"),
-        "p25_itl_ms": get_percentile("inter_token_latency_ms", "p25", "successful"),
-        "p50_itl_ms": get_percentile("inter_token_latency_ms", "p50", "successful"),
-        "p75_itl_ms": get_percentile("inter_token_latency_ms", "p75", "successful"),
-        "p99_itl_ms": get_percentile("inter_token_latency_ms", "p99", "successful"),
-        # Request Latency (E2E) metrics - convert from seconds to milliseconds
-        "mean_e2el_ms": get_metric("request_latency", "mean", "successful") * 1000,
-        "median_e2el_ms": get_metric("request_latency", "median", "successful") * 1000,
-        "std_e2el_ms": get_metric("request_latency", "std_dev", "successful") * 1000,
-        "p25_e2el_ms": get_percentile("request_latency", "p25", "successful") * 1000,
-        "p50_e2el_ms": get_percentile("request_latency", "p50", "successful") * 1000,
-        "p75_e2el_ms": get_percentile("request_latency", "p75", "successful") * 1000,
-        "p99_e2el_ms": get_percentile("request_latency", "p99", "successful") * 1000,
-    }
+    # Return as dictionary for backward compatibility
+    return result.model_dump()
 
 
 if __name__ == "__main__":
@@ -365,5 +266,3 @@ if __name__ == "__main__":
         max_output_tokens=128,
     )
     print(json.dumps(results, indent=2))
-
-# Made with Bob

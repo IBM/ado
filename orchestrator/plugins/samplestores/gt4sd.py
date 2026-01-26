@@ -5,7 +5,7 @@ import logging
 from types import MappingProxyType
 
 import orchestrator.utilities.location
-from orchestrator.core.samplestore.base import ExperimentDescription
+from orchestrator.core.samplestore.base import ExternalExperimentDescription
 from orchestrator.core.samplestore.csv import (
     CSVSampleStore,
     CSVSampleStoreDescription,
@@ -14,14 +14,14 @@ from orchestrator.core.samplestore.csv import (
 
 def fill_gt4sd_transformer_csv_parameters(parameters: dict) -> dict:
 
-    experimentDescription = ExperimentDescription(
+    experimentDescription = ExternalExperimentDescription(
         experimentIdentifier="transformer-toxicity-inference-experiment",
-        propertyMap=GT4SDTransformer.propertyMap,
+        observedPropertyMap=dict(GT4SDTransformer.propertyMap),
+        constitutivePropertyMap=["smiles"],
     )
 
     parameters["experiments"] = [experimentDescription]
     parameters["identifierColumn"] = "smiles"
-    parameters["constitutivePropertyColumns"] = ["smiles"]
 
     return parameters
 
@@ -29,14 +29,14 @@ def fill_gt4sd_transformer_csv_parameters(parameters: dict) -> dict:
 class GT4SDTransformer(CSVSampleStore):
     propertyMap = MappingProxyType(
         {
-            "logws": "genlogws",
-            "logd": "genlogd",
-            "loghl": "genloghl",
-            "pka": "genpka",
-            "biodegradation halflife": "genbiodeg",
-            "bcf": "genbcf",
-            "ld50": "genld50",
-            "scscore": "genscscore",
+            "logws": "GenLogws",
+            "logd": "GenLogd",
+            "loghl": "GenLoghl",
+            "pka": "GenPka",
+            "biodegradation halflife": "GenBiodeg",
+            "bcf": "GenBcf",
+            "ld50": "GenLd50",
+            "scscore": "GenScscore",
         }
     )
 

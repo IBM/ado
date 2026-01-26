@@ -4,7 +4,7 @@
 import logging
 
 import orchestrator.utilities.location
-from orchestrator.core.samplestore.base import ExperimentDescription
+from orchestrator.core.samplestore.base import ExternalExperimentDescription
 from orchestrator.core.samplestore.csv import (
     CSVSampleStore,
     CSVSampleStoreDescription,
@@ -20,19 +20,20 @@ class HOPV(CSVSampleStore):
 
         properties = ["homo", "lumo", "pce", "voc", "jsc"]
 
-        insilico = ExperimentDescription(
+        insilico = ExternalExperimentDescription(
             experimentIdentifier="insilico-pv-property-exp",
-            propertyMap={p: f"{p}_calc" for p in properties},
+            observedPropertyMap={p: f"{p}_calc" for p in properties},
+            constitutivePropertyMap=["smiles"],
         )
 
-        exp = ExperimentDescription(
+        exp = ExternalExperimentDescription(
             experimentIdentifier="real-pv-property-exp",
-            propertyMap={p: f"{p}_exp" for p in properties},
+            observedPropertyMap={p: f"{p}_exp" for p in properties},
+            constitutivePropertyMap=["smiles"],
         )
 
         parameters["experiments"] = [insilico, exp]
         parameters["identifierColumn"] = "smiles"
-        parameters["constitutivePropertyColumns"] = ["smiles"]
 
         return CSVSampleStoreDescription.model_validate(parameters)
 

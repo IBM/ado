@@ -34,16 +34,24 @@ class MetricCategory(BaseModel):
 
 
 class Metric(BaseModel):
-    """A metric with successful and failed categories"""
+    """A metric with successful, errored, incomplete, and total categories"""
 
     successful: MetricCategory = Field(default_factory=MetricCategory)
+    errored: MetricCategory = Field(default_factory=MetricCategory)
+    incomplete: MetricCategory = Field(default_factory=MetricCategory)
+    total: MetricCategory = Field(default_factory=MetricCategory)
+    # Keep failed for backward compatibility (may be alias for errored)
     failed: MetricCategory = Field(default_factory=MetricCategory)
 
 
 class RequestTotals(BaseModel):
-    """Request totals with successful and failed counts"""
+    """Request totals with successful, errored, incomplete, and total counts"""
 
     successful: int | MetricCategory = 0
+    errored: int | MetricCategory = 0
+    incomplete: int | MetricCategory = 0
+    total: int | MetricCategory = 0
+    # Keep failed for backward compatibility
     failed: int = 0
 
 

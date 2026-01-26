@@ -49,6 +49,24 @@ from orchestrator.utilities.support import (
 logger = logging.getLogger(__name__)
 
 
+def _extract_benchmark_parameters(values: dict) -> tuple[int | None, int | None]:
+    """
+    Extract and validate common benchmark parameters from experiment values.
+
+    :param values: Dictionary of experiment parameter values
+    :return: Tuple of (request_rate, max_concurrency) where negative values are converted to None
+    """
+    request_rate = int(values.get("request_rate"))
+    if request_rate < 0:
+        request_rate = None
+
+    max_concurrency = int(values.get("max_concurrency"))
+    if max_concurrency < 0:
+        max_concurrency = None
+
+    return request_rate, max_concurrency
+
+
 def _build_entity_env(values: dict[str, str]) -> str:
     """
     This is the list of entity parameters that define the environment:
@@ -406,12 +424,7 @@ def run_resource_and_workload_experiment(
 
             logger.info(f"Will use vllm server at {base_url}")
 
-            request_rate = int(values.get("request_rate"))
-            if request_rate < 0:
-                request_rate = None
-            max_concurrency = int(values.get("max_concurrency"))
-            if max_concurrency < 0:
-                max_concurrency = None
+            request_rate, max_concurrency = _extract_benchmark_parameters(values)
             started_benchmarking = True
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
@@ -601,12 +614,7 @@ def run_workload_experiment(
                 f"experiment type is {type(experiment)} are {json.dumps(values)}"
             )
 
-            request_rate = int(values.get("request_rate"))
-            if request_rate < 0:
-                request_rate = None
-            max_concurrency = int(values.get("max_concurrency"))
-            if max_concurrency < 0:
-                max_concurrency = None
+            request_rate, max_concurrency = _extract_benchmark_parameters(values)
 
             # Will raise VLLMBenchmarkError if there is a problem
             logger.info(f"Executing experiment: {experiment.identifier}")

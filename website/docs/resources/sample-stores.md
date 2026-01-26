@@ -195,9 +195,9 @@ This is a passive Sample Store that can be used to extract entities from a CSV
 file. It is assumed each row is an entity and the columns are constitutive
 properties or observed properties.
 
-#### Importting data from external experiments
+#### Importing data from external experiments
 
-The below YAML illustrates important data from a CSV for an experiment
+The below YAML illustrates importing data from a CSV for an experiment
 which is not provided by an installed `ado` actuator.
 
 <!-- markdownlint-disable line-length -->
@@ -229,11 +229,12 @@ can pass a dictionary.
 
 #### Importing data from existing actuators
 
-If you're importing
-CSV data that was previously exported from `ado` or represents results from an
-actuator available in your current instance, you can specify the actual actuator
-and experiment name.
-In this case passing column names is optional as they can be inferred.
+When importing CSV data that was exported from `ado` or contains results from an
+actuator available in your current instance, you can reference the actual
+actuator and experiment identifiers. The property mappings
+(`observedPropertyMap` and `constitutivePropertyMap`) become optional because
+`ado` can automatically infer the correct column mappings from the actuator's
+experiment definition.
 
 <!-- markdownlint-disable line-length -->
 ```yaml

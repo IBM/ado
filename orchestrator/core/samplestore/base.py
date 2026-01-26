@@ -218,18 +218,19 @@ class ExperimentDescription(pydantic.BaseModel):
         pydantic.Field(description="The actuator that provides this experiment"),
     ]
     observedPropertyMap: Annotated[
-        dict | list[str],
+        dict[str, str] | list[str],
         pydantic.Field(
-            description="A dictionary that maps the identifiers of the experiments observed properties to the identifiers used in the sample store source."
-            " Can also be a list of identifiers if the property identifiers match the source identifiers exactly."
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
         ),
     ]
     constitutivePropertyMap: Annotated[
-        dict | list[str],
+        dict[str, str] | list[str],
         pydantic.Field(
-            description="A dictionary that maps the identifiers of the experiments constitutive properties"
-            " to the identifiers used in the sample store source."
-            " Can also be a list of identifiers names if the property identifiers match the source identifiers exactly."
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
         ),
     ]
 
@@ -237,7 +238,9 @@ class ExperimentDescription(pydantic.BaseModel):
         "observedPropertyMap", "constitutivePropertyMap", mode="before"
     )
     @classmethod
-    def convert_list_to_dict(cls, value: dict | list[str]) -> dict:
+    def convert_list_to_dict(
+        cls, value: dict[str, str] | list[str] | list[str]
+    ) -> dict[str, str]:
         """Convert list format to dict format where keys equal values"""
         if isinstance(value, list):
             return {item: item for item in value}
@@ -245,8 +248,8 @@ class ExperimentDescription(pydantic.BaseModel):
 
     @pydantic.field_serializer("observedPropertyMap", "constitutivePropertyMap")
     def serialize_property_map_as_list_if_identical(
-        self, value: dict
-    ) -> dict | list[str]:
+        self, value: dict[str, str]
+    ) -> dict[str, str] | list[str]:
         """Serialize property map as list if keys and values are identical"""
         if isinstance(value, dict) and all(key == val for key, val in value.items()):
             # Return as list preserving insertion order
@@ -255,17 +258,21 @@ class ExperimentDescription(pydantic.BaseModel):
 
     @property
     def source_observed_property_identifiers(self) -> list[str]:
-        """Returns all the source column names for observed properties"""
+        """Returns the sample store column names for the observed properties."""
         return list(self.observedPropertyMap.values())
 
     @property
     def source_constitutive_property_identifiers(self) -> list[str]:
-        """Returns all the source column names for constitutive properties"""
+        """Returns the sample store column names for the constitutive properties."""
         return list(self.constitutivePropertyMap.values())
 
     @property
     def experiment(self) -> Experiment:
-        """Creates and returns an Experiment from the property maps"""
+        """Returns an Experiment object configured with this description's properties.
+
+        The experiment uses the property names (keys from the property maps) as its
+        target observed properties and required constitutive properties.
+        """
         return Experiment.experimentWithAbstractPropertyIdentifiers(
             identifier=self.experimentIdentifier,
             actuatorIdentifier=self.actuatorIdentifier,
@@ -282,7 +289,6 @@ class ExternalExperimentDescription(ExperimentDescription):
     actuatorIdentifier: Annotated[
         Literal["replay"],
         pydantic.Field(
-            default="replay",
             description="External experiments always use the 'replay' actuator",
         ),
     ] = "replay"
@@ -294,29 +300,29 @@ class InternalExperimentDescription(ExperimentDescription):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     observedPropertyMap: Annotated[
-        Defaultable[dict | list[str]],
+        dict | list[str],
         pydantic.Field(
             default_factory=dict,
-            description="A dictionary that maps the identifiers of the experiments observed properties to the identifiers used in the sample store source."
-            " Can also be a list of identifiers if the property identifiers match the source identifiers exactly.",
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
         ),
     ]
     constitutivePropertyMap: Annotated[
-        Defaultable[dict | list[str]],
+        dict | list[str],
         pydantic.Field(
             default_factory=dict,
-            description="A dictionary that maps the identifiers of the experiments constitutive properties"
-            " to the identifiers used in the sample store source."
-            " Can also be a list of identifiers names if the property identifiers match the source identifiers exactly.",
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
         ),
     ]
     propertyFormat: Annotated[
         Literal["target", "observed"],
         pydantic.Field(
-            default="target",
             description="Whether source names for observed properties map to experiment target property (default) or observed property identifiers.",
         ),
-    ]
+    ] = "target"
 
     @pydantic.model_validator(mode="after")
     def infer_and_validate_property_maps(self) -> "InternalExperimentDescription":

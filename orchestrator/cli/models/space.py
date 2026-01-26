@@ -1,8 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from __future__ import annotations
-
 import math
 import typing
 from io import StringIO
@@ -55,7 +53,7 @@ class SpaceDetails:
         self.size_of_entity_space = size_of_entity_space
 
     @classmethod
-    def from_space(cls, space: DiscoverySpace) -> SpaceDetails:
+    def from_space(cls, space: DiscoverySpace) -> "SpaceDetails":
 
         import pandas as pd
 
@@ -202,7 +200,7 @@ class SpaceSummary:
     def __init__(
         self,
         space_id: str,
-        project_context: ProjectContext,
+        project_context: "ProjectContext",
     ) -> None:
         from orchestrator.metastore.sqlstore import SQLStore
         from orchestrator.schema.property import NonMeasuredPropertyTypeEnum
@@ -364,7 +362,7 @@ class SpaceSummary:
         self,
         include_properties: list[str] | None = None,
         columns_to_hide: list[str] | None = None,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
 
         import pandas as pd
 

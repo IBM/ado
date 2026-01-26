@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from __future__ import annotations
 
 from orchestrator.core.operation.resource import OperationResourceEventEnum
 from orchestrator.core.resources import ADOResourceEventEnum

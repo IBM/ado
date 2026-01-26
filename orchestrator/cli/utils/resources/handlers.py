@@ -1,7 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from __future__ import annotations
 
 import pathlib
 import typing
@@ -47,8 +46,8 @@ if typing.TYPE_CHECKING:
 
 
 def handle_ado_get_special_formats(
-    parameters: AdoGetCommandParameters,
-    resource_type: CoreResourceKinds,
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds",
 ) -> None:
 
     if (
@@ -102,8 +101,8 @@ def handle_ado_get_special_formats(
 
 
 def handle_ado_get_default_format(
-    parameters: AdoGetCommandParameters,
-    resource_type: CoreResourceKinds,
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds",
 ) -> None:
 
     sql_store = get_sql_store(
@@ -150,8 +149,8 @@ def handle_ado_get_default_format(
 
 def print_related_resources(
     resource_id: str,
-    resource_type: CoreResourceKinds,
-    sql: SQLStore,
+    resource_type: "CoreResourceKinds",
+    sql: "SQLStore",
     hide_banner: bool = False,
 ) -> None:
     with Status(ADO_SPINNER_QUERYING_DB) as status:
@@ -178,8 +177,8 @@ def print_related_resources(
 
 def handle_edit_resource_metadata(
     resource_id: str,
-    resource_type: CoreResourceKinds,
-    project_context: ProjectContext,
+    resource_type: "CoreResourceKinds",
+    project_context: "ProjectContext",
     editor: AdoEditSupportedEditors,
 ) -> None:
     import subprocess  # noqa: S404
@@ -224,8 +223,8 @@ def handle_edit_resource_metadata(
 
 
 def handle_ado_upgrade(
-    parameters: AdoUpgradeCommandParameters,
-    resource_type: CoreResourceKinds,
+    parameters: "AdoUpgradeCommandParameters",
+    resource_type: "CoreResourceKinds",
 ) -> None:
 
     sql_store = get_sql_store(

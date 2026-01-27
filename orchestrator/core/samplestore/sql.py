@@ -5,7 +5,7 @@ import json
 import logging
 import typing
 import uuid
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
 import sqlalchemy
@@ -78,8 +78,10 @@ class SQLSampleStore(ActiveSampleStore):
         storeConfiguration: SQLStoreConfiguration,
         generatorIdentifier: str | None = None,
         experimentIdentifier: str | None = None,
+        actuatorIdentifier: str = "replay",
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
+        propertyFormat: Literal["target", "observed"] = "target",
     ) -> "SQLSampleStore":
 
         csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
@@ -87,8 +89,10 @@ class SQLSampleStore(ActiveSampleStore):
             idColumn=idColumn,
             generatorIdentifier=generatorIdentifier,
             experimentIdentifier=experimentIdentifier,
+            actuatorIdentifier=actuatorIdentifier,
             observedPropertyColumns=observedPropertyColumns,
             constitutivePropertyColumns=constitutivePropertyColumns,
+            propertyFormat=propertyFormat,
         )
 
         sql_sample_store = cls(

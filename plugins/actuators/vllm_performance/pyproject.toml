@@ -31,14 +31,11 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     "kubernetes >= 31.0.0",
-    "transformers >= 4.45.0",
-    "huggingface_hub",
-    "datasets",
-    "numpy>=2",
+    "ado-core",
     "vllm>=0.12.0",
-    "ado-core"
+    "datasets>=2.20.0",
+    "guidellm>=0.5.3",
 ]
-
 
 [dependency-groups]
 dev = [

@@ -42,7 +42,6 @@ logger = logging.getLogger(__name__)
 # 3. Provide the results of the experiments - via the Results Queue
 @ray.remote
 class VLLMPerformanceTest(ActuatorBase):
-
     identifier = "vllm_performance"  # The user-facing label you want this actuator to be called by
     parameters_class = (
         VLLMPerformanceTestParameters  # we tell ado what our parameters class is
@@ -209,6 +208,7 @@ class VLLMPerformanceTest(ActuatorBase):
 
         if experiment.identifier in [
             "test-deployment-v1",
+            "test-deployment-guidellm-v1",
             "test-geospatial-deployment-v1",
             "test-geospatial-deployment-custom-dataset-v1",
         ]:

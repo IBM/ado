@@ -427,7 +427,7 @@ def run_resource_and_workload_experiment(
                 logger.info("Using geospatial benchmark for deployment")
                 result = execute_geospatial_benchmark(
                     base_url=base_url,
-                    model=values["model"],
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
@@ -444,7 +444,7 @@ def run_resource_and_workload_experiment(
                 logger.info("Using GuideLLM benchmark for deployment")
                 result = execute_guidellm_benchmark(
                     base_url=base_url,
-                    model=values["model"],
+                    model=benchmark_parameters.model,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
                     max_concurrency=benchmark_parameters.max_concurrency,
@@ -460,7 +460,7 @@ def run_resource_and_workload_experiment(
                 logger.info("Using vLLM random benchmark for deployment")
                 result = execute_random_benchmark(
                     base_url=base_url,
-                    model=values["model"],
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
@@ -577,7 +577,7 @@ def run_workload_experiment(
                 logger.info("Using geospatial benchmark for endpoint")
                 result = execute_geospatial_benchmark(
                     base_url=values["endpoint"],
-                    model=values["model"],
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
@@ -592,7 +592,7 @@ def run_workload_experiment(
                 logger.info("Using GuideLLM benchmark for endpoint")
                 result = execute_guidellm_benchmark(
                     base_url=values["endpoint"],
-                    model=values["model"],
+                    model=benchmark_parameters.model,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
                     max_concurrency=benchmark_parameters.max_concurrency,
@@ -608,7 +608,7 @@ def run_workload_experiment(
                 logger.info("Using vLLM random benchmark for endpoint")
                 result = execute_random_benchmark(
                     base_url=values["endpoint"],
-                    model=values["model"],
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,

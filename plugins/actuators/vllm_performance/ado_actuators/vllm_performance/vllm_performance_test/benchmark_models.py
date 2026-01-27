@@ -25,6 +25,7 @@ def none_if_negative(value: int | None) -> int | None:
 class BenchmarkParameters(pydantic.BaseModel):
     """Model for common benchmark parameters extracted from experiment values."""
 
+    model: Annotated[str, pydantic.Field()]
     request_rate: Annotated[
         int | None, pydantic.Field(), AfterValidator(none_if_negative)
     ] = None

@@ -220,12 +220,30 @@ copyFrom:
 ```
 <!-- markdownlint-enable line-length -->
 
-The key here is that you **must** define which columns in the CSV are observed properties
-and which are constitutive properties.
-If you want to use the column names directly as observed/constitutive property names
-you can pass a list to the relevant field.
-If you want to define new observed/constitutive property names for each column you
-can pass a dictionary.
+You must specify which CSV columns contain observed properties (measurements/results)
+and which contain constitutive properties (input parameters/configurations).
+You can do this in one of two ways.
+
+1. **Use CSV column names as-is** - Pass a list:
+
+   ```yaml
+   constitutivePropertyMap:
+     - cpu_value
+     - memory_gb
+   ```
+
+   This uses `cpu_value` and `memory_gb` as both the column names AND property names.
+
+2. **Rename columns** - Pass a dictionary:
+
+   ```yaml
+   observedPropertyMap:
+     wallClockRuntime: 'wall-clock runtime'
+     throughput: 'requests_per_sec'
+   ```
+
+   This reads from CSV columns `wall-clock runtime` and `requests_per_sec`,
+   but names them `wallClockRuntime` and `throughput` in the experiment.
 
 #### Importing data from existing actuators
 

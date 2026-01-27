@@ -723,7 +723,7 @@ class TestCSVActuatorValidation:
     ) -> None:
         """Test that SQLSampleStore.from_csv() properly passes through actuatorIdentifier and propertyFormat"""
         from orchestrator.core.samplestore.sql import SQLSampleStore
-        from orchestrator.utilities.location import SQLStoreConfiguration
+        from orchestrator.utilities.location import SQLiteStoreConfiguration
 
         # Create a CSV file
         with tempfile.NamedTemporaryFile(
@@ -741,10 +741,7 @@ class TestCSVActuatorValidation:
 
         try:
             # Create a SQL store configuration using in-memory SQLite
-            store_config = SQLStoreConfiguration(
-                scheme="sqlite",
-                database=":memory:",
-            )
+            store_config = SQLiteStoreConfiguration(scheme="sqlite", path=":memory:")
 
             # Test that parameters are passed through correctly
             # The CSV store creation should validate columns exist

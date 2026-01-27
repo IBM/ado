@@ -1,7 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import Any
+from typing import Any, Literal
 
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
@@ -86,17 +86,20 @@ gas = ConstitutiveProperty(
     output_property_identifiers=["pressure"],
 )
 def calculate_pressure_gas(
-    mol: float, temperature: float, volume: float, gas: str
+    mol: float,
+    temperature: float,
+    volume: float,
+    gas: Literal["ideal", "CO2", "N2", "O2", "CH4", "NH3", "H2", "He", "Ar"],
 ) -> dict[str, Any]:
     """
     Compute pressure using Van der Waals equation in SI units (no checks):
         P = (n R T) / (V - n b) - a (n / V)^2
 
     Inputs:
-      mol (n): moles (mol)
-      temperature (T): Kelvin (K)
-      volume (V): cubic meters (m^3)
-      gas: categorical identifier selecting a,b from the lookup
+      mol (n): moles of the gas (mol)
+      temperature (T): temperature of the gas in Kelvin (K)
+      volume (V): volume of the gas in cubic meters (m^3)
+      gas: Identifier of the gas (one of ["ideal", "CO2", "N2", "O2", "CH4", "NH3", "H2", "He", "Ar"]). Used to determine the Van der Waals constants to be used.
 
     Output:
       pressure (Pa)

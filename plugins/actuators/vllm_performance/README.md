@@ -56,7 +56,7 @@ After running the exercise, please feel free to
 
 ### Installation
 
-Ensure the virtual environment you installed `ado` into is active.
+Ensure the virtual environment you installed `ado` into is active. Then, run:
 
 ```commandline
 pip install ado-vllm-performance

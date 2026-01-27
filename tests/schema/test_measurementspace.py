@@ -719,7 +719,7 @@ def test_dependent_experiments_single(
     )
 
     #
-    # Test: dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
+    # Test for dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
     #
     if measurement_space_from_single_parameterized_experiment.dependentExperiments:
         assert (
@@ -894,7 +894,7 @@ def test_dependent_experiments_multiple(
     )
 
     #
-    # Test: dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
+    # Test for dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
     #
     dependent_exps = measurement_space_from_multiple_parameterized_experiments.dependentExperimentsThatCanBeAppliedAfterMeasurementRequest(
         request

@@ -98,7 +98,6 @@ class SQLResourceStore(ResourceStore):
         )
 
         if ensureExists:
-            # self.log.warning("Ensuring store existence")
             self.log.debug("Initialising SQL db if it does not exist")
             create_sql_resource_store(self.engine)
             self.log.debug("Done")
@@ -139,10 +138,8 @@ class SQLResourceStore(ResourceStore):
             "SELECT * FROM resources WHERE identifier=:identifier"
         ).bindparams(identifier=identifier)
 
-        # self.log.warning("GETTING RESOURCE")
         with self.engine.connect() as connectable:
             table = pd.read_sql(query, con=connectable)
-        # self.log.warning("GOT RESOURCE")
 
         raw = None
         if table.shape[0] > 0:
@@ -205,10 +202,8 @@ class SQLResourceStore(ResourceStore):
             AND kind=:kind
             """).bindparams(identifier=identifier, kind=kind.value)
 
-        # self.log.warning("GETTING RESOURCE")
         with self.engine.connect() as connectable:
             table = pd.read_sql(query, con=connectable)
-        # self.log.warning("GOT RESOURCE")
 
         resource = None
         if table.shape[0] > 0:

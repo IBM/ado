@@ -91,4 +91,3 @@ def test_internal_state_conf_init(
 
     finally:
         ray.kill(state)
-        # os.environ.pop("ORCH_USE_SQL_STORE")

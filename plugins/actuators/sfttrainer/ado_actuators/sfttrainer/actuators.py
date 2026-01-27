@@ -89,9 +89,7 @@ def _init_catalog(
 
     for old_experiment_type in ["full", "lora", "gptq_lora", "pt", "unsupported"]:
         try:
-            name = ".".join(
-                ("ado_sfttrainer_deprecated_experiments", old_experiment_type)
-            )
+            name = f"ado_sfttrainer_deprecated_experiments.{old_experiment_type}"
             module = importlib.import_module(name)
         except (ModuleNotFoundError, ImportError):  # noqa: PERF203
             continue

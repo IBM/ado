@@ -8,8 +8,6 @@ import time
 import uuid
 from typing import Any
 
-from pydantic import HttpUrl, TypeAdapter
-
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
     BenchmarkResult,
 )
@@ -17,6 +15,7 @@ from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results 
     VLLMBenchmarkResultReadError,
     get_results,
 )
+from pydantic import HttpUrl, TypeAdapter
 
 logger = logging.getLogger("vllm-bench")
 

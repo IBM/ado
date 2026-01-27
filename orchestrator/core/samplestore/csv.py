@@ -23,8 +23,8 @@ from orchestrator.schema.result import ValidMeasurementResult
 
 
 def warn_deprecated_csv_sample_store_model_in_use(
-    deprecated_from_version: str = "1.0.0",
-    removed_from_version: str = "2.0.0",
+    deprecated_from_version: str = "1.3.5",
+    removed_from_version: str = "1.6.0",
     deprecated_fields: str | list[str] | None = None,
     latest_format_documentation_url: str | None = None,
 ) -> None:

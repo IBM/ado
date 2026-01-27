@@ -43,10 +43,13 @@ class Metric(pydantic.BaseModel):
     successful: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
         default_factory=MetricCategory
     )
-    errored: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
-        default_factory=MetricCategory,
-        validation_alias=pydantic.AliasChoices("errored", "failed"),
-    )
+    errored: Annotated[
+        MetricCategory,
+        pydantic.Field(
+            default_factory=MetricCategory,
+            validation_alias=pydantic.AliasChoices("errored", "failed"),
+        ),
+    ]
     incomplete: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
         default_factory=MetricCategory
     )
@@ -72,53 +75,33 @@ class RequestTotals(pydantic.BaseModel):
 class BenchmarkMetrics(pydantic.BaseModel):
     """All metrics from a GuideLLM benchmark"""
 
-    request_totals: Annotated[RequestTotals, pydantic.Field()] = pydantic.Field(
-        default_factory=RequestTotals
-    )
-    prompt_token_count: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    output_token_count: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    requests_per_second: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    output_tokens_per_second: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    tokens_per_second: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    time_to_first_token_ms: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    time_per_output_token_ms: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    inter_token_latency_ms: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
-    request_latency: Annotated[Metric, pydantic.Field()] = pydantic.Field(
-        default_factory=Metric
-    )
+    request_totals: Annotated[
+        RequestTotals, pydantic.Field(default_factory=RequestTotals)
+    ]
+    prompt_token_count: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    output_token_count: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    requests_per_second: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    output_tokens_per_second: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    tokens_per_second: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    time_to_first_token_ms: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    time_per_output_token_ms: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    inter_token_latency_ms: Annotated[Metric, pydantic.Field(default_factory=Metric)]
+    request_latency: Annotated[Metric, pydantic.Field(default_factory=Metric)]
 
 
 class Benchmark(pydantic.BaseModel):
     """A single benchmark result from GuideLLM"""
 
     duration: Annotated[float, pydantic.Field()] = 0.0
-    metrics: Annotated[BenchmarkMetrics, pydantic.Field()] = pydantic.Field(
-        default_factory=BenchmarkMetrics
-    )
+    metrics: Annotated[
+        BenchmarkMetrics, pydantic.Field(default_factory=BenchmarkMetrics)
+    ]
 
 
 class GuideLLMOutput(pydantic.BaseModel):
     """Root structure of GuideLLM JSON output"""
 
-    benchmarks: Annotated[list[Benchmark], pydantic.Field()] = pydantic.Field(
-        default_factory=list
-    )
+    benchmarks: Annotated[list[Benchmark], pydantic.Field(default_factory=list)]
 
     def to_benchmark_result(self) -> BenchmarkResult:
         """

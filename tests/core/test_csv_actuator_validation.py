@@ -598,7 +598,10 @@ class TestCSVActuatorValidation:
             assert len(store1.entities) == 2
 
             # Test 2: Missing observed property column - should fail
-            with pytest.raises(ValueError, match="missing required columns"):
+            with pytest.raises(
+                ValueError,
+                match="observedPropertyMap contains invalid target property identifiers",
+            ):
                 CSVSampleStore.from_csv(
                     csvPath=csv_path,
                     idColumn="id",
@@ -609,7 +612,10 @@ class TestCSVActuatorValidation:
                 )
 
             # Test 3: Missing constitutive property column - should fail
-            with pytest.raises(ValueError, match="missing required columns"):
+            with pytest.raises(
+                ValueError,
+                match="constitutivePropertyMap contains invalid constitutive property identifiers",
+            ):
                 CSVSampleStore.from_csv(
                     csvPath=csv_path,
                     idColumn="id",
@@ -620,7 +626,10 @@ class TestCSVActuatorValidation:
                 )
 
             # Test 4: Missing id column - should fail
-            with pytest.raises(ValueError, match="missing required columns"):
+            with pytest.raises(
+                ValueError,
+                match="is missing required columns:",
+            ):
                 CSVSampleStore.from_csv(
                     csvPath=csv_path,
                     idColumn="nonexistent_id",
@@ -781,7 +790,10 @@ class TestCSVActuatorValidation:
                 os.unlink(csv_path2)
 
             # Test that missing columns are caught (column validation happens during CSV store creation)
-            with pytest.raises(ValueError, match="missing required columns"):
+            with pytest.raises(
+                ValueError,
+                match=r"is missing required columns: \['test_experiment-output_metric'\]",
+            ):
                 SQLSampleStore.from_csv(
                     csvPath=csv_path,  # Missing test_experiment-output_metric column
                     idColumn="id",

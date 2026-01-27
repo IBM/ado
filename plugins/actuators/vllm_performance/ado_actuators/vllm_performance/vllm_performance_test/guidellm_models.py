@@ -9,6 +9,7 @@ benchmark JSON output and transforming it into the standardized BenchmarkResult 
 """
 
 from typing import Annotated
+
 import pydantic
 
 from .benchmark_models import BenchmarkResult
@@ -31,9 +32,9 @@ class MetricCategory(pydantic.BaseModel):
     median: Annotated[float, pydantic.Field()] = 0.0
     std_dev: Annotated[float, pydantic.Field()] = 0.0
     total_sum: Annotated[float, pydantic.Field()] = 0.0
-    percentiles: Annotated[MetricPercentiles, pydantic.Field()] = pydantic.Field(
-        default_factory=MetricPercentiles
-    )
+    percentiles: Annotated[
+        MetricPercentiles, pydantic.Field(default_factory=MetricPercentiles)
+    ] = pydantic.Field(default_factory=MetricPercentiles)
 
 
 class Metric(pydantic.BaseModel):

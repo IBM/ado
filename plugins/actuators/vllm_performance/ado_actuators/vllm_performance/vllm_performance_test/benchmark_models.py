@@ -21,13 +21,13 @@ if TYPE_CHECKING:
 class BenchmarkParameters(pydantic.BaseModel):
     """Model for common benchmark parameters extracted from experiment values."""
 
-    request_rate: Annotated[int | None, pydantic.Field(default=None)]
-    max_concurrency: Annotated[int | None, pydantic.Field(default=None)]
-    num_prompts: Annotated[int, pydantic.Field(default=500, gt=0)]
-    number_input_tokens: Annotated[int | None, pydantic.Field(default=None)]
-    max_output_tokens: Annotated[int | None, pydantic.Field(default=None)]
-    burstiness: Annotated[float, pydantic.Field(default=1.0)]
-    dataset: Annotated[str | None, pydantic.Field(default="random")]
+    request_rate: Annotated[int | None, pydantic.Field()] = None
+    max_concurrency: Annotated[int | None, pydantic.Field()] = None
+    num_prompts: Annotated[int, pydantic.Field(gt=0)] = 500
+    number_input_tokens: Annotated[int | None, pydantic.Field()] = None
+    max_output_tokens: Annotated[int | None, pydantic.Field()] = None
+    burstiness: Annotated[float, pydantic.Field()] = 1.0
+    dataset: Annotated[str | None, pydantic.Field()] = "random"
 
     @model_validator(mode="before")
     @classmethod

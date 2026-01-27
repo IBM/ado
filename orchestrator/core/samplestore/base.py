@@ -297,18 +297,18 @@ class InternalExperimentDescription(ExperimentDescription):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     observedPropertyMap: Annotated[
-        dict[str, str] | list[str],
+        dict[str, str] | list[str] | None,
         pydantic.Field(
-            default_factory=dict,
+            default=None,
             description="Mapping of property names from the experiment to column names in the sample store. "
             "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
             "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places.",
         ),
     ]
     constitutivePropertyMap: Annotated[
-        dict[str, str] | list[str],
+        dict[str, str] | list[str] | None,
         pydantic.Field(
-            default_factory=dict,
+            default=None,
             description="Mapping of property names from the experiment to column names in the sample store. "
             "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
             "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places.",

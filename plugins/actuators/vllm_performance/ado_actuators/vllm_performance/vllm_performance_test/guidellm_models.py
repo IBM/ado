@@ -59,7 +59,10 @@ class RequestTotals(pydantic.BaseModel):
     """Request totals with successful, errored, incomplete, and total counts"""
 
     successful: Annotated[int | MetricCategory, pydantic.Field()] = 0
-    errored: Annotated[int | MetricCategory, pydantic.Field()] = 0
+    errored: Annotated[
+        int | MetricCategory,
+        pydantic.Field(validation_alias=pydantic.AliasChoices("errored", "failed")),
+    ] = 0
     incomplete: Annotated[int | MetricCategory, pydantic.Field()] = 0
     total: Annotated[int | MetricCategory, pydantic.Field()] = 0
     # Keep failed for backward compatibility

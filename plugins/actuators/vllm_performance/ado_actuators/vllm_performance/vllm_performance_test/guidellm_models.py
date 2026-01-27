@@ -34,15 +34,15 @@ class MetricCategory(pydantic.BaseModel):
     total_sum: Annotated[float, pydantic.Field()] = 0.0
     percentiles: Annotated[
         MetricPercentiles, pydantic.Field(default_factory=MetricPercentiles)
-    ] = pydantic.Field(default_factory=MetricPercentiles)
+    ]
 
 
 class Metric(pydantic.BaseModel):
     """A metric with successful, errored, incomplete, and total categories"""
 
-    successful: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
-        default_factory=MetricCategory
-    )
+    successful: Annotated[
+        MetricCategory, pydantic.Field(default_factory=MetricCategory)
+    ]
     errored: Annotated[
         MetricCategory,
         pydantic.Field(
@@ -50,12 +50,10 @@ class Metric(pydantic.BaseModel):
             validation_alias=pydantic.AliasChoices("errored", "failed"),
         ),
     ]
-    incomplete: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
-        default_factory=MetricCategory
-    )
-    total: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
-        default_factory=MetricCategory
-    )
+    incomplete: Annotated[
+        MetricCategory, pydantic.Field(default_factory=MetricCategory)
+    ]
+    total: Annotated[MetricCategory, pydantic.Field(default_factory=MetricCategory)]
 
 
 class RequestTotals(pydantic.BaseModel):

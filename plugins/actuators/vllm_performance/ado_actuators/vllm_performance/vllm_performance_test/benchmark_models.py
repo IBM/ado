@@ -26,6 +26,7 @@ class BenchmarkParameters(pydantic.BaseModel):
     """Model for common benchmark parameters extracted from experiment values."""
 
     model: Annotated[str, pydantic.Field()]
+    endpoint: Annotated[str | None, pydantic.Field()] = None
     request_rate: Annotated[
         int | None, pydantic.Field(), AfterValidator(none_if_negative)
     ] = None

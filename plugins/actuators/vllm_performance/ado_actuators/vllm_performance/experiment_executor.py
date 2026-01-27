@@ -410,6 +410,10 @@ def run_resource_and_workload_experiment(
             logger.info(f"Will use vllm server at {base_url}")
 
             benchmark_parameters = BenchmarkParameters.model_validate(values)
+            # In this case the endpoint does not come through the property values and is generated
+            # when creating the vLLM deployment
+            benchmark_parameters.endpoint = base_url
+
             started_benchmarking = True
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
@@ -426,7 +430,7 @@ def run_resource_and_workload_experiment(
             ]:
                 logger.info("Using geospatial benchmark for deployment")
                 result = execute_geospatial_benchmark(
-                    base_url=base_url,
+                    base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,
@@ -443,7 +447,7 @@ def run_resource_and_workload_experiment(
             ]:
                 logger.info("Using GuideLLM benchmark for deployment")
                 result = execute_guidellm_benchmark(
-                    base_url=base_url,
+                    base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
@@ -459,7 +463,7 @@ def run_resource_and_workload_experiment(
             else:
                 logger.info("Using vLLM random benchmark for deployment")
                 result = execute_random_benchmark(
-                    base_url=base_url,
+                    base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,
@@ -576,7 +580,7 @@ def run_workload_experiment(
             if experiment.identifier == "test-geospatial-endpoint-v1":
                 logger.info("Using geospatial benchmark for endpoint")
                 result = execute_geospatial_benchmark(
-                    base_url=values["endpoint"],
+                    base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,
@@ -591,7 +595,7 @@ def run_workload_experiment(
             elif experiment.identifier == "test-endpoint-guidellm-v1":
                 logger.info("Using GuideLLM benchmark for endpoint")
                 result = execute_guidellm_benchmark(
-                    base_url=values["endpoint"],
+                    base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     num_prompts=benchmark_parameters.num_prompts,
                     request_rate=benchmark_parameters.request_rate,
@@ -607,7 +611,7 @@ def run_workload_experiment(
             else:
                 logger.info("Using vLLM random benchmark for endpoint")
                 result = execute_random_benchmark(
-                    base_url=values["endpoint"],
+                    base_url=benchmark_parameters.endpoint,
                     model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
                     num_prompts=benchmark_parameters.num_prompts,

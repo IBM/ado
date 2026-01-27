@@ -17,7 +17,6 @@ from orchestrator.schema.experiment import Experiment
 from orchestrator.schema.property import ConstitutiveProperty
 from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
-from orchestrator.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:
     from orchestrator.schema.observed_property import ObservedProperty
@@ -238,9 +237,7 @@ class ExperimentDescription(pydantic.BaseModel):
         "observedPropertyMap", "constitutivePropertyMap", mode="before"
     )
     @classmethod
-    def convert_list_to_dict(
-        cls, value: dict[str, str] | list[str] | list[str]
-    ) -> dict[str, str]:
+    def convert_list_to_dict(cls, value: dict[str, str] | list[str]) -> dict[str, str]:
         """Convert list format to dict format where keys equal values"""
         if isinstance(value, list):
             return {item: item for item in value}
@@ -305,7 +302,7 @@ class InternalExperimentDescription(ExperimentDescription):
             default_factory=dict,
             description="Mapping of property names from the experiment to column names in the sample store. "
             "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
-            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places.",
         ),
     ]
     constitutivePropertyMap: Annotated[
@@ -314,7 +311,7 @@ class InternalExperimentDescription(ExperimentDescription):
             default_factory=dict,
             description="Mapping of property names from the experiment to column names in the sample store. "
             "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
-            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places.",
         ),
     ]
     propertyFormat: Annotated[

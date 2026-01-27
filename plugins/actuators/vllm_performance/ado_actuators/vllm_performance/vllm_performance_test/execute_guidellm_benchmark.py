@@ -17,10 +17,11 @@ import subprocess
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import HttpUrl, TypeAdapter
 
+from .benchmark_models import BenchmarkResult
 from .guidellm_models import GuideLLMOutput
 
 logger = logging.getLogger("guidellm-bench")
@@ -44,7 +45,7 @@ def execute_guidellm_benchmark(
     dataset: Literal["random"] = "random",
     output_format: Literal["json", "html", "markdown"] = "json",
     burstiness: float = 1.0,
-) -> dict[str, Any]:
+) -> BenchmarkResult:
     """
     Execute benchmark using GuideLLM
 
@@ -72,7 +73,7 @@ def execute_guidellm_benchmark(
     :param output_format: Output format (json, html, or markdown)
     :param burstiness: Burstiness parameter (must be 1.0 for GuideLLM experiments, default: 1.0)
 
-    :return: Results dictionary with performance metrics
+    :return: BenchmarkResult instance with performance metrics
 
     :raises ValueError: If any numeric parameter is invalid or burstiness != 1.0
     :raises GuideLLMBenchmarkError if the benchmark failed to execute after
@@ -143,7 +144,7 @@ def execute_guidellm_benchmark(
         command.extend(["--profile", "throughput"])
     else:
         # For completentess with respect to the vLLM bench
-        # case where `burtiness = 1`` selects a poisson distribution, we force `burstiness = 1`
+        # case where `burtiness = 1` selects a poisson distribution, we force `burstiness = 1`
         # for GuideLLM and default on the poisson profile.
         command.extend(["--profile", "poisson"])
         command.extend(["--rate", str(request_rate)])
@@ -226,7 +227,7 @@ def execute_guidellm_benchmark(
     return results
 
 
-def _parse_guidellm_results(output_path: Path) -> dict[str, Any]:
+def _parse_guidellm_results(output_path: Path) -> BenchmarkResult:
     """
     Parse GuideLLM benchmark results from output file using Pydantic model validation
 
@@ -234,7 +235,7 @@ def _parse_guidellm_results(output_path: Path) -> dict[str, Any]:
     the standardized benchmark result format using Pydantic models.
 
     :param output_path: Path to the GuideLLM output file
-    :return: Dictionary with parsed metrics (from BenchmarkResult.model_dump())
+    :return: BenchmarkResult instance with parsed metrics
     """
 
     if not output_path.exists():
@@ -248,10 +249,7 @@ def _parse_guidellm_results(output_path: Path) -> dict[str, Any]:
     guidellm_output = GuideLLMOutput.model_validate(data)
 
     # Transform to standardized result format using Pydantic model
-    result = guidellm_output.to_benchmark_result()
-
-    # Return as dictionary for backward compatibility
-    return result.model_dump()
+    return guidellm_output.to_benchmark_result()
 
 
 if __name__ == "__main__":

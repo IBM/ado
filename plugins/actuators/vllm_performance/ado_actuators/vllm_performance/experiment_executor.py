@@ -26,6 +26,9 @@ from ado_actuators.vllm_performance.k8s.create_environment import (
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     VLLMDtype,
 )
+from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
+    BenchmarkResult,
+)
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
     VLLMBenchmarkError,
     execute_geospatial_benchmark,
@@ -43,7 +46,6 @@ from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
-    dict_to_measurements,
 )
 
 logger = logging.getLogger(__name__)
@@ -434,6 +436,7 @@ def run_resource_and_workload_experiment(
                 )
             )
             logger.info(f"Executing experiment: {experiment.identifier}")
+            result: BenchmarkResult
             if experiment.identifier in [
                 "test-geospatial-deployment-v1",
                 "test-geospatial-deployment-custom-dataset-v1",
@@ -543,9 +546,7 @@ def run_resource_and_workload_experiment(
                 )
             )
         else:
-            measured_values = dict_to_measurements(
-                results=result, experiment=experiment
-            )
+            measured_values = result.to_measurements(experiment=experiment)
             measurements.append(
                 create_measurement_result(
                     identifier=entity.identifier,
@@ -618,6 +619,7 @@ def run_workload_experiment(
 
             # Will raise VLLMBenchmarkError if there is a problem
             logger.info(f"Executing experiment: {experiment.identifier}")
+            result: BenchmarkResult
             if experiment.identifier == "test-geospatial-endpoint-v1":
                 logger.info("Using geospatial benchmark for endpoint")
                 result = execute_geospatial_benchmark(
@@ -703,9 +705,7 @@ def run_workload_experiment(
             error = f"Unexpected error for entity {entity.identifier}: {e}"
             logger.error(error)
         else:
-            measured_values = dict_to_measurements(
-                results=result, experiment=experiment
-            )
+            measured_values = result.to_measurements(experiment=experiment)
             logger.debug(f"measured values {measured_values}")
         finally:
             measurements.append(

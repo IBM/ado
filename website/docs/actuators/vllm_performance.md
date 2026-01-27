@@ -14,11 +14,16 @@
 
 > [!NOTE] Installing
 >
-> Run:
->
 > ```commandline
 > pip install ado-vllm-performance
-> ```
+>   ```
+>
+> This will automatically install both vLLM and GuideLLM benchmarking
+> tools, enabling all experiments:
+>
+> - `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
+> - `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1`
+>   (GuideLLM benchmarks)
 
 <!-- markdownlint-enable line-length -->
 
@@ -279,10 +284,14 @@ Ray cluster, including environment and package setup, see
 > image used by the RayCluster you can have [ray install it following
 > this guide](../getting-started/remote_run.md).
 >
-> In particular, if a compatible version of vLLM and GuideLLM is not installed
-> in the image this step will require installing vLLM
-> (so `vllm bench serve` is available) and GuideLLM on each RayCluster node.
-> This can take some time so you may see the `ado` `operation` output "hang"
+> **Important:** When installing on a RayCluster, use:
+>
+> ```commandline
+> ado-vllm-performance
+> ```
+>
+> Installing the dependencies (especially vLLM) on each RayCluster node
+> can take some time, so you may see the `ado` `operation` output "hang"
 > while this is happening.
 
 ### Maximum number of deployments

@@ -503,7 +503,7 @@ def run_resource_and_workload_experiment(
                 )
             )
         else:
-            measured_values = result.to_measurements(experiment=experiment)
+            measured_values = result.to_observed_property_values(experiment=experiment)
             measurements.append(
                 create_measurement_result(
                     identifier=entity.identifier,
@@ -632,7 +632,7 @@ def run_workload_experiment(
             error = f"Unexpected error for entity {entity.identifier}: {e}"
             logger.error(error)
         else:
-            measured_values = result.to_measurements(experiment=experiment)
+            measured_values = result.to_observed_property_values(experiment=experiment)
             logger.debug(f"measured values {measured_values}")
         finally:
             measurements.append(

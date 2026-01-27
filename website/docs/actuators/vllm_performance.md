@@ -1,15 +1,15 @@
 # The `vllm_performance` actuator
 
-<!-- markdownlint-disable line-length -->
-
 > [!TIP] Overview
 >
-> The `vllm_performance` actuator **can
-> automatically create and benchmark [vLLM](https://github.com/vllm-project/vllm) inference deployments on Kubernetes and OpenShift clusters**.
+> The `vllm_performance` actuator **can automatically create and
+> benchmark [vLLM](https://github.com/vllm-project/vllm) inference
+> deployments on Kubernetes and OpenShift clusters**.
 >
 > It is designed for robust, repeatable, and configurable experiment execution.
 > It is suitable for both simple one-off benchmarks and large parameter sweeps.
-> This actuator supports benchmarking vLLM deployments via [vLLM's built-in benchmarking tool](https://docs.vllm.ai/en/stable/cli/bench/serve/)
+> This actuator supports benchmarking vLLM deployments via
+> [vLLM's built-in benchmarking tool](https://docs.vllm.ai/en/stable/cli/bench/serve/)
 > and [GuideLLM](https://github.com/vllm-project/guidellm).
 
 <!-- markdownlint-disable-next-line MD028 -->
@@ -28,8 +28,6 @@
 > - `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
 > - `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1`
 >   (GuideLLM benchmarks)
-
-<!-- markdownlint-enable line-length -->
 
 ## Key Capabilities
 
@@ -112,11 +110,11 @@ To launch and benchmark a temporary vLLM deployment
 <!-- markdownlint-disable MD007 -->
 
 - An entity definition (as before)
-- The identifier of a valid `actuatorconfiguration` resource
-    - This contains information necessary for accessing and creating
-     deployments on the Kubernetes/OpenShift cluster
-    - See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
-      for details.
+- The identifier of a valid `actuatorconfiguration` resource -
+This contains information necessary for accessing and creating
+deployments on the Kubernetes/OpenShift cluster -
+See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
+for details.
 <!-- markdownlint-enable MD007 -->
 
 Example `point.yaml`:
@@ -308,13 +306,15 @@ Some notes:
 <!-- markdownlint-disable MD007 -->
 
 - `max_environments` deployments are always created before any are deleted
-    - This means idle environments will remain until there is a need to delete them
-    - This is to increases chances they can be reused/minimise cost of redeploying
-- Environment creation is serialized
-    - If `max_environments` is reached and all are active, the first experiment
-      that requires a new environment will block. Subsequent experiment
-      requests will queue behind it in FIFO order until it can proceed (i.e. delete
-      an existing environment and create the one it needs)
+  - This means idle environments will remain until
+    there is a need to delete them
+  - This is to increases chances they can be
+    reused/minimise cost of redeploying
+- Environment creation is serialized - If `max_environments`
+is reached and all are active, the first experiment
+that requires a new environment will block. Subsequent experiment
+requests will queue behind it in FIFO order until it can proceed (i.e. delete
+an existing environment and create the one it needs)
 <!-- markdownlint-enable MD007 -->
 
 ### Handling benchmark failures

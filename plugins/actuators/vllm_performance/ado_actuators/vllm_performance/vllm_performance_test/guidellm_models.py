@@ -66,8 +66,6 @@ class RequestTotals(pydantic.BaseModel):
     ] = 0
     incomplete: Annotated[int | MetricCategory, pydantic.Field()] = 0
     total: Annotated[int | MetricCategory, pydantic.Field()] = 0
-    # Keep failed for backward compatibility
-    failed: Annotated[int, pydantic.Field()] = 0
 
 
 class BenchmarkMetrics(pydantic.BaseModel):

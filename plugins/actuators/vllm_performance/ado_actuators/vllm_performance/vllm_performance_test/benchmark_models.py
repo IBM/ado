@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 """
-Pydantic models for benchmark results
+Pydantic models for benchmarks
 
-This module defines shared data models for benchmark results that can be used
+This module defines shared data models for benchmark results and parameters that can be used
 by both vLLM and GuideLLM benchmarks, ensuring consistent output format.
 """
 
@@ -95,7 +95,7 @@ class BenchmarkResult(pydantic.BaseModel):
     p75_e2el_ms: Annotated[float, pydantic.Field()] = 0.0
     p99_e2el_ms: Annotated[float, pydantic.Field()] = 0.0
 
-    def to_measurements(
+    def to_observed_property_values(
         self, experiment: "Experiment | ParameterizedExperiment"
     ) -> list["ObservedPropertyValue"]:
         """

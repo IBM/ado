@@ -142,9 +142,8 @@ def log_after_split_common_and_diff(
             f"Length of the source dataframe obtained from comparing the entities retrieved before and after making a measurement= {len(previous_source_from_split_df)},"
             f"Length of the source dataframe at the previous iteration = {len(previous_source_df)}"
         )
-        logger.setLevel(logging.DEBUG)
         logger.error(
-            f"Unexpected behaviour of dataframes, logger set to debug level, saving data in the directory: {directory}"
+            f"Unexpected behaviour of dataframes, saving data in the directory: {directory}"
         )
         previous_source_from_split_df.to_csv(
             os.path.join(directory, f"Mismatch_iter{iter_index}_{iter_index}.csv")
@@ -161,9 +160,8 @@ def log_after_split_common_and_diff(
         )
 
     if len(one_additional_row) != 1:
-        logger.setLevel(logging.DEBUG)
         logger.error(
-            f"{len(one_additional_row)} point(s) sampled (expected 1), logger set to debug level, and saving data in {directory}"
+            f"{len(one_additional_row)} point(s) sampled (expected 1), saving data in {directory}"
         )
         one_additional_row.to_csv(f"one_additional_row_{iter_index}.csv")
     else:
@@ -195,9 +193,8 @@ def log_after_first_holdout_creation(
         current_holdout_df.value_counts(dropna=False)
     )  # True if they contain exactly the same rows (multiset equality), regardless of order
     if not same:
-        logger.setLevel(logging.DEBUG)
         logger.error(
-            f"Unexpected behaviour of holdout dfs, logger set to debug level, and saving data in {params.debugDirectory}"
+            f"Unexpected behaviour of holdout dfs, saving data in {params.debugDirectory}"
         )
         yielded_rows.df.to_csv(f"Mismatch_yielded_rows_{iter_index}.csv")
         current_holdout_df.to_csv(f"Mismatch_current_holdout_df_{iter_index}.csv")
@@ -246,9 +243,8 @@ def log_before_first_holdout_update(
     batchsize: int = 1,
 ) -> None:
     if len(one_additional_row) != 1:
-        logger.setLevel(logging.DEBUG)
         logger.error(
-            f"{len(one_additional_row)} point(s) sampled (expected 1), logger set to debug level, and saving data in {debugDirectory}"
+            f"{len(one_additional_row)} point(s) sampled (expected 1), saving data in {debugDirectory}"
         )
         one_additional_row.to_csv(os.path.join(f"one_additional_row_{iter_index}.csv"))
     else:

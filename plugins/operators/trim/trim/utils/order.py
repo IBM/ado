@@ -13,7 +13,7 @@ from trim.trim_pydantic import AutoGluonArgs
 from trim.utils.high_dimensional_sampling import get_order_list_nn_high_dimensional
 from trim.utils.miscellaneous import delete_dir
 
-logger = logging.getLogger("trim")
+logger = logging.getLogger(__name__)
 
 
 def get_feature_importance_order(

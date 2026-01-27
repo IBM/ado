@@ -39,7 +39,6 @@ from trim.utils.split_common_and_diff import (
 from trim.utils.stopping_criterion import stopping_bool_from_ratios
 
 logger_trim_sampler = logging.getLogger(__name__)
-logger_trim_sampler.setLevel(logging.INFO)
 
 
 # NOTE: to repeat the operation on the same space you can delete the operation
@@ -651,7 +650,7 @@ class TrimSampleSelector(BaseSampler):
                 f"Validation failed: Expected {len(target_df)} rows with NaNs in {self.params.targetOutput}, "
                 f"but found {nan_rows_count}."
             )
-            logging.error(msg)
+            logger_trim_sampler.error(msg)
             raise ValueError(msg)
 
         # Order merged dataframe by source space feature importance

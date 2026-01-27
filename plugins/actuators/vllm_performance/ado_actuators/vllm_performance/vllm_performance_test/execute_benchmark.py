@@ -8,10 +8,14 @@ import time
 import uuid
 from typing import Any
 
+from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
+    BenchmarkResult,
+)
 from ado_actuators.vllm_performance.vllm_performance_test.get_benchmark_results import (
     VLLMBenchmarkResultReadError,
     get_results,
 )
+from pydantic import HttpUrl, TypeAdapter
 
 logger = logging.getLogger("vllm-bench")
 
@@ -40,7 +44,7 @@ def execute_benchmark(
     dataset_path: str | None = None,
     custom_args: dict[str, Any] | None = None,
     burstiness: float = 1,
-) -> dict[str, Any]:
+) -> BenchmarkResult:
     """
     Execute benchmark
     :param base_url: url for vllm endpoint
@@ -59,11 +63,19 @@ def execute_benchmark(
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     keys are vllm benchmark arguments. values are the values to pass to the arguments
 
-    :return: results dictionary
+    :return: BenchmarkResult instance
 
     :raises VLLMBenchmarkError if the benchmark failed to execute after
         benchmark_retries attempts
+    :raises ValueError: If base_url is not a valid URL format
     """
+
+    # Validate URL format using Pydantic
+    try:
+        url_adapter = TypeAdapter(HttpUrl)
+        url_adapter.validate_python(base_url)
+    except Exception as e:
+        raise ValueError(f"Invalid URL format: {base_url}") from e
 
     logger.debug(
         f"executing benchmark, invoking service at {base_url} with the parameters: "
@@ -168,7 +180,7 @@ def execute_random_benchmark(
     number_input_tokens: int | None = None,
     max_output_tokens: int | None = None,
     interpreter: str = "python",
-) -> dict[str, Any]:
+) -> BenchmarkResult:
     """
     Execute benchmark with random dataset
     :param base_url: url for vllm endpoint
@@ -185,7 +197,7 @@ def execute_random_benchmark(
     :param max_output_tokens: maximum number of output tokens for each request,
     :param interpreter: name of Python interpreter
 
-    :return: results dictionary
+    :return: BenchmarkResult instance
     """
     # Call execute_benchmark with the appropriate arguments
     return execute_benchmark(
@@ -219,9 +231,9 @@ def execute_geospatial_benchmark(
     retries_timeout: int = 5,
     burstiness: float = 1,
     interpreter: str = "python",
-) -> dict[str, Any]:
+) -> BenchmarkResult:
     """
-    Execute benchmark with random dataset
+    Execute benchmark with geospatial dataset
     :param base_url: url for vllm endpoint
     :param model: model
     :param dataset: data set name ["random"]
@@ -234,7 +246,7 @@ def execute_geospatial_benchmark(
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     :param interpreter: python interpreter to use
 
-    :return: results dictionary
+    :return: BenchmarkResult instance
     """
     from pathlib import Path
 

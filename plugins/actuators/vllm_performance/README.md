@@ -58,16 +58,24 @@ After running the exercise, please feel free to
 
 Ensure the virtual environment you installed `ado` into is active. Then, run:
 
-<!-- ```commandline
+```commandline
 pip install ado-vllm-performance
-``` -->
+```
+
+This will automatically install both vLLM and GuideLLM benchmarking
+tools, enabling all experiments:
+
+- `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
+- `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1`
+  (GuideLLM benchmarks)
+
+**For development from source:**
 
 ```commandline
 pip install -e plugins/actuators/vllm_performance
 ```
 
-from the root of the `ado` source repository.
-You can clone the repository with
+from the root of the `ado` source repository. You can clone the repository with:
 
 ```commandline
 git clone https://github.com/IBM/ado.git

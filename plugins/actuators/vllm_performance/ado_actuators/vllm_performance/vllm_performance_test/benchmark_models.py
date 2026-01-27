@@ -8,13 +8,62 @@ This module defines shared data models for benchmark results that can be used
 by both vLLM and GuideLLM benchmarks, ensuring consistent output format.
 """
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 import pydantic
+from pydantic import model_validator
 
 if TYPE_CHECKING:
     from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
     from orchestrator.schema.observed_property import ObservedPropertyValue
+
+
+class BenchmarkParameters(pydantic.BaseModel):
+    """Model for common benchmark parameters extracted from experiment values."""
+
+    request_rate: Annotated[int | None, pydantic.Field(default=None)]
+    max_concurrency: Annotated[int | None, pydantic.Field(default=None)]
+    num_prompts: Annotated[int, pydantic.Field(default=500, gt=0)]
+    number_input_tokens: Annotated[int | None, pydantic.Field(default=None)]
+    max_output_tokens: Annotated[int | None, pydantic.Field(default=None)]
+    burstiness: Annotated[float, pydantic.Field(default=1.0)]
+    dataset: Annotated[str | None, pydantic.Field(default="random")]
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_parameters(cls, data: Any) -> dict[str, Any]:
+        """Validate and transform benchmark parameters."""
+        if not isinstance(data, dict):
+            return data
+
+        # Convert request_rate: negative values become None (unlimited)
+        if "request_rate" in data and data["request_rate"] is not None:
+            rate = int(data["request_rate"])
+            data["request_rate"] = None if rate < 0 else rate
+
+        # Convert max_concurrency: negative values become None (unlimited)
+        if "max_concurrency" in data and data["max_concurrency"] is not None:
+            concurrency = int(data["max_concurrency"])
+            data["max_concurrency"] = None if concurrency < 0 else concurrency
+
+        # Convert num_prompts to int with default
+        if "num_prompts" in data and data["num_prompts"] is not None:
+            data["num_prompts"] = int(data["num_prompts"])
+
+        # Convert token counts to int or None
+        for field in ["number_input_tokens", "max_output_tokens"]:
+            if field in data and data[field] is not None:
+                data[field] = int(data[field])
+
+        # Convert burstiness to float with default
+        if "burstiness" in data and data["burstiness"] is not None:
+            data["burstiness"] = float(data["burstiness"])
+
+        # Ensure dataset has a value
+        if "dataset" not in data or data["dataset"] is None:
+            data["dataset"] = "random"
+
+        return data
 
 
 class BenchmarkResult(pydantic.BaseModel):

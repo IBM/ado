@@ -43,16 +43,13 @@ class Metric(pydantic.BaseModel):
         default_factory=MetricCategory
     )
     errored: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
-        default_factory=MetricCategory
+        default_factory=MetricCategory,
+        validation_alias=pydantic.AliasChoices("errored", "failed"),
     )
     incomplete: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
         default_factory=MetricCategory
     )
     total: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
-        default_factory=MetricCategory
-    )
-    # Keep failed for backward compatibility (may be alias for errored)
-    failed: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
         default_factory=MetricCategory
     )
 

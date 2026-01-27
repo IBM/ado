@@ -565,3 +565,232 @@ class TestCSVActuatorValidation:
                     ],
                 }
             )
+
+    def test_non_replay_actuator_validates_columns_exist_in_csv(
+        self, setup_test_actuator: ActuatorRegistry
+    ) -> None:
+        """Test that non-replay actuators validate column names exist in CSV when using from_csv()"""
+        # Create a CSV file with some columns
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False
+        ) as temp_file:
+            df = pd.DataFrame(
+                {
+                    "id": ["entity1", "entity2"],
+                    "input_param": [1, 2],
+                    "output_metric": [100, 200],
+                }
+            )
+            df.to_csv(temp_file.name, index=False)
+            csv_path = temp_file.name
+
+        try:
+            # Test 1: Valid columns - should succeed
+            store1 = CSVSampleStore.from_csv(
+                csvPath=csv_path,
+                idColumn="id",
+                experimentIdentifier="test_experiment",
+                actuatorIdentifier="test_actuator",
+                observedPropertyColumns=["output_metric"],
+                constitutivePropertyColumns=["input_param"],
+            )
+            assert store1 is not None
+            assert len(store1.entities) == 2
+
+            # Test 2: Missing observed property column - should fail
+            with pytest.raises(ValueError, match="missing required columns"):
+                CSVSampleStore.from_csv(
+                    csvPath=csv_path,
+                    idColumn="id",
+                    experimentIdentifier="test_experiment",
+                    actuatorIdentifier="test_actuator",
+                    observedPropertyColumns=["nonexistent_column"],
+                    constitutivePropertyColumns=["input_param"],
+                )
+
+            # Test 3: Missing constitutive property column - should fail
+            with pytest.raises(ValueError, match="missing required columns"):
+                CSVSampleStore.from_csv(
+                    csvPath=csv_path,
+                    idColumn="id",
+                    experimentIdentifier="test_experiment",
+                    actuatorIdentifier="test_actuator",
+                    observedPropertyColumns=["output_metric"],
+                    constitutivePropertyColumns=["nonexistent_column"],
+                )
+
+            # Test 4: Missing id column - should fail
+            with pytest.raises(ValueError, match="missing required columns"):
+                CSVSampleStore.from_csv(
+                    csvPath=csv_path,
+                    idColumn="nonexistent_id",
+                    experimentIdentifier="test_experiment",
+                    actuatorIdentifier="test_actuator",
+                    observedPropertyColumns=["output_metric"],
+                    constitutivePropertyColumns=["input_param"],
+                )
+        finally:
+            # Clean up
+            os.unlink(csv_path)
+
+    def test_non_replay_actuator_column_validation_with_auto_inference(
+        self, setup_test_actuator: ActuatorRegistry
+    ) -> None:
+        """Test that column validation works when property maps are auto-inferred for non-replay actuators"""
+        # Create a CSV file with columns matching experiment property identifiers
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False
+        ) as temp_file:
+            df = pd.DataFrame(
+                {
+                    "id": ["entity1", "entity2"],
+                    "input_param": [1, 2],
+                    "output_metric": [100, 200],  # Matches target property identifier
+                }
+            )
+            df.to_csv(temp_file.name, index=False)
+            csv_path = temp_file.name
+
+        try:
+            # Test with propertyFormat="target" (default) - column names match target property identifiers
+            store1 = CSVSampleStore.from_csv(
+                csvPath=csv_path,
+                idColumn="id",
+                experimentIdentifier="test_experiment",
+                actuatorIdentifier="test_actuator",
+                propertyFormat="target",
+                # Property maps will be auto-inferred
+            )
+            assert store1 is not None
+            assert len(store1.entities) == 2
+
+            # Test with propertyFormat="observed" - column names should match observed property identifiers
+            # Observed property identifier format: experiment_id-target_property_id
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False
+            ) as temp_file2:
+                df2 = pd.DataFrame(
+                    {
+                        "id": ["entity1", "entity2"],
+                        "input_param": [1, 2],
+                        "test_experiment-output_metric": [
+                            100,
+                            200,
+                        ],  # Matches observed property identifier
+                    }
+                )
+                df2.to_csv(temp_file2.name, index=False)
+                csv_path2 = temp_file2.name
+
+            try:
+                store2 = CSVSampleStore.from_csv(
+                    csvPath=csv_path2,
+                    idColumn="id",
+                    experimentIdentifier="test_experiment",
+                    actuatorIdentifier="test_actuator",
+                    propertyFormat="observed",
+                    # Property maps will be auto-inferred
+                )
+                assert store2 is not None
+                assert len(store2.entities) == 2
+            finally:
+                os.unlink(csv_path2)
+
+            # Test with wrong column name for observed format - should fail
+            with pytest.raises(ValueError, match="missing required columns"):
+                CSVSampleStore.from_csv(
+                    csvPath=csv_path,  # Uses output_metric, not test_experiment-output_metric
+                    idColumn="id",
+                    experimentIdentifier="test_experiment",
+                    actuatorIdentifier="test_actuator",
+                    propertyFormat="observed",
+                )
+        finally:
+            # Clean up
+            os.unlink(csv_path)
+
+    def test_sqlsamplestore_from_csv_with_non_replay_actuator(
+        self, setup_test_actuator: ActuatorRegistry
+    ) -> None:
+        """Test that SQLSampleStore.from_csv() properly passes through actuatorIdentifier and propertyFormat"""
+        from orchestrator.core.samplestore.sql import SQLSampleStore
+        from orchestrator.utilities.location import SQLStoreConfiguration
+
+        # Create a CSV file
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False
+        ) as temp_file:
+            df = pd.DataFrame(
+                {
+                    "id": ["entity1", "entity2"],
+                    "input_param": [1, 2],
+                    "output_metric": [100, 200],
+                }
+            )
+            df.to_csv(temp_file.name, index=False)
+            csv_path = temp_file.name
+
+        try:
+            # Create a SQL store configuration using in-memory SQLite
+            store_config = SQLStoreConfiguration(
+                scheme="sqlite",
+                database=":memory:",
+            )
+
+            # Test that parameters are passed through correctly
+            # The CSV store creation should validate columns exist
+            # If columns are missing, we should get a ValueError from CSV parsing
+            sql_store = SQLSampleStore.from_csv(
+                csvPath=csv_path,
+                idColumn="id",
+                storeConfiguration=store_config,
+                experimentIdentifier="test_experiment",
+                actuatorIdentifier="test_actuator",
+                observedPropertyColumns=["output_metric"],
+                constitutivePropertyColumns=["input_param"],
+                propertyFormat="target",
+            )
+            # If we get here, the CSV store was created successfully with correct parameters
+            assert sql_store is not None
+
+            # Test with propertyFormat="observed" and matching column names
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False
+            ) as temp_file2:
+                df2 = pd.DataFrame(
+                    {
+                        "id": ["entity1", "entity2"],
+                        "input_param": [1, 2],
+                        "test_experiment-output_metric": [100, 200],
+                    }
+                )
+                df2.to_csv(temp_file2.name, index=False)
+                csv_path2 = temp_file2.name
+
+            try:
+                sql_store2 = SQLSampleStore.from_csv(
+                    csvPath=csv_path2,
+                    idColumn="id",
+                    storeConfiguration=store_config,
+                    experimentIdentifier="test_experiment",
+                    actuatorIdentifier="test_actuator",
+                    propertyFormat="observed",
+                )
+                assert sql_store2 is not None
+            finally:
+                os.unlink(csv_path2)
+
+            # Test that missing columns are caught (column validation happens during CSV store creation)
+            with pytest.raises(ValueError, match="missing required columns"):
+                SQLSampleStore.from_csv(
+                    csvPath=csv_path,  # Missing test_experiment-output_metric column
+                    idColumn="id",
+                    storeConfiguration=store_config,
+                    experimentIdentifier="test_experiment",
+                    actuatorIdentifier="test_actuator",
+                    propertyFormat="observed",
+                )
+
+        finally:
+            # Clean up
+            os.unlink(csv_path)

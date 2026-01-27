@@ -121,8 +121,8 @@ class CSVSampleStoreDescription(SampleStoreDescription):
 
         # Old format detected - emit warning and perform migration
         warn_deprecated_csv_sample_store_model_in_use(
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
+            deprecated_from_version="1.3.5",
+            removed_from_version="1.6.0",
             deprecated_fields=["constitutivePropertyColumns", "propertyMap"],
         )
 

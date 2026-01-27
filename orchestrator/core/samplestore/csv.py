@@ -182,7 +182,7 @@ class CSVSampleStore(PassiveSampleStore):
         idColumn: str,
         generatorIdentifier: str | None = None,
         experimentIdentifier: str | None = None,
-        actuatorIdentifier: str | None = None,
+        actuatorIdentifier: str = "replay",
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
         propertyFormat: Literal["target", "observed"] = "target",
@@ -207,12 +207,13 @@ class CSVSampleStore(PassiveSampleStore):
             InternalExperimentDescription,
         )
 
-        if actuatorIdentifier and actuatorIdentifier != "replay":
+        if actuatorIdentifier != "replay":
             experimentDescriptor = InternalExperimentDescription(
                 actuatorIdentifier=actuatorIdentifier,
                 experimentIdentifier=experimentIdentifier,
                 observedPropertyMap=observedPropertyColumns,
                 constitutivePropertyMap=constitutivePropertyColumns,
+                propertyFormat=propertyFormat,
             )
         else:
 
@@ -230,7 +231,6 @@ class CSVSampleStore(PassiveSampleStore):
                 constitutivePropertyColumns = [h for h in headers if h not in excluded]
 
             experimentDescriptor = ExternalExperimentDescription(
-                actuatorIdentifier="replay",
                 experimentIdentifier=experimentIdentifier,
                 observedPropertyMap=observedPropertyColumns,
                 constitutivePropertyMap=constitutivePropertyColumns,

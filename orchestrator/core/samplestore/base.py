@@ -297,7 +297,7 @@ class InternalExperimentDescription(ExperimentDescription):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     observedPropertyMap: Annotated[
-        dict | list[str],
+        dict[str, str] | list[str],
         pydantic.Field(
             default_factory=dict,
             description="Mapping of property names from the experiment to column names in the sample store. "
@@ -306,7 +306,7 @@ class InternalExperimentDescription(ExperimentDescription):
         ),
     ]
     constitutivePropertyMap: Annotated[
-        dict | list[str],
+        dict[str, str] | list[str],
         pydantic.Field(
             default_factory=dict,
             description="Mapping of property names from the experiment to column names in the sample store. "
@@ -423,9 +423,7 @@ def source_experiment_description_discriminator(
         return "Internal"
     if isinstance(desc, dict):
         actuator_id = desc.get("actuatorIdentifier", "replay")
-        if actuator_id == "replay":
-            return "External"
-        return "Internal"
+        return "External" if actuator_id == "replay" else "Internal"
 
     raise ValueError(
         f"Unable to determine source experiment description type for desc: {desc}"

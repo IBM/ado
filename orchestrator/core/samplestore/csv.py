@@ -198,7 +198,7 @@ class CSVSampleStore(PassiveSampleStore):
             observedPropertyColumns: List of columns containing observed properties
             constitutivePropertyColumns: List of columns containing constitutive properties
             propertyFormat: The naming format used for the observed property columns.
-                Only relevant if non-None, non-replay, actuatorIdentifier is provided
+                Only relevant when actuatorIdentifier is not 'replay'
         """
         import pandas as pd
 

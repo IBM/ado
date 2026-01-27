@@ -9,14 +9,18 @@
 >
 > It is designed for robust, repeatable, and configurable experiment execution.
 > It is suitable for both simple one-off benchmarks and large parameter sweeps.
+> This actuator supports benchmarking vLLM deployments via [vLLM's built-in benchmarking tool](https://docs.vllm.ai/en/stable/cli/bench/serve/)
+> and [GuideLLM](https://github.com/vllm-project/guidellm).
 
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!NOTE] Installing
 >
+> Run:
+>
 > ```commandline
 > pip install ado-vllm-performance
->   ```
+> ```
 >
 > This will automatically install both vLLM and GuideLLM benchmarking
 > tools, enabling all experiments:
@@ -49,15 +53,13 @@ The `vllm_performance` actuator implements four experiments:
 - `test-deployment-v1`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
   configuration. It deploys servers with given configuration on kubernetes and
-  runs [vLLM's
-  built-in benchmarking tool](https://docs.vllm.ai/en/stable/cli/bench/serve/)
+  runs vLLM's built-in benchmarking tool
   (`vllm bench serve`) on them with the given parameters.
 - `test-endpoint-v1`: This experiment is equivalent to running
   `vllm bench serve` against an endpoint.
 - `test-deployment-guidellm-v1`: Similar to `test-deployment-v1`, but uses
-  [GuideLLM](https://github.com/neuralmagic/guidellm) (`guidellm benchmark run`)
+  GuideLLM (`guidellm benchmark run`)
   for benchmarking instead of vLLM's built-in benchmarking tool.
-  GuideLLM provides more comprehensive metrics and analysis capabilities.
 - `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses
   GuideLLM (`guidellm benchmark run`) for benchmarking instead of vLLM's
   built-in benchmarking tool.
@@ -284,14 +286,11 @@ Ray cluster, including environment and package setup, see
 > image used by the RayCluster you can have [ray install it following
 > this guide](../getting-started/remote_run.md).
 >
-> **Important:** When installing on a RayCluster, use:
->
-> ```commandline
-> ado-vllm-performance
-> ```
->
-> Installing the dependencies (especially vLLM) on each RayCluster node
-> can take some time, so you may see the `ado` `operation` output "hang"
+> In particular, if a compatible version of vLLM and GuideLLM is not installed
+> in the image this step will require installing vLLM
+> (so `vllm bench serve` is available) and GuideLLM on each
+> RayCluster node.
+> This can take some time so you may see the `ado` `operation` output "hang"
 > while this is happening.
 
 ### Maximum number of deployments

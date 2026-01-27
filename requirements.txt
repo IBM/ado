@@ -2069,9 +2069,9 @@ watchfiles==1.1.1 \
     # via
     #   ray
     #   uvicorn
-wcwidth==0.3.0 \
-    --hash=sha256:073a1acb250e4add96cfd5ef84e0036605cd6e0d0782c8c15c80e42202348458 \
-    --hash=sha256:af1a2fb0b83ef4a7fc0682a4c95ca2576e14d0280bca2a9e67b7dc9f2733e123
+wcwidth==0.5.0 \
+    --hash=sha256:1efe1361b83b0ff7877b81ba57c8562c99cf812158b778988ce17ec061095695 \
+    --hash=sha256:f89c103c949a693bf563377b2153082bf58e309919dfb7f27b04d862a0089333
     # via prompt-toolkit
 webcolors==25.10.0 \
     --hash=sha256:032c727334856fc0b968f63daa252a1ac93d33db2f5267756623c210e57a4f1d \

@@ -64,7 +64,6 @@ requires-dist = [
     { name = "kubernetes", specifier = ">=31.0.0" },
     { name = "vllm", specifier = ">=0.12.0" },
 ]
-provides-extras = ["guidellm"]
 
 [package.metadata.requires-dev]
 dev = [

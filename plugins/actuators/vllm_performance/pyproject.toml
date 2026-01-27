@@ -37,9 +37,6 @@ dependencies = [
     "guidellm>=0.5.3",
 ]
 
-[project.optional-dependencies]
-guidellm = []
-
 [dependency-groups]
 dev = [
     "black>=25.1.0",

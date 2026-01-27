@@ -8,79 +8,116 @@ This module defines the data models for parsing and validating GuideLLM
 benchmark JSON output and transforming it into the standardized BenchmarkResult format.
 """
 
-from pydantic import BaseModel, Field
+from typing import Annotated
+import pydantic
 
 from .benchmark_models import BenchmarkResult
 
 
-class MetricPercentiles(BaseModel):
+class MetricPercentiles(pydantic.BaseModel):
     """Percentile statistics for a metric"""
 
-    p25: float = 0.0
-    p50: float = 0.0
-    p75: float = 0.0
-    p99: float = 0.0
+    p25: Annotated[float, pydantic.Field()] = 0.0
+    p50: Annotated[float, pydantic.Field()] = 0.0
+    p75: Annotated[float, pydantic.Field()] = 0.0
+    p99: Annotated[float, pydantic.Field()] = 0.0
 
 
-class MetricCategory(BaseModel):
+class MetricCategory(pydantic.BaseModel):
     """Statistics for a metric category (successful/failed)"""
 
-    count: int = 0
-    mean: float = 0.0
-    median: float = 0.0
-    std_dev: float = 0.0
-    total_sum: float = 0.0
-    percentiles: MetricPercentiles = Field(default_factory=MetricPercentiles)
+    count: Annotated[int, pydantic.Field()] = 0
+    mean: Annotated[float, pydantic.Field()] = 0.0
+    median: Annotated[float, pydantic.Field()] = 0.0
+    std_dev: Annotated[float, pydantic.Field()] = 0.0
+    total_sum: Annotated[float, pydantic.Field()] = 0.0
+    percentiles: Annotated[MetricPercentiles, pydantic.Field()] = pydantic.Field(
+        default_factory=MetricPercentiles
+    )
 
 
-class Metric(BaseModel):
+class Metric(pydantic.BaseModel):
     """A metric with successful, errored, incomplete, and total categories"""
 
-    successful: MetricCategory = Field(default_factory=MetricCategory)
-    errored: MetricCategory = Field(default_factory=MetricCategory)
-    incomplete: MetricCategory = Field(default_factory=MetricCategory)
-    total: MetricCategory = Field(default_factory=MetricCategory)
+    successful: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
+        default_factory=MetricCategory
+    )
+    errored: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
+        default_factory=MetricCategory
+    )
+    incomplete: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
+        default_factory=MetricCategory
+    )
+    total: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
+        default_factory=MetricCategory
+    )
     # Keep failed for backward compatibility (may be alias for errored)
-    failed: MetricCategory = Field(default_factory=MetricCategory)
+    failed: Annotated[MetricCategory, pydantic.Field()] = pydantic.Field(
+        default_factory=MetricCategory
+    )
 
 
-class RequestTotals(BaseModel):
+class RequestTotals(pydantic.BaseModel):
     """Request totals with successful, errored, incomplete, and total counts"""
 
-    successful: int | MetricCategory = 0
-    errored: int | MetricCategory = 0
-    incomplete: int | MetricCategory = 0
-    total: int | MetricCategory = 0
+    successful: Annotated[int | MetricCategory, pydantic.Field()] = 0
+    errored: Annotated[int | MetricCategory, pydantic.Field()] = 0
+    incomplete: Annotated[int | MetricCategory, pydantic.Field()] = 0
+    total: Annotated[int | MetricCategory, pydantic.Field()] = 0
     # Keep failed for backward compatibility
-    failed: int = 0
+    failed: Annotated[int, pydantic.Field()] = 0
 
 
-class BenchmarkMetrics(BaseModel):
+class BenchmarkMetrics(pydantic.BaseModel):
     """All metrics from a GuideLLM benchmark"""
 
-    request_totals: RequestTotals = Field(default_factory=RequestTotals)
-    prompt_token_count: Metric = Field(default_factory=Metric)
-    output_token_count: Metric = Field(default_factory=Metric)
-    requests_per_second: Metric = Field(default_factory=Metric)
-    output_tokens_per_second: Metric = Field(default_factory=Metric)
-    tokens_per_second: Metric = Field(default_factory=Metric)
-    time_to_first_token_ms: Metric = Field(default_factory=Metric)
-    time_per_output_token_ms: Metric = Field(default_factory=Metric)
-    inter_token_latency_ms: Metric = Field(default_factory=Metric)
-    request_latency: Metric = Field(default_factory=Metric)
+    request_totals: Annotated[RequestTotals, pydantic.Field()] = pydantic.Field(
+        default_factory=RequestTotals
+    )
+    prompt_token_count: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    output_token_count: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    requests_per_second: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    output_tokens_per_second: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    tokens_per_second: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    time_to_first_token_ms: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    time_per_output_token_ms: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    inter_token_latency_ms: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
+    request_latency: Annotated[Metric, pydantic.Field()] = pydantic.Field(
+        default_factory=Metric
+    )
 
 
-class Benchmark(BaseModel):
+class Benchmark(pydantic.BaseModel):
     """A single benchmark result from GuideLLM"""
 
-    duration: float = 0.0
-    metrics: BenchmarkMetrics = Field(default_factory=BenchmarkMetrics)
+    duration: Annotated[float, pydantic.Field()] = 0.0
+    metrics: Annotated[BenchmarkMetrics, pydantic.Field()] = pydantic.Field(
+        default_factory=BenchmarkMetrics
+    )
 
 
-class GuideLLMOutput(BaseModel):
+class GuideLLMOutput(pydantic.BaseModel):
     """Root structure of GuideLLM JSON output"""
 
-    benchmarks: list[Benchmark] = Field(default_factory=list)
+    benchmarks: Annotated[list[Benchmark], pydantic.Field()] = pydantic.Field(
+        default_factory=list
+    )
 
     def to_benchmark_result(self) -> BenchmarkResult:
         """

@@ -8,6 +8,8 @@ import time
 import uuid
 from typing import Any
 
+from pydantic import HttpUrl, TypeAdapter
+
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
     BenchmarkResult,
 )
@@ -66,7 +68,15 @@ def execute_benchmark(
 
     :raises VLLMBenchmarkError if the benchmark failed to execute after
         benchmark_retries attempts
+    :raises ValueError: If base_url is not a valid URL format
     """
+
+    # Validate URL format using Pydantic
+    try:
+        url_adapter = TypeAdapter(HttpUrl)
+        url_adapter.validate_python(base_url)
+    except Exception as e:
+        raise ValueError(f"Invalid URL format: {base_url}") from e
 
     logger.debug(
         f"executing benchmark, invoking service at {base_url} with the parameters: "

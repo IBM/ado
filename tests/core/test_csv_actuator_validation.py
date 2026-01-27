@@ -739,9 +739,13 @@ class TestCSVActuatorValidation:
             df.to_csv(temp_file.name, index=False)
             csv_path = temp_file.name
 
+        # Create a temporary SQLite database file
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as temp_db_file:
+            db_path = temp_db_file.name
+
         try:
-            # Create a SQL store configuration using in-memory SQLite
-            store_config = SQLiteStoreConfiguration(scheme="sqlite", path=":memory:")
+            # Create a SQL store configuration using temporary file
+            store_config = SQLiteStoreConfiguration(scheme="sqlite", path=db_path)
 
             # Test that parameters are passed through correctly
             # The CSV store creation should validate columns exist
@@ -801,5 +805,8 @@ class TestCSVActuatorValidation:
                 )
 
         finally:
-            # Clean up
-            os.unlink(csv_path)
+            # Clean up CSV file and database file
+            if os.path.exists(csv_path):
+                os.unlink(csv_path)
+            if os.path.exists(db_path):
+                os.unlink(db_path)

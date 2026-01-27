@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
 
@@ -185,6 +185,7 @@ class CSVSampleStore(PassiveSampleStore):
         actuatorIdentifier: str | None = None,
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
+        propertyFormat: Literal["target", "observed"] = "target",
     ) -> "CSVSampleStore":
         """Create a CSVSampleStore from a CSV file
 
@@ -193,46 +194,52 @@ class CSVSampleStore(PassiveSampleStore):
             idColumn: Column containing entity identifiers
             generatorIdentifier: Optional identifier for the entity generator
             experimentIdentifier: Experiment identifier
-            actuatorIdentifier: Actuator identifier (defaults to 'replay')
+            actuatorIdentifier: Actuator identifier (defaults to 'replay' if not provided)
             observedPropertyColumns: List of columns containing observed properties
             constitutivePropertyColumns: List of columns containing constitutive properties
+            propertyFormat: The naming format used for the observed property columns.
+                Only relevant if non-None, non-replay, actuatorIdentifier is provided
         """
         import pandas as pd
 
-        from orchestrator.core.samplestore.base import ExternalExperimentDescription
+        from orchestrator.core.samplestore.base import (
+            ExternalExperimentDescription,
+            InternalExperimentDescription,
+        )
 
-        # Read CSV to get headers
-        headers = pd.read_csv(csvPath, nrows=0).columns.tolist()
-        headers = [h.strip() for h in headers]
+        if actuatorIdentifier and actuatorIdentifier != "replay":
+            experimentDescriptor = InternalExperimentDescription(
+                actuatorIdentifier=actuatorIdentifier,
+                experimentIdentifier=experimentIdentifier,
+                observedPropertyMap=observedPropertyColumns,
+                constitutivePropertyMap=constitutivePropertyColumns,
+            )
+        else:
 
-        # Determine constitutive property columns if not provided
-        if not constitutivePropertyColumns:
-            # Exclude id column and observed property columns
-            excluded = [idColumn]
-            if observedPropertyColumns:
-                excluded.extend(observedPropertyColumns)
-            constitutivePropertyColumns = [h for h in headers if h not in excluded]
+            # Read CSV to get headers
+            headers = pd.read_csv(csvPath, nrows=0).columns.tolist()
+            headers = [h.strip() for h in headers]
 
-        # Create constitutivePropertyMap
-        constitutive_map = {col: col for col in constitutivePropertyColumns}
+            # Determine constitutive property columns if not provided
+            if not constitutivePropertyColumns:
+                # Exclude id column and observed property columns
+                excluded = [idColumn]
+                if observedPropertyColumns:
+                    excluded.extend(observedPropertyColumns)
 
-        # Create experiments list
-        experiments = []
-        if observedPropertyColumns:
-            # Create observed property map
-            observed_map = {k: k for k in observedPropertyColumns}
+                constitutivePropertyColumns = [h for h in headers if h not in excluded]
 
             experimentDescriptor = ExternalExperimentDescription(
-                experimentIdentifier=experimentIdentifier or "default",
-                observedPropertyMap=observed_map,
-                constitutivePropertyMap=constitutive_map,
+                actuatorIdentifier="replay",
+                experimentIdentifier=experimentIdentifier,
+                observedPropertyMap=observedPropertyColumns,
+                constitutivePropertyMap=constitutivePropertyColumns,
             )
-            experiments.append(experimentDescriptor)
 
         csvDescription = CSVSampleStoreDescription(
             identifierColumn=idColumn,
             generatorIdentifier=generatorIdentifier,
-            experiments=experiments,
+            experiments=[experimentDescriptor],
         )
 
         return CSVSampleStore(

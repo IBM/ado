@@ -75,7 +75,7 @@ class SQLSampleStore(ActiveSampleStore):
         cls,
         csvPath: str,
         idColumn: str,
-        storeConfiguration: SQLStoreConfiguration,
+        storeConfiguration: SQLStoreConfiguration | SQLiteStoreConfiguration,
         generatorIdentifier: str | None = None,
         experimentIdentifier: str | None = None,
         actuatorIdentifier: str = "replay",
@@ -285,7 +285,10 @@ class SQLSampleStore(ActiveSampleStore):
     def __init__(
         self,
         identifier: str | None,
-        storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
+        storageLocation: (
+            orchestrator.utilities.location.SQLStoreConfiguration
+            | SQLiteStoreConfiguration
+        ),
         parameters: dict,
     ) -> None:
 

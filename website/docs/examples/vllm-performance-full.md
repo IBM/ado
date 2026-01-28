@@ -14,7 +14,7 @@
 > explore the deployment parameter space. In this example:
 >
 > - We will define a space of vLLM deployment configurations to test with
-> the `vllm_performance` actuator's `performance_testing_full` experiment
+> the `vllm_performance` actuator's `test-deployment-v1` experiment
 >       - This experiment can create and characterize a vLLM deployment on Kubernetes
 > - Use the [`random_walk` operator](../operators/random-walk.md) to
 >   explore the space
@@ -123,47 +123,9 @@ scenario where requests arrive between 1 and 10 per second with sizes around
 2000 tokens.
 
 ```yaml
-entitySpace:
-  - identifier: model
-    propertyDomain:
-      values:
-        - ibm-granite/granite-3.3-8b-instruct
-  - identifier: image
-    propertyDomain:
-      values:
-        - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
-  - identifier: "number_input_tokens"
-    propertyDomain:
-      values: [1024, 2048, 4096]
-  - identifier: "request_rate"
-    propertyDomain:
-      domainRange: [1, 10]
-      interval: 1
-  - identifier: n_cpus
-    propertyDomain:
-      domainRange: [2, 16]
-      interval: 2
-  - identifier: memory
-    propertyDomain:
-      values: ["128Gi", "256Gi"]
-  - identifier: "max_batch_tokens"
-    propertyDomain:
-      values: [8192, 16384, 32768]
-  - identifier: "max_num_seq"
-    propertyDomain:
-      values: [32, 64]
-  - identifier: "n_gpus"
-    propertyDomain:
-      values: [1]
-  - identifier: "gpu_type"
-    propertyDomain:
-      values: ["NVIDIA-A100-80GB-PCIe"]
-experiments:
-  - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-deployment-v1
-metadata:
-  description: A space of vllm deployment configurations
-  name: vllm_deployments
+{%
+  include "./example_yamls/vllm_deployment_space.yaml"
+%}
 ```
 
 Save the above as `vllm_deployment_space.yaml`. Then run:
@@ -182,30 +144,9 @@ minimizing the number of deployment creations.
 Save the following as `random_walk_operation_grouped.yaml`:
 
 ```yaml
-metadata:
-  name: randomwalk-grouped-vllm-performance-full
-spaces:
-  - <Will be set via ado>
-actuatorConfigurationIdentifiers:
-  - <Will be set via ado>
-operation:
-  module:
-    moduleClass: RandomWalk
-  parameters:
-    numberEntities: all
-    batchSize: 1
-    samplerConfig:
-      mode: "sequentialgrouped"
-      samplerType: "generator"
-      grouping: #A unique combination of these properties is a new vLLM deployment
-        - model
-        - image
-        - memory
-        - max_batch_tokens
-        - max_num_seq
-        - n_gpus
-        - gpu_type
-        - n_cpus
+{%
+  include "./example_yamls/random_walk_operation_grouped.yaml"
+%}
 ```
 
 Then, start the operation with:

@@ -154,12 +154,9 @@ def test_descriptor_pretty(
     ),
 ) -> None:
     """Test pretty print of descriptors is as expected"""
-
-    from IPython.lib.pretty import pretty
-
     assert (
-        pretty(descriptor) == f"{descriptor.identifier} "
-    ), "Expected pretty of descriptor to be descriptor id"
+        str(descriptor.__rich__()) == f"{descriptor.identifier}"
+    ), "Expected rich print of descriptor to be descriptor id"
 
 
 @pytest.mark.parametrize(

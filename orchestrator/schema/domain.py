@@ -12,7 +12,7 @@ import pydantic
 from pydantic import ConfigDict
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 class VariableTypeEnum(str, enum.Enum):
@@ -340,25 +340,28 @@ class PropertyDomain(pydantic.BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this property domain using rich."""
+        from rich.console import Group
+        from rich.pretty import Pretty
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
-            p.text(f"Type: {self.variableType.value}")
-            p.breakable()
-            if self.values:
-                p.text(f"Values: {self.values}")
-                p.breakable()
-            if self.interval:
-                p.text(f"Interval: {self.interval}")
-                p.breakable()
-            if self.domainRange and self.variableType in [
-                VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
-                VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-            ]:
-                p.text(f"Range: {self.domainRange}")
-                p.breakable()
+        lines = [Text("Type:", style="bold", end=" "), Text(self.variableType)]
+        if self.values:
+            lines.extend([Text("Values:", style="bold", end=" "), Pretty(self.values)])
+        if self.interval:
+            lines.extend(
+                [Text("Interval:", style="bold", end=" "), Pretty(self.interval)]
+            )
+        if self.domainRange and self.variableType in [
+            VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+            VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        ]:
+            lines.extend(
+                [Text("Range:", style="bold", end=" "), Pretty(self.domainRange)]
+            )
+
+        return Group(*lines)
 
     @pydantic.field_validator("interval")
     def interval_requires_no_values(

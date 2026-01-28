@@ -49,7 +49,7 @@ from orchestrator.utilities.pandas import (
 
 if TYPE_CHECKING:
     import pandas as pd
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
@@ -104,14 +104,18 @@ class SQLSampleStore(ActiveSampleStore):
 
         return sql_sample_store
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this SQL sample store using rich."""
+        from rich.console import Group
+        from rich.pretty import Pretty
+        from rich.text import Text
 
-        if cycle:
-            p.text("Cycle detected")
-        else:
-            p.text(f"Identifier: {self.uri}")
-            p.breakable()
-            p.text(f"Number of entities: {self.numberOfEntities}")
+        return Group(
+            Text("Identifier:", style="bold", end=" "),
+            Text(self.uri, style="bold green"),
+            Text("Number of entities:", style="bold", end=" "),
+            Pretty(self.numberOfEntities),
+        )
 
     def commit(self) -> None:
         pass

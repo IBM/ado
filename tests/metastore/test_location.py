@@ -73,15 +73,15 @@ def test_resource_location_port_in_host_migration() -> None:
     assert location.port == 8080
 
 
-def test_pretty_resource_location() -> None:
+def test_resource_location_rich_print() -> None:
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
     url = "https://user:mypass123@localhost:8080/path"
 
     location = orchestrator.utilities.location.ResourceLocation.locationFromURL(url)
 
-    pretty(location)
+    Console().print(location)
 
 
 def test_file_path_location_with_existing() -> None:

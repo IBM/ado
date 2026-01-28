@@ -45,7 +45,7 @@ class TabularData(pydantic.BaseModel):
 
     def __rich__(self) -> "RenderableType":
         """Render this tabular data using rich."""
-        from orchestrator.utilities.rich_output import dataframe_to_rich_table
+        from orchestrator.utilities.rich import dataframe_to_rich_table
 
         return dataframe_to_rich_table(self.dataframe())
 

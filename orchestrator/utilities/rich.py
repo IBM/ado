@@ -9,6 +9,24 @@ from rich.table import Table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
+    from rich.console import RenderableType
+
+
+def get_rich_repr(obj: typing.Any) -> "RenderableType":  # noqa: ANN401
+    """Get a rich representation of an object.
+
+    If the object has a __rich__() method, use it.
+    Otherwise, fall back to rich.pretty.Pretty for automatic formatting.
+
+    Args:
+        obj: Any object to get a rich representation for
+
+    Returns:
+        A RenderableType that can be displayed by rich Console
+    """
+    if hasattr(obj, "__rich__"):
+        return obj.__rich__()
+    return Pretty(obj)
 
 
 def dataframe_to_rich_table(

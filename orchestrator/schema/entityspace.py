@@ -116,7 +116,7 @@ class EntitySpaceRepresentation:
         from rich.pretty import Pretty
         from rich.text import Text
 
-        from orchestrator.utilities.rich_output import dataframe_to_rich_table
+        from orchestrator.utilities.rich import dataframe_to_rich_table
 
         content = []
 

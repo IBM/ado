@@ -1,3 +1,63 @@
+## [1.4.0](https://github.com/ibm/ado/compare/1.3.3..1.4.0) - 2026-01-28
+#### Features
+- (**core**) allow specifying actuator in csv sample store (#455) - ([bda00ad](https://github.com/ibm/ado/commit/bda00adfa1edf6c86acc27a8d68bac1a0a4d13f5)) - Michael Johnston
+- (**ray_tune**) add difference stopper (#412) - ([3d2f46c](https://github.com/ibm/ado/commit/3d2f46ca9eb71464e9fc357620659b68307b3af5)) - Michael Johnston
+- (**sfttrainer**) add support for fms-hf-tuning==v3.1.0 (#442) - ([b060d3d](https://github.com/ibm/ado/commit/b060d3d4d861211808131cdcd214501631f1aeb6)) - Vassilis Vassiliadis
+- (**vllm_performance**) Add GuideLLM experiments (#459) - ([46ffac8](https://github.com/ibm/ado/commit/46ffac88b47cb4c71c92a480c40028876955103e)) - Christian Pinto
+- (**vllm_performance**) ensure namespace is RFC1123-compliant (#358) - ([2bf1072](https://github.com/ibm/ado/commit/2bf107216b66f49050c709f41ea2336ac13730f4)) - Alessandro Pomponio
+#### Bug Fixes
+- (**core**) add relationships to interrupted nested operations  (#379) - ([e6eacdb](https://github.com/ibm/ado/commit/e6eacdbb1a9f8481181319937a1bb59f32b41b4c)) - Michael Johnston
+- (**modules**) use correct type annotations for closures (#447) - ([335903b](https://github.com/ibm/ado/commit/335903be04ef60a38719822005d8d7f310001346)) - Alessandro Pomponio
+- (**ordered_pip**) keep fields other than ordered_pip and inject pip_install_options to all phases (#390) - ([f8f9def](https://github.com/ibm/ado/commit/f8f9def1924183eb8d95b9ff7a9cabb16d4f2c99)) - Vassilis Vassiliadis
+- (**sfttrainer**) fix the support for fms-hf-tuning==3.1.0 (#448) - ([e9bf2b2](https://github.com/ibm/ado/commit/e9bf2b22e9c337a6a21c2e75bc8f15041bdd33a2)) - Vassilis Vassiliadis
+- (**sfttrainer**) the only ado wheel to propagate is ado-sfttrainer (#431) - ([b7583ec](https://github.com/ibm/ado/commit/b7583ecd7247990fde3b1ee8703999293f269948)) - Vassilis Vassiliadis
+#### Performance Improvements
+- use new numpy RNG apis (#357) - ([1c9c7f3](https://github.com/ibm/ado/commit/1c9c7f3ad0e0277044bdaf9c79b0c49dda1ac25f)) - Alessandro Pomponio
+#### Documentation
+- (**changelog**) update changelog (#377) - ([7372902](https://github.com/ibm/ado/commit/7372902b2795416baa3601625c1307b075fa0c74)) - Alessandro Pomponio
+- (**sfttrainer**) update documentation for HYBRID_SHARD (#389) - ([4364b4e](https://github.com/ibm/ado/commit/4364b4ec8d6cae71bb8e9ac8ca031202cf311965)) - Vassilis Vassiliadis
+#### Tests
+- (**core**) add coverage report (#391) - ([d7afb9c](https://github.com/ibm/ado/commit/d7afb9cf3468df7fa2e4dcd58becbce66e299121)) - Alessandro Pomponio
+#### Build system
+- (**deps**) update dependencies (#466) - ([1a12fa6](https://github.com/ibm/ado/commit/1a12fa6524b073effb0ef0ad0f8be81c24af477f)) - Alessandro Pomponio
+- (**deps**) update dependencies (#451) - ([e1dc4a1](https://github.com/ibm/ado/commit/e1dc4a19f3e241c8c438c477b3c351c80076cc5a)) - Alessandro Pomponio
+- (**deps**) update dependencies (#430) - ([efe881d](https://github.com/ibm/ado/commit/efe881d165f30e011880201bea8ab0f769f36731)) - Alessandro Pomponio
+- (**deps**) update dependencies (#361) - ([ef91044](https://github.com/ibm/ado/commit/ef91044994bf8716f17629b470f2072cbe913512)) - Alessandro Pomponio
+- (**ruff**) enable ANN linter (#440) - ([a0c8a63](https://github.com/ibm/ado/commit/a0c8a6345d657cc738ded37e8a3c7356ffbd97fe)) - Alessandro Pomponio
+- (**vllm_performance**) update dependencies (#439) - ([b5162ec](https://github.com/ibm/ado/commit/b5162ecd021eb6940c5cf85ce9583b4510d6763c)) - Alessandro Pomponio
+- (**vllm_performance**) require vllm>=0.12.0 (#426) - ([866c067](https://github.com/ibm/ado/commit/866c067abd35477405960a1503838d5dc77f31a3)) - Alessandro Pomponio
+- update pre-commit hooks (#371) - ([b051c50](https://github.com/ibm/ado/commit/b051c50f0a1bebf086f30f3f755c4f90758c0543)) - Alessandro Pomponio
+#### Refactoring
+- (**core**) mark ADOResource.identifier as Defaultable (#446) - ([93b8e34](https://github.com/ibm/ado/commit/93b8e34571bad8b7ca5ef2dd1d496071206de903)) - Alessandro Pomponio
+- (**core**) change validate_model to instance method (#370) - ([2020eb6](https://github.com/ibm/ado/commit/2020eb605b44ecbefb1bb70eb63a65c646f16d4e)) - Alessandro Pomponio
+- (**samplestores**) disallow None parameters (#408) - ([2b31405](https://github.com/ibm/ado/commit/2b31405bbbf8372daa8fb20717cb53b4ea232277)) - Alessandro Pomponio
+- (**sfttrainer**) rewrite simple string joins as fstrings (#454) - ([d6bf32a](https://github.com/ibm/ado/commit/d6bf32a7146d492e8b6296f6e2d0a1dfdd2439db)) - Alessandro Pomponio
+- (**tests**) clean up tox file (#465) - ([994b2f7](https://github.com/ibm/ado/commit/994b2f716ef864430b5ed8cf8533c7cb3cf84e3f)) - Alessandro Pomponio
+- (**vllm_performance**) remove upgrade path for parameters (#418) - ([7746924](https://github.com/ibm/ado/commit/77469248c64c6b9cdd4e815c14bbcb589f04976e)) - Alessandro Pomponio
+- (**vllm_performance**) avoid invoking bench command with shell=True (#359) - ([0314c02](https://github.com/ibm/ado/commit/0314c026d280199e242ccf545f27ae3082158353)) - Alessandro Pomponio
+- remove commented-out code (#453) - ([46a645f](https://github.com/ibm/ado/commit/46a645f57abe9e7bf23e7c483ec8c43cbe044857)) - Alessandro Pomponio
+- use Annotated pattern for pydantic models (#443) - ([526af2e](https://github.com/ibm/ado/commit/526af2eb791106ddcde83acdcb563bf8f03d034c)) - Alessandro Pomponio
+- use Annotated type hint pattern for Pydantic models (#436) - ([9a83af2](https://github.com/ibm/ado/commit/9a83af245b731fce62a95a2b623fe0154833eec4)) - Alessandro Pomponio
+- auto-add type annotations where possible (#393) - ([c7daab5](https://github.com/ibm/ado/commit/c7daab58a22f03d028691e66ac8d74662b3a83d7)) - Alessandro Pomponio
+- enable ruff's Bandit linter (S) (#365) - ([5eb333f](https://github.com/ibm/ado/commit/5eb333f7d49609b0ed6a9d5df5f36f677218fb87)) - Alessandro Pomponio
+- rewrite PropertyDescriptor.__eq__ (#349) - ([0ce1db6](https://github.com/ibm/ado/commit/0ce1db6fdc4bb0889e5f6bf7b2d236a7d7414ccb)) - Alessandro Pomponio
+#### Style
+- (**anomalous_series**) add type annotations (#425) - ([31f20ae](https://github.com/ibm/ado/commit/31f20aedab9b26c4655899c75a11f17e7f40215a)) - Alessandro Pomponio
+- (**autoconf**) add type annotations (#423) - ([7a3bd38](https://github.com/ibm/ado/commit/7a3bd384e18926549de8de49069877733fa4adb1)) - Alessandro Pomponio
+- (**cli**) add type annotations (#400) - ([381e645](https://github.com/ibm/ado/commit/381e6456a9b6d43942ed3d2d75bba2a4dc2ec8f0)) - Alessandro Pomponio
+- (**core**) add type annotations (#414) - ([bb9039e](https://github.com/ibm/ado/commit/bb9039e8988f996ea45bab42864f8c887f3f1f76)) - Alessandro Pomponio
+- (**example_actuator**) add type annotations (#421) - ([9efc5b4](https://github.com/ibm/ado/commit/9efc5b47419e82a68698d16e1bf9fb05b43d5e5c)) - Alessandro Pomponio
+- (**examples**) add type annotations (#434) - ([174d5a9](https://github.com/ibm/ado/commit/174d5a91d8d361e454f43069b223b56d3c75b206)) - Alessandro Pomponio
+- (**metastore**) add type annotations (#402) - ([41b57f1](https://github.com/ibm/ado/commit/41b57f151fef80fdee665bd3778e729d4349ce5f)) - Alessandro Pomponio
+- (**modules**) add type annotations (#413) - ([4adaaf9](https://github.com/ibm/ado/commit/4adaaf9467b750bb1efeb6ba043cbaa55f3193c7)) - Alessandro Pomponio
+- (**ray_tune**) add type annotations (#437) - ([6cde7a1](https://github.com/ibm/ado/commit/6cde7a1a6ed0a665f0ca133ec973e3a9457dd438)) - Michael Johnston
+- (**samplestores**) add type annotations (#404) - ([6d2c683](https://github.com/ibm/ado/commit/6d2c6837dcfdfe4867a8688485716a4aceb13496)) - Alessandro Pomponio
+- (**schema**) add type annotations (#416) - ([a215ec7](https://github.com/ibm/ado/commit/a215ec7874635f677f983c2f7e3f64ff6c298e85)) - Alessandro Pomponio
+- (**sfttrainer**) add type annotations (#420) - ([ca5548f](https://github.com/ibm/ado/commit/ca5548f8407338def3b5d02c4cf4b63a74665d88)) - Alessandro Pomponio
+- (**tests**) add type annotations (#432) - ([44bea4d](https://github.com/ibm/ado/commit/44bea4de54b24ab04e9e6ceece52555783631242)) - Alessandro Pomponio
+- (**utilities**) add type annotations (#406) - ([c4c6a63](https://github.com/ibm/ado/commit/c4c6a6362c6bac88fa32901a35acf38d20a7d7ce)) - Alessandro Pomponio
+- enable PIE and T10 linters (#384) - ([3d2f9f5](https://github.com/ibm/ado/commit/3d2f9f567b78682dddd22e985d600cd622320101)) - Alessandro Pomponio
+
 ## [1.3.3](https://github.com/ibm/ado/compare/2fc3b9113577a2e7a9fb7532440b166237c7f6fa..1.3.3) - 2026-01-8
 #### Features
 - (**cli**) support loading commands via plugins (#344) - ([6e61cff](https://github.com/ibm/ado/commit/6e61cff68d90004617b4d3b8f00ec116bd9e7651)) - Michael Johnston

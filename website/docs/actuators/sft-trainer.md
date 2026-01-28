@@ -2001,7 +2001,7 @@ operation:
     singleMeasurement: false # Disable memoization
     maxRetries: 1
 ```
-<!-- markdownlint-ensable MD046 -->
+<!-- markdownlint-enable MD046 -->
 
 Then after all five operations finish, obtain a CSV file containing the observed
 properties on the space you created like so:
@@ -2010,7 +2010,7 @@ properties on the space you created like so:
 ```commandline
 ado show entities space --output-format csv $DISCOVERY_SPACE_ID
 ```
-<!-- markdownlint-ensable MD046 -->
+<!-- markdownlint-enable MD046 -->
 
 Finally, use the script `sfttrainer_check_stability` that you get by
 installing the `ado-sfttrainer` package:
@@ -2019,7 +2019,7 @@ installing the `ado-sfttrainer` package:
 ```commandline
 sfttrainer_check_stability $pathTotheCSVFileFromAbove
 ```
-<!-- markdownlint-ensable MD046 -->
+<!-- markdownlint-enable MD046 -->
 
 You should see an output similar to this:
 
@@ -2057,7 +2057,7 @@ Interpretation:
   - CV < 10%: Fair stability
   - CV ≥ 10%: Poor stability
 ```
-<!-- markdownlint-ensable MD046 -->
+<!-- markdownlint-enable MD046 -->
 
 ## Configure your RayCluster for RDMA over Converged Ethernet (RoCE)
 

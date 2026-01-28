@@ -4,7 +4,7 @@
 import abc
 import typing
 from abc import ABC
-from typing import Annotated
+from typing import Annotated, Literal
 
 import pydantic
 from pydantic import ConfigDict
@@ -45,7 +45,6 @@ class SampleStore(abc.ABC):
     ) -> (
         orchestrator.modules.actuators.catalog.ExperimentCatalog | None
     ):  # pragma: nocover
-
         pass
 
     @property
@@ -203,27 +202,242 @@ class ActiveSampleStore(SampleStore, ABC):
 
 
 class MockParams(pydantic.BaseModel):
-
     numberOfEntities: Annotated[int, pydantic.Field()] = 100
     model_config = ConfigDict(extra="forbid")
 
 
 class ExperimentDescription(pydantic.BaseModel):
+    """Base class for experiment descriptions in sample stores"""
+
     experimentIdentifier: Annotated[
         str, pydantic.Field(description="The name of the experiment")
     ]
-    propertyMap: Annotated[
-        dict,
+    actuatorIdentifier: Annotated[
+        str,
+        pydantic.Field(description="The actuator that provides this experiment"),
+    ]
+    observedPropertyMap: Annotated[
+        dict[str, str] | list[str],
         pydantic.Field(
-            description="A dictionary that maps the names of the properties exposed by the"
-            " experiment to potential other names used for those properties by the sample store"
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
         ),
     ]
+    constitutivePropertyMap: Annotated[
+        dict[str, str] | list[str],
+        pydantic.Field(
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places."
+        ),
+    ]
+
+    @pydantic.field_validator(
+        "observedPropertyMap", "constitutivePropertyMap", mode="before"
+    )
+    @classmethod
+    def convert_list_to_dict(cls, value: dict[str, str] | list[str]) -> dict[str, str]:
+        """Convert list format to dict format where keys equal values"""
+        if isinstance(value, list):
+            return {item: item for item in value}
+        return value
+
+    @pydantic.field_serializer("observedPropertyMap", "constitutivePropertyMap")
+    def serialize_property_map_as_list_if_identical(
+        self, value: dict[str, str]
+    ) -> dict[str, str] | list[str]:
+        """Serialize property map as list if keys and values are identical"""
+        if isinstance(value, dict) and all(key == val for key, val in value.items()):
+            # Return as list preserving insertion order
+            return list(value.keys())
+        return value
+
+    @property
+    def source_observed_property_identifiers(self) -> list[str]:
+        """Returns the sample store column names for the observed properties."""
+        return list(self.observedPropertyMap.values())
+
+    @property
+    def source_constitutive_property_identifiers(self) -> list[str]:
+        """Returns the sample store column names for the constitutive properties."""
+        return list(self.constitutivePropertyMap.values())
+
+    @property
+    def experiment(self) -> Experiment:
+        """Returns an Experiment object configured with this description's properties.
+
+        The experiment uses the property names (keys from the property maps) as its
+        target observed properties and required constitutive properties.
+        """
+        return Experiment.experimentWithAbstractPropertyIdentifiers(
+            identifier=self.experimentIdentifier,
+            actuatorIdentifier=self.actuatorIdentifier,
+            targetProperties=self.observedPropertyMap.keys(),
+            requiredConstitutiveProperties=self.constitutivePropertyMap.keys(),
+        )
+
+
+class ExternalExperimentDescription(ExperimentDescription):
+    """Experiment description for external (replay) experiments"""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    actuatorIdentifier: Annotated[
+        Literal["replay"],
+        pydantic.Field(
+            description="External experiments always use the 'replay' actuator",
+        ),
+    ] = "replay"
+
+
+class InternalExperimentDescription(ExperimentDescription):
+    """Experiment description for internal experiments with auto-inference"""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+    observedPropertyMap: Annotated[
+        dict[str, str] | list[str] | None,
+        pydantic.Field(
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places.",
+        ),
+    ] = None
+    constitutivePropertyMap: Annotated[
+        dict[str, str] | list[str] | None,
+        pydantic.Field(
+            description="Mapping of property names from the experiment to column names in the sample store. "
+            "Use a dictionary (e.g., {'experiment_prop': 'store_column'}) when names differ, "
+            "or a simple list (e.g., ['prop1', 'prop2']) when names are identical in both places.",
+        ),
+    ] = None
+    propertyFormat: Annotated[
+        Literal["target", "observed"],
+        pydantic.Field(
+            description="Whether source names for observed properties map to experiment target property (default) or observed property identifiers.",
+        ),
+    ] = "target"
+
+    @pydantic.model_validator(mode="after")
+    def infer_and_validate_property_maps(self) -> "InternalExperimentDescription":
+        """Infer property maps from experiment definition and validate"""
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+        from orchestrator.schema.reference import ExperimentReference
+
+        registry = ActuatorRegistry.globalRegistry()
+
+        # Get the experiment definition (will raise exception if not found)
+        exp_ref = ExperimentReference(
+            experimentIdentifier=self.experimentIdentifier,
+            actuatorIdentifier=self.actuatorIdentifier,
+        )
+        experiment = registry.experimentForReference(exp_ref)
+
+        # Infer observedPropertyMap if not provided
+        # Keys are always target property identifiers
+        # Values depend on propertyFormat
+        if not self.observedPropertyMap:
+            if self.propertyFormat == "target":
+                # Map target property identifiers to themselves (column names match target identifiers)
+                self.observedPropertyMap = {
+                    prop.identifier: prop.identifier
+                    for prop in experiment.targetProperties
+                }
+            else:  # "observed"
+                # Map target property identifiers to observed property identifiers (column names match observed identifiers)
+                self.observedPropertyMap = {
+                    obs_prop.targetProperty.identifier: obs_prop.identifier
+                    for obs_prop in experiment.observedProperties
+                }
+
+        # Validate observedPropertyMap keys (always target property identifiers)
+        valid_target_identifiers = {
+            prop.identifier for prop in experiment.targetProperties
+        }
+        provided_keys = set(self.observedPropertyMap.keys())
+
+        # Check for invalid keys (we don't require all target properties to be present)
+        invalid_keys = provided_keys - valid_target_identifiers
+        if invalid_keys:
+            raise ValueError(
+                f"observedPropertyMap contains invalid target property identifiers: "
+                f"{sorted(invalid_keys)}. Valid identifiers: {sorted(valid_target_identifiers)}"
+            )
+
+        # Infer constitutivePropertyMap if not provided
+        if not self.constitutivePropertyMap:
+            # Map constitutive property identifiers to themselves
+            self.constitutivePropertyMap = {
+                prop.identifier: prop.identifier
+                for prop in experiment.requiredConstitutiveProperties
+            }
+
+        # Validate constitutivePropertyMap keys
+        valid_constitutive_identifiers = {
+            prop.identifier for prop in experiment.requiredConstitutiveProperties
+        }
+        provided_const_keys = set(self.constitutivePropertyMap.keys())
+
+        # Check for invalid keys
+        invalid_const_keys = provided_const_keys - valid_constitutive_identifiers
+        if invalid_const_keys:
+            raise ValueError(
+                f"constitutivePropertyMap contains invalid constitutive property identifiers: "
+                f"{sorted(invalid_const_keys)}. Valid identifiers: {sorted(valid_constitutive_identifiers)}"
+            )
+
+        # Check that all required keys are present
+        missing_const_keys = valid_constitutive_identifiers - provided_const_keys
+        if missing_const_keys:
+            raise ValueError(
+                f"constitutivePropertyMap is missing required constitutive property identifiers: "
+                f"{sorted(missing_const_keys)}"
+            )
+
+        return self
+
+    @property
+    def experiment(self) -> Experiment:
+        """Returns the experiment from the actuator registry"""
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+        from orchestrator.schema.reference import ExperimentReference
+
+        registry = ActuatorRegistry.globalRegistry()
+        exp_ref = ExperimentReference(
+            experimentIdentifier=self.experimentIdentifier,
+            actuatorIdentifier=self.actuatorIdentifier,
+        )
+        return registry.experimentForReference(exp_ref)
+
+
+def source_experiment_description_discriminator(
+    desc: dict | ExternalExperimentDescription | InternalExperimentDescription,
+) -> str:
+    """Discriminator function for SourceExperimentDescription union"""
+    if isinstance(desc, ExternalExperimentDescription):
+        return "External"
+    if isinstance(desc, InternalExperimentDescription):
+        return "Internal"
+    if isinstance(desc, dict):
+        actuator_id = desc.get("actuatorIdentifier", "replay")
+        return "External" if actuator_id == "replay" else "Internal"
+
+    raise ValueError(
+        f"Unable to determine source experiment description type for desc: {desc}"
+    )
+
+
+SourceExperimentDescription = Annotated[
+    Annotated[ExternalExperimentDescription, pydantic.Tag("External")]
+    | Annotated[InternalExperimentDescription, pydantic.Tag("Internal")],
+    pydantic.Discriminator(source_experiment_description_discriminator),
+]
 
 
 class SampleStoreDescription(pydantic.BaseModel):
     experiments: Annotated[
-        list[ExperimentDescription],
+        list[SourceExperimentDescription],
         pydantic.Field(
             default_factory=list,
             description="A list describing the experiments in the source",
@@ -236,17 +450,10 @@ class SampleStoreDescription(pydantic.BaseModel):
 
     @property
     def catalog(self) -> ExperimentCatalog:
-
         experiments = {}
         for desc in self.experiments:
-            experiment = Experiment.experimentWithAbstractPropertyIdentifiers(
-                identifier=desc.experimentIdentifier,
-                actuatorIdentifier="replay",
-                targetProperties=desc.propertyMap.keys(),
-                requiredConstitutiveProperties=[
-                    cp.identifier for cp in self.constitutiveProperties
-                ],
-            )
+            # Use the experiment property from ExperimentDescription
+            experiment = desc.experiment
             experiments[experiment.identifier] = experiment
 
         return ExperimentCatalog(
@@ -254,8 +461,7 @@ class SampleStoreDescription(pydantic.BaseModel):
         )
 
     @property
-    def experimentDescriptionMap(self) -> dict[str, ExperimentDescription]:
-
+    def experimentDescriptionMap(self) -> dict[str, SourceExperimentDescription]:
         return {e.experimentIdentifier: e for e in self.experiments}
 
     @property
@@ -270,12 +476,37 @@ class SampleStoreDescription(pydantic.BaseModel):
 
     @property
     def constitutiveProperties(self) -> list[ConstitutiveProperty]:
+        """Return constitutive property descriptors from all experiment descriptions"""
+        from orchestrator.schema.property import ConstitutivePropertyDescriptor
 
-        raise ValueError("Subclasses must implement this method")
+        # Collect all unique constitutive property identifiers from experiment descriptions
+        property_identifiers = set()
+        for exp_desc in self.experiments:
+            property_identifiers.update(exp_desc.constitutivePropertyMap.keys())
+
+        return [
+            ConstitutivePropertyDescriptor(identifier=prop_id)
+            for prop_id in sorted(property_identifiers)
+        ]
+
+    @property
+    def source_observed_property_identifiers(self) -> list[str]:
+        """Returns all source column names for observed properties from all experiment descriptions"""
+        identifiers = []
+        for exp_desc in self.experiments:
+            identifiers.extend(exp_desc.source_observed_property_identifiers)
+        return identifiers
+
+    @property
+    def source_constitutive_property_identifiers(self) -> list[str]:
+        """Returns all source column names for constitutive properties from all experiment descriptions"""
+        identifiers = set()
+        for exp_desc in self.experiments:
+            identifiers.update(exp_desc.source_constitutive_property_identifiers)
+        return sorted(identifiers)
 
 
 class FailedToDecodeStoredEntityError(Exception):
-
     def __init__(
         self, entity_identifier: str, entity_representation: dict, cause: Exception
     ) -> None:
@@ -290,7 +521,6 @@ class FailedToDecodeStoredEntityError(Exception):
 
 
 class FailedToDecodeStoredMeasurementResultForEntityError(Exception):
-
     def __init__(
         self, entity_identifier: str, result_representation: dict, cause: Exception
     ) -> None:

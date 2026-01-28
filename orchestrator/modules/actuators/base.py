@@ -7,7 +7,6 @@ import typing
 from typing import Annotated
 
 import pydantic
-from ray.actor import ActorHandle
 
 import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import (
@@ -26,9 +25,6 @@ from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
 
 moduleLog = logging.getLogger("actuatorsbase")
-
-if typing.TYPE_CHECKING:
-    import orchestrator.metastore.project
 
 
 class MeasurementError(Exception):
@@ -174,4 +170,6 @@ class ActuatorModuleConf(ModuleConf):
 
 
 if typing.TYPE_CHECKING:
+    from ray.actor import ActorHandle
+
     ActuatorActor = type[ActorHandle[ActuatorBase]]

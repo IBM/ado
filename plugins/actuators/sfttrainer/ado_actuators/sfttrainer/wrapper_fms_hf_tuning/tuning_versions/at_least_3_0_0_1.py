@@ -39,7 +39,9 @@ def parse_arguments_and_execute_wrapper(
     if not os.path.isdir(training_args.output_dir):
         os.makedirs(training_args.output_dir, exist_ok=True)
 
-    training_args = typing.cast(tuning.config.configs.TrainingArguments, training_args)
+    training_args = typing.cast(
+        "tuning.config.configs.TrainingArguments", training_args
+    )
     training_args.trackers = []
 
     metadata = {}

@@ -139,8 +139,10 @@ copyFrom:
       identifierColumn: "config"
       experiments:
         - experimentIdentifier: "benchmark_performance"
-          propertyMap:
-            wallClockRuntime: "wallClockRuntime"
+          constitutivePropertyMap: 
+            - cpu_type
+          observedPropertyMap:
+            - wallClockRuntime
 ```
 
 ## Accessing the entities in a sample store
@@ -191,7 +193,12 @@ copyFrom:
 
 This is a passive Sample Store that can be used to extract entities from a CSV
 file. It is assumed each row is an entity and the columns are constitutive
-properties or observed properties
+properties or observed properties.
+
+#### Importing data from external experiments
+
+The below YAML illustrates importing data from a CSV for an experiment
+which is not provided by an installed `ado` actuator.
 
 <!-- markdownlint-disable line-length -->
 ```yaml
@@ -204,21 +211,88 @@ copyFrom:
     parameters:
       generatorIdentifier: 'multi-cloud-ml' # A string that will be stored with the extracted entities as their generatorIdentifier
       identifierColumn: 'config'. # The column in the CSV file that contains the entity id
-      constitutivePropertyColumns:
-        -  # A list of columns which contain constitutive properties
       experiments: # A list of dictionaries that map CSV columns to experiments and target properties. Each dictionary is an experiment
         - experimentIdentifier: 'benchmark_performance' # The experiment name you want the following properties to be associated with
-          propertyMap: # List of target property name:column id pairs
-            wallClockRuntime: 'wallClockRuntime' # The key is the target property name, the value is the column containing the values for that property
+          constitutivePropertyMap: # A list of columns which contain constitutive properties. Can also be a dict of property name to column name pairs
+            - cpu_value
+          observedPropertyMap: # Dict of target property name:column id pairs, or list of column ids 
+            wallClockRuntime: 'wall-clock runtime' # The key is the target property name, the value is the column containing the values for that property
 ```
 <!-- markdownlint-enable line-length -->
 
-Note, since CSV files contain arbitrary data in general there is no way `ado`
-can know how a particular value was generated or how to generate new such
-values. However, the measurements in a CSV can be mapped to the
-"experiment+property" model that `ado` uses, if you want to copy them.
+You must specify which CSV columns contain observed properties (measurements/results)
+and which contain constitutive properties (input parameters/configurations).
+You can do this in one of two ways.
 
-You do not have to copy all the columns in a CSV or have any experiments.
+1. **Use CSV column names as-is** - Pass a list:
+
+   ```yaml
+   constitutivePropertyMap:
+     - cpu_value
+     - memory_gb
+   ```
+
+   This uses `cpu_value` and `memory_gb` as both the column names AND property names.
+
+2. **Rename columns** - Pass a dictionary:
+
+   ```yaml
+   observedPropertyMap:
+     wallClockRuntime: 'wall-clock runtime'
+     throughput: 'requests_per_sec'
+   ```
+
+   This reads from CSV columns `wall-clock runtime` and `requests_per_sec`,
+   but names them `wallClockRuntime` and `throughput` in the experiment.
+
+#### Importing data from existing actuators
+
+When importing CSV data that was exported from `ado` or contains results from an
+actuator available in your current instance, you can reference the actual
+actuator and experiment identifiers. The property mappings
+(`observedPropertyMap` and `constitutivePropertyMap`) become optional because
+`ado` can automatically infer the correct column mappings from the actuator's
+experiment definition.
+
+<!-- markdownlint-disable line-length -->
+```yaml
+copyFrom:
+  - module:
+      moduleClass: CSVSampleStore
+      moduleName: orchestrator.core.samplestore.csv
+    storageLocation:
+      path: 'results_export.csv'
+    parameters:
+      generatorIdentifier: 'vllm-benchmark-run'
+      identifierColumn: 'config'
+      experiments:
+        - experimentIdentifier: 'test-deployment-v1'
+          actuatorIdentifier: 'vllm_performance'  # Specify the actual actuator
+          propertyFormat: 'target' # if the columns for observed properties use target property names or observed property names
+```
+<!-- markdownlint-enable line-length -->
+
+`ado` will verify that:
+
+1. The specified actuator exists in the current instance
+2. The experiment exists in that actuator's catalog
+3. The CSV contains all required constitutive properties for the experiment
+(i.e. has columns with correct names)
+
+If the columns in the CSV don't match the experiments constitutive/observed properties
+you can use the `observedPropertyMap` and/or `constitutivePropertyMap` fields to
+provide a mapping.
+If these are provided the keys will be validated against the experiment definition.
+
+If any validation fails, a detailed error message will indicate what's wrong.
+
+> [!WARNING] Parameterized Experiments
+>
+> Importing parameterized experiment is not supported yet.
+> If you use a parameterized experiment identifier the data will fail to
+> import with an UnknownExperimentError
+> If you use the base experiment identifier the data will be mapped to the wrong
+> experiment
 
 ## Deleting sample stores
 

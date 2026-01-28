@@ -1894,6 +1894,171 @@ ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yam
 
 <!-- markdownlint-enable line-length -->
 
+## Metrics stability
+
+We recommend using the
+`auto_stop_method: WARMUP_60S_STABLE_120S_OR_10_STEPS`
+option, which helps fms-hf-tuning gather more reliable and stable measurements
+while keeping the duration of each task low.
+This configuration allows the actuator to reach a steady state before sampling,
+ensuring that both system and throughput metrics are highly consistent.
+
+You can verify this stability of fms-hf-tuning yourself by repeating the same
+[RandomWalk operation](../examples/finetune-remotely.md) five times on
+the following DiscoverySpace:
+
+For example, repeat the same [RandomWalk operation](../examples/finetune-remotely.md)
+on the following DiscoverySpace for 5 times:
+
+<!-- markdownlint-disable MD046 -->
+```yaml
+sampleStoreIdentifier: default
+
+experiments:
+  - experimentIdentifier: finetune_full_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: &baseline
+      - property:
+          identifier: fms_hf_tuning_version
+        value: "3.1.0"
+      - property:
+          identifier: num_train_epochs
+        value: 10
+      - property:
+          identifier: auto_stop_method
+        value: WARMUP_60S_STABLE_120S_OR_10_STEPS
+
+  - experimentIdentifier: finetune_full_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: &enhanced
+      - property:
+          identifier: fms_hf_tuning_version
+        value: "3.1.0"
+      - property:
+          identifier: num_train_epochs
+        value: 10
+      - property:
+          identifier: auto_stop_method
+        value: WARMUP_60S_STABLE_120S_OR_10_STEPS
+      - property:
+          identifier: fast_kernels
+        value: ["True", "True", "True"]
+
+  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: *baseline
+  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: *enhanced
+
+entitySpace:
+  - identifier: "model_name"
+    propertyDomain:
+      values:
+        [
+          "granite-3.1-3b-a800m-instruct",
+          "granite-3.1-2b",
+          "llama3.2-1b",
+          "llama3.2-3b",
+          "granite-3.3-8b",
+          "mistral-7b-v0.1",
+        ]
+  - identifier: "number_gpus"
+    propertyDomain:
+      values: [1, 2, 4, 8]
+  - identifier: "model_max_length"
+    propertyDomain:
+      values: [512, 2048, 8192]
+  - identifier: "batch_size"
+    propertyDomain:
+      values: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+  - identifier: "gpu_model"
+    propertyDomain:
+      values: ["NVIDIA-A100-SXM4-80GB"]
+  - identifier: "fast_moe"
+    propertyDomain:
+      values: [0, 1, 2, 4, 8]
+```
+<!-- markdownlint-enable MD046 -->
+
+Remember to switch off memoization in your RandomWalk operation definition:
+
+<!-- markdownlint-disable MD046 -->
+```yaml
+spaces:
+  - <your space id goes here>
+
+actuatorConfigurationIdentifiers:
+  - <your actuator config id goes here>
+
+operation:
+  module:
+    moduleClass: "RandomWalk"
+  parameters:
+    samplerConfig:
+      mode: sequential
+      samplerType: generator
+    singleMeasurement: false # Disable memoization
+    maxRetries: 1
+```
+<!-- markdownlint-ensable MD046 -->
+
+Then after all five operations finish, obtain a CSV file containing the observed
+properties on the space you created like so:
+
+<!-- markdownlint-disable MD046 -->
+```commandline
+ado show entities space --output-format csv $DISCOVERY_SPACE_ID
+```
+<!-- markdownlint-ensable MD046 -->
+
+Finally, use the script `sfttrainer_check_stability` that you get by
+installing the `ado-sfttrainer` package:
+
+<!-- markdownlint-disable MD046 -->
+```commandline
+sfttrainer_check_stability $pathTotheCSVFileFromAbove
+```
+<!-- markdownlint-ensable MD046 -->
+
+You should see an output similar to this:
+
+<!-- markdownlint-disable MD046 -->
+```text
+Total benchmarks analyzed: 63
+
+Mean STD 36.42
+STD of STD 30.79
+
+Coefficient of Variation (CV) statistics:
+  Mean CV:    0.76%
+  Median CV:  0.56%
+  Min CV:     0.12%
+  Max CV:     3.04%
+
+Range as % of Mean statistics:
+  Mean:       1.83%
+  Median:     1.24%
+  Min:        0.26%
+  Max:        7.47%
+
+================================================================================
+STABILITY ASSESSMENT
+================================================================================
+
+Overall Stability Rating: EXCELLENT
+Description: Very stable measurements with minimal variation
+Median CV: 0.56%
+
+Interpretation:
+  - CV < 1%:  Excellent stability
+  - CV < 2%:  Good stability
+  - CV < 5%:  Moderate stability
+  - CV < 10%: Fair stability
+  - CV ≥ 10%: Poor stability
+```
+<!-- markdownlint-ensable MD046 -->
+
 ## Configure your RayCluster for RDMA over Converged Ethernet (RoCE)
 
 [**RoCE**](https://www.roceinitiative.org/roce-introduction/) enables

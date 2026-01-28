@@ -5,6 +5,7 @@
 
 import importlib.metadata
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -54,28 +55,35 @@ class Entity(pydantic.BaseModel):
 
     """
 
-    identifier: str | None = pydantic.Field(
-        default=None,
-        description="An id that uniquely defines this entity w.r.t others."
-        "If one is not supplied it is generated from the constitutive properties",
-    )
-    generatorid: str = pydantic.Field(
-        "unk", description="The id of the generator that created this entity"
-    )
-    constitutive_property_values: tuple[ConstitutivePropertyValue, ...] = (
+    identifier: Annotated[
+        str | None,
+        pydantic.Field(
+            description="An id that uniquely defines this entity w.r.t others."
+            "If one is not supplied it is generated from the constitutive properties"
+        ),
+    ] = None
+    generatorid: Annotated[
+        str,
+        pydantic.Field(description="The id of the generator that created this entity"),
+    ] = "unk"
+    constitutive_property_values: Annotated[
+        tuple[ConstitutivePropertyValue, ...],
         pydantic.Field(
             frozen=True,
             description="A list of ConstitutivePropertyValue objects giving values for constitutive properties",
-        )
-    )
-    measurement_results: list["ValidMeasurementResult"] = pydantic.Field(
-        default_factory=list,
-        description="A list of ValidMeasurementResult objects giving values for observed properties. "
-        "InvalidMeasurementResults are not supported.",
-    )
-    metadata: dict | None = pydantic.Field(
-        default=None, description="Additional metadata on this entity"
-    )
+        ),
+    ]
+    measurement_results: Annotated[
+        list["ValidMeasurementResult"],
+        pydantic.Field(
+            default_factory=list,
+            description="A list of ValidMeasurementResult objects giving values for observed properties. "
+            "InvalidMeasurementResults are not supported.",
+        ),
+    ]
+    metadata: Annotated[
+        dict | None, pydantic.Field(description="Additional metadata on this entity")
+    ] = None
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={

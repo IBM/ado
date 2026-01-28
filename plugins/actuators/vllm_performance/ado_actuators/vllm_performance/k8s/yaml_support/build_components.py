@@ -284,8 +284,6 @@ class ComponentsYaml:
 
         # update selector
         service_yaml["spec"]["selector"]["app.kubernetes.io/instance"] = k8s_name
-
-        # return
         return service_yaml
 
     @staticmethod
@@ -314,8 +312,6 @@ class ComponentsYaml:
 
         # Update metadata
         pvc_yaml["metadata"]["name"] = pvc_name
-
-        # return
         return pvc_yaml
 
 

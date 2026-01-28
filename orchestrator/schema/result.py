@@ -29,22 +29,27 @@ class MeasurementResultStateEnum(str, enum.Enum):
 
 class MeasurementResult(pydantic.BaseModel):
 
-    uid: str = pydantic.Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        frozen=True,
-        min_length=36,
-        max_length=36,
-        description="A unique identifier for this MeasurementResult",
-    )
+    uid: Annotated[
+        str,
+        pydantic.Field(
+            default_factory=lambda: str(uuid.uuid4()),
+            frozen=True,
+            min_length=36,
+            max_length=36,
+            description="A unique identifier for this MeasurementResult",
+        ),
+    ]
 
-    entityIdentifier: str = pydantic.Field(
-        description="The unique identifier of the entity"
-    )
+    entityIdentifier: Annotated[
+        str, pydantic.Field(description="The unique identifier of the entity")
+    ]
 
-    metadata: dict = pydantic.Field(
-        default={},
-        description="Metadata about the MeasurementResult",
-    )
+    metadata: Annotated[
+        dict,
+        pydantic.Field(
+            default_factory=dict, description="Metadata about the MeasurementResult"
+        ),
+    ]
 
     def __eq__(self, other: "MeasurementResult") -> bool:
         return self.uid == other.uid
@@ -65,9 +70,12 @@ class ValidMeasurementResult(MeasurementResult):
     ValidMeasurementResult.measurements[0].property.experimentReference
     """
 
-    measurements: list[ObservedPropertyValue] = pydantic.Field(
-        description="A list of the observed property values measured. Cannot be empty"
-    )
+    measurements: Annotated[
+        list[ObservedPropertyValue],
+        pydantic.Field(
+            description="A list of the observed property values measured. Cannot be empty"
+        ),
+    ]
 
     model_config = pydantic.ConfigDict(extra="forbid")
 
@@ -165,12 +173,18 @@ class ValidMeasurementResult(MeasurementResult):
 class InvalidMeasurementResult(MeasurementResult):
     """Used to record an invalid measurement"""
 
-    experimentReference: ExperimentReference = pydantic.Field(
-        description="Reference to the experiment that attempted the measurement"
-    )
-    reason: str = pydantic.Field(
-        description="A string describing why the measurement was deemed invalid"
-    )
+    experimentReference: Annotated[
+        ExperimentReference,
+        pydantic.Field(
+            description="Reference to the experiment that attempted the measurement"
+        ),
+    ]
+    reason: Annotated[
+        str,
+        pydantic.Field(
+            description="A string describing why the measurement was deemed invalid"
+        ),
+    ]
 
     model_config = pydantic.ConfigDict(extra="forbid")
 

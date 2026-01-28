@@ -6,7 +6,7 @@ import logging
 import typing
 import uuid
 from collections.abc import Callable
-from typing import Any
+from typing import Annotated, Any
 
 import pydantic
 import ray
@@ -61,7 +61,7 @@ class RayRemoteOptions(pydantic.BaseModel):
 
 
 class ExperimentModuleConf(ModuleConf):
-    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.EXPERIMENT)
+    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.EXPERIMENT
 
 
 def _infer_domain_and_property(

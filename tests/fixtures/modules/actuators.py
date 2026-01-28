@@ -6,7 +6,6 @@ import pytest
 
 import orchestrator.core.samplestore.csv
 import orchestrator.plugins.samplestores.gt4sd
-from orchestrator.core.samplestore.base import ExperimentDescription
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.experiment import Experiment
@@ -43,21 +42,25 @@ def global_registry(
 
 @pytest.fixture
 def experiment_catalogs() -> list[ExperimentCatalog]:
-    parameters = {}
+    parameters = {
+        "identifierColumn": "smiles",
+        "generatorIdentifier": "gt4sd-pfas-transformer-model-one",
+        "experiments": [
+            {
+                "experimentIdentifier": "transformer-toxicity-inference-experiment",
+                "actuatorIdentifier": "replay",
+                "observedPropertyMap": dict(
+                    orchestrator.plugins.samplestores.gt4sd.GT4SDTransformer.propertyMap
+                ),
+                "constitutivePropertyMap": ["smiles"],
+            }
+        ],
+    }
 
-    experimentDescription = ExperimentDescription(
-        experimentIdentifier="transformer-toxicity-inference-experiment",
-        propertyMap=orchestrator.plugins.samplestores.gt4sd.GT4SDTransformer.propertyMap,
-    )
-
-    parameters["experiments"] = [experimentDescription]
-    parameters["identifierColumn"] = "smiles"
-    parameters["source"] = "tests/test_generations.csv"
-    parameters["generatorIdentifier"] = "gt4sd-pfas-transformer-model-one"
-    parameters["constitutivePropertyColumns"] = ["smiles"]
-
-    sourceDescription = orchestrator.core.samplestore.csv.CSVSampleStoreDescription(
-        **parameters
+    sourceDescription = (
+        orchestrator.core.samplestore.csv.CSVSampleStoreDescription.model_validate(
+            parameters
+        )
     )
 
     assert (

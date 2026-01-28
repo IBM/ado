@@ -5,7 +5,7 @@ import json
 import logging
 import typing
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
 import sqlalchemy
@@ -53,10 +53,13 @@ if TYPE_CHECKING:
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
-    identifier: str | None = pydantic.Field(description="id for this sample store")
-    configuration: SQLStoreConfiguration | None = pydantic.Field(
-        None, description="connection information for database"
-    )
+    identifier: Annotated[
+        str | None, pydantic.Field(description="id for this sample store")
+    ]
+    configuration: Annotated[
+        SQLStoreConfiguration | None,
+        pydantic.Field(description="connection information for database"),
+    ] = None
 
 
 class SQLSampleStore(ActiveSampleStore):
@@ -72,11 +75,13 @@ class SQLSampleStore(ActiveSampleStore):
         cls,
         csvPath: str,
         idColumn: str,
-        storeConfiguration: SQLStoreConfiguration,
+        storeConfiguration: SQLStoreConfiguration | SQLiteStoreConfiguration,
         generatorIdentifier: str | None = None,
         experimentIdentifier: str | None = None,
+        actuatorIdentifier: str = "replay",
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
+        propertyFormat: Literal["target", "observed"] = "target",
     ) -> "SQLSampleStore":
 
         csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
@@ -84,8 +89,10 @@ class SQLSampleStore(ActiveSampleStore):
             idColumn=idColumn,
             generatorIdentifier=generatorIdentifier,
             experimentIdentifier=experimentIdentifier,
+            actuatorIdentifier=actuatorIdentifier,
             observedPropertyColumns=observedPropertyColumns,
             constitutivePropertyColumns=constitutivePropertyColumns,
+            propertyFormat=propertyFormat,
         )
 
         sql_sample_store = cls(
@@ -278,7 +285,10 @@ class SQLSampleStore(ActiveSampleStore):
     def __init__(
         self,
         identifier: str | None,
-        storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
+        storageLocation: (
+            orchestrator.utilities.location.SQLStoreConfiguration
+            | SQLiteStoreConfiguration
+        ),
         parameters: dict,
     ) -> None:
 

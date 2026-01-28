@@ -5,6 +5,7 @@ import enum
 import logging
 import math
 import typing
+from typing import Annotated
 
 import numpy as np
 import pydantic
@@ -262,12 +263,12 @@ def is_subdomain_of_open_categorical_domain(
 
 
 class ProbabilityFunction(pydantic.BaseModel):
-    identifier: ProbabilityFunctionsEnum = pydantic.Field(
-        default=ProbabilityFunctionsEnum.UNIFORM
+    identifier: Annotated[ProbabilityFunctionsEnum, pydantic.Field()] = (
+        ProbabilityFunctionsEnum.UNIFORM
     )
     # Whatever parameters the probability function takes.
     # Should take range, interval, and categories
-    parameters: dict | None = pydantic.Field(default=None)
+    parameters: Annotated[dict | None, pydantic.Field()] = None
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -310,26 +311,31 @@ class ProbabilityFunction(pydantic.BaseModel):
 class PropertyDomain(pydantic.BaseModel):
     """Describes the domain of a property"""
 
-    values: list[typing.Any] | None = pydantic.Field(
-        default=None, description="The values for a discrete or categorical domain"
+    values: Annotated[
+        list[typing.Any] | None,
+        pydantic.Field(description="The values for a discrete or categorical domain"),
+    ] = None
+    interval: Annotated[
+        int | float | None,
+        pydantic.Field(
+            description="The interval between discrete values variables. Do not set if values is set"
+        ),
+    ] = None  # Only makes sense for discrete variables.
+    domainRange: Annotated[
+        list[int | float] | None,
+        pydantic.Field(
+            description="The range of the domain for discrete or continuous variables. Inclusive of lower bound exclusive of upper bound. Calculated automatically if values is given.",
+            validate_default=True,
+            min_length=2,
+            max_length=2,
+            frozen=True,
+        ),
+    ] = None  # For discrete/continuous variables
+    variableType: Annotated[VariableTypeEnum, pydantic.Field(validate_default=True)] = (
+        VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
     )
-    interval: int | float | None = pydantic.Field(
-        default=None,
-        description="The interval between discrete values variables. Do not set if values is set",
-    )  # Only makes sense for discrete variables.
-    domainRange: list[int | float] | None = pydantic.Field(
-        description="The range of the domain for discrete or continuous variables. Inclusive of lower bound exclusive of upper bound. Calculated automatically if values is given.",
-        default=None,
-        validate_default=True,
-        min_length=2,
-        max_length=2,
-        frozen=True,
-    )  # For discrete/continuous variables
-    variableType: VariableTypeEnum = pydantic.Field(
-        default=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE, validate_default=True
-    )
-    probabilityFunction: ProbabilityFunction = pydantic.Field(
-        default=ProbabilityFunction()
+    probabilityFunction: Annotated[ProbabilityFunction, pydantic.Field()] = (
+        ProbabilityFunction()
     )
 
     model_config = ConfigDict(frozen=True, extra="forbid")

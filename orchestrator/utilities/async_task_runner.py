@@ -43,7 +43,7 @@ class AsyncTaskRunner:
     """
 
     # class instance
-    __instance: "AsyncTaskRunner" | None = None
+    __instance: "AsyncTaskRunner | None" = None
 
     @staticmethod
     def get_instance() -> "AsyncTaskRunner":

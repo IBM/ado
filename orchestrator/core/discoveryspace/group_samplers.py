@@ -247,7 +247,6 @@ async def _sequential_group_iterator_async(
             if len(sample) == 0:
                 # get the new group
                 sample = await _get_grouped_sample_async(generator=generator)
-                # print(f"getting a new group of length {len(sample)}")
                 if sample is None:
                     # no more data
                     # mark that we are done

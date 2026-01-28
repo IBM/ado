@@ -4,6 +4,7 @@
 import enum
 import importlib.metadata
 import typing
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
@@ -173,7 +174,7 @@ def validate_actuator_configuration_ids_against_space_ids(
 
 
 class OperatorModuleConf(ModuleConf):
-    moduleType: ModuleTypeEnum = pydantic.Field(default=ModuleTypeEnum.OPERATION)
+    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.OPERATION
 
     @property
     def operationType(self) -> DiscoveryOperationEnum:
@@ -195,10 +196,10 @@ class OperatorFunctionConf(pydantic.BaseModel):
     """Describes an operator vended as a function"""
 
     model_config = ConfigDict(extra="forbid")
-    operationType: DiscoveryOperationEnum = pydantic.Field(
-        description="The type of the operation"
-    )
-    operatorName: str = pydantic.Field(description="The name of the operator")
+    operationType: Annotated[
+        DiscoveryOperationEnum, pydantic.Field(description="The type of the operation")
+    ]
+    operatorName: Annotated[str, pydantic.Field(description="The name of the operator")]
 
     def validateOperatorExists(self) -> bool:
 
@@ -251,30 +252,44 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    module: OperatorModuleConf | OperatorFunctionConf = pydantic.Field(
-        default=OperatorModuleConf(),
-        description="The module or function providing the discovery operation",
-    )
-    parameters: typing.Any = pydantic.Field(
-        default={},
-        description="The parameters for the operation. Operation provider dependent",
-    )
+    module: Annotated[
+        OperatorModuleConf | OperatorFunctionConf,
+        pydantic.Field(
+            description="The module or function providing the discovery operation"
+        ),
+    ] = OperatorModuleConf()
+    parameters: Annotated[
+        typing.Any,
+        pydantic.Field(
+            default_factory=dict,
+            description="The parameters for the operation. Operation provider dependent",
+        ),
+    ]
 
 
 class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
     """Pydantic model used to define an operation"""
 
     operation: DiscoveryOperationConfiguration
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
-    actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])
-    spaces: list[str] = pydantic.Field(
-        description="List of ids of the spaces the operation will be applied to",
-        min_length=1,
-    )
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
+    actuatorConfigurationIdentifiers: Annotated[
+        list[str], pydantic.Field(default_factory=list)
+    ]
+    spaces: Annotated[
+        list[str],
+        pydantic.Field(
+            description="List of ids of the spaces the operation will be applied to. "
+            "Currently, only one identifier is supported.",
+            min_length=1,
+            max_length=1,
+        ),
+    ]
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={
@@ -336,13 +351,19 @@ class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):
 class FunctionOperationInfo(pydantic.BaseModel):
     """Class for providing information to operator functions"""
 
-    metadata: ConfigurationMetadata = pydantic.Field(
-        default=ConfigurationMetadata(),
-        description="User defined metadata about the configuration. A set of keys and values. "
-        "Two optional keys that are used by convention are name and description",
-    )
-    actuatorConfigurationIdentifiers: list[str] = pydantic.Field(default=[])
-    ray_namespace: str | None = pydantic.Field(
-        description="The namespace the operation should create ray workers/actors in",
-        default=None,
-    )
+    metadata: Annotated[
+        ConfigurationMetadata,
+        pydantic.Field(
+            description="Metadata about the configuration including optional name, description, "
+            "labels for filtering, and any additional custom fields"
+        ),
+    ] = ConfigurationMetadata()
+    actuatorConfigurationIdentifiers: Annotated[
+        list[str], pydantic.Field(default_factory=list)
+    ]
+    ray_namespace: Annotated[
+        str | None,
+        pydantic.Field(
+            description="The namespace the operation should create ray workers/actors in"
+        ),
+    ] = None

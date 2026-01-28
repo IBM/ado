@@ -31,10 +31,18 @@ def initialize_sample_store_from_specification(
     sourceClass = orchestrator.modules.module.load_module_class_or_function(spec.module)
     moduleLogger.debug(f"Class: {sourceClass}, Params: {spec.parameters}")
 
+    # Convert dict parameters back to model object if needed
+    # (parameters are stored as dict for serialization, but constructors expect model objects)
+    if isinstance(spec.parameters, dict):
+        # Always use validate_parameters - it handles both raw and pre-validated dicts
+        parameters = sourceClass.validate_parameters(parameters=spec.parameters)
+    else:
+        parameters = spec.parameters
+
     return sourceClass(
         identifier=identifier,
         storageLocation=spec.storageLocation,
-        parameters=spec.parameters,
+        parameters=parameters,
     )
 
 
@@ -52,18 +60,26 @@ def initialize_sample_store_from_reference(
     )
     moduleLogger.debug(f"Class: {sourceClass}, Params: {reference.parameters}")
 
+    # Convert dict parameters back to model object if needed
+    # (parameters are stored as dict for serialization, but constructors expect model objects)
+    if isinstance(reference.parameters, dict):
+        # Always use validate_parameters - it handles both raw and pre-validated dicts
+        parameters = sourceClass.validate_parameters(parameters=reference.parameters)
+    else:
+        parameters = reference.parameters
+
     if reference.identifier is not None:
         # For sample stores that requires a separate identifier
         # because their storageLocation is a container for possibly many sample stores
         return sourceClass(
             identifier=reference.identifier,
             storageLocation=reference.storageLocation,
-            parameters=reference.parameters,
+            parameters=parameters,
         )
     # for sample stores that are equivalent to the storageLocation i.e. identifier is part of storageLocation
     return sourceClass(
         storageLocation=reference.storageLocation,
-        parameters=reference.parameters,
+        parameters=parameters,
     )
 
 

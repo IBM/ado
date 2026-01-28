@@ -14,7 +14,7 @@
 > explore the deployment parameter space. In this example:
 >
 > - We will define a space of vLLM deployment configurations to test with
-> the `vllm_performance` actuator's `performance_testing_full` experiment
+> the `vllm_performance` actuator's `test-deployment-v1` experiment
 >       - This experiment can create and characterize a vLLM deployment on Kubernetes
 > - Use the [`random_walk` operator](../operators/random-walk.md) to
 >   explore the space

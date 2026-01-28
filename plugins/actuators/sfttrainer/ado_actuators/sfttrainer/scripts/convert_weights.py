@@ -72,15 +72,6 @@ all_models = [
         "/hf-models-pvc/granite-8b-japanese-base-v1-llama/",
         "llama",
     ),
-    # VV: gpt_bitcode causes the code to raise an exception for
-    # assert config.activation_function == "gelu_pytorch_tanh" in
-    #     "dolomite_engine/hf_models/model_conversion/bigcode.py", line 73, in _export_config_to_huggingface
-    # (
-    #     "granite-8b-japanese",
-    #     "/hf-models-pvc/granite-8b-japanese-base-v1/granite-8b-japanese-base-v1-20240806T153614",
-    #     "/hf-models-pvc/granite-8b-japanese-base-v1-gptbigcode/",
-    #     "gpt_bigcode",
-    # ),
 ]
 
 for model_name, path_model, destination, model_type in all_models:

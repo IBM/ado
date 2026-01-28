@@ -147,7 +147,6 @@ def test_get_related_resource_identifiers(
                 resource_type == CoreResourceKinds.DISCOVERYSPACE
                 and rt2 == CoreResourceKinds.SAMPLESTORE
             ):
-                # assert x.shape[0] > 0
                 assert x.columns[0] == "IDENTIFIER"
                 assert x.columns[1] == "TYPE"
                 if x.shape[0] > 0:

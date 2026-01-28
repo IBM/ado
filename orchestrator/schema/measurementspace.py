@@ -75,7 +75,6 @@ class MeasurementSpace:
             These will be searched for the experiments used to measure the properties
             in addition to default catalogs.
             Use this to pass external catalogs i.e. catalogs containing experiments there is no actuator for
-            All catalogs defined under orchestrator. actuators will be searched automatically
         """
 
         # Validate parameterization for the provided experiment references

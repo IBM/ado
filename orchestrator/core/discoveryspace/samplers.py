@@ -158,7 +158,6 @@ class RandomSampleSelector(BaseSampler):
             )
 
             async def iterator() -> typing.AsyncGenerator[list[Entity], None]:
-                # waiting_for_debugger_if_local_mode()
                 # Note: This does not suffer the same problem as the SequentialSampler when numberEntities may
                 # not be equal to the actuator number of entities return by "entities"
                 # Instead in this situation remoteEntityIterator method will raise IndexError when an element

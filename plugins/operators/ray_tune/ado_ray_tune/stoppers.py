@@ -470,7 +470,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
     Users interpret the result based on their context (improvement detection, convergence, etc).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.metric_a = None
         self.metric_b = None
         self.threshold = None
@@ -491,7 +491,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
         threshold: float,
         target_probability: float = 0.95,
         min_samples: int = 10,
-    ):
+    ) -> None:
         """
         Configure the stopper.
 
@@ -531,7 +531,7 @@ class BayesianMetricDifferenceStopper(ray.tune.Stopper):
             f"above OR below threshold"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"BayesianMetricDifferenceStopper("
             f"|{self.metric_a}-{self.metric_b}| vs {self.threshold}, "

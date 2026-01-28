@@ -1,10 +1,14 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+import typing
+
 import ray
 from ray.actor import ActorHandle
 
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
+
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 
 
 @ray.remote

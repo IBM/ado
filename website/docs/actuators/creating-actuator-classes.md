@@ -199,21 +199,28 @@ from `GenericActuatorParameters` and add a reference to it in the
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import ActuatorBase
+from typing import Annotated
 import pydantic
+
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: str = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authToken: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        str,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authToken: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
+
 
 @ray.remote
 class Actuator(ActuatorBase):
@@ -248,11 +255,13 @@ For example, you can declare a required field like this
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
 ```python
-authToken: str = pydantic.Field(
-    description="The token to access the inference service",
-    default=None,              # <--- value that will be written for examples. It is actually invalid
-    validate_default=True,     # <--- This will check if the value is None and raise an error if it is i.e. if the example value was not changed
-)
+authToken: typing.Annotated[
+    str,
+    pydantic.Field(
+        description="The token to access the inference service",
+        validate_default=True,  # <--- This will check if the value is None and raise an error if it is i.e. if the example value was not changed
+    ),
+] = None  # <--- value that will be written for examples. It is actually invalid
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -331,21 +340,27 @@ Let's imagine we want to change the name of the `authToken` field to be
 <!-- markdownlint-disable-next-line code-block-style -->
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Annotated
 import pydantic
+
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: str = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authorization_token: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        str,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authorization_token: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 ```
 
 To enable upgrading of the previous model versions when fields are being
@@ -358,7 +373,7 @@ the validator:
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```python
-from typing import Any
+from typing import Annotated, Any
 
 import pydantic
 
@@ -367,16 +382,20 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: str = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authorization_token: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        str,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authorization_token: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 
     @pydantic.model_validator(mode="before")
     @classmethod
@@ -473,21 +492,26 @@ Let's imagine we want to change the type of the `endpoint` field to be
 <!-- markdownlint-disable-next-line code-block-style -->
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Annotated
 import pydantic
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: pydantic.HttpUrl = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authToken: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        pydantic.HttpUrl,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authToken: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 ```
 
 To enable upgrading of the previous model versions when fields are not being
@@ -506,21 +530,26 @@ applied. To ensure the users are aware of the change, we will also use the
 <!-- markdownlint-disable-next-line code-block-style -->
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from typing import Annotated
 import pydantic
 
 class InferenceActuatorParameters(GenericActuatorParameters):
     model_config = pydantic.ConfigDict(extra="forbid")
 
-    endpoint: pydantic.HttpUrl = pydantic.Field(
-        description="Endpoint to an inference service",
-        default=None,
-        validate_default=True,
-    )
-    authToken: str = pydantic.Field(
-        description="The token to access the inference service",
-        default=None,
-        validate_default=True,
-    )
+    endpoint: Annotated[
+        pydantic.HttpUrl,
+        pydantic.Field(
+            description="Endpoint to an inference service",
+            validate_default=True,
+        ),
+    ] = None
+    authToken: Annotated[
+        str,
+        pydantic.Field(
+            description="The token to access the inference service",
+            validate_default=True,
+        ),
+    ] = None
 
     @pydantic.field_validator("endpoint", mode="before")
     @classmethod

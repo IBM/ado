@@ -350,6 +350,7 @@ class ActuatorRegistry:
             The matching experiment
         Raises:
             Raises UnknownExperimentError if the experiment cannot be found in any catalog
+            Raises UnknownActuatorError if the actuator cannot be found
 
         """
 
@@ -397,9 +398,7 @@ class ActuatorRegistry:
         if experiment is None:
             # AP: we haven't been able to find either the actuator
             #     or the experiment. We want to raise an accurate error
-            if not self.globalRegistry().actuatorForIdentifier(
-                reference.actuatorIdentifier
-            ):
+            if not self.actuatorForIdentifier(reference.actuatorIdentifier):
                 raise UnknownActuatorError(reference.actuatorIdentifier)
             log.error(
                 f"The {reference.actuatorIdentifier}  actuator was found but it did not contain "

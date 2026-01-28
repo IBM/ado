@@ -26,10 +26,17 @@ from ado_actuators.vllm_performance.k8s.create_environment import (
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     VLLMDtype,
 )
+from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
+    BenchmarkParameters,
+    BenchmarkResult,
+)
 from ado_actuators.vllm_performance.vllm_performance_test.execute_benchmark import (
     VLLMBenchmarkError,
     execute_geospatial_benchmark,
     execute_random_benchmark,
+)
+from ado_actuators.vllm_performance.vllm_performance_test.execute_guidellm_benchmark import (
+    execute_guidellm_benchmark,
 )
 from ray.actor import ActorHandle
 
@@ -40,7 +47,6 @@ from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.support import (
     compute_measurement_status,
     create_measurement_result,
-    dict_to_measurements,
 )
 
 logger = logging.getLogger(__name__)
@@ -131,7 +137,6 @@ def _create_environment(
         )
     )
     while True:
-
         try:
             env: Environment = ray.get(
                 env_manager.get_environment.remote(model=model, definition=definition)
@@ -163,7 +168,6 @@ def _create_environment(
 
     match env.state:
         case EnvironmentState.NONE:
-
             # Environment does not exist, create it
             logger.debug(f"Environment {env.k8s_name} does not exist. Creating it")
             tmout = 1
@@ -179,7 +183,7 @@ def _create_environment(
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
                         id=request_id,
-                        label=f"({request_id}) Creating vLLM deployment {env.k8s_name} (attempt {attempt+1}/3)...",
+                        label=f"({request_id}) Creating vLLM deployment {env.k8s_name} (attempt {attempt + 1}/3)...",
                         state="start",
                     )
                 )
@@ -379,7 +383,6 @@ def run_resource_and_workload_experiment(
 
     # For every entity
     for entity in request.entities:
-
         port_forward = None
         definition = None
         started_benchmarking = False
@@ -406,52 +409,73 @@ def run_resource_and_workload_experiment(
 
             logger.info(f"Will use vllm server at {base_url}")
 
-            request_rate = int(values.get("request_rate"))
-            if request_rate < 0:
-                request_rate = None
-            max_concurrency = int(values.get("max_concurrency"))
-            if max_concurrency < 0:
-                max_concurrency = None
+            benchmark_parameters = BenchmarkParameters.model_validate(values)
+            # In this case the endpoint does not come through the property values and is generated
+            # when creating the vLLM deployment
+            benchmark_parameters.endpoint = base_url
+
             started_benchmarking = True
             console.put.remote(
                 message=RichConsoleSpinnerMessage(
                     id=request.requestid,
-                    label=f"({request.requestid}) Executing vllm bench serve",
+                    label=f"({request.requestid}) Executing benchmark",
                     state="start",
                 )
             )
+            logger.info(f"Executing experiment: {experiment.identifier}")
+            result: BenchmarkResult
             if experiment.identifier in [
                 "test-geospatial-deployment-v1",
                 "test-geospatial-deployment-custom-dataset-v1",
             ]:
+                logger.info("Using geospatial benchmark for deployment")
                 result = execute_geospatial_benchmark(
-                    base_url=base_url,
-                    model=values.get("model"),
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
-                    num_prompts=int(values.get("num_prompts")),
-                    request_rate=request_rate,
-                    max_concurrency=max_concurrency,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
                     hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    burstiness=float(values.get("burstiness")),
-                    dataset=values.get("dataset"),
+                    burstiness=benchmark_parameters.burstiness,
+                    dataset=benchmark_parameters.dataset,
+                )
+            elif experiment.identifier in [
+                "test-deployment-guidellm-v1",
+            ]:
+                logger.info("Using GuideLLM benchmark for deployment")
+                result = execute_guidellm_benchmark(
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    number_input_tokens=benchmark_parameters.number_input_tokens,
+                    max_output_tokens=benchmark_parameters.max_output_tokens,
+                    dataset=benchmark_parameters.dataset,
+                    burstiness=benchmark_parameters.burstiness,
                 )
             else:
+                logger.info("Using vLLM random benchmark for deployment")
                 result = execute_random_benchmark(
-                    base_url=base_url,
-                    model=values.get("model"),
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
-                    num_prompts=int(values.get("num_prompts")),
-                    request_rate=request_rate,
-                    max_concurrency=max_concurrency,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
                     hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    number_input_tokens=int(values.get("number_input_tokens")),
-                    max_output_tokens=int(values.get("max_output_tokens")),
-                    burstiness=float(values.get("burstiness")),
-                    dataset=values.get("dataset"),
+                    number_input_tokens=benchmark_parameters.number_input_tokens,
+                    max_output_tokens=benchmark_parameters.max_output_tokens,
+                    burstiness=benchmark_parameters.burstiness,
+                    dataset=benchmark_parameters.dataset,
                 )
 
         except (
@@ -479,9 +503,7 @@ def run_resource_and_workload_experiment(
                 )
             )
         else:
-            measured_values = dict_to_measurements(
-                results=result, experiment=experiment
-            )
+            measured_values = result.to_observed_property_values(experiment=experiment)
             measurements.append(
                 create_measurement_result(
                     identifier=entity.identifier,
@@ -550,43 +572,58 @@ def run_workload_experiment(
                 f"experiment type is {type(experiment)} are {json.dumps(values)}"
             )
 
-            request_rate = int(values.get("request_rate"))
-            if request_rate < 0:
-                request_rate = None
-            max_concurrency = int(values.get("max_concurrency"))
-            if max_concurrency < 0:
-                max_concurrency = None
+            benchmark_parameters = BenchmarkParameters.model_validate(values)
 
             # Will raise VLLMBenchmarkError if there is a problem
+            logger.info(f"Executing experiment: {experiment.identifier}")
+            result: BenchmarkResult
             if experiment.identifier == "test-geospatial-endpoint-v1":
+                logger.info("Using geospatial benchmark for endpoint")
                 result = execute_geospatial_benchmark(
-                    base_url=values.get("endpoint"),
-                    model=values.get("model"),
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
-                    num_prompts=int(values.get("num_prompts")),
-                    request_rate=request_rate,
-                    max_concurrency=max_concurrency,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
                     hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    burstiness=float(values.get("burstiness")),
-                    dataset=values.get("dataset"),
+                    burstiness=benchmark_parameters.burstiness,
+                    dataset=benchmark_parameters.dataset,
+                )
+            elif experiment.identifier == "test-endpoint-guidellm-v1":
+                logger.info("Using GuideLLM benchmark for endpoint")
+                result = execute_guidellm_benchmark(
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
+                    hf_token=actuator_parameters.hf_token,
+                    benchmark_retries=actuator_parameters.benchmark_retries,
+                    retries_timeout=actuator_parameters.retries_timeout,
+                    number_input_tokens=benchmark_parameters.number_input_tokens,
+                    max_output_tokens=benchmark_parameters.max_output_tokens,
+                    dataset=benchmark_parameters.dataset,
+                    burstiness=benchmark_parameters.burstiness,
                 )
             else:
+                logger.info("Using vLLM random benchmark for endpoint")
                 result = execute_random_benchmark(
-                    base_url=values.get("endpoint"),
-                    model=values.get("model"),
+                    base_url=benchmark_parameters.endpoint,
+                    model=benchmark_parameters.model,
                     interpreter=actuator_parameters.interpreter,
-                    num_prompts=int(values.get("num_prompts")),
-                    request_rate=request_rate,
-                    max_concurrency=max_concurrency,
+                    num_prompts=benchmark_parameters.num_prompts,
+                    request_rate=benchmark_parameters.request_rate,
+                    max_concurrency=benchmark_parameters.max_concurrency,
                     hf_token=actuator_parameters.hf_token,
                     benchmark_retries=actuator_parameters.benchmark_retries,
                     retries_timeout=actuator_parameters.retries_timeout,
-                    number_input_tokens=int(values.get("number_input_tokens")),
-                    max_output_tokens=int(values.get("max_output_tokens")),
-                    burstiness=float(values.get("burstiness")),
-                    dataset=values.get("dataset"),
+                    number_input_tokens=benchmark_parameters.number_input_tokens,
+                    max_output_tokens=benchmark_parameters.max_output_tokens,
+                    burstiness=benchmark_parameters.burstiness,
+                    dataset=benchmark_parameters.dataset,
                 )
         except VLLMBenchmarkError as e:
             error = f"Encountered benchmark error when testing entity {entity.identifier}: {e}"
@@ -595,9 +632,7 @@ def run_workload_experiment(
             error = f"Unexpected error for entity {entity.identifier}: {e}"
             logger.error(error)
         else:
-            measured_values = dict_to_measurements(
-                results=result, experiment=experiment
-            )
+            measured_values = result.to_observed_property_values(experiment=experiment)
             logger.debug(f"measured values {measured_values}")
         finally:
             measurements.append(

@@ -81,13 +81,6 @@ def experiment_is_hashable(experiment: Experiment) -> None:
     assert len(d) == 2
 
 
-# else:
-# Parameterized experiment will check if the actuator exists
-# as it needs to validate the parameterization
-# This means we cannot do the above test
-#    pass
-
-
 def experiment_pretty(experiment: Experiment) -> None:
     "Utility function for use in tests"
 

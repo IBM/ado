@@ -23,45 +23,53 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         ),
         AfterValidator(validate_rfc_1123),
     ] = None
-    in_cluster: bool = pydantic.Field(
-        default=False,
-        description="flag to determine whether we are running in K8s cluster or locally",
-    )
-    verify_ssl: bool = pydantic.Field(
-        default=False, description="flag to verify SLL when connecting to server"
-    )
-    image_secret: str = pydantic.Field(
-        default="", description="secret to use when loading image"
-    )
-    node_selector: dict[str, str] = pydantic.Field(
-        default={}, description="dictionary containing node selector key:value pairs"
-    )
-    deployment_template: str | None = pydantic.Field(
-        default=None, description="name of deployment template"
-    )
-    service_template: str | None = pydantic.Field(
-        default=None, description="name of service template"
-    )
-    pvc_template: str | None = pydantic.Field(
-        default=None, description="name of pvc template"
-    )
-    pvc_name: None | str = pydantic.Field(
-        default=None, description="name of pvc to be created/attached"
-    )
-    interpreter: str = pydantic.Field(
-        default="python3", description="name of python interpreter"
-    )
-    benchmark_retries: int = pydantic.Field(
-        default=3, description="number of retries for running benchmark"
-    )
-    retries_timeout: int = pydantic.Field(
-        default=5, description="initial timeout between retries"
-    )
-    hf_token: str = pydantic.Field(
-        default="",
-        validate_default=True,
-        description="Huggingface token - can be empty if you are accessing fully open models",
-    )
-    max_environments: int = pydantic.Field(
-        default=1, description="Maximum amount of concurrent environments"
-    )
+    in_cluster: Annotated[
+        bool,
+        pydantic.Field(
+            description="flag to determine whether we are running in K8s cluster or locally",
+        ),
+    ] = False
+    verify_ssl: Annotated[
+        bool, pydantic.Field(description="flag to verify SLL when connecting to server")
+    ] = False
+    image_secret: Annotated[
+        str, pydantic.Field(description="secret to use when loading image")
+    ] = ""
+    node_selector: Annotated[
+        dict[str, str],
+        pydantic.Field(
+            default_factory=dict,
+            description="dictionary containing node selector key:value pairs",
+        ),
+    ]
+    deployment_template: Annotated[
+        str | None, pydantic.Field(description="name of deployment template")
+    ] = None
+    service_template: Annotated[
+        str | None, pydantic.Field(description="name of service template")
+    ] = None
+    pvc_template: Annotated[
+        str | None, pydantic.Field(description="name of pvc template")
+    ] = None
+    pvc_name: Annotated[
+        None | str, pydantic.Field(description="name of pvc to be created/attached")
+    ] = None
+    interpreter: Annotated[
+        str, pydantic.Field(description="name of python interpreter")
+    ] = "python3"
+    benchmark_retries: Annotated[
+        int, pydantic.Field(description="number of retries for running benchmark")
+    ] = 3
+    retries_timeout: Annotated[
+        int, pydantic.Field(description="initial timeout between retries")
+    ] = 5
+    hf_token: Annotated[
+        str,
+        pydantic.Field(
+            validate_default=True,
+            description="Huggingface token - can be empty if you are accessing fully open models",
+        ),
+    ] = ""
+    max_environments: Annotated[
+        int, pydantic.Field(description="Maximum amount of concurrent environments")
+    ] = 1

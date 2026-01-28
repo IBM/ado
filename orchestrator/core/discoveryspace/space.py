@@ -40,7 +40,7 @@ if typing.TYPE_CHECKING:
     from IPython.lib.pretty import PrettyPrinter
     from pandas import DataFrame
 
-    import orchestrator.metastore.sqlstore
+    from orchestrator.metastore.sqlstore import SQLStore
 
 FORMAT = orchestrator.utilities.logging.FORMAT
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -145,14 +145,12 @@ class DiscoverySpace:
 
         """
 
-        import orchestrator.metastore.sqlstore
         from orchestrator.core.samplestore.utils import (
             load_sample_store_from_resource,
         )
+        from orchestrator.metastore.sqlstore import SQLStore
 
-        resourceStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+        resourceStore = SQLStore(project_context=project_context)
 
         entitySpace = None
 
@@ -217,12 +215,10 @@ class DiscoverySpace:
         cls, project_context: ProjectContext, space_identifier: str
     ) -> "DiscoverySpace":
 
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLStore
 
         moduleLogger.debug("Accessing discovery space metadata store")
-        metadataStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+        metadataStore = SQLStore(project_context=project_context)
         moduleLogger.debug(
             f"Retrieving configuration for discovery space {space_identifier}"
         )
@@ -268,11 +264,9 @@ class DiscoverySpace:
             ResourceDoesNotExistError: If the specified operation or related space do not exist.
             NoRelatedResourcesError: If no sample store is associated with the specified operation or related space.
         """
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLResourceStore
 
-        sql = orchestrator.metastore.sqlstore.SQLResourceStore(
-            project_context=project_context
-        )
+        sql = SQLResourceStore(project_context=project_context)
 
         # FIXME AP 12/06/2025:
         # We are using the first space - which may become a problem in the future
@@ -361,11 +355,9 @@ class DiscoverySpace:
         )
 
         # Access metadata store
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLStore
 
-        self._metadataStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+        self._metadataStore = SQLStore(project_context=project_context)
 
         self._identifier = (
             identifier
@@ -759,7 +751,7 @@ class DiscoverySpace:
     #
 
     @property
-    def metadataStore(self) -> "orchestrator.metastore.sqlstore.SQLStore":
+    def metadataStore(self) -> "SQLStore":
         """Returns an interface to the metadata store used by the space"""
 
         return self._metadataStore

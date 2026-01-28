@@ -1,5 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
+import typing
 
 import ray
 
@@ -7,7 +8,9 @@ from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.schema.entity import Entity
+
+if typing.TYPE_CHECKING:
+    from orchestrator.schema.entity import Entity
 
 
 def test_internal_state_direct_init(
@@ -91,4 +94,3 @@ def test_internal_state_conf_init(
 
     finally:
         ray.kill(state)
-        # os.environ.pop("ORCH_USE_SQL_STORE")

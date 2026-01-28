@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 import time
+import typing
 from collections.abc import Callable
 from typing import Annotated
 
@@ -12,10 +13,8 @@ import ray.exceptions
 import requests
 import typer
 import yaml
-from ray.actor import ActorHandle
 
 from orchestrator.cli.utils.output.prints import ERROR, WARN, console_print
-from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.operators._cleanup import (
@@ -26,6 +25,11 @@ from orchestrator.schema.entity import Entity
 from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
+
+if typing.TYPE_CHECKING:
+    from ray.actor import ActorHandle
+
+    from orchestrator.modules.actuators.base import ActuatorBase
 
 
 def local_execution_closure(

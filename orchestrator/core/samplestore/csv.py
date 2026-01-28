@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
 
@@ -12,18 +12,71 @@ if TYPE_CHECKING:
 import orchestrator.core.samplestore.config
 import orchestrator.utilities.location
 from orchestrator.core.samplestore.base import (
-    ExperimentDescription,
     PassiveSampleStore,
     SampleStoreDescription,
 )
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.observed_property import ObservedPropertyValue
-from orchestrator.schema.property import (
-    ConstitutivePropertyDescriptor,
-)
 from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.result import ValidMeasurementResult
+
+
+def warn_deprecated_csv_sample_store_model_in_use(
+    deprecated_from_version: str = "1.3.5",
+    removed_from_version: str = "1.6.0",
+    deprecated_fields: str | list[str] | None = None,
+    latest_format_documentation_url: str | None = None,
+) -> None:
+    """Warn that a deprecated CSV sample store model format is being auto-upgraded
+
+    Similar to warn_deprecated_actuator_parameters_model_in_use but for sample stores.
+    """
+    from rich.console import Console
+
+    resource_name = "samplestore"
+    doc_url = (
+        f": {latest_format_documentation_url}"
+        if latest_format_documentation_url
+        else ""
+    )
+
+    if deprecated_fields:
+        fields_causing_issues = f"fields [b magenta]{deprecated_fields}[/b magenta]"
+        if isinstance(deprecated_fields, str):
+            fields_causing_issues = f"field [b magenta]{deprecated_fields}[/b magenta]"
+        elif isinstance(deprecated_fields, list) and len(deprecated_fields) == 1:
+            fields_causing_issues = (
+                f"field [b magenta]{deprecated_fields[0]}[/b magenta]"
+            )
+
+        warning_preamble = (
+            f"The use of {fields_causing_issues} in the {resource_name} configuration "
+            f"is deprecated as of ADO [b cyan]{deprecated_from_version}[/b cyan]."
+        )
+    else:
+        warning_preamble = (
+            f"The {resource_name} configuration format has been updated "
+            f"as of ADO [b cyan]{deprecated_from_version}[/b cyan]."
+        )
+
+    autoupgrade_notice = "It is being temporarily auto-upgraded to the latest version."
+    autoupgrade_removal_warning = (
+        f"[b]This behavior will be removed with ADO "
+        f"[b cyan]{removed_from_version}[/b cyan][/b]."
+    )
+    manual_upgrade_hint = (
+        f"Run [b cyan]ado upgrade {resource_name}s[/b cyan] to upgrade the stored {resource_name}s.\n\t"
+        f"Update your {resource_name} YAML files to use the latest format{doc_url}."
+    )
+
+    Console(stderr=True).print(
+        f"[b yellow]WARN[/b yellow]:\t{warning_preamble}\n\t"
+        f"{autoupgrade_notice}\n\t{autoupgrade_removal_warning}\n"
+        f"[b magenta]HINT[/b magenta]:\t{manual_upgrade_hint}",
+        overflow="ignore",
+        crop=False,
+    )
 
 
 class CSVSampleStoreDescription(SampleStoreDescription):
@@ -40,41 +93,52 @@ class CSVSampleStoreDescription(SampleStoreDescription):
             description="The id of the entity generator",
         ),
     ] = None
-    constitutivePropertyColumns: Annotated[
-        list[str],
-        pydantic.Field(
-            description="List of headers of columns containing constitutive properties"
-        ),
-    ]
 
-    @pydantic.field_validator("identifierColumn")
-    def identifier_is_lowercase(cls, value: str) -> str:
-        return value.lower()
+    model_config = pydantic.ConfigDict(extra="forbid")
 
-    @property
-    def constitutiveProperties(self) -> list[ConstitutivePropertyDescriptor]:
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def migrate_old_format(cls, data: dict) -> dict:
+        """Migrate old CSVSampleStoreDescription format to new format
 
-        # sourceDescription.constitutivePropertyColumns may be mixed-case - convert to  lowercase
-        return [
-            ConstitutivePropertyDescriptor(identifier=column_name.lower())
-            for column_name in self.constitutivePropertyColumns
-        ]
+        Old format (the only one stored before these changes):
+        - constitutivePropertyColumns at top level (list)
+        - experiments list with propertyMap (not observedPropertyMap)
+        - No constitutivePropertyMap in experiment descriptions
 
-    @property
-    def observedPropertyColumns(self) -> list[str]:
-        """Returns the headers of the columns containing the observed properties"""
+        Migration:
+        - Remove constitutivePropertyColumns from top level
+        - For each experiment desc dict, add constitutivePropertyMap = constitutivePropertyColumns
+        - For each experiment desc dict, rename propertyMap to observedPropertyMap
+        """
 
-        columns = []
+        if not isinstance(data, dict):
+            return data
 
-        for op in self.observedProperties:
-            expDescription = self.experimentDescriptionMap.get(
-                op.experimentReference.experimentIdentifier
-            )
-            if expDescription is not None:
-                columnHeader = expDescription.propertyMap[op.targetProperty.identifier]
-                columns.append(columnHeader)
+        # Check if this is old format (has constitutivePropertyColumns at top level)
+        if "constitutivePropertyColumns" not in data:
+            return data
 
-        return columns
+        # Old format detected - emit warning and perform migration
+        warn_deprecated_csv_sample_store_model_in_use(
+            deprecated_from_version="1.3.5",
+            removed_from_version="1.6.0",
+            deprecated_fields=["constitutivePropertyColumns", "propertyMap"],
+        )
+
+        constitutive_columns = data.pop("constitutivePropertyColumns")
+
+        # Migrate experiments if present
+        if "experiments" in data and isinstance(data["experiments"], list):
+            for exp in data["experiments"]:
+                if isinstance(exp, dict):
+                    # Rename propertyMap to observedPropertyMap
+                    if "propertyMap" in exp:
+                        exp["observedPropertyMap"] = exp.pop("propertyMap")
+                    # Add constitutivePropertyMap from top-level constitutivePropertyColumns
+                    exp["constitutivePropertyMap"] = constitutive_columns
+
+        return data
 
 
 class CSVSampleStore(PassiveSampleStore):
@@ -92,7 +156,6 @@ class CSVSampleStore(PassiveSampleStore):
     def storage_location_class() -> (
         type[orchestrator.utilities.location.FilePathLocation]
     ):
-
         return orchestrator.utilities.location.FilePathLocation
 
     @classmethod
@@ -110,7 +173,6 @@ class CSVSampleStore(PassiveSampleStore):
         return reference.parameters.catalog
 
     def experimentCatalog(self) -> ExperimentCatalog:
-
         return self.sourceDescription.catalog
 
     @classmethod
@@ -120,35 +182,64 @@ class CSVSampleStore(PassiveSampleStore):
         idColumn: str,
         generatorIdentifier: str | None = None,
         experimentIdentifier: str | None = None,
+        actuatorIdentifier: str = "replay",
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
+        propertyFormat: Literal["target", "observed"] = "target",
     ) -> "CSVSampleStore":
+        """Create a CSVSampleStore from a CSV file
 
-        # Create a schema of the contents of the CSV file
-        # This is used to convert its contents to entities
-        experiments = []
-        if observedPropertyColumns:
-            experimentDescriptor = ExperimentDescription(
+        Args:
+            csvPath: Path to the CSV file
+            idColumn: Column containing entity identifiers
+            generatorIdentifier: Optional identifier for the entity generator
+            experimentIdentifier: Experiment identifier
+            actuatorIdentifier: Actuator identifier (defaults to 'replay' if not provided)
+            observedPropertyColumns: List of columns containing observed properties
+            constitutivePropertyColumns: List of columns containing constitutive properties
+            propertyFormat: The naming format used for the observed property columns.
+                Only relevant when actuatorIdentifier is not 'replay'
+        """
+        import pandas as pd
+
+        from orchestrator.core.samplestore.base import (
+            ExternalExperimentDescription,
+            InternalExperimentDescription,
+        )
+
+        if actuatorIdentifier != "replay":
+            experimentDescriptor = InternalExperimentDescription(
+                actuatorIdentifier=actuatorIdentifier,
                 experimentIdentifier=experimentIdentifier,
-                propertyMap={k: k for k in observedPropertyColumns},
+                observedPropertyMap=observedPropertyColumns,
+                constitutivePropertyMap=constitutivePropertyColumns,
+                propertyFormat=propertyFormat,
             )
+        else:
 
-            experiments.append(experimentDescriptor)
-
-        if not constitutivePropertyColumns:
-            # check the file
-            import pandas as pd
-
+            # Read CSV to get headers
             headers = pd.read_csv(csvPath, nrows=0).columns.tolist()
-            constitutivePropertyColumns = [
-                h for h in headers if h not in [*observedPropertyColumns, idColumn]
-            ]
+            headers = [h.strip() for h in headers]
+
+            # Determine constitutive property columns if not provided
+            if not constitutivePropertyColumns:
+                # Exclude id column and observed property columns
+                excluded = [idColumn]
+                if observedPropertyColumns:
+                    excluded.extend(observedPropertyColumns)
+
+                constitutivePropertyColumns = [h for h in headers if h not in excluded]
+
+            experimentDescriptor = ExternalExperimentDescription(
+                experimentIdentifier=experimentIdentifier,
+                observedPropertyMap=observedPropertyColumns,
+                constitutivePropertyMap=constitutivePropertyColumns,
+            )
 
         csvDescription = CSVSampleStoreDescription(
             identifierColumn=idColumn,
             generatorIdentifier=generatorIdentifier,
-            experiments=experiments,
-            constitutivePropertyColumns=constitutivePropertyColumns,
+            experiments=[experimentDescriptor],
         )
 
         return CSVSampleStore(
@@ -186,9 +277,11 @@ class CSVSampleStore(PassiveSampleStore):
         import pandas as pd
 
         self._data = pd.read_csv(self.storageLocation.path)
-        # Make column headers lowercase
-        self._data.columns = self._data.columns.str.lower().str.strip()
-        self._observedProperties = self.sourceDescription.observedProperties
+        # Strip whitespace from column headers
+        self._data.columns = self._data.columns.str.strip()
+
+        # Validate that all required columns exist in the CSV
+        self._validate_required_columns()
 
         # TODO: necessary to merge entities...
         self._entities: list[Entity] = []
@@ -196,77 +289,119 @@ class CSVSampleStore(PassiveSampleStore):
         # TODO: improve
         for _i, row in self._data.T.items():  # noqa: PERF102
             entity_id = row[self.sourceDescription.identifierColumn]
+            entity = None
             try:
                 # Check if entity already exists
-                self._ent_by_id[entity_id]
+                entity = self._ent_by_id[entity_id]
             except KeyError:
                 # No - Create a new entity
                 try:
-                    ne = self._entity_from_csv_entry(row)
+                    entity = self._entity_from_csv_entry(row)
                 except pydantic.ValidationError as error:
                     self.log.debug(f"Error processing row {row}. {error}")
                 else:
-                    self._entities.append(ne)
-                    self._ent_by_id[ne.identifier] = ne
-            else:
-                # Yes - Add the additional observed properties to existing entity
-                observed_properties, _ = self._observed_property_values_from_row(row)
-                experiments_in_properties = {
-                    op.property.experimentReference for op in observed_properties
-                }
-                for experiment in experiments_in_properties:
-                    property_values_for_experiment = [
-                        op
-                        for op in observed_properties
-                        if op.property.experimentReference == experiment
-                    ]
-                    self._ent_by_id[entity_id].add_measurement_result(
-                        ValidMeasurementResult(
-                            entityIdentifier=entity_id,
-                            measurements=property_values_for_experiment,
-                        )
+                    self._entities.append(entity)
+                    self._ent_by_id[entity.identifier] = entity
+            finally:
+                # Add measurement results if entity exists (either new or existing)
+                if entity is not None:
+                    measurement_results = self._measurement_results_from_row(
+                        row, entity_id
                     )
+                    for result in measurement_results:
+                        entity.add_measurement_result(result)
 
         self._entity_ids = [e.identifier for e in self.entities]
 
     @property
     def config(self) -> CSVSampleStoreDescription:
-
         return self.sourceDescription.model_copy()
 
     @property
     def location(self) -> orchestrator.utilities.location.ResourceLocation:
-
         return self.storageLocation.model_copy()
 
-    def _observed_property_values_from_row(self, row: "pd.Series") -> tuple[list, list]:
+    def _validate_required_columns(self) -> None:
+        """Validates that all required columns exist in the CSV file"""
+        # Collect all required columns
+        required_columns = set()
 
-        observedCalcValue = []
-        experimentDescriptionMap = self.sourceDescription.experimentDescriptionMap
+        # Identifier column is required
+        required_columns.add(self.sourceDescription.identifierColumn)
 
-        columns_already_processed = [self.sourceDescription.identifierColumn]
-        # Add values for experiments which are defined in this sample store
-        for op in self._observedProperties:
-            # See if the experiment that provides this property is defined by this CSV file
-            expDescription = experimentDescriptionMap.get(
-                op.experimentReference.experimentIdentifier
+        # Constitutive property columns are required
+        for col in self.sourceDescription.source_constitutive_property_identifiers:
+            required_columns.add(col)
+
+        # Observed property columns are required
+        for col in self.sourceDescription.source_observed_property_identifiers:
+            required_columns.add(col)
+
+        # Check which required columns are missing
+        available_columns = set(self._data.columns)
+        missing_columns = required_columns - available_columns
+
+        if missing_columns:
+            raise ValueError(
+                f"CSV file '{self.storageLocation.path}' is missing required columns: "
+                f"{sorted(missing_columns)}. Available columns: {sorted(available_columns)}"
             )
-            if expDescription is not None:
-                columnHeader = expDescription.propertyMap[
-                    op.targetProperty.identifier
-                ].lower()
-                opv = ObservedPropertyValue(property=op, value=row[columnHeader])
-                observedCalcValue.append(opv)
-                columns_already_processed.append(columnHeader)
-            else:
-                self.log.debug(
-                    f"Experiment that provides {op}, {op.experimentReference.experimentIdentifier}, is not provided by this CSV file"
+
+    def _measurement_results_from_row(
+        self, row: "pd.Series", entity_id: str
+    ) -> list[ValidMeasurementResult]:
+        """Creates measurement results from a row of the CSV
+
+        Args:
+            row: A pandas Series representing a row of the CSV
+            entity_id: The entity identifier for this row
+
+        Returns:
+            List of ValidMeasurementResult instances
+        """
+        measurement_results = []
+
+        # Iterate over experiment descriptions directly
+        for exp_desc in self.sourceDescription.experiments:
+            observed_property_values = []
+            experiment = exp_desc.experiment
+
+            # Create a set of target property IDs from the observed property map
+            target_prop_ids = set(exp_desc.observedPropertyMap.keys())
+
+            # Filter observed properties to only those in the map
+            filtered_obs_props = [
+                obs_prop
+                for obs_prop in experiment.observedProperties
+                if obs_prop.targetProperty.identifier in target_prop_ids
+            ]
+
+            # Iterate filtered observed properties and get column names from the map
+            for obs_prop in filtered_obs_props:
+                column_name = exp_desc.observedPropertyMap[
+                    obs_prop.targetProperty.identifier
+                ]
+
+                # Skip if the column is not in the row
+                if column_name not in row.index:
+                    continue
+
+                opv = ObservedPropertyValue(property=obs_prop, value=row[column_name])
+                observed_property_values.append(opv)
+
+            # Create measurement result if we have any observed properties
+            if observed_property_values:
+                measurement_results.append(
+                    ValidMeasurementResult(
+                        entityIdentifier=entity_id,
+                        measurements=observed_property_values,
+                    )
                 )
 
-        return observedCalcValue, columns_already_processed
+        return measurement_results
 
     def _entity_from_csv_entry(self, row: "pd.Series") -> Entity:
-        """Creates an entity from pandas Series
+        """Creates an entity from pandas Series (constitutive properties only)
 
         :param row: A Series
 
@@ -275,7 +410,6 @@ class CSVSampleStore(PassiveSampleStore):
         """
 
         entity_id = row[self.sourceDescription.identifierColumn]
-        observedCalcValue, _ = self._observed_property_values_from_row(row)
 
         constitutive_property_values = []
         for cp in self.sourceDescription.constitutiveProperties:
@@ -295,45 +429,25 @@ class CSVSampleStore(PassiveSampleStore):
             self.log.warning(f"Unable to create entity from row {row}: {error}")
             raise
 
-        experiments_in_properties = {
-            op.property.experimentReference for op in observedCalcValue
-        }
-        for experiment in experiments_in_properties:
-            property_values_for_experiment = [
-                op
-                for op in observedCalcValue
-                if op.property.experimentReference == experiment
-            ]
-            entity.add_measurement_result(
-                ValidMeasurementResult(
-                    entityIdentifier=entity_id,
-                    measurements=property_values_for_experiment,
-                )
-            )
         return entity
 
     @property
     def csvDescription(self) -> CSVSampleStoreDescription:
-
         return self.sourceDescription
 
     @property
     def entities(self) -> list[Entity]:
-
         return self._entities
 
     @property
     def numberOfEntities(self) -> int:
-
         return len(self._entities)
 
     def containsEntityWithIdentifier(self, entity_id: str) -> bool:
-
         return entity_id in self._entity_ids
 
     @property
     def identifier(self) -> str:
-
         # hash file
         import hashlib
 
@@ -341,7 +455,7 @@ class CSVSampleStore(PassiveSampleStore):
         h = hashlib.md5(
             usedforsecurity=False
         )  # Construct a hash object using our selected hashing algorithm
-        for op in self._observedProperties:
+        for op in self.sourceDescription.observedProperties:
             h.update(
                 op.identifier.encode("utf-8")
             )  # Update the hash using a bytes object

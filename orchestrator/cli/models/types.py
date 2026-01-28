@@ -1,8 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from __future__ import annotations
-
 import enum
 from enum import Enum
 

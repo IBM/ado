@@ -4,17 +4,14 @@
 import copy
 import typing
 
-import orchestrator.schema.property
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
 from . import common
 
 if typing.TYPE_CHECKING:
-    import orchestrator.modules.actuators.catalog
+    from orchestrator.modules.actuators.catalog import ExperimentCatalog
 
 
 def add_full_experiments(
-    catalog: "orchestrator.modules.actuators.catalog.ExperimentCatalog",
+    catalog: "ExperimentCatalog",
 ) -> None:
     method = "full"
     version = "1.0.0"

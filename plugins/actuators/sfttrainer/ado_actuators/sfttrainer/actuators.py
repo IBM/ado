@@ -57,7 +57,6 @@ from orchestrator.core.actuatorconfiguration.config import GenericActuatorParame
 # the first time you try to use it. It claims that it does not have any `async` methods (i.e. coroutines)
 # Using `from ... import` fixes this behaviour however we don't know why.
 from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.observed_property import ObservedPropertyValue
@@ -65,6 +64,9 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
+
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 
 # VV: Required module variables
 identifier = ACTUATOR_IDENTIFIER

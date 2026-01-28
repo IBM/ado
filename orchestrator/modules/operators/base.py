@@ -11,7 +11,6 @@ import typing
 import pydantic
 import ray
 import ray.exceptions
-from ray.actor import ActorHandle
 
 import orchestrator.core.metadata
 import orchestrator.core.operation.resource
@@ -40,9 +39,9 @@ from orchestrator.schema.entity import Entity
 from orchestrator.schema.reference import ExperimentReference
 
 if typing.TYPE_CHECKING:
-    import orchestrator.modules.actuators.base
     from orchestrator.core.resources import ADOResource
     from orchestrator.metastore.base import ResourceStore
+    from orchestrator.modules.actuators.base import ActuatorBase
 
 moduleLog = logging.getLogger("operation_base")
 
@@ -117,7 +116,7 @@ def measure_or_replay(
     requesterid: str,
     entities: list[Entity],
     experimentReference: ExperimentReference,
-    actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+    actuators: dict[str, "ActuatorBase"],
     measurement_queue: MeasurementQueue,
     memoize: bool,
 ) -> list[str]:
@@ -146,7 +145,11 @@ def measure_or_replay(
         MeasurementError: If the experimentReference cannot be executed by the actuator as it is
             deprecated w.r.t the actuator version being used.
     """
-    import orchestrator.modules.actuators.base
+    from orchestrator.modules.actuators.base import (
+        DeprecatedExperimentError,
+        MeasurementError,
+        MissingConfigurationForExperimentError,
+    )
 
     moduleLog.debug(
         f"Checking application of {experimentReference} to {[e.identifier for e in entities]}. Memoize is: {memoize}"
@@ -195,10 +198,9 @@ def measure_or_replay(
         except ray.exceptions.RayTaskError as e:
             if isinstance(
                 e.cause,
-                orchestrator.modules.actuators.base.DeprecatedExperimentError
-                | orchestrator.modules.actuators.base.MissingConfigurationForExperimentError,
+                DeprecatedExperimentError | MissingConfigurationForExperimentError,
             ):
-                raise orchestrator.modules.actuators.base.MeasurementError(
+                raise MeasurementError(
                     f"Cannot apply experiment {experimentReference}. Reason: {e.cause}"
                 ) from e.cause
             raise
@@ -462,4 +464,6 @@ class InterruptedOperationError(KeyboardInterrupt):
 
 
 if typing.TYPE_CHECKING:
+    from ray.actor import ActorHandle
+
     OperatorActor = type[ActorHandle[DiscoverySpaceSubscribingDiscoveryOperation]]

@@ -36,7 +36,6 @@ from orchestrator.utilities.location import FilePathLocation, SQLStoreConfigurat
 def random_sample_store_resource_from_file(
     valid_ado_project_context: ProjectContext, random_identifier: Callable[[], str]
 ) -> Callable[[], SampleStoreResource]:
-
     def _random_sample_store_resource_from_file() -> SampleStoreResource:
         file = pathlib.Path("tests/resources/samplestore/sample_store_resource.json")
         random_id = random_identifier()
@@ -111,20 +110,20 @@ def csv_sample_store_parameters() -> tuple[
     dict[str, str],
     dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
 ]:
-
     parameters = {
         "generatorIdentifier": "gt4sd-pfas-molgx-model-one",
-        "identifierColumn": "SMILES",
-        "constitutivePropertyColumns": ["SMILES"],
+        "identifierColumn": "smiles",
         "experiments": [
             {
                 "experimentIdentifier": "molgx-toxicity-inference-experiment",
-                "propertyMap": {
+                "observedPropertyMap": {
                     "pka": "Real_pKa (-0.83, 10.58)",
                     "logws": "Real_LogWS (-6.19, 1.13)",
                     "biodegradation halflife": "Real_BioDeg (0.47, 2.66)",
                     "ld50": "Real_LD50 (3.9, 7543.0)",
                 },
+                # Using list format since column name matches property name
+                "constitutivePropertyMap": ["smiles"],
             }
         ],
     }
@@ -164,7 +163,6 @@ def csv_sample_store(
         dict[str, str | list[str] | list[dict[str, str | dict[str, str]]]],
     ],
 ) -> CSVSampleStore:
-
     location, parameters = csv_sample_store_parameters
 
     return CSVSampleStore(
@@ -177,7 +175,6 @@ def csv_sample_store(
 
 @pytest.fixture
 def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
-
     with open("tests/resources/ml_multicloud_sample_store.yaml") as f:
         d = yaml.safe_load(f)
 
@@ -205,7 +202,6 @@ def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
 def sample_store_configuration_smiles(
     sample_store_configuration_smiles_yaml: dict[str, Any],
 ) -> orchestrator.core.samplestore.config.SampleStoreConfiguration:
-
     source_conf = (
         orchestrator.core.samplestore.config.SampleStoreConfiguration.model_validate(
             sample_store_configuration_smiles_yaml
@@ -221,7 +217,6 @@ def sample_store_configuration_smiles(
 def sample_store_resource(
     ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
 ) -> SampleStoreResource:
-
     return SampleStoreResource(
         identifier="test_source",
         config=ml_multi_cloud_sample_store_configuration,
@@ -238,7 +233,6 @@ def valid_sample_store_config_file(request: pytest.FixtureRequest) -> str:
 
 @pytest.fixture
 def test_sample_store_location() -> SQLStoreConfiguration:
-
     return SQLStoreConfiguration(
         scheme="mysql+pymysql",
         host="localhost",
@@ -253,7 +247,6 @@ def test_sample_store_location() -> SQLStoreConfiguration:
 def sample_store_test_data(
     request: pytest.FixtureRequest,
 ) -> tuple[dict[str, Any], SQLStoreConfiguration | FilePathLocation]:
-
     c = None
     if request.param == "sql":
         c = (
@@ -275,15 +268,16 @@ module:
   moduleName: orchestrator.core.samplestore.csv
 parameters:
   generatorIdentifier: 'gt4sd-pfas-molgx-model-one'
-  identifierColumn: 'SMILES'
-  constitutivePropertyColumns: ['SMILES']
+  identifierColumn: 'smiles'
   experiments:
     - experimentIdentifier: 'molgx-toxicity-inference-experiment'
-      propertyMap:
+      observedPropertyMap:
         pka: "Real_pKa (-0.83, 10.58)"
         logws: "Real_LogWS (-6.19, 1.13)"
         "biodegradation halflife": "Real_BioDeg (0.47, 2.66)"
         ld50: "Real_LD50 (3.9, 7543.0)"
+      constitutivePropertyMap:
+        smiles: 'smiles'
 storageLocation:
   path: 'examples/pfas-generative-models/data/GM_Comparison/MolGX/Sample_0/PFAS_MolGX_test_SHORT_v0.csv'
 """
@@ -305,7 +299,6 @@ storageLocation:
 def sample_store_module_and_storage_location(
     request: pytest.FixtureRequest,
 ) -> tuple[SampleStoreModuleConf, SQLStoreConfiguration]:
-
     return SampleStoreModuleConf(
         moduleClass="SQLSampleStore",
         moduleName="orchestrator.core.samplestore.sql",

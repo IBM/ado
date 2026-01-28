@@ -1,8 +1,6 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from __future__ import annotations
-
 import copy
 import enum
 import functools
@@ -11,17 +9,15 @@ import sys
 import time
 import typing
 
-import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
-
 if typing.TYPE_CHECKING:
+    import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
+    import transformers
     from transformers.tokenization_utils_base import BatchEncoding
 
     from .callbacks import metrics_tracker
 
 import dataclasses
 import os
-
-import transformers
 
 # VV: Env vars this script uses:
 # HOME -> Must set this to something like `/tmp` because aim is attempting to generate files under `~/.aim_profile`
@@ -232,7 +228,7 @@ class FineTuneArgs:
         },
     )
 
-    auto_stop_method: constants.AutoStopMethod | None = dataclasses.field(
+    auto_stop_method: "constants.AutoStopMethod | None" = dataclasses.field(
         default=None,
         metadata={
             "help": "The default value is `None`. This parameter defines the method used to automatically "
@@ -407,11 +403,11 @@ class HardcodedArgs:
         },
     )
 
-    eval_strategy: transformers.IntervalStrategy | str = dataclasses.field(
+    eval_strategy: "transformers.IntervalStrategy | str" = dataclasses.field(
         default="no",
         metadata={"help": "The evaluation strategy to use."},
     )
-    save_strategy: transformers.IntervalStrategy | str = dataclasses.field(
+    save_strategy: "transformers.IntervalStrategy | str" = dataclasses.field(
         default="no",
         metadata={"help": "The checkpoint save strategy to use."},
     )
@@ -425,7 +421,7 @@ class HardcodedArgs:
         default=0.03,
         metadata={"help": "Linear warmup over warmup_ratio fraction of total steps."},
     )
-    lr_scheduler_type: transformers.SchedulerType | str = dataclasses.field(
+    lr_scheduler_type: "transformers.SchedulerType | str" = dataclasses.field(
         default="cosine",
         metadata={"help": "The scheduler type to use."},
     )
@@ -461,7 +457,7 @@ def get_available_open_port() -> int:
         return s.getsockname()[1]
 
 
-def extract_metrics(aim_info_path: str, number_gpus: int) -> metrics_tracker.Metrics:
+def extract_metrics(aim_info_path: str, number_gpus: int) -> "metrics_tracker.Metrics":
     import json
 
     with open(aim_info_path, encoding="utf-8") as f:
@@ -493,7 +489,7 @@ def _finetune_launch_kernel(
     multi_node: MultiNodeSettings,
     distributed_settings: DistributedSettings,
     working_directory: str,
-) -> metrics_tracker.Metrics:
+) -> "metrics_tracker.Metrics":
     log = logging.getLogger("launch")
 
     if args.fast_moe and isinstance(args.fast_moe[0], int) and args.fast_moe[0] > 0:
@@ -854,7 +850,7 @@ def calculate_tokens_in_image_text_dataset(
 
     processor = AutoProcessor.from_pretrained(path_model)
 
-    def tokenize_samples(sample: dict) -> BatchEncoding:
+    def tokenize_samples(sample: dict) -> "BatchEncoding":
         return processor.apply_chat_template(
             sample[dataset_text_field],
             add_generation_prompt=False,
@@ -1172,7 +1168,7 @@ def launch_finetune(
     model_id: str | None = None,
     num_tokens_cache_dir: str | None = None,
     log_level: int | None = None,
-) -> metrics_tracker.Metrics:
+) -> "metrics_tracker.Metrics":
     from .callbacks import metrics_tracker
 
     if log_level is None:

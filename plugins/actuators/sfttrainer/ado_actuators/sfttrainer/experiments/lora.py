@@ -4,10 +4,10 @@
 import copy
 import typing
 
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
 from . import common
 
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.catalog import ExperimentCatalog
 default_target_modules = {
     "smollm2-135m": ["q_proj", "v_proj"],
     "granite-3b-code-base-128k": ["q_proj", "v_proj"],

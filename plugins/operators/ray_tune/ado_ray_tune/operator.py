@@ -63,7 +63,7 @@ from .config import (
 from .samplers import LhuSampler
 
 if TYPE_CHECKING:  # pragma: nocover
-    import ray.tune.search.sample
+    from ray.tune.search.sample import Domain
 
     import orchestrator.modules.actuators.base
 
@@ -602,7 +602,7 @@ def tune(
 
 def property_domain_to_ray_distribution(
     domain: PropertyDomain,
-) -> ray.tune.search.sample.Domain:
+) -> "Domain":
     # Later we can use sample_from to support any distribution
 
     from orchestrator.schema.domain import ProbabilityFunctionsEnum, VariableTypeEnum

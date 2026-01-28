@@ -6,7 +6,6 @@
 import logging
 import os
 import signal
-import typing
 
 import pydantic
 import ray
@@ -36,9 +35,6 @@ from orchestrator.modules.operators._general_orchestration import (
     orchestrate_general_operation,  # noqa: F401
 )
 from orchestrator.utilities.logging import configure_logging
-
-if typing.TYPE_CHECKING:
-    pass
 
 configure_logging()
 moduleLog = logging.getLogger("orch")

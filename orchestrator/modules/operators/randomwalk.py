@@ -34,7 +34,6 @@ from orchestrator.core.operation.config import (
     FunctionOperationInfo,
 )
 from orchestrator.core.operation.operation import OperationOutput
-from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
@@ -52,8 +51,7 @@ from orchestrator.utilities.logging import configure_logging
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
 if typing.TYPE_CHECKING:
-    from queue import Queue
-
+    from orchestrator.modules.actuators.base import ActuatorBase
     from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
     from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
@@ -855,7 +853,7 @@ class RandomWalk(Characterize):
     async def _getAndSubmitMeasurement(
         self,
         completedExperiments: int,
-        continuousBatchingQueue: "Queue",
+        continuousBatchingQueue: Queue,
         updateQueue: "MeasurementQueue",
     ) -> None:
         """

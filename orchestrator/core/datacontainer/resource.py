@@ -11,6 +11,7 @@ import orchestrator.utilities.location
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.utilities.pydantic import Defaultable
+from orchestrator.utilities.rich import get_rich_repr
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
@@ -100,7 +101,6 @@ class DataContainer(pydantic.BaseModel):
         import rich.box
         from rich.console import Group
         from rich.panel import Panel
-        from rich.pretty import Pretty
         from rich.text import Text
 
         content = []
@@ -109,7 +109,11 @@ class DataContainer(pydantic.BaseModel):
             basic_data_items = [
                 Panel(
                     Group(
-                        *[Text("Label:", style="bold", end=" "), Pretty(k), Pretty(v)]
+                        *[
+                            Text("Label:", style="bold", end=" "),
+                            get_rich_repr(k),
+                            get_rich_repr(v),
+                        ]
                     ),
                     box=rich.box.SIMPLE,
                 )
@@ -129,7 +133,12 @@ class DataContainer(pydantic.BaseModel):
             tabular_items = [
                 Panel(
                     Group(
-                        *[Text("Label:", style="bold", end=" "), Pretty(k), Pretty(v)]
+                        *[
+                            Text("Label:", style="bold", end=" "),
+                            get_rich_repr(k),
+                            Text(),
+                            get_rich_repr(v),
+                        ]
                     ),
                     box=rich.box.SIMPLE,
                 )
@@ -148,7 +157,11 @@ class DataContainer(pydantic.BaseModel):
             location_items = [
                 Panel(
                     Group(
-                        *[Text("Label:", style="bold", end=" "), Pretty(k), Pretty(v)]
+                        *[
+                            Text("Label:", style="bold", end=" "),
+                            get_rich_repr(k),
+                            get_rich_repr(v),
+                        ]
                     ),
                     box=rich.box.SIMPLE,
                 )

@@ -1,0 +1,30 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+metadata:
+  name: randomwalk-grouped-vllm-performance-test-deployment
+spaces:
+  - space-230d24-03b22d
+actuatorConfigurationIdentifiers:
+  - actuatorconfiguration-vllm_performance-09fcdf30
+operation:
+  module:
+    moduleClass: RandomWalk
+  parameters:
+    numberEntities: all
+    batchSize: 2
+    singleMeasurement: false
+    samplerConfig:
+      mode: 'sequentialgrouped'
+      samplerType: 'generator'
+      grouping: #These are entity properties compatible with vllm_performance.test-deployment-v1 and vllm_performance.test-deployment-guidellm-v1
+        - model
+        - image
+        - n_gpus
+        - gpu_type
+        - n_cpus
+        - memory
+        - max_batch_tokens
+        - gpu_memory_utilization
+        - dtype
+        - cpu_offload
+        - max_num_seq

@@ -1,0 +1,43 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+entitySpace:
+  - identifier: model
+    propertyDomain:
+      values:
+        - ibm-granite/granite-3.3-8b-instruct
+  - identifier: image
+    propertyDomain:
+      values:
+        - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
+  - identifier: "number_input_tokens"
+    propertyDomain:
+      values: [1024, 2048, 4096]
+  - identifier: "request_rate"
+    propertyDomain:
+      domainRange: [1, 10]
+      interval: 1
+  - identifier: n_cpus
+    propertyDomain:
+      domainRange: [2, 16]
+      interval: 2
+  - identifier: memory
+    propertyDomain:
+      values: ["128Gi", "256Gi"]
+  - identifier: "max_batch_tokens"
+    propertyDomain:
+      values: [8192, 16384, 32768]
+  - identifier: "max_num_seq"
+    propertyDomain:
+      values: [32, 64]
+  - identifier: "n_gpus"
+    propertyDomain:
+      values: [1]
+  - identifier: "gpu_type"
+    propertyDomain:
+      values: ["NVIDIA-A100-80GB-PCIe"]
+experiments:
+  - actuatorIdentifier: vllm_performance
+    experimentIdentifier: test-deployment-v1
+metadata:
+  description: A space of vllm deployment configurations
+  name: vllm_deployments

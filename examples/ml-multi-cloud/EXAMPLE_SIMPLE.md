@@ -105,43 +105,75 @@ ado describe space --use-latest
 
 This will output:
 
-```commandline
-Identifier: space-65cf33-a8df39
+```terminaloutput
+Identifier: 'space-19b2de-6da1f4'
 
 Entity Space:
-
-  Number entities: 48
-
-  Categorical properties:
-           name     values
-    0  provider  [A, B, C]
-
-  Discrete properties:
-             name   range interval        values
-    0  cpu_family  [0, 2]     None        [0, 1]
-    1   vcpu_size  [0, 2]     None        [0, 1]
-    2       nodes  [2, 6]     None  [2, 3, 4, 5]
-
-
+                                                                             
+   Number of entities: 48                                                    
+                                                                             
+   Categorical properties:                                                   
+                                                                             
+      name       values                                                      
+     ────────────────────────────                                            
+      provider   ['A', 'B', 'C']                                             
+                                                                             
+   Discrete properties:                                                      
+                                                                             
+      name         range   interval   values                                 
+     ──────────────────────────────────────────────                          
+      cpu_family   None    None       [0, 1]                                 
+      vcpu_size    None    None       [0, 1]                                 
+      nodes        None    None       [2, 3, 4, 5]                           
+                                                                             
+                                                                             
 Measurement Space:
-                        experiment  supported
-  0  replay.benchmark_performance       True
-
-  'replay.benchmark_performance'
-
-  Inputs:
-      parameter      type value parameterized
-  0  cpu_family  required  None            na
-  1   vcpu_size  required  None            na
-  2       nodes  required  None            na
-  3    provider  required  None            na
-
-  Outputs:
-       target property
-  0  wallClockRuntime
-  1            status
-
-Sample Store identifier: 'a8df39'
+                                                                             
+   Experiments:                                                              
+                                                                             
+      experiment                                   supported                 
+     ────────────────────────────────────────────────────────                
+      replay.benchmark_performance                 True                      
+      custom_experiments.ml-multicloud-cost-v1.0   True                      
+                                                                             
+    ─────────────────── replay.benchmark_performance ────────────────────    
+     Inputs:                                                                 
+                                                                             
+        parameter    type       value   parameterized                        
+       ───────────────────────────────────────────────                       
+        cpu_family   required   None    na                                   
+        nodes        required   None    na                                   
+        provider     required   None    na                                   
+        vcpu_size    required   None    na                                   
+                                                                             
+     Outputs:                                                                
+                                                                             
+        target property                                                      
+       ──────────────────                                                    
+        wallClockRuntime                                                     
+        status                                                               
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+                                                                             
+    ──────────── custom_experiments.ml-multicloud-cost-v1.0 ─────────────    
+     Inputs:                                                                 
+                                                                             
+        parameter                    type       value   parameterized        
+       ───────────────────────────────────────────────────────────────       
+        nodes                        required   None    na                   
+        cpu_family                   required   None    na                   
+        benchmark_performance-wal…   required   None    na                   
+                                                                             
+     Outputs:                                                                
+                                                                             
+        target property                                                      
+       ─────────────────                                                     
+        total_cost                                                           
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+                                                                             
+                                                                             
+Sample Store identifier: 6da1f4
 ```
 
 > [!NOTE]

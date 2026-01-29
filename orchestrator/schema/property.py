@@ -165,7 +165,7 @@ class Property(pydantic.BaseModel):
 
         content = [
             Text("Identifier:", style="bold", end=" "),
-            Text(self.identifier, style="bold green"),
+            Text(self.identifier, style="bold green", overflow="fold"),
         ]
 
         # Identifier and description
@@ -173,7 +173,7 @@ class Property(pydantic.BaseModel):
             content.extend(
                 [
                     Text("Description:", style="bold", end=" "),
-                    Text(str(self.metadata.get("description"))),
+                    Text(str(self.metadata.get("description")), overflow="fold"),
                 ]
             )
 

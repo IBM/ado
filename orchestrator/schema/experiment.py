@@ -277,14 +277,18 @@ class Experiment(pydantic.BaseModel):
 
         content = [
             Text("Identifier:", end=" ", style="bold"),
-            Text(f"{self.actuatorIdentifier}.{self.identifier}", style="bold green"),
+            Text(
+                f"{self.actuatorIdentifier}.{self.identifier}",
+                style="bold green",
+                overflow="fold",
+            ),
         ]
 
         if self.metadata.get("description"):
             content.extend(
                 [
                     Text("Description:", end=" ", style="bold"),
-                    Text(self.metadata["description"], style="italic"),
+                    Text(self.metadata["description"], style="italic", overflow="fold"),
                 ]
             )
 

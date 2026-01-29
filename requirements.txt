@@ -1842,9 +1842,9 @@ terminado==0.18.1 \
     # via
     #   jupyter-server
     #   jupyter-server-terminals
-tinycss2==1.4.0 \
-    --hash=sha256:10c0972f6fc0fbee87c3edb76549357415e94548c1ae10ebccdea16fb404a9b7 \
-    --hash=sha256:3a49cf47b7675da0b15d0c6e1df8df4ebd96e9394bb905a5775adb0d884c5289
+tinycss2==1.5.1 \
+    --hash=sha256:3415ba0f5839c062696996998176c4a3751d18b7edaaeeb658c9ce21ec150661 \
+    --hash=sha256:d339d2b616ba90ccce58da8495a78f46e55d4d25f9fd71dfd526f07e7d53f957
     # via bleach
 tomli==2.4.0 ; python_full_version < '3.11' \
     --hash=sha256:0408e3de5ec77cc7f81960c362543cbbd91ef883e3138e81b729fc3eea5b9729 \

@@ -8,6 +8,7 @@ import logging
 import os
 import shutil
 import time
+from typing import Any
 
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
@@ -16,7 +17,7 @@ from autoconf.utils.rule_based_classifier import is_row_valid
 
 logger = logging.getLogger(__name__)
 logger.info("These are the available csvs")
-data_root_dir = "/Users/danielelotito/autoconf_data"  # %change this to the data folder
+data_root_dir = "/../../autoconf_data"  # %change this to the data folder
 glob.glob("*", root_dir=data_root_dir)
 # %%
 file_name = "lh_dashboard_136_date_01_13_2026.csv"  # %change this to the data file name
@@ -46,7 +47,7 @@ logger.info("Models supported are", set(df_original["model_name"].values))
 target = "is_valid"
 
 
-def filter_valid_with_hard_logic(df: pd.DataFrame):
+def filter_valid_with_hard_logic(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"Length of the DataFrame before filtering: {len(df)}")
     valid_indices = [i for i, config in df.iterrows() if is_row_valid(config)[0]]
     df_filtered = df.loc[valid_indices].copy()
@@ -69,7 +70,7 @@ def fit_tabular_predictor(
     train_fraction: float,
     preset_quality: str,
     cols_to_use: list[str] = COLS_TO_USE,
-):
+) -> tuple[TabularPredictor, pd.DataFrame, pd.DataFrame, float]:
     train_idx = int(len(df) * train_fraction)
     df_train = df.iloc[:train_idx][cols_to_use]
     df_test = df.iloc[train_idx:][cols_to_use]
@@ -84,7 +85,9 @@ def fit_tabular_predictor(
 
 
 # %% TEST
-def log_metrics(predictor, df_test, df_train):
+def log_metrics(
+    predictor: TabularPredictor, df_test: pd.DataFrame, df_train: pd.DataFrame
+) -> dict[str, Any]:
     if not df_test.empty:
         test_data = TabularDataset(df_test)
         metrics_dict = predictor.evaluate(test_data, silent=True)

@@ -153,9 +153,11 @@ def test_descriptor_pretty(
         | ConstitutivePropertyDescriptor
     ),
 ) -> None:
+    from orchestrator.utilities.rich import render_to_string
+
     """Test pretty print of descriptors is as expected"""
     assert (
-        str(descriptor.__rich__()) == f"{descriptor.identifier}"
+        render_to_string(descriptor) == f"{descriptor.identifier}"
     ), "Expected rich print of descriptor to be descriptor id"
 
 

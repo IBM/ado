@@ -611,15 +611,13 @@ def test_domain_sizes() -> None:
 
 def test_range_in_pretty() -> None:
 
-    from rich.console import Console
-
-    console = Console(record=True)
+    from orchestrator.utilities.rich import render_to_string
 
     # Continuous
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
-    console.print(continuousPropertyDomain)
+    output = render_to_string(continuousPropertyDomain)
     assert (
-        "Range" in console.export_text()
+        "Range" in output
     ), "Expected continuous domain with range to output Range in rich print"
 
     # Discrete
@@ -628,9 +626,9 @@ def test_range_in_pretty() -> None:
         domainRange=[-9, 19],
         interval=2,
     )
-    console.print(discretePropertyDomain)
+    output = render_to_string(discretePropertyDomain)
     assert (
-        "Range" in console.export_text()
+        "Range" in output
     ), "Expected discrete domain with range to output Range in rich print"
 
     # Discrete
@@ -638,38 +636,38 @@ def test_range_in_pretty() -> None:
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         values=[1, 2, 4, 8, 16, 32],
     )
-    console.print(discretePropertyDomain)
+    output = render_to_string(discretePropertyDomain)
     assert (
-        "Range" not in console.export_text()
+        "Range" not in output
     ), "Expected discrete domain with values NOT to output a Range in rich print"
 
     # Binary
     binaryPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
     )
-    console.print(binaryPropertyDomain)
+    output = render_to_string(binaryPropertyDomain)
     assert (
-        "Range" not in console.export_text()
+        "Range" not in output
     ), "Expected binary domain NOT to output Range in rich print"
 
     # Categorical
     categoricalPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE, values=[1, 2, 3, 4]
     )
-    console.print(categoricalPropertyDomain)
+    output = render_to_string(categoricalPropertyDomain)
     assert (
-        "Range" not in console.export_text()
+        "Range" not in output
     ), "Expected categorical domain with numeric values NOT to output Range in rich print"
 
     # Unknown
     unknownPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE, values=[1, 2, 3, 4]
     )
-    console.print(categoricalPropertyDomain)
+    output = render_to_string(categoricalPropertyDomain)
     assert (
         unknownPropertyDomain.variableType is VariableTypeEnum.DISCRETE_VARIABLE_TYPE
     ), "Expected UNKNOWN variable type to be converted to DISCRETE as the input values match a discrete variable"
-    assert "Range" not in console.export_text()
+    assert "Range" not in output
 
 
 def test_value_in_domain() -> None:

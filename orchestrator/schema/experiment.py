@@ -287,8 +287,13 @@ class Experiment(pydantic.BaseModel):
         if self.metadata.get("description"):
             content.extend(
                 [
-                    Text("Description:", end=" ", style="bold"),
-                    Text(self.metadata["description"], style="italic", overflow="fold"),
+                    Text("Description:", style="bold"),
+                    Text(
+                        self.metadata["description"],
+                        style="italic",
+                        overflow="fold",
+                        end="\n\n",
+                    ),
                 ]
             )
 

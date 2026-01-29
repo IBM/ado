@@ -172,8 +172,8 @@ class Property(pydantic.BaseModel):
         if self.metadata and self.metadata.get("description"):
             content.extend(
                 [
-                    Text("Description:", style="bold", end=" "),
-                    Text(str(self.metadata.get("description")), overflow="fold"),
+                    Text("Description:", style="bold"),
+                    Text(self.metadata.get("description"), overflow="fold", end="\n\n"),
                 ]
             )
 

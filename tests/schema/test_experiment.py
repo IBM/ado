@@ -158,7 +158,7 @@ def test_parameterizable_experiment_rich_print(
     Console().print(parameterized_experiment)
 
 
-def test_parameterized_experiment_pretty(
+def test_parameterized_experiment_rich_print(
     parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
 ) -> None:
 

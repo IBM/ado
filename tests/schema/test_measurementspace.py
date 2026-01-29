@@ -150,7 +150,7 @@ def test_measurement_space_from_parameterized_references(
         experimentReferences=parameterized_references
     )
 
-    # Try pretty print
+    # Try rich print
     from rich.console import Console
 
     Console().print(ms)

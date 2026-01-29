@@ -609,7 +609,7 @@ def test_domain_sizes() -> None:
     assert unknownPropertyDomain.size == math.inf
 
 
-def test_range_in_pretty() -> None:
+def test_range_in_rich_print() -> None:
 
     from orchestrator.utilities.rich import render_to_string
 

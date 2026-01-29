@@ -68,7 +68,8 @@ def dataframe_to_rich_table(
         formatted_row = [
             (
                 Pretty(cell)
-                if cell is None or isinstance(cell, (list, dict, tuple, bool))
+                if cell is None
+                or isinstance(cell, (list, dict, tuple, bool, float, int))
                 else str(cell)
             )
             for cell in row

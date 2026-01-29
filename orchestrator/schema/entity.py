@@ -41,6 +41,21 @@ if typing.TYPE_CHECKING:  # pragma: nocover
     from IPython.lib.pretty import PrettyPrinter
 
 
+def entity_identifier_from_properties_and_values(point: dict[str, typing.Any]) -> str:
+    """
+    Creates an entity identifier based on a set of constitutive property ids and values for those properties
+
+    Parameters:
+        point: A dictionary of constitutive property id, value pairs
+
+    Returns:
+        An entity identifier
+    """
+
+    parts = [f"{key}.{point[key]}" for key in point]
+    return "-".join(parts)
+
+
 class Entity(pydantic.BaseModel):
     """Represents an entity in a discovery space
 
@@ -135,8 +150,9 @@ class Entity(pydantic.BaseModel):
         ):
             raise ValueError("All values must be for ConstitutiveProperties")
 
-        cp_id = [f"{pv.property.identifier}.{pv.value}" for pv in property_values]
-        return "-".join(cp_id)
+        return entity_identifier_from_properties_and_values(
+            {pv.property.identifier: pv.value for pv in property_values}
+        )
 
     @pydantic.field_validator("constitutive_property_values", mode="after")
     @classmethod

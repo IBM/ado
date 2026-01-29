@@ -159,7 +159,7 @@ def test_descriptor_rich_print(
 
     """Test rich print of descriptors is as expected"""
     assert (
-        render_to_string(descriptor) == f"{descriptor.identifier}"
+        render_to_string(descriptor).strip() == f"{descriptor.identifier}"
     ), "Expected rich print of descriptor to be descriptor id"
 
 

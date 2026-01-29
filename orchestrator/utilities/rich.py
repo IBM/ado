@@ -54,7 +54,7 @@ def dataframe_to_rich_table(
         show_header=show_header,
         show_lines=show_lines,
         show_edge=show_edge,
-        box=rich.box.HORIZONTALS,
+        box=rich.box.HEAVY,
     )
 
     # Add columns

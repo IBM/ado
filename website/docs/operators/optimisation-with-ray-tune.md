@@ -406,17 +406,19 @@ stopper, cannot currently be used with `ado`.
 
 #### `ado` stoppers
 
-`ado` provides four in-built stoppers:
+`ado` provides these in-built stoppers:
 
-- SimpleStopper: Stops if there is no improvement in the target metric after N
-  steps
-- GrowthStopper: Stops when the improvement in the target metric is less than a
-  threshold for N steps
-- MaxSamplesStopper: Stops when a certain number of samples have been drawn. It
-  is less ambiguous than `tuneConfig.num_samples`
-- InformationGainStopper: Stops when samples are no longer providing significant
+- **SimpleStopper**: Stops if there is no improvement in the target metric after
+  N steps
+- **GrowthStopper**: Stops when the improvement in the target metric is less than
+  a threshold for N steps
+- **MaxSamplesStopper**: Stops when a certain number of samples have been drawn.
+  It is less ambiguous than `tuneConfig.num_samples`
+- **InformationGainStopper**: Stops when samples are no longer providing significant
   additional information on how the constitutive properties of the entity space
   are related to the target property.
+- **BayesianMetricDifferenceStopper**: Stops when the difference between two metrics
+  is known (with a target confidence) to be above or below a threshold
 
 <!-- markdownlint-disable descriptive-link-text -->
 
@@ -516,7 +518,6 @@ For example to search for
 minimise latency while maximising token throughput:
 
 ```yaml
-```python
 {%
    include "../../../plugins/actuators/vllm_performance/yamls/operation_optuna_multi.yaml"
 %}
@@ -611,10 +612,10 @@ operation $OPERATION_IDENTIFIER run
 ado show entities operation $OPERATION_IDENTIFIER
 ```
 
-> [!NOTE]
->
-> This command also works during an operation. It shows up to the most recent
-> measured entity.
+!!! info end
+
+     This command also works during an operation. It shows up to the most recent
+     measured entity.
 
 ## ado additions to RayTune
 
@@ -818,12 +819,12 @@ keywordParams:
 **Interpretation**: Stop when 95% confident that the absolute performance difference
 between the framework versions is above or below 100 tokens per second.
 
->![NOTE] Observed format
->
-> This configuration compares measurements of the same metric
-> from two different parameterizations of the same experiment.
-> This requires setting `metric_format` to `observed`
-> in the [configuration options](#tune-config)
+!!! info end
+
+     This configuration compares measurements of the same metric
+     from two different parameterizations of the same experiment.
+     This requires setting `metric_format` to `observed`
+     in the [configuration options](#tune-config)
 
 #### How It Works
 

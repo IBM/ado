@@ -113,17 +113,19 @@ class EntitySpaceRepresentation:
         import pandas as pd
         import rich.box
         from rich.console import Group
-        from rich.pretty import Pretty
         from rich.text import Text
 
-        from orchestrator.utilities.rich import dataframe_to_rich_table
+        from orchestrator.utilities.rich import dataframe_to_rich_table, get_rich_repr
 
         content = []
 
         # Space size info
         if self.isDiscreteSpace:
             content.extend(
-                [Text("Number of entities:", end=" ", style="bold"), Pretty(self.size)]
+                [
+                    Text("Number of entities:", end=" ", style="bold"),
+                    get_rich_repr(self.size),
+                ]
             )
         else:
             content.append(

@@ -107,14 +107,15 @@ class SQLSampleStore(ActiveSampleStore):
     def __rich__(self) -> "RenderableType":
         """Render this SQL sample store using rich."""
         from rich.console import Group
-        from rich.pretty import Pretty
         from rich.text import Text
+
+        from orchestrator.utilities.rich import get_rich_repr
 
         return Group(
             Text("Identifier:", style="bold", end=" "),
             Text(self.uri, style="bold green"),
             Text("Number of entities:", style="bold", end=" "),
-            Pretty(self.numberOfEntities),
+            get_rich_repr(self.numberOfEntities),
         )
 
     def commit(self) -> None:

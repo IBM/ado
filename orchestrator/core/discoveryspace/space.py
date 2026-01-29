@@ -393,7 +393,6 @@ class DiscoverySpace:
             ]
         )
 
-        # Sample Store - check if it has __rich__() method, otherwise use string representation
         components.extend(
             [
                 Text("Sample Store:", style="bold"),

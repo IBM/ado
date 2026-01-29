@@ -343,22 +343,25 @@ class PropertyDomain(pydantic.BaseModel):
     def __rich__(self) -> "RenderableType":
         """Render this property domain using rich."""
         from rich.console import Group
-        from rich.pretty import Pretty
         from rich.text import Text
+
+        from orchestrator.utilities.rich import get_rich_repr
 
         lines = [Text("Type:", style="bold", end=" "), Text(self.variableType)]
         if self.values:
-            lines.extend([Text("Values:", style="bold", end=" "), Pretty(self.values)])
+            lines.extend(
+                [Text("Values:", style="bold", end=" "), get_rich_repr(self.values)]
+            )
         if self.interval:
             lines.extend(
-                [Text("Interval:", style="bold", end=" "), Pretty(self.interval)]
+                [Text("Interval:", style="bold", end=" "), get_rich_repr(self.interval)]
             )
         if self.domainRange and self.variableType in [
             VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
             VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         ]:
             lines.extend(
-                [Text("Range:", style="bold", end=" "), Pretty(self.domainRange)]
+                [Text("Range:", style="bold", end=" "), get_rich_repr(self.domainRange)]
             )
 
         return Group(*lines)

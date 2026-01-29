@@ -11,7 +11,6 @@ import orchestrator.utilities.location
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.utilities.pydantic import Defaultable
-from orchestrator.utilities.rich import get_rich_repr
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
@@ -102,6 +101,8 @@ class DataContainer(pydantic.BaseModel):
         from rich.console import Group
         from rich.panel import Panel
         from rich.text import Text
+
+        from orchestrator.utilities.rich import get_rich_repr
 
         content = []
 

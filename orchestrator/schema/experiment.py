@@ -271,8 +271,9 @@ class Experiment(pydantic.BaseModel):
         import rich.box
         from rich.console import Group
         from rich.panel import Panel
-        from rich.pretty import Pretty
         from rich.text import Text
+
+        from orchestrator.utilities.rich import get_rich_repr
 
         content = [
             Text("Identifier:", end=" ", style="bold"),
@@ -346,7 +347,7 @@ class Experiment(pydantic.BaseModel):
                             *[
                                 prop,
                                 Text("Default value:", style="bold", end=" "),
-                                Pretty(value.value),
+                                get_rich_repr(value.value),
                             ]
                         ),
                         box=rich.box.HORIZONTALS,

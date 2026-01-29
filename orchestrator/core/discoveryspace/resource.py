@@ -32,15 +32,15 @@ class DiscoverySpaceResource(ADOResource):
         """Render this discovery space resource using rich."""
         from rich.console import Group
         from rich.panel import Panel
-        from rich.pretty import Pretty
         from rich.text import Text
 
         from orchestrator.schema.entityspace import EntitySpaceRepresentation
         from orchestrator.schema.measurementspace import MeasurementSpace
+        from orchestrator.utilities.rich import get_rich_repr
 
         content = [
             Text("Identifier:", style="bold", end=" "),
-            Pretty(self.identifier),
+            get_rich_repr(self.identifier),
             Text(),
         ]
 

@@ -672,9 +672,9 @@ ipykernel==7.1.0 \
     #   jupyter
     #   jupyter-console
     #   jupyterlab
-ipython==8.38.0 ; python_full_version < '3.11' \
-    --hash=sha256:750162629d800ac65bb3b543a14e7a74b0e88063eac9b92124d4b2aa3f6d8e86 \
-    --hash=sha256:9cfea8c903ce0867cc2f23199ed8545eb741f3a69420bfcf3743ad1cec856d39
+ipython==9.9.0; python_full_version < '3.11' \
+    --hash=sha256:48fbed1b2de5e2c7177eefa144aba7fcb82dac514f09b57e2ac9da34ddb54220 \
+    --hash=sha256:b457fe9165df2b84e8ec909a97abcf2ed88f565970efba16b1f7229c283d252b
     # via
     #   ipykernel
     #   ipywidgets

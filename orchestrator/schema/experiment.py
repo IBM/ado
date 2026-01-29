@@ -872,6 +872,8 @@ class ParameterizedExperiment(Experiment):
         from rich.panel import Panel
         from rich.text import Text
 
+        from orchestrator.utilities.rich import get_rich_repr
+
         content = []
         content.append(
             Text(f"Parameterized Identifier: {self.parameterizedIdentifier}")
@@ -886,11 +888,18 @@ class ParameterizedExperiment(Experiment):
         mapping = {c.identifier: c for c in self.optionalProperties}
         for value in self.parameterization:
             prop = mapping[value.property.identifier]
-            param_content.append(prop)  # Will use prop.__rich__()
-            param_content.append(Text(f"Parameterized value: {value.value}"))
-            param_content.append(Text())
+            param_content.extend(
+                [
+                    prop,
+                    Text("Parameterized value:", style="bold", end=" "),
+                    get_rich_repr({value.value}),
+                    Text(),
+                ]
+            )
 
-        content.append(Panel(Group(*param_content), title="Parameterization"))
+        content.extend(
+            [Text("Parameterization:", style="bold"), Panel(Group(*param_content))]
+        )
 
         return Group(*content)
 

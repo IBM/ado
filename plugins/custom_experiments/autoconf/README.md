@@ -65,7 +65,7 @@ entity:
   gpu_model: NVIDIA-A100-80GB-PCIe
   tokens_per_sample: 8192
   batch_size: 16
-  model_version: 1.1.0
+  model_version: 3.0.0
 
 experiments:
   - actuatorIdentifier: custom_experiments
@@ -83,7 +83,7 @@ After a few seconds you should see:
 <!-- markdownlint-disable line-length -->
 
 ```bash
-Point: {'model_name': 'llama-7b', 'method': 'lora', 'gpu_model': 'NVIDIA-A100-80GB-PCIe', 'tokens_per_sample': 8192, 'batch_size': 16, 'model_version': '1.1.0'}
+Point: {'model_name': 'llama-7b', 'method': 'lora', 'gpu_model': 'NVIDIA-A100-80GB-PCIe', 'tokens_per_sample': 8192, 'batch_size': 16, 'model_version': '3.0.0'}
 2025-11-13 13:26:24,925 INFO worker.py:2003 -- Started a local Ray instance. View the dashboard at http://127.0.0.1:8265
 /Users/username/projects/orchestrator/autoconf/.venv/lib/python3.12/site-packages/ray/_private/worker.py:2051: FutureWarning: Tip: In future versions of Ray, Ray will no longer override accelerator visible devices env var if num_gpus=0 or num_gpus=None (default). To enable this behavior and turn off this error message, set RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
   warnings.warn(
@@ -102,7 +102,7 @@ generatorid                                                        unk
 gpu_model                                        NVIDIA-A100-80GB-PCIe
 method                                                            lora
 model_name                                                    llama-7b
-model_version                                                    1.1.0
+model_version                                                    3.0.0
 tokens_per_sample                                                 8192
 identifier           model_name.llama-7b-method.lora-gpu_model.NVID...
 experiment_id                   custom_experiments.min_gpu_recommender
@@ -148,7 +148,7 @@ configuration = {
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 8192,
     "batch_size": 16,
-    "model_version": "1.1.0",
+    "model_version": "3.0.0",
 }
 
 measured_properties=min_gpu_recommender(**configuration)
@@ -192,7 +192,7 @@ configuration = {
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 8192,
     "batch_size": 16,
-    "model_version": "1.1.0",
+    "model_version": "3.0.0",
 }
 
 entity = SpacePoint.model_validate({"entity":configuration}).to_entity()
@@ -271,7 +271,7 @@ entitySpace:
   - identifier: model_version
     propertyDomain:
       values:
-        - "1.1.0"
+        - "3.0.0"
 ```
 
 To execute this run:

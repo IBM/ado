@@ -25,6 +25,7 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.logging import configure_logging
+from orchestrator.utilities.rich import render_to_string
 
 if typing.TYPE_CHECKING:
     from rich.console import RenderableType
@@ -509,7 +510,7 @@ class MeasurementSpace:
                 ]:
                     raise ValueError(
                         f"Identified a measurement space constitutive property not in entity space: {cp}. "
-                        f"Entity space:{entitySpace.__rich__()!s}"
+                        f"Entity space:{render_to_string(entitySpace)}"
                     )
                 if cp.propertyDomain:
                     # Check the entity spaces domain for the CP is compatible with the experiments
@@ -520,14 +521,14 @@ class MeasurementSpace:
                         ):
                             raise ValueError(
                                 "Identified an entity space dimension not compatible with the measurement space requirements."
-                                f"\nMeasurement Space Property: {cp.__rich__()!s}"
-                                f"\nEntity Space Dimension: {entitySpaceCP.__rich__()!s}"
+                                f"\nMeasurement Space Property: {render_to_string(cp)}"
+                                f"\nEntity Space Dimension: {render_to_string(entitySpaceCP)}"
                             )
                     except Exception as error:
                         print(error)
-                        print(f"The experiment property was: {cp.__rich__()!s}")
+                        print(f"The experiment property was: {render_to_string(cp)}")
                         print(
-                            f"The entity space property was: {entitySpaceCP.__rich__()!s}"
+                            f"The entity space property was: {render_to_string(entitySpaceCP)}"
                         )
                         raise
 
@@ -542,8 +543,8 @@ class MeasurementSpace:
                         ):
                             raise ValueError(
                                 "Identified an entity space dimension not compatible with the measurement space requirements."
-                                f"\nMeasurement Space Property: {cp.__rich__()!s}"
-                                f"\nEntity Space Dimension: {entitySpaceCP.__rich__()!s}"
+                                f"\nMeasurement Space Property: {render_to_string(cp)}"
+                                f"\nEntity Space Dimension: {render_to_string(entitySpaceCP)}"
                             )
 
                         # Check that this property does not also have a custom parameterization
@@ -555,7 +556,7 @@ class MeasurementSpace:
                             raise ValueError(
                                 f"Identified an entity space dimension, {entitySpaceCP}, that also has a custom parameterization in the measurement space. "
                                 f"It is inconsistent for a property to have a custom parameterization in the measurement space and also be a dimension of the entityspace.\n"
-                                f"The experiment with the custom parameterization is:\n{e.__rich__()!s} "
+                                f"The experiment with the custom parameterization is:\n{render_to_string(e)} "
                             )
 
         if strict:

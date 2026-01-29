@@ -4,6 +4,7 @@ import typing
 
 import rich.box
 import rich.style
+from rich.console import Console
 from rich.pretty import Pretty
 from rich.table import Table
 
@@ -74,3 +75,19 @@ def dataframe_to_rich_table(
         table.add_row(*formatted_row)
 
     return table
+
+
+def render_to_string(renderable: "RenderableType", width: int | None = None) -> str:
+    """Render a rich renderable to a string.
+
+    Args:
+        renderable: A RenderableType object (e.g., Table, Panel, Text, etc.)
+        width: Optional width for the console. If None, uses default width.
+
+    Returns:
+        A string representation of the rendered output
+    """
+    console = Console(width=width, force_terminal=False, legacy_windows=False)
+    with console.capture() as capture:
+        console.print(renderable)
+    return capture.get()

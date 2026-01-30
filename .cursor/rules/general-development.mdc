@@ -94,14 +94,13 @@ Use Test Driven Development
 
 - Fix any issues reported by ruff that it could not fix automatically.
 - Run black and ruff at directory level for efficiency (e.g. `orchestrator/`, `plugins/`, `tests/`).
-- Run the mkdocs linter only when creating or modifying documentation in the `website/` directory:
+- Run the mkdocs linter on markdown files (*.md) that have added or modified:
 
-    uv run markdownlint-cli2 NEW_OR_CHANGED_FILE --fix
+    uv run markdownlint-cli2 NEW_OR_CHANGED_MARKDOWN_FILE --fix
 
-- Run **yamlfix** after YAML changes
+- Run if YAML changed or added
 
    pre-commit run yamlfmt
-
 
 ---
 

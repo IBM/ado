@@ -241,15 +241,23 @@ def test_refresh_incremental(
             entity, 1, MeasurementResultStateEnum.VALID
         )
         assert isinstance(result, ValidMeasurementResult)
-        entity.add_measurement_result(result)
+
+        # These entities are from a replay experiment and they likely have
+        # results already in them - we override them with the new result
+        # that we generate
+        entity.measurement_results = [result]
         measurement_results_batch1.append(result)
 
-    store.add_external_entities(entities=entities_batch1)
+    store.addEntities(entities=entities_batch1)
+    store.add_measurement_results(
+        results=measurement_results_batch1, skip_relationship_to_request=True
+    )
 
     # Trigger initial load
     _ = store.refresh(force_fetch_all_entities=True)
-    initial_last_insert_id = store._last_insert_id
 
+    # Save copies of the state after the first load
+    initial_last_insert_id = int(store._last_insert_id)
     frozen_entities = copy.deepcopy(store._entities)
 
     # Add new entities with measurements
@@ -260,34 +268,36 @@ def test_refresh_incremental(
             entity, 1, MeasurementResultStateEnum.VALID
         )
         assert isinstance(result, ValidMeasurementResult)
-        entity.add_measurement_result(result)
+
+        # These entities are from a replay experiment and they likely have
+        # results already in them - we override them with the new result
+        # that we generate
+        entity.measurement_results = [result]
         measurement_results_batch2.append(result)
 
-    store.add_external_entities(entities=entities_batch2)
+    store.addEntities(entities=entities_batch2)
+    store.add_measurement_results(
+        results=measurement_results_batch2, skip_relationship_to_request=True
+    )
 
     # The fixture might give us back entities with the same
     # identifier to the one we already had
+    batch_1_entity_identifiers = {e.identifier for e in entities_batch1}
+    batch_2_entity_identifiers = {e.identifier for e in entities_batch2}
     expected_new_entities = len(
-        {e.identifier for e in entities_batch2}.difference(
-            set(entities_batch1[0].identifier)
-        )
-    )
-    expected_new_measurement_count = sum(
-        [len(e.measurement_results) for e in entities_batch2]
+        batch_2_entity_identifiers.difference(batch_1_entity_identifiers)
     )
 
-    #
-    store._entities = frozen_entities
-    store._last_insert_id = initial_last_insert_id
+    # Restore the state of the sample store to the previous state.
+    # This simulates another process having updated it.
+    store._entities = copy.deepcopy(frozen_entities)
+    store._last_insert_id = int(initial_last_insert_id)
 
     # Perform incremental refresh
-
     new_entities_count, new_measurements_count = store.refresh()
 
     assert new_entities_count == expected_new_entities  # Only new entities
-    assert (
-        new_measurements_count == expected_new_measurement_count
-    )  # Only new measurements
+    assert new_measurements_count == 2  # Only new measurements
     assert len(store._entities) == 1 + expected_new_entities  # Total entities
     assert store._last_insert_id > initial_last_insert_id
 

@@ -1,0 +1,6 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+propertyDomain:
+  variableType: DISCRETE_VARIABLE_TYPE
+  domainRange: [min, max]
+  values: [1, 2, 4, 8, 16]

@@ -66,6 +66,7 @@ dev = [
     "testcontainers>=4.10.0",
     "tox>=4.26.0",
     "tox-uv>=1.25.0",
+    "yamlfix>=1.19.1",
 ]
 docs = [
     "htmlmin>=0.1.12",

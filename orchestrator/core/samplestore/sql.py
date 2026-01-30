@@ -425,12 +425,12 @@ class SQLSampleStore(ActiveSampleStore):
 
     def _fetch_measurement_results(
         self, min_insert_id: int = 0
-    ) -> tuple[dict[str, list[MeasurementResult]], int]:
+    ) -> tuple[dict[str, list[ValidMeasurementResult]], int]:
         """
         Fetch measurement results from database starting from a specific insert_id.
 
         This method fetches results, validates them, and groups them by entity_id.
-        Both valid and invalid measurement results are included in the returned dictionary.
+        Only valid measurement results are included in the returned dictionary.
         All validation happens here, so callers don't need to validate again.
 
         Parameters:
@@ -439,8 +439,7 @@ class SQLSampleStore(ActiveSampleStore):
 
         Returns:
             Tuple of:
-            - Dictionary mapping entity_id -> list of MeasurementResult objects
-              (includes both ValidMeasurementResult and InvalidMeasurementResult)
+            - Dictionary mapping entity_id -> list of ValidMeasurementResult objects
             - Maximum insert_id seen (or min_insert_id if no results)
 
         Raises:

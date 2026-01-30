@@ -33,6 +33,7 @@ from orchestrator.schema.request import (
     ReplayedMeasurement,
 )
 from orchestrator.schema.result import (
+    DuplicateMeasurementResultError,
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
@@ -592,20 +593,14 @@ class SQLSampleStore(ActiveSampleStore):
                 # ones we are already aware of.
                 # As it stands, then, we need to be careful not to add measurement
                 # results twice.
-                if any(
-                    measurement_result.uid == existing_result.uid
-                    for existing_result in self._entities[entity_id].measurement_results
-                ):
-                    self.log.info(
-                        f"Result with uid {measurement_result.uid} was already present "
-                        f"in entity with identifier {entity_id}"
+                try:
+                    self._entities[entity_id].add_measurement_result(
+                        result=measurement_result
                     )
-                    continue
-
-                self._entities[entity_id].add_measurement_result(
-                    result=measurement_result
-                )
-                total_measurements += 1
+                except DuplicateMeasurementResultError:  # noqa: PERF203
+                    pass
+                else:
+                    total_measurements += 1
 
         # Update tracking
         self._last_insert_id = max_insert_id

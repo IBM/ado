@@ -35,6 +35,7 @@ Please record the following for each model:
   - Trained on updated lakehouse data (includes `granite-4.0` models, data up to
     30th October 2025).
   - Same dependencies as previous version (Autogluon v1.4).
+  - 30/1 - Deprecated because of update to Autogluon version 1.5
 - **Location:** `v2-0-0_ag-20251113_154241-refit-clone-opt`
 
 ## 12/11/2025 Model Update - Binary Classifier v1.1.0
@@ -45,4 +46,5 @@ Please record the following for each model:
   - No changes to model size, datasets, or performance.
   - Requires PyTorch
   - Autogluon v1.4
+  - 30/1 - Deprecated because of update to Autogluon version 1.5
 - **Location:** `v1-1-0_ag-20251112_155927-refit-clone-opt`

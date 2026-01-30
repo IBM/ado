@@ -562,7 +562,7 @@ class SQLSampleStore(ActiveSampleStore):
                 if len(missing_entity_ids) != new_entities_count:
                     self.log.warning(
                         f"Expected to find {len(missing_entity_ids)} new entities but "
-                        f"{new_entities_count} were retrieved. This suggests another process"
+                        f"{new_entities_count} were retrieved. This suggests another process "
                         f"is updating the sample store concurrently."
                     )
 

@@ -548,35 +548,30 @@ class SQLSampleStore(ActiveSampleStore):
             self.log.debug("No new measurement results found")
             return (new_entities_count, 0)
 
-        # Phase 3: Fetch missing entities (if not doing initial load)
-        if not force_fetch_all_entities:
-            new_entity_ids = set(results_by_entity.keys())
-            missing_entity_ids = new_entity_ids - set(self._entities.keys())
+        # Phase 3: Fetch missing entities
+        # Doing it every time even if force_fetch_all_entities is True to avoid
+        # the off-chance where another process adds an entity and some results
+        # in the time it takes to fetch all the entities + all the measurements.
+        # This avoid the chance of having results for which we have no entity.
+        new_entity_ids = set(results_by_entity.keys())
+        missing_entity_ids = new_entity_ids - set(self._entities.keys())
 
-            if missing_entity_ids:
-                self.log.debug(f"Fetching {len(missing_entity_ids)} new entities")
-                new_entities = self._fetch_entities(entity_ids=missing_entity_ids)
-                self._entities.update(new_entities)
-                new_entities_count = len(new_entities)
+        if missing_entity_ids:
+            self.log.debug(f"Fetching {len(missing_entity_ids)} new entities")
+            new_entities = self._fetch_entities(entity_ids=missing_entity_ids)
+            self._entities.update(new_entities)
+            new_entities_count = len(new_entities)
 
-                if len(missing_entity_ids) != new_entities_count:
-                    self.log.warning(
-                        f"Expected to find {len(missing_entity_ids)} new entities but "
-                        f"{new_entities_count} were retrieved. This suggests another process "
-                        f"is updating the sample store concurrently."
-                    )
+            if len(missing_entity_ids) != new_entities_count:
+                self.log.warning(
+                    f"Expected to find {len(missing_entity_ids)} new entities but "
+                    f"{new_entities_count} were retrieved. This suggests another process "
+                    f"is updating the sample store concurrently."
+                )
 
         # Phase 4: Attach measurements to entities (no validation needed - already done)
         total_measurements = 0
-        orphaned_measurements = 0
         for entity_id, measurement_results in results_by_entity.items():
-            if entity_id not in self._entities:
-                orphaned_measurements += len(measurement_results)
-                self.log.warning(
-                    f"Found {len(measurement_results)} measurement(s) for unknown entity {entity_id}. "
-                    f"This entity may have been added by another process. Call refresh() again to fetch it."
-                )
-                continue
 
             for measurement_result in measurement_results:
 
@@ -608,7 +603,7 @@ class SQLSampleStore(ActiveSampleStore):
         self.log.info(
             f"Refresh complete: fetched {new_entities_count} new entities, "
             f"processed {total_measurements} new measurements "
-            f"({orphaned_measurements} orphaned) (last insert_id: {max_insert_id})"
+            f"(last insert_id: {max_insert_id})"
         )
 
         return (new_entities_count, total_measurements)

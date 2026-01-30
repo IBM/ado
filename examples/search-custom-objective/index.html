@@ -14,21 +14,34 @@
 </code></pre></div> <p>You can see the custom experiment provided by the package, <strong>ml-multicloud-cost-v1.0</strong> on the first line. Executing <code>ado describe experiment ml-multicloud-cost-v1.0</code> outputs:</p> <div class=highlight><pre><span></span><code>Identifier: custom_experiments.ml-multicloud-cost-v1.0
 
 Required Inputs:
-  Constitutive Properties:
-      nodes
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [0, 1000]
-
-      cpu_family
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Values: [0, 1] Range: [0, 2]
-
-
-  Observed Properties:
-      op-benchmark_performance-wallClockRuntime
-
-
-Outputs: ml-multicloud-cost-v1.0-total_cost
+                                                                             
+   Constitutive Properties:                                                  
+    ─────────────────────────────────────────────────────────────────────    
+     Identifier: nodes                                                       
+     Domain:                                                                 
+                                                                             
+        Type: DISCRETE_VARIABLE_TYPE                                         
+        Interval: 1                                                          
+        Range: [0, 1000]                                                     
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+    ─────────────────────────────────────────────────────────────────────    
+     Identifier: cpu_family                                                  
+     Domain:                                                                 
+                                                                             
+        Type: DISCRETE_VARIABLE_TYPE                                         
+        Values: [0, 1]                                                       
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+   Observed Properties:                                                      
+                                                                             
+      op-benchmark_performance-wallClockRuntime                              
+                                                                             
+                                                                             
+Outputs:
+ ─────────────────────────────────────────────────────────────────────────── 
+   ml-multicloud-cost-v1.0-total_cost                                        
+ ───────────────────────────────────────────────────────────────────────────
 </code></pre></div> <p>From this, you can see the <code>ml-multicloud-cost-v1.0</code> requires an observed property, i.e. a property measured by another experiment, as input. From the observed property identifier, the experiment is called <code>benchmark_performance</code> and the property is <code>wallClockRuntime</code>.</p> <h2 id=create-a-discoveryspace-that-uses-the-custom-experiment>Create a discoveryspace that uses the custom experiment<a class=headerlink href=#create-a-discoveryspace-that-uses-the-custom-experiment title="Permanent link">&para;</a></h2> <p>First create a <code>samplestore</code> with the <code>ml-multi-cloud</code> example data following <a href=/ado/examples/random-walk/#using-pre-existing-data-with-ado>these instructions</a>. If you have already completed the <a href=/ado/examples/random-walk/ >taking a random walk example</a>, reuse the <code>samplestore</code> you created there (use <code>ado get samplestores</code> if you cannot recall the identifier).</p> <p>To use the custom experiment, you must add it in the <code>experiments</code> list of a <code>discoveryspace</code>. The <code>actuatorIdentifier</code> will be <code>custom_experiments</code> and the <code>experimentIdentifier</code> will be the name of your experiment. For this case the relevant section looks like:</p> <div class=highlight><pre><span></span><code><span class=nt>experiments</span><span class=p>:</span>
 <span class=w>  </span><span class="p p-Indicator">-</span><span class=w> </span><span class=nt>experimentIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;benchmark_performance&quot;</span>
 <span class=w>    </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;replay&quot;</span>
@@ -36,53 +49,74 @@ Outputs: ml-multicloud-cost-v1.0-total_cost
 <span class=w>    </span><span class=nt>actuatorIdentifier</span><span class=p>:</span><span class=w> </span><span class=s>&quot;custom_experiments&quot;</span>
 </code></pre></div> <p>The complete <code>discoveryspace</code> for this example is given in <code>ml_multicloud_space_with_custom.yaml</code> To create it execute:</p> <div class=highlight><pre><span></span><code>ado create space -f ml_multicloud_space_with_custom.yaml --set &quot;sampleStoreIdentifier=$SAMPLE_STORE_IDENTIFIER&quot;
 </code></pre></div> <div class="admonition warning"> <p class=admonition-title>Important</p> <p>If an experiment takes the output of another experiment as input both experiments must be in the <code>discoveryspace</code>. In the above example if the entry <code>benchmark_performance</code> was omitted the <code>ado create space</code> command would fail with:</p> <p><strong>SpaceInconsistencyError</strong>: MeasurementSpace does not contain an experiment measuring an observed property required by another experiment in the space</p> </div> <p>You view a description of the space using the <code>ado describe</code> command:</p> <div class=highlight><pre><span></span><code>ado describe space --use-latest
-</code></pre></div> <p>This will output:</p> <div class=highlight><pre><span></span><code>Identifier: space-d5c150-0b762f
+</code></pre></div> <p>This will output:</p> <div class=highlight><pre><span></span><code>Identifier: &#39;space-19b2de-6da1f4&#39;
 
 Entity Space:
-
-  Number entities: 48
-
-  Categorical properties:
-           name     values
-    0  provider  [A, B, C]
-
-  Discrete properties:
-             name   range interval        values
-    0  cpu_family  [0, 2]     None        [0, 1]
-    1   vcpu_size  [0, 2]     None        [0, 1]
-    2       nodes  [2, 6]     None  [2, 3, 4, 5]
-
-
+                                                                             
+   Number of entities: 48                                                    
+                                                                             
+   Categorical properties:                                                   
+                                                                             
+      name       values                                                      
+     ────────────────────────────                                            
+      provider   [&#39;A&#39;, &#39;B&#39;, &#39;C&#39;]                                             
+                                                                             
+   Discrete properties:                                                      
+                                                                             
+      name         range   interval   values                                 
+     ──────────────────────────────────────────────                          
+      cpu_family   None    None       [0, 1]                                 
+      vcpu_size    None    None       [0, 1]                                 
+      nodes        None    None       [2, 3, 4, 5]                           
+                                                                             
+                                                                             
 Measurement Space:
-                                       experiment  supported
-  0                 replay.benchmark_performance       True
-  1   custom_experiments.ml-multicloud-cost-v1.0       True
-
-  &#39;replay.benchmark_performance&#39;
-
-  Inputs:
-      parameter      type value parameterized
-  0  cpu_family  required  None            na
-  1   vcpu_size  required  None            na
-  2       nodes  required  None            na
-  3    provider  required  None            na
-
-  Outputs:
-       target property
-  0  wallClockRuntime
-  1            status  &#39;custom_experiments.ml-multicloud-cost-v1.0&#39;
-
-  Inputs:
-                                  parameter      type value parameterized
-  0                                   nodes  required  None            na
-  1                              cpu_family  required  None            na
-  2  benchmark_performance-wallClockRuntime  required  None            na
-
-  Outputs:
-     target property
-  0      total_cost
-
-Sample store identifier: &#39;0b762f&#39;
+                                                                             
+   Experiments:                                                              
+                                                                             
+      experiment                                   supported                 
+     ────────────────────────────────────────────────────────                
+      replay.benchmark_performance                 True                      
+      custom_experiments.ml-multicloud-cost-v1.0   True                      
+                                                                             
+    ─────────────────── replay.benchmark_performance ────────────────────    
+     Inputs:                                                                 
+                                                                             
+        parameter    type       value   parameterized                        
+       ───────────────────────────────────────────────                       
+        cpu_family   required   None    na                                   
+        nodes        required   None    na                                   
+        provider     required   None    na                                   
+        vcpu_size    required   None    na                                   
+                                                                             
+     Outputs:                                                                
+                                                                             
+        target property                                                      
+       ──────────────────                                                    
+        wallClockRuntime                                                     
+        status                                                               
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+                                                                             
+    ──────────── custom_experiments.ml-multicloud-cost-v1.0 ─────────────    
+     Inputs:                                                                 
+                                                                             
+        parameter                    type       value   parameterized        
+       ───────────────────────────────────────────────────────────────       
+        nodes                        required   None    na                   
+        cpu_family                   required   None    na                   
+        benchmark_performance-wal…   required   None    na                   
+                                                                             
+     Outputs:                                                                
+                                                                             
+        target property                                                      
+       ─────────────────                                                     
+        total_cost                                                           
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+                                                                             
+                                                                             
+Sample Store identifier: 6da1f4                                                            
 </code></pre></div> <h2 id=exploring-the-discoveryspace>Exploring the <code>discoveryspace</code><a class=headerlink href=#exploring-the-discoveryspace title="Permanent link">&para;</a></h2> <p>To run a <code>randomwalk</code> operation on the new space, execute:</p> <div class=highlight><pre><span></span><code>ado create operation -f randomwalk_ml_multicloud_operation.yaml --use-latest space
 </code></pre></div> <p>This produces an output similar to that described in the <a href=/ado/examples/random-walk/#exploring-the-discoveryspace>taking a random walk example</a> and will exit printing the operation identifier. However, in this case there is additional information related to the dependent experiment.</p> <p>When it completes, you can get a table of the points visited with:</p> <div class=highlight><pre><span></span><code>ado show entities operation --use-latest
 </code></pre></div> <p>You will see a table similar to the following - note the extra column for the new cost function:</p> <div class=highlight><pre><span></span><code>               result_index                                   identifier                        benchmark_performance-wallClockRuntime benchmark_performance-status                           ml-multicloud-cost-v1.0-total_cost                                                                                        reason  valid

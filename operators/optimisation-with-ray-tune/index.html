@@ -95,34 +95,49 @@
 discoveryspace
   - space-047b6a-f60613
 </code></pre></div> <p>To see the best point found (and in general the contents of the datacontainer) use the <code>describe</code> CLI command:</p> <div class=highlight><pre><span></span><code>ado describe datacontainer $DATACONTAINER_ID
-</code></pre></div> <p>For a <code>datacontainer</code> created by a <code>ray_tune</code> operation, an example output is:</p> <div class=highlight><pre><span></span><code>Identifier: datacontainer-d6a6501b
-Basic Data:
-
-  Label: best_result
-
-  {&#39;config&#39;: {&#39;x2&#39;: -1.1192905253425014,
-    &#39;x1&#39;: 2.081208150586974,
-    &#39;x0&#39;: 0.5621591414422049},
-   &#39;metrics&#39;: {&#39;function_value&#39;: 20.788056393697595,
-    &#39;timestamp&#39;: 1756804287,
-    &#39;checkpoint_dir_name&#39;: None,
-    &#39;done&#39;: True,
-    &#39;training_iteration&#39;: 1,
-    &#39;trial_id&#39;: &#39;7a7153ed&#39;,
-    &#39;date&#39;: &#39;2025-09-02_10-11-27&#39;,
-    &#39;time_this_iter_s&#39;: 1.0576610565185547,
-    &#39;time_total_s&#39;: 1.0576610565185547,
-    &#39;pid&#39;: 52036,
-    &#39;hostname&#39;: &#39;Michaels-MacBook-Pro-2.local&#39;,
-    &#39;node_ip&#39;: &#39;127.0.0.1&#39;,
-    &#39;config&#39;: {&#39;x2&#39;: -1.1192905253425014,
-     &#39;x1&#39;: 2.081208150586974,
-     &#39;x0&#39;: 0.5621591414422049},
-    &#39;time_since_restore&#39;: 1.0576610565185547,
-    &#39;iterations_since_restore&#39;: 1,
-    &#39;experiment_tag&#39;: &#39;40_x0=0.5622,x1=2.0812,x2=-1.1193&#39;},
-   &#39;error&#39;: None}
-</code></pre></div> <p>We can see here that the point found is <code>{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}</code> where <code>function_value</code> was ~20.8.</p> <h3 id=optimization-path>Optimization path<a class=headerlink href=#optimization-path title="Permanent link">&para;</a></h3> <p>To see all the configurations (entities) visited during an optimization operation $OPERATION_IDENTIFIER run</p> <div class=highlight><pre><span></span><code>ado show entities operation $OPERATION_IDENTIFIER
+</code></pre></div> <p>For a <code>datacontainer</code> created by a <code>ray_tune</code> operation, an example output is:</p> <div class=highlight><pre><span></span><code>Identifier: datacontainer-a5a33316
+                                                                             
+ ─────────────────────────────── Basic Data ──────────────────────────────── 
+                                                                             
+    Label: &#39;best_result&#39;                                                     
+    {                                                                        
+        &#39;config&#39;: {                                                          
+            &#39;x2&#39;: -0.6739656478980461,                                       
+            &#39;x1&#39;: 0.8532760228340539,                                        
+            &#39;x0&#39;: -2.5705928842344696                                        
+        },                                                                   
+        &#39;metrics&#39;: {                                                         
+            &#39;function_value&#39;: 1106.8717468085306,                            
+            &#39;timestamp&#39;: 1769680394,                                         
+            &#39;checkpoint_dir_name&#39;: None,                                     
+            &#39;done&#39;: True,                                                    
+            &#39;training_iteration&#39;: 1,                                         
+            &#39;trial_id&#39;: &#39;e07dd2f6&#39;,                                          
+            &#39;date&#39;: &#39;2026-01-29_09-53-14&#39;,                                   
+            &#39;time_this_iter_s&#39;: 1.0830578804016113,                          
+            &#39;time_total_s&#39;: 1.0830578804016113,                              
+            &#39;pid&#39;: 34110,                                                    
+            &#39;hostname&#39;: &#39;MacBook-Pro-di-Alessandro.local&#39;,                   
+            &#39;node_ip&#39;: &#39;127.0.0.1&#39;,                                          
+            &#39;config&#39;: {                                                      
+                &#39;x2&#39;: -0.6739656478980461,                                   
+                &#39;x1&#39;: 0.8532760228340539,                                    
+                &#39;x0&#39;: -2.5705928842344696                                    
+            },                                                               
+            &#39;time_since_restore&#39;: 1.0830578804016113,                        
+            &#39;iterations_since_restore&#39;: 1,                                   
+            &#39;experiment_tag&#39;: &#39;11_x0=-2.5706,x1=0.8533,x2=-0.6740&#39;           
+        },                                                                   
+        &#39;error&#39;: None                                                        
+    }                                                                        
+                                                                             
+ ─────────────────────────────────────────────────────────────────────────── 
+</code></pre></div> <p>We can see here that the point found is</p> <div class=highlight><pre><span></span><code><span class=p>{</span>
+<span class=w>  </span><span class=nt>&quot;x2&quot;</span><span class=p>:</span><span class=w> </span><span class=mf>-0.6739656478980461</span><span class=p>,</span>
+<span class=w>  </span><span class=nt>&quot;x1&quot;</span><span class=p>:</span><span class=w> </span><span class=mf>0.8532760228340539</span><span class=p>,</span>
+<span class=w>  </span><span class=nt>&quot;x0&quot;</span><span class=p>:</span><span class=w> </span><span class=mf>-2.5705928842344696</span>
+<span class=p>}</span>
+</code></pre></div> <p>where <code>function_value</code> was ~1106.87.</p> <h3 id=optimization-path>Optimization path<a class=headerlink href=#optimization-path title="Permanent link">&para;</a></h3> <p>To see all the configurations (entities) visited during an optimization operation $OPERATION_IDENTIFIER run</p> <div class=highlight><pre><span></span><code>ado show entities operation $OPERATION_IDENTIFIER
 </code></pre></div> <div class="admonition info end"> <p class=admonition-title>Info</p> <p>This command also works during an operation. It shows up to the most recent measured entity.</p> </div> <h2 id=ado-additions-to-raytune>ado additions to RayTune<a class=headerlink href=#ado-additions-to-raytune title="Permanent link">&para;</a></h2> <p><code>ado</code> adds one optimizer and a selection of stoppers to those offered by RayTune</p> <h3 id=latin-hypercube-sampler>Latin Hypercube Sampler<a class=headerlink href=#latin-hypercube-sampler title="Permanent link">&para;</a></h3> <p>The <code>lhu_sampler</code> samples a <code>discoveryspace</code> using <a href=https://en.wikipedia.org/wiki/Latin_hypercube_sampling>latin hypercube sampling</a>. This is a method for "almost" randomly sampling a space while ensuring the samples are evenly spaced across the space. Using the <code>lhu_sampler</code> you can potentially get more information about the variance of a metric across a space with fewer samples than fully random sampling. It also reduces chances of not exploring dimensions in high-dimensional spaces when sampling budget is limited.</p> <p>The <code>lhu_sampler</code> pairs well with the <a href=#informationgainstopper>InformationGainStopper</a></p> <p>Configuration the <code>lhu_sampler</code> follows the same pattern as those for other <a href=#optimizer-parameters-search_algparams>optimizer parameters</a>. For the <code>lhu_sampler</code>, there is only one optional parameter, <a href=#common-parameters>points_to_evaluate</a>.</p> <div class=highlight><pre><span></span><code><span class=nt>name</span><span class=p>:</span><span class=w> </span><span class=s>&quot;lhu_sampler&quot;</span>
 <span class=nt>params</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>points_to_evaluate</span><span class=p>:</span>

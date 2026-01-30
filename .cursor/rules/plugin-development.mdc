@@ -160,14 +160,19 @@ Before considering a plugin complete, verify:
 
 - [ ] **Experiment execution**: Use `run_experiment` tool to verify custom_experiment or actuator experiments can run successfully
 - [ ] **Valid DiscoverySpace YAML**: Create and validate a discoveryspace YAML that uses the experiment/actuator
+
   ```bash
   ado create discoveryspace -f space.yaml --dry-run
   ```
+
 - [ ] **Valid Operation YAML**: Create and validate an operation YAML that uses the operator
+
   ```bash
   ado create operation -f operation.yaml --dry-run
   ```
+
 - [ ] **Unit tests pass**: Run pytest on the plugin package
+
   ```bash
   uv run pytest plugins/your_plugin_type/your_plugin/tests/
   ```

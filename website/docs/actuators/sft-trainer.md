@@ -1903,10 +1903,7 @@ while keeping the duration of each task low.
 This configuration allows the actuator to reach a steady state before sampling,
 ensuring that both system and throughput metrics are highly consistent.
 
-You can verify this stability of fms-hf-tuning yourself by repeating the same
-[RandomWalk operation](../examples/finetune-remotely.md) five times on
-the following DiscoverySpace:
-
+You can easily verify this stability of fms-hf-tuning yourself.
 For example, repeat the same [RandomWalk operation](../examples/finetune-remotely.md)
 on the following DiscoverySpace for 5 times:
 

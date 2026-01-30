@@ -201,9 +201,11 @@ ado show entities space --output-format csv --use-latest
 - Try creating a different `actuatorconfiguration` with more `max_environments`
   and running the random walk with a non-grouped sampler
 - Replace the model with a different HF checkpoint to compare performance.
-- Use **RayTune** (see the
-  [vLLM endpoint performance](vllm-performance-endpoint.md) example) to optimise
-  the hyper‑parameters of the benchmark.
+- Use the [**RayTune** operator](../operators/optimisation-with-ray-tune.md)
+  (see the [vLLM endpoint performance](vllm-performance-endpoint.md) example)
+  to find "best" configurations.
+- Run a  [multi-objective optimization](../operators/optimisation-with-ray-tune.md#multi-objective-optimization)
+  to explore e.g. latency v throughput tradeoffs.
 - Run
   [the exploration on the OpenShift/Kubernetes cluster](../actuators/vllm_performance.md#the-in_cluster-configuration-option)
   you create the deployments on, so you don't have to keep your laptop open.

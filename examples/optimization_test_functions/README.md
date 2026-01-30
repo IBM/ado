@@ -82,41 +82,67 @@ after this running `ado get actuators --details` should show the following line:
 
 and `ado describe experiment nevergrad_opt_3d_test_func` should output
 
-```text
+```terminaloutput
 Identifier: custom_experiments.nevergrad_opt_3d_test_func
 
 Required Inputs:
-  Constitutive Properties:
-      x0
-      Domain:
-        Type: CONTINUOUS_VARIABLE_TYPE
-
-      x1
-      Domain:
-        Type: CONTINUOUS_VARIABLE_TYPE
-
-      x2
-      Domain:
-        Type: CONTINUOUS_VARIABLE_TYPE
-
-
+                                                                             
+   Constitutive Properties:                                                  
+    ─────────────────────────────────────────────────────────────────────    
+     Identifier: x0                                                          
+     Domain:                                                                 
+                                                                             
+        Type: CONTINUOUS_VARIABLE_TYPE                                       
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+    ─────────────────────────────────────────────────────────────────────    
+     Identifier: x1                                                          
+     Domain:                                                                 
+                                                                             
+        Type: CONTINUOUS_VARIABLE_TYPE                                       
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+    ─────────────────────────────────────────────────────────────────────    
+     Identifier: x2                                                          
+     Domain:                                                                 
+                                                                             
+        Type: CONTINUOUS_VARIABLE_TYPE                                       
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+                                                                             
 Optional Inputs and Default Values:
-  name
-  Domain:
-    Type: CATEGORICAL_VARIABLE_TYPE
-    Values: ['discus', 'sphere', 'cigar', 'griewank', 'rosenbrock', 'st1']
-
-
-  Default value: rosenbrock
-
-  num_blocks
-  Domain:
-    Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [1, 10]
-
-  Default value: 1
-
-
-Outputs: nevergrad_opt_3d_test_func-function_value
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+     Identifier: num_blocks                                                  
+     Domain:                                                                 
+                                                                             
+        Type: DISCRETE_VARIABLE_TYPE                                         
+        Interval: 1                                                          
+        Range: [1, 10]                                                       
+                                                                             
+     Default value: 1                                                        
+    ─────────────────────────────────────────────────────────────────────    
+    ─────────────────────────────────────────────────────────────────────    
+     Identifier: name                                                        
+     Domain:                                                                 
+                                                                             
+        Type: CATEGORICAL_VARIABLE_TYPE                                      
+        Values: [                                                            
+            'discus',                                                        
+            'sphere',                                                        
+            'cigar',                                                         
+            'griewank',                                                      
+            'rosenbrock',                                                    
+            'st1'                                                            
+        ]                                                                    
+                                                                             
+     Default value: 'rosenbrock'                                             
+    ─────────────────────────────────────────────────────────────────────    
+                                                                             
+Outputs:
+ ─────────────────────────────────────────────────────────────────────────── 
+   nevergrad_opt_3d_test_func-function_value                                 
+ ───────────────────────────────────────────────────────────────────────────
 ```
 
 ## Running the example
@@ -150,45 +176,51 @@ Assuming you did not modify `space.yaml`, running
 `ado describe space --use-latest` will output (identifiers will
 be different):
 
-```text
-Identifier: space-f529ab-85161d
+```terminaloutput
+Identifier: 'space-5420a8-default'
 
 Entity Space:
-
-  Space with non-discrete dimensions. Cannot count entities
-  Continuous properties:
-      name      range
-    0   x2  [-10, 10]
-    1   x1  [-10, 10]
-    2   x0  [-10, 10]
-
-
+                                                                             
+   Space with non-discrete dimensions. Cannot count entities                 
+                                                                             
+   Continuous properties:                                                    
+                                                                             
+      name   range                                                           
+     ──────────────────                                                      
+      x2     [-10, 10]                                                       
+      x1     [-10, 10]                                                       
+      x0     [-10, 10]                                                       
+                                                                             
+                                                                             
 Measurement Space:
-
-                                         experiment  supported
-  0  custom_experiments.nevergrad_opt_3d_test_func       True
-
-
-  'custom_experiments.nevergrad_opt_3d_test_func'
-
-
-  Inputs:
-      parameter      type       value parameterized
-  0          x0  required        None            na
-  1          x1  required        None            na
-  2          x2  required        None            na
-  3        name  optional  rosenbrock         False
-  4  num_blocks  optional           1         False
-
-
-  Outputs:
-
-    target property
-  0  function_value
-
-
-
-Sample Store identifier: '85161d'
+                                                                             
+   Experiments:                                                              
+                                                                             
+      experiment                                      supported              
+     ───────────────────────────────────────────────────────────             
+      custom_experiments.nevergrad_opt_3d_test_func   True                   
+                                                                             
+    ─────────── custom_experiments.nevergrad_opt_3d_test_func ───────────    
+     Inputs:                                                                 
+                                                                             
+        parameter    type       value        parameterized                   
+       ────────────────────────────────────────────────────                  
+        x0           required   None         na                              
+        x1           required   None         na                              
+        x2           required   None         na                              
+        num_blocks   optional   1            False                           
+        name         optional   rosenbrock   False                           
+                                                                             
+     Outputs:                                                                
+                                                                             
+        target property                                                      
+       ─────────────────                                                     
+        function_value                                                       
+                                                                             
+    ─────────────────────────────────────────────────────────────────────    
+                                                                             
+                                                                             
+Sample Store identifier: default
 ```
 
 Here we see,
@@ -230,8 +262,8 @@ from RayTune on the progress of the optimization, finishing with a description
 of the operation like below:
 
 ```yaml
-Space ID: space-3fbaad-c3a5f6
-Sample Store ID:  c3a5f6
+Space ID: space-5420a8-default
+Sample Store ID:  default
 Operation:
  config:
   actuatorConfigurationIdentifiers: []
@@ -251,30 +283,30 @@ Operation:
         search_alg:
           name: bayesopt
   spaces:
-  - space-3fbaad-c3a5f6
-created: '2025-09-06T10:40:58.158982Z'
-identifier: raytune-1.0.2.dev11+1c62218-bayesopt-b7f779
+  - space-5420a8-default
+created: '2026-01-29T09:52:50.562791Z'
+identifier: raytune-1.4.1.dev6+b30c6f74-bayesopt-a605a7
 kind: operation
 metadata:
   entities_submitted: 40
   experiments_requested: 40
 operationType: search
-operatorIdentifier: raytune-1.0.2.dev11+1c62218
+operatorIdentifier: raytune-1.4.1.dev6+b30c6f74
 status:
 - event: created
-  recorded_at: '2025-09-06T10:40:47.558298Z'
+  recorded_at: '2026-01-29T09:52:50.562796Z'
 - event: added
-  recorded_at: '2025-09-06T10:40:58.168519Z'
+  recorded_at: '2026-01-29T09:52:50.576672Z'
 - event: started
-  recorded_at: '2025-09-06T10:40:58.180530Z'
+  recorded_at: '2026-01-29T09:52:50.594038Z'
 - event: updated
-  recorded_at: '2025-09-06T10:40:58.180540Z'
+  recorded_at: '2026-01-29T09:52:50.594069Z'
 - event: finished
   exit_state: success
   message: Ray Tune operation completed successfully
-  recorded_at: '2025-09-06T10:42:42.804220Z'
+  recorded_at: '2026-01-29T09:53:55.100673Z'
 - event: updated
-  recorded_at: '2025-09-06T10:42:43.857310Z'
+  recorded_at: '2026-01-29T09:53:56.202542Z'
 version: v1
 ```
 
@@ -318,11 +350,11 @@ ado show related operation --use-latest
 
 This will output something like:
 
-```commandline
+```terminaloutput
 datacontainer
-  - datacontainer-d6a6501b
+  - datacontainer-a5a33316
 discoveryspace
-  - space-047b6a-f60613
+  - space-5420a8-default
 ```
 
 To see the best point found (and in general the contents of the datacontainer)
@@ -334,39 +366,57 @@ ado describe datacontainer $DATACONTAINER_ID
 
 In this case the output will be something like:
 
-```commandline
-Identifier: datacontainer-d6a6501b
-Basic Data:
-
-  Label: best_result
-
-  {'config': {'x2': -1.1192905253425014,
-    'x1': 2.081208150586974,
-    'x0': 0.5621591414422049},
-   'metrics': {'function_value': 20.788056393697595,
-    'timestamp': 1756804287,
-    'checkpoint_dir_name': None,
-    'done': True,
-    'training_iteration': 1,
-    'trial_id': '7a7153ed',
-    'date': '2025-09-02_10-11-27',
-    'time_this_iter_s': 1.0576610565185547,
-    'time_total_s': 1.0576610565185547,
-    'pid': 52036,
-    'hostname': 'Michaels-MacBook-Pro-2.local',
-    'node_ip': '127.0.0.1',
-    'config': {'x2': -1.1192905253425014,
-     'x1': 2.081208150586974,
-     'x0': 0.5621591414422049},
-    'time_since_restore': 1.0576610565185547,
-    'iterations_since_restore': 1,
-    'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
-   'error': None}
+```terminaloutput
+Identifier: datacontainer-a5a33316
+                                                                             
+ ─────────────────────────────── Basic Data ──────────────────────────────── 
+                                                                             
+    Label: 'best_result'                                                     
+    {                                                                        
+        'config': {                                                          
+            'x2': -0.6739656478980461,                                       
+            'x1': 0.8532760228340539,                                        
+            'x0': -2.5705928842344696                                        
+        },                                                                   
+        'metrics': {                                                         
+            'function_value': 1106.8717468085306,                            
+            'timestamp': 1769680394,                                         
+            'checkpoint_dir_name': None,                                     
+            'done': True,                                                    
+            'training_iteration': 1,                                         
+            'trial_id': 'e07dd2f6',                                          
+            'date': '2026-01-29_09-53-14',                                   
+            'time_this_iter_s': 1.0830578804016113,                          
+            'time_total_s': 1.0830578804016113,                              
+            'pid': 34110,                                                    
+            'hostname': 'MacBook-Pro-di-Alessandro.local',                   
+            'node_ip': '127.0.0.1',                                          
+            'config': {                                                      
+                'x2': -0.6739656478980461,                                   
+                'x1': 0.8532760228340539,                                    
+                'x0': -2.5705928842344696                                    
+            },                                                               
+            'time_since_restore': 1.0830578804016113,                        
+            'iterations_since_restore': 1,                                   
+            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'           
+        },                                                                   
+        'error': None                                                        
+    }                                                                        
+                                                                             
+ ─────────────────────────────────────────────────────────────────────────── 
 ```
 
 We can see here that the point found is
-`{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}`
-where `function_value` was ~20.8.
+
+```json
+{
+  "x2": -0.6739656478980461,
+  "x1": 0.8532760228340539,
+  "x0": -2.5705928842344696
+}
+```
+
+where `function_value` was ~1106.87.
 
 ### Configurations visited
 

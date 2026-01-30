@@ -66,8 +66,10 @@ def test_data_container_resource(
     )
 
 
-def test_datacontainer_pretty(data_container_resource: DataContainerResource) -> None:
-    from IPython.lib.pretty import pretty
+def test_datacontainer_rich_print(
+    data_container_resource: DataContainerResource,
+) -> None:
+    from rich.console import Console
 
-    assert hasattr(data_container_resource, "_repr_pretty_")
-    pretty(data_container_resource)
+    assert hasattr(data_container_resource, "__rich__")
+    Console().print(data_container_resource)

@@ -4,6 +4,7 @@ import typing
 import uuid
 
 import pydantic
+import rich.box
 
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
@@ -11,7 +12,7 @@ from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
 from orchestrator.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 class DiscoverySpaceResource(ADOResource):
@@ -27,49 +28,65 @@ class DiscoverySpaceResource(ADOResource):
         ),
     ]
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this discovery space resource using rich."""
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
+        from orchestrator.schema.entityspace import EntitySpaceRepresentation
+        from orchestrator.schema.measurementspace import MeasurementSpace
+        from orchestrator.utilities.rich import get_rich_repr
+
+        content = [
+            Text("Identifier:", style="bold", end=" "),
+            get_rich_repr(self.identifier),
+            Text(),
+        ]
+
+        # Entity Space section
+        entity_space = EntitySpaceRepresentation.representationFromConfiguration(
+            conf=self.config.entitySpace
+        )
+        if entity_space is not None:
+            content.extend(
+                [
+                    Text("Entity Space:", style="bold"),
+                    Panel(
+                        entity_space,
+                        box=rich.box.SIMPLE_HEAD,
+                        padding=(0, 2),
+                    ),  # Uses entity_space.__rich__()
+                ]
+            )
+
+        # Measurement Space section
+        if isinstance(
+            self.config.experiments,
+            MeasurementSpaceConfiguration,
+        ):
+            measurement_space = MeasurementSpace(configuration=self.config.experiments)
         else:
-            from orchestrator.schema.entityspace import EntitySpaceRepresentation
-            from orchestrator.schema.measurementspace import (
-                MeasurementSpace,
+            measurement_space = MeasurementSpace.measurementSpaceFromSelection(
+                selectedExperiments=self.config.experiments
             )
 
-            p.text(f"Identifier: {self.identifier}")
-            p.breakable()
+        content.extend(
+            [
+                Text("Measurement Space:", style="bold"),
+                Panel(
+                    measurement_space,
+                    box=rich.box.SIMPLE_HEAD,
+                    padding=(0, 2),
+                ),  # Uses measurement_space.__rich__()
+            ]
+        )
 
-            entity_space = EntitySpaceRepresentation.representationFromConfiguration(
-                conf=self.config.entitySpace
+        content.append(
+            Text.assemble(
+                ("Sample Store identifier: ", "bold"),
+                (self.config.sampleStoreIdentifier, "cyan"),
             )
-            if entity_space is not None:
-                p.breakable()
-                with p.group(2, "Entity Space:"):
-                    p.breakable()
-                    p.break_()
-                    p.pretty(entity_space)
-                    p.breakable()
+        )
 
-            p.breakable()
-            with p.group(2, "Measurement Space:"):
-                if isinstance(
-                    self.config.experiments,
-                    MeasurementSpaceConfiguration,
-                ):
-                    measurement_space = MeasurementSpace(
-                        configuration=self.config.experiments
-                    )
-                else:
-                    measurement_space = MeasurementSpace.measurementSpaceFromSelection(
-                        selectedExperiments=self.config.experiments
-                    )
-                p.breakable()
-                p.pretty(measurement_space)
-                p.breakable()
-
-            p.breakable()
-            with p.group(2, "Sample Store identifier:"):
-                p.breakable()
-                p.pretty(self.config.sampleStoreIdentifier)
-                p.breakable()
+        return Group(*content)

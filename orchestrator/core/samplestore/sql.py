@@ -569,18 +569,43 @@ class SQLSampleStore(ActiveSampleStore):
         total_measurements = 0
         orphaned_measurements = 0
         for entity_id, measurement_results in results_by_entity.items():
-            if entity_id in self._entities:
-                for measurement_result in measurement_results:
-                    self._entities[entity_id].add_measurement_result(
-                        result=measurement_result
-                    )
-                    total_measurements += 1
-            else:
+            if entity_id not in self._entities:
                 orphaned_measurements += len(measurement_results)
                 self.log.warning(
                     f"Found {len(measurement_results)} measurement(s) for unknown entity {entity_id}. "
                     f"This entity may have been added by another process. Call refresh() again to fetch it."
                 )
+                continue
+
+            for measurement_result in measurement_results:
+
+                # We have fetched results starting from self._last_insert_id, which
+                # means:
+                #   1.  Somebody else (e.g., another distributed process) could have
+                #       added results to the sample store.
+                #   2.  We ourselves could've added results to the sample store via
+                #       add_measurement_results.
+                # At the moment we can't know the `insert_id` of the results we add
+                # to avoid them. If we did, we would still have to fetch results
+                # starting from self._last_insert_id because someone else could have
+                # added results, but we would also be able to add a NOT IN to avoid
+                # ones we are already aware of.
+                # As it stands, then, we need to be careful not to add measurement
+                # results twice.
+                if any(
+                    measurement_result.uid == existing_result.uid
+                    for existing_result in self._entities[entity_id].measurement_results
+                ):
+                    self.log.info(
+                        f"Result with uid {measurement_result.uid} was already present "
+                        f"in entity with identifier {entity_id}"
+                    )
+                    continue
+
+                self._entities[entity_id].add_measurement_result(
+                    result=measurement_result
+                )
+                total_measurements += 1
 
         # Update tracking
         self._last_insert_id = max_insert_id

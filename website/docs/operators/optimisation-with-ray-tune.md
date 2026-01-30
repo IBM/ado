@@ -569,39 +569,57 @@ ado describe datacontainer $DATACONTAINER_ID
 
 For a `datacontainer` created by a `ray_tune` operation, an example output is:
 
-```commandline
-Identifier: datacontainer-d6a6501b
-Basic Data:
-
-  Label: best_result
-
-  {'config': {'x2': -1.1192905253425014,
-    'x1': 2.081208150586974,
-    'x0': 0.5621591414422049},
-   'metrics': {'function_value': 20.788056393697595,
-    'timestamp': 1756804287,
-    'checkpoint_dir_name': None,
-    'done': True,
-    'training_iteration': 1,
-    'trial_id': '7a7153ed',
-    'date': '2025-09-02_10-11-27',
-    'time_this_iter_s': 1.0576610565185547,
-    'time_total_s': 1.0576610565185547,
-    'pid': 52036,
-    'hostname': 'Michaels-MacBook-Pro-2.local',
-    'node_ip': '127.0.0.1',
-    'config': {'x2': -1.1192905253425014,
-     'x1': 2.081208150586974,
-     'x0': 0.5621591414422049},
-    'time_since_restore': 1.0576610565185547,
-    'iterations_since_restore': 1,
-    'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
-   'error': None}
+```terminaloutput
+Identifier: datacontainer-a5a33316
+                                                                             
+ ─────────────────────────────── Basic Data ──────────────────────────────── 
+                                                                             
+    Label: 'best_result'                                                     
+    {                                                                        
+        'config': {                                                          
+            'x2': -0.6739656478980461,                                       
+            'x1': 0.8532760228340539,                                        
+            'x0': -2.5705928842344696                                        
+        },                                                                   
+        'metrics': {                                                         
+            'function_value': 1106.8717468085306,                            
+            'timestamp': 1769680394,                                         
+            'checkpoint_dir_name': None,                                     
+            'done': True,                                                    
+            'training_iteration': 1,                                         
+            'trial_id': 'e07dd2f6',                                          
+            'date': '2026-01-29_09-53-14',                                   
+            'time_this_iter_s': 1.0830578804016113,                          
+            'time_total_s': 1.0830578804016113,                              
+            'pid': 34110,                                                    
+            'hostname': 'MacBook-Pro-di-Alessandro.local',                   
+            'node_ip': '127.0.0.1',                                          
+            'config': {                                                      
+                'x2': -0.6739656478980461,                                   
+                'x1': 0.8532760228340539,                                    
+                'x0': -2.5705928842344696                                    
+            },                                                               
+            'time_since_restore': 1.0830578804016113,                        
+            'iterations_since_restore': 1,                                   
+            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'           
+        },                                                                   
+        'error': None                                                        
+    }                                                                        
+                                                                             
+ ─────────────────────────────────────────────────────────────────────────── 
 ```
 
 We can see here that the point found is
-`{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}`
-where `function_value` was ~20.8.
+
+```json
+{
+  "x2": -0.6739656478980461,
+  "x1": 0.8532760228340539,
+  "x0": -2.5705928842344696
+}
+```
+
+where `function_value` was ~1106.87.
 
 ### Optimization path
 

@@ -51,10 +51,9 @@ def test_discovery_space(
 
 
 def test_space_describe(pfas_space: DiscoverySpace) -> None:
-    # Try pretty print
-    from IPython.lib import pretty
+    from rich.console import Console
 
-    print(pretty.pretty(pfas_space))
+    Console().print(pfas_space)
 
     assert True
 
@@ -143,7 +142,7 @@ def test_discovery_space_with_parameterized_experiments(
 #     assert table.size != 0
 #     assert "identifier" in table.columns
 @pytest.mark.xfail
-def test_discoveryspace_with_replay_actuator_and_references_pretty(
+def test_discoveryspace_with_replay_actuator_and_references_rich_print(
     discovery_space_resource: DiscoverySpaceResource,
 ) -> None:
 
@@ -154,20 +153,20 @@ def test_discoveryspace_with_replay_actuator_and_references_pretty(
     # Because of the first tbere is no definition (the discoveryspace resource does not cause the samplestore to loaded - this requires creating the space)
     # I'm not sure if there is a way to solve this
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    assert hasattr(discovery_space_resource, "_repr_pretty_")
-    pretty(discovery_space_resource)
+    assert hasattr(discovery_space_resource, "__rich__")
+    Console().print(discovery_space_resource)
 
 
-def test_discoveryspace_with_normal_actuator_pretty(
+def test_discoveryspace_with_normal_actuator_rich_print(
     discovery_space_resource_no_replay: DiscoverySpaceResource,
 ) -> None:
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    assert hasattr(discovery_space_resource_no_replay, "_repr_pretty_")
-    pretty(discovery_space_resource_no_replay)
+    assert hasattr(discovery_space_resource_no_replay, "__rich__")
+    Console().print(discovery_space_resource_no_replay)
 
 
 def test_discovery_space_resource(

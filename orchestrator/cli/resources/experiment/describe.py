@@ -19,7 +19,6 @@ from orchestrator.schema.reference import ExperimentReference
 
 
 def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
-    from IPython.lib.pretty import pretty
 
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY):
         registry = ActuatorRegistry.globalRegistry()
@@ -49,4 +48,4 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         )
     )
 
-    console_print(pretty(experiment), has_pandas_content=True, use_markup=False)
+    console_print(experiment)

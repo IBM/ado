@@ -55,6 +55,4 @@ def describe_discovery_space(parameters: AdoDescribeCommandParameters) -> None:
 
         space = DiscoverySpaceResource(config=configuration)
 
-    from IPython.lib.pretty import pretty
-
-    console_print(pretty(space), use_markup=False)
+    console_print(space)

@@ -25,9 +25,10 @@ from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.logging import configure_logging
+from orchestrator.utilities.rich import render_to_string
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 configure_logging()
 
@@ -176,60 +177,80 @@ class MeasurementSpace:
             f"{[op.identifier for op in self._observedProperties]}"
         )
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
-
+    def __rich__(self) -> "RenderableType":
+        """Render this measurement space using rich."""
         import pandas as pd
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
+        from orchestrator.utilities.rich import dataframe_to_rich_table
 
-            p.breakable()
-            data = [[e.reference, not e.deprecated] for e in self.experiments]
-            df = pd.DataFrame(data, columns=["experiment", "supported"])
-            p.pretty(df)
-            p.breakable()
-            p.break_()
-            p.break_()
+        content = []
 
-            for e in self.experiments:
-                p.pretty(f"{e.reference}")
-                p.breakable()
-                p.break_()
-                p.break_()
-                p.text("Inputs:")
-                p.break_()
-                data = [
-                    [p.identifier, "required", None, "na"] for p in e.requiredProperties
+        # Experiments overview table
+        data = [[e.reference, not e.deprecated] for e in self.experiments]
+        df = pd.DataFrame(data, columns=["experiment", "supported"])
+        content.extend(
+            [
+                Text("Experiments:", style="bold"),
+                Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        # Detailed experiment info
+        for e in self.experiments:
+            exp_content = []
+
+            # Inputs table
+            data = [
+                [p.identifier, "required", None, "na"] for p in e.requiredProperties
+            ]
+            data += [
+                [
+                    p.identifier,
+                    "optional",
+                    e.valueForOptionalProperty(p.identifier).value,
+                    (
+                        e.valueForOptionalProperty(p.identifier)
+                        not in e.defaultParameterization
+                    ),
                 ]
-                data += [
-                    [
-                        p.identifier,
-                        "optional",
-                        e.valueForOptionalProperty(p.identifier).value,
-                        (
-                            e.valueForOptionalProperty(p.identifier)
-                            not in e.defaultParameterization
-                        ),
-                    ]
-                    for p in e.optionalProperties
+                for p in e.optionalProperties
+            ]
+            df = pd.DataFrame(
+                data, columns=["parameter", "type", "value", "parameterized"]
+            )
+            exp_content.extend(
+                [
+                    Text("Inputs:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
                 ]
+            )
 
-                df = pd.DataFrame(
-                    data, columns=["parameter", "type", "value", "parameterized"]
-                )
-                p.pretty(df)
-                p.breakable()
-                p.break_()
-                p.break_()
-                p.text("Outputs:")
-                p.break_()
-                p.breakable()
-                data = [[op.targetProperty.identifier] for op in e.observedProperties]
-                df = pd.DataFrame(data, columns=["target property"])
-                p.pretty(df)
-                p.breakable()
-                p.breakable()
+            # Outputs table
+            data = [[op.targetProperty.identifier] for op in e.observedProperties]
+            df = pd.DataFrame(data, columns=["target property"])
+            exp_content.extend(
+                [
+                    Text("Outputs:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
+
+            content.extend(
+                [
+                    Panel(
+                        Group(*exp_content),
+                        title=Text(str(e.reference), style="bold green"),
+                        box=rich.box.HORIZONTALS,
+                    ),
+                    Text(),
+                ]
+            )
+
+        return Group(*content)
 
     @property
     def selfContainedConfig(
@@ -479,8 +500,6 @@ class MeasurementSpace:
 
         raises a ValueError on first identified issue"""
 
-        from IPython.lib.pretty import pretty
-
         retval = True
         for e in self.experiments:
             for cp in e.requiredConstitutiveProperties:
@@ -491,7 +510,7 @@ class MeasurementSpace:
                 ]:
                     raise ValueError(
                         f"Identified a measurement space constitutive property not in entity space: {cp}. "
-                        f"Entity space:{pretty(entitySpace)}"
+                        f"Entity space:{render_to_string(entitySpace)}"
                     )
                 if cp.propertyDomain:
                     # Check the entity spaces domain for the CP is compatible with the experiments
@@ -502,13 +521,15 @@ class MeasurementSpace:
                         ):
                             raise ValueError(
                                 "Identified an entity space dimension not compatible with the measurement space requirements."
-                                f"\nMeasurement Space Property: {pretty(cp)}"
-                                f"\nEntity Space Dimension: {pretty(entitySpaceCP)}"
+                                f"\nMeasurement Space Property: {render_to_string(cp)}"
+                                f"\nEntity Space Dimension: {render_to_string(entitySpaceCP)}"
                             )
                     except Exception as error:
                         print(error)
-                        print(f"The experiment property was: {pretty(cp)}")
-                        print(f"The entity space property was: {pretty(entitySpaceCP)}")
+                        print(f"The experiment property was: {render_to_string(cp)}")
+                        print(
+                            f"The entity space property was: {render_to_string(entitySpaceCP)}"
+                        )
                         raise
 
             # Check if any of the optional properties are in the entity space
@@ -522,8 +543,8 @@ class MeasurementSpace:
                         ):
                             raise ValueError(
                                 "Identified an entity space dimension not compatible with the measurement space requirements."
-                                f"\nMeasurement Space Property: {pretty(cp)}"
-                                f"\nEntity Space Dimension: {pretty(entitySpaceCP)}"
+                                f"\nMeasurement Space Property: {render_to_string(cp)}"
+                                f"\nEntity Space Dimension: {render_to_string(entitySpaceCP)}"
                             )
 
                         # Check that this property does not also have a custom parameterization
@@ -535,7 +556,7 @@ class MeasurementSpace:
                             raise ValueError(
                                 f"Identified an entity space dimension, {entitySpaceCP}, that also has a custom parameterization in the measurement space. "
                                 f"It is inconsistent for a property to have a custom parameterization in the measurement space and also be a dimension of the entityspace.\n"
-                                f"The experiment with the custom parameterization is:\n{pretty(e)} "
+                                f"The experiment with the custom parameterization is:\n{render_to_string(e)} "
                             )
 
         if strict:

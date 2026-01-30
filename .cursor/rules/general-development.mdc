@@ -100,7 +100,7 @@ Use Test Driven Development
 
 - Run **yamlfix** after YAML changes
 
-   uv run yamlfix $FILE
+   pre-commit run yamlfmt
 
 
 ---

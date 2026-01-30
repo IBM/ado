@@ -100,7 +100,6 @@ dev = [
     { name = "testcontainers" },
     { name = "tox" },
     { name = "tox-uv" },
-    { name = "yamlfix" },
 ]
 docs = [
     { name = "htmlmin" },
@@ -162,7 +161,6 @@ dev = [
     { name = "testcontainers", specifier = ">=4.10.0" },
     { name = "tox", specifier = ">=4.26.0" },
     { name = "tox-uv", specifier = ">=1.25.0" },
-    { name = "yamlfix", specifier = ">=1.19.1" },
 ]
 docs = [
     { name = "htmlmin", specifier = ">=0.1.12" },
@@ -3872,22 +3870,6 @@ wheels = [
 ]
 
 [[package]]
-name = "maison"
-version = "2.0.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "loguru" },
-    { name = "platformdirs" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
-    { name = "typer" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/24/45/7cb1d08b6b5674c381b6e0232d35f417a1eba8bb66cdc18edff2b9c80b68/maison-2.0.2.tar.gz", hash = "sha256:476f2bf414a20f5abf5a9856bd4db78b5a33c695654a0fc49c3c4abed78c2efc", size = 16012, upload-time = "2025-10-09T07:52:33.27Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5b/8f/3f0895a18cad5afd61c16ac38d35a2466f0cac8ae5c28f1a67f7a81bcdec/maison-2.0.2-py3-none-any.whl", hash = "sha256:835de804aa8063795b48c4fe2b4918106cfda4e5df515e8784ec9fa64cd28191", size = 13464, upload-time = "2025-10-09T07:52:31.987Z" },
-]
-
-[[package]]
 name = "mako"
 version = "1.3.10"
 source = { registry = "https://pypi.org/simple" }
@@ -7186,19 +7168,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ruyaml"
-version = "0.91.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "distro" },
-    { name = "setuptools" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4b/75/abbc7eab08bad7f47887a0555d3ac9e3947f89d2416678c08e025e449fdc/ruyaml-0.91.0.tar.gz", hash = "sha256:6ce9de9f4d082d696d3bde264664d1bcdca8f5a9dff9d1a1f1a127969ab871ab", size = 239075, upload-time = "2021-12-07T16:19:58.427Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/9a/16ca152a04b231c179c626de40af1d5d0bc2bc57bc875c397706016ddb2b/ruyaml-0.91.0-py3-none-any.whl", hash = "sha256:50e0ee3389c77ad340e209472e0effd41ae0275246df00cdad0a067532171755", size = 108906, upload-time = "2021-12-07T16:19:56.798Z" },
-]
-
-[[package]]
 name = "s3transfer"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -9152,21 +9121,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/50/55/15a7b8a56590e66ccd374bbfa3f9ffc45b810886c8c3b614e3f90bd2367c/xxhash-3.6.0-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:881b47fc47e051b37d94d13e7455131054b56749b91b508b0907eb07900d1c13", size = 36251, upload-time = "2025-10-02T14:37:04.44Z" },
     { url = "https://files.pythonhosted.org/packages/62/b2/5ac99a041a29e58e95f907876b04f7067a0242cb85b5f39e726153981503/xxhash-3.6.0-pp311-pypy311_pp73-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c6dc31591899f5e5666f04cc2e529e69b4072827085c1ef15294d91a004bc1bd", size = 32481, upload-time = "2025-10-02T14:37:05.869Z" },
     { url = "https://files.pythonhosted.org/packages/7b/d9/8d95e906764a386a3d3b596f3c68bb63687dfca806373509f51ce8eea81f/xxhash-3.6.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:15e0dac10eb9309508bfc41f7f9deaa7755c69e35af835db9cb10751adebc35d", size = 31565, upload-time = "2025-10-02T14:37:06.966Z" },
-]
-
-[[package]]
-name = "yamlfix"
-version = "1.19.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "click" },
-    { name = "maison" },
-    { name = "pydantic" },
-    { name = "ruyaml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/93/1d/b60d4411ff495de9b7598cc041e29c661e8e2f9d476a8a09bad1f54c1bce/yamlfix-1.19.1.tar.gz", hash = "sha256:05f6add13959637564f278e9237f6e201ff75e061a0a4cb9fc06fa95c3001a22", size = 39483, upload-time = "2025-12-18T09:57:23.179Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/30/c7/cba5941b7066f59dbddfe88bdc7154edbe5119bacb3814599997fbc2acac/yamlfix-1.19.1-py3-none-any.whl", hash = "sha256:b885fcf171a2eb59df83c219355bb17dd147675645e2756754372c0bd0b80ea5", size = 28393, upload-time = "2025-12-18T09:57:21.547Z" },
 ]
 
 [[package]]

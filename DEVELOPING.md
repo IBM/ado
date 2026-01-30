@@ -50,7 +50,7 @@ source .venv/bin/activate
 > [Making changes to dependencies](#making-changes-to-dependencies) for how to
 > add packages to the lockfile.
 
-<!-- markdownlint-enable-next-line no-blanks-blockquote -->
+<!-- markdownlint-enable no-blanks-blockquote -->
 
 #### Using a custom location for the venv
 

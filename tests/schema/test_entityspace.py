@@ -247,9 +247,10 @@ def test_entity_in_space(
     assert not es.isEntityCompatibleWithSpace(newEntity)
 
 
-def test_entity_space_pretty(
+def test_entity_space_rich_print(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
 ) -> None:
+    from rich.console import Console
 
     ## Add an Unknown property
 
@@ -275,9 +276,8 @@ def test_entity_space_pretty(
     es = EntitySpaceRepresentation(
         constitutiveProperties=constitutive_property_configuration_general
     )
-    from IPython.lib.pretty import pretty
 
-    pretty(es)
+    Console().print(es)
 
 
 def test_entity_space_dimension_values(

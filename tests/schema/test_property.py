@@ -116,9 +116,11 @@ def test_property_from_descriptor(
         ConstitutiveProperty(identifier="my_cons_prop", metadata={"key": "value"}),
     ],
 )
-def test_property_pretty(prop: Property) -> None:
-    """Test pretty print of properties is as expected inc. metadata"""
+def test_property_rich_print(prop: Property) -> None:
+    """Test rich print of properties is as expected inc. metadata"""
+    from rich.console import Console
 
+    Console().print(prop)
     assert str(prop)
 
 
@@ -145,7 +147,7 @@ def descriptor(
     ],
     indirect=True,
 )
-def test_descriptor_pretty(
+def test_descriptor_rich_print(
     descriptor: (
         PropertyDescriptor
         | AbstractPropertyDescriptor
@@ -153,13 +155,12 @@ def test_descriptor_pretty(
         | ConstitutivePropertyDescriptor
     ),
 ) -> None:
-    """Test pretty print of descriptors is as expected"""
+    from orchestrator.utilities.rich import render_to_string
 
-    from IPython.lib.pretty import pretty
-
+    """Test rich print of descriptors is as expected"""
     assert (
-        pretty(descriptor) == f"{descriptor.identifier} "
-    ), "Expected pretty of descriptor to be descriptor id"
+        render_to_string(descriptor).strip() == f"{descriptor.identifier}"
+    ), "Expected rich print of descriptor to be descriptor id"
 
 
 @pytest.mark.parametrize(

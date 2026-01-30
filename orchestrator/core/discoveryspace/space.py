@@ -37,8 +37,8 @@ from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import MeasurementResult
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
     from pandas import DataFrame
+    from rich.console import RenderableType
 
     from orchestrator.metastore.sqlstore import SQLStore
 
@@ -365,31 +365,41 @@ class DiscoverySpace:
             else f"space-{str(uuid.uuid4())[:6]}-{self._sample_store.identifier}"
         )
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Rich console representation of the DiscoverySpace."""
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
-            p.text(f"Identifier: {self.uri}")
-            p.breakable()
-            if self.entitySpace is not None:
-                p.breakable()
-                with p.group(2, "Entity Space:"):
-                    p.breakable()
-                    p.pretty(self.entitySpace)
-                    p.breakable()
+        components = [
+            Text.assemble(("Identifier: ", "bold"), (self.uri, "bold green")),
+        ]
 
-            p.breakable()
-            with p.group(2, "Measurement Space:"):
-                p.breakable()
-                p.pretty(self.measurementSpace)
-                p.breakable()
+        if self.entitySpace is not None:
+            components.extend(
+                [
+                    Text("Entity Space:", style="bold"),
+                    Panel(self.entitySpace, box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            p.breakable()
-            with p.group(2, "Sample Store:"):
-                p.breakable()
-                p.pretty(self.sample_store)
-                p.breakable()
+        # MeasurementSpace has __rich__() method
+        components.extend(
+            [
+                Text("Measurement Space:", style="bold"),
+                Panel(self.measurementSpace, box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        components.extend(
+            [
+                Text("Sample Store:", style="bold"),
+                Panel(self.sample_store, box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        return Group(*components)
 
     @property
     def uri(self) -> str:

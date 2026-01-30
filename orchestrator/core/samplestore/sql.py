@@ -112,9 +112,9 @@ class SQLSampleStore(ActiveSampleStore):
         from orchestrator.utilities.rich import get_rich_repr
 
         return Group(
-            Text("Identifier:", style="bold", end=" "),
-            Text(self.uri, style="bold green"),
-            Text("Number of entities:", style="bold", end=" "),
+            Text.assemble(("Identifier: ", "bold"), (self.uri, "bold green")).append(
+                "Number of entities:", style="bold", end=" "
+            ),
             get_rich_repr(self.numberOfEntities),
         )
 

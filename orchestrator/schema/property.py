@@ -164,17 +164,22 @@ class Property(pydantic.BaseModel):
         from rich.text import Text
 
         content = [
-            Text("Identifier:", style="bold", end=" "),
-            Text(self.identifier, style="bold green", overflow="fold"),
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (self.identifier, "bold green"),
+                overflow="fold",
+            ),
         ]
 
         # Identifier and description
         if self.metadata and self.metadata.get("description"):
-            content.extend(
-                [
-                    Text("Description:", style="bold"),
-                    Text(self.metadata.get("description"), overflow="fold", end="\n\n"),
-                ]
+            content.append(
+                Text.assemble(
+                    ("Description: ", "bold"),
+                    self.metadata.get("description"),
+                    overflow="fold",
+                    end="\n\n",
+                ),
             )
 
         # Domain section

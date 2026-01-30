@@ -212,11 +212,13 @@ class Entity(pydantic.BaseModel):
         from orchestrator.utilities.rich import dataframe_to_rich_table
 
         content = [
-            Text("Identifier:", style="bold", end=" "),
-            Text(self.identifier, style="bold green"),
-            Text("Generator:", style="bold", end=" "),
-            Text(self.generatorid),
-            Text(),
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (self.identifier, "bold green"),
+                ("Generator: ", "bold"),
+                self.generatorid,
+                "",
+            )
         ]
 
         # Constitutive properties table

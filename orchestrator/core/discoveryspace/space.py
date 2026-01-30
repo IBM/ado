@@ -373,8 +373,7 @@ class DiscoverySpace:
         from rich.text import Text
 
         components = [
-            Text("Identifier:", style="bold", end=" "),
-            Text(self.uri, style="bold green"),
+            Text.assemble(("Identifier: ", "bold"), (self.uri, "bold green")),
         ]
 
         if self.entitySpace is not None:

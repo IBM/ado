@@ -82,11 +82,11 @@ class DiscoverySpaceResource(ADOResource):
             ]
         )
 
-        content.extend(
-            [
-                Text("Sample Store identifier:", style="bold", end=" "),
-                Text(self.config.sampleStoreIdentifier, style="cyan"),
-            ]
+        content.append(
+            Text.assemble(
+                ("Sample Store identifier: ", "bold"),
+                (self.config.sampleStoreIdentifier, "cyan"),
+            )
         )
 
         return Group(*content)

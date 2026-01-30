@@ -276,21 +276,19 @@ class Experiment(pydantic.BaseModel):
         from orchestrator.utilities.rich import get_rich_repr
 
         content = [
-            Text("Identifier:", end=" ", style="bold"),
-            Text(
-                f"{self.actuatorIdentifier}.{self.identifier}",
-                style="bold green",
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (f"{self.actuatorIdentifier}.{self.identifier}", "bold green"),
                 overflow="fold",
-            ),
+            )
         ]
 
         if self.metadata.get("description"):
             content.extend(
                 [
-                    Text("Description:", style="bold"),
-                    Text(
-                        self.metadata["description"],
-                        style="italic",
+                    Text.assemble(
+                        ("Description: ", "bold"),
+                        (self.metadata["description"], "italic"),
                         overflow="fold",
                         end="\n\n",
                     ),

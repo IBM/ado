@@ -209,7 +209,6 @@ class DataContainerResource(ADOResource):
         from rich.text import Text
 
         return Group(
-            Text("Identifier:", style="bold", end=" "),
-            Text(self.identifier, style="bold green"),
+            Text.assemble(("Identifier: ", "bold"), (self.identifier, "bold green")),
             Padding(self.config, (1, 0, 0, 0)),
         )

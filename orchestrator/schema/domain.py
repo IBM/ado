@@ -347,7 +347,9 @@ class PropertyDomain(pydantic.BaseModel):
 
         from orchestrator.utilities.rich import get_rich_repr
 
-        lines = [Text("Type:", style="bold", end=" "), Text(self.variableType)]
+        lines = [
+            Text.assemble(("Type: ", "bold"), self.variableType),
+        ]
         if self.values:
             lines.extend(
                 [Text("Values:", style="bold", end=" "), get_rich_repr(self.values)]

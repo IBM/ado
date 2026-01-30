@@ -10,18 +10,23 @@ These guidelines apply to all code development in the ad-orchestrator codebase.
 ## Code Structure
 
 - **orchestrator**: main Python package
-  - **schema**: pydantic models for properties, entities, experiments, and measurement results
-  - **core**: pydantic models and associated code for the core resource types managed by ado:
+  - **schema**: pydantic models for properties, entities, experiments,
+    and measurement results
+  - **core**: pydantic models and associated code for the core resource
+    types managed by ado:
     - discoveryspace
     - operation
     - samplestore
     - datacontainer
     - actuatorconfiguration
-  - **modules/actuators**: defines actuators, custom experiments, and their associated management code (plugins, registry)
-  - **modules/operators**: defines operators and their associated management code (plugins, collections, orchestration)
+  - **modules/actuators**: defines actuators, custom experiments, and their
+    associated management code (plugins, registry)
+  - **modules/operators**: defines operators and their associated management
+    code (plugins, collections, orchestration)
   - **utilities**: common utilities
   - **cli**: ado CLI
-  - **metastore**: code defining and interacting with the metastore, which stores core resource types
+  - **metastore**: code defining and interacting with the metastore, which
+    stores core resource types
 - **tests**: unit and integration tests (pytest)
 - **plugins**: actuator, operator, and custom_experiment plugins
 - **website**: mkdocs website and documentation
@@ -38,23 +43,27 @@ These guidelines apply to all code development in the ad-orchestrator codebase.
 
 - Use PEP8 naming conventions for new code.
 - **Exception**: use camelCase for fields of pydantic models.
-- Do not modify existing names unless explicitly asked, even if they do not follow PEP8.
+- Do not modify existing names unless explicitly asked, even if they do not
+  follow PEP8.
 - Use type annotations on all functions and methods, including return types.
 - Add docstrings to all functions and methods.
 - Use the pydantic annotated form for pydantic fields
   (see `orchestrator/schema/entity.py`).
 - Use discriminated unions when a type is a union
   (see `ExperimentType` in `orchestrator/schema/experiment.py`).
-- Use the `Defaultable` type from `orchestrator/utilities/pydantic` for pydantic fields that:
+- Use the `Defaultable` type from `orchestrator/utilities/pydantic` for
+  pydantic fields that:
   - accept `None`, but
   - are always defaulted to a different type.
-- Use absolute imports within the repository unless the file already uses relative imports.
+- Use absolute imports within the repository unless the file already uses
+  relative imports.
 
 ---
 
 ## Developer Tools
 
-- All development tools (ruff, black, pytest, etc.) are available in the project’s **uv-managed virtual environment**.
+- All development tools (ruff, black, pytest, etc.) are available in the
+  project's **uv-managed virtual environment**.
 - Do not install tools globally.
 - Use the following pattern to execute tools:
 
@@ -86,21 +95,22 @@ Use Test Driven Development
 - Linting must be run after any code changes and must pass before running tests.
 - Run **black** after changes:
 
-   uv run black $DIR
+    uv run black $DIR
 
 - Run **ruff** after changes:
 
-   uv run ruff check --fix $DIR
+    uv run ruff check --fix $DIR
 
 - Fix any issues reported by ruff that it could not fix automatically.
-- Run black and ruff at directory level for efficiency (e.g. `orchestrator/`, `plugins/`, `tests/`).
+- Run black and ruff at directory level for efficiency (e.g. `orchestrator/`,
+  `plugins/`, `tests/`).
 - Run the mkdocs linter on markdown files (*.md) that have added or modified:
 
     uv run markdownlint-cli2 NEW_OR_CHANGED_MARKDOWN_FILE --fix
 
 - Run if YAML changed or added
 
-   pre-commit run yamlfmt
+    pre-commit run yamlfmt
 
 ---
 

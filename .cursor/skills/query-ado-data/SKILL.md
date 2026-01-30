@@ -57,7 +57,7 @@ Each resource has a pydantic model. If working in code you can use these models
 - datacontainer, orchestrator/core/datacontainer/resource.py:
   DataContainerResource
 - operation, orchestrator/core/operation/resource.py: OperationResource
-- actuatorconfiguraiton,
+- actuatorconfiguration,
   orchestrator/core/actuatorconfiguration/resource.py:
   ActuatorConfigurationResource
 
@@ -224,7 +224,7 @@ uv run ado show requests operation randomwalk-0.5.0-123abc -o csv
 Get measurement results metadata (valid/invalid status, etc.):
 
 ```bash
-auv run do show results operation [RESOURCE_ID] [--use-latest] \
+uv run ado show results operation [RESOURCE_ID] [--use-latest] \
                            [--output-format {console | csv | json}] \
                            [--hide <field>]
 ```

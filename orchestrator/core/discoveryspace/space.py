@@ -495,27 +495,42 @@ class DiscoverySpace:
     def sampledEntities(self) -> list[Entity]:
         """Returns the entities sampled so far in the space"""
 
-        # find all sampled entities in this space
-        sampled_entity_ids = []
-        for operationid in self.operations["IDENTIFIER"]:
-            sampled_entity_ids.extend(
-                self.entity_identifiers_in_operation(operation_id=operationid)
+        operation_ids_series = self.operations["IDENTIFIER"]
+
+        # Convert pandas Series to list for easier handling
+        # Check if empty using .empty property (pandas Series can't be used in boolean context)
+        if operation_ids_series.empty:
+            return []
+
+        operation_ids = operation_ids_series.tolist()
+
+        # Optimize for single operation: use direct query (1 query instead of 2)
+        if len(operation_ids) == 1:
+            sampled_entities = self.sample_store.entities_in_operation(
+                operation_id=operation_ids[0]
             )
+        else:
+            # Multiple operations: get entity IDs first, then fetch entities
+            # This approach handles deduplication across operations naturally
+            sampled_entity_ids = set()
+            for operationid in operation_ids:
+                sampled_entity_ids.update(
+                    self.entity_identifiers_in_operation(operation_id=operationid)
+                )
 
-        sampled_entity_ids_set = set(sampled_entity_ids)
+            if not sampled_entity_ids:
+                return []
 
-        # Get all entities in the store
-        all_entities = self.sample_store.entities
+            # Efficiently fetch only the entities that were sampled in operations
+            # This avoids loading all entities from the store when we only need a subset
+            sampled_entities = self.sample_store.entitiesByIdentifiers(
+                sampled_entity_ids
+            )
 
         # TODO: Consider removing isEntitySpace check
         # The additional check of isEntityInSpace should not be required if things are working correctly
         # However if an entity was incorrectly sampled during an operation, due to a bug say, this will correct for it
-        return [
-            e
-            for e in all_entities
-            if e.identifier in sampled_entity_ids_set
-            and self.entitySpace.isEntityInSpace(e)
-        ]
+        return [e for e in sampled_entities if self.entitySpace.isEntityInSpace(e)]
 
     def matchingEntities(self) -> list[Entity]:
         """Returns all entities in the sample store that match the space

@@ -406,17 +406,19 @@ stopper, cannot currently be used with `ado`.
 
 #### `ado` stoppers
 
-`ado` provides four in-built stoppers:
+`ado` provides these in-built stoppers:
 
-- SimpleStopper: Stops if there is no improvement in the target metric after N
-  steps
-- GrowthStopper: Stops when the improvement in the target metric is less than a
-  threshold for N steps
-- MaxSamplesStopper: Stops when a certain number of samples have been drawn. It
-  is less ambiguous than `tuneConfig.num_samples`
-- InformationGainStopper: Stops when samples are no longer providing significant
+- **SimpleStopper**: Stops if there is no improvement in the target metric after
+  N steps
+- **GrowthStopper**: Stops when the improvement in the target metric is less than
+  a threshold for N steps
+- **MaxSamplesStopper**: Stops when a certain number of samples have been drawn.
+  It is less ambiguous than `tuneConfig.num_samples`
+- **InformationGainStopper**: Stops when samples are no longer providing significant
   additional information on how the constitutive properties of the entity space
   are related to the target property.
+- **BayesianMetricDifferenceStopper**: Stops when the difference between two metrics
+  is known (with a target confidence) to be above or below a threshold
 
 <!-- markdownlint-disable descriptive-link-text -->
 
@@ -516,7 +518,6 @@ For example to search for
 minimise latency while maximising token throughput:
 
 ```yaml
-```python
 {%
    include "../../../plugins/actuators/vllm_performance/yamls/operation_optuna_multi.yaml"
 %}
@@ -568,39 +569,57 @@ ado describe datacontainer $DATACONTAINER_ID
 
 For a `datacontainer` created by a `ray_tune` operation, an example output is:
 
-```commandline
-Identifier: datacontainer-d6a6501b
-Basic Data:
-
-  Label: best_result
-
-  {'config': {'x2': -1.1192905253425014,
-    'x1': 2.081208150586974,
-    'x0': 0.5621591414422049},
-   'metrics': {'function_value': 20.788056393697595,
-    'timestamp': 1756804287,
-    'checkpoint_dir_name': None,
-    'done': True,
-    'training_iteration': 1,
-    'trial_id': '7a7153ed',
-    'date': '2025-09-02_10-11-27',
-    'time_this_iter_s': 1.0576610565185547,
-    'time_total_s': 1.0576610565185547,
-    'pid': 52036,
-    'hostname': 'Michaels-MacBook-Pro-2.local',
-    'node_ip': '127.0.0.1',
-    'config': {'x2': -1.1192905253425014,
-     'x1': 2.081208150586974,
-     'x0': 0.5621591414422049},
-    'time_since_restore': 1.0576610565185547,
-    'iterations_since_restore': 1,
-    'experiment_tag': '40_x0=0.5622,x1=2.0812,x2=-1.1193'},
-   'error': None}
+```terminaloutput
+Identifier: datacontainer-a5a33316
+                                                                             
+ ─────────────────────────────── Basic Data ──────────────────────────────── 
+                                                                             
+    Label: 'best_result'                                                     
+    {                                                                        
+        'config': {                                                          
+            'x2': -0.6739656478980461,                                       
+            'x1': 0.8532760228340539,                                        
+            'x0': -2.5705928842344696                                        
+        },                                                                   
+        'metrics': {                                                         
+            'function_value': 1106.8717468085306,                            
+            'timestamp': 1769680394,                                         
+            'checkpoint_dir_name': None,                                     
+            'done': True,                                                    
+            'training_iteration': 1,                                         
+            'trial_id': 'e07dd2f6',                                          
+            'date': '2026-01-29_09-53-14',                                   
+            'time_this_iter_s': 1.0830578804016113,                          
+            'time_total_s': 1.0830578804016113,                              
+            'pid': 34110,                                                    
+            'hostname': 'MacBook-Pro-di-Alessandro.local',                   
+            'node_ip': '127.0.0.1',                                          
+            'config': {                                                      
+                'x2': -0.6739656478980461,                                   
+                'x1': 0.8532760228340539,                                    
+                'x0': -2.5705928842344696                                    
+            },                                                               
+            'time_since_restore': 1.0830578804016113,                        
+            'iterations_since_restore': 1,                                   
+            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'           
+        },                                                                   
+        'error': None                                                        
+    }                                                                        
+                                                                             
+ ─────────────────────────────────────────────────────────────────────────── 
 ```
 
 We can see here that the point found is
-`{'x2': -1.1192905253425014, 'x1': 2.081208150586974, 'x0': 0.5621591414422049}`
-where `function_value` was ~20.8.
+
+```json
+{
+  "x2": -0.6739656478980461,
+  "x1": 0.8532760228340539,
+  "x0": -2.5705928842344696
+}
+```
+
+where `function_value` was ~1106.87.
 
 ### Optimization path
 
@@ -611,10 +630,10 @@ operation $OPERATION_IDENTIFIER run
 ado show entities operation $OPERATION_IDENTIFIER
 ```
 
-> [!NOTE]
->
-> This command also works during an operation. It shows up to the most recent
-> measured entity.
+!!! info end
+
+     This command also works during an operation. It shows up to the most recent
+     measured entity.
 
 ## ado additions to RayTune
 
@@ -818,12 +837,12 @@ keywordParams:
 **Interpretation**: Stop when 95% confident that the absolute performance difference
 between the framework versions is above or below 100 tokens per second.
 
->![NOTE] Observed format
->
-> This configuration compares measurements of the same metric
-> from two different parameterizations of the same experiment.
-> This requires setting `metric_format` to `observed`
-> in the [configuration options](#tune-config)
+!!! info end
+
+     This configuration compares measurements of the same metric
+     from two different parameterizations of the same experiment.
+     This requires setting `metric_format` to `observed`
+     in the [configuration options](#tune-config)
 
 #### How It Works
 

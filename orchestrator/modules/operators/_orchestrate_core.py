@@ -35,10 +35,12 @@ moduleLog = logging.getLogger("orchestrate_core")
 
 def log_space_details(discovery_space: "DiscoverySpace") -> None:
 
-    from IPython.lib import pretty
+    from rich.console import Console
 
-    print("=========== Discovery Space ===========\n")
-    print(pretty.pretty(discovery_space))
+    console = Console()
+
+    console.print("=========== Discovery Space ===========\n")
+    console.print(discovery_space)
 
 
 def _run_operation_harness(

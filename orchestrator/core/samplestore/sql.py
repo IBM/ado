@@ -5,7 +5,7 @@ import json
 import logging
 import typing
 import uuid
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
 import sqlalchemy
@@ -49,7 +49,7 @@ from orchestrator.utilities.pandas import (
 
 if TYPE_CHECKING:
     import pandas as pd
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
@@ -75,11 +75,13 @@ class SQLSampleStore(ActiveSampleStore):
         cls,
         csvPath: str,
         idColumn: str,
-        storeConfiguration: SQLStoreConfiguration,
+        storeConfiguration: SQLStoreConfiguration | SQLiteStoreConfiguration,
         generatorIdentifier: str | None = None,
         experimentIdentifier: str | None = None,
+        actuatorIdentifier: str = "replay",
         observedPropertyColumns: list[str] | None = None,
         constitutivePropertyColumns: list[str] | None = None,
+        propertyFormat: Literal["target", "observed"] = "target",
     ) -> "SQLSampleStore":
 
         csv_sample_store = orchestrator.core.samplestore.csv.CSVSampleStore.from_csv(
@@ -87,8 +89,10 @@ class SQLSampleStore(ActiveSampleStore):
             idColumn=idColumn,
             generatorIdentifier=generatorIdentifier,
             experimentIdentifier=experimentIdentifier,
+            actuatorIdentifier=actuatorIdentifier,
             observedPropertyColumns=observedPropertyColumns,
             constitutivePropertyColumns=constitutivePropertyColumns,
+            propertyFormat=propertyFormat,
         )
 
         sql_sample_store = cls(
@@ -100,14 +104,18 @@ class SQLSampleStore(ActiveSampleStore):
 
         return sql_sample_store
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this SQL sample store using rich."""
+        from rich.console import Group
+        from rich.text import Text
 
-        if cycle:
-            p.text("Cycle detected")
-        else:
-            p.text(f"Identifier: {self.uri}")
-            p.breakable()
-            p.text(f"Number of entities: {self.numberOfEntities}")
+        from orchestrator.utilities.rich import get_rich_repr
+
+        return Group(
+            Text.assemble(("Identifier: ", "bold"), (self.uri, "bold green")),
+            Text("Number of entities:", style="bold", end=" "),
+            get_rich_repr(self.numberOfEntities),
+        )
 
     def commit(self) -> None:
         pass
@@ -281,7 +289,10 @@ class SQLSampleStore(ActiveSampleStore):
     def __init__(
         self,
         identifier: str | None,
-        storageLocation: orchestrator.utilities.location.SQLStoreConfiguration,
+        storageLocation: (
+            orchestrator.utilities.location.SQLStoreConfiguration
+            | SQLiteStoreConfiguration
+        ),
         parameters: dict,
     ) -> None:
 

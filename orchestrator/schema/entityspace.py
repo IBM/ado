@@ -3,6 +3,8 @@
 
 import typing
 
+from rich.panel import Panel
+
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.property import ConstitutiveProperty
@@ -13,7 +15,7 @@ from orchestrator.schema.property_value import (
 from orchestrator.schema.result import MeasurementResult
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 class EntitySpaceRepresentation:
@@ -106,134 +108,130 @@ class EntitySpaceRepresentation:
             f" constitutive properties: {[cp.identifier for cp in self._constitutiveProperties]}"
         )
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
-
+    def __rich__(self) -> "RenderableType":
+        """Render this entity space using rich."""
         import pandas as pd
+        import rich.box
+        from rich.console import Group
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
+        from orchestrator.utilities.rich import dataframe_to_rich_table, get_rich_repr
+
+        content = []
+
+        # Space size info
+        if self.isDiscreteSpace:
+            content.extend(
+                [
+                    Text("Number of entities:", end=" ", style="bold"),
+                    get_rich_repr(self.size),
+                ]
+            )
         else:
-            if self.isDiscreteSpace:
-                p.breakable()
-                p.text(f"Number entities: {self.size}")
-                p.break_()
-                p.breakable()
-            else:
-                p.breakable()
-                p.text("Space with non-discrete dimensions. Cannot count entities")
-                p.breakable()
+            content.append(
+                Text("Space with non-discrete dimensions. Cannot count entities")
+            )
+        content.append(Text())  # Empty line
 
-            categoricalProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+        # Categorize properties
+        categoricalProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType
+            == VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE
+        ]
+
+        discreteProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+        ]
+
+        continuousProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType
+            == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        ]
+
+        unknownProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
+        ]
+
+        binaryProperties = [
+            cv
+            for cv in self._constitutiveProperties
+            if cv.propertyDomain.variableType == VariableTypeEnum.BINARY_VARIABLE_TYPE
+        ]
+
+        # Create table for each property category
+        if categoricalProperties:
+            data = [
+                [cv.identifier, cv.propertyDomain.values]
+                for cv in categoricalProperties
             ]
+            df = pd.DataFrame(data, columns=["name", "values"])
+            content.extend(
+                [
+                    Text("Categorical properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            discreteProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.DISCRETE_VARIABLE_TYPE
+        if discreteProperties:
+            data = [
+                [
+                    cv.identifier,
+                    cv.propertyDomain.domainRange,
+                    cv.propertyDomain.interval,
+                    cv.propertyDomain.values,
+                ]
+                for cv in discreteProperties
             ]
+            df = pd.DataFrame(data, columns=["name", "range", "interval", "values"])
+            content.extend(
+                [
+                    Text("Discrete properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            continuousProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
+        if binaryProperties:
+            data = [[cv.identifier] for cv in binaryProperties]
+            df = pd.DataFrame(data, columns=["name"])
+            content.extend(
+                [
+                    Text("Binary properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
+
+        if continuousProperties:
+            data = [
+                [cv.identifier, cv.propertyDomain.domainRange]
+                for cv in continuousProperties
             ]
+            df = pd.DataFrame(data, columns=["name", "range"])
+            content.extend(
+                [
+                    Text("Continuous properties:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            unknownProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.UNKNOWN_VARIABLE_TYPE
-            ]
+        if unknownProperties:
+            data = [[cv.identifier] for cv in unknownProperties]
+            df = pd.DataFrame(data, columns=["name"])
+            content.extend(
+                [
+                    Text("Properties with unknown type:", style="bold"),
+                    Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            binaryProperties = [
-                cv
-                for cv in self._constitutiveProperties
-                if cv.propertyDomain.variableType
-                == VariableTypeEnum.BINARY_VARIABLE_TYPE
-            ]
-
-            if categoricalProperties:
-                with p.group(2, "Categorical properties:"):
-                    p.breakable()
-                    data = [
-                        [cv.identifier, cv.propertyDomain.values]
-                        for cv in categoricalProperties
-                    ]
-                    df = pd.DataFrame(
-                        data,
-                        columns=[
-                            "name",
-                            "values",
-                        ],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if discreteProperties:
-                with p.group(2, "Discrete properties:"):
-                    p.breakable()
-                    data = [
-                        [
-                            cv.identifier,
-                            cv.propertyDomain.domainRange,
-                            cv.propertyDomain.interval,
-                            cv.propertyDomain.values,
-                        ]
-                        for cv in discreteProperties
-                    ]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name", "range", "interval", "values"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if binaryProperties:
-                with p.group(2, "Binary properties:"):
-                    p.breakable()
-                    data = [[cv.identifier] for cv in binaryProperties]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if continuousProperties:
-                with p.group(2, "Continuous properties:"):
-                    p.breakable()
-                    data = [
-                        [cv.identifier, cv.propertyDomain.domainRange]
-                        for cv in continuousProperties
-                    ]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name", "range"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
-
-            if unknownProperties:
-                with p.group(2, "Properties with unknown type:"):
-                    p.breakable()
-                    data = [[cv.identifier] for cv in unknownProperties]
-                    df = pd.DataFrame(
-                        data,
-                        columns=["name"],
-                    )
-                    p.pretty(df)
-                p.breakable()
-                p.breakable()
+        return Group(*content)
 
     def propertyWithIdentifier(self, identifier: str) -> ConstitutiveProperty | None:
         """Returns the constitutive property with identifier or None if there is None"""

@@ -81,14 +81,6 @@ def experiment_is_hashable(experiment: Experiment) -> None:
     assert len(d) == 2
 
 
-def experiment_pretty(experiment: Experiment) -> None:
-    "Utility function for use in tests"
-
-    from IPython.lib.pretty import pretty
-
-    pretty(experiment)
-
-
 def test_parameterizable_experiment_equality_experiment_same_id_different_actuator(
     parameterizable_experiment: Experiment, global_registry: ActuatorRegistry
 ) -> None:
@@ -156,20 +148,24 @@ def test_parameterized_experiment_base_equality_methods(
     assert base_exp.has_same_base_as_experiment(parameterized_experiment)
 
 
-def test_parameterizable_experiment_pretty(
+def test_parameterizable_experiment_rich_print(
     parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
 ) -> None:
 
+    from rich.console import Console
+
     # Requesting global_registry fixture to ensure the experiments are added to the registry for testing
-    experiment_pretty(parameterized_experiment)
+    Console().print(parameterized_experiment)
 
 
-def test_parameterized_experiment_pretty(
+def test_parameterized_experiment_rich_print(
     parameterized_experiment: ParameterizedExperiment, global_registry: ActuatorRegistry
 ) -> None:
 
+    from rich.console import Console
+
     # Requesting global_registry fixture to ensure the experiments are added to the registry for testing
-    experiment_pretty(parameterized_experiment)
+    Console().print(parameterized_experiment)
 
 
 def test_experiment_observed_properties(
@@ -422,11 +418,11 @@ def test_custom_experiment_parameterization_is_valid(
     assert experimentWithOptions.isValidParameterization(customParameterization)
 
 
-def test_experiment_pretty(experiment: Experiment) -> None:
+def test_experiment_rich_print(experiment: Experiment) -> None:
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    pretty(experiment)
+    Console().print(experiment)
 
 
 def test_measurement_types(experiment: Experiment) -> None:

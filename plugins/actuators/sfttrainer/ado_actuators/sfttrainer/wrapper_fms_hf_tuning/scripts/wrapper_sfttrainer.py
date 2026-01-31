@@ -20,14 +20,14 @@ from typing import Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.constants as constants
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.tuning_versions as tuning_versions
-import aim
 import torch
 import torch.distributed
 from aim.hugging_face import AimCallback
 from transformers import TrainerControl, TrainerState, TrainingArguments
 
 if typing.TYPE_CHECKING:
-    import torch.nn
+    import aim
+    from torch.nn import Module
     from transformers import PreTrainedModel
 
 
@@ -235,7 +235,7 @@ class CustomAimCallback(AimCallback):
         args: TrainingArguments,
         state: TrainerState,
         control: TrainerControl,
-        model: "PreTrainedModel | torch.nn.Module | None" = None,
+        model: "PreTrainedModel | Module | None" = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
         super().on_train_begin(args, state, control, model, **kwargs)
@@ -546,7 +546,7 @@ def main() -> None:
 
     sys.argv = [sys.argv[0], *remaining_args]
 
-    custom_args = typing.cast(CustomArgs, custom_args)
+    custom_args = typing.cast("CustomArgs", custom_args)
 
     if custom_args.fms_hf_tuning_version is None:
         raise ValueError("must set --fms_hf_tuning_version")

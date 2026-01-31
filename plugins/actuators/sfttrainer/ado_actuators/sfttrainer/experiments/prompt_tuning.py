@@ -4,9 +4,10 @@
 import copy
 import typing
 
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-
 from . import common
+
+if typing.TYPE_CHECKING:
+    from orchestrator.modules.actuators.catalog import ExperimentCatalog
 
 
 def add_experiments(catalog: "ExperimentCatalog") -> None:

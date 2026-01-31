@@ -1,38 +1,31 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from __future__ import annotations
-
 import datetime
 import json
 import math
 import typing
 
+import pydantic
+import typer
 import yaml
 
-from orchestrator.cli.models.parameters import AdoGetCommandParameters
+from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.generic.constants import (
     SECONDS_IN_A_DAY,
     SECONDS_IN_A_MINUTE,
     SECONDS_IN_AN_HOUR,
 )
 from orchestrator.cli.utils.jsonpath.filters import remove_fields_from_dictionary
-from orchestrator.cli.utils.pydantic.constants import (
-    event_importance_order,
-    minimize_output_context,
-)
-
-if typing.TYPE_CHECKING:
-    import pandas as pd
-import pydantic
-import typer
-
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.output.prints import (
     ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE,
     ERROR,
     WARN,
     console_print,
+)
+from orchestrator.cli.utils.pydantic.constants import (
+    event_importance_order,
+    minimize_output_context,
 )
 from orchestrator.core import (
     ADOResource,
@@ -50,10 +43,15 @@ from orchestrator.utilities.output import (
     printable_pydantic_model,
 )
 
+if typing.TYPE_CHECKING:
+    import pandas as pd
+
+    from orchestrator.cli.models.parameters import AdoGetCommandParameters
+
 
 def format_default_ado_get_single_resource(
     resource: ADOResource, show_details: bool
-) -> pd.DataFrame:
+) -> "pd.DataFrame":
     import json
 
     import pandas as pd
@@ -103,8 +101,8 @@ def format_default_ado_get_single_resource(
 
 
 def format_default_ado_get_multiple_resources(
-    resources: pd.DataFrame, resource_kind: CoreResourceKinds
-) -> pd.DataFrame:
+    resources: "pd.DataFrame", resource_kind: CoreResourceKinds
+) -> "pd.DataFrame":
     if resources.empty:
         return resources
 
@@ -160,7 +158,7 @@ def format_resource_for_ado_get_custom_format(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
+    parameters: "AdoGetCommandParameters",
 ) -> str:
     match parameters.output_format:
         case AdoGetSupportedOutputFormats.CONFIG:
@@ -193,7 +191,7 @@ def _config_formatter_for_ado_resource(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
+    parameters: "AdoGetCommandParameters",
 ) -> str:
 
     if isinstance(to_print, list):
@@ -248,7 +246,7 @@ def _yaml_formatter_for_ado_resource(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
+    parameters: "AdoGetCommandParameters",
 ) -> str:
 
     if parameters.minimize_output:
@@ -289,7 +287,7 @@ def _json_formatter_for_ado_resource(
     to_print: (
         ADOResource | list[ADOResource] | pydantic.BaseModel | list[pydantic.BaseModel]
     ),
-    parameters: AdoGetCommandParameters,
+    parameters: "AdoGetCommandParameters",
 ) -> str:
 
     if parameters.minimize_output:
@@ -363,7 +361,7 @@ def _raw_formatter_for_ado_resource(
         | list[pydantic.BaseModel]
         | dict
     ),
-    parameters: AdoGetCommandParameters,
+    parameters: "AdoGetCommandParameters",
 ) -> str:
     import pprint
 

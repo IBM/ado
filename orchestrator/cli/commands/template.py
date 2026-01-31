@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
+import typing
 from typing import Annotated
 
 import typer
 
 import orchestrator.core.operation.config
 import orchestrator.metastore.project
-from orchestrator.cli.core.config import AdoConfiguration
 from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
 from orchestrator.cli.models.types import AdoTemplateSupportedResourceTypes
@@ -22,6 +22,9 @@ from orchestrator.cli.resources.operation.template import template_operation
 from orchestrator.cli.resources.sample_store.template import template_sample_store
 from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
 from orchestrator.utilities.naming import get_random_name_extension
+
+if typing.TYPE_CHECKING:
+    from orchestrator.cli.core.config import AdoConfiguration
 
 TEMPLATE_OPERATION_PANEL_NAME = "Operation-specific options"
 TEMPLATE_ACTUATORCONFIGURATION_PANEL_NAME = "ActuatorConfiguration-specific options"

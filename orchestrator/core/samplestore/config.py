@@ -59,9 +59,9 @@ class SampleStoreSpecification(pydantic.BaseModel):
     @pydantic.field_validator("storageLocation", mode="after")
     @classmethod
     def check_is_resource_location_subclass(
-        cls, storageLocation: typing.Any | None  # noqa: ANN401
+        cls,
+        storageLocation: typing.Any | None,  # noqa: ANN401
     ) -> typing.Any | None:  # noqa: ANN401
-
         if storageLocation is not None and not isinstance(
             storageLocation, orchestrator.utilities.location.ResourceLocation
         ):
@@ -75,9 +75,13 @@ class SampleStoreSpecification(pydantic.BaseModel):
     @classmethod
     def check_parameters_valid_for_sample_store_module(
         cls, parameters: dict, context: pydantic.ValidationInfo
-    ) -> typing.Any:  # noqa: ANN401
+    ) -> dict:
         module = load_module_class_or_function(context.data["module"])
-        return module.validate_parameters(parameters=parameters)
+        validated_parameters = module.validate_parameters(parameters=parameters)
+        # Convert Pydantic model back to dict for serialization
+        if isinstance(validated_parameters, pydantic.BaseModel):
+            return validated_parameters.model_dump()
+        return validated_parameters
 
     @pydantic.field_validator("storageLocation", mode="before")
     @classmethod
@@ -102,7 +106,6 @@ class SampleStoreSpecification(pydantic.BaseModel):
 
 
 class SampleStoreReference(SampleStoreSpecification):
-
     model_config = ConfigDict(extra="forbid")
 
     identifier: Annotated[
@@ -142,7 +145,6 @@ class SampleStoreConfiguration(pydantic.BaseModel):
     def check_sample_store_specification_class_is_active(
         cls, value: SampleStoreSpecification
     ) -> SampleStoreSpecification:
-
         import orchestrator.core.samplestore.base
 
         moduleClass = orchestrator.modules.module.load_module_class_or_function(

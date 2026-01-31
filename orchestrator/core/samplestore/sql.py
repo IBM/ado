@@ -180,11 +180,54 @@ class SQLSampleStore(ActiveSampleStore):
         # and all had the same external experiment.
         # A better way would be to find all results from a replay experiment and then
         # get the set of those
+
+        # Optimized: Query just one entity directly instead of loading all entities
+        query = sqlalchemy.text(f"""
+            SELECT ent.identifier, ent.representation, res.data
+            FROM {self._tablename} ent
+            LEFT OUTER JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
+            LIMIT 1
+        """).bindparams()  # noqa: S608 - self._tablename is not untrusted
+
         try:
-            entity = self.entities[0]
-        except IndexError:
+            with self.engine.begin() as connectable:
+                cur = connectable.execute(query)
+                row = cur.fetchone()
+        except SQLAlchemyError as error:
+            msg = f"Unable to fetch first entity for catalog from sample store {self._tablename}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        if row is None:
             # There are no entities
             return None
+
+        entity_identifier, entity_representation, result_data = row
+
+        try:
+            entity = Entity.model_validate(json.loads(entity_representation))
+        except Exception as error:
+            self.log.warning(
+                f"Unable to decode representation for entity {entity_identifier} when building catalog.\n"
+                f"Representation was: {entity_representation}.\n"
+                f"Error was {error}"
+            )
+            return None
+
+        # If there's a measurement result, add it to the entity
+        if result_data is not None:
+            try:
+                result_dict = json.loads(result_data)
+                if result_dict.get("measurements", None):
+                    measurement_result = ValidMeasurementResult.model_validate(
+                        result_dict
+                    )
+                    entity.add_measurement_result(result=measurement_result)
+            except Exception as error:
+                self.log.debug(
+                    f"Unable to decode measurement result for entity {entity_identifier} when building catalog: {error}"
+                )
+                # Continue without the measurement result - catalog doesn't strictly need it
 
         refs = [
             e for e in entity.experimentReferences if e.actuatorIdentifier == "replay"
@@ -329,10 +372,10 @@ class SQLSampleStore(ActiveSampleStore):
         # Create a table for this sample store
         self._create_source_table()
 
-        self._entities = None
-
-        # populate local entities ivar
-        _ = self.entities
+        # Initialize entities cache as empty dict for lazy loading
+        # Empty dict is falsy, so lazy loading check `if not self._entities:` still works
+        # But it's also a valid dict that can be used for assignments
+        self._entities = {}
 
         self.log.debug(f"SQLSampleStore id {self.uri}")
 
@@ -414,6 +457,196 @@ class SQLSampleStore(ActiveSampleStore):
                 )
 
         return list(self._entities.values())
+
+    def entities_with_identifiers(
+        self, entity_identifiers: set[str] | list[str]
+    ) -> list[Entity]:
+        """Efficiently fetch entities by their identifiers without loading all entities.
+
+        This method queries only the specified entities from the database, making it
+        much more efficient than loading all entities and filtering in Python.
+
+        Args:
+            entity_identifiers: Set or list of entity identifiers to fetch
+
+        Returns:
+            List of Entity objects matching the provided identifiers
+        """
+        if not entity_identifiers:
+            return []
+
+        # Convert to set for deduplication and efficient lookup
+        entity_ids_set = (
+            set(entity_identifiers)
+            if isinstance(entity_identifiers, list)
+            else entity_identifiers
+        )
+
+        # Check cache first - if all requested entities are cached, return them
+        if self._entities:
+            cached_entities = [
+                self._entities[entity_id]
+                for entity_id in entity_ids_set
+                if entity_id in self._entities
+            ]
+            # If we got all requested entities from cache, return them
+            if len(cached_entities) == len(entity_ids_set):
+                return cached_entities
+
+        # Query database for entities by identifiers
+        # Use SQLAlchemy's expanding bindparam for IN clause
+        # This automatically handles the parameter expansion for the IN clause
+        query = sqlalchemy.text(f"""
+            SELECT ent.identifier, ent.representation, res.data
+            FROM {self._tablename} ent
+            LEFT OUTER JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
+            WHERE ent.identifier IN :entity_ids
+        """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+            sqlalchemy.bindparam(
+                key="entity_ids", value=list(entity_ids_set), expanding=True
+            )
+        )
+
+        try:
+            with self.engine.begin() as connectable:
+                cur = connectable.execute(query)
+        except SQLAlchemyError as error:
+            msg = f"Unable to fetch entities by identifiers from sample store {self._tablename}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        # Build result dictionary to handle multiple measurement results per entity
+        entities_dict: dict[str, Entity] = {}
+        for entity_identifier, entity_representation, result_data in cur:
+            if entity_identifier not in entities_dict:
+                try:
+                    entities_dict[entity_identifier] = Entity.model_validate(
+                        json.loads(entity_representation)
+                    )
+                    # Update cache if it exists
+                    if self._entities is not None:
+                        self._entities[entity_identifier] = entities_dict[
+                            entity_identifier
+                        ]
+                except Exception as error:
+                    raise FailedToDecodeStoredEntityError(
+                        entity_identifier=entity_identifier,
+                        entity_representation=entity_representation,
+                        cause=error,
+                    ) from error
+
+            if result_data is None:
+                self.log.debug(
+                    f"Entity {entity_identifier} had no measurements associated to it."
+                )
+                continue
+
+            try:
+                result_dict = json.loads(result_data)
+                if not result_dict.get("measurements", None):
+                    continue
+
+                measurement_result = ValidMeasurementResult.model_validate(result_dict)
+            except Exception as error:
+                raise FailedToDecodeStoredMeasurementResultForEntityError(
+                    entity_identifier=entity_identifier,
+                    result_representation=result_data,
+                    cause=error,
+                ) from error
+
+            # Add measurement result to entity
+            entities_dict[entity_identifier].add_measurement_result(
+                result=measurement_result
+            )
+
+        return list(entities_dict.values())
+
+    def entities_in_operation(self, operation_id: str) -> list[Entity]:
+        """Get entities directly from a single operation in one query.
+
+        This method is optimized for the common case of fetching entities from
+        a single operation. It performs the entire operation in a single database
+        query, avoiding the need to first fetch entity IDs and then fetch entities.
+
+        Note: We use DISTINCT to avoid duplicate entity rows when an entity has multiple
+        measurement results. We still group measurement results by entity in Python
+        since an entity may have multiple measurement results that need to be combined.
+
+        Args:
+            operation_id: The operation identifier to fetch entities for
+
+        Returns:
+            List of Entity objects that were sampled in the specified operation
+        """
+        query = sqlalchemy.text(f"""
+            SELECT DISTINCT
+                ent.identifier,
+                ent.representation,
+                res.data
+            FROM {self._tablename} ent
+            JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
+            JOIN {self._tablename}_measurement_requests_results reqres ON reqres.result_uid = res.uid
+            JOIN {self._tablename}_measurement_requests req ON reqres.request_uid = req.uid
+            WHERE req.operation_id = :operation_id
+        """).bindparams(  # noqa: S608 - self._tablename is not untrusted
+            operation_id=operation_id
+        )
+
+        try:
+            with self.engine.begin() as connectable:
+                cur = connectable.execute(query)
+        except SQLAlchemyError as error:
+            msg = f"Unable to fetch entities for operation {operation_id} from sample store {self._tablename}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        # Build result dictionary to handle multiple measurement results per entity
+        # DISTINCT ensures we don't get duplicate entity rows, but we still need
+        # to group measurement results by entity
+        entities_dict: dict[str, Entity] = {}
+        for entity_identifier, entity_representation, result_data in cur:
+            if entity_identifier not in entities_dict:
+                try:
+                    entities_dict[entity_identifier] = Entity.model_validate(
+                        json.loads(entity_representation)
+                    )
+                    # Update cache if it exists
+                    if self._entities is not None:
+                        self._entities[entity_identifier] = entities_dict[
+                            entity_identifier
+                        ]
+                except Exception as error:
+                    raise FailedToDecodeStoredEntityError(
+                        entity_identifier=entity_identifier,
+                        entity_representation=entity_representation,
+                        cause=error,
+                    ) from error
+
+            if result_data is None:
+                self.log.debug(
+                    f"Entity {entity_identifier} had no measurements associated to it."
+                )
+                continue
+
+            try:
+                result_dict = json.loads(result_data)
+                if not result_dict.get("measurements", None):
+                    continue
+
+                measurement_result = ValidMeasurementResult.model_validate(result_dict)
+            except Exception as error:
+                raise FailedToDecodeStoredMeasurementResultForEntityError(
+                    entity_identifier=entity_identifier,
+                    result_representation=result_data,
+                    cause=error,
+                ) from error
+
+            # Add measurement result to entity
+            entities_dict[entity_identifier].add_measurement_result(
+                result=measurement_result
+            )
+
+        return list(entities_dict.values())
 
     @property
     def numberOfEntities(self) -> int:

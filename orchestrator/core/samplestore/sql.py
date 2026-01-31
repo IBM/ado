@@ -33,6 +33,7 @@ from orchestrator.schema.request import (
     ReplayedMeasurement,
 )
 from orchestrator.schema.result import (
+    DuplicateMeasurementResultError,
     InvalidMeasurementResult,
     MeasurementResult,
     MeasurementResultStateEnum,
@@ -330,6 +331,9 @@ class SQLSampleStore(ActiveSampleStore):
         self._create_source_table()
 
         self._entities = None
+        self._last_insert_id = (
+            0  # Track last processed insert_id for incremental refresh
+        )
 
         # populate local entities ivar
         _ = self.entities
@@ -354,66 +358,258 @@ class SQLSampleStore(ActiveSampleStore):
 
     @property
     def entities(self) -> list[Entity]:
-
         if not self._entities:
-
-            query = sqlalchemy.text(f"""
-                    SELECT ent.identifier, ent.representation, res.data
-                    FROM {self._tablename} ent
-                    LEFT OUTER JOIN {self._tablename}_measurement_results res ON res.entity_id = ent.identifier
-                """)  # noqa: S608 - self._tablename is not untrusted
-
-            try:
-                with self.engine.begin() as connectable:
-                    cur = connectable.execute(query)
-            except SQLAlchemyError as error:
-                msg = f"Unable to fetch entities and measurements from sample store {self._tablename}"
-                self.log.critical(f"{msg}. Error: {error}")
-                raise SystemError(f"{msg}. Error: {error}") from error
-
+            # Initial load: delegate to refresh with force_fetch_all_entities=True
+            self.log.debug(f"Initial load of entities for {self._tablename}")
             self._entities = {}
-            for entity_identifier, entity_representation, result_data in cur:
-
-                if entity_identifier not in self._entities:
-
-                    try:
-                        self._entities[entity_identifier] = Entity.model_validate(
-                            json.loads(entity_representation)
-                        )
-                    except Exception as error:
-                        raise FailedToDecodeStoredEntityError(
-                            entity_identifier=entity_identifier,
-                            entity_representation=entity_representation,
-                            cause=error,
-                        ) from error
-
-                if result_data is None:
-                    self.log.debug(
-                        f"Entity {entity_identifier} had no measurements associated to it."
-                    )
-                    continue
-
-                try:
-                    result_dict = json.loads(result_data)
-                    if not result_dict.get("measurements", None):
-                        continue
-
-                    measurement_result = ValidMeasurementResult.model_validate(
-                        result_dict
-                    )
-                except Exception as error:
-                    raise FailedToDecodeStoredMeasurementResultForEntityError(
-                        entity_identifier=entity_identifier,
-                        result_representation=result_data,
-                        cause=error,
-                    ) from error
-
-                # We need to manually add valid measurements to the entity
-                self._entities[entity_identifier].add_measurement_result(
-                    result=measurement_result
-                )
+            self.refresh(force_fetch_all_entities=True)
 
         return list(self._entities.values())
+
+    def _fetch_entities(self, entity_ids: set[str] | None = None) -> dict[str, Entity]:
+        """
+        Fetch entities from the database.
+
+        Parameters:
+            entity_ids: Optional set of entity identifiers to fetch.
+                       If None or empty set, fetches all entities.
+
+        Returns:
+            Dictionary mapping entity_identifier -> Entity object
+
+        Raises:
+            SystemError: If database query fails
+            FailedToDecodeStoredEntityError: If entity JSON is invalid
+        """
+        # Treat empty set same as None - fetch all entities
+        if entity_ids is not None and len(entity_ids) == 0:
+            entity_ids = None
+
+        # Build query based on whether we're filtering
+        if entity_ids is None:
+            query = sqlalchemy.text(
+                f"SELECT identifier, representation FROM {self._tablename}"  # noqa: S608 - self._tablename is not untrusted
+            )
+            params = {}
+        else:
+            # Use parameterized query for filtering
+            placeholders = ", ".join([f":id{i}" for i in range(len(entity_ids))])
+            query = sqlalchemy.text(
+                f"SELECT identifier, representation FROM {self._tablename} "  # noqa: S608 - self._tablename is not untrusted
+                f"WHERE identifier IN ({placeholders})"
+            )
+            params = {f"id{i}": eid for i, eid in enumerate(entity_ids)}
+
+        try:
+            with self.engine.begin() as connectable:
+                cur = connectable.execute(query, params)
+        except SQLAlchemyError as error:
+            msg = f"Unable to fetch entities from sample store {self._tablename}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        entities = {}
+        for entity_identifier, entity_representation in cur:
+            try:
+                entities[entity_identifier] = Entity.model_validate(
+                    json.loads(entity_representation)
+                )
+            except Exception as error:  # noqa: PERF203
+                raise FailedToDecodeStoredEntityError(
+                    entity_identifier=entity_identifier,
+                    entity_representation=entity_representation,
+                    cause=error,
+                ) from error
+
+        self.log.debug(
+            f"Fetched {len(entities)} entities"
+            + (f" (filtered from {len(entity_ids)} requested)" if entity_ids else "")
+        )
+        return entities
+
+    def _fetch_measurement_results(
+        self, min_insert_id: int = 0
+    ) -> tuple[dict[str, list[ValidMeasurementResult]], int]:
+        """
+        Fetch measurement results from database starting from a specific insert_id.
+
+        This method fetches results, validates them, and groups them by entity_id.
+        Only valid measurement results are included in the returned dictionary.
+        All validation happens here, so callers don't need to validate again.
+
+        Parameters:
+            min_insert_id: Minimum insert_id to fetch (exclusive).
+                          Use 0 to fetch all results.
+
+        Returns:
+            Tuple of:
+            - Dictionary mapping entity_id -> list of ValidMeasurementResult objects
+            - Maximum insert_id seen (or min_insert_id if no results)
+
+        Raises:
+            SystemError: If database query fails
+            FailedToDecodeStoredMeasurementResultForEntityError: If result JSON is invalid
+        """
+        from collections import defaultdict
+
+        query = sqlalchemy.text(f"""
+            SELECT insert_id, entity_id, data
+            FROM {self._tablename}_measurement_results
+            WHERE insert_id > :min_insert_id
+            ORDER BY insert_id
+            """)  # noqa: S608 - self._tablename is not untrusted
+
+        try:
+            with self.engine.begin() as connectable:
+                cur = connectable.execute(query, {"min_insert_id": min_insert_id})
+        except SQLAlchemyError as error:
+            msg = f"Unable to fetch measurement results from sample store {self._tablename}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+        results_by_entity = defaultdict(list)
+        max_insert_id = min_insert_id
+
+        for insert_id, entity_id, result_data in cur:
+            max_insert_id = max(max_insert_id, insert_id)
+
+            if result_data is None:
+                self.log.debug(
+                    f"Measurement result {insert_id} for entity {entity_id} had no data, skipping"
+                )
+                continue
+
+            try:
+                result_dict = json.loads(result_data)
+                if not result_dict.get("measurements", None):
+                    continue
+
+                measurement_result = ValidMeasurementResult.model_validate(result_dict)
+                results_by_entity[entity_id].append(measurement_result)
+            except Exception as error:
+                raise FailedToDecodeStoredMeasurementResultForEntityError(
+                    entity_identifier=entity_id,
+                    result_representation=result_data,
+                    cause=error,
+                ) from error
+
+        total_results = sum(len(results) for results in results_by_entity.values())
+        self.log.debug(
+            f"Fetched {total_results} measurement results for {len(results_by_entity)} entities "
+            f"(insert_id range: {min_insert_id + 1} to {max_insert_id})"
+        )
+
+        return dict(results_by_entity), max_insert_id
+
+    def refresh(self, force_fetch_all_entities: bool = False) -> tuple[int, int]:
+        """
+        Refresh entities and fetch new measurement results.
+
+        This method efficiently syncs the local cache with the database by:
+        1. Fetching only new measurement results (insert_id > _last_insert_id)
+        2. Fetching only entities that don't exist in cache yet (or all if forced)
+        3. Attaching new measurements to existing or new entities
+
+        Parameters:
+            force_fetch_all_entities: If True, fetches all entities from database
+                                     (used for initial load). If False, only fetches
+                                     missing entities (used for incremental refresh).
+
+        Returns:
+            Tuple of (number of new entities fetched, number of new measurement results processed)
+
+        Raises:
+            SystemError: If database queries fail
+
+        Example:
+            >>> store = SQLSampleStore(...)
+            >>> initial_count = len(store.entities)
+            >>> # Another process adds measurements
+            >>> new_entities, new_results = store.refresh()
+            >>> print(f"Fetched {new_entities} new entities and {new_results} new measurements")
+        """
+        self.log.debug(
+            f"Refreshing entities for {self._tablename} "
+            f"(last insert_id: {self._last_insert_id}, force_fetch_all={force_fetch_all_entities})"
+        )
+
+        new_entities_count = 0
+
+        # Phase 1: Fetch entities
+        if force_fetch_all_entities:
+            # Initial load: fetch all entities
+            self._entities = self._fetch_entities(entity_ids=None)
+            new_entities_count = len(self._entities)
+            self.log.debug(f"Fetched all {new_entities_count} entities")
+
+        # Phase 2: Fetch new measurement results (already validated and grouped)
+        results_by_entity, max_insert_id = self._fetch_measurement_results(
+            min_insert_id=self._last_insert_id
+        )
+
+        if not results_by_entity:
+            self.log.debug("No new measurement results found")
+            return (new_entities_count, 0)
+
+        # Phase 3: Fetch missing entities
+        # Doing it every time even if force_fetch_all_entities is True to avoid
+        # the off-chance where another process adds an entity and some results
+        # in the time it takes to fetch all the entities + all the measurements.
+        # This avoid the chance of having results for which we have no entity.
+        new_entity_ids = set(results_by_entity.keys())
+        missing_entity_ids = new_entity_ids - set(self._entities.keys())
+
+        if missing_entity_ids:
+            self.log.debug(f"Fetching {len(missing_entity_ids)} new entities")
+            new_entities = self._fetch_entities(entity_ids=missing_entity_ids)
+            self._entities.update(new_entities)
+            new_entities_count = len(new_entities)
+
+            if len(missing_entity_ids) != new_entities_count:
+                self.log.warning(
+                    f"Expected to find {len(missing_entity_ids)} new entities but "
+                    f"{new_entities_count} were retrieved. This suggests another process "
+                    f"is updating the sample store concurrently."
+                )
+
+        # Phase 4: Attach measurements to entities (no validation needed - already done)
+        total_measurements = 0
+        for entity_id, measurement_results in results_by_entity.items():
+
+            for measurement_result in measurement_results:
+
+                # We have fetched results starting from self._last_insert_id, which
+                # means:
+                #   1.  Somebody else (e.g., another distributed process) could have
+                #       added results to the sample store.
+                #   2.  We ourselves could've added results to the sample store via
+                #       add_measurement_results.
+                # At the moment we can't know the `insert_id` of the results we add
+                # to avoid them. If we did, we would still have to fetch results
+                # starting from self._last_insert_id because someone else could have
+                # added results, but we would also be able to add a NOT IN to avoid
+                # ones we are already aware of.
+                # As it stands, then, we need to be careful not to add measurement
+                # results twice.
+                try:
+                    self._entities[entity_id].add_measurement_result(
+                        result=measurement_result
+                    )
+                except DuplicateMeasurementResultError:  # noqa: PERF203
+                    pass
+                else:
+                    total_measurements += 1
+
+        # Update tracking
+        self._last_insert_id = max_insert_id
+
+        self.log.info(
+            f"Refresh complete: fetched {new_entities_count} new entities, "
+            f"processed {total_measurements} new measurements "
+            f"(last insert_id: {max_insert_id})"
+        )
+
+        return (new_entities_count, total_measurements)
 
     @property
     def numberOfEntities(self) -> int:

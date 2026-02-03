@@ -250,6 +250,7 @@ def main(
             dir_okay=False,
             readable=True,
             resolve_path=True,
+            callback=validate_csv_extension,
             help="Path to CSV file containing benchmark metrics with JSON-encoded measurement arrays.",
         ),
     ],
@@ -285,13 +286,6 @@ def main(
         # Show help
         python check_metrics_stability.py --help
     """
-
-    # Only process CSV files
-    if csv_file.suffix.lower() != ".csv":
-        raise typer.BadParameter(
-            f"File must have .csv extension, got '{csv_file.suffix}'"
-        )
-
     # Read CSV file
     try:
         df = pd.read_csv(csv_file)

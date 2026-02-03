@@ -105,6 +105,18 @@ class SQLResourceStore(ResourceStore):
 
         super().__init__()
 
+    # The SQLAlchemy Engine is not picklable, so anything using
+    # Ray would fail. To avoid this, we remove it before pickling
+    # and create a new instance when unpickling.
+    def __getstate__(self) -> dict:
+        state = self.__dict__.copy()
+        del state["_engine"]
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._engine = engine_for_sql_store(self.configuration)
+
     @property
     def engine(self) -> sqlalchemy.Engine:
         return self._engine

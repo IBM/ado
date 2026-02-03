@@ -3,7 +3,6 @@
 
 
 import json
-import os
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -63,30 +62,23 @@ def analyze_stability(values: list[float]) -> dict[str, float] | None:
     return metrics
 
 
-def validate_csv_file(csv_path: Path) -> None:
-    """Validate that the provided path is a valid CSV file.
+def validate_csv_extension(csv_path: Path) -> Path:
+    """Validate that the provided path has a .csv extension.
 
     Args:
         csv_path: Path to the CSV file to validate.
 
-    Raises:
-        typer.Exit: If validation fails with appropriate error message.
-    """
-    # Check file extension
-    if csv_path.suffix.lower() != ".csv":
-        typer.echo(
-            f"Error: File must have .csv extension, got '{csv_path.suffix}'",
-            err=True,
-        )
-        raise typer.Exit(code=1)
+    Returns:
+        The validated Path object.
 
-    # Check read permissions
-    if not os.access(csv_path, os.R_OK):
-        typer.echo(
-            f"Error: No read permission for file: {csv_path}",
-            err=True,
+    Raises:
+        typer.BadParameter: If the file doesn't have a .csv extension.
+    """
+    if csv_path.suffix.lower() != ".csv":
+        raise typer.BadParameter(
+            f"File must have .csv extension, got '{csv_path.suffix}'"
         )
-        raise typer.Exit(code=1)
+    return csv_path
 
 
 def perform_stability_analysis(
@@ -293,8 +285,12 @@ def main(
         # Show help
         python check_metrics_stability.py --help
     """
-    # Validate CSV file
-    validate_csv_file(csv_file)
+
+    # Only process CSV files
+    if csv_file.suffix.lower() != ".csv":
+        raise typer.BadParameter(
+            f"File must have .csv extension, got '{csv_file.suffix}'"
+        )
 
     # Read CSV file
     try:

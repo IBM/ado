@@ -25,15 +25,16 @@ the top-level of the `ado` repository:
 > section for instructions on how to do this.
 
 ```commandline
-uv sync
+uv sync --group test --reinstall
 source .venv/bin/activate
 ```
+
+<!-- markdownlint-disable no-blanks-blockquote -->
 
 > [!NOTE]
 >
 > This installs `ado` in editable mode.
 
-<!-- markdownlint-disable-next-line no-blanks-blockquote -->
 > [!NOTE]
 >
 > In line with uv's defaults, the `uv sync` command creates a `.venv` in the
@@ -41,7 +42,6 @@ source .venv/bin/activate
 > `uv sync` **are intended only to be used when developing a specific project
 > and should not be shared across projects.**
 
-<!-- markdownlint-disable-next-line no-blanks-blockquote -->
 > [!CAUTION]
 >
 > `uv sync` ensures a reproducible development environment is created by using a
@@ -49,6 +49,8 @@ source .venv/bin/activate
 > packages found in the virtual environment **will be deleted**. See
 > [Making changes to dependencies](#making-changes-to-dependencies) for how to
 > add packages to the lockfile.
+
+<!-- markdownlint-enable no-blanks-blockquote -->
 
 #### Using a custom location for the venv
 
@@ -58,7 +60,7 @@ location, $LOCATION, then run:
 ```commandline
 uv venv $LOCATION
 source $LOCATION/bin/activate
-uv sync --active
+uv sync --active --group test --reinstall
 ```
 
 ## Code style
@@ -146,9 +148,8 @@ prettier -w "**/*.md"
 
 This repository uses IBM's
 [detect-secrets](https://github.com/ibm/detect-secrets) to scan for secrets
-before the code is pushed to GitHub. Follow installation instructions in their
-repository:
-<https://github.com/ibm/detect-secrets?tab=readme-ov-file#example-usage>
+before the code is pushed to GitHub. The `detect-secret` CLI is automatically
+installed as part of the [project setup](#project-setup).
 
 To update the secrets database manually, run:
 
@@ -163,8 +164,8 @@ detect-secrets audit .secrets.baseline
 ```
 
 If the pre-commit hook raises an error but the audit command succeeds with just
-`Nothing to audit!` then run `detect-secrets scan --update .secrets.baseline`
-to perform a full scan and then repeat the `audit` command.
+`Nothing to audit!` then run `detect-secrets scan --update .secrets.baseline` to
+perform a full scan and then repeat the `audit` command.
 
 ## Commit style
 
@@ -305,9 +306,11 @@ dependencies. This means that all changes to dependencies **must** be done via
 `uv`, and not by manually editing `pyproject.toml`.
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 The relevant documentation on `uv`'s website is available
 [here](https://docs.astral.sh/uv/concepts/projects/dependencies/#managing-dependencies)
 , but at a glance:
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 ### Adding base dependencies

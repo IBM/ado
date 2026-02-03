@@ -86,6 +86,7 @@ dependencies = [
 dev = [
     { name = "black" },
     { name = "coverage" },
+    { name = "detect-secrets" },
     { name = "pip" },
     { name = "pre-commit" },
     { name = "pydevd" },
@@ -146,6 +147,7 @@ requires-dist = [
 dev = [
     { name = "black", specifier = ">=25.1.0" },
     { name = "coverage", specifier = ">=7.10.2" },
+    { name = "detect-secrets", git = "https://github.com/ibm/detect-secrets.git?rev=master" },
     { name = "pip", specifier = ">=25.1.1" },
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pydevd", specifier = ">=3.3.0" },
@@ -849,6 +851,18 @@ wheels = [
 ]
 
 [[package]]
+name = "binaryornot"
+version = "0.4.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "chardet" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a7/fe/7ebfec74d49f97fc55cd38240c7a7d08134002b1e14be8c3897c0dd5e49b/binaryornot-0.4.4.tar.gz", hash = "sha256:359501dfc9d40632edc9fac890e19542db1a287bbcfa58175b66658392018061", size = 371054, upload-time = "2017-08-03T15:55:25.08Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/24/7e/f7b6f453e6481d1e233540262ccbfcf89adcd43606f44a028d7f5fae5eb2/binaryornot-0.4.4-py2.py3-none-any.whl", hash = "sha256:b8b71173c917bddcd2c16070412e369c3ed7f0528926f70cac18a6c97fd563e4", size = 9006, upload-time = "2017-08-03T15:55:31.23Z" },
+]
+
+[[package]]
 name = "black"
 version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1013,6 +1027,28 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e2/3d/339edff36a3c6617900ec9d7a1203ffe4e06ffee1e5bd71126e31cd59e30/botocore-1.42.35.tar.gz", hash = "sha256:40a6e0f16afe9e5d42e956f0b6d909869793fadb21780e409063601fc3d094b8", size = 14903745, upload-time = "2026-01-26T20:35:25.85Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/74/b6/68f0aec79462852f367128dd8892e47176da46a787386d1730ec5bbbfb01/botocore-1.42.35-py3-none-any.whl", hash = "sha256:b89f527987691abbd1374c4116cc2711471ce48e6da502db17e92b17b2af8d47", size = 14581567, upload-time = "2026-01-26T20:35:23.346Z" },
+]
+
+[[package]]
+name = "boxsdk"
+version = "3.14.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+    { name = "requests-toolbelt" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bf/d7/c1a95bb602d7f90a85a68d8e6f11954e50c255110d39e2167c7796252622/boxsdk-3.14.0.tar.gz", hash = "sha256:7918b1929368724662474fffa417fa0457a523d089b8185260efbedd28c4f9b1", size = 232630, upload-time = "2025-04-09T15:07:15.181Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4d/5d/4e15511e0f4f2f9fbbf4646a8d0e138e5c53a3d428f1724e7dc3c8acf556/boxsdk-3.14.0-py2.py3-none-any.whl", hash = "sha256:0314e2f172b050e98489955f2e9001263de79c3dd751e6feee19f2195fdf7c01", size = 141329, upload-time = "2025-04-09T15:07:13.295Z" },
+]
+
+[package.optional-dependencies]
+jwt = [
+    { name = "cryptography" },
+    { name = "pyjwt" },
 ]
 
 [[package]]
@@ -1843,6 +1879,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/88/35/83fb0178212279aa0af031031905804c6de5618435d229f41ed21bb9ad2c/depyf-0.20.0.tar.gz", hash = "sha256:fb7683bd72c44f67b56029df2c47721e9a02ffa4d7b19095f1c54c4ebf797a98", size = 6168761, upload-time = "2025-10-13T12:33:38.589Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cf/65/4df6936130b56e1429114e663e7c1576cf845f3aef1b2dd200c0a5d19dba/depyf-0.20.0-py3-none-any.whl", hash = "sha256:d31effad4261cebecb58955d832e448ace88f432328f95f82fd99c30fd9308d4", size = 39381, upload-time = "2025-10-13T12:33:33.647Z" },
+]
+
+[[package]]
+name = "detect-secrets"
+version = "0.13.1+ibm.64.dss"
+source = { git = "https://github.com/ibm/detect-secrets.git?rev=master#076672a9a01abdfc7ecee2e7d14f08cdccb73976" }
+dependencies = [
+    { name = "binaryornot" },
+    { name = "boxsdk", extra = ["jwt"] },
+    { name = "packaging" },
+    { name = "pyyaml" },
+    { name = "requests" },
+    { name = "tabulate" },
+    { name = "urllib3" },
 ]
 
 [[package]]
@@ -6142,6 +6192,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/42/f2/05f29bc3913aea15eb670be136045bf5c5bbf4b99ecb839da9b422bb2c85/requests-oauthlib-2.0.0.tar.gz", hash = "sha256:b3dffaebd884d8cd778494369603a9e7b58d29111bf6b41bdc2dcd87203af4e9", size = 55650, upload-time = "2024-03-22T20:32:29.939Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3b/5d/63d4ae3b9daea098d5d6f5da83984853c1bbacd5dc826764b249fe119d24/requests_oauthlib-2.0.0-py2.py3-none-any.whl", hash = "sha256:7dd8a5c40426b779b0868c404bdef9768deccf22749cde15852df527e6269b36", size = 24179, upload-time = "2024-03-22T20:32:28.055Z" },
+]
+
+[[package]]
+name = "requests-toolbelt"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f3/61/d7545dafb7ac2230c70d38d31cbfe4cc64f7144dc41f6e4e4b78ecd9f5bb/requests-toolbelt-1.0.0.tar.gz", hash = "sha256:7681a0a3d047012b5bdc0ee37d7f8f07ebe76ab08caeccfc3921ce23c88d5bc6", size = 206888, upload-time = "2023-05-01T04:11:33.229Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3f/51/d4db610ef29373b879047326cbf6fa98b6c1969d6f6dc423279de2b1be2c/requests_toolbelt-1.0.0-py2.py3-none-any.whl", hash = "sha256:cccfdd665f0a24fcf4726e690f65639d272bb0637b9b92dfd91a5568ccf6bd06", size = 54481, upload-time = "2023-05-01T04:11:28.427Z" },
 ]
 
 [[package]]

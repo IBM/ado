@@ -326,6 +326,7 @@ class SQLSampleStore(ActiveSampleStore):
             raise ValueError("SQLSampleStore requires valid location parameters.")
 
         self._tablename = f"sqlsource_{self._identifier}"
+        self._engine = engine_for_sql_store(storageLocation)
 
         # Create a table for this sample store
         self._create_source_table()
@@ -342,8 +343,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     @property
     def engine(self) -> sqlalchemy.Engine:
-
-        return engine_for_sql_store(configuration=self._configuration)
+        return self._engine
 
     @property
     def config(self) -> dict:

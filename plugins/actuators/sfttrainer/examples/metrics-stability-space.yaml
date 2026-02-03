@@ -1,0 +1,56 @@
+# Copyright (c) IBM Corporation
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: default
+experiments:
+  - experimentIdentifier: finetune_full_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: &baseline
+      - property:
+          identifier: fms_hf_tuning_version
+        value: "3.1.0"
+      - property:
+          identifier: num_train_epochs
+        value: 10
+      - property:
+          identifier: auto_stop_method
+        value: WARMUP_60S_STABLE_120S_OR_10_STEPS
+  - experimentIdentifier: finetune_full_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: &enhanced
+      - property:
+          identifier: fms_hf_tuning_version
+        value: "3.1.0"
+      - property:
+          identifier: num_train_epochs
+        value: 10
+      - property:
+          identifier: auto_stop_method
+        value: WARMUP_60S_STABLE_120S_OR_10_STEPS
+      - property:
+          identifier: fast_kernels
+        value: ["True", "True", "True"]
+  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: *baseline
+  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
+    actuatorIdentifier: SFTTrainer
+    parameterization: *enhanced
+entitySpace:
+  - identifier: "model_name"
+    propertyDomain:
+      values: ["granite-3.1-3b-a800m-instruct", "granite-3.1-2b", "llama3.2-1b", "llama3.2-3b", "granite-3.3-8b", "mistral-7b-v0.1"]
+  - identifier: "number_gpus"
+    propertyDomain:
+      values: [1, 2, 4, 8]
+  - identifier: "model_max_length"
+    propertyDomain:
+      values: [512, 2048, 8192]
+  - identifier: "batch_size"
+    propertyDomain:
+      values: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+  - identifier: "gpu_model"
+    propertyDomain:
+      values: ["NVIDIA-A100-SXM4-80GB"]
+  - identifier: "fast_moe"
+    propertyDomain:
+      values: [0, 1, 2, 4, 8]

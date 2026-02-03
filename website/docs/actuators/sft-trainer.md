@@ -1907,98 +1907,23 @@ You can easily verify this stability of fms-hf-tuning yourself.
 For example, repeat the same [RandomWalk operation](../examples/finetune-remotely.md)
 on the following DiscoverySpace for 5 times:
 
+<!-- markdownlint-disable MD013 -->
 <!-- markdownlint-disable MD046 -->
 ```yaml
-sampleStoreIdentifier: default
-
-experiments:
-  - experimentIdentifier: finetune_full_benchmark-v1.0.0
-    actuatorIdentifier: SFTTrainer
-    parameterization: &baseline
-      - property:
-          identifier: fms_hf_tuning_version
-        value: "3.1.0"
-      - property:
-          identifier: num_train_epochs
-        value: 10
-      - property:
-          identifier: auto_stop_method
-        value: WARMUP_60S_STABLE_120S_OR_10_STEPS
-
-  - experimentIdentifier: finetune_full_benchmark-v1.0.0
-    actuatorIdentifier: SFTTrainer
-    parameterization: &enhanced
-      - property:
-          identifier: fms_hf_tuning_version
-        value: "3.1.0"
-      - property:
-          identifier: num_train_epochs
-        value: 10
-      - property:
-          identifier: auto_stop_method
-        value: WARMUP_60S_STABLE_120S_OR_10_STEPS
-      - property:
-          identifier: fast_kernels
-        value: ["True", "True", "True"]
-
-  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
-    actuatorIdentifier: SFTTrainer
-    parameterization: *baseline
-  - experimentIdentifier: finetune_lora_benchmark-v1.0.0
-    actuatorIdentifier: SFTTrainer
-    parameterization: *enhanced
-
-entitySpace:
-  - identifier: "model_name"
-    propertyDomain:
-      values:
-        [
-          "granite-3.1-3b-a800m-instruct",
-          "granite-3.1-2b",
-          "llama3.2-1b",
-          "llama3.2-3b",
-          "granite-3.3-8b",
-          "mistral-7b-v0.1",
-        ]
-  - identifier: "number_gpus"
-    propertyDomain:
-      values: [1, 2, 4, 8]
-  - identifier: "model_max_length"
-    propertyDomain:
-      values: [512, 2048, 8192]
-  - identifier: "batch_size"
-    propertyDomain:
-      values: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
-  - identifier: "gpu_model"
-    propertyDomain:
-      values: ["NVIDIA-A100-SXM4-80GB"]
-  - identifier: "fast_moe"
-    propertyDomain:
-      values: [0, 1, 2, 4, 8]
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
 ```
 <!-- markdownlint-enable MD046 -->
+<!-- markdownlint-enable MD013 -->
 
 Remember to switch off memoization in your RandomWalk operation definition:
 
+<!-- markdownlint-disable MD013 -->
 <!-- markdownlint-disable MD046 -->
 ```yaml
-spaces:
-  - <your space id goes here>
-
-actuatorConfigurationIdentifiers:
-  - <your actuator config id goes here>
-
-operation:
-  module:
-    moduleClass: "RandomWalk"
-  parameters:
-    samplerConfig:
-      mode: sequential
-      samplerType: generator
-    singleMeasurement: false # Disable memoization
-    maxRetries: 1
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
 ```
 <!-- markdownlint-enable MD046 -->
+<!-- markdownlint-enable MD013 -->
 
 Then after all five operations finish, obtain a CSV file containing the observed
 properties on the space you created like so:
@@ -2009,12 +1934,12 @@ ado show entities space --output-format csv $DISCOVERY_SPACE_ID
 ```
 <!-- markdownlint-enable MD046 -->
 
-Finally, use the script `sfttrainer_check_stability` that you get by
+Finally, use the script `sfttrainer_check_metrics_stability` that you get by
 installing the `ado-sfttrainer` package:
 
 <!-- markdownlint-disable MD046 -->
 ```commandline
-sfttrainer_check_stability $pathTotheCSVFileFromAbove
+sfttrainer_check_metrics_stability $pathTotheCSVFileFromAbove
 ```
 <!-- markdownlint-enable MD046 -->
 

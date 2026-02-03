@@ -21,6 +21,8 @@ from orchestrator.schema.request import (
 )
 from orchestrator.schema.result import (
     InvalidMeasurementResult,
+    MeasurementResult,
+    MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
 
@@ -127,6 +129,125 @@ def test_count_measurement_requests_and_results(
         sample_store.measurement_results_count_for_operation(operation_id=operation_id)
         == number_requests * number_entities
     )
+
+
+def test_operation_entity_statistics_all_valid(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Test operation_entity_statistics with all valid measurement results."""
+    number_entities = 3
+    number_requests = 3
+    measurements_per_result = 2
+    operation_id = random_identifier()
+
+    sample_store, _requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
+    )
+
+    # Get statistics
+    stats = sample_store.operation_entity_statistics(operation_id=operation_id)
+
+    # Verify counts - all entities should have all successful measurements
+    # Note: total_entities may be higher if test database has entities from other tests
+    assert stats["total_entities"] >= number_entities
+    # All entities from this operation should have all successful measurements
+    # (since fixture creates all valid results)
+    assert (
+        stats["entities_with_all_successful_measurements"] >= number_entities
+    )  # At least our entities have all valid results
+    assert (
+        stats["entities_with_at_least_one_successful_measurement"] >= number_entities
+    )  # At least our entities have at least one valid result
+    # Verify logical consistency
+    assert (
+        stats["entities_with_all_successful_measurements"]
+        <= stats["entities_with_at_least_one_successful_measurement"]
+    )
+    assert (
+        stats["entities_with_at_least_one_successful_measurement"]
+        <= stats["total_entities"]
+    )
+
+
+def test_operation_entity_statistics_mixed_valid_invalid(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+) -> None:
+    """Test operation_entity_statistics with mixed valid and invalid results."""
+
+    number_entities = 3
+    number_requests = 2
+    measurements_per_result = 2
+    operation_id = random_identifier()
+
+    sample_store, requests, request_ids = simulate_ml_multi_cloud_random_walk_operation(
+        number_entities=number_entities,
+        number_requests=number_requests,
+        measurements_per_result=measurements_per_result,
+        operation_id=operation_id,
+    )
+
+    # Get entity identifiers
+    entity_ids = [m.entityIdentifier for m in requests[0].measurements]
+
+    # Add invalid results to create mixed scenarios:
+    # Entity 0: keep all valid (2 valid) -> all successful
+    # Entity 1: add 1 invalid (1 valid, 1 invalid) -> partially successful
+    # Entity 2: replace with 2 invalid (0 valid, 2 invalid) -> no successful
+
+    # Add invalid result for entity 1 in request 1
+    invalid_result_entity1 = (
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=Entity(identifier=entity_ids[1]),
+            measurements_per_result=measurements_per_result,
+            status=MeasurementResultStateEnum.INVALID,
+        )
+    )
+    sample_store.add_measurement_results(
+        results=[invalid_result_entity1],
+        skip_relationship_to_request=False,
+        request_db_id=request_ids[1],
+    )
+
+    # Add invalid results for entity 2 in both requests
+    for req_idx in range(number_requests):
+        invalid_result_entity2 = (
+            random_ml_multi_cloud_benchmark_performance_measurement_results(
+                entity=Entity(identifier=entity_ids[2]),
+                measurements_per_result=measurements_per_result,
+                status=MeasurementResultStateEnum.INVALID,
+            )
+        )
+        sample_store.add_measurement_results(
+            results=[invalid_result_entity2],
+            skip_relationship_to_request=False,
+            request_db_id=request_ids[req_idx],
+        )
+
+    # Get statistics
+    stats = sample_store.operation_entity_statistics(operation_id=operation_id)
+
+    # Verify counts
+    assert stats["total_entities"] == number_entities
+    # Entity 0: all 2 valid -> entities_with_all_successful_measurements
+    assert stats["entities_with_all_successful_measurements"] == 1
+    # Entities 0 and 1 have at least one successful measurement
+    assert stats["entities_with_at_least_one_successful_measurement"] == 2
 
 
 def test_measurement_results_for_operation(

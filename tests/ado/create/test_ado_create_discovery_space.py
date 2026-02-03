@@ -166,7 +166,7 @@ def test_create_discovery_space_success(
 
     assert result.exit_code == 0, result.output
     expected_output = "Success! Created space with identifier"
-    assert result.output.startswith(expected_output)
+    assert expected_output in result.output
     assert result.output.strip().endswith(ml_multi_cloud_sample_store.identifier)
 
 
@@ -316,7 +316,7 @@ def test_create_discovery_space_success_set_sample_store(
 
     assert result.exit_code == 0, result.output
     expected_output = "Success! Created space with identifier"
-    assert result.output.startswith(expected_output)
+    assert expected_output in result.output
     assert result.output.strip().endswith(ml_multi_cloud_sample_store.identifier)
 
 

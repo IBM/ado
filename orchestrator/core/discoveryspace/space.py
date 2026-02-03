@@ -874,3 +874,49 @@ class DiscoverySpace:
         return self.sample_store.measurement_results_for_operation(
             operation_id=operation_id
         )
+
+    def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
+        """
+        Compute entity-level statistics for an operation using SQL aggregation.
+
+        Returns a dictionary with entity counts for the operation.
+        """
+        import orchestrator.core.samplestore.sql
+
+        if isinstance(
+            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
+        ):
+            return self.sample_store.operation_entity_statistics(
+                operation_id=operation_id
+            )
+        # Fallback for non-SQL sample stores: fetch all results and count in Python
+        measurement_results = self.measurement_results_for_operation(
+            operation_id=operation_id
+        )
+        from orchestrator.schema.result import ValidMeasurementResult
+
+        entities_with_all_successful_measurements = {
+            result.entityIdentifier for result in measurement_results
+        }
+        entities_with_at_least_one_successful_measurement = set()
+        for measurement_result in measurement_results:
+            if isinstance(measurement_result, ValidMeasurementResult):
+                entities_with_at_least_one_successful_measurement.add(
+                    measurement_result.entityIdentifier
+                )
+                continue
+            entities_with_all_successful_measurements.discard(
+                measurement_result.entityIdentifier
+            )
+
+        return {
+            "entities_with_all_successful_measurements": len(
+                entities_with_all_successful_measurements
+            ),
+            "entities_with_at_least_one_successful_measurement": len(
+                entities_with_at_least_one_successful_measurement
+            ),
+            "total_entities": len(
+                {result.entityIdentifier for result in measurement_results}
+            ),
+        }

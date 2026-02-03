@@ -1361,7 +1361,7 @@ class SQLSampleStore(ActiveSampleStore):
 
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
         """
-        Compute entity-level statistics for an operation using SQL aggregation.
+        Compute entity-level statistics for an operation.
 
         This method efficiently computes statistics without fetching all measurement
         results, using SQL COUNT queries instead of loading data into Python.

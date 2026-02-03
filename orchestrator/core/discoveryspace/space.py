@@ -543,7 +543,7 @@ class DiscoverySpace:
 
             # Efficiently fetch only the entities that were sampled in operations
             # This avoids loading all entities from the store when we only need a subset
-            sampled_entities = self.sample_store.entitiesByIdentifiers(
+            sampled_entities = self.sample_store.entities_with_identifiers(
                 sampled_entity_ids
             )
 

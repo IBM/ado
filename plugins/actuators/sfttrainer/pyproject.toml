@@ -22,6 +22,7 @@ sfttrainer = [
 sfttrainer_generate_dataset_text = "ado_actuators.sfttrainer.scripts.generate_dataset:app"
 sfttrainer_generate_dataset_vision = "ado_actuators.sfttrainer.scripts.generate_vision_dataset:app"
 sfttrainer_download_hf_weights = "ado_actuators.sfttrainer.scripts.download_hf_weights:app"
+sfttrainer_check_metrics_stability = "ado_actuators.sfttrainer.scripts.check_metrics_stability:app"
 
 [project]
 name="ado-sfttrainer"

@@ -310,7 +310,7 @@ def output_operation_results(
     return table
 
 
-def render_progress_indicators(progress_items: dict) -> Panel:
+def render_progress_indicators(progress_items: dict) -> Panel | Group:
     """
     Render a rich.Panel containing all currently active spinner/progress renderables.
     Used to visually group multiple progress/spinner items in the UI.
@@ -318,9 +318,9 @@ def render_progress_indicators(progress_items: dict) -> Panel:
     Args:
         progress_items (dict): Mapping from string id to Progress or Spinner objects.
     Returns:
-        Panel: Panel with all renderables grouped together, one per row.
+        Panel | Group: Panel with all renderables grouped together if items exist, otherwise empty Group.
     """
-    return Panel(Group(*progress_items.values()))
+    return Panel(Group(*progress_items.values())) if progress_items else Group()
 
 
 def run_operation_live_updates(

@@ -95,14 +95,15 @@ def calculate_pressure_gas(
     Compute pressure using Van der Waals equation in SI units (no checks):
         P = (n R T) / (V - n b) - a (n / V)^2
 
-    Inputs:
-      mol (n): moles of the gas (mol)
-      temperature (T): temperature of the gas in Kelvin (K)
-      volume (V): volume of the gas in cubic meters (m^3)
-      gas: Identifier of the gas (one of ["ideal", "CO2", "N2", "O2", "CH4", "NH3", "H2", "He", "Ar"]). Used to determine the Van der Waals constants to be used.
+    Args:
+      mol (n): Amount of substance of the gas in moles (mol)
+      temperature (T): Temperature of the gas in Kelvin (K)
+      volume (V): Volume of the gas in cubic meters (m³)
+      gas: Identifier of the gas (one of the literals: "ideal", "CO2", "N2", "O2", "CH4", "NH3", "H2", "He", "Ar").
+           Used to determine the Van der Waals constants to be used.
 
-    Output:
-      pressure (Pa)
+    Returns:
+      dict: Dictionary containing the calculated pressure in Pascals (Pa)
     """
 
     # Van der Waals constants in SI:

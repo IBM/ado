@@ -1,11 +1,10 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import logging
-import operator
-import typing
 from collections.abc import Hashable
-from functools import reduce
 from typing import Any
 
 import pandas as pd
@@ -21,7 +20,7 @@ from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
 logger = logging.getLogger(__name__)
 
 
-def get_project_context() -> "ProjectContext":
+def get_project_context() -> ProjectContext:
     """
     Retrieve the current ADO project context from configuration.
 
@@ -35,7 +34,7 @@ def get_project_context() -> "ProjectContext":
 
 
 def get_space(
-    space_or_space_id: typing.Union["DiscoverySpace", str],
+    space_or_space_id: DiscoverySpace | str,
 ) -> DiscoverySpace:
     """
     Get a DiscoverySpace object from either a space object or identifier string.
@@ -60,8 +59,7 @@ def get_space(
 
 
 def get_df_all_entities_no_measurements(
-    discoverySpace: typing.Union["DiscoverySpace", str],
-    discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,
+    discoverySpace: DiscoverySpace | str,
 ) -> pd.DataFrame:
     """
     Return a DataFrame of all entities in the given Discovery Space, regardless of whether
@@ -85,56 +83,24 @@ def get_df_all_entities_no_measurements(
         DataFrame with columns: ['identifier', <constitutive properties>].
     """
 
-    from orchestrator.core.discoveryspace.samplers import (
-        ExplicitEntitySpaceGridSampleGenerator,
-        WalkModeEnum,
-    )
-
     space = get_space(space_or_space_id=discoverySpace)
 
-    gen = ExplicitEntitySpaceGridSampleGenerator(WalkModeEnum.SEQUENTIAL)
-    # VV: We need a list that contains all entities associated with this Discovery Space in its entity source
-    # regardless of whether an experiment (on this space or others) have measured any properties using the
-    # experiments that this Discovery Space references.
-    # To this end, we find all matching entities in the entity source which have at least 1 measurement from at least
-    # one of the experiments that this discovery space defines. We then fill in any missing entities by iteratively
-    # generating all the entities that this discovery space contains. These "backfill" entities will not be associated
-    # with any observed property
-
-    if discoverySpaceManager:
-        logger.info("Using manager in getting entities no measurement")
-        all_entities = reduce(
-            # operator.add, gen.entitySpaceIterator(entitySpace=discoverySpaceManager.discoverySpace.remote()), []
-            operator.add,
-            gen.entitySpaceIterator(
-                entitySpace=ray.get(discoverySpaceManager.entitySpace.remote())
-            ),
-            [],
-        )
-    else:
-        all_entities = reduce(
-            operator.add, gen.entitySpaceIterator(entitySpace=space.entitySpace), []
-        )
-
-    # same as:
-    # all_entities = sum(list(gen.entitySpaceIterator(entitySpace=space.entitySpace)), [])
-
-    cp_ids = [cp.identifier for cp in space.entitySpace.constitutiveProperties]
+    entity_space = space.entitySpace
+    cp_ids = [cp.identifier for cp in entity_space.constitutiveProperties]
 
     list_of_dicts_to_convert = []
-    for e in all_entities:
-        ed = {}
-        ed["identifier"] = e.identifier
-        for cp in cp_ids:
-            obj = e.valueForConstitutivePropertyIdentifier(identifier=str(cp))
-            ed[str(cp)] = obj.value
+    for point_values in entity_space.sequential_point_iterator():
+        point_dict = dict(zip(cp_ids, point_values, strict=True))
+        entity = entity_space.entity_for_point(point_dict)
+        ed = {"identifier": entity.identifier}
+        ed.update(point_dict)
         list_of_dicts_to_convert.append(ed)
 
     return pd.DataFrame(list_of_dicts_to_convert)
 
 
 def get_df_at_least_one_measured_value(
-    discoverySpace: typing.Union["DiscoverySpace", str],
+    discoverySpace: DiscoverySpace | str,
     targetOutput_list: list[str] | None = None,
     discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,  # type: ignore =None,
     add_measurement_id: bool = False,
@@ -267,7 +233,7 @@ def get_df_at_least_one_measured_value(
 
 # TODO: in case we keep the retrieval with ray get, this function will accept discoverySpaceManager as the first argument
 def get_source_and_target(
-    discoverySpace: typing.Union["DiscoverySpace", str],
+    discoverySpace: DiscoverySpace | str,
     targetOutput: str,
     discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,
     log_string: str = "",
@@ -298,9 +264,7 @@ def get_source_and_target(
     dfm = get_df_at_least_one_measured_value(
         discoverySpace, [targetOutput], discoverySpaceManager=discoverySpaceManager
     )
-    dfu = get_df_all_entities_no_measurements(
-        discoverySpace, discoverySpaceManager=discoverySpaceManager
-    )
+    dfu = get_df_all_entities_no_measurements(discoverySpace)
     keys = [c for c in dfu.columns if c in dfm.columns and c != "identifier"]
 
     if dfm.empty:

@@ -155,6 +155,46 @@ Before finalizing, verify:
 - [ ] DiscoverySpace YAML validates (`--dry-run`)
 - [ ] Operation YAML validates (`--dry-run`)
 
+## Testing Experiments
+
+### Using run_experiment Command
+
+To test an experiment with a specific point configuration:
+
+```bash
+run_experiment point.yaml
+```
+
+**Important:** If the experiment is specified **in the YAML file**,
+there is no need for the `--experiment` command line arg.
+
+**Example point.yaml:**
+
+```yaml
+sampleStoreIdentifier: default
+
+entitySpace:
+  - identifier: param1
+    value: 10
+
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: my_experiment
+
+metadata:
+  name: test-point
+```
+
+**Common mistake:** Avoid using the `--experiment` flag:
+
+```bash
+# ❌ WRONG: --experiment flag not needed
+run_experiment point.yaml --experiment custom_experiments.my_experiment
+
+# ✅ CORRECT: Experiment specified in YAML
+run_experiment point.yaml
+```
+
 ## Common Issues and Solutions
 
 **Issue:** Validation error "required property not in entity space"
@@ -175,6 +215,11 @@ Before finalizing, verify:
 
 - **Solution:** Check operator parameters match schema. Use `--include-schema`
   flag with template command.
+
+**Issue:** run_experiment fails with "experiment not found"
+
+- **Solution:** Verify experiment is registered: `ado get actuators --details`
+- Check that the experiment identifier in YAML matches registered name
 
 ## Additional Resources
 

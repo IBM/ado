@@ -21,6 +21,7 @@ from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.property import ConstitutiveProperty
 
 moduleLog = logging.getLogger()
+moduleLog.setLevel(logging.DEBUG)
 
 MODEL_LATEST_VERSION = "3.1.0"
 
@@ -305,13 +306,14 @@ def avoid_oom_recommender(
             "tokens_per_sample": int(tokens_per_sample),
         }
 
-        num_gpu_list = [i**2 for i in range(1, int(math.log2(max_gpus)) + 1)]
+        num_gpu_list = [2**i for i in range(int(math.log2(max_gpus)) + 1)]
         for r_num_gpu in num_gpu_list:
             configuration["batch_size"] = per_device_train_batch_size * r_num_gpu
             moduleLog.debug(
                 f"Sending this configuration to min gpu recommender: {configuration}"
             )
             config = JobConfig.model_validate(configuration)
+            moduleLog.debug(f"Validated configuration: {config}")
             min_gpus, _ = recommend_min_gpu(
                 job_config=config, predictor=predictor, valid_n_gpu_list=[r_num_gpu]
             )

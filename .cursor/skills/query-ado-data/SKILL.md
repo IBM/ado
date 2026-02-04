@@ -43,7 +43,7 @@ DONTs
 - Do not fetch discoveryspace or operation data for summary queries
   - Do not use: ado show entities, ado show requests, ado show results,
     ado show details)
-  - Do not instantiating DiscoverySpace instances or SQLStore instance
+  - Do not instantiate DiscoverySpace instances or SQLStore instance
 - Only use these commands or classes when drilling down on a narrow set of resources
 
 ### Using Resource models

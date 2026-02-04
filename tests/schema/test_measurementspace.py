@@ -150,10 +150,10 @@ def test_measurement_space_from_parameterized_references(
         experimentReferences=parameterized_references
     )
 
-    # Try pretty print
-    from IPython.lib import pretty
+    # Try rich print
+    from rich.console import Console
 
-    print(pretty.pretty(ms))
+    Console().print(ms)
 
     # Currently all references must match exactly
     # So passing non-parameterized version of an experiment, or reference to it, to experimentForReference
@@ -991,23 +991,23 @@ def test_dependent_experiments_multiple(
     )
 
 
-def test_measurementspace_pretty(
+def test_measurementspace_rich_print(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
 ) -> None:
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    print(pretty(measurement_space_from_single_parameterized_experiment))
+    Console().print(measurement_space_from_single_parameterized_experiment)
     print(measurement_space_from_single_parameterized_experiment)
 
 
-def test_measurementspace_pretty_multiple(
+def test_measurementspace_rich_print_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
 ) -> None:
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    print(pretty(measurement_space_from_multiple_parameterized_experiments))
+    Console().print(measurement_space_from_multiple_parameterized_experiments)
     print(measurement_space_from_multiple_parameterized_experiments)
 
 

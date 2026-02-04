@@ -30,7 +30,6 @@ dependencies = [
     "build>=1.3.0",
     "colorlog>=6.9.0",
     "jsonpath-ng>=1.7.0",
-    "jupyter>=1.1.1",
     "numpy",
     "pandas>=2.2.0",
     "py-markdown-table>=1.3.0",
@@ -53,6 +52,7 @@ Changelog = "https://github.com/IBM/ado/blob/main/CHANGELOG.md"
 dev = [
     "black>=25.1.0",
     "coverage>=7.10.2",
+    "detect-secrets @ git+https://github.com/ibm/detect-secrets.git",
     "pip>=25.1.1",
     "pre-commit>=4.2.0",
     "pydevd>=3.3.0",
@@ -138,6 +138,7 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
+detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [project.scripts]
 ado = "orchestrator.cli.core.cli:app"

@@ -11,7 +11,7 @@ from pydantic import ConfigDict
 from orchestrator.schema.domain import PropertyDomain
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 class MeasuredPropertyTypeEnum(str, enum.Enum):
@@ -66,13 +66,11 @@ class PropertyDescriptor(pydantic.BaseModel):
             and self.identifier == other.identifier
         )
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this property descriptor using rich."""
+        from rich.text import Text
 
-        if cycle:  # pragma: no cover
-            p.text("Cycle detected")
-        else:
-            p.text(f"{self.identifier}")
-            p.breakable()
+        return Text(self.identifier)
 
 
 class AbstractPropertyDescriptor(PropertyDescriptor):
@@ -158,21 +156,46 @@ class Property(pydantic.BaseModel):
 
         return retval
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this property using rich."""
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: no cover
-            p.text("Cycle detected")
-        else:
-            p.text(f"{self.identifier}")
-            if self.metadata and self.metadata.get("description"):
-                p.text(": " + str(self.metadata.get("description")))
-            if self.propertyDomain:
-                p.break_()
-                with p.group(2, "Domain:"):
-                    p.break_()
-                    p.pretty(self.propertyDomain)
+        content = [
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (self.identifier, "bold green"),
+                overflow="fold",
+            ),
+        ]
 
-            p.breakable()
+        # Identifier and description
+        if self.metadata and self.metadata.get("description"):
+            content.append(
+                Text.assemble(
+                    ("Description: ", "bold"),
+                    self.metadata.get("description"),
+                    overflow="fold",
+                    end="\n\n",
+                ),
+            )
+
+        # Domain section
+        if self.propertyDomain:
+            content.extend(
+                [
+                    Text("Domain:", style="bold"),
+                    Panel(
+                        self.propertyDomain,
+                        box=rich.box.SIMPLE_HEAD,
+                        padding=(0, 2),
+                    ),  # Uses propertyDomain.__rich__()
+                ]
+            )
+
+        return Group(*content)
 
     def descriptor(self) -> PropertyDescriptor:
 

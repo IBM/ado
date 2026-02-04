@@ -86,6 +86,7 @@ class SQLResourceStore(ResourceStore):
 
         self.project_context = project_context
         self.configuration = project_context.metadataStore
+        self._engine = engine_for_sql_store(configuration=project_context.metadataStore)
 
         FORMAT = orchestrator.utilities.logging.FORMAT
         LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -104,10 +105,21 @@ class SQLResourceStore(ResourceStore):
 
         super().__init__()
 
+    # The SQLAlchemy Engine is not picklable, so anything using
+    # Ray would fail. To avoid this, we remove it before pickling
+    # and create a new instance when unpickling.
+    def __getstate__(self) -> dict:
+        state = self.__dict__.copy()
+        del state["_engine"]
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._engine = engine_for_sql_store(self.configuration)
+
     @property
     def engine(self) -> sqlalchemy.Engine:
-
-        return engine_for_sql_store(configuration=self.configuration)
+        return self._engine
 
     def getResourceRaw(self, identifier: str) -> dict | None:
         """Retrieve the raw JSON data for a resource.

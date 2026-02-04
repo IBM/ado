@@ -37,7 +37,7 @@ from orchestrator.schema.virtual_property import (
 )
 
 if typing.TYPE_CHECKING:  # pragma: nocover
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
     from orchestrator.schema.entity import Entity
 
@@ -266,62 +266,130 @@ class Experiment(pydantic.BaseModel):
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this experiment using rich."""
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
+        from orchestrator.utilities.rich import get_rich_repr
+
+        content = [
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (f"{self.actuatorIdentifier}.{self.identifier}", "bold green"),
+                overflow="fold",
+            )
+        ]
+
+        if self.metadata.get("description"):
+            content.extend(
+                [
+                    Text.assemble(
+                        ("Description: ", "bold"),
+                        (self.metadata["description"], "italic"),
+                        overflow="fold",
+                        end="\n\n",
+                    ),
+                ]
+            )
+
+        content.append(Text())
+
+        # Required Inputs section
+        req_inputs = []
+
+        # Constitutive Properties subsection
+        const_props = []
+        if self.requiredConstitutiveProperties:
+            const_props = [
+                Panel(c, box=rich.box.HORIZONTALS)
+                for c in self.requiredConstitutiveProperties
+            ]
         else:
-            p.text(f"Identifier: {self.actuatorIdentifier}.{self.identifier}")
-            p.break_()
-            if self.metadata.get("description"):
-                p.break_()
-                p.text(self.metadata["description"])
-                p.break_()
-            p.break_()
-            with p.group(2, "Required Inputs:"):
-                p.break_()
-                with p.group(4, "Constitutive Properties:"):
-                    p.break_()
-                    if self.requiredConstitutiveProperties:
-                        for c in self.requiredConstitutiveProperties:
-                            p.pretty(c)
-                            p.break_()
-                    else:
-                        p.text("No required constitutive properties specified")
-                        p.break_()
+            const_props = [Text("No required constitutive properties specified")]
 
-                if self.requiredObservedProperties:
-                    p.break_()
-                    with p.group(4, "Observed Properties:"):
-                        p.break_()
-                        for o in self.requiredObservedProperties:
-                            p.pretty(o)
-                            p.break_()
+        req_inputs.extend(
+            [
+                Text("Constitutive Properties:", style="bold"),
+                Group(*const_props),
+            ]
+        )
 
-            p.break_()
-            if self.optionalProperties:
+        # Observed Properties subsection
+        if self.requiredObservedProperties:
+            obs_props = [Text(str(o)) for o in self.requiredObservedProperties]
+            req_inputs.extend(
+                [
+                    Text("Observed Properties:", style="bold"),
+                    Panel(
+                        Group(*obs_props),
+                        box=rich.box.SIMPLE,
+                        padding=(0, 2),
+                    ),
+                ]
+            )
 
-                mapping = {c.identifier: c for c in self.optionalProperties}
+        content.extend(
+            [
+                Text("Required Inputs:", style="bold"),
+                Panel(
+                    Group(*req_inputs),
+                    box=rich.box.SIMPLE,
+                    padding=(0, 2),
+                ),
+            ]
+        )
 
-                with p.group(2, "Optional Inputs and Default Values:"):
-                    p.break_()
-                    for value in self.defaultParameterization:
-                        prop = mapping[value.property.identifier]
-                        p.pretty(prop)
-                        p.break_()
-                        p.text(f"Default value: {value.value}")
-                        p.breakable()
-                        p.breakable()
+        # Optional Inputs section
+        if self.optionalProperties:
+            opt_inputs = []
+            mapping = {c.identifier: c for c in self.optionalProperties}
+            for value in self.defaultParameterization:
+                prop = mapping[value.property.identifier]
+                opt_inputs.append(
+                    Panel(
+                        Group(
+                            *[
+                                prop,
+                                Text("Default value:", style="bold", end=" "),
+                                get_rich_repr(value.value),
+                            ]
+                        ),
+                        box=rich.box.HORIZONTALS,
+                    )
+                )
 
-            p.breakable()
-            with p.group(2, "Outputs:"):
-                p.breakable()
-                for c in self.observedProperties:
-                    p.text(f"{c.identifier}")
-                    p.breakable()
+            content.extend(
+                [
+                    Text("Optional Inputs and Default Values:", style="bold"),
+                    Panel(
+                        Group(*opt_inputs),
+                        box=rich.box.SIMPLE_HEAVY,
+                        padding=(0, 2),
+                    ),
+                ]
+            )
 
-            p.breakable()
-            p.breakable()
+        # Outputs section
+        content.extend(
+            [
+                Text("Outputs:", style="bold"),
+                Panel(
+                    Group(
+                        *[
+                            Text(f"{c.identifier}", style="green")
+                            for c in self.observedProperties
+                        ]
+                    ),
+                    box=rich.box.HORIZONTALS,
+                    padding=(0, 2),
+                ),
+            ]
+        )
+
+        return Group(*content)
 
     def isValidParameterization(
         self, parameterization: list[ConstitutivePropertyValue]
@@ -805,23 +873,42 @@ class ParameterizedExperiment(Experiment):
 
         return hash(str(self))
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this parameterized experiment using rich."""
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        # This should print the parameterized id and base id
-        p.text(f"Parameterized Identifier:{self.parameterizedIdentifier}")
-        p.break_()
-        super()._repr_pretty_(p)
+        from orchestrator.utilities.rich import get_rich_repr
 
+        content = []
+        content.append(
+            Text(f"Parameterized Identifier: {self.parameterizedIdentifier}")
+        )
+        content.append(Text())
+
+        # Include base experiment rendering
+        content.append(super().__rich__())
+
+        # Parameterization section
+        param_content = []
         mapping = {c.identifier: c for c in self.optionalProperties}
-        with p.group(2, "Parameterization:"):
-            p.break_()
-            for value in self.parameterization:
-                prop = mapping[value.property.identifier]
-                p.pretty(prop)
-                p.break_()
-                p.text(f"Parameterized value: {value.value}")
-                p.break_()
-                p.break_()
+        for value in self.parameterization:
+            prop = mapping[value.property.identifier]
+            param_content.extend(
+                [
+                    prop,
+                    Text("Parameterized value:", style="bold", end=" "),
+                    get_rich_repr({value.value}),
+                    Text(),
+                ]
+            )
+
+        content.extend(
+            [Text("Parameterization:", style="bold"), Panel(Group(*param_content))]
+        )
+
+        return Group(*content)
 
     @pydantic.field_validator("parameterization")
     def validate_not_empty_parameterization(

@@ -38,7 +38,7 @@ from orchestrator.schema.virtual_property import (
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     import pandas as pd
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 def entity_identifier_from_properties_and_values(point: dict[str, typing.Any]) -> str:
@@ -217,50 +217,73 @@ class Entity(pydantic.BaseModel):
     def __str__(self) -> str:
         return f"{self.identifier} ({self.generatorid})"
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
-
+    def __rich__(self) -> "RenderableType":
+        """Render this entity using rich."""
         import pandas as pd
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
-            p.text(f"Identifier: {self.identifier}")
-            p.breakable()
-            p.text(f"Generator: {self.generatorid}")
-            p.breakable()
-            p.breakable()
-            with p.group(2, "Constitutive properties:"):
-                p.breakable()
-                data = [
-                    [cv.property.identifier, cv.value]
-                    for cv in self.constitutive_property_values
-                ]
-                df = pd.DataFrame(data, columns=["name", "value"])
-                p.pretty(df)
-            p.breakable()
-            p.breakable()
-            with p.group(2, "Observed properties:"):
-                p.breakable()
-                data = [
-                    [
-                        op.identifier,
-                        op.experimentReference,
-                        op.targetProperty.identifier,
-                        [v.value for v in self.valuesForProperty(op)],
-                    ]
-                    for op in self.observedProperties
-                ]
-                df = pd.DataFrame(
-                    data, columns=["name", "experiment", "target-property", "values"]
-                )
-                p.pretty(df)
-            p.breakable()
-            p.breakable()
-            with p.group(2, "Associated experiments:"):
-                p.breakable()
-                for e in self.experimentReferences:
-                    p.breakable()
-                    p.text(str(e))
+        from orchestrator.utilities.rich import dataframe_to_rich_table
+
+        content = [
+            Text.assemble(
+                ("Identifier: ", "bold"),
+                (self.identifier, "bold green"),
+                ("Generator: ", "bold"),
+                self.generatorid,
+                "",
+            )
+        ]
+
+        # Constitutive properties table
+        data = [
+            [cv.property.identifier, cv.value]
+            for cv in self.constitutive_property_values
+        ]
+        df = pd.DataFrame(data, columns=["name", "value"])
+
+        content.extend(
+            [
+                Text("Constitutive properties:", style="bold"),
+                Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        # Observed properties table
+        data = [
+            [
+                op.identifier,
+                op.experimentReference,
+                op.targetProperty.identifier,
+                [v.value for v in self.valuesForProperty(op)],
+            ]
+            for op in self.observedProperties
+        ]
+        df = pd.DataFrame(
+            data, columns=["name", "experiment", "target-property", "values"]
+        )
+        content.extend(
+            [
+                Text("Observed properties:", style="bold"),
+                Panel(dataframe_to_rich_table(df), box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        # Associated experiments
+        content.extend(
+            [
+                Text("Associated experiments:", style="bold"),
+                Panel(
+                    Group(*[Text(str(e)) for e in self.experimentReferences]),
+                    box=rich.box.HORIZONTALS,
+                    padding=(0, 2),
+                ),
+            ]
+        )
+
+        return Group(*content)
 
     @property
     def observedProperties(self) -> list[ObservedProperty]:

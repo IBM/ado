@@ -267,10 +267,10 @@ def test_virtual_property_request_invalid_identifier(entity: Entity) -> None:
     )
 
 
-def test_entity_pretty(entity: Entity) -> None:
-    from IPython.lib.pretty import pretty
+def test_entity_rich_print(entity: Entity) -> None:
+    from rich.console import Console
 
-    pretty(entity)
+    Console().print(entity)
 
 
 def test_entity_to_dict(
@@ -300,13 +300,13 @@ def test_identifier_from_property_values(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ) -> None:
 
+    from rich.console import Console
+
     test_entity, _test_experiment = entity_for_parameterized_experiment
 
     constitutive_property_values = test_entity.constitutive_property_values
 
-    from IPython.lib.pretty import pretty
-
-    print(pretty(test_entity))
+    Console().print(test_entity)
 
     assert (
         ident := Entity.identifier_from_property_values(constitutive_property_values)

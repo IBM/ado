@@ -10,8 +10,9 @@ It covers library-specific wrapping techniques, parameter mapping, output conver
 and error handling patterns.
 
 **Prerequisites:** Before using this skill, familiarize yourself with
-[ado Experiment Definition](../ado-experiment-definition/SKILL.md) for foundational
-concepts about `@custom_experiment`, PropertyDomain, and return value requirements.
+[ado Custom Experiment Definition](../ado-custom-experiment-definition/SKILL.md)
+for foundational concepts about `@custom_experiment`, PropertyDomain, and
+return value requirements.
 
 ## When to Use This Skill
 
@@ -24,7 +25,7 @@ Use this skill when you need to:
 - Integrate domain-specific tools (Qiskit, TensorFlow, scikit-learn, etc.)
 
 **Note:** For general experiment implementation without external libraries,
-see [ado Experiment Definition](../ado-experiment-definition/SKILL.md).
+see [ado Custom Experiment Definition](../ado-custom-experiment-definition/SKILL.md).
 
 ## Core Integration Pattern
 
@@ -772,6 +773,6 @@ def bad_experiment_no_cleanup(param: float) -> Dict[str, Any]:
 
 ## References
 
-- [ado Experiment Definition](../ado-experiment-definition/SKILL.md)
+- [ado Custom Experiment Definition](../ado-custom-experiment-definition/SKILL.md)
 - [Quantum Circuit Example](../../../plugins/custom_experiments/quantum_circuit_exp/)
 - [Creating Custom Experiments](../../../website/docs/actuators/creating-custom-experiments.md)

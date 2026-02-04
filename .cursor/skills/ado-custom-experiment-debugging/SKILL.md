@@ -578,7 +578,7 @@ python -c "from my_package.experiments import my_exp; print(my_exp._experiment)"
 
 ## References
 
-- [ado Experiment Definition](../ado-experiment-definition/SKILL.md)
+- [ado Experiment Definition](../ado-custom-experiment-definition/SKILL.md)
 - [ado Library Integration](../ado-library-integration/SKILL.md)
 - [Creating Custom Experiments](../../../website/docs/actuators/creating-custom-experiments.md)
 - [Ray Documentation](https://docs.ray.io/)

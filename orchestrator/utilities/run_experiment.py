@@ -9,6 +9,7 @@ import typing
 from collections.abc import Callable
 from typing import Annotated
 
+import ray
 import ray.exceptions
 import requests
 import typer
@@ -273,6 +274,20 @@ def run(
 
     entity = point.to_entity()
     console_print(f"Point: {point.entity}")
+
+    # Initialize Ray before creating ActuatorRegistry to prevent auto-initialization
+    # ActuatorRegistry loads plugins that may use ray decorators, which would trigger
+    # ray auto-init with default settings
+    # This is overridden the below but leads to unslightly logs
+    if not remote:
+        # Assume run_experiment is being run directly
+        # We set working_dir = None to tell ray to use the CWD for all workers
+        # i.e. we are in local mode, code is local, no need to package
+        # This is required in particular because if "uv run" is used
+        # to execute a process that calls ray.init ray cannot work out that the workers
+        # can use the CWD of the main process.
+        ray.init(ignore_reinit_error=True, runtime_env={"working_dir": None})
+        initialize_ray_resource_cleaner()
 
     registry = ActuatorRegistry()
     execute = (

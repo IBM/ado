@@ -302,7 +302,8 @@ class DiscoverySpaceManager:
             self.log.info(
                 "Measurement queue observation complete - notifying subscribers"
             )
-            for subscriber in self._subscribers.values():
+            subscriber_copy = self._subscribers.copy()
+            for subscriber in subscriber_copy.values():
                 try:
                     self.log.info("Notifying subscriber")
                     await subscriber.onCompleted.remote()

@@ -159,18 +159,43 @@ MyProperty = ConstitutiveProperty(...)
     },
     parameterization={},
 )
-def my_custom_experiment(entity, actuator, parameterization):
+def my_custom_experiment(
+    param1: type1, 
+    param2: type2, 
+    optional_param1: 
+    type3=the_default_value
+  ):
     # Implementation
     return results
 ```
 
 **Key Points:**
 
+When generating a custom experiment you MUST follow the following rules:
+
 - Specify all `required_properties` that the experiment needs
 - List any `optional_properties`
 - Define `output_property_identifiers` for measurement results
 - Include descriptive metadata
-- Function signature must match: `(entity, actuator, parameterization)`
+- Function signature must contain the parameters of your function
+  and must be consistent with the properties you defined in
+  required_properties and optional_properties
+- DO NOT manually validate parameters for which there is a 
+  ConstitutiveProperty definition
+- The field PropertyDomain.DomainRange is defined as 
+  `[lower bound inclusive, upper bound exclusive]`
+- The return value of the experiment function **must** be of type 
+  `dict[int | bool | float | str | list[int | bool | float | str]]`
+- DO NOT use arbitrary keys in the return value of the experiment function.
+- You MUST draw all keys of the return value of the experiment out of 
+  the `output_property_identifiers` array defined in the @custom_experiment 
+  annotation
+- Garbage collect any temporary files you generate.
+- DO NOT assume that files you create will persist after the call to the 
+  experiment terminates
+- If observed properties include files, their contents may be encoded
+  as strings and included in the returned dictionary. This is intended
+  for small files on the order of a few kilobytes
 
 ---
 

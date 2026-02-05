@@ -44,7 +44,11 @@ class AutoGluonArgs(BaseModel):
     )
 
     fitArgs: dict = Field(
-        default={"time_limit": 60, "presets": "medium"},
+        default={
+            "time_limit": 60,
+            "presets": "medium",
+            "excluded_model_types": ["GBM"],
+        },
         description="A dictionary containing key-value pairs of AutoGluon optional parameters in Tabular Predictor fit",
     )
 

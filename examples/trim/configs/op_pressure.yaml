@@ -12,6 +12,10 @@ operation:
       fitArgs:
         time_limit: 20
         presets: medium
+        excluded_model_types:
+          - GBM
+      tabularPredictorArgs:
+        problem_type: regression
     iterationSize: 5
     outputDirectory: trim_models
     stoppingCriterion:

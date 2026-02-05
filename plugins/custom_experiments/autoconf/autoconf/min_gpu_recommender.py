@@ -271,7 +271,7 @@ def min_gpu_recommender(
         TokensPerSample,
         PerDeviceBatchSize,
     ],
-    optional_properties=[GPUsPerWorker, MaxGPUs],
+    optional_properties=[GPUsPerWorker, MaxGPUs, ModelVersion],
     output_property_identifiers=["can_recommend", "gpus", "workers"],
     metadata={
         "description": "An AutoConf recommender that suggests the minimum number of "
@@ -288,6 +288,7 @@ def avoid_oom_recommender(
     per_device_train_batch_size: int,
     gpus_per_worker: int = 8,
     max_gpus: int = 64,
+    model_version: str = "3.1.0",
 ) -> dict[str, int | bool]:
 
     result = {
@@ -298,7 +299,7 @@ def avoid_oom_recommender(
     try:
         # First, load the model
         # In this case, we are going to ask for the latest version of the model available
-        predictor: TabularPredictor = load_model(MODEL_LATEST_VERSION)
+        predictor: TabularPredictor = load_model(model_version)
         configuration: dict = {
             "model_name": model_name,
             "method": method,

@@ -8,7 +8,7 @@ alwaysApply: false
 
 These guidelines apply when developing plugins for ado.
 Plugins are developed under `plugins/` or `examples/` directories.
-All general development guidelines from `general-development.mdc` also apply.
+All general development guidelines from `general-development.mdc` apply to plugins too.
 
 ---
 
@@ -102,11 +102,37 @@ Operators and custom experiments use entry points in `pyproject.toml`:
 ado-ray-tune = "ado_ray_tune.operator_function"
 ```
 
-**Custom Experiment Example:**
+## Custom Experiment Example
+
+Define a custom experiment entry point in your `pyproject.toml`:
 
 ```toml
 [project.entry-points."ado.custom_experiments"]
-min_gpu_experiment = "autoconf.min_gpu_recommender"
+my_experiments = "my_experiment.experiments"
+```
+
+**Key points**:
+
+- The value of `[project.entry-points."ado.custom_experiments"]` **must**
+  reference the fully qualified module path containing your experiments.
+  In this example, `my_experiment.experiments`.
+- All custom experiment functions should be implemented and decorated
+  inside `my_experiment/experiments.py`.
+- Ensure the package is installed in the environment so the entry point can
+  be discovered at runtime.
+
+### Package Layout
+
+Your custom experiment should be implemented as a standard Python package with
+the following structure:
+
+```text
+my_custom_experiment/
+├── pyproject.toml         # Package configuration and entry points
+├── README.md              # Package documentation
+└── my_experiment/
+    ├── __init__.py        # Package initialization and exports
+    └── experiments.py     # Experiment definitions (decorated functions)
 ```
 
 ---

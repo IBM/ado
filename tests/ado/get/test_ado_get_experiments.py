@@ -14,8 +14,20 @@ def test_get_experiments_basic() -> None:
     result = runner.invoke(ado, ["get", "experiments"])
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert "EXPERIMENT ID" in result.output
         assert "ACTUATOR ID" in result.output
+        assert "EXPERIMENT ID" in result.output
+        assert "SUPPORTED" not in result.output
+
+
+def test_get_experiments_basic_show_deprecated() -> None:
+    """Test basic experiment listing without details"""
+    runner = CliRunner()
+    result = runner.invoke(ado, ["get", "experiments", "--show-deprecated"])
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert "ACTUATOR ID" in result.output
+        assert "EXPERIMENT ID" in result.output
+        assert "SUPPORTED" in result.output
 
 
 def test_get_experiments_with_details() -> None:
@@ -24,10 +36,24 @@ def test_get_experiments_with_details() -> None:
     result = runner.invoke(ado, ["get", "experiments", "--details"])
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert "EXPERIMENT ID" in result.output
         assert "ACTUATOR ID" in result.output
+        assert "EXPERIMENT ID" in result.output
         assert "DESCRIPTION" in result.output
-        assert "DEPRECATED" in result.output
+        assert "SUPPORTED" not in result.output
+
+
+def test_get_experiments_with_details_show_deprecated() -> None:
+    """Test experiment listing with --details flag"""
+    runner = CliRunner()
+    result = runner.invoke(
+        ado, ["get", "experiments", "--details", "--show-deprecated"]
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert "ACTUATOR ID" in result.output
+        assert "EXPERIMENT ID" in result.output
+        assert "DESCRIPTION" in result.output
+        assert "SUPPORTED" in result.output
 
 
 def test_get_specific_experiment() -> None:

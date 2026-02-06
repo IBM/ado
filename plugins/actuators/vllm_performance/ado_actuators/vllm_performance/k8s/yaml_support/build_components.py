@@ -76,7 +76,7 @@ class ComponentsYaml:
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
         node_selector: dict[str, str] | None = None,
         image: str = "vllm/vllm-openai:v0.6.3",
-        image_secret: str = "",
+        image_pull_secret_name: str = "",
         n_gpus: int = 1,
         n_cpus: int = 8,
         memory: str = "128Gi",
@@ -99,7 +99,7 @@ class ComponentsYaml:
         :param gpu_type: gpu type, for example NVIDIA-A100-80GB-PCIe, Tesla-V100-PCIE-16GB, etc.
         :param node_selector: optional node selector
         :param image: image name to use
-        :param image_secret: name of the image pull secret
+        :param image_pull_secret_name: name of the image pull secret
         :param n_gpus: number of GPUs to use in VLLM
         :param n_cpus: number of CPUs for VLLM pod
         :param memory: memory for VLLM pod
@@ -162,8 +162,8 @@ class ComponentsYaml:
         if len(node_selector) > 0:
             spec["nodeSelector"].update(node_selector)
         # image pull secret
-        if image_secret is not None and image_secret != "":
-            spec["imagePullSecrets"] = [{"name": image_secret}]
+        if image_pull_secret_name is not None and image_pull_secret_name != "":
+            spec["imagePullSecrets"] = [{"name": image_pull_secret_name}]
         # volumes
         if claim_name is not None:
             spec["volumes"].extend(

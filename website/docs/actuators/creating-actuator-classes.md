@@ -399,7 +399,7 @@ class InferenceActuatorParameters(GenericActuatorParameters):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def rename_authToken(cls, values: Any):
+    def rename_authToken(cls, values: Any) -> Any: # noqa: ANN401
 
         # We expect either a GenericActuatorParameters or a dict instance
         if not isinstance(values, GenericActuatorParameters) and not isinstance(

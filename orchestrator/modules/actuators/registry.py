@@ -83,7 +83,7 @@ class ActuatorRegistry:
         # Maps actuator ids to ActuatorBase instances
         self.actuatorIdentifierMap = (
             {}
-        )  # type: typing.Dict[typing.AnyStr, "ActuatorBase"]
+        )  # type: typing.Dict[typing.AnyStr, type["ActuatorBase"]
         # Maps actuator ids to ExperimentCatalog instances
         self.catalogIdentifierMap = (
             {}

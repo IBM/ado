@@ -245,7 +245,7 @@ class ComponentsManager:
         gpu_type: str = "NVIDIA-A100-80GB-PCIe",
         node_selector: dict[str, str] | None = None,
         image: str = "vllm/vllm-openai:v0.6.3",
-        image_secret: str = "",
+        image_pull_secret_name: str = "",
         n_gpus: int = 1,
         n_cpus: int = 8,
         memory: str = "128Gi",
@@ -268,7 +268,7 @@ class ComponentsManager:
         :param gpu_type: gpu type, for example NVIDIA-A100-80GB-PCIe, Tesla-V100-PCIE-16GB, etc.
         :param node_selector: optional node selector
         :param image: image name to use
-        :param image_secret: name of the image pull secret
+        :param image_pull_secret_name: name of the image pull secret
         :param n_gpus: number of GPUs to use in VLLM
         :param n_cpus: number of CPUs for VLLM pod
         :param memory: memory for VLLM pod
@@ -295,7 +295,7 @@ class ComponentsManager:
             gpu_type=gpu_type,
             node_selector=node_selector,
             image=image,
-            image_secret=image_secret,
+            image_pull_secret_name=image_pull_secret_name,
             n_gpus=n_gpus,
             n_cpus=n_cpus,
             memory=memory,

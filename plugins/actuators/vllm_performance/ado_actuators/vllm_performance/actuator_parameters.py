@@ -1,7 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
-from typing import Annotated
+from typing import Annotated, Any
 
 import pydantic
 from pydantic import AfterValidator
@@ -32,7 +32,7 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     verify_ssl: Annotated[
         bool, pydantic.Field(description="flag to verify SLL when connecting to server")
     ] = False
-    image_secret: Annotated[
+    image_pull_secret_name: Annotated[
         str, pydantic.Field(description="secret to use when loading image")
     ] = ""
     node_selector: Annotated[
@@ -73,3 +73,73 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     max_environments: Annotated[
         int, pydantic.Field(description="Maximum amount of concurrent environments")
     ] = 1
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def rename_image_secret(cls, values: Any) -> Any:  # noqa: ANN401
+
+        # We expect either a GenericActuatorParameters or a dict instance
+        if not isinstance(values, GenericActuatorParameters) and not isinstance(
+            values, dict
+        ):
+            raise ValueError(f"Unexpected type {type(values)} in validator")
+
+        from orchestrator.core.actuatorconfiguration.config import (
+            warn_deprecated_actuator_parameters_model_in_use,
+        )
+
+        old_key = "image_secret"
+        new_key = "image_pull_secret_name"
+
+        if isinstance(values, GenericActuatorParameters):
+
+            # The old key is not present - all good
+            if not hasattr(values, old_key):
+                return values
+
+            # Notify the user that the authToken
+            # field is deprecated
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="vllm_performance",
+                deprecated_from_actuator_version="v1.4.1",
+                removed_from_actuator_version="v1.7.0",
+                deprecated_fields=old_key,
+            )
+
+            # The user has set both the old
+            # and the new key - the new key
+            # takes precedence.
+            if hasattr(values, new_key):
+                delattr(values, old_key)
+            # Set the old value in the
+            # new field
+            else:
+                setattr(values, new_key, getattr(values, old_key))
+                delattr(values, old_key)
+
+        else:
+
+            # The old key is not present - all good
+            if old_key not in values:
+                return values
+
+            # Notify the user that the authToken
+            # field is deprecated
+            warn_deprecated_actuator_parameters_model_in_use(
+                affected_actuator="vllm_performance",
+                deprecated_from_actuator_version="v1.4.1",
+                removed_from_actuator_version="v1.7.0",
+                deprecated_fields=old_key,
+            )
+
+            # The user has set both the old
+            # and the new key - the new key
+            # takes precedence.
+            if new_key in values:
+                values.pop(old_key)
+            # Set the old value in the
+            # new field
+            else:
+                values[new_key] = values.pop(old_key)
+
+        return values

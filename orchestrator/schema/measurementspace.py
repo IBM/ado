@@ -509,8 +509,8 @@ class MeasurementSpace:
                     p.identifier for p in entitySpace.constitutiveProperties
                 ]:
                     raise ValueError(
-                        f"Identified a measurement space constitutive property not in entity space: {cp}. "
-                        f"Entity space:{render_to_string(entitySpace)}"
+                        f"Identified that a required constitutive property for an experiment, {cp.identifier}, is not in the entity space. "
+                        f"The entity space given was:\n{render_to_string(entitySpace)}"
                     )
                 if cp.propertyDomain:
                     # Check the entity spaces domain for the CP is compatible with the experiments

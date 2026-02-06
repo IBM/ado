@@ -7,6 +7,7 @@ import os
 import threading
 import typing
 
+import anyio
 import ray._private.runtime_env.packaging
 from ray._private.runtime_env import virtualenv_utils
 from ray._private.runtime_env.pip import PipPlugin
@@ -27,7 +28,7 @@ original_create_or_get_virtualenv = virtualenv_utils.create_or_get_virtualenv
 
 async def create_or_get_virtualenv(path: str, cwd: str, logger: logging.Logger) -> None:
     virtualenv_path = os.path.join(path, "virtualenv")
-    if not os.path.exists(virtualenv_path):
+    if not anyio.path.exists(virtualenv_path):
         await original_create_or_get_virtualenv(path=path, cwd=cwd, logger=logger)
 
 
@@ -271,7 +272,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         with self._create_env_mtx[uri]:
             logger.info(f"Creating {uri} for {runtime_env}")
             try:
-                if os.path.isdir(self.get_path_to_pip_venv(uri)):
+                if anyio.path.isdir(self.get_path_to_pip_venv(uri)):
                     logger.info(f"Virtual environment for {uri} already exists")
                     return self._cache[uri]
             except KeyError:

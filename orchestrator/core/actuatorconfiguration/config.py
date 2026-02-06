@@ -48,7 +48,7 @@ class ActuatorConfiguration(pydantic.BaseModel):
         )
 
         def validate_or_default_parameters(
-            actuator_class: "ActuatorBase",
+            actuator_class: type["ActuatorBase"],
         ) -> GenericActuatorParameters:
             return (
                 actuator_class.validate_parameters(parameters=self.parameters)

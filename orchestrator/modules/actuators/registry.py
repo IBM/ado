@@ -318,20 +318,20 @@ class ActuatorRegistry:
 
     def actuatorForIdentifier(
         self, actuatorid: str
-    ) -> "orchestrator.modules.actuators.base.ActuatorBase":
+    ) -> type[orchestrator.modules.actuators.base.ActuatorBase]:
         """Returns the actuator class corresponding to an identifier
 
         If the actuator has not been registered this method raises UnknownActuatorError
         """
 
         try:
-            acuatorClass = self.actuatorIdentifierMap[actuatorid]
+            actuator_class = self.actuatorIdentifierMap[actuatorid]
         except KeyError as error:
             raise UnknownActuatorError(
                 f"No actuator called {actuatorid} has been added to the registry"
             ) from error
 
-        return acuatorClass
+        return actuator_class
 
     def experimentForReference(
         self,

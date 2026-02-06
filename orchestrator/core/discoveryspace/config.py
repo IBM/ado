@@ -197,6 +197,48 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
             return SpaceHierarchy.SUPER_SPACE
         return SpaceHierarchy.UNDEFINED
 
+    def validate_entity_space_against_measurement_space(self) -> None:
+        """Validates the entity space against the measurement space.
+
+        Creates a MeasurementSpace instance and EntitySpaceRepresentation from the
+        configuration and uses MeasurementSpace.checkEntitySpaceCompatible to validate
+        compatibility.
+
+        Raises:
+            ValueError: If validation fails. The error message will describe the
+                incompatibility between the entity space and measurement space, or
+                if experiments cannot be resolved (e.g., experiments from sample store
+                catalogs are not available in dry-run mode).
+            UnknownExperimentError: If experiments cannot be resolved
+            (e.g., actuator is not installed).
+        """
+
+        from orchestrator.schema.entityspace import EntitySpaceRepresentation
+        from orchestrator.schema.measurementspace import MeasurementSpace
+
+        # Skip validation if either entity space or experiments are not defined
+        if self.entitySpace is None or self.experiments is None:
+            return
+
+        # Create EntitySpaceRepresentation from the entity space configuration
+        entity_space = EntitySpaceRepresentation.representationFromConfiguration(
+            self.entitySpace
+        )
+
+        if isinstance(self.experiments, MeasurementSpaceConfiguration):
+            # If we have full MeasurementSpaceConfiguration we can initialize directly
+            measurement_space = MeasurementSpace(configuration=self.experiments)
+        else:
+            # Otherwise we have to use registry to reconstruct the experiments
+            # This will use the actuator registry to resolve experiment references
+            measurement_space = MeasurementSpace.measurementSpaceFromSelection(
+                selectedExperiments=self.experiments,
+                experimentCatalogs=None,  # In dry-run, we don't have sample store catalogs
+            )
+
+        # Validate compatibility - this will raise ValueError if validation fails
+        measurement_space.checkEntitySpaceCompatible(entitySpace=entity_space)
+
 
 class EntityFilter(enum.Enum):
     SAMPLED = "sampled"  # Only entities sampled by operations on the space

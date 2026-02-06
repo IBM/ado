@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 # VV: @actuator_version Update this version according to semver.

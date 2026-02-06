@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 """Defines the interfaces to the operations that can be performed on DiscoverySpaces"""
@@ -459,7 +459,7 @@ class InterruptedOperationError(KeyboardInterrupt):
         self, operation_identifier: str, resources: list["ADOResource"] | None = None
     ) -> None:
         self.operation_identifier = operation_identifier
-        self.resources = resources if resources else []
+        self.resources = resources or []
         super().__init__(f"Operation {operation_identifier} was interrupted")
 
 

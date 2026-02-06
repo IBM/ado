@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 from orchestrator.cli.utils.resources.mappings import (
     cli_shorthands_to_cli_names,

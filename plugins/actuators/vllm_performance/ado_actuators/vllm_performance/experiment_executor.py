@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import json
@@ -442,9 +442,7 @@ def run_resource_and_workload_experiment(
                     burstiness=benchmark_parameters.burstiness,
                     dataset=benchmark_parameters.dataset,
                 )
-            elif experiment.identifier in [
-                "test-deployment-guidellm-v1",
-            ]:
+            elif experiment.identifier == "test-deployment-guidellm-v1":
                 logger.info("Using GuideLLM benchmark for deployment")
                 result = execute_guidellm_benchmark(
                     base_url=benchmark_parameters.endpoint,

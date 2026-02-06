@@ -191,7 +191,7 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
             raise typer.Exit(1) from error
         except UnknownExperimentError as error:
             console_print(
-                f"{ERROR}Unknown experiment in configuration. This can be due to an actuator not being installed of if the referenced experiment is external: {error}",
+                f"{ERROR}Unknown experiment in configuration. This can be due to an actuator not being installed or if the referenced experiment is external: {error}",
                 stderr=True,
             )
             raise typer.Exit(1) from error

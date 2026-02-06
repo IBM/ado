@@ -194,7 +194,7 @@ def _create_environment(
                         in_cluster=actuator.in_cluster,
                         verify_ssl=actuator.verify_ssl,
                         image=values.get("image"),
-                        image_secret=actuator.image_secret,
+                        image_pull_secret_name=actuator.image_pull_secret_name,
                         deployment_template=actuator.deployment_template,
                         service_template=actuator.service_template,
                         n_gpus=int(values.get("n_gpus")),

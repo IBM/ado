@@ -6,7 +6,7 @@ metadata:
 parameters:
   benchmark_retries: 3
   hf_token: 'test' # Set if you need to access a gated model
-  image_secret: ''
+  image_pull_secret_name: ''
   in_cluster: false
   interpreter: python3
   max_environments: 1

@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
+import time
 import typing
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -484,7 +487,7 @@ class TrimSampleSelector(BaseSampler):
             TabularPredictor: The trained AutoGluon predictor on full source data
         """
         # FIT ON FULL SOURCE SPACE DATA
-        source_df, _target_df = get_source_and_target(
+        source_df, target_df = get_source_and_target(
             discoverySpace,
             self.params.targetOutput,
             discoverySpaceManager=discoverySpaceManager,
@@ -528,10 +531,10 @@ class TrimSampleSelector(BaseSampler):
             )
             or {}
         )
+        start_time = time.time()
         predictor.fit(train_data=train_data, **fit_kwargs)
+        elapsed_time_for_training = time.time() - start_time
 
-        # metric metric used in training
-        # TODO: put this in the operation metadata at the end
         final_lb = predictor.leaderboard(silent=True)
         final_model_metric = (
             final_lb.iloc[0].get("score_val", None)
@@ -544,6 +547,48 @@ class TrimSampleSelector(BaseSampler):
             f"Final model {training_metric}={final_model_metric}."
             f"Saving predicted model to: {self.params.finalModelAutoGluonArgs.tabularPredictorArgs['path']}."
         )
+
+        target_predictions = predictor.predict(pd.DataFrame(target_df[train_cols]))
+        target_df_with_predictions = target_df.copy()
+        target_df_with_predictions[self.params.targetOutput] = target_predictions
+        logger_trim_sampler.info(
+            f"Generated predictions for {len(target_df)} target data points."
+        )
+
+        source_df_marked = source_df.copy()
+        source_df_marked["is_predicted"] = False
+        target_df_with_predictions["is_predicted"] = True
+
+        combined_df = pd.concat(
+            [source_df_marked, target_df_with_predictions], ignore_index=True
+        )
+
+        combined_df_path = os.path.join(predictor.path, "combined_predictions.csv")
+        combined_df.to_csv(combined_df_path, index=False)
+        logger_trim_sampler.info(f"Saved combined predictions to: {combined_df_path}")
+
+        if final_lb is not None and not final_lb.empty:
+            leaderboard_path = os.path.join(predictor.path, "model_leaderboard.csv")
+            final_lb.to_csv(leaderboard_path, index=False)
+            logger_trim_sampler.info(f"Saved model leaderboard to: {leaderboard_path}")
+
+        model_card = {
+            "train_fraction_wrt_space": len(source_df)
+            / (len(source_df) + len(target_df)),
+            "size_byte": predictor.disk_usage(),
+            "elapsed_time": elapsed_time_for_training,
+            "timestamp": datetime.now().isoformat(),
+            "training_metric": str(training_metric) if training_metric else None,
+            "final_model_metric": final_model_metric,
+            "num_train_samples": len(source_df),
+            "target_output": self.params.targetOutput,
+        }
+
+        model_card_path = os.path.join(predictor.path, "model_card.json")
+        with open(model_card_path, "w") as f:
+            json.dump(model_card, f, indent=2)
+        logger_trim_sampler.info(f"Saved model card to: {model_card_path}")
+
         return predictor
 
     def entities_for_iterative_modeling_from_discovery_space(
@@ -625,12 +670,6 @@ class TrimSampleSelector(BaseSampler):
             min_measured_entities=self.params.samplingBudget.minPoints,
             autoGluonArgs=self.params.autoGluonArgs,
         )
-
-        # TODO: see if you need to explicitly  # Merge source and target on train_cols
-        # train_cols = [
-        #     cp.identifier for cp in discoverySpace.entitySpace.constitutiveProperties
-        # ]
-        # train_target_cols = train_cols + [self.params.targetOutput]
 
         merged_df = source_df.merge(target_df, how="outer")
 

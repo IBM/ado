@@ -363,3 +363,30 @@ With `uv` you can add dependencies to groups using `uv add --group NAME`:
 ```commandline
 uv add --group dev pytest
 ```
+
+## Verifying lockfile integrity
+
+After making changes to dependencies or before committing changes, you should
+verify that the `uv.lock` lockfile is synchronized with `pyproject.toml`. This
+ensures that the lockfile accurately reflects the current project dependencies.
+
+You can do this with:
+
+```commandline
+uv lock --check
+```
+
+If the check passes, no output is produced and the command exits with status
+code 0.
+
+### Fixing lockfile issues
+
+If `uv lock --check` fails, it means the lockfile is out of sync with
+`pyproject.toml`. To fix this, regenerate the lockfile by running:
+
+```commandline
+uv lock
+```
+
+After running this command, commit the updated `uv.lock` file along with your
+other changes.

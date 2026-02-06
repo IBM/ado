@@ -1093,7 +1093,7 @@ class SFTTrainer(ActuatorBase):
                 If the current implementation of the actuator cannot handle the requested entity
         """
         try:
-            if not anyio.path.isfile(context.args.training_data_path):
+            if not anyio.Path(context.args.training_data_path).is_file():
                 raise NotImplementedError(
                     f"training_data_path points to path {context.args.training_data_path} which is not a file. "
                     f"Double check your DiscoverySpace, ActuatorParameters, and the file storage of your cluster. "

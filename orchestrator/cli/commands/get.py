@@ -24,6 +24,7 @@ from orchestrator.cli.resources.actuator_configuration.get import (
 from orchestrator.cli.resources.context.get import get_context
 from orchestrator.cli.resources.data_container.get import get_data_container
 from orchestrator.cli.resources.discovery_space.get import get_discovery_space
+from orchestrator.cli.resources.experiment.get import get_experiment
 from orchestrator.cli.resources.measurement_request.get import get_measurement_request
 from orchestrator.cli.resources.operation.get import get_operation
 from orchestrator.cli.resources.operator.get import get_operator
@@ -275,6 +276,18 @@ def get_resource(
     # List actuators and the experiments they provide
 
     ado get actuators --details
+
+
+
+    # List all experiments
+
+    ado get experiments
+
+
+
+    # List experiments with details
+
+    ado get experiments --details
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -361,6 +374,7 @@ def get_resource(
         AdoGetSupportedResourceTypes.CONTEXT: get_context,
         AdoGetSupportedResourceTypes.DATA_CONTAINER: get_data_container,
         AdoGetSupportedResourceTypes.DISCOVERY_SPACE: get_discovery_space,
+        AdoGetSupportedResourceTypes.EXPERIMENT: get_experiment,
         AdoGetSupportedResourceTypes.SAMPLE_STORE: get_sample_store,
         AdoGetSupportedResourceTypes.MEASUREMENT_REQUEST: get_measurement_request,
         AdoGetSupportedResourceTypes.OPERATION: get_operation,

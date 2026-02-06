@@ -36,6 +36,7 @@ def dataframe_to_rich_table(
     show_header: bool = True,
     show_lines: bool = False,
     show_edge: bool = False,
+    box: rich.box.Box = rich.box.HEAVY,
 ) -> Table:
     """Convert a pandas DataFrame to a rich Table.
 
@@ -54,7 +55,7 @@ def dataframe_to_rich_table(
         show_header=show_header,
         show_lines=show_lines,
         show_edge=show_edge,
-        box=rich.box.HEAVY,
+        box=box,
     )
 
     # Add columns

@@ -21,7 +21,7 @@ def create_test_environment(
     in_cluster: bool = True,
     verify_ssl: bool = False,
     image: str = "vllm/vllm-openai:v0.6.3",
-    image_secret: str = "",
+    image_pull_secret_name: str = "",
     deployment_template: None | str = None,
     service_template: None | str = None,
     n_gpus: int = 1,
@@ -51,7 +51,7 @@ def create_test_environment(
     :param in_cluster: flag - running in cluster
     :param verify_ssl:  flag - verify ssl
     :param image: image to use in deployment
-    :param image_secret: name of the image pull secret
+    :param image_pull_secret_name: name of the image pull secret
     :param deployment_template: deployment template
     :param service_template: service template
     :param n_gpus: number of GPUs
@@ -80,7 +80,7 @@ def create_test_environment(
         f"model {model}, in_cluster {in_cluster}, verify_ssl {verify_ssl}, image {image}"
     )
     logger.info(
-        f"image_secret {image_secret}, deployment_template {deployment_template}, "
+        f"image_pull_secret_name {image_pull_secret_name}, deployment_template {deployment_template}, "
         f"service_template {service_template}, pvc_name {pvc_name}"
     )
     logger.info(f"n_gpus {n_gpus}, gpu_type {gpu_type}, n_cpus {n_cpus}")
@@ -105,7 +105,7 @@ def create_test_environment(
         gpu_type=gpu_type,
         node_selector=node_selector,
         image=image,
-        image_secret=image_secret,
+        image_pull_secret_name=image_pull_secret_name,
         n_gpus=n_gpus,
         n_cpus=n_cpus,
         memory=memory,

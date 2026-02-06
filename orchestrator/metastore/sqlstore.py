@@ -427,7 +427,7 @@ class SQLResourceStore(ResourceStore):
         # FROM
         from_statement = "FROM resources "
 
-        field_selectors = field_selectors if field_selectors else {}
+        field_selectors = field_selectors or {}
 
         # WHERE
         where_statement = f"WHERE kind = '{kind}'"

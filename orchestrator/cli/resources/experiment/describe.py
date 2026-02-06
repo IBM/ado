@@ -35,12 +35,8 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         raise typer.Exit(1)
 
     #
-    actuator_id = (
-        parameters.actuator_id
-        if parameters.actuator_id
-        else _ado_get_actuator_from_experiment_id(
-            experiment_id=parameters.resource_id, actuator_id=None
-        )
+    actuator_id = parameters.actuator_id or _ado_get_actuator_from_experiment_id(
+        experiment_id=parameters.resource_id, actuator_id=None
     )
     experiment = registry.experimentForReference(
         ExperimentReference(

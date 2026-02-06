@@ -828,7 +828,7 @@ class RayTune(Search):
                 result_dict = {
                     "config": output.result.config,
                     "metrics": output.result.metrics,
-                    "error": output.result.error if output.result.error else None,
+                    "error": output.result.error or None,
                 }
                 resources = [
                     DataContainerResource(

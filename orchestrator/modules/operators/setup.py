@@ -81,7 +81,7 @@ def setup_actuators(
 
     # First instantiate any actuators passed in actuatorConfigurations
 
-    actuator_configurations = actuator_configurations if actuator_configurations else []
+    actuator_configurations = actuator_configurations or []
     for actuatorConfig in actuator_configurations:
         actuatorIdentifier = actuatorConfig.actuatorIdentifier
         actuator: ActuatorActor = (

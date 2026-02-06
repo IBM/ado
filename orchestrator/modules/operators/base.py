@@ -459,7 +459,7 @@ class InterruptedOperationError(KeyboardInterrupt):
         self, operation_identifier: str, resources: list["ADOResource"] | None = None
     ) -> None:
         self.operation_identifier = operation_identifier
-        self.resources = resources if resources else []
+        self.resources = resources or []
         super().__init__(f"Operation {operation_identifier} was interrupted")
 
 

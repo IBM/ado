@@ -1,6 +1,7 @@
 # Copyright (c) IBM Corporation
 # SPDX-License-Identifier: MIT
 
+import contextlib
 import json
 import logging
 import typing
@@ -812,9 +813,7 @@ class SQLSampleStore(ActiveSampleStore):
                 continue
 
             try:
-                entity = Entity.model_validate(
-                    json.loads(entity_representation)
-                )
+                entity = Entity.model_validate(json.loads(entity_representation))
                 self._entities[entity_identifier] = entity
                 entities_dict[entity_identifier] = entity
             except Exception as error:
@@ -846,13 +845,10 @@ class SQLSampleStore(ActiveSampleStore):
                     cause=error,
                 ) from error
 
-            # Add measurement result to entity
-            try:
+            with contextlib.suppress(DuplicateMeasurementResultError):
                 entities_dict[entity_identifier].add_measurement_result(
                     result=measurement_result
                 )
-            except DuplicateMeasurementResultError:
-                pass
 
         return list(entities_dict.values())
 

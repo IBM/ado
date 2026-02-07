@@ -135,7 +135,7 @@ metadata:
 parameters:
   benchmark_retries: 3
   hf_token: ""
-  image_secret: ""
+  image_pull_secret_name: ""
   in_cluster: true
   interpreter: python3
   max_environments: 1
@@ -411,8 +411,8 @@ and modify them appropriately
 
 If you create a custom Docker image and upload it to a repository, please do not
 forget to create a corresponding Image pull secret in your assigned namespace.
-You must also update the value of the `image_secret` parameter of the actuator
-configuration.
+You must also update the value of the `image_pull_secret_name` parameter of the
+actuator configuration.
 
 ### Customising Experiment Protocol
 

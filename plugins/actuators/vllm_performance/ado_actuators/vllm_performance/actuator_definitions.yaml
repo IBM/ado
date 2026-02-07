@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 #A list of the actuator classes this plugin provides
 - moduleName: ado_actuators.vllm_performance.actuator

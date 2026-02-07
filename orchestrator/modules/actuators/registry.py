@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -12,6 +12,9 @@ import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
+from orchestrator.modules.actuators.base import (
+    ActuatorBase,
+)
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
 )
@@ -22,9 +25,6 @@ from orchestrator.utilities.logging import configure_logging
 if typing.TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.modules.actuators.base import (
-        ActuatorBase,
-    )
     from orchestrator.schema.experiment import Experiment
 
 configure_logging()
@@ -316,9 +316,7 @@ class ActuatorRegistry:
 
         return catalog
 
-    def actuatorForIdentifier(
-        self, actuatorid: str
-    ) -> type[orchestrator.modules.actuators.base.ActuatorBase]:
+    def actuatorForIdentifier(self, actuatorid: str) -> type[ActuatorBase]:
         """Returns the actuator class corresponding to an identifier
 
         If the actuator has not been registered this method raises UnknownActuatorError

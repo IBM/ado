@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typing
@@ -48,7 +48,7 @@ class ActuatorConfiguration(pydantic.BaseModel):
         )
 
         def validate_or_default_parameters(
-            actuator_class: "ActuatorBase",
+            actuator_class: type["ActuatorBase"],
         ) -> GenericActuatorParameters:
             return (
                 actuator_class.validate_parameters(parameters=self.parameters)

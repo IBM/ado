@@ -1894,6 +1894,93 @@ ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yam
 
 <!-- markdownlint-enable line-length -->
 
+## Metrics stability
+
+We recommend using the
+`auto_stop_method: WARMUP_60S_STABLE_120S_OR_10_STEPS`
+option, which helps fms-hf-tuning gather more reliable and stable measurements
+while keeping the duration of each task low.
+This configuration allows the actuator to reach a steady state before sampling,
+ensuring that both system and throughput metrics are highly consistent.
+
+You can easily verify this stability of fms-hf-tuning yourself.
+For example, repeat the same [RandomWalk operation](../examples/finetune-remotely.md)
+on the following DiscoverySpace for 5 times:
+
+<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD046 -->
+```yaml
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
+```
+<!-- markdownlint-enable MD046 -->
+<!-- markdownlint-enable MD013 -->
+
+Remember to switch off memoization in your RandomWalk operation definition:
+
+<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD046 -->
+```yaml
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
+```
+<!-- markdownlint-enable MD046 -->
+<!-- markdownlint-enable MD013 -->
+
+Then after all five operations finish, obtain a CSV file containing the observed
+properties on the space you created like so:
+
+<!-- markdownlint-disable MD046 -->
+```commandline
+ado show entities space --output-format csv $DISCOVERY_SPACE_ID
+```
+<!-- markdownlint-enable MD046 -->
+
+Finally, use the script `sfttrainer_check_metrics_stability` that you get by
+installing the `ado-sfttrainer` package:
+
+<!-- markdownlint-disable MD046 -->
+```commandline
+sfttrainer_check_metrics_stability $pathTotheCSVFileFromAbove
+```
+<!-- markdownlint-enable MD046 -->
+
+You should see an output similar to this:
+
+<!-- markdownlint-disable MD046 -->
+```text
+Total benchmarks analyzed: 63
+
+Mean STD 36.42
+STD of STD 30.79
+
+Coefficient of Variation (CV) statistics:
+  Mean CV:    0.76%
+  Median CV:  0.56%
+  Min CV:     0.12%
+  Max CV:     3.04%
+
+Range as % of Mean statistics:
+  Mean:       1.83%
+  Median:     1.24%
+  Min:        0.26%
+  Max:        7.47%
+
+================================================================================
+STABILITY ASSESSMENT
+================================================================================
+
+Overall Stability Rating: EXCELLENT
+Description: Very stable measurements with minimal variation
+Median CV: 0.56%
+
+Interpretation:
+  - CV < 1%:  Excellent stability
+  - CV < 2%:  Good stability
+  - CV < 5%:  Moderate stability
+  - CV < 10%: Fair stability
+  - CV ≥ 10%: Poor stability
+```
+<!-- markdownlint-enable MD046 -->
+
 ## Configure your RayCluster for RDMA over Converged Ethernet (RoCE)
 
 [**RoCE**](https://www.roceinitiative.org/roce-introduction/) enables

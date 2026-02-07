@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import math
@@ -235,11 +235,7 @@ class SpaceSummary:
         )
 
         constitutive_properties = {
-            p.identifier: (
-                p.propertyDomain.values
-                if p.propertyDomain.values
-                else p.propertyDomain.domainRange
-            )
+            p.identifier: (p.propertyDomain.values or p.propertyDomain.domainRange)
             for p in space_resource.config.entitySpace
             if p.propertyType == NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
         }
@@ -389,8 +385,8 @@ class SpaceSummary:
                 if math.isnan(self.matching_and_measured_percentage)
                 else f"{math.floor(self.matching_and_measured_percentage)}%"
             ),
-            "Name": self.name if self.name else "",
-            "Description": self.description if self.description else "",
+            "Name": self.name or "",
+            "Description": self.description or "",
         }
 
         if self.labels:

@@ -45,7 +45,7 @@ Each source file must include a license header for the MIT License. Using the
 SPDX format is the simplest approach. e.g.
 
 ```text
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 ```
 

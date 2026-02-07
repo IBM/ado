@@ -21,7 +21,6 @@ from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.property import ConstitutiveProperty
 
 moduleLog = logging.getLogger()
-moduleLog.setLevel(logging.DEBUG)
 
 MODEL_LATEST_VERSION = "3.1.0"
 

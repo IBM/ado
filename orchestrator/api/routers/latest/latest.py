@@ -6,7 +6,7 @@ This module defines the base :class:`fastapi.APIRouter` instance for the
 ``actuators`` and ``experiments`` submodules.
 """
 
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from fastapi import APIRouter, status

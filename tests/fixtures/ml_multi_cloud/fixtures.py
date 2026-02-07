@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -195,7 +195,7 @@ def random_ml_multi_cloud_benchmark_performance_measurement_results(
         assert (
             measurements_per_result > 0
         ), "There need to be at least 1 measurement per result"
-        status = status if status else MeasurementResultStateEnum.VALID
+        status = status or MeasurementResultStateEnum.VALID
 
         if status == MeasurementResultStateEnum.VALID:
             return ValidMeasurementResult(
@@ -248,8 +248,8 @@ def random_ml_multi_cloud_benchmark_performance_measurement_requests(
     ) -> ReplayedMeasurement:
         assert number_entities > 0, "There need to be at least 1 entity"
         entities = random_ml_multi_cloud_benchmark_performance_entities(number_entities)
-        status = status if status else MeasurementRequestStateEnum.SUCCESS
-        operation_id = operation_id if operation_id else random_identifier()
+        status = status or MeasurementRequestStateEnum.SUCCESS
+        operation_id = operation_id or random_identifier()
 
         return ReplayedMeasurement(
             operation_id=operation_id,
@@ -295,7 +295,7 @@ def simulate_ml_multi_cloud_random_walk_operation(
         measurements_per_result: int = 2,
         operation_id: str | None = None,
     ) -> tuple[SQLSampleStore, list[MeasurementRequest], list[str]]:
-        operation_id = operation_id if operation_id else random_identifier()
+        operation_id = operation_id or random_identifier()
         sample_store = ml_multi_cloud_sample_store
 
         sql = SQLResourceStore(

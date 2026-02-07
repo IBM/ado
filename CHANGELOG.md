@@ -1,3 +1,14 @@
+## [1.4.1](https://github.com/ibm/ado/compare/1.4.0..1.4.1) - 2026-01-30
+#### Features
+- (**schema**) add function for generating entity id (#471) - ([5412418](https://github.com/ibm/ado/commit/5412418a94d7558da39850b37176d29ec93c2135)) - Michael Johnston
+#### Documentation
+- (**changelog**) update changelog (#467) - ([f3628d7](https://github.com/ibm/ado/commit/f3628d71e7f4bd625368cc279c7dd3f04ff8c397)) - Alessandro Pomponio
+- (**vllm_performance**) update examples (#472) - ([7955ce6](https://github.com/ibm/ado/commit/7955ce6bea42c7adaaab2f66ab3c48ce53d61dd1)) - Michael Johnston
+- (**website**) various fixes (#475) - ([e76c968](https://github.com/ibm/ado/commit/e76c9685a88d009b1c9d324d0b4eddbfd8e37079)) - Michael Johnston
+#### Refactoring
+- use rich instead of IPython's pretty (#474) - ([622a242](https://github.com/ibm/ado/commit/622a242550893ef91aa0be14a50b20b9c0f84e74)) - Alessandro Pomponio
+- move imports into type checking sections (#461) - ([ed8d6ab](https://github.com/ibm/ado/commit/ed8d6abfb73fdd00696a82b1a091eca313c06b4d)) - Alessandro Pomponio
+
 ## [1.4.0](https://github.com/ibm/ado/compare/1.3.3..1.4.0) - 2026-01-28
 #### Features
 - (**core**) allow specifying actuator in csv sample store (#455) - ([bda00ad](https://github.com/ibm/ado/commit/bda00adfa1edf6c86acc27a8d68bac1a0a4d13f5)) - Michael Johnston

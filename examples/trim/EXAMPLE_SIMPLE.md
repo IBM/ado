@@ -79,7 +79,7 @@ ado create space -f examples/trim/configs/space_pressure.yaml --new-sample-store
 ```
 
 This will create a new space and a sample store to hold the measurement results.
-It will confirm with:
+The output will be similar to:
 
 ```commandline
 Success! Created space with identifier: space-bfed2d-19b49a

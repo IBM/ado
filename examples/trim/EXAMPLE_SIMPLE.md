@@ -221,11 +221,10 @@ Success! Created operation with identifier operation-trim-v0.1-8b23a245 and it f
 
 ## Looking at the `operation` output
 
-The `trim` operator saves the final trained `AutoGluon` model
-to the directory specified by `outputDirectory`
- in your operation file (here, `trim_models_finalized`).
- You can now load this `TabularPredictor` in your own code
-  to make predictions on any unmeasured points in your parameter space.
+The TRIM operator saves the final trained `AutoGluon` model to the directory
+specified by the `outputDirectory` field in your operation parameters. The model
+can be then loaded as a `TabularPredictor` in your own code to make predictions
+on any unmeasured points in your parameter space.
 
 You can also view the entities that were sampled during the entire operation.
  `trim` actually runs two sub-operations

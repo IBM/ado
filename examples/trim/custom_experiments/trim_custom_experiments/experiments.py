@@ -90,7 +90,7 @@ def calculate_pressure_gas(
     temperature: float,
     volume: float,
     gas: Literal["ideal", "CO2", "N2", "O2", "CH4", "NH3", "H2", "He", "Ar"],
-) -> dict[str, Any]:
+) -> dict[Literal["pressure"], float]:
     """
     Compute pressure using Van der Waals equation in SI units (no checks):
         P = (n R T) / (V - n b) - a (n / V)^2

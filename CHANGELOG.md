@@ -1,3 +1,30 @@
+## [1.5.0](https://github.com/ibm/ado/compare/1.4.1..1.5.0) - 2026-02-09
+#### Features
+- (**autoconf**) Introduce a new recommender for per_device_train_batch_size (#500) - ([1cead81](https://github.com/ibm/ado/commit/1cead8158187be3c45a7134d81a909493d7fb825)) - Srikumar Venugopal
+- (**cli**) add support for ado get experiments (#497) - ([624536e](https://github.com/ibm/ado/commit/624536e786c0f8e65a03448041cd00c5b177ad05)) - Alessandro Pomponio
+- (**core**) improve sql sample store initialisation and allow for efficient refresh (#481) - ([167ca37](https://github.com/ibm/ado/commit/167ca3757c3084281a0ff782477a80076cb1e3b9)) - Alessandro Pomponio
+#### Bug Fixes
+- (**cli**) validate experiments against entity space in create space dry run (#513) - ([8a3c800](https://github.com/ibm/ado/commit/8a3c800dc95bcdd870f06b4e14dcefd4d97537bf)) - Michael Johnston
+- (**core**) copy dictionary to avoid race condition in DiscoverySpaceManager monitorUpdates (#509) - ([b2d1736](https://github.com/ibm/ado/commit/b2d1736ad493a11d1c47a80e732ed0ebfa234241)) - Michael Johnston
+- (**core**) set ray working_dir=None for local workers to support uv run (#506) - ([fa4f99e](https://github.com/ibm/ado/commit/fa4f99ef3204481a82456931f309b4ff47c2e39d)) - Michael Johnston
+- (**modules**) avoid displaying empty spinner panel (#494) - ([5fa1980](https://github.com/ibm/ado/commit/5fa198091d109a82b2e7c4034dc816af43568d6f)) - Alessandro Pomponio
+#### Performance Improvements
+- (**core**) reuse engine for sql resource and sample stores (#492) - ([8e57d38](https://github.com/ibm/ado/commit/8e57d3834c5606f23eba59145db445e9f0cb4ee6)) - Alessandro Pomponio
+#### Documentation
+- (**changelog**) update changelog (#518) - ([db580b9](https://github.com/ibm/ado/commit/db580b9d3dc7ae73e99876bc5388c933ad65a2df)) - Alessandro Pomponio
+- (**sfttrainer**) example for checking the variability of fms-hf-tuning measurements (#473) - ([174fcb1](https://github.com/ibm/ado/commit/174fcb1d4b8396b765ebccb20792511e5936e381)) - Vassilis Vassiliadis
+- add instructions on ensuring locked dependencies (#515) - ([e85405c](https://github.com/ibm/ado/commit/e85405cd8823c3a98a78c4310167ee5d62d9062f)) - Alessandro Pomponio
+#### Build system
+- (**autoconf**) update lockfile (#493) - ([e210cfa](https://github.com/ibm/ado/commit/e210cfa51860df14fbb56a5928545c1c05ae92fe)) - Alessandro Pomponio
+- (**autoconf**) update to autogluon 1.5 (#470) - ([f793fa6](https://github.com/ibm/ado/commit/f793fa65ca2bbc504461824d84a32ffa62688338)) - Srikumar Venugopal
+- (**deps**) update dependencies (#512) - ([e6cbb71](https://github.com/ibm/ado/commit/e6cbb71447fd098f5deaf885059e2c88378476d9)) - Alessandro Pomponio
+- (**deps**) update dependencies (#490) - ([93ac58a](https://github.com/ibm/ado/commit/93ac58ad104e3716ded976c5f07525b666955375)) - Alessandro Pomponio
+- (**ray_tune**) require minimum numba version (#504) - ([9b366d8](https://github.com/ibm/ado/commit/9b366d86dc342d057ec9dd4f4a1009ab4fb7bc19)) - Alessandro Pomponio
+- add detect-secrets to dev dependencies (#484) - ([ce9eb9d](https://github.com/ibm/ado/commit/ce9eb9da82c29c9e4f04f6b42cde93f1178d70d0)) - Alessandro Pomponio
+#### Refactoring
+- (**test**) support locked and unlocked runners (#508) - ([8dd15e0](https://github.com/ibm/ado/commit/8dd15e07e1bff214bd30a74415e5532be6f93c93)) - Alessandro Pomponio
+- (**vllm_performance**) rename image_secret to image_pull_secret_name (#514) - ([b9677d7](https://github.com/ibm/ado/commit/b9677d70fd735fa63b827fa7a972aa8e5aa08132)) - Alessandro Pomponio
+
 ## [1.4.1](https://github.com/ibm/ado/compare/1.4.0..1.4.1) - 2026-01-30
 #### Features
 - (**schema**) add function for generating entity id (#471) - ([5412418](https://github.com/ibm/ado/commit/5412418a94d7558da39850b37176d29ec93c2135)) - Michael Johnston
@@ -69,7 +96,7 @@
 - (**utilities**) add type annotations (#406) - ([c4c6a63](https://github.com/ibm/ado/commit/c4c6a6362c6bac88fa32901a35acf38d20a7d7ce)) - Alessandro Pomponio
 - enable PIE and T10 linters (#384) - ([3d2f9f5](https://github.com/ibm/ado/commit/3d2f9f567b78682dddd22e985d600cd622320101)) - Alessandro Pomponio
 
-## [1.3.3](https://github.com/ibm/ado/compare/2fc3b9113577a2e7a9fb7532440b166237c7f6fa..1.3.3) - 2026-01-8
+## [1.3.3](https://github.com/ibm/ado/compare/1.3.2..1.3.3) - 2026-01-8
 #### Features
 - (**cli**) support loading commands via plugins (#344) - ([6e61cff](https://github.com/ibm/ado/commit/6e61cff68d90004617b4d3b8f00ec116bd9e7651)) - Michael Johnston
 #### Bug Fixes

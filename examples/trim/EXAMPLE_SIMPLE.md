@@ -1,5 +1,6 @@
 # Efficiently Exploring Parameter Spaces with TRIM
 
+<!-- markdownlint-disable no-blanks-blockquote -->
 > [!NOTE] The scenario
 >
 > You have a complex system with many tunable parameters, like a scientific

@@ -24,8 +24,8 @@
 > ```commandline
 > git clone https://github.com/IBM/ado.git
 > cd ado
-> pip install plugins/operators/trim
-> pip install -e examples/trim
+> pip install plugins/operators/trim/
+> pip install -e examples/trim/custom_experiments/
 > ```
 >
 > - All commands below assume you are running them from the

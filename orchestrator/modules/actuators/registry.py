@@ -85,9 +85,7 @@ class ActuatorRegistry:
             {}
         )  # type: typing.Dict[typing.AnyStr, type["ActuatorBase"]
         # Maps actuator ids to ExperimentCatalog instances
-        self.catalogIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, ExperimentCatalog]
+        self.catalogIdentifierMap = {}  # type: dict[str, ExperimentCatalog]
         self.log = logging.getLogger("registry")
         self.id = uuid.uuid4()
 

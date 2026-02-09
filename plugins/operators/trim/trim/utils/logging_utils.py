@@ -103,19 +103,13 @@ def log_and_save_characterization(
     )
 
     # Log unique identifier counts if present
-    if "identifier" in source_df.columns:
-        logger.debug(
-            f"[Characterization] source_df 'identifier' unique count: {source_df['identifier'].nunique(dropna=True)}"
-        )
-    else:
-        logger.debug("[Characterization] source_df has no 'identifier' column.")
-
-    if "identifier" in target_df.columns:
-        logger.debug(
-            f"[Characterization] target_df 'identifier' unique count: {target_df['identifier'].nunique(dropna=True)}"
-        )
-    else:
-        logger.debug("[Characterization] target_df has no 'identifier' column.")
+    for df, name in [(source_df, "source_df"), (target_df, "target_df")]:
+        if "identifier" in df.columns:
+            logger.debug(
+                f"[Characterization] {name} 'identifier' unique count: {df['identifier'].nunique(dropna=True)}"
+            )
+        else:
+            logger.debug(f"[Characterization] {name} has no 'identifier' column.")
 
 
 def log_before_first_holdout_update(

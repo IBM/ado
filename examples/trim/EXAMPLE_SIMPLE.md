@@ -91,26 +91,7 @@ Next, we will run an `operation` that uses TRIM to explore the `discoveryspace`.
 The configuration for our operation is in `op_pressure.yaml`:
 
 ```yaml
-# op_pressure.yaml
-operation:
-  module:
-    operationType: characterize
-    operatorName: trim
-  parameters:
-    targetOutput: pressure
-    batchSize: 1
-    iterationSize: 5
-    outputDirectory: trim_models
-    stoppingCriterion:
-      enabled: true
-      meanThreshold: 0.9
-      stdThreshold: 0.75
-    autoGluonArgs:
-      fitArgs:
-        time_limit: 20
-        presets: medium
-    noPriorsParameters:
-      targetOutput: pressure
+{% include-markdown "./configs/op_pressure.yaml" %}
 ```
 
 To run the operation, execute:

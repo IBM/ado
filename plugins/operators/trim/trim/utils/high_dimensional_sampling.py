@@ -368,6 +368,10 @@ def plot_grid(
     """
     Plot a 2D grid visualization of sampled points with overlap detection.
 
+    This allows a visualization of points in a 2D space. You may want to have a look at
+    the points that the algorithm is telling you to sample to understand the distribution
+    and coverage patterns of different sampling strategies.
+
     Args:
         ax: Matplotlib axes object to draw on
         dimensions: Dimensions of the grid [width, height]
@@ -436,6 +440,14 @@ def plot_grid(
 
 
 if __name__ == "__main__":
+    """
+    Demonstration script comparing different sampling strategies in 2D space.
+
+    This allows a visualization of points in a 2D space. You may want to have a look at
+    the points that the algorithm is telling you to sample to compare how different
+    strategies (random, concatenated Latin hypercube, and Sobol) distribute samples
+    across the space.
+    """
     import matplotlib.pyplot as plt
 
     # --- Configuration ---

@@ -104,9 +104,8 @@ ado create operation -f examples/trim/configs/op_pressure.yaml --use-latest spac
 
 ### What to Expect in the Terminal
 
-You will see a lot of output as `trim` does its work.
-Let's break down the key stages,
-in the case of no point present in the discovery space at the beginning of the operation:
+You will see a lot of output as TRIM does its work. Let's break down the key
+stages:
 
 #### Stage 1: No-Priors Characterization
 

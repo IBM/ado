@@ -142,7 +142,8 @@ reached):
 
 - Trains one final, high-quality AutoGluon model
 - Uses **all** data collected across all phases
-- Saves to `outputDirectory` with `_finalized` suffix
+- Saves to `finalModelAutoGluonArgs.tabularPredictorArgs.path` if specified,
+  or to `outputDirectory` with `_finalized` suffix if not specified.
 - This is your production-ready predictive model
 
 ---

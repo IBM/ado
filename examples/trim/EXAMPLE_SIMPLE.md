@@ -67,13 +67,12 @@ saves it for you to use.
 
 ## Creating a `discoveryspace`
 
-A `discoveryspace` describes the parameters you want to
- explore (`entitySpace`) and how to measure them (`measurementSpace`).
-In this example, we'll use a custom Python function
- `calculate_pressure_ideal_gas` as our experiment.
+A `discoveryspace` describes the parameters you want to explore (`entitySpace`)
+and how to measure them (`measurementSpace`). In this example, we'll use a
+custom Python function `calculate_pressure_ideal_gas` as our experiment.
 
-First, create the `discoveryspace` by executing this command
- from the repository root:
+First, create the `discoveryspace` by executing this command from the repository
+root:
 
 ```commandline
 ado create space -f examples/trim/configs/space_pressure.yaml --new-sample-store

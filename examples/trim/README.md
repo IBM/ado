@@ -3,8 +3,8 @@
 ## Install (from repository root)
 
 ```bash
-uv pip install plugins/operators/trim
-uv pip install -e examples/trim
+pip install plugins/operators/trim/
+pip install -e examples/trim/custom_experiments/
 ```
 
 > **Note:** All commands below assume you are running them from

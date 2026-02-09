@@ -50,7 +50,7 @@ mol = ConstitutiveProperty(
 )
 def calculate_pressure_ideal_gas(
     mol: float, temperature: float, volume: float
-) -> dict[str, Any]:
+) -> dict[Literal["pressure"], float]:
     """
     Compute pressure from the Ideal Gas Law:
         p = n * R * T / V

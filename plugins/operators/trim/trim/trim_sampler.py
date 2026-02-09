@@ -65,7 +65,7 @@ class TrimSampleSelector(BaseSampler):
     async def remoteEntityIterator(
         self, remoteDiscoverySpace: DiscoverySpaceManager, batchsize: int = 1  # type: ignore[name-defined]
     ) -> typing.AsyncGenerator[list[Entity], None]:
-        """Returns an remoteEntityIterator that returns entities in order"""
+        """Returns a remoteEntityIterator that returns entities in order"""
 
         logger_trim_sampler.debug(f"Batchsize is {batchsize} (expected 1)")
 

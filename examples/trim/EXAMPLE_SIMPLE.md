@@ -2,21 +2,19 @@
 
 > [!NOTE] The scenario
 >
-> You have a complex system, like a scientific simulation or
-> a machine learning model,
-> with many tunable parameters.
-> Running the system is time-consuming and expensive.
-> **In this example, `ado`'s `trim` operator is used to intelligently
-> explore the parameter space of an experiment,
-> measuring just enough samples to build a stable and accurate predictive model.**
-> Using the `trim` operator involves:
+> You have a complex system with many tunable parameters, like a scientific
+> simulation or a machine learning model, which is time-consuming and expensive
+> to run. **In this example, `ado`'s TRIM operator is used to intelligently
+> explore the parameter space of an experiment, measuring just enough samples to
+> build a stable and accurate predictive model.** Using the TRIM operator
+> involves:
 >
 > 1. Defining the parameter space to explore in a `discoveryspace`.
-> 2. Creating an `operation` that uses `trim` to intelligently sample points,
-> measure them, and build a model.
-> 3. Observing `trim`'s progress as it first characterizes the space and
-> then iteratively refines its model.
-> When the quality of this predictive model does not improve, `trim` stops.
+> 2. Creating an `operation` that uses TRIM to intelligently sample points,
+>    measure them, and build a model.
+> 3. Observing TRIM's progress as it first characterizes the space and then
+>    iteratively refines its model. When the quality of this predictive model
+>    does not improve, TRIM stops.
 <!-- markdownlint-disable-next-line no-inline-html -->
 
 > [!IMPORTANT] Prerequisites

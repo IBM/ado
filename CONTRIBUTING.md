@@ -146,22 +146,31 @@ namely:
 
 - [Black](https://ibm.github.io/ado/getting-started/developing#code-style)
 - [Ruff](https://ibm.github.io/ado/getting-started/developing#linting-code-with-ruff)
+- [uv](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
 - [Copywrite](https://ibm.github.io/ado/getting-started/developing#copyright-and-license-headers)
 - [Markdownlint-cli2](https://ibm.github.io/ado/getting-started/developing#linting-markdown-with-markdownlint-cli2)
 - [Yamlfmt](https://github.com/google/yamlfmt)
 
-To verify that your code conforms to these rules you can run the following
-commands:
+Before submitting a pull request, you must ensure that all of the following
+checks pass. To verify that your code conforms to these rules you can run the
+following commands:
 
 ```commandline
 black --check . --extend-exclude website
 ruff check --exclude website
+uv lock --check
 copywrite headers --plan
 markdownlint-cli2 "**/*.md" "#.venv"
 detect-secrets scan --update .secrets.baseline
 detect-secrets audit .secrets.baseline --fail-on-unaudited --fail-on-live --fail-on-audited-real
 yamlfmt -lint .
 ```
+
+The `uv lock --check` command verifies that the `uv.lock` lockfile is up-to-date
+with the dependencies specified in `pyproject.toml`. If this check fails, run
+`uv lock` to regenerate the lockfile. See the
+[development guide](https://ibm.github.io/ado/getting-started/developing#verifying-lockfile-integrity)
+for more details.
 
 ## Website checks
 

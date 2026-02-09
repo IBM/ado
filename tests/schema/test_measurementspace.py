@@ -407,7 +407,7 @@ def test_check_entity_space_compatibility_multiple(
 
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ) as expected_exception:
         measurement_space_from_multiple_parameterized_experiments.checkEntitySpaceCompatible(
             es_test
@@ -445,7 +445,7 @@ def test_check_entity_space_compatibility_single(
     ):
         with pytest.raises(
             ValueError,
-            match="Identified a measurement space constitutive property not in entity space",
+            match="Identified that a required constitutive property for an experiment",
         ) as expected_exception:
             measurement_space_from_single_parameterized_experiment.checkEntitySpaceCompatible(
                 es_test

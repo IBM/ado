@@ -22,6 +22,8 @@ from orchestrator.schema.property import ConstitutiveProperty
 
 moduleLog = logging.getLogger()
 
+MODEL_LATEST_VERSION = "3.1.0"
+
 
 class GPUsAndWorkers(NamedTuple):
     gpus: int
@@ -140,6 +142,16 @@ BatchSize = ConstitutiveProperty(
         domainRange=[1, 10000001],  # VV: Seen values go up to 128
     ),
 )
+
+# Need to separate this from the
+PerDeviceBatchSize = ConstitutiveProperty(
+    identifier="per_device_train_batch_size",
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[1, 10000001],  # VV: Seen values go up to 128
+    ),
+)
+
 GPUsPerWorker = ConstitutiveProperty(
     identifier="gpus_per_worker",
     propertyDomain=PropertyDomain(
@@ -248,3 +260,82 @@ def min_gpu_recommender(
         # should result in InvalidMeasurements
         moduleLog.warning(e)
         raise e
+
+
+@custom_experiment(
+    required_properties=[
+        ModelName,
+        TuningMethod,
+        GPUModel,
+        TokensPerSample,
+        PerDeviceBatchSize,
+    ],
+    optional_properties=[GPUsPerWorker, MaxGPUs, ModelVersion],
+    output_property_identifiers=["can_recommend", "gpus", "workers"],
+    metadata={
+        "description": "An AutoConf recommender that suggests the minimum number of "
+        "gpus per worker and number of workers necessary to execute a Tuning job while"
+        "keeping the per GPU batch size constant"
+    },
+    parameterization={},
+)
+def avoid_oom_recommender(
+    model_name: str,
+    method: str,
+    gpu_model: str,
+    tokens_per_sample: int,
+    per_device_train_batch_size: int,
+    gpus_per_worker: int = 8,
+    max_gpus: int = 64,
+    model_version: str = "3.1.0",
+) -> dict[str, int | bool]:
+
+    result = {
+        "can_recommend": False,
+        "gpus": -1,
+        "workers": -1,
+    }
+    try:
+        # First, load the model
+        # In this case, we are going to ask for the latest version of the model available
+        predictor: TabularPredictor = load_model(model_version)
+        configuration: dict = {
+            "model_name": model_name,
+            "method": method,
+            "gpu_model": gpu_model,
+            "tokens_per_sample": int(tokens_per_sample),
+        }
+
+        num_gpu_list = [2**i for i in range(int(math.log2(max_gpus)) + 1)]
+        for r_num_gpu in num_gpu_list:
+            configuration["batch_size"] = per_device_train_batch_size * r_num_gpu
+            moduleLog.debug(
+                f"Sending this configuration to min gpu recommender: {configuration}"
+            )
+            config = JobConfig.model_validate(configuration)
+            moduleLog.debug(f"Validated configuration: {config}")
+            min_gpus, _ = recommend_min_gpu(
+                job_config=config, predictor=predictor, valid_n_gpu_list=[r_num_gpu]
+            )
+            if min_gpus < 1:
+                moduleLog.debug(
+                    f"Recommender was not able to issue recommender for {configuration}.. trying next"
+                )
+                continue
+
+            workers = math.ceil(min_gpus / gpus_per_worker)
+            gpus = math.ceil(min_gpus / workers)
+            result["can_recommend"] = True
+            result["gpus"] = gpus
+            result["workers"] = workers
+            moduleLog.debug(
+                f"recommender returned configuration workers:{workers} gpus:{gpus}"
+            )
+            break
+
+        return result
+
+    except Exception as e:
+        moduleLog.error(f"Error while trying to execute recommender:{e}")
+        result["can_recommend"] = False
+        return result

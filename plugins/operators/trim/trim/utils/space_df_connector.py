@@ -1,21 +1,27 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Hashable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 import ray
-from ray.actor import ActorHandle
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.metastore.project import ProjectContext
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.schema.entity import Entity
 from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from ray.actor import ActorHandle
+
+    from orchestrator.metastore.project import ProjectContext
+    from orchestrator.modules.operators.discovery_space_manager import (
+        DiscoverySpaceManager,
+    )
+    from orchestrator.schema.entity import Entity
 
 logger = logging.getLogger(__name__)
 

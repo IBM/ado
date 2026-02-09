@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from __future__ import annotations
@@ -11,17 +11,23 @@ import time
 import typing
 from collections import deque
 from datetime import datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
+import anyio
 import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
-from pydantic import BaseModel
 
 from orchestrator.core.discoveryspace.samplers import BaseSampler
-from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from trim.trim_pydantic import TrimParameters
+
+if TYPE_CHECKING:
+    from pydantic import BaseModel
+
+    from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
+    from orchestrator.modules.operators.discovery_space_manager import (
+        DiscoverySpaceManager,
+    )
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
@@ -72,11 +78,13 @@ class TrimSampleSelector(BaseSampler):
             )
 
             if logger_trim_sampler.isEnabledFor(logging.DEBUG):
-                debug_dir = Path(self.params.debugDirectory).expanduser().resolve()
+                debug_dir = (
+                    anyio.Path(self.params.debugDirectory).expanduser().resolve()
+                )
                 logger_trim_sampler.debug(
                     f"Creating a folder to save intermediate files:\n{debug_dir}\n\n"
                 )
-                debug_dir.mkdir(parents=True, exist_ok=True)
+                await debug_dir.mkdir(parents=True, exist_ok=True)
 
             discoverySpace = await stateHandle.discoverySpace.remote()
             list_of_entities, _df_ordered_to_sample = (
@@ -126,11 +134,7 @@ class TrimSampleSelector(BaseSampler):
                 # Ring-like data structures
                 yielded_entities = deque(maxlen=self.params.holdoutSize)
                 yielded_rows = RowsRing(
-                    maxlen=(
-                        self.params.holdoutSize
-                        if self.params.holdoutSize
-                        else self.params.iterationSize
-                    )
+                    maxlen=(self.params.holdoutSize or self.params.iterationSize)
                 )
                 for i in range(0, numberEntities, batchsize):
                     entity = list_of_entities[i : i + batchsize]

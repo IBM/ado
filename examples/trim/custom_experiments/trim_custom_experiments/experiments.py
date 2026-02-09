@@ -1,7 +1,7 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import Any, Literal
+from typing import Literal
 
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum

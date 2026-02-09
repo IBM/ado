@@ -109,9 +109,9 @@ stages:
 
 #### Stage 1: No-Priors Characterization
 
-Since we started with an empty sample store,
-`trim` first sees that it doesn't have enough data.
-It will log this and begin the initial characterization phase.
+Since in our example we started with an empty sample store, TRIM cannot
+immediately build a model. It will log this and begin the initial
+characterization phase.
 
 <!-- markdownlint-disable line-length -->
 

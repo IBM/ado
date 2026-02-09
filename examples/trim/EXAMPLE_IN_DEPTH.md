@@ -447,31 +447,7 @@ parameters:
 For rapid prototyping with limited measurement budget:
 
 ```yaml
-operation:
-  module:
-    operationType: characterize
-    operatorName: trim
-  parameters:
-    targetOutput: pressure
-    outputDirectory: trim_quick
-    samplingBudget:
-      minPoints: 15
-      maxPoints: 50
-    noPriorsParameters:
-      sampling_strategy: 'clhs'
-    iterationSize: 5
-    stoppingCriterion:
-      enabled: true
-      meanThreshold: 0.8  # Stop relatively quickly
-      stdThreshold: 0.8
-    autoGluonArgs:
-      fitArgs:
-        time_limit: 30
-        presets: 'medium_quality'
-    finalModelAutoGluonArgs:
-      fitArgs:
-        time_limit: 300
-        presets: 'medium_quality'
+--8<-- "examples/trim/configs/quick_exploration.yaml"
 ```
 
 ### Example 2: High-Quality Characterization
@@ -479,31 +455,7 @@ operation:
 Balanced approach for production use:
 
 ```yaml
-operation:
-  module:
-    operationType: characterize
-    operatorName: trim
-  parameters:
-    targetOutput: throughput
-    outputDirectory: trim_production
-    samplingBudget:
-      minPoints: 25
-      maxPoints: 150
-    noPriorsParameters:
-      sampling_strategy: 'sobol'
-    iterationSize: 7
-    stoppingCriterion:
-      enabled: true
-      meanThreshold: 0.9
-      stdThreshold: 0.75
-    autoGluonArgs:
-      fitArgs:
-        time_limit: 60
-        presets: 'medium_quality'
-    finalModelAutoGluonArgs:
-      fitArgs:
-        time_limit: 1200
-        presets: 'good_quality'
+--8<-- "examples/trim/configs/high_quality_characterization.yaml"
 ```
 
 ---

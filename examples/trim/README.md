@@ -12,10 +12,6 @@ pip install plugins/operators/trim/
 pip install -e examples/trim/custom_experiments/
 ```
 
-> **Note:** All commands below assume you are running them from
-the **top-level of the repository**, not from inside `examples/trim_custom_experiments/`.
-
----
 
 ## Create the space
 

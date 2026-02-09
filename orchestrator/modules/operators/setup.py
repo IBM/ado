@@ -84,8 +84,9 @@ def setup_actuators(
     actuator_configurations = actuator_configurations or []
     for actuatorConfig in actuator_configurations:
         actuatorIdentifier = actuatorConfig.actuatorIdentifier
+        actuator_class = registry.actuatorForIdentifier(actuatorIdentifier)
         actuator: ActuatorActor = (
-            registry.actuatorForIdentifier(actuatorIdentifier)
+            ray.remote(actuator_class)
             .options(name=actuatorIdentifier, namespace=namespace)
             .remote(queue=measurement_queue, params=actuatorConfig.parameters)
         )
@@ -114,11 +115,13 @@ def setup_actuators(
 
         moduleLog.debug(f"Instantiating actuator: {actuatorIdentifier}")
 
-        actuator: ActuatorActor = cls.options(
-            name=actuatorIdentifier, namespace=namespace
-        ).remote(
-            queue=measurement_queue,
-            params=default_actuator_parameters,
+        actuator: ActuatorActor = (
+            ray.remote(cls)
+            .options(name=actuatorIdentifier, namespace=namespace)
+            .remote(
+                queue=measurement_queue,
+                params=default_actuator_parameters,
+            )
         )
 
         actuators[actuatorIdentifier] = actuator

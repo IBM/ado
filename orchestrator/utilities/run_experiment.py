@@ -89,7 +89,7 @@ def local_execution_closure(
             else:
                 config = actuator_class.default_parameters()
 
-            actuators[reference.actuatorIdentifier] = actuator_class.remote(
+            actuators[reference.actuatorIdentifier] = ray.remote(actuator_class).remote(
                 queue=queue, params=config
             )
         actuator = actuators[reference.actuatorIdentifier]

@@ -50,7 +50,8 @@ def concatenated_latin_hypercube_sampling(
     if final_sample_size <= 0:
         return []
 
-    rng = random.Random(seed)  # noqa: S311
+    # Use default RNG when seed is not provided, otherwise create seeded instance
+    rng = random.Random() if seed is None else random.Random(seed)  # noqa: S311
 
     # Per-dimension pools: active permutation for the current block.
     # We maintain the Latin Hypercube property by sampling without replacement.
@@ -251,8 +252,6 @@ def get_sampling_indices_multi_dimensional(
     # Set the seed for the random number generator
     if seed is not None:
         random.seed(seed)
-    else:
-        seed = 123
 
     # Log space details if provided
     if space:

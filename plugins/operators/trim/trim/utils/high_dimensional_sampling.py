@@ -15,8 +15,8 @@ from trim.utils.one_dimensional_sampling import get_index_list_nn
 
 
 def concatenated_latin_hypercube_sampling(
-    dims: list[int],
-    n: int,
+    dimensions: list[int],
+    final_sample_size: int,
     seed: int | None = None,
 ) -> list[list[int]]:
     """
@@ -24,58 +24,60 @@ def concatenated_latin_hypercube_sampling(
 
     For each dimension independently, this method enforces a 1D stratification
     (Latin Hypercube property) by generating random permutations of the
-    possible values. If the number of requested samples 'n' exceeds the cardinality
+    possible values. If the number of requested samples 'final_sample_size' exceeds the cardinality
     of a dimension, new random permutations are concatenated to the sequence.
 
     This guarantees that for any dimension j with size d_j, every sequence
     of d_j samples contains exactly one instance of every value in range(d_j).
 
     Args:
-        dims (List[int]): Cardinality (size) of each dimension. Must be positive.
-        n (int): Total number of points to sample.
+        dimensions (List[int]): Cardinality (size) of each dimension. Must be positive.
+        final_sample_size (int): Total number of points to sample.
         seed (Optional[int]): Optional PRNG seed for reproducibility.
 
     Returns:
-        List[List[int]]: A list of n sampled points, where each point is a
+        List[List[int]]: A list of final_sample_size sampled points, where each point is a
         list of indices corresponding to the dimensions.
 
     Raises:
         ValueError: If any dimension size is less than 1.
     """
-    if any(d <= 0 for d in dims):
-        raise ValueError(f"All dimensions must be >= 1, received dims={dims}")
+    if any(d <= 0 for d in dimensions):
+        raise ValueError(
+            f"All dimensions must be >= 1, received dimensions={dimensions}"
+        )
 
-    if n <= 0:
+    if final_sample_size <= 0:
         return []
 
     rng = random.Random(seed)  # noqa: S311
 
     # Per-dimension pools: active permutation for the current block.
     # We maintain the Latin Hypercube property by sampling without replacement.
-    pools: list[list[int]] = [list(range(d)) for d in dims]
+    pools: list[list[int]] = [list(range(d)) for d in dimensions]
     samples: list[list[int]] = []
 
-    for _ in range(n):
+    for _ in range(final_sample_size):
         point: list[int] = []
-        for j, d in enumerate(dims):
+        for j, d in enumerate(dimensions):
             # If the current permutation block is exhausted, start a new one (new cycle).
             if not pools[j]:
                 pools[j] = list(range(d))
 
             # Select a random element from the remaining pool for this block.
             k = rng.randrange(len(pools[j]))
-            val = pools[j].pop(k)
-            point.append(val)
+            value = pools[j].pop(k)
+            point.append(value)
 
         samples.append(point)
 
     return samples
 
 
-# TODO: test this
-
-
-def sobol_sampling(dims: list[int], n: int, seed: int | None = None) -> list[list[int]]:
+# NOTE: preliminary tests on collision reveal that if final_sample_size is half of the product of dimensions collisions are rare
+def sobol_sampling(
+    dimensions: list[int], final_sample_size: int, seed: int | None = None
+) -> list[list[int]]:
     """
     Generates Sobol sampled points scaled to integer dimensions.
 
@@ -84,55 +86,57 @@ def sobol_sampling(dims: list[int], n: int, seed: int | None = None) -> list[lis
     occur (duplicate points), it falls back to Concatenated Latin Hypercube Sampling.
 
     Args:
-        dims (list[int]): A list of integers representing the size (cardinality) of each dimension.
-        n (int): The number of points to sample.
+        dimensions (list[int]): A list of integers representing the size (cardinality) of each dimension.
+        final_sample_size (int): The number of points to sample.
         seed (int | None, optional): Random seed for the Sobol scrambler. Defaults to None.
 
     Returns:
-        list[list[int]]: A list of n points, where each point is a list of integer coordinates.
+        list[list[int]]: A list of final_sample_size points, where each point is a list of integer coordinates.
     """
     # Sobol generates points in [0, 1). We scale them to the integer dimensions.
 
-    sampler = Sobol(d=len(dims), scramble=True, rng=seed)
-    points = sampler.random(n)
+    sampler = Sobol(d=len(dimensions), scramble=True, rng=seed)
+    points = sampler.random(final_sample_size)
 
     # Scale and floor to get integer indices
     discrete_points = [
-        [int(val * d) for val, d in zip(p, dims, strict=True)] for p in points
+        [int(val * d) for val, d in zip(p, dimensions, strict=True)] for p in points
     ]
 
     # Check for collisions
     # Convert inner lists to tuples because lists are unhashable and cannot be used in a set
     unique_points = {tuple(p) for p in discrete_points}
-    n_collisions = n - len(unique_points)
+    n_collisions = final_sample_size - len(unique_points)
 
     if n_collisions > 0:
         logging.error(
             f"Sobol sampling failed, {n_collisions} collisions detected, defaulting to clhs sampling"
         )
-        return concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=seed)
+        return concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=final_sample_size, seed=seed
+        )
 
     return discrete_points
 
 
 # TODO: test this function
 def distinct_sobol_sampling(
-    dims: list[int], n: int, seed: int | None = None
+    dimensions: list[int], final_sample_size: int, seed: int | None = None
 ) -> list[list[int]]:
     """
-    Generates 'n' distinct points on a grid of size 'dims' using a Sobol sequence.
+    Generates 'n' distinct points on a grid of size 'dimensions' using a Sobol sequence.
     Guarantees no collisions by skipping duplicates in the sequence.
     """
     # 1. Safety Check: Is the grid big enough?
-    total_capacity = np.prod(dims)
-    if n > total_capacity:
+    total_capacity = np.prod(dimensions)
+    if final_sample_size > total_capacity:
         raise ValueError(
-            f"Cannot generate {n} distinct points: Grid only has {total_capacity} cells."
+            f"Cannot generate {final_sample_size} distinct points: Grid only has {total_capacity} cells."
         )
 
     # 2. Setup Sobol
     # We scramble to get better coverage.
-    sampler = Sobol(d=len(dims), scramble=True, rng=seed)
+    sampler = Sobol(d=len(dimensions), scramble=True, rng=seed)
 
     unique_points = set()
     results = []
@@ -140,16 +144,16 @@ def distinct_sobol_sampling(
     # 3. Iterative Generation
     # We generate in batches to be efficient.
     # Start with a batch larger than N to account for potential rejections.
-    batch_size = max(n * 2, 64)
+    batch_size = max(final_sample_size * 2, 64)
 
-    while len(results) < n:
+    while len(results) < final_sample_size:
         # Draw a batch of float points [0, 1)
         raw_points = sampler.random(batch_size)
 
         for p in raw_points:
             # Discretize: Map [0, 1) -> Integer coordinates
             # Using int(x * dim) scales it to the grid index [0, dim-1]
-            coord = tuple([int(p[i] * dims[i]) for i in range(len(dims))])
+            coord = tuple([int(p[i] * dimensions[i]) for i in range(len(dimensions))])
 
             # Check Uniqueness
             if coord not in unique_points:
@@ -157,7 +161,7 @@ def distinct_sobol_sampling(
                 results.append(list(coord))
 
                 # Stop immediately if we have enough
-                if len(results) == n:
+                if len(results) == final_sample_size:
                     break
 
         # If we need more points, increase batch size for next iteration
@@ -168,21 +172,21 @@ def distinct_sobol_sampling(
 
 
 def random_high_dimensional_sampling(
-    dims: list[int], n: int, seed: int | None = None
+    dimensions: list[int], final_sample_size: int, seed: int | None = None
 ) -> list[list[int]]:
     """
     Generate n unique random samples from a high-dimensional space.
 
     Args:
-        dims: Cardinality (size) of each dimension. Must be positive.
-        n: Total number of points to sample.
+        dimensions: Cardinality (size) of each dimension. Must be positive.
+        final_sample_size: Total number of points to sample.
         seed: Optional PRNG seed for reproducibility.
 
     Returns:
-        List of n sampled points, each point is a list of indices
+        List of final_sample_size sampled points, each point is a list of indices
 
     Raises:
-        ValueError: If n exceeds the total number of possible configurations
+        ValueError: If final_sample_size exceeds the total number of possible configurations
     """
     import itertools
     import random
@@ -193,26 +197,26 @@ def random_high_dimensional_sampling(
         random.seed(seed)
 
     # Check if the number of requested samples is valid
-    num_configs = prod(dims)
-    if n > num_configs:
+    num_configs = prod(dimensions)
+    if final_sample_size > num_configs:
         raise ValueError(
-            f"Cannot generate {n} unique samples. "
+            f"Cannot generate {final_sample_size} unique samples. "
             f"The sample space only contains {num_configs} possibilities."
         )
 
     # This still creates all combinations in memory, which is a limitation
     # for extremely large dimensional spaces.
-    configs = itertools.product(*[range(d) for d in dims])
+    configs = itertools.product(*[range(d) for d in dimensions])
 
     # random.sample is highly optimized for this task.
     # It's much faster than manually choosing and removing.
-    samples = random.sample(list(configs), n)
+    samples = random.sample(list(configs), final_sample_size)
 
     return [list(s) for s in samples]
 
 
 def get_order_list_nn_high_dimensional(
-    dims: list[int],
+    dimensions: list[int],
     n: int | str = "all",
     space: dict[str, int] | None = None,
     strategy: str = "clhs",
@@ -222,10 +226,10 @@ def get_order_list_nn_high_dimensional(
     Generate sampling indices for a high-dimensional space using `get_index_list_nn` for each dimension.
 
     Args:
-        dims (List[int]): Sizes of each dimension (e.g., [8, 5]).
+        dimensions (List[int]): Sizes of each dimension (e.g., [8, 5]).
         n (int | str): Number of points to sample:
-            - 'all': sample all possible combinations (product of dims)
-            - 'max': sample up to max(dims)
+            - 'all': sample all possible combinations (product of dimensions)
+            - 'max': sample up to max(dimensions)
         strategy (str): sampling subroutine:
             - 'random': selects random points from the beginning
             - 'clhs': refer to concatenated_latin_hypercube_sampling
@@ -240,7 +244,7 @@ def get_order_list_nn_high_dimensional(
     if this number is exceeded, they resort to random sampling.
 
     Returns:
-        List[List[int]]: Outer list length = n (or product of dims if n='all').
+        List[List[int]]: Outer list length = n (or product of dimensions if n='all').
                         Each inner list contains one sampled combination across dimensions.
     """
 
@@ -253,9 +257,9 @@ def get_order_list_nn_high_dimensional(
     # Log space details if provided
     if space:
         indices_dict = {k: get_index_list_nn(v, v) for k, v in space.items()}
-        if [len(indices) for indices in list(indices_dict.values())] != dims:
+        if [len(indices) for indices in list(indices_dict.values())] != dimensions:
             logging.error(
-                f"A space dict has been provided ->{space}. It is inconsistent with dims={dims}"
+                f"A space dict has been provided ->{space}. It is inconsistent with dimensions={dimensions}"
             )
             logging.warning(
                 f"list(indices_dict.values()) = {list(indices_dict.values())}"
@@ -267,17 +271,17 @@ def get_order_list_nn_high_dimensional(
         )
 
     # Compute sampling orders for each dimension
-    orders = [get_index_list_nn(v, v) for v in dims]
-    logging.debug("Dimensions: %s", dims)
+    orders = [get_index_list_nn(v, v) for v in dimensions]
+    logging.debug("Dimensions: %s", dimensions)
     logging.debug("Sampling orders for each dimension:")
     for i, o in enumerate(orders):
         logging.debug("Dimension %d order: %s", i, o)
 
     # Calculate maximum possible samples
     maximum_n = 1
-    for d in dims:
+    for d in dimensions:
         maximum_n *= d
-    lcm = math.lcm(*dims)
+    lcm = math.lcm(*dimensions)
 
     if lcm != maximum_n:
         logging.debug(
@@ -289,7 +293,7 @@ def get_order_list_nn_high_dimensional(
         if n == "all":
             n = maximum_n
         elif n == "max":
-            n = max(dims)
+            n = max(dimensions)
         else:
             raise ValueError(f"Unrecognized string for n: {n}")
 
@@ -302,13 +306,15 @@ def get_order_list_nn_high_dimensional(
     logging.debug("Preparing to sample %d out of %d possible points.", n, maximum_n)
 
     if strategy == "random":
-        return random_high_dimensional_sampling(dims, n, seed=seed)
+        return random_high_dimensional_sampling(dimensions, n, seed=seed)
 
     if strategy == "clhs":
-        return concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=seed)
+        return concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=seed
+        )
 
     if strategy == "sobol":
-        return sobol_sampling(dims=dims, n=n, seed=seed)
+        return sobol_sampling(dimensions=dimensions, final_sample_size=n, seed=seed)
 
     raise NotImplementedError(f"Strategy {strategy} is unknown")
 
@@ -354,7 +360,7 @@ def unique_in_order_list_of_lists(
 
 def plot_grid(
     ax: Axes,
-    dims: list[int] | tuple[int, int],
+    dimensions: list[int] | tuple[int, int],
     points: np.ndarray | list[list[int]],
     title: str,
 ) -> None:
@@ -363,7 +369,7 @@ def plot_grid(
 
     Args:
         ax: Matplotlib axes object to draw on
-        dims: Dimensions of the grid [width, height]
+        dimensions: Dimensions of the grid [width, height]
         points: List of sampled points as [x, y] coordinates
         title: Title for the plot
     """
@@ -371,7 +377,7 @@ def plot_grid(
 
     import matplotlib.patches as patches
 
-    nx, ny = dims[0], dims[1]
+    nx, ny = dimensions[0], dimensions[1]
 
     # Setup grid
     ax.set_xlim(0, nx)
@@ -432,7 +438,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     # --- Configuration ---
-    DIMS = [40, 6]  # 4 columns, 6 rows (Total 24 cells)
+    dimensions = [40, 6]  # 4 columns, 6 rows (Total 24 cells)
     N = 50  # Number of samples to draw
     SEED = 42
 
@@ -440,16 +446,20 @@ if __name__ == "__main__":
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
     # 1. Random Sampling
-    pts_rnd = random_high_dimensional_sampling(DIMS, N, seed=SEED)
-    plot_grid(axes[0], DIMS, pts_rnd, f"Random Sampling (N={N})\n(Clumps & Gaps)")
+    pts_rnd = random_high_dimensional_sampling(dimensions, N, seed=SEED)
+    plot_grid(axes[0], dimensions, pts_rnd, f"Random Sampling (N={N})\n(Clumps & Gaps)")
 
     # 2. Concatenated LHS
-    pts_lhs = concatenated_latin_hypercube_sampling(DIMS, N, seed=SEED)
-    plot_grid(axes[1], DIMS, pts_lhs, f"Concatenated LHS (N={N})\n(Uniform Rows/Cols)")
+    pts_lhs = concatenated_latin_hypercube_sampling(dimensions, N, seed=SEED)
+    plot_grid(
+        axes[1], dimensions, pts_lhs, f"Concatenated LHS (N={N})\n(Uniform Rows/Cols)"
+    )
 
     # 3. Sobol Sequence
-    pts_sobol = sobol_sampling(DIMS, N, seed=SEED)
-    plot_grid(axes[2], DIMS, pts_sobol, f"Sobol Sequence (N={N})\n(Maximal Spreading)")
+    pts_sobol = sobol_sampling(dimensions, N, seed=SEED)
+    plot_grid(
+        axes[2], dimensions, pts_sobol, f"Sobol Sequence (N={N})\n(Maximal Spreading)"
+    )
 
     plt.tight_layout()
     plt.show()

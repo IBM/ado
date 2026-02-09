@@ -165,19 +165,10 @@ def save_source_train_holdout_dfs(
     iter: int,
     directory: str,
 ) -> None:
-    current_source_df.to_csv(
-        os.path.join(
-            directory,
-            f"source_at_iter_{iter}.csv",
-        ),
-        index=False,
-    )
-    train_df.to_csv(
-        os.path.join(directory, f"train_at_iter_{iter}.csv"),
-        index=False,
-    )
+    source_path = os.path.join(directory, f"source_at_iter_{iter}.csv")
+    train_path = os.path.join(directory, f"train_at_iter_{iter}.csv")
+    holdout_path = os.path.join(directory, f"holdout_at_iter_{iter}.csv")
 
-    current_holdout_df.to_csv(
-        os.path.join(directory, f"holdout_at_iter_{iter}.csv"),
-        index=False,
-    )
+    current_source_df.to_csv(source_path, index=False)
+    train_df.to_csv(train_path, index=False)
+    current_holdout_df.to_csv(holdout_path, index=False)

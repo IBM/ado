@@ -454,7 +454,7 @@ For rapid prototyping with limited measurement budget:
 Balanced approach for production use:
 
 ```yaml
---8<-- "examples/trim/configs/high_quality_characterization.yaml"
+{% include "./configs/high_quality_characterization.yaml" %}
 ```
 
 ---

@@ -45,27 +45,24 @@
 
 ## What is TRIM?
 
-**TRIM (Transfer Refined Iterative Modeling)**
-is a characterization operator designed to efficiently build a surrogate
- model of a system.
-It's perfect for situations where measuring points in your parameter space is costly.
+**TRIM (Transfer Refined Iterative Modeling)** is a characterization operator
+designed to efficiently build a surrogate model of a system. It's perfect for
+situations where measuring points in your parameter space is costly.
 
 It works in two main phases:
 
-1. **No-Priors Characterization**:
-    If there isn't enough existing data, `trim` starts by sampling a small,
-     representative set of points to get a baseline understanding of the space.
-2. **Iterative Modeling**:
-   `trim` then enters a loop: it uses the data
-   it has gathered to train a preliminary model (using `AutoGluon`),
-    uses that model's intelligence to decide which point to sample next,
-     measures that point, and then retrains the model.
-   It stops automatically when it determines that
-   further sampling won't significantly
-   improve the model's accuracy, saving you time and resources.
+1. **No-Priors Characterization**: If there isn't enough existing data, TRIM
+   starts by sampling a small, representative set of points to get a baseline
+   understanding of the space.
+2. **Iterative Modeling**: TRIM then enters a loop: it uses the data it has
+   gathered to train a preliminary model (using `AutoGluon`), uses that model's
+   intelligence to decide which point to sample next, measures that point, and
+   then retrains the model. It stops automatically when it determines that
+   further sampling won't significantly improve the model's accuracy, saving you
+   time and resources.
 
-Finally, it trains one high-quality model on all the data it has collected
-and saves it for you to use.
+Finally, it trains one high-quality model on all the data it has collected and
+saves it for you to use.
 
 ## Creating a `discoveryspace`
 

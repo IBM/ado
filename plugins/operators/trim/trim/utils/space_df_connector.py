@@ -7,7 +7,6 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-import ray
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
@@ -15,12 +14,7 @@ from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from ray.actor import ActorHandle
-
     from orchestrator.metastore.project import ProjectContext
-    from orchestrator.modules.operators.discovery_space_manager import (
-        DiscoverySpaceManager,
-    )
     from orchestrator.schema.entity import Entity
 
 logger = logging.getLogger(__name__)
@@ -108,7 +102,6 @@ def get_df_all_entities_no_measurements(
 def get_df_at_least_one_measured_value(
     discoverySpace: DiscoverySpace | str,
     targetOutput_list: list[str] | None = None,
-    discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,  # type: ignore =None,
     add_measurement_id: bool = False,
 ) -> pd.DataFrame:
     """
@@ -142,23 +135,14 @@ def get_df_at_least_one_measured_value(
     if add_measurement_id:
         col_list = ["identifier", *col_list]
 
-    if discoverySpaceManager:
-        df = pd.DataFrame(
-            ray.get(
-                discoverySpaceManager.matchingEntitiesTable.remote(
-                    property_type="target",
-                    aggregationMethod=PropertyAggregationMethodEnum.mean,
-                )
-            )
-        )
+    discoverySpace.sample_store.refresh()
 
-    else:
-        df = pd.DataFrame(
-            space.matchingEntitiesTable(
-                property_type="target",
-                aggregationMethod=PropertyAggregationMethodEnum.mean,
-            )
+    df = pd.DataFrame(
+        space.matchingEntitiesTable(
+            property_type="target",
+            aggregationMethod=PropertyAggregationMethodEnum.mean,
         )
+    )
 
     if df.empty:
         # NOTE: this condition is hit when there are no measurements at all existing in the space
@@ -237,11 +221,9 @@ def get_df_at_least_one_measured_value(
     return df
 
 
-# TODO: in case we keep the retrieval with ray get, this function will accept discoverySpaceManager as the first argument
 def get_source_and_target(
     discoverySpace: DiscoverySpace | str,
     targetOutput: str,
-    discoverySpaceManager: ActorHandle[DiscoverySpaceManager] | None = None,
     log_string: str = "",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -267,9 +249,7 @@ def get_source_and_target(
         (source_df, target_df)
     """
 
-    dfm = get_df_at_least_one_measured_value(
-        discoverySpace, [targetOutput], discoverySpaceManager=discoverySpaceManager
-    )
+    dfm = get_df_at_least_one_measured_value(discoverySpace, [targetOutput])
     dfu = get_df_all_entities_no_measurements(discoverySpace)
     keys = [c for c in dfu.columns if c in dfm.columns and c != "identifier"]
 

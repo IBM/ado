@@ -100,7 +100,6 @@ class TrimSampleSelector(BaseSampler):
                 initial_source_df, _target_df = get_source_and_target(
                     discoverySpace,
                     self.params.targetOutput,
-                    discoverySpaceManager=stateHandle,
                 )
 
                 if logger_trim_sampler.isEnabledFor(logging.DEBUG):
@@ -141,16 +140,13 @@ class TrimSampleSelector(BaseSampler):
 
                     if len(entity) == 0:
                         logger_trim_sampler.warning("No Entities remaining.")
-                        _ = self.finalize_model(
-                            discoverySpace, discoverySpaceManager=stateHandle
-                        )
+                        _ = self.finalize_model(discoverySpace)
                         break
 
                     current_source_df, _current_batch_size_target_df = (
                         get_source_and_target(
                             discoverySpace,
                             self.params.targetOutput,
-                            discoverySpaceManager=stateHandle,
                         )
                     )
 
@@ -446,7 +442,6 @@ class TrimSampleSelector(BaseSampler):
                         )
                         _predictor = self.finalize_model(
                             discoverySpace=discoverySpace,
-                            discoverySpaceManager=stateHandle,
                         )
                         break
 
@@ -478,14 +473,14 @@ class TrimSampleSelector(BaseSampler):
         return retval()
 
     def finalize_model(
-        self, discoverySpace: DiscoverySpace, discoverySpaceManager: DiscoverySpaceManager  # type: ignore[name-defined]
+        self,
+        discoverySpace: DiscoverySpace,
     ) -> TabularPredictor:
         """
         Train a final predictive model on all sampled source space data.
 
         Args:
             discoverySpace: The discovery space containing the entities
-            discoverySpaceManager: Manager for accessing the discovery space state
 
         Returns:
             TabularPredictor: The trained AutoGluon predictor on full source data
@@ -494,7 +489,6 @@ class TrimSampleSelector(BaseSampler):
         source_df, target_df = get_source_and_target(
             discoverySpace,
             self.params.targetOutput,
-            discoverySpaceManager=discoverySpaceManager,
         )
 
         # TODO: check why len(source_df) is minor than max(i) of the iterative modeling phase
@@ -598,7 +592,6 @@ class TrimSampleSelector(BaseSampler):
     def entities_for_iterative_modeling_from_discovery_space(
         self,
         discoverySpace: DiscoverySpace,
-        discoverySpaceManager: DiscoverySpaceManager | None = None,
     ) -> tuple[list, pd.DataFrame]:
         """
         Generate an ordered list of entities for iterative modeling from a discovery space.
@@ -628,9 +621,7 @@ class TrimSampleSelector(BaseSampler):
         """
 
         source_df, target_df = get_source_and_target(
-            discoverySpace,
-            self.params.targetOutput,
-            discoverySpaceManager=discoverySpaceManager,
+            discoverySpace, self.params.targetOutput
         )
 
         if logger_trim_sampler.isEnabledFor(logging.DEBUG):

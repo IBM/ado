@@ -30,7 +30,6 @@
 >
 > - All commands below assume you are running them from the
 > **top-level of the `ado` repository**.
-<!-- markdownlint-disable-next-line no-inline-html -->
 
 > [!TIP] TL;DR
 > To create a `discoveryspace` and explore it with the `trim` operator,

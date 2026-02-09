@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 from collections.abc import Callable
 
@@ -26,7 +26,6 @@ def pfas_sample_store_configuration_str() -> str:
       storageLocation:
         path: 'tests/test_generations.csv'
       parameters:
-        source: 'tests/test_generations.csv'
         generatorIdentifier: 'gt4sd-pfas-transformer-model-one'
     """
 

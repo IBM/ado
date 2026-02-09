@@ -1,7 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
+import typing
 
 from rich.status import Status
 
@@ -13,9 +14,11 @@ from orchestrator.cli.utils.resources.experiments import (
     _ado_get_actuator_from_experiment_id,
 )
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.schema.entityspace import EntitySpaceRepresentation
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
+
+if typing.TYPE_CHECKING:
+    from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 
 def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
@@ -30,12 +33,8 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
             experiment_references = []
             for pair in parameters.from_experiments:
                 for experiment_id, actuator_id in pair.items():
-                    actuator_id = (
-                        actuator_id
-                        if actuator_id
-                        else _ado_get_actuator_from_experiment_id(
-                            experiment_id=experiment_id, actuator_id=actuator_id
-                        )
+                    actuator_id = actuator_id or _ado_get_actuator_from_experiment_id(
+                        experiment_id=experiment_id, actuator_id=actuator_id
                     )
                     experiment_references.append(
                         ExperimentReference(

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -37,10 +37,10 @@ from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import MeasurementResult
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
     from pandas import DataFrame
+    from rich.console import RenderableType
 
-    import orchestrator.metastore.sqlstore
+    from orchestrator.metastore.sqlstore import SQLStore
 
 FORMAT = orchestrator.utilities.logging.FORMAT
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -145,14 +145,12 @@ class DiscoverySpace:
 
         """
 
-        import orchestrator.metastore.sqlstore
         from orchestrator.core.samplestore.utils import (
             load_sample_store_from_resource,
         )
+        from orchestrator.metastore.sqlstore import SQLStore
 
-        resourceStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+        resourceStore = SQLStore(project_context=project_context)
 
         entitySpace = None
 
@@ -217,12 +215,10 @@ class DiscoverySpace:
         cls, project_context: ProjectContext, space_identifier: str
     ) -> "DiscoverySpace":
 
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLStore
 
         moduleLogger.debug("Accessing discovery space metadata store")
-        metadataStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+        metadataStore = SQLStore(project_context=project_context)
         moduleLogger.debug(
             f"Retrieving configuration for discovery space {space_identifier}"
         )
@@ -268,11 +264,9 @@ class DiscoverySpace:
             ResourceDoesNotExistError: If the specified operation or related space do not exist.
             NoRelatedResourcesError: If no sample store is associated with the specified operation or related space.
         """
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLResourceStore
 
-        sql = orchestrator.metastore.sqlstore.SQLResourceStore(
-            project_context=project_context
-        )
+        sql = SQLResourceStore(project_context=project_context)
 
         # FIXME AP 12/06/2025:
         # We are using the first space - which may become a problem in the future
@@ -361,11 +355,9 @@ class DiscoverySpace:
         )
 
         # Access metadata store
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLStore
 
-        self._metadataStore = orchestrator.metastore.sqlstore.SQLStore(
-            project_context=project_context
-        )
+        self._metadataStore = SQLStore(project_context=project_context)
 
         self._identifier = (
             identifier
@@ -373,31 +365,41 @@ class DiscoverySpace:
             else f"space-{str(uuid.uuid4())[:6]}-{self._sample_store.identifier}"
         )
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Rich console representation of the DiscoverySpace."""
+        import rich.box
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
-        else:
-            p.text(f"Identifier: {self.uri}")
-            p.breakable()
-            if self.entitySpace is not None:
-                p.breakable()
-                with p.group(2, "Entity Space:"):
-                    p.breakable()
-                    p.pretty(self.entitySpace)
-                    p.breakable()
+        components = [
+            Text.assemble(("Identifier: ", "bold"), (self.uri, "bold green")),
+        ]
 
-            p.breakable()
-            with p.group(2, "Measurement Space:"):
-                p.breakable()
-                p.pretty(self.measurementSpace)
-                p.breakable()
+        if self.entitySpace is not None:
+            components.extend(
+                [
+                    Text("Entity Space:", style="bold"),
+                    Panel(self.entitySpace, box=rich.box.SIMPLE_HEAD),
+                ]
+            )
 
-            p.breakable()
-            with p.group(2, "Sample Store:"):
-                p.breakable()
-                p.pretty(self.sample_store)
-                p.breakable()
+        # MeasurementSpace has __rich__() method
+        components.extend(
+            [
+                Text("Measurement Space:", style="bold"),
+                Panel(self.measurementSpace, box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        components.extend(
+            [
+                Text("Sample Store:", style="bold"),
+                Panel(self.sample_store, box=rich.box.SIMPLE_HEAD),
+            ]
+        )
+
+        return Group(*components)
 
     @property
     def uri(self) -> str:
@@ -759,7 +761,7 @@ class DiscoverySpace:
     #
 
     @property
-    def metadataStore(self) -> "orchestrator.metastore.sqlstore.SQLStore":
+    def metadataStore(self) -> "SQLStore":
         """Returns an interface to the metadata store used by the space"""
 
         return self._metadataStore

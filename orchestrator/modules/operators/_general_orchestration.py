@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -39,10 +39,10 @@ def run_general_operation_core_closure(
     operation_parameters: dict,
 ) -> typing.Callable[[], OperationOutput | None]:
 
-    def _run_general_operation_core() -> OperationOutput:
+    def _run_general_operation_core() -> OperationOutput | None:
         return operation_function(
             discovery_space, operationInfo, **operation_parameters
-        )  # type: OperationOutput | None
+        )
 
     return _run_general_operation_core
 

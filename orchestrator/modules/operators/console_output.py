@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 """
@@ -8,6 +8,7 @@ Contains message definitions, FIFO Ray actor queue for cross-process safe messag
 """
 
 import queue
+import typing
 from typing import Literal
 
 import ray.util.queue
@@ -25,6 +26,9 @@ from rich.progress import (
 from rich.table import Table
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
+
+if typing.TYPE_CHECKING:
+    import pandas as pd
 
 
 class RichConsoleMessage(BaseModel):
@@ -210,7 +214,6 @@ def output_operation_results(
         Table: Rendered rich.Table object containing formatted measurement data.
     """
     import numpy as np
-    import pandas as pd
 
     df: pd.DataFrame = (
         discovery_space.complete_measurement_request_with_results_timeseries(
@@ -307,7 +310,7 @@ def output_operation_results(
     return table
 
 
-def render_progress_indicators(progress_items: dict) -> Panel:
+def render_progress_indicators(progress_items: dict) -> Panel | Group:
     """
     Render a rich.Panel containing all currently active spinner/progress renderables.
     Used to visually group multiple progress/spinner items in the UI.
@@ -315,9 +318,9 @@ def render_progress_indicators(progress_items: dict) -> Panel:
     Args:
         progress_items (dict): Mapping from string id to Progress or Spinner objects.
     Returns:
-        Panel: Panel with all renderables grouped together, one per row.
+        Panel | Group: Panel with all renderables grouped together if items exist, otherwise empty Group.
     """
-    return Panel(Group(*progress_items.values()))
+    return Panel(Group(*progress_items.values())) if progress_items else Group()
 
 
 def run_operation_live_updates(

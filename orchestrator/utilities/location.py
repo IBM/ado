@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -10,7 +10,7 @@ import pydantic
 from pydantic import ConfigDict
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 moduleLog = logging.getLogger("location")
 
@@ -118,12 +118,11 @@ class ResourceLocation(pydantic.BaseModel):
             path=self.path.lstrip("/"),
         )
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+    def __rich__(self) -> "RenderableType":
+        """Render this location using rich."""
+        from rich.text import Text
 
-        if cycle:
-            p.text("Cycle detected")
-        else:
-            p.text(self.url().unicode_string())
+        return Text(self.url().unicode_string())
 
 
 class FilePathLocation(ResourceLocation):
@@ -240,8 +239,6 @@ class SQLStoreConfiguration(StorageDatabaseConfiguration):
 
         if isinstance(m, pydantic.MySQLDsn) and not self.user:
             raise ValueError("You must specify the user when using MySQL")
-            # if not self.password:
-            #     raise ValueError("You must specify the password when using MySQL")
 
         return self
 

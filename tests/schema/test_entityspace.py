@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 from typing import Any
 
@@ -100,7 +100,7 @@ def test_entity_space_compatibility_with_measurement_space() -> None:
 
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ):
         measurement_space.checkEntitySpaceCompatible(entity_space)
 
@@ -115,7 +115,7 @@ def test_entity_space_compatibility_with_measurement_space() -> None:
     entity_space = EntitySpaceRepresentation([cp1, cp2, cp3_mis_spelt])
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ):
         measurement_space.checkEntitySpaceCompatible(entity_space)
 
@@ -247,9 +247,10 @@ def test_entity_in_space(
     assert not es.isEntityCompatibleWithSpace(newEntity)
 
 
-def test_entity_space_pretty(
+def test_entity_space_rich_print(
     constitutive_property_configuration_general: list[ConstitutiveProperty],
 ) -> None:
+    from rich.console import Console
 
     ## Add an Unknown property
 
@@ -275,9 +276,8 @@ def test_entity_space_pretty(
     es = EntitySpaceRepresentation(
         constitutiveProperties=constitutive_property_configuration_general
     )
-    from IPython.lib.pretty import pretty
 
-    pretty(es)
+    Console().print(es)
 
 
 def test_entity_space_dimension_values(

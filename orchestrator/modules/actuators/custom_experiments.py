@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import inspect
@@ -166,7 +166,7 @@ def get_parameterization(
     results = {}
     missing = []
     for prop in properties:
-        param = param_map.get(prop.identifier, None)
+        param = param_map.get(prop.identifier)
         if param and param.default is not inspect.Parameter.empty:
             results[prop.identifier] = param.default
         else:
@@ -224,7 +224,7 @@ def check_parameters_and_infer(
     logger = logging.getLogger("custom_experiment_decorator")
 
     # Set up dynamic optional_properties and parameterization if none were provided
-    _optional_properties = _optional_properties if _optional_properties else []
+    _optional_properties = _optional_properties or []
 
     if not _required_properties:
         try:
@@ -341,8 +341,8 @@ def custom_experiment(
         }
     """
 
-    metadata = metadata if metadata else {}
-    required_properties = required_properties if required_properties else []
+    metadata = metadata or {}
+    required_properties = required_properties or []
 
     ray_options_model = None
     if ray_options is not None:
@@ -683,7 +683,7 @@ class CustomExperiments(ActuatorBase):
         enable_ray_actor_coverage("custom_experiments")
         super().__init__(queue=queue, params=params)
 
-        params = params if params else {}
+        params = params or {}
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
         self.log.debug(f"Params are {params}")
 

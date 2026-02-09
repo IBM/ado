@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from rich.status import Status
@@ -26,6 +26,4 @@ def describe_data_container(parameters: AdoDescribeCommandParameters) -> None:
                 resource_id=parameters.resource_id, kind=CoreResourceKinds.DATACONTAINER
             )
 
-    from IPython.lib.pretty import pretty
-
-    console_print(pretty(datacontainer_resource), use_markup=False)
+    console_print(datacontainer_resource)

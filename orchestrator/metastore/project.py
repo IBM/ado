@@ -1,9 +1,8 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
 import os
-import typing
 from pathlib import Path
 from typing import Annotated
 
@@ -16,9 +15,6 @@ from orchestrator.utilities.location import (
     SQLStoreConfiguration,
     db_scheme_discriminator,
 )
-
-if typing.TYPE_CHECKING:
-    pass
 
 FORMAT = orchestrator.utilities.logging.FORMAT
 LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()

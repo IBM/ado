@@ -1,7 +1,5 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
-from __future__ import annotations
 
 import enum
 from enum import Enum
@@ -106,6 +104,7 @@ class AdoGetSupportedResourceTypes(Enum):
     CONTEXT = _CONTEXT_SINGULAR
     DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    EXPERIMENT = _EXPERIMENT_SINGULAR
     MEASUREMENT_REQUEST = _MEASUREMENT_REQUEST_SINGULAR
     OPERATION = _OPERATION_SINGULAR
     OPERATOR = _OPERATOR_SINGULAR

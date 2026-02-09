@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import os
@@ -36,12 +36,7 @@ def test_ray_runtime_env_with_ordered_pip_plugin(set_plugin: None) -> None:
     if not utils.is_pip_available():
         pytest.skip("pip is unavailable")
 
-    class_path = ".".join(
-        (
-            ordered_pip.OrderedPipPlugin.__module__,
-            ordered_pip.OrderedPipPlugin.__name__,
-        )
-    )
+    class_path = f"{ordered_pip.OrderedPipPlugin.__module__}.{ordered_pip.OrderedPipPlugin.__name__}"
 
     assert class_path == ordered_pip.OrderedPipPlugin.ClassPath
 

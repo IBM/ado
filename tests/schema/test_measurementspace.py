@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import re
 
@@ -150,10 +150,10 @@ def test_measurement_space_from_parameterized_references(
         experimentReferences=parameterized_references
     )
 
-    # Try pretty print
-    from IPython.lib import pretty
+    # Try rich print
+    from rich.console import Console
 
-    print(pretty.pretty(ms))
+    Console().print(ms)
 
     # Currently all references must match exactly
     # So passing non-parameterized version of an experiment, or reference to it, to experimentForReference
@@ -407,7 +407,7 @@ def test_check_entity_space_compatibility_multiple(
 
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ) as expected_exception:
         measurement_space_from_multiple_parameterized_experiments.checkEntitySpaceCompatible(
             es_test
@@ -445,7 +445,7 @@ def test_check_entity_space_compatibility_single(
     ):
         with pytest.raises(
             ValueError,
-            match="Identified a measurement space constitutive property not in entity space",
+            match="Identified that a required constitutive property for an experiment",
         ) as expected_exception:
             measurement_space_from_single_parameterized_experiment.checkEntitySpaceCompatible(
                 es_test
@@ -719,7 +719,7 @@ def test_dependent_experiments_single(
     )
 
     #
-    # Test: dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
+    # Test for dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
     #
     if measurement_space_from_single_parameterized_experiment.dependentExperiments:
         assert (
@@ -894,7 +894,7 @@ def test_dependent_experiments_multiple(
     )
 
     #
-    # Test: dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
+    # Test for dependentExperimentsThatCanBeAppliedAfterMeasurementRequest
     #
     dependent_exps = measurement_space_from_multiple_parameterized_experiments.dependentExperimentsThatCanBeAppliedAfterMeasurementRequest(
         request
@@ -991,23 +991,23 @@ def test_dependent_experiments_multiple(
     )
 
 
-def test_measurementspace_pretty(
+def test_measurementspace_rich_print(
     measurement_space_from_single_parameterized_experiment: MeasurementSpace,
 ) -> None:
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    print(pretty(measurement_space_from_single_parameterized_experiment))
+    Console().print(measurement_space_from_single_parameterized_experiment)
     print(measurement_space_from_single_parameterized_experiment)
 
 
-def test_measurementspace_pretty_multiple(
+def test_measurementspace_rich_print_multiple(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,
 ) -> None:
 
-    from IPython.lib.pretty import pretty
+    from rich.console import Console
 
-    print(pretty(measurement_space_from_multiple_parameterized_experiments))
+    Console().print(measurement_space_from_multiple_parameterized_experiments)
     print(measurement_space_from_multiple_parameterized_experiments)
 
 

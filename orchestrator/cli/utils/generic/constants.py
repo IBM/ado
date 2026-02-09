@@ -1,7 +1,5 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
-from __future__ import annotations
 
 SECONDS_IN_A_MINUTE = 60
 SECONDS_IN_AN_HOUR = 3600

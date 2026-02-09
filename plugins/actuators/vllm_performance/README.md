@@ -58,16 +58,24 @@ After running the exercise, please feel free to
 
 Ensure the virtual environment you installed `ado` into is active. Then, run:
 
-<!-- ```commandline
+```commandline
 pip install ado-vllm-performance
-``` -->
+```
+
+This will automatically install both vLLM and GuideLLM benchmarking
+tools, enabling all experiments:
+
+- `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
+- `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1`
+  (GuideLLM benchmarks)
+
+**For development from source:**
 
 ```commandline
 pip install -e plugins/actuators/vllm_performance
 ```
 
-from the root of the `ado` source repository.
-You can clone the repository with
+from the root of the `ado` source repository. You can clone the repository with:
 
 ```commandline
 git clone https://github.com/IBM/ado.git
@@ -127,7 +135,7 @@ metadata:
 parameters:
   benchmark_retries: 3
   hf_token: ""
-  image_secret: ""
+  image_pull_secret_name: ""
   in_cluster: true
   interpreter: python3
   max_environments: 1
@@ -403,8 +411,8 @@ and modify them appropriately
 
 If you create a custom Docker image and upload it to a repository, please do not
 forget to create a corresponding Image pull secret in your assigned namespace.
-You must also update the value of the `image_secret` parameter of the actuator
-configuration.
+You must also update the value of the `image_pull_secret_name` parameter of the
+actuator configuration.
 
 ### Customising Experiment Protocol
 

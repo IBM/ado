@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import typer
@@ -19,7 +19,6 @@ from orchestrator.schema.reference import ExperimentReference
 
 
 def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
-    from IPython.lib.pretty import pretty
 
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY):
         registry = ActuatorRegistry.globalRegistry()
@@ -36,12 +35,8 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         raise typer.Exit(1)
 
     #
-    actuator_id = (
-        parameters.actuator_id
-        if parameters.actuator_id
-        else _ado_get_actuator_from_experiment_id(
-            experiment_id=parameters.resource_id, actuator_id=None
-        )
+    actuator_id = parameters.actuator_id or _ado_get_actuator_from_experiment_id(
+        experiment_id=parameters.resource_id, actuator_id=None
     )
     experiment = registry.experimentForReference(
         ExperimentReference(
@@ -49,4 +44,4 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         )
     )
 
-    console_print(pretty(experiment), has_pandas_content=True, use_markup=False)
+    console_print(experiment)

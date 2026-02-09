@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import json
@@ -18,7 +18,6 @@ from ado_actuators.sfttrainer.experiments.common import (
 
 
 @ray.remote(
-    # resources={"Tesla-V100-PCIE-16GB": 1},
     runtime_env={
         "pip": ["accelerate", "transformers>=4.40.0"],
         "env_vars": {

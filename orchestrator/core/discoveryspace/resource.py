@@ -1,16 +1,18 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import typing
 import uuid
 
 import pydantic
+import rich.box
 
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
+from orchestrator.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:
-    from IPython.lib.pretty import PrettyPrinter
+    from rich.console import RenderableType
 
 
 class DiscoverySpaceResource(ADOResource):
@@ -19,61 +21,72 @@ class DiscoverySpaceResource(ADOResource):
     kind: CoreResourceKinds = CoreResourceKinds.DISCOVERYSPACE
     config: DiscoverySpaceConfiguration
 
-    @pydantic.model_validator(mode="after")
-    def generate_identifier_if_not_provided(self) -> "DiscoverySpaceResource":
+    identifier: typing.Annotated[
+        Defaultable[str],
+        pydantic.Field(
+            default_factory=lambda: f"space-{str(uuid.uuid4())[:8]}",
+        ),
+    ]
 
-        # We can't reliably get the sample store identifier from a SampleStoreConfiguration
-        # This is because (A) it may represent an uncreated SampleStore and (B) if created the location
-        # of the identifier in the parameters is unknown
-        # We would need the SampleStore object or SampleStoreResource
-        if self.identifier is None:
-            self.identifier = f"space-{str(uuid.uuid4())[:8]}"
+    def __rich__(self) -> "RenderableType":
+        """Render this discovery space resource using rich."""
+        from rich.console import Group
+        from rich.panel import Panel
+        from rich.text import Text
 
-        return self
+        from orchestrator.schema.entityspace import EntitySpaceRepresentation
+        from orchestrator.schema.measurementspace import MeasurementSpace
+        from orchestrator.utilities.rich import get_rich_repr
 
-    def _repr_pretty_(self, p: "PrettyPrinter", cycle: bool = False) -> None:
+        content = [
+            Text("Identifier:", style="bold", end=" "),
+            get_rich_repr(self.identifier),
+            Text(),
+        ]
 
-        if cycle:  # pragma: nocover
-            p.text("Cycle detected")
+        # Entity Space section
+        entity_space = EntitySpaceRepresentation.representationFromConfiguration(
+            conf=self.config.entitySpace
+        )
+        if entity_space is not None:
+            content.extend(
+                [
+                    Text("Entity Space:", style="bold"),
+                    Panel(
+                        entity_space,
+                        box=rich.box.SIMPLE_HEAD,
+                        padding=(0, 2),
+                    ),  # Uses entity_space.__rich__()
+                ]
+            )
+
+        # Measurement Space section
+        if isinstance(
+            self.config.experiments,
+            MeasurementSpaceConfiguration,
+        ):
+            measurement_space = MeasurementSpace(configuration=self.config.experiments)
         else:
-            from orchestrator.schema.entityspace import EntitySpaceRepresentation
-            from orchestrator.schema.measurementspace import (
-                MeasurementSpace,
+            measurement_space = MeasurementSpace.measurementSpaceFromSelection(
+                selectedExperiments=self.config.experiments
             )
 
-            p.text(f"Identifier: {self.identifier}")
-            p.breakable()
+        content.extend(
+            [
+                Text("Measurement Space:", style="bold"),
+                Panel(
+                    measurement_space,
+                    box=rich.box.SIMPLE_HEAD,
+                    padding=(0, 2),
+                ),  # Uses measurement_space.__rich__()
+            ]
+        )
 
-            entity_space = EntitySpaceRepresentation.representationFromConfiguration(
-                conf=self.config.entitySpace
+        content.append(
+            Text.assemble(
+                ("Sample Store identifier: ", "bold"),
+                (self.config.sampleStoreIdentifier, "cyan"),
             )
-            if entity_space is not None:
-                p.breakable()
-                with p.group(2, "Entity Space:"):
-                    p.breakable()
-                    p.break_()
-                    p.pretty(entity_space)
-                    p.breakable()
+        )
 
-            p.breakable()
-            with p.group(2, "Measurement Space:"):
-                if isinstance(
-                    self.config.experiments,
-                    MeasurementSpaceConfiguration,
-                ):
-                    measurement_space = MeasurementSpace(
-                        configuration=self.config.experiments
-                    )
-                else:
-                    measurement_space = MeasurementSpace.measurementSpaceFromSelection(
-                        selectedExperiments=self.config.experiments
-                    )
-                p.breakable()
-                p.pretty(measurement_space)
-                p.breakable()
-
-            p.breakable()
-            with p.group(2, "Sample Store identifier:"):
-                p.breakable()
-                p.pretty(self.config.sampleStoreIdentifier)
-                p.breakable()
+        return Group(*content)

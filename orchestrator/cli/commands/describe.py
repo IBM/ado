@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -170,13 +170,6 @@ def describe_resource(
         AdoDescribeSupportedResourceTypes.DISCOVERY_SPACE: describe_discovery_space,
         AdoDescribeSupportedResourceTypes.EXPERIMENT: describe_experiment,
     }
-
-    from orchestrator.cli.utils.output.prints import set_pandas_display_options
-
-    # We need to set the display options here, before the call to pretty is
-    # made, as otherwise IPython's pretty will be called before console_print
-    # manages to set the display options, causing truncated column names.
-    set_pandas_display_options()
 
     try:
         method_mapping[resource_type](parameters=parameters)

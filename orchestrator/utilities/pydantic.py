@@ -1,9 +1,22 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import re
 import typing
+from typing import Annotated, TypeVar
 
 import pydantic
+from pydantic import BeforeValidator
+from pydantic_core import PydanticUseDefault
+
+
+def default_if_none(value: typing.Any) -> typing.Any:  # noqa: ANN401
+    if value is None:
+        raise PydanticUseDefault
+    return value
+
+
+T = TypeVar("T")
+Defaultable = Annotated[T, BeforeValidator(default_if_none)]
 
 
 def model_dict_representation_with_field_exclusions_for_custom_model_serializer(

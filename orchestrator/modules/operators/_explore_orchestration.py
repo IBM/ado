@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -156,7 +156,8 @@ def run_explore_operation_core_closure(
             operation_future=future,
         )
 
-        return ray.get(future)  # type: OperationOutput
+        operation_output: OperationOutput = ray.get(future)
+        return operation_output
 
     return _run_explore_operation_core
 

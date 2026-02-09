@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import json
 import math
@@ -136,7 +136,6 @@ def test_valid_property_domains() -> None:
     assert discretePropertyDomainNoRange.valueInDomain(-10) is True
     assert discretePropertyDomainNoRange.valueInDomain(1) is True
     # For discrete variables with an interval we need at least one part of range to anchor the interval!
-    # assert discretePropertyDomainNoRange.valueInDomain(0.5) is False
     assert discretePropertyDomainNoRange.valueInDomain(100) is True
     assert categoricalPropertyDomain.valueInDomain("A") is True
     assert categoricalPropertyDomain.valueInDomain(3) is True
@@ -610,15 +609,16 @@ def test_domain_sizes() -> None:
     assert unknownPropertyDomain.size == math.inf
 
 
-def test_range_in_pretty() -> None:
+def test_range_in_rich_print() -> None:
 
-    from IPython.lib.pretty import pretty
+    from orchestrator.utilities.rich import render_to_string
 
     # Continuous
     continuousPropertyDomain = PropertyDomain(domainRange=[-10, 10])
-    assert "Range" in pretty(
-        continuousPropertyDomain
-    ), "Expected continuous domain with range to output Range in pretty print"
+    output = render_to_string(continuousPropertyDomain)
+    assert (
+        "Range" in output
+    ), "Expected continuous domain with range to output Range in rich print"
 
     # Discrete
     discretePropertyDomain = PropertyDomain(
@@ -626,43 +626,48 @@ def test_range_in_pretty() -> None:
         domainRange=[-9, 19],
         interval=2,
     )
-    assert "Range" in pretty(
-        discretePropertyDomain
-    ), "Expected discrete domain with range to output Range in pretty print"
+    output = render_to_string(discretePropertyDomain)
+    assert (
+        "Range" in output
+    ), "Expected discrete domain with range to output Range in rich print"
 
     # Discrete
     discretePropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
         values=[1, 2, 4, 8, 16, 32],
     )
-    assert "Range" not in pretty(
-        discretePropertyDomain
-    ), "Expected discrete domain with values NOT to output a Range in pretty print"
+    output = render_to_string(discretePropertyDomain)
+    assert (
+        "Range" not in output
+    ), "Expected discrete domain with values NOT to output a Range in rich print"
 
     # Binary
     binaryPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
     )
-    assert "Range" not in pretty(
-        binaryPropertyDomain
-    ), "Expected binary domain NOT to output Range in pretty print"
+    output = render_to_string(binaryPropertyDomain)
+    assert (
+        "Range" not in output
+    ), "Expected binary domain NOT to output Range in rich print"
 
     # Categorical
     categoricalPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE, values=[1, 2, 3, 4]
     )
-    assert "Range" not in pretty(
-        categoricalPropertyDomain
-    ), "Expected categorical domain with numeric values NOT to output Range in pretty print"
+    output = render_to_string(categoricalPropertyDomain)
+    assert (
+        "Range" not in output
+    ), "Expected categorical domain with numeric values NOT to output Range in rich print"
 
     # Unknown
     unknownPropertyDomain = PropertyDomain(
         variableType=VariableTypeEnum.UNKNOWN_VARIABLE_TYPE, values=[1, 2, 3, 4]
     )
+    output = render_to_string(categoricalPropertyDomain)
     assert (
         unknownPropertyDomain.variableType is VariableTypeEnum.DISCRETE_VARIABLE_TYPE
     ), "Expected UNKNOWN variable type to be converted to DISCRETE as the input values match a discrete variable"
-    assert "Range" not in pretty(unknownPropertyDomain)
+    assert "Range" not in output
 
 
 def test_value_in_domain() -> None:

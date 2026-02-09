@@ -1,7 +1,5 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
-from __future__ import annotations
 
 import math
 import typing
@@ -9,16 +7,17 @@ from io import StringIO
 
 import rich.table
 
-import orchestrator.metastore.project
 import orchestrator.schema.property
 from orchestrator.cli.utils.output.prints import console_print
-from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 
 if typing.TYPE_CHECKING:
     import pandas as pd
+
+    from orchestrator.core.discoveryspace.resource import DiscoverySpaceResource
+    from orchestrator.metastore.project import ProjectContext
 
 
 class SpaceDetails:
@@ -54,7 +53,7 @@ class SpaceDetails:
         self.size_of_entity_space = size_of_entity_space
 
     @classmethod
-    def from_space(cls, space: DiscoverySpace) -> SpaceDetails:
+    def from_space(cls, space: DiscoverySpace) -> "SpaceDetails":
 
         import pandas as pd
 
@@ -201,11 +200,12 @@ class SpaceSummary:
     def __init__(
         self,
         space_id: str,
-        project_context: orchestrator.metastore.project.ProjectContext,
+        project_context: "ProjectContext",
     ) -> None:
-        import orchestrator.metastore.sqlstore
+        from orchestrator.metastore.sqlstore import SQLStore
+        from orchestrator.schema.property import NonMeasuredPropertyTypeEnum
 
-        sql = orchestrator.metastore.sqlstore.SQLStore(project_context=project_context)
+        sql = SQLStore(project_context=project_context)
 
         space_resource: DiscoverySpaceResource = sql.getResource(
             identifier=space_id,
@@ -235,14 +235,9 @@ class SpaceSummary:
         )
 
         constitutive_properties = {
-            p.identifier: (
-                p.propertyDomain.values
-                if p.propertyDomain.values
-                else p.propertyDomain.domainRange
-            )
+            p.identifier: (p.propertyDomain.values or p.propertyDomain.domainRange)
             for p in space_resource.config.entitySpace
-            if p.propertyType
-            == orchestrator.schema.property.NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
+            if p.propertyType == NonMeasuredPropertyTypeEnum.CONSTITUTIVE_PROPERTY_TYPE
         }
 
         self.id = space.resource.identifier
@@ -363,7 +358,7 @@ class SpaceSummary:
         self,
         include_properties: list[str] | None = None,
         columns_to_hide: list[str] | None = None,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
 
         import pandas as pd
 
@@ -390,8 +385,8 @@ class SpaceSummary:
                 if math.isnan(self.matching_and_measured_percentage)
                 else f"{math.floor(self.matching_and_measured_percentage)}%"
             ),
-            "Name": self.name if self.name else "",
-            "Description": self.description if self.description else "",
+            "Name": self.name or "",
+            "Description": self.description or "",
         }
 
         if self.labels:

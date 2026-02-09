@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import os
@@ -65,7 +65,6 @@ def test_describe_peptide_mineralization_experiment() -> None:
     runner = CliRunner()
     result = runner.invoke(ado, ["describe", "experiment", "peptide_mineralization"])
     assert result.exit_code == 0
-    assert (
-        "Identifier: robotic_lab.peptide_mineralization\n\n"
-        "Measures adsorption of peptide lanthanide combinations"
-    ) in result.output
+    assert ("Identifier: robotic_lab.peptide_mineralization") in result.output
+
+    assert "Measures adsorption of peptide lanthanide combinations" in result.output

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import json
@@ -86,6 +86,7 @@ class SQLResourceStore(ResourceStore):
 
         self.project_context = project_context
         self.configuration = project_context.metadataStore
+        self._engine = engine_for_sql_store(configuration=project_context.metadataStore)
 
         FORMAT = orchestrator.utilities.logging.FORMAT
         LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
@@ -98,17 +99,27 @@ class SQLResourceStore(ResourceStore):
         )
 
         if ensureExists:
-            # self.log.warning("Ensuring store existence")
             self.log.debug("Initialising SQL db if it does not exist")
             create_sql_resource_store(self.engine)
             self.log.debug("Done")
 
         super().__init__()
 
+    # The SQLAlchemy Engine is not picklable, so anything using
+    # Ray would fail. To avoid this, we remove it before pickling
+    # and create a new instance when unpickling.
+    def __getstate__(self) -> dict:
+        state = self.__dict__.copy()
+        del state["_engine"]
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._engine = engine_for_sql_store(self.configuration)
+
     @property
     def engine(self) -> sqlalchemy.Engine:
-
-        return engine_for_sql_store(configuration=self.configuration)
+        return self._engine
 
     def getResourceRaw(self, identifier: str) -> dict | None:
         """Retrieve the raw JSON data for a resource.
@@ -139,10 +150,8 @@ class SQLResourceStore(ResourceStore):
             "SELECT * FROM resources WHERE identifier=:identifier"
         ).bindparams(identifier=identifier)
 
-        # self.log.warning("GETTING RESOURCE")
         with self.engine.connect() as connectable:
             table = pd.read_sql(query, con=connectable)
-        # self.log.warning("GOT RESOURCE")
 
         raw = None
         if table.shape[0] > 0:
@@ -205,10 +214,8 @@ class SQLResourceStore(ResourceStore):
             AND kind=:kind
             """).bindparams(identifier=identifier, kind=kind.value)
 
-        # self.log.warning("GETTING RESOURCE")
         with self.engine.connect() as connectable:
             table = pd.read_sql(query, con=connectable)
-        # self.log.warning("GOT RESOURCE")
 
         resource = None
         if table.shape[0] > 0:
@@ -420,7 +427,7 @@ class SQLResourceStore(ResourceStore):
         # FROM
         from_statement = "FROM resources "
 
-        field_selectors = field_selectors if field_selectors else {}
+        field_selectors = field_selectors or {}
 
         # WHERE
         where_statement = f"WHERE kind = '{kind}'"

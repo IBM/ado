@@ -174,9 +174,9 @@ it will check the stopping criterion:
 
 #### Stage 3: Stopping and Finalizing
 
-The iterative process continues until the model's performance stabilizes.
-At this point, the stopping criterion is met,
-and `trim` proceeds to train one final model on all the data it has gathered.
+The iterative process continues until the model's performance stabilizes. At
+that point, the stopping criterion is met, and TRIM will train one final model
+on all the data it has gathered.
 
 <!-- markdownlint-disable line-length -->
 ```commandline

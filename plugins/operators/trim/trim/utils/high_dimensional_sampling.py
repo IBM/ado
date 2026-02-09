@@ -162,7 +162,7 @@ def distinct_sobol_sampling(
 
                 # Stop immediately if we have enough
                 if len(results) == final_sample_size:
-                    break
+                    return results
 
         # If we need more points, increase batch size for next iteration
         # (helpful if the grid is nearly full and collisions are frequent)

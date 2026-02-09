@@ -265,7 +265,7 @@ def get_sampling_indices_multi_dimensional(
             logging.warning(
                 f"list(indices_dict.values()) = {list(indices_dict.values())}"
             )
-            # raise ValueError
+            raise ValueError("Space has inconsistent dimensions!")
         logging.info(
             "Sampling indices for each named dimension (ordered low to high): %s",
             indices_dict,

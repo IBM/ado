@@ -16,7 +16,6 @@
 > 3. Observing TRIM's progress as it first characterizes the space and then
 >    iteratively refines its model. When the quality of this predictive model
 >    does not improve, TRIM stops.
-<!-- markdownlint-disable-next-line no-inline-html -->
 
 > [!IMPORTANT] Prerequisites
 >

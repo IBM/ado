@@ -85,9 +85,9 @@ The output will be similar to:
 Success! Created space with identifier: space-bfed2d-19b49a
 ```
 
-## Exploring with a `trim` Operation
+## Exploring with a TRIM Operation
 
-Next, we will run an `operation` that uses `trim` to explore the `discoveryspace`.
+Next, we will run an `operation` that uses TRIM to explore the `discoveryspace`.
 The configuration for our operation is in `op_pressure.yaml`:
 
 ```yaml

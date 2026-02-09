@@ -42,6 +42,7 @@
 > : # Explore it with TRIM!
 > ado create operation -f examples/trim/configs/op_pressure.yaml --use-latest space
 > ```
+<!-- markdownlint-enable no-blanks-blockquote -->
 
 ## What is TRIM?
 

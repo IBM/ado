@@ -394,11 +394,11 @@ def plot_grid(
     grid_content = defaultdict(list)
 
     # points is a list of [x, y], enumerate gives us the time index (0-based)
-    for t, p in enumerate(points):
-        x, y = int(p[0]), int(p[1])  # Ensure integers
+    for time, point in enumerate(points):
+        x, y = int(point[0]), int(point[1])  # Ensure integers
         if 0 <= x < nx and 0 <= y < ny:
             # Store t + 1 so the first sample is '1'
-            grid_content[(x, y)].append(t + 1)
+            grid_content[(x, y)].append(time + 1)
 
     # Draw squares and text
     for (x, y), indices in grid_content.items():

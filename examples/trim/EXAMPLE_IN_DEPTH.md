@@ -446,7 +446,7 @@ parameters:
 For rapid prototyping with limited measurement budget:
 
 ```yaml
---8<-- "examples/trim/configs/quick_exploration.yaml"
+{% include "./configs/quick_exploration.yaml" %}
 ```
 
 ### Example 2: High-Quality Characterization

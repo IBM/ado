@@ -237,27 +237,32 @@ ado show related operation --use-latest
 ```
 
 This will show the `discoveryspace` and the sub-operations that were run.
-To see the actual data points from the final iterative phase, you can run:
+To see the entities of the space that have been measured, you can run:
 
+<!-- markdownlint-disable line-length -->
 ```commandline
-# The identifier will be different for your run
-ado show entities operation randomwalk-1.3.3.dev14+177ead3c.dirty-14a313
+# The identifier will be different for your run, but you can also substitute it with '--use-latest space' 
+ado show entities space space-bfed2d-19b49a  
 ```
-
+<!-- markdownlint-enable line-length -->
 This will display a table of the entities sampled and their
  measured pressure values.
 
 <!-- markdownlint-disable line-length -->
 ```text
-             Measurements - randomwalk-1.3.3.dev14+177ead3c.dirty-14a313              
-┏━━━━━━━┳━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ index ┃ mol  ┃ temperature ┃ volume ┃ pressure ┃ request_id ┃ entity_index ┃ valid ┃
-┡━━━━━━━╇━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━┩
-│ 21    │ 0.40 │ 296.00      │ 8.00   │ 123.05   │ de3011     │ 0            │ True  │
-│ 20    │ 0.20 │ 276.00      │ 1.00   │ 458.96   │ eec630     │ 0            │ True  │
-│ 19    │ 0.20 │ 286.00      │ 2.00   │ 237.79   │ 15f0f5     │ 0            │ True  │
-│ 18    │ 0.10 │ 288.00      │ 6.00   │ 39.91    │ 938036     │ 0            │ True  │
-│ 17    │ 0.70 │ 278.00      │ 2.00   │ 809.00   │ b6ede7     │ 0            │ True  │
+                             identifier generatorid                                    experiment_id  temperature  volume  mol     pressure
+0   temperature.270.0-volume.5.0-mol.0.2         unk  custom_experiments.calculate_pressure_ideal_gas        270.0     5.0  0.2    89.796196
+1   temperature.296.0-volume.8.0-mol.0.6         unk  custom_experiments.calculate_pressure_ideal_gas        296.0     8.0  0.6   184.581070
+2   temperature.274.0-volume.9.0-mol.0.9         unk  custom_experiments.calculate_pressure_ideal_gas        274.0     9.0  0.9   227.816276
+3   temperature.272.0-volume.4.0-mol.0.7         unk  custom_experiments.calculate_pressure_ideal_gas        272.0     4.0  0.7   395.768421
+4   temperature.292.0-volume.3.0-mol.0.4         unk  custom_experiments.calculate_pressure_ideal_gas        292.0     3.0  0.4   323.709745
+5   temperature.276.0-volume.2.0-mol.0.3         unk  custom_experiments.calculate_pressure_ideal_gas        276.0     2.0  0.3   344.218752
+6   temperature.288.0-volume.7.0-mol.0.5         unk  custom_experiments.calculate_pressure_ideal_gas        288.0     7.0  0.5   171.040374
+7   temperature.284.0-volume.1.0-mol.0.1         unk  custom_experiments.calculate_pressure_ideal_gas        284.0     1.0  0.1   236.130738
+8   temperature.286.0-volume.6.0-mol.0.8         unk  custom_experiments.calculate_pressure_ideal_gas        286.0     6.0  0.8   317.058174
+9   temperature.278.0-volume.1.0-mol.0.6         unk  custom_experiments.calculate_pressure_ideal_gas        278.0     1.0  0.6  1386.852365
+10  temperature.294.0-volume.3.0-mol.0.1         unk  custom_experiments.calculate_pressure_ideal_gas        294.0     3.0  0.1    81.481734
+11  temperature.280.0-volume.8.0-mol.0.3         unk  custom_experiments.calculate_pressure_ideal_gas        280.0     8.0  0.3    87.301857
 ...
 ```
 <!-- markdownlint-enable line-length -->

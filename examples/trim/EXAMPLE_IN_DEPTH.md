@@ -121,11 +121,16 @@ For each iteration:
 After every point:
 
 - Compares model performance between the last two non-overlapping windows
-  of `iterationSize` points.
-  Each point corresponds to the predictive model performance metric
-  of a different model on a different holdout set.
-  The most recently obtained model has the highest training size.
-- Calculates mean and standard deviation ratios, e.g. the mean performance metric
+  of `iterationSize` points. Here's what this means:
+  - TRIM trains a new model after sampling each new point
+  - Each model is evaluated on its holdout set, producing a performance score
+  - A "window" contains `iterationSize` consecutive performance scores
+  - The "recent window" contains scores from the last `iterationSize` models
+  - The "previous window" contains scores from the `iterationSize` models
+   before that
+  - Models trained later have more training data (higher training size)
+- Calculates mean and standard deviation ratios,
+  e.g. the mean performance metric
   of the last window divided by the mean performance metric of the previous one.
 - Stops if both ratios fall below their thresholds (improvement has plateaued)
 - Otherwise, continues sampling

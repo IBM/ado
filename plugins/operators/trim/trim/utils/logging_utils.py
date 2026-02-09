@@ -151,8 +151,8 @@ def training_guardrail(train_df: pd.DataFrame, targetOutput: str) -> pd.DataFram
 
     if train_df.empty:
         logger.warning(
-            "Empty training dataframe, this means either that the operation configuration or \
-        the inference problem is ill posed"
+            "Empty training dataframe, this means either that "
+            "the operation configuration or the inference problem is ill posed"
         )
         raise ValueError("Empty dataframe!")
     return train_df

@@ -8,7 +8,7 @@ from pandas import DataFrame
 logger = logging.getLogger(__name__)
 
 
-def get_index_list_nn(
+def get_index_list_van_der_corput(
     length_segment: int,
     tot_points_to_sample: int,
     sampled_indices: list[int] | None = None,

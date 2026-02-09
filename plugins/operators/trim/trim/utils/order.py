@@ -10,7 +10,7 @@ import pandas as pd
 from autogluon.tabular import TabularPredictor
 
 from trim.trim_pydantic import AutoGluonArgs
-from trim.utils.high_dimensional_sampling import get_order_list_nn_high_dimensional
+from trim.utils.high_dimensional_sampling import get_sampling_indices_multi_dimensional
 from trim.utils.miscellaneous import delete_dir
 
 logger = logging.getLogger(__name__)
@@ -190,7 +190,7 @@ def order_df_for_sampling_with_no_priors(
     ).reset_index(drop=True)
 
     # Generate sampling orders
-    orders_to_sample = get_order_list_nn_high_dimensional(
+    orders_to_sample = get_sampling_indices_multi_dimensional(
         dims=dims, space=space_dict, n=n, strategy=strategy
     )
 

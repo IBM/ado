@@ -37,7 +37,7 @@ from trim.utils.logging_utils import (
     training_guardrail,
 )
 from trim.utils.miscellaneous import delete_dir
-from trim.utils.one_dimensional_sampling import get_index_list_nn
+from trim.utils.one_dimensional_sampling import get_index_list_van_der_corput
 from trim.utils.order import get_feature_importance_order, reorder_df_by_importance
 from trim.utils.rowsring import RowsRing
 from trim.utils.space_df_connector import (
@@ -709,7 +709,7 @@ class TrimSampleSelector(BaseSampler):
         ].index.tolist()
 
         # Compute index order for sampling
-        idx_order = get_index_list_nn(
+        idx_order = get_index_list_van_der_corput(
             len(merged_df_ordered_by_source_importance),
             len(target_df),
             sampled_indices=sampled_indices,

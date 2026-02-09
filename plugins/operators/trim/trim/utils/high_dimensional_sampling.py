@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib.axes import Axes
 from scipy.stats.qmc import Sobol
 
-from trim.utils.one_dimensional_sampling import get_index_list_nn
+from trim.utils.one_dimensional_sampling import get_index_list_van_der_corput
 
 
 def concatenated_latin_hypercube_sampling(
@@ -215,7 +215,7 @@ def random_high_dimensional_sampling(
     return [list(s) for s in samples]
 
 
-def get_order_list_nn_high_dimensional(
+def get_sampling_indices_multi_dimensional(
     dimensions: list[int],
     n: int | str = "all",
     space: dict[str, int] | None = None,
@@ -223,7 +223,7 @@ def get_order_list_nn_high_dimensional(
     seed: int | None = None,
 ) -> list[list[int]]:
     """
-    Generate sampling indices for a high-dimensional space using `get_index_list_nn` for each dimension.
+    Generate sampling indices for a high-dimensional space using `get_index_list_van_der_corput` for each dimension.
 
     Args:
         dimensions (List[int]): Sizes of each dimension (e.g., [8, 5]).
@@ -256,7 +256,9 @@ def get_order_list_nn_high_dimensional(
 
     # Log space details if provided
     if space:
-        indices_dict = {k: get_index_list_nn(v, v) for k, v in space.items()}
+        indices_dict = {
+            k: get_index_list_van_der_corput(v, v) for k, v in space.items()
+        }
         if [len(indices) for indices in list(indices_dict.values())] != dimensions:
             logging.error(
                 f"A space dict has been provided ->{space}. It is inconsistent with dimensions={dimensions}"
@@ -271,7 +273,7 @@ def get_order_list_nn_high_dimensional(
         )
 
     # Compute sampling orders for each dimension
-    orders = [get_index_list_nn(v, v) for v in dimensions]
+    orders = [get_index_list_van_der_corput(v, v) for v in dimensions]
     logging.debug("Dimensions: %s", dimensions)
     logging.debug("Sampling orders for each dimension:")
     for i, o in enumerate(orders):

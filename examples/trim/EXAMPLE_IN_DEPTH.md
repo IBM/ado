@@ -80,7 +80,6 @@ iterative modeling phase has a solid foundation.
 - Uses a space-filling sampling strategy (Latin Hypercube, Sobol,
   etc.)
 - Samples until `samplingBudget.minPoints` is reached
-- All other parameters controlled via `noPriorsParameters`
 
 **Why it matters:** Starting with good initial coverage ensures the
 iterative modeling phase has a solid foundation.

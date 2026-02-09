@@ -1,5 +1,10 @@
 # TRIM EXAMPLE — Quickstart
 
+> [!IMPORTANT]
+>
+> All commands below assume you are running them from the **top-level of the
+> `ado` repository**.
+
 ## Install (from repository root)
 
 ```bash

@@ -264,20 +264,11 @@ This will display a table of the entities sampled and their
 
 ## Takeaways
 
-- **Automated Surrogate Modeling**:
-    The `trim` operator automates the process of building a surrogate model
-    for a complex system.
-- **Efficient Sampling**:
-    By using an iterative, model-guided approach,
-    `trim` avoids wasting resources on samples that provide
-     little new information.
-- **Declarative Configuration**:
-    The entire process is configured with a simple YAML file,
-    with no need to write complex orchestration code.
-- **Auto-Stopping**:
-    The stopping criterion ensures the process terminates once
-     the model's quality plateaus,
-    saving time and compute.
-- **Reusable Artifacts**:
-   The final output is a trained `AutoGluon` model,
-   a powerful and easy-to-use artifact for further analysis and prediction.
+- **Automated Surrogate Modeling**: The TRIM operator automates the process of
+  building a surrogate model for a complex system.
+- **Efficient Sampling**: By using an iterative, model-guided approach, TRIM
+  avoids wasting resources on samples that provide little new information.
+- **Auto-Stopping**: The stopping criterion ensures the process terminates once
+  the model's quality plateaus, saving time and compute.
+- **Reusable Artifacts**: The final output is a trained `AutoGluon` model that
+  can be used for further analysis and prediction.

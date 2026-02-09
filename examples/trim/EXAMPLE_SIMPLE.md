@@ -32,8 +32,9 @@
 > **top-level of the `ado` repository**.
 
 > [!TIP] TL;DR
-> To create a `discoveryspace` and explore it with the `trim` operator,
-> execute the following from the root of the `ado` repository:
+>
+> To create a `discoveryspace` and explore it with the TRIM operator, execute
+> the following from the root of the `ado` repository:
 >
 > ```bash
 > : # Create the space to explore based on a custom experiment

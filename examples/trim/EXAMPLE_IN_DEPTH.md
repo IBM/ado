@@ -72,6 +72,8 @@ This phase runs **only if** existing measured points <
 
 **Goal:** Build a small initial dataset with uniform coverage of the
 parameter space.
+**Why it matters:** Starting with good initial coverage ensures the
+iterative modeling phase has a solid foundation.
 
 **How it works:**
 

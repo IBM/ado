@@ -5,7 +5,7 @@ import logging
 import math
 import random
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -218,7 +218,7 @@ def random_high_dimensional_sampling(
 
 def get_sampling_indices_multi_dimensional(
     dimensions: list[int],
-    n: int | str = "all",
+    n: int | Literal["all", "max"],
     space: dict[str, int] | None = None,
     strategy: str = "clhs",
     seed: int | None = None,

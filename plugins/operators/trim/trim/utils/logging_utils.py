@@ -66,7 +66,6 @@ def log_after_first_holdout_creation(
     logger.debug(current_holdout_df)
     if current_holdout_df.empty:
         logger.error("Empty Holdout Dataset!")
-        raise NotImplementedError
     if len(current_holdout_df) != params.holdoutSize:
         logger.error(
             f"The holdout df contains {len(current_holdout_df)} rows (expected { params.holdoutSize})"

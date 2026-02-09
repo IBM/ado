@@ -220,7 +220,7 @@ def get_sampling_indices_multi_dimensional(
     dimensions: list[int],
     n: int | Literal["all", "max"],
     space: dict[str, int] | None = None,
-    strategy: str = "clhs",
+    strategy: Literal["random", "clhs", "sobol"] = "clhs",
     seed: int | None = None,
 ) -> list[list[int]]:
     """

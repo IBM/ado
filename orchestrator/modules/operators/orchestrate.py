@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 """This module defines the main loop of an optimization process"""
@@ -104,7 +104,7 @@ def orchestrate(
             f"Setting runtime environment variables based on local environment - {ray_env_vars}"
         )
         ray.init(
-            runtime_env=RuntimeEnv(env_vars=ray_env_vars),
+            runtime_env=RuntimeEnv(env_vars=ray_env_vars, working_dir=None),
             ignore_reinit_error=True,
         )
 

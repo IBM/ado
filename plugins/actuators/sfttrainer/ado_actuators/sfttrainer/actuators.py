@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import asyncio
@@ -16,6 +16,7 @@ from typing import Annotated, Any
 
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.callbacks.metrics_tracker as metrics_tracker
 import ado_actuators.sfttrainer.wrapper_fms_hf_tuning.finetune as finetune
+import anyio
 import pydantic
 import pydantic.typing
 import ray
@@ -1092,7 +1093,7 @@ class SFTTrainer(ActuatorBase):
                 If the current implementation of the actuator cannot handle the requested entity
         """
         try:
-            if not os.path.isfile(context.args.training_data_path):
+            if not anyio.Path(context.args.training_data_path).is_file():
                 raise NotImplementedError(
                     f"training_data_path points to path {context.args.training_data_path} which is not a file. "
                     f"Double check your DiscoverySpace, ActuatorParameters, and the file storage of your cluster. "

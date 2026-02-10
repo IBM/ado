@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import json
@@ -194,7 +194,7 @@ def _create_environment(
                         in_cluster=actuator.in_cluster,
                         verify_ssl=actuator.verify_ssl,
                         image=values.get("image"),
-                        image_secret=actuator.image_secret,
+                        image_pull_secret_name=actuator.image_pull_secret_name,
                         deployment_template=actuator.deployment_template,
                         service_template=actuator.service_template,
                         n_gpus=int(values.get("n_gpus")),
@@ -442,9 +442,7 @@ def run_resource_and_workload_experiment(
                     burstiness=benchmark_parameters.burstiness,
                     dataset=benchmark_parameters.dataset,
                 )
-            elif experiment.identifier in [
-                "test-deployment-guidellm-v1",
-            ]:
+            elif experiment.identifier == "test-deployment-guidellm-v1":
                 logger.info("Using GuideLLM benchmark for deployment")
                 result = execute_guidellm_benchmark(
                     base_url=benchmark_parameters.endpoint,

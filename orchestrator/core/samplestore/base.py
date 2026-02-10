@@ -14,7 +14,9 @@ import orchestrator.utilities.location
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
-from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.property import (
+    ConstitutivePropertyDescriptor,
+)
 from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
 
@@ -188,8 +190,20 @@ class ActiveSampleStore(SampleStore, ABC):
     def entityWithIdentifier(
         self, entityIdentifier: str
     ) -> Entity | None:  # pragma: nocover
-        # TODO: Probably this should also be supported by PassiveSampleStore
         pass
+
+    @abc.abstractmethod
+    def entities_with_identifiers(
+        self, entity_identifiers: set[str] | list[str]
+    ) -> list[Entity]:
+        """Fetch the entities given by entity_identifiers.
+
+        Args:
+            entity_identifiers: Set or list of entity identifiers to fetch
+
+        Returns:
+            List of Entity objects matching the provided identifiers
+        """
 
     @property
     @abc.abstractmethod
@@ -198,7 +212,16 @@ class ActiveSampleStore(SampleStore, ABC):
 
     @abc.abstractmethod
     def commit(self) -> None:  # pragma: nocover
-        """Commits all the changes to the source and prevents any further changes"""
+        """Commits all the changes to the source"""
+
+    @abc.abstractmethod
+    def entities_in_operation(self, operation_id: str) -> list[Entity]:
+        """Returns list of entities in the given operation."""
+
+    @abc.abstractmethod
+    def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
+        """
+        Compute entity-level statistics for an operation."""
 
 
 class MockParams(pydantic.BaseModel):
@@ -475,7 +498,7 @@ class SampleStoreDescription(pydantic.BaseModel):
         return observedProperties
 
     @property
-    def constitutiveProperties(self) -> list[ConstitutiveProperty]:
+    def constitutiveProperties(self) -> list[ConstitutivePropertyDescriptor]:
         """Return constitutive property descriptors from all experiment descriptions"""
         from orchestrator.schema.property import ConstitutivePropertyDescriptor
 

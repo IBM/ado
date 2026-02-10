@@ -50,6 +50,7 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters) -> None:
             space = DiscoverySpace.from_operation_id(
                 operation_id=parameters.resource_id,
                 project_context=parameters.ado_configuration.project_context,
+                metadata_store=sql_store,
             )
         except (ResourceDoesNotExistError, NoRelatedResourcesError):
             status.stop()
@@ -62,48 +63,37 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters) -> None:
             isinstance(operation_conf, OperationResource)
             and operation_conf.operationType == DiscoveryOperationEnum.SEARCH
         ):
-
-            from orchestrator.schema.result import ValidMeasurementResult
-
-            measurement_results_for_operation = space.measurement_results_for_operation(
+            # Use SQL aggregation to compute statistics efficiently
+            entity_stats = space.operation_entity_statistics(
                 operation_id=parameters.resource_id
             )
 
-            entities_with_all_successful_measurements = {
-                result.entityIdentifier for result in measurement_results_for_operation
-            }
-            entities_with_at_least_one_successful_measurement = set()
-            for measurement_result in measurement_results_for_operation:
-
-                if isinstance(measurement_result, ValidMeasurementResult):
-                    entities_with_at_least_one_successful_measurement.add(
-                        measurement_result.entityIdentifier
-                    )
-                    continue
-
-                entities_with_all_successful_measurements.discard(
-                    measurement_result.entityIdentifier
-                )
+            entities_with_all_successful_measurements = entity_stats[
+                "entities_with_all_successful_measurements"
+            ]
+            entities_with_at_least_one_successful_measurement = entity_stats[
+                "entities_with_at_least_one_successful_measurement"
+            ]
 
             table.add_row(
                 "Total entities with no successful measurements",
                 str(
                     total_entities_sampled
-                    - len(entities_with_at_least_one_successful_measurement)
+                    - entities_with_at_least_one_successful_measurement
                 ),
             )
 
             table.add_row(
                 "Total entities with only partially successful measurements",
                 str(
-                    len(entities_with_at_least_one_successful_measurement)
-                    - len(entities_with_all_successful_measurements)
+                    entities_with_at_least_one_successful_measurement
+                    - entities_with_all_successful_measurements
                 ),
             )
 
             table.add_row(
                 "Total entities with all successful measurements",
-                str(len(entities_with_all_successful_measurements)),
+                str(entities_with_all_successful_measurements),
             )
 
     console_print(rich.rule.Rule(title="DETAILS"))

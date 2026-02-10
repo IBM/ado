@@ -1,12 +1,12 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
-
 # TRIM Operator: Advanced Configuration Guide
 
 > [!TIP]
 >
-> For a quick introduction to TRIM, see the [quickstart guide](EXAMPLE_SIMPLE.md).
-> This guide is for users who want to adapt
-> TRIM's behavior for their specific use case.
+> For a quick introduction to TRIM, see this [example](README.md). This guide is
+> for users who want to adapt TRIM's behavior for their specific use case.
+>
+> If you want to skip to the configuration options go to the
+> [complete parameter reference](#complete-parameter-reference).
 
 ## Overview
 
@@ -29,7 +29,7 @@ target property across your entire `discoveryspace`. It does this by:
 4. **Training intermediate models** and evaluating the
    expected improvement upon sampling additional points
 5. **Producing a final model** trained on all collected data when the
-   stopping criterion is met.
+   stopping criterion is met
 
 ### When should you use the TRIM operator?
 
@@ -128,7 +128,7 @@ After every point:
   - A "window" contains `iterationSize` consecutive performance scores
   - The "recent window" contains scores from the last `iterationSize` models
   - The "previous window" contains scores from the `iterationSize` models
-   before that
+    before that
   - Models trained later have more training data (higher training size)
 - Calculates mean and standard deviation ratios,
   e.g. the mean performance metric
@@ -282,7 +282,7 @@ Configures the initial characterization phase (if triggered).
 ```yaml
 parameters:
   noPriorsParameters:
-    sampling_strategy: 'sobol'
+    sampling_strategy: "sobol"
 ```
 
 ---
@@ -305,7 +305,7 @@ window size for stopping criterion evaluation.
 - **Smaller values** (e.g., 3-4): More responsive, but may stop
   prematurely
 - **Trade-off:** Stability vs. responsiveness,
-   5 was a good value in almost all our tests.
+  5 was a good value in almost all our tests.
 
 #### `stoppingCriterion`
 
@@ -379,7 +379,7 @@ If `std_ratio < stdThreshold`, the variance has stabilized.
 parameters:
   stoppingCriterion:
     enabled: true
-    meanThreshold: 0.85 
+    meanThreshold: 0.85
     stdThreshold: 0.7
 ```
 
@@ -430,11 +430,11 @@ parameters:
   autoGluonArgs:
     fitArgs:
       time_limit: 45
-      presets: 'medium_quality'
+      presets: "medium_quality"
   finalModelAutoGluonArgs:
     fitArgs:
       time_limit: 1200
-      presets: 'best_quality'
+      presets: "best_quality"
 ```
 
 ---
@@ -546,6 +546,7 @@ Set logging level when you launch your operation, for example:
 LOGLEVEL=DEBUG ado -l DEBUG create operation -f \
   operation_pressure.yaml --use-latest space
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Set your preference for the debug directory

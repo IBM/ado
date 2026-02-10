@@ -3,8 +3,6 @@
 #
 import logging
 
-from pandas import DataFrame
-
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +45,7 @@ def get_index_list_van_der_corput(
     In cases of symmetry or multiple equally sparse regions, the algorithm evaluates local neighborhood density to prioritize selection.
 
 
-    For example, consider a segment of 14 elements (get_index_list_nn(14,8)):
+    For example, consider a segment of 14 elements (get_index_list_van_der_corput(14,8)):
 
     ::
 
@@ -169,7 +167,6 @@ def get_index_list_van_der_corput(
                 out.append(i)
         return out
 
-    # Secret sauce - electable indices function: same order as OG (ascending)
     def get_selectable_indices() -> list[int]:
         # OG did O(N*m) with "i not in list", but we do O(N) with a set, but order identical.
         return [i for i in range(length_segment) if i not in sampled_set]
@@ -257,8 +254,8 @@ def get_index_list_ordered_partitions(n: int, tot_points: int) -> list[int]:
     if tot_points == 1:
         return [0]
     index_list = [n - 1, 0]
-    f_count = 0
-    while f_count + 2 < tot_points:
+    number_of_inner_points_sampled = 0
+    while number_of_inner_points_sampled + 2 < tot_points:
         l_copy_sorted = index_list.copy()
         l_copy_sorted.sort()
         l_copy = index_list.copy()
@@ -269,41 +266,12 @@ def get_index_list_ordered_partitions(n: int, tot_points: int) -> list[int]:
             mid = midpoint(start=start, end=end)
             if mid in index_list:
                 continue
-            f_count += 1
+            number_of_inner_points_sampled += 1
             index_list.append(mid)
-            if f_count + 2 == tot_points:
+            if number_of_inner_points_sampled + 2 == tot_points:
                 break
     index_list.sort()
     return index_list
-
-
-# %%
-
-
-def sorting_and_check(target_metric: str, source_space_df: DataFrame) -> DataFrame:
-    """
-    Sort DataFrame by constitutive properties for 1D sampling (legacy function).
-
-    Args:
-        target_metric: The target metric column name to exclude from sorting
-        source_space_df: DataFrame to sort
-
-    Returns:
-        Sorted DataFrame with reset index
-    """
-
-    cols = list(source_space_df.columns)
-    valid_cols = [col for col in cols if not col.startswith(target_metric)]
-
-    valid_cols = list(set(valid_cols))
-
-    if "total_tokens_per_batch" in valid_cols:
-        valid_cols = ["total_tokens_per_batch"] + [
-            c for c in valid_cols if c != "total_tokens_per_batch"
-        ]
-    df_copy = source_space_df.copy()
-
-    return df_copy.sort_values(by=valid_cols).reset_index(drop=True)
 
 
 def midpoint(start: int, end: int) -> int:

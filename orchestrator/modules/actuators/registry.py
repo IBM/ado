@@ -12,6 +12,9 @@ import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
+from orchestrator.modules.actuators.base import (
+    ActuatorBase,
+)
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
 )
@@ -22,9 +25,6 @@ from orchestrator.utilities.logging import configure_logging
 if typing.TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.modules.actuators.base import (
-        ActuatorBase,
-    )
     from orchestrator.schema.experiment import Experiment
 
 configure_logging()
@@ -83,11 +83,9 @@ class ActuatorRegistry:
         # Maps actuator ids to ActuatorBase instances
         self.actuatorIdentifierMap = (
             {}
-        )  # type: typing.Dict[typing.AnyStr, "ActuatorBase"]
+        )  # type: typing.Dict[typing.AnyStr, type["ActuatorBase"]
         # Maps actuator ids to ExperimentCatalog instances
-        self.catalogIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, ExperimentCatalog]
+        self.catalogIdentifierMap = {}  # type: dict[str, ExperimentCatalog]
         self.log = logging.getLogger("registry")
         self.id = uuid.uuid4()
 
@@ -316,22 +314,20 @@ class ActuatorRegistry:
 
         return catalog
 
-    def actuatorForIdentifier(
-        self, actuatorid: str
-    ) -> "orchestrator.modules.actuators.base.ActuatorBase":
+    def actuatorForIdentifier(self, actuatorid: str) -> type[ActuatorBase]:
         """Returns the actuator class corresponding to an identifier
 
         If the actuator has not been registered this method raises UnknownActuatorError
         """
 
         try:
-            acuatorClass = self.actuatorIdentifierMap[actuatorid]
+            actuator_class = self.actuatorIdentifierMap[actuatorid]
         except KeyError as error:
             raise UnknownActuatorError(
                 f"No actuator called {actuatorid} has been added to the registry"
             ) from error
 
-        return acuatorClass
+        return actuator_class
 
     def experimentForReference(
         self,

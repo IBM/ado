@@ -141,9 +141,8 @@ class ActuatorBase(abc.ABC):
 
         self._measurementSpace = measurementSpace
 
-    def default_parameters(
-        self, is_template: bool = False
-    ) -> GenericActuatorParameters:
+    @classmethod
+    def default_parameters(cls, is_template: bool = False) -> GenericActuatorParameters:
         """
         Returns a default set of parameters for the actuator.
 
@@ -151,18 +150,19 @@ class ActuatorBase(abc.ABC):
             An instance of orchestrator.model.config.GenericActuatorParameters
         """
         return (
-            self.parameters_class.model_construct()
+            cls.parameters_class.model_construct()
             if is_template
-            else self.parameters_class()
+            else cls.parameters_class()
         )
 
+    @classmethod
     def validate_parameters(
-        self, parameters: GenericActuatorParameters
+        cls, parameters: GenericActuatorParameters
     ) -> GenericActuatorParameters:
         """
         Validates parameters provided by an actuator configuration.
         """
-        return self.parameters_class.model_validate(parameters, from_attributes=True)
+        return cls.parameters_class.model_validate(parameters, from_attributes=True)
 
 
 class ActuatorModuleConf(ModuleConf):

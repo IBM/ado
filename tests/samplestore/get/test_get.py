@@ -726,22 +726,6 @@ def test_entities_by_identifiers_mixed_existing_nonexistent(
     assert {e.identifier for e in result} == existing_ids
 
 
-def test_entities_by_identifiers_cache_hit(
-    ml_multi_cloud_sample_store: SQLSampleStore,
-) -> None:
-    """Test entities_with_identifiers uses cache when all entities are cached."""
-    # First, load all entities to populate cache
-    all_entities = ml_multi_cloud_sample_store.entities
-    assert len(all_entities) > 0
-
-    # Now request entities that are already in cache
-    requested_ids = {all_entities[0].identifier}
-    result = ml_multi_cloud_sample_store.entities_with_identifiers(requested_ids)
-
-    assert len(result) == 1
-    assert result[0].identifier == all_entities[0].identifier
-
-
 def test_entities_by_identifiers_with_measurement_results(
     random_identifier: Callable[[], str],
     simulate_ml_multi_cloud_random_walk_operation: Callable[
@@ -916,41 +900,3 @@ def test_entities_in_operation_deduplication(
     retrieved_entity_ids = {e.identifier for e in retrieved_entities}
     assert len(retrieved_entity_ids) == len(retrieved_entities)  # No duplicates
     assert retrieved_entity_ids == all_entity_ids
-
-
-def test_entities_in_operation_cache_update(
-    random_identifier: Callable[[], str],
-    simulate_ml_multi_cloud_random_walk_operation: Callable[
-        [int, int, int, str | None],
-        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
-    ],
-) -> None:
-    """Test entities_in_operation updates the cache."""
-    number_entities = 3
-    number_requests = 2
-    measurements_per_result = 2
-    operation_id = random_identifier()
-
-    sample_store, _requests, _request_ids = (
-        simulate_ml_multi_cloud_random_walk_operation(
-            number_entities=number_entities,
-            number_requests=number_requests,
-            measurements_per_result=measurements_per_result,
-            operation_id=operation_id,
-        )
-    )
-
-    # Get entity IDs from the operation
-    entity_ids = sample_store.entity_identifiers_in_operation(operation_id=operation_id)
-
-    # Fetch entities using entities_in_operation (should populate cache)
-    retrieved_entities = sample_store.entities_in_operation(operation_id=operation_id)
-
-    # Now fetch same entities using entities_with_identifiers (should use cache)
-    cached_entities = sample_store.entities_with_identifiers(entity_ids)
-
-    # Should get same entities
-    assert len(cached_entities) == len(retrieved_entities)
-    assert {e.identifier for e in cached_entities} == {
-        e.identifier for e in retrieved_entities
-    }

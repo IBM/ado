@@ -4,8 +4,7 @@
 import logging
 import math
 import random
-from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Literal
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -325,45 +324,6 @@ def get_sampling_indices_multi_dimensional(
             return sobol_sampling(dimensions=dimensions, final_sample_size=n, seed=seed)
         case _:
             raise NotImplementedError(f"Strategy {strategy} is unknown")
-
-
-def unique_in_order_list_of_lists(
-    lists: Sequence[Sequence[Any]],
-) -> list[Sequence[Any]]:
-    """
-    Return the first occurrence of each unique row, preserving input order.
-
-    This function deduplicates a sequence of rows (e.g., a list of lists)
-    while maintaining the original order of appearance. A row's uniqueness
-    is determined by converting it to a tuple and using that as a key in
-    a set, which allows list rows to be compared efficiently.
-
-    Parameters
-    ----------
-    lists : Sequence[Sequence[Any]]
-        An iterable of rows (e.g., list of lists). Each row's elements must
-        be hashable, because the row is converted to a tuple to be used as
-        a set key.
-
-    Returns
-    -------
-    List[Sequence[Any]]
-        A list containing the first occurrence of each distinct row from
-        `lists`, in the same order they first appear. Rows are returned as
-        references to the original row objects (no copies are made).
-
-    Notes
-    -----
-    - Order is stable: only the first occurrence of each row is kept.
-    """
-    seen = set()
-    out = []
-    for row in lists:
-        key = tuple(row)
-        if key not in seen:
-            seen.add(key)
-            out.append(row)
-    return out
 
 
 def plot_grid(

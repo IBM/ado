@@ -1,4 +1,4 @@
-# TRIM Operator: Advanced Configuration Guide
+# TRIM Operator: Configuration Guide
 
 > [!TIP]
 >
@@ -446,7 +446,7 @@ parameters:
 For rapid prototyping with limited measurement budget:
 
 ```yaml
-{% include "./configs/quick_exploration.yaml" %}
+{% include "../../../examples/trim/configs/quick_exploration.yaml" %}
 ```
 
 ### Example 2: High-Quality Characterization
@@ -454,7 +454,7 @@ For rapid prototyping with limited measurement budget:
 Balanced approach for production use:
 
 ```yaml
-{% include "./configs/high_quality_characterization.yaml" %}
+{% include "../../../examples/trim/configs/high_quality_characterization.yaml" %}
 ```
 
 ---

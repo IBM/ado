@@ -278,56 +278,56 @@ TEST_DATAFRAMES = {
     "simple_2d": {
         "creator": create_simple_2d_dataframe,
         "constitutive_props": ["param_a", "param_b"],
-        "dims": [3, 2],
+        "dimensions": [3, 2],
         "total_configs": 6,
         "description": "Basic 2D test case",
     },
     "3d_ml_hyperparams": {
         "creator": create_3d_dataframe,
         "constitutive_props": ["batch_size", "learning_rate", "optimizer"],
-        "dims": [4, 3, 2],
+        "dimensions": [4, 3, 2],
         "total_configs": 24,
         "description": "Realistic ML hyperparameter space",
     },
     "with_duplicates": {
         "creator": create_dataframe_with_duplicates,
         "constitutive_props": ["param_x", "param_y"],
-        "dims": [3, 2],
+        "dimensions": [3, 2],
         "total_configs": 6,
         "description": "Contains duplicate configurations",
     },
     "sparse_coverage": {
         "creator": create_sparse_dataframe,
         "constitutive_props": ["dim1", "dim2"],
-        "dims": [4, 3],
+        "dimensions": [4, 3],
         "total_configs": 12,
         "description": "Missing some configurations",
     },
     "large_4d": {
         "creator": create_large_4d_dataframe,
         "constitutive_props": ["p1", "p2", "p3", "p4"],
-        "dims": [5, 4, 3, 2],
+        "dimensions": [5, 4, 3, 2],
         "total_configs": 120,
         "description": "Large 4D space for stress testing",
     },
     "single_dimension": {
         "creator": create_single_dimension_dataframe,
         "constitutive_props": ["param"],
-        "dims": [10],
+        "dimensions": [10],
         "total_configs": 10,
         "description": "Edge case: 1D sampling",
     },
     "mixed_types": {
         "creator": create_mixed_type_dataframe,
         "constitutive_props": ["int_param", "float_param", "str_param"],
-        "dims": [3, 2, 2],
+        "dimensions": [3, 2, 2],
         "total_configs": 12,
         "description": "Mixed data types (int, float, string)",
     },
-    "unbalanced_dims": {
+    "unbalanced_dimensions": {
         "creator": create_unbalanced_dimensions_dataframe,
         "constitutive_props": ["small_dim", "large_dim"],
-        "dims": [2, 20],
+        "dimensions": [2, 20],
         "total_configs": 40,
         "description": "Highly unbalanced dimension sizes",
     },
@@ -345,7 +345,7 @@ if __name__ == "__main__":
         print("-" * 40)
         print(f"Description: {info['description']}")
         print(f"Constitutive Properties: {info['constitutive_props']}")
-        print(f"Dimensions: {info['dims']}")
+        print(f"Dimensions: {info['dimensions']}")
         print(f"Total Configurations: {info['total_configs']}")
 
         # Create and show sample

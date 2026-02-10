@@ -26,7 +26,7 @@ class TestConcatenatedLatinHypercubeSampling:
         return TEST_DATAFRAMES[request.param]
 
     def _verify_stratification(
-        self, samples: list[list[int]], dims: list[int], n: int
+        self, samples: list[list[int]], dimensions: list[int], n: int
     ) -> None:
         """
         Verify that each dimension maintains Latin Hypercube stratification.
@@ -36,10 +36,10 @@ class TestConcatenatedLatinHypercubeSampling:
 
         Args:
             samples: List of sampled points
-            dims: Dimension cardinalities
+            dimensions: Dimension cardinalities
             n: Total number of samples
         """
-        for dim_idx, dim_size in enumerate(dims):
+        for dim_idx, dim_size in enumerate(dimensions):
             # Extract values for this dimension across all samples
             dim_values = [sample[dim_idx] for sample in samples]
             value_counts = Counter(dim_values)
@@ -87,20 +87,22 @@ class TestConcatenatedLatinHypercubeSampling:
         Tests all dataframes from TEST_DATAFRAMES.
         Verifies Latin Hypercube stratification for each dimension.
         """
-        dims = df_config["dims"]
+        dimensions = df_config["dimensions"]
         total_configs = df_config["total_configs"]
         n = total_configs // 4
 
-        samples = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=42)
+        samples = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=42
+        )
 
         # Basic checks
         assert len(samples) == n, f"Expected {n} samples, got {len(samples)}"
         assert all(
-            len(sample) == len(dims) for sample in samples
+            len(sample) == len(dimensions) for sample in samples
         ), "All samples should have correct dimensionality"
 
         # Verify stratification
-        self._verify_stratification(samples, dims, n)
+        self._verify_stratification(samples, dimensions, n)
 
     def test_half_sampling(self, df_config: dict[str, Any]) -> None:
         """
@@ -109,20 +111,22 @@ class TestConcatenatedLatinHypercubeSampling:
         Tests all dataframes from TEST_DATAFRAMES.
         Verifies Latin Hypercube stratification for each dimension.
         """
-        dims = df_config["dims"]
+        dimensions = df_config["dimensions"]
         total_configs = df_config["total_configs"]
         n = total_configs // 2
 
-        samples = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=42)
+        samples = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=42
+        )
 
         # Basic checks
         assert len(samples) == n, f"Expected {n} samples, got {len(samples)}"
         assert all(
-            len(sample) == len(dims) for sample in samples
+            len(sample) == len(dimensions) for sample in samples
         ), "All samples should have correct dimensionality"
 
         # Verify stratification
-        self._verify_stratification(samples, dims, n)
+        self._verify_stratification(samples, dimensions, n)
 
     def test_stratification_detailed_quarter(self, df_config: dict[str, Any]) -> None:
         """
@@ -130,14 +134,16 @@ class TestConcatenatedLatinHypercubeSampling:
 
         Tests all dataframes and verifies the exact distribution of values.
         """
-        dims = df_config["dims"]
+        dimensions = df_config["dimensions"]
         total_configs = df_config["total_configs"]
         n = total_configs // 4
 
-        samples = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=42)
+        samples = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=42
+        )
 
         # Verify detailed stratification for each dimension
-        for dim_idx, dim_size in enumerate(dims):
+        for dim_idx, dim_size in enumerate(dimensions):
             dim_values = [sample[dim_idx] for sample in samples]
             dim_counts = Counter(dim_values)
 
@@ -157,14 +163,16 @@ class TestConcatenatedLatinHypercubeSampling:
 
         Tests all dataframes and verifies the exact distribution of values.
         """
-        dims = df_config["dims"]
+        dimensions = df_config["dimensions"]
         total_configs = df_config["total_configs"]
         n = total_configs // 2
 
-        samples = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=42)
+        samples = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=42
+        )
 
         # Verify detailed stratification for each dimension
-        for dim_idx, dim_size in enumerate(dims):
+        for dim_idx, dim_size in enumerate(dimensions):
             dim_values = [sample[dim_idx] for sample in samples]
             dim_counts = Counter(dim_values)
 
@@ -181,49 +189,65 @@ class TestConcatenatedLatinHypercubeSampling:
     def test_reproducibility_with_seed(self) -> None:
         """Test that using the same seed produces identical results."""
         # Use a fixed configuration for reproducibility test
-        dims = [5, 4, 3, 2]
+        dimensions = [5, 4, 3, 2]
         n = 30
         seed = 12345
 
-        samples1 = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=seed)
-        samples2 = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=seed)
+        samples1 = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=seed
+        )
+        samples2 = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=seed
+        )
 
         assert samples1 == samples2, "Same seed should produce identical samples"
 
     def test_different_seeds_produce_different_results(self) -> None:
         """Test that different seeds produce different results."""
         # Use a fixed configuration for seed comparison test
-        dims = [5, 4, 3, 2]
+        dimensions = [5, 4, 3, 2]
         n = 30
 
-        samples1 = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=42)
-        samples2 = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=123)
+        samples1 = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=42
+        )
+        samples2 = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=123
+        )
 
         assert samples1 != samples2, "Different seeds should produce different samples"
 
     def test_empty_sampling(self) -> None:
         """Test that n=0 returns empty list."""
-        dims = [5, 4, 3, 2]
-        samples = concatenated_latin_hypercube_sampling(dims=dims, n=0, seed=42)
+        dimensions = [5, 4, 3, 2]
+        samples = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=0, seed=42
+        )
         assert samples == [], "n=0 should return empty list"
 
     def test_invalid_dimensions(self) -> None:
         """Test that invalid dimensions raise ValueError."""
         with pytest.raises(ValueError, match="All dimensions must be >= 1"):
-            concatenated_latin_hypercube_sampling(dims=[5, 0, 3], n=10, seed=42)
+            concatenated_latin_hypercube_sampling(
+                dimensions=[5, 0, 3], final_sample_size=10, seed=42
+            )
 
         with pytest.raises(ValueError, match="All dimensions must be >= 1"):
-            concatenated_latin_hypercube_sampling(dims=[5, -1, 3], n=10, seed=42)
+            concatenated_latin_hypercube_sampling(
+                dimensions=[5, -1, 3], final_sample_size=10, seed=42
+            )
 
     def test_single_dimension(self) -> None:
         """Test sampling with a single dimension."""
-        dims = [10]
+        dimensions = [10]
         n = 5
 
-        samples = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=42)
+        samples = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=42
+        )
 
         assert len(samples) == n
-        self._verify_stratification(samples, dims, n)
+        self._verify_stratification(samples, dimensions, n)
 
     def test_exceeds_dimension_size(self, df_config: dict[str, Any]) -> None:
         """
@@ -232,12 +256,14 @@ class TestConcatenatedLatinHypercubeSampling:
         This tests the concatenation behavior where new permutations
         are created when a dimension's pool is exhausted.
         """
-        dims = df_config["dims"]
-        min_dim = min(dims)
+        dimensions = df_config["dimensions"]
+        min_dim = min(dimensions)
         # Sample more than the smallest dimension
         n = min_dim * 2 + 1
 
-        samples = concatenated_latin_hypercube_sampling(dims=dims, n=n, seed=42)
+        samples = concatenated_latin_hypercube_sampling(
+            dimensions=dimensions, final_sample_size=n, seed=42
+        )
 
         assert len(samples) == n
-        self._verify_stratification(samples, dims, n)
+        self._verify_stratification(samples, dimensions, n)

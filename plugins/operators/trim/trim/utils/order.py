@@ -134,7 +134,7 @@ def order_df_for_sampling_with_no_priors(
         - value_dict_unordered: keys = properties, values = unique unordered lists.
         - value_dict: same as above but ordered ascending.
         - space_dict: keys = properties, values = length of each list.
-        - dims: list of lengths (dimensionality).
+        - dimensions: list of lengths (dimensionality).
     3. Order the DataFrame so that index mapping aligns with high-dimensional sampling.
     4. Generate orders_to_sample using get_order_list_nn_high_dimensional().
     5. Map these orders to actual DataFrame indices.
@@ -181,21 +181,21 @@ def order_df_for_sampling_with_no_priors(
 
     space_dict = {prop: len(vals) for prop, vals in value_dict.items()}
 
-    dims = list(space_dict.values())
+    dimensions = list(space_dict.values())
 
     # Order DataFrame for index mapping
     # NOTE: just added .reset_index(drop=True)
     df_unique = order_df_for_get_index_list_nn_high_dimensional(
-        df_unique, constitutive_properties, dims=dims
+        df_unique, constitutive_properties, dimensions=dimensions
     ).reset_index(drop=True)
 
     # Generate sampling orders
     orders_to_sample = get_sampling_indices_multi_dimensional(
-        dims=dims, space=space_dict, n=n, strategy=strategy
+        dimensions=dimensions, space=space_dict, n=n, strategy=strategy
     )
 
     # Map orders to DataFrame indices
-    indices_to_sample = get_index_list_nn_high_dimensional(orders_to_sample, dims)
+    indices_to_sample = get_index_list_nn_high_dimensional(orders_to_sample, dimensions)
 
     logger.info(f"Indexes are:\n {indices_to_sample}")
     try:
@@ -214,17 +214,17 @@ def order_df_for_sampling_with_no_priors(
 
 
 def order_df_for_get_index_list_nn_high_dimensional(
-    df: pd.DataFrame, constitutive_properties: list[str], dims: list[int]
+    df: pd.DataFrame, constitutive_properties: list[str], dimensions: list[int]
 ) -> pd.DataFrame:
     """
     Ensure a DataFrame is ordered and complete for high-dimensional index generation.
 
     This utility prepares `df` so that its rows align with the Cartesian product
-    implied by `constitutive_properties` and `dims`. Specifically:
+    implied by `constitutive_properties` and `dimensions`. Specifically:
 
     1. Sort rows by the provided constitutive properties in the given order.
     2. Validate that the DataFrame length matches the expected size:
-        `expected_len = product(dims)`.
+        `expected_len = product(dimensions)`.
     3. If rows are missing:
         - Log a warning.
         - Generate all possible combinations of unique values for each constitutive property.
@@ -239,20 +239,20 @@ def order_df_for_get_index_list_nn_high_dimensional(
     constitutive_properties : list[str]
         Column names that define the high-dimensional space (e.g., factors or grid axes).
         The order determines the sort priority.
-    dims : list[int]
+    dimensions : list[int]
         Expected cardinality for each constitutive property. Used to compute
-        `expected_len = math.prod(dims)` for consistency checks.
+        `expected_len = math.prod(dimensions)` for consistency checks.
 
     Returns
     -------
     pd.DataFrame
         A DataFrame sorted by `constitutive_properties` and augmented with any missing
-        combinations, ensuring coverage of the full Cartesian product implied by `dims`.
+        combinations, ensuring coverage of the full Cartesian product implied by `dimensions`.
 
     Notes
     -----
     - Injected rows will have `NaN` for all non-constitutive columns.
-    - If `dims` and the actual unique values in `df` disagree, the function uses
+    - If `dimensions` and the actual unique values in `df` disagree, the function uses
         observed unique values to generate combinations.
     - This function is useful for downstream routines that assume a complete
         and ordered representation of the sampling space.
@@ -267,10 +267,10 @@ def order_df_for_get_index_list_nn_high_dimensional(
     # Sort by constitutive properties
     df = df.sort_values(by=constitutive_properties).reset_index(drop=True)
 
-    expected_len = math.prod(dims)
+    expected_len = math.prod(dimensions)
     if len(df) != expected_len:
         logger.warning(
-            f"DataFrame length mismatch: expected {expected_len} (product of {dims}), "
+            f"DataFrame length mismatch: expected {expected_len} (product of {dimensions}), "
             f"but got {len(df)}."
         )
 
@@ -316,7 +316,7 @@ def order_df_for_get_index_list_nn_high_dimensional(
 
 
 def get_index_list_nn_high_dimensional(
-    orders_to_sample: list[list[int]], dims: list[int]
+    orders_to_sample: list[list[int]], dimensions: list[int]
 ) -> list[int]:
     """
     Map high-dimensional sampling orders to linear (flattened) indices.
@@ -326,7 +326,7 @@ def get_index_list_nn_high_dimensional(
 
     Args:
         orders_to_sample: List of multi-dimensional coordinates [i0, i1, ..., ik]
-        dims: Size of each dimension [d0, d1, ..., dk]
+        dimensions: Size of each dimension [d0, d1, ..., dk]
 
     Returns:
         List of linear indices corresponding to the input coordinates
@@ -335,20 +335,20 @@ def get_index_list_nn_high_dimensional(
         If duplicate or out-of-bounds indices are detected
     """
     indices = []
-    cprod = np.cumprod(np.array(dims), dtype=int).tolist()
+    cprod = np.cumprod(np.array(dimensions), dtype=int).tolist()
     maximum_n = cprod[-1]
 
     for order in orders_to_sample:
         index = 0
         multiplier = 1
         # Iterate reversed so last dimension varies fastest
-        for i in reversed(range(len(dims))):
+        for i in reversed(range(len(dimensions))):
             index += order[i] * multiplier
-            multiplier *= dims[i]
+            multiplier *= dimensions[i]
 
         if index > maximum_n:
             logging.warning(
-                f"Out of bound index {index} computed from order {order}, dims are {dims}"
+                f"Out of bound index {index} computed from order {order}, dimensions are {dimensions}"
             )
         indices.append(index)
 

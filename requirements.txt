@@ -1307,9 +1307,9 @@ sqlalchemy==2.0.46 \
     --hash=sha256:ebf7e1e78af38047e08836d33502c7a278915698b7c2145d045f780201679999 \
     --hash=sha256:f9c11766e7e7c0a2767dda5acb006a118640c9fc0a4104214b96269bfb78399e
     # via ado-core
-starlette==0.50.0 \
-    --hash=sha256:9e5391843ec9b6e472eed1365a78c8098cfceb7a74bfd4d6b1c0c0095efb3bca \
-    --hash=sha256:a2a17b22203254bcbc2e1f926d2d55f3f9497f769416b3190768befe598fa3ca
+starlette==0.52.1 \
+    --hash=sha256:0029d43eb3d273bc4f83a08720b4912ea4b071087a3b48db01b7c839f7954d74 \
+    --hash=sha256:834edd1b0a23167694292e94f597773bc3f89f362be6effee198165a35d62933
     # via
     #   fastapi
     #   ray

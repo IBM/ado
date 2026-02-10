@@ -194,6 +194,9 @@ def trim(
                 op_output_characterization_no_prior.operation,
                 op_output_iterative_modeling.operation,
             ],
+            metadata={},
         )
 
-    return OperationOutput(other=[], resources=[op_output_iterative_modeling.operation])
+    return OperationOutput(
+        other=[], resources=[op_output_iterative_modeling.operation], metadata={}
+    )

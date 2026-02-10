@@ -98,6 +98,7 @@ test = [
     "pfas-custom-functions",
     "profile-space",
     "robotic-lab",
+    "trim"
 ]
 
 [tool.uv]
@@ -125,6 +126,7 @@ members = [
     "examples/pfas-generative-models/custom_actuator_function",
     "plugins/operators/profile_space",
     "plugins/actuators/example_actuator",
+    "plugins/operators/trim"
 ]
 
 [tool.uv.sources]
@@ -138,6 +140,7 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
+trim = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [project.scripts]

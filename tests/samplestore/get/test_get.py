@@ -153,20 +153,27 @@ def test_operation_entity_statistics_all_valid(
         )
     )
 
+    # The random results might include the same entity multiple times.
+    # To be sure of how many entities we should expect to see, we need
+    # to check all the measurements of all the requests
+    expected_entities = {
+        result.entityIdentifier
+        for request in _requests
+        for result in request.measurements
+    }
+
     # Get statistics
     stats = sample_store.operation_entity_statistics(operation_id=operation_id)
 
     # Verify counts - all entities should have all successful measurements
-    # Note: total_entities may be higher if test database has entities from other tests
-    assert stats["total_entities"] >= number_entities
+    assert stats["total_entities"] == len(expected_entities)
     # All entities from this operation should have all successful measurements
     # (since fixture creates all valid results)
-    assert (
-        stats["entities_with_all_successful_measurements"] >= number_entities
-    )  # At least our entities have all valid results
-    assert (
-        stats["entities_with_at_least_one_successful_measurement"] >= number_entities
-    )  # At least our entities have at least one valid result
+    assert stats["entities_with_all_successful_measurements"] == len(expected_entities)
+    assert stats["entities_with_at_least_one_successful_measurement"] == len(
+        expected_entities
+    )
+
     # Verify logical consistency
     assert (
         stats["entities_with_all_successful_measurements"]

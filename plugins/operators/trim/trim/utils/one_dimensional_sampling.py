@@ -89,20 +89,22 @@ def get_index_list_van_der_corput(
             )
         return maximal_indices_list
 
+    if len(sampled_indices) > tot_points_to_sample:
+        logging.warning(
+            "Number of sampled indices is greater than the number of indices you want to sample"
+            "Returning sampled indices"
+        )
+        return sampled_indices
+
     index_list = list(sampled_indices)
     sampled_set = set(index_list)
 
-    if 0 not in sampled_set:
-        index_list.append(0)
-        sampled_set.add(0)
-        if len(index_list) == tot_points_to_sample:
-            return sorted(index_list)
-
-    if (length_segment - 1) not in sampled_set:
-        index_list.append(length_segment - 1)
-        sampled_set.add(length_segment - 1)
-        if len(index_list) == tot_points_to_sample:
-            return sorted(index_list)
+    for point in [0, length_segment - 1]:
+        if point not in sampled_set:
+            index_list.append(point)
+            sampled_set.add(point)
+            if len(index_list) == tot_points_to_sample:
+                return sorted(index_list)
 
     def build_prefix_and_len(index_list: list[int]) -> tuple[list[int], int]:
         """
@@ -302,24 +304,6 @@ def sorting_and_check(target_metric: str, source_space_df: DataFrame) -> DataFra
     df_copy = source_space_df.copy()
 
     return df_copy.sort_values(by=valid_cols).reset_index(drop=True)
-
-
-def generate_df_and_point_mask(df: DataFrame, k: int) -> tuple[DataFrame, list[bool]]:
-    """
-    Generate a subset DataFrame and boolean mask using ordered partition sampling.
-
-    Args:
-        df: Input DataFrame with reset index (no shuffling)
-        k: Number of points to sample
-
-    Returns:
-        Tuple of (sampled DataFrame, boolean mask indicating selected rows)
-    """
-    selected_points = get_index_list_ordered_partitions(len(df), k)
-    mask = [i in selected_points for i in range(len(df))]
-    temp_df = df[mask].copy()
-
-    return temp_df, mask
 
 
 def midpoint(start: int, end: int) -> int:

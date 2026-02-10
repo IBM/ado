@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -33,12 +33,8 @@ def template_discovery_space(parameters: AdoTemplateCommandParameters) -> None:
             experiment_references = []
             for pair in parameters.from_experiments:
                 for experiment_id, actuator_id in pair.items():
-                    actuator_id = (
-                        actuator_id
-                        if actuator_id
-                        else _ado_get_actuator_from_experiment_id(
-                            experiment_id=experiment_id, actuator_id=actuator_id
-                        )
+                    actuator_id = actuator_id or _ado_get_actuator_from_experiment_id(
+                        experiment_id=experiment_id, actuator_id=actuator_id
                     )
                     experiment_references.append(
                         ExperimentReference(

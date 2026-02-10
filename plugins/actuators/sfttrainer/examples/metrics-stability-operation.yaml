@@ -1,0 +1,15 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+spaces:
+  - <your space id goes here>
+actuatorConfigurationIdentifiers:
+  - <your actuator config id goes here>
+operation:
+  module:
+    moduleClass: "RandomWalk"
+  parameters:
+    samplerConfig:
+      mode: sequential
+      samplerType: generator
+    singleMeasurement: false # Disable memoization
+    maxRetries: 1

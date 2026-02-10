@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import pathlib
@@ -15,7 +15,7 @@ from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
 def test_create_discovery_space_dry_run_success(tmp_path: pathlib.Path) -> None:
-    space_configuration_file = "examples/ml-multi-cloud/ml_multicloud_space.yaml"
+    space_configuration_file = "examples/optimization_test_functions/space.yaml"
     runner = CliRunner()
     result = runner.invoke(
         ado,

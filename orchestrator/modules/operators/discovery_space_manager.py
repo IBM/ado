@@ -6,7 +6,6 @@ import asyncio
 import logging
 import typing
 
-import pandas as pd
 import ray
 import ray.util.queue
 from ray.actor import ActorHandle
@@ -16,7 +15,6 @@ import orchestrator.core.operation.resource
 import orchestrator.core.resources
 import orchestrator.schema.entityspace
 import orchestrator.schema.measurementspace
-import orchestrator.schema.virtual_property
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.metastore.project import (
     ProjectContext,
@@ -26,9 +24,6 @@ from orchestrator.schema.property_value import PropertyValue
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.logging import configure_logging
-
-PropertyFormatType = typing.Literal["observed", "target"]
-
 
 if typing.TYPE_CHECKING:
     from orchestrator.metastore.sqlstore import SQLStore
@@ -66,8 +61,6 @@ class DiscoverySpaceManager:
     - Handles insertion of new entities and measurements into the space coming from a MeasurementQueue.
     - Notifies subscribers of update events.
     - Notifies subscribers of shutdown
-    ray namespace scoped i.e. All ray actors accessing a DiscoverySpaceManager instance
-    should be in the same ray namespace as that instance.
     """
 
     @classmethod
@@ -204,17 +197,6 @@ class DiscoverySpaceManager:
             entities = selected
 
         return entities
-
-    def matchingEntitiesTable(
-        self,
-        property_type: PropertyFormatType = "observed",
-        aggregationMethod: (
-            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
-        ) = None,
-    ) -> pd.DataFrame:
-        return self._discoverySpace.matchingEntitiesTable(
-            property_type=property_type, aggregationMethod=aggregationMethod
-        )
 
     async def entity(self, index: int = 0) -> "Entity":
 

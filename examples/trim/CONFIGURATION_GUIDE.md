@@ -578,7 +578,7 @@ This saves:
     Get started quickly with a hands-on tutorial using the ideal gas
     law example.
 
-    [TRIM Quickstart :octicons-arrow-right-24:](EXAMPLE_SIMPLE.md)
+    [TRIM Quickstart :octicons-arrow-right-24:](README.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Explore Other Operators**
 

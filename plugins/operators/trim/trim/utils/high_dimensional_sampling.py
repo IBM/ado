@@ -13,6 +13,8 @@ from scipy.stats.qmc import Sobol
 
 from trim.utils.one_dimensional_sampling import get_index_list_van_der_corput
 
+logger_high_dimensional = logging.getLogger(__name__)
+
 
 def concatenated_latin_hypercube_sampling(
     dimensions: list[int],
@@ -110,7 +112,7 @@ def sobol_sampling(
     n_collisions = final_sample_size - len(unique_points)
 
     if n_collisions > 0:
-        logging.error(
+        logger_high_dimensional.error(
             f"Sobol sampling failed, {n_collisions} collisions detected, defaulting to clhs sampling"
         )
         return concatenated_latin_hypercube_sampling(
@@ -261,24 +263,26 @@ def get_sampling_indices_multi_dimensional(
             k: get_index_list_van_der_corput(v, v) for k, v in space.items()
         }
         if [len(indices) for indices in list(indices_dict.values())] != dimensions:
-            logging.error(
+            logger_high_dimensional.error(
                 f"A space dict has been provided ->{space}. It is inconsistent with dimensions={dimensions}"
             )
-            logging.warning(
+            logger_high_dimensional.warning(
                 f"list(indices_dict.values()) = {list(indices_dict.values())}"
             )
             raise ValueError("Space has inconsistent dimensions!")
-        logging.info(
+        logger_high_dimensional.info(
             "Sampling indices for each named dimension (ordered low to high): %s",
             indices_dict,
         )
 
     # Compute sampling orders for each dimension
     orders = [get_index_list_van_der_corput(v, v) for v in dimensions]
-    logging.debug("Dimensions: %s", dimensions)
-    logging.debug("Sampling orders for each dimension:")
-    for i, o in enumerate(orders):
-        logging.debug("Dimension %d order: %s", i, o)
+
+    if logger_high_dimensional.isEnabledFor(logging.DEBUG):
+        logger_high_dimensional.debug("Dimensions: %s", dimensions)
+        logger_high_dimensional.debug("Sampling orders for each dimension:")
+        for i, o in enumerate(orders):
+            logger_high_dimensional.debug("Dimension %d order: %s", i, o)
 
     # Calculate maximum possible samples
     maximum_n = 1
@@ -287,7 +291,7 @@ def get_sampling_indices_multi_dimensional(
     lcm = math.lcm(*dimensions)
 
     if lcm != maximum_n:
-        logging.debug(
+        logger_high_dimensional.debug(
             "Periodicity detected, the sampling subroutine will ensure that you will not sampple"
             "the same configuration more than once."
         )
@@ -301,25 +305,26 @@ def get_sampling_indices_multi_dimensional(
             raise ValueError(f"Unrecognized string for n: {n}")
 
     if n > maximum_n:
-        logging.warning(
-            f"""Maximal sample size is {maximum_n}, you requested {n} sampling presciptions.
-                        Elaborating prescription for n_samples = {maximum_n}"""
+        logger_high_dimensional.warning(
+            f"Maximal sample size is {maximum_n}, you requested {n} sampling presciptions."
+            f"Elaborating prescription for n_samples = {maximum_n}"
         )
 
-    logging.debug("Preparing to sample %d out of %d possible points.", n, maximum_n)
+    logger_high_dimensional.debug(
+        "Preparing to sample %d out of %d possible points.", n, maximum_n
+    )
 
-    if strategy == "random":
-        return random_high_dimensional_sampling(dimensions, n, seed=seed)
-
-    if strategy == "clhs":
-        return concatenated_latin_hypercube_sampling(
-            dimensions=dimensions, final_sample_size=n, seed=seed
-        )
-
-    if strategy == "sobol":
-        return sobol_sampling(dimensions=dimensions, final_sample_size=n, seed=seed)
-
-    raise NotImplementedError(f"Strategy {strategy} is unknown")
+    match strategy:
+        case "random":
+            return random_high_dimensional_sampling(dimensions, n, seed=seed)
+        case "clhs":
+            return concatenated_latin_hypercube_sampling(
+                dimensions=dimensions, final_sample_size=n, seed=seed
+            )
+        case "sobol":
+            return sobol_sampling(dimensions=dimensions, final_sample_size=n, seed=seed)
+        case _:
+            raise NotImplementedError(f"Strategy {strategy} is unknown")
 
 
 def unique_in_order_list_of_lists(

@@ -29,34 +29,21 @@ bibliography: paper.bib
 
 # Summary
 
-The **a**ccelerated **d**iscovery **o**rchestrator (`ado`) is a Python
-package that provides a unified platform for executing computational
-experiments at scale and analyzing their results. `ado` addresses a
-fundamental challenge faced by developers of research software: the
-repeated implementation of common infrastructure features such as
-command-line interfaces, experiment configuration management, distributed
-execution, data provenance tracking, and collaborative data sharing.
-By providing these capabilities through a common framework, `ado` allows
-researchers to focus on domain-specific problems rather than
-reimplementing shared infrastructure.
+The accelerated discovery orchestrator (ado) is a Python
+package that addresses a fundamental challenge faced by developers of research
+software: the repeated implementation of common platform capabilities
+across methodology (design space specification, sampling and analysis),
+interface (CLI, configuration management), execution, and data sharing.
+ado is workload agnostic and exposes these capabilities through a plugin
+programming model, that is often as lightweight as decorating a Python function,
+so researchers can focus on the domain-specific aspects of their problem.
 
-At the core of `ado` is the **Discovery Space** abstraction
-[@Johnston2025], which formalizes the description of computational
-experiment campaigns. A Discovery Space combines an entity space (the
-configurations to be explored) with a measurement space (the experiments
-to be performed), along with a shared sample store that enables
-transparent data reuse across multiple research runs and teams. This
-structured approach to describing experimental workflows enables several
-key features: (1) workload-agnostic optimization through integration with
-state-of-the-art frameworks like Ray Tune [@Liaw2018], (2) automatic
-provenance tracking of all experimental data, (3) transparent reuse of
-experimental results to avoid redundant computation, and (4) support for
-distributed teams through shared, versioned experiment data.
+At the core of ado is the **Discovery Space** abstraction which formalizes
+the description of a design space and the data that has been sampled from it.
+This data model provides the foundation required for workload-agnosticism
+and transparent reuse and sharing of results across a team.
 
-`ado` is designed with extensibility as a core principle, featuring a
-plugin architecture that allows researchers to add new experiments
-(actuators) and analysis tools (operators) while inheriting the
-platform's built-in capabilities. The system leverages Ray [@Moritz2018]
+ado leverages Ray [@Moritz2018]
 for scalable distributed execution and provides specialized support for
 foundation model experimentation, including performance benchmarking for
 inference and fine-tuning workloads. By establishing a common base for
@@ -67,13 +54,16 @@ problems.
 
 # Statement of need
 
+- ADD INTEGRATION NEED: It can be very difficult to reuse techniques
+
 Research in systems and computational science frequently requires
 executing large-scale experimental campaigns to benchmark performance,
 optimize configurations, or explore parameter spaces. Researchers
 developing such tools face a common pattern: they must implement
 infrastructure for experiment management, distributed execution, data
 storage, and result analysis before they can focus on domain-specific
-research questions. This repetitive work across projects leads to
+research questions + doe + optimization.
+In our experience this repetitive work across projects leads to
 fragmented tooling ecosystems where each tool reinvents similar
 capabilities with varying levels of robustness and features. The lack of
 critical mass around any single infrastructure limits the sophistication
@@ -98,19 +88,7 @@ sophisticated search algorithms, and (4) a plugin architecture allows
 domain experts to contribute experiments while inheriting all platform
 capabilities.
 
-`ado` has been applied across diverse domains including large language
-model fine-tuning benchmarking, predictive model building for
-learning-augmented optimization, geospatial inference performance
-analysis, quantum chromodynamics simulations, and tabular data generation
-exploration. This breadth of application demonstrates the generality of
-the underlying abstractions. Looking forward, the structured
-representation of experimental campaigns in `ado` provides a foundation
-for AI-assisted research workflows, enabling code generation tools to
-automatically produce experiment definitions and allowing natural
-language interfaces to formulate executable experimental designs. The
-standardized data models and validation mechanisms in `ado` make it an
-ideal target for such automation, bridging the gap between high-level
-research intent and executable computational experiments.
+[MENTION SIMPLE DECORATION]
 
 # State of the field
 
@@ -120,8 +98,71 @@ provide a clear "build vs. contribute" justification explaining your
 unique scholarly contribution and why existing alternatives are
 insufficient.
 
-- Tools for configuration space exploration
-- Other tools for provenance???
+A. Key challenges for configuration search
+Table I presents a sample of the state-of-the-art for general
+optimization and configuration search systems juxtaposed with
+the contributions of this research.
+
+The first challenge is that the featured techniques are cus-
+tomised to specific workloads which limits their applicability.
+Workload agnostic optimization could be implemented through
+black box optimization (BBO) frameworks such as Vizier [9],
+Optuna [10] and BOAH [11] that provide robust and scalable
+implementations of techniques such as Bayesian optimization.
+While BBO frameworks have been applied to domains such as
+hyperparameter tuning of LLM, computational chemistry, and
+finance, these have not found wide application to configuration
+search. This is in part due to the effort required to map
+configuration parameters to the formats and techniques used
+by these tools.
+
+Another challenge is to manage the costs of sampling con-
+figuration spaces. One possible solution would be to store and
+reuse samples gathered from previous explorations of the con-
+figuration space. This would not only speed up configuration
+search through "bootstrapping" but would also amortise the
+costs of sampling across multiple explorations. In addition, this
+could accelerate creation of prediction models that require sub-
+stantial amount of training data which is time-consuming and
+expensive to collect [2], [9]. Maintaining provenance of the
+configuration samples also enables checking if performance
+models are consistent, thereby enhancing reproducibility [14].
+Last but not the least, is the related challenge of managing
+configuration spaces in dynamic environments. Configuration
+spaces are impacted by changes in the underlying software
+and hardware infrastructure, common to cloud environments,
+which could render existing search solutions obsolete. Repeat-
+ing the search (regularly) adds time and cost overheads which
+could be avoided if the validity of the solution can be assessed.
+
+B. Our Objectives
+
+Our goal was to develop a configuration search framework
+that would enable efficient and reproducible search of multi-
+dimensional configuration spaces. Table I lists our objectives
+to achieve this goal. Our operational objectives were to
+support configuration search for any workload with multiple
+optimization methods using the same framework (Workload
+agnostic and Multiple Optimization Methods).
+Our data-centered objectives were to identify where existing
+data is available and transparently use it to save the cost of
+acquiring it again (Transparent Sharing). This enables incre-
+mental exploration, where a search can reuse (partial) results
+from previous searches, as well as aiding reproducibility of
+the results. Going further than the state-of-the-art, we also
+aimed at reusing data acquired in one configuration space to
+inform a search on a different but related configuration space
+(Distributed Sharing).
+Satisfying both these objectives requires a data model that
+provides a robust and flexible representation of configuration
+spaces and their relationship to the data gathered by testing
+sample configurations. This data model should also abstract the
+configuration space from the actual optimization techniques
+used for search. While recent publications have introduced
+abstractions for specifying the configuration space [2], [7],
+as yet there is no goal for extending these abstractions to
+allow reusing and building upon existing experimental data
+from configuration search studies.
 
 # Software design
 
@@ -177,21 +218,6 @@ to high-performance components when needed. The validation guarantees
 from Pydantic prove particularly valuable for collaborative settings
 where multiple users define experiments and configurations.
 
-## Ray for Distributed Execution
-
-For scale-out execution, `ado` leverages Ray [@Moritz2018], a distributed
-computing framework for Python. This choice follows naturally from our
-Python foundation and provides several benefits: Ray's actor model maps
-cleanly to distributed experiment execution, its integration with
-optimization libraries (Ray Tune) enables seamless access to
-state-of-the-art algorithms, and its transparent distribution of Python
-functions minimizes the gap between local prototyping and large-scale
-execution. Ray handles complex concerns like fault tolerance, resource
-management, and distributed scheduling, allowing `ado` to focus on
-domain-specific orchestration logic. Users can scale from single-machine
-exploration to multi-node clusters without modifying their experiment
-definitions.
-
 ## Explicit Schema Design
 
 Throughout `ado`, we favor explicit, verbose schema definitions over
@@ -208,6 +234,21 @@ produce valid configurations. We view this choice as optimizing for
 long-term maintainability and tool integration over initial authoring
 convenience, with the option to add more concise syntactic sugar as usage
 patterns emerge.
+
+## Ray for Distributed Execution
+
+For scale-out execution, `ado` leverages Ray [@Moritz2018], a distributed
+computing framework for Python. This choice follows naturally from our
+Python foundation and provides several benefits: Ray's actor model maps
+cleanly to distributed experiment execution, its integration with
+optimization libraries (Ray Tune) enables seamless access to
+state-of-the-art algorithms, and its transparent distribution of Python
+functions minimizes the gap between local prototyping and large-scale
+execution. Ray handles complex concerns like fault tolerance, resource
+management, and distributed scheduling, allowing `ado` to focus on
+domain-specific orchestration logic. Users can scale from single-machine
+exploration to multi-node clusters without modifying their experiment
+definitions.
 
 ## Plugin Architecture for Extensibility
 
@@ -230,8 +271,8 @@ that plugins integrate cleanly with the type-checked core.
 # Research impact statement
 
 Research impact statement: Evidence of realized impact (publications,
-external use, integrations) or credible near-term significance
-(benchmarks, reproducible materials, community-readiness signals). The
+external use, integrations) or **credible near-term significance
+(benchmarks, reproducible materials, community-readiness signals)**. The
 evidence should be compelling and specific, not aspirational.
 
 - Fine-tuning
@@ -241,7 +282,23 @@ evidence should be compelling and specific, not aspirational.
 - TRIM
 - Tabular data investigations
 
-Examples/Video
+`ado` has been applied across diverse domains including large language
+model fine-tuning benchmarking, predictive model building for
+learning-augmented optimization, geospatial inference performance
+analysis, quantum chromodynamics simulations, and tabular data generation
+exploration. This breadth of application demonstrates the generality of
+the underlying abstractions.
+
+- Reproducible materials: Examples/Video
+
+Looking forward, the structured
+representation of experimental campaigns in `ado` provides a foundation
+for AI-assisted research workflows, enabling code generation tools to
+automatically produce experiment definitions and allowing natural
+language interfaces to formulate executable experimental designs. The
+standardized data models and validation mechanisms in `ado` make it an
+ideal target for such automation, bridging the gap between high-level
+research intent and executable computational experiments.
 
 # AI usage disclosure
 

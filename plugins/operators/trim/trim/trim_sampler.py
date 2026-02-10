@@ -78,9 +78,8 @@ class TrimSampleSelector(BaseSampler):
             )
 
             if logger_trim_sampler.isEnabledFor(logging.DEBUG):
-                debug_dir = (
-                    anyio.Path(self.params.debugDirectory).expanduser().resolve()
-                )
+                debug_dir = await anyio.Path(self.params.debugDirectory).expanduser()
+                debug_dir = await debug_dir.resolve()
                 logger_trim_sampler.debug(
                     f"Creating a folder to save intermediate files:\n{debug_dir}\n\n"
                 )

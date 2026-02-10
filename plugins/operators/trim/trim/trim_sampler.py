@@ -267,19 +267,15 @@ class TrimSampleSelector(BaseSampler):
                     # NOTE: assigning more weight to target space points does NOT generally improve performance
                     predictor = TabularPredictor(
                         label=self.params.targetOutput,
-                        **(self.params.autoGluonArgs.tabularPredictorArgs or {}),
+                        **self.params.autoGluonArgs.tabularPredictorArgs,
                     )
 
-                    fit_kwargs = (
-                        getattr(
-                            getattr(self.params, "autoGluonArgs", None), "fitArgs", None
-                        )
-                        or {}
-                    )
                     logger_trim_sampler.info(
                         f"Fitting AutoGluon TabularPredictor, iteration {i}..."
                     )
-                    predictor.fit(train_data=train_data, **fit_kwargs)
+                    predictor.fit(
+                        train_data=train_data, **self.params.autoGluonArgs.fitArgs
+                    )
 
                     # metric metric used in training
                     training_metric = getattr(predictor, "eval_metric", None)
@@ -519,18 +515,13 @@ class TrimSampleSelector(BaseSampler):
         predictor = TabularPredictor(
             label=self.params.targetOutput,
             # problem_type="regression", # it is inferred atm
-            **(self.params.finalModelAutoGluonArgs.tabularPredictorArgs or {}),
+            **self.params.finalModelAutoGluonArgs.tabularPredictorArgs,
         )
-        fit_kwargs = (
-            getattr(
-                getattr(self.params, "finalModelautoGluonArgs", None),
-                "fitArgs",
-                None,
-            )
-            or {}
-        )
+
         start_time = time.time()
-        predictor.fit(train_data=train_data, **fit_kwargs)
+        predictor.fit(
+            train_data=train_data, **self.params.finalModelAutoGluonArgs.fitArgs
+        )
         elapsed_time_for_training = time.time() - start_time
 
         final_lb = predictor.leaderboard(silent=True)

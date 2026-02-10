@@ -4,6 +4,7 @@
 import itertools
 import logging
 import math
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -45,15 +46,13 @@ def get_feature_importance_order(
     )
 
     predictor = TabularPredictor(
-        label=target_output,
-        **(getattr(autoGluonArgs, "tabularPredictorArgs", None) or {}),
+        label=target_output, **autoGluonArgs.tabularPredictorArgs
     )
 
-    fit_kwargs = getattr(autoGluonArgs, "fitArgs", None) or {}
     logger.info(
         f"Fitting AutoGluon TabularPredictor; train cols: {list(train_df.columns)}"
     )
-    predictor.fit(train_data=train_df, **fit_kwargs)
+    predictor.fit(train_data=train_df, **autoGluonArgs.fitArgs)
 
     # 3) Feature importances
     fi_df = predictor.feature_importance(train_df).sort_values(
@@ -65,10 +64,9 @@ def get_feature_importance_order(
     logger.info(f"Top features: {list(ordered_tuple_most_important_first[:5])}")
 
     # 4) Cleanup model directory
-    model_dir = getattr(predictor, "path", None)
-    logger.info(f"AutoGluon model directory: {model_dir}")
+    logger.info(f"AutoGluon model directory: {predictor.path}")
+    delete_dir(predictor.path)
     del predictor
-    delete_dir(model_dir)
 
     return ordered_tuple_most_important_first, importance_dict
 
@@ -99,7 +97,10 @@ def reorder_df_by_importance(
 
 
 def order_df_for_sampling_with_no_priors(
-    df: pd.DataFrame, constitutive_properties: list[str], n: int, strategy: str
+    df: pd.DataFrame,
+    constitutive_properties: list[str],
+    n: int,
+    strategy: Literal["random", "clhs", "sobol"],
 ) -> pd.DataFrame:
     """
     Orders a DataFrame for high-dimensional sampling without prior knowledge.

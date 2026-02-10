@@ -60,10 +60,10 @@ def get_index_list_van_der_corput(
 
     :examples:
 
-    >>> get_index_list_nn(5, 3, sampled_indices=[0, 4])
+    >>> get_index_list_van_der_corput(5, 3, sampled_indices=[0, 4])
     [0, 2, 4]
 
-    >>> get_index_list_nn(10, 4, sampled_indices=[0, 4, 9])
+    >>> get_index_list_van_der_corput(10, 4, sampled_indices=[0, 4, 9])
     [0, 4, 6, 9]
 
     This strategy is particularly useful in optimization settings where boundary coverage and balanced sampling are important.
@@ -81,7 +81,13 @@ def get_index_list_van_der_corput(
         sampled_indices = []
 
     if len(sampled_indices) == length_segment:
-        return sampled_indices
+        maximal_indices_list = list(range(length_segment))
+        if sampled_indices.sort() != maximal_indices_list:
+            logging.error(
+                "Sampled indices do not correspond to [0,..., max_n_indices -1]"
+                "Returning list(range(max_n_indices)"
+            )
+        return maximal_indices_list
 
     index_list = list(sampled_indices)
     sampled_set = set(index_list)

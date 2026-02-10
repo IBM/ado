@@ -157,13 +157,15 @@ def distinct_sobol_sampling(
             coord = tuple([int(p[i] * dimensions[i]) for i in range(len(dimensions))])
 
             # Check Uniqueness
-            if coord not in unique_points:
-                unique_points.add(coord)
-                results.append(list(coord))
+            if coord in unique_points:
+                continue
 
-                # Stop immediately if we have enough
-                if len(results) == final_sample_size:
-                    return results
+            unique_points.add(coord)
+            results.append(list(coord))
+
+            # Stop immediately if we have enough
+            if len(results) == final_sample_size:
+                return results
 
         # If we need more points, increase batch size for next iteration
         # (helpful if the grid is nearly full and collisions are frequent)

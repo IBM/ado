@@ -2,8 +2,9 @@
 
 > [!TIP]
 >
-> For a quick introduction to TRIM, see this [example](README.md). This guide is
-> for users who want to adapt TRIM's behavior for their specific use case.
+> For a quick introduction to TRIM, see this
+> [example](https://ibm.github.io/ado/examples/trim/). This guide is for users
+> who want to adapt TRIM's behavior for their specific use case.
 >
 > If you want to skip to the configuration options go to the
 > [complete parameter reference](#complete-parameter-reference).

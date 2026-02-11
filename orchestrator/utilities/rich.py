@@ -37,6 +37,7 @@ def dataframe_to_rich_table(
     show_lines: bool = False,
     show_edge: bool = False,
     box: rich.box.Box = rich.box.HEAVY,
+    show_index: bool = False,
 ) -> Table:
     """Convert a pandas DataFrame to a rich Table.
 
@@ -46,6 +47,11 @@ def dataframe_to_rich_table(
         show_header: Whether to show column headers
         show_lines: Whether to show lines between rows
         show_edge: Whether to show the table border
+        box: Box style for the table
+        show_index: Whether to include the DataFrame's index as the first column.
+            If True, the index will be displayed with a header label using the
+            DataFrame's index name if available, or "Index" as a default.
+            Default is False for backward compatibility.
 
     Returns:
         A rich Table object ready for rendering
@@ -58,12 +64,17 @@ def dataframe_to_rich_table(
         box=box,
     )
 
+    # Add index column if requested
+    if show_index:
+        index_name = df.index.name or "Index"
+        table.add_column(str(index_name))
+
     # Add columns
     for column in df.columns:
         table.add_column(str(column))
 
     # Add rows
-    for _, row in df.iterrows():
+    for idx, row in df.iterrows():
         # Using pretty ensures we get highlighting
         formatted_row = [
             (
@@ -74,6 +85,16 @@ def dataframe_to_rich_table(
             )
             for cell in row
         ]
+
+        # Prepend index value if show_index is True
+        if show_index:
+            index_value = (
+                Pretty(idx)
+                if idx is None or isinstance(idx, (list, dict, tuple, bool, float, int))
+                else str(idx)
+            )
+            formatted_row.insert(0, index_value)
+
         table.add_row(*formatted_row)
 
     return table

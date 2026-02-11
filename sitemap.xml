@@ -85,6 +85,10 @@
          <lastmod>2026-02-11</lastmod>
     </url>
     <url>
+         <loc>https://ibm.github.io/ado/examples/trim/</loc>
+         <lastmod>2026-02-11</lastmod>
+    </url>
+    <url>
          <loc>https://ibm.github.io/ado/examples/vllm-performance-endpoint/</loc>
          <lastmod>2026-02-11</lastmod>
     </url>
@@ -150,6 +154,10 @@
     </url>
     <url>
          <loc>https://ibm.github.io/ado/operators/random-walk/</loc>
+         <lastmod>2026-02-11</lastmod>
+    </url>
+    <url>
+         <loc>https://ibm.github.io/ado/operators/trim/</loc>
          <lastmod>2026-02-11</lastmod>
     </url>
     <url>

@@ -1,0 +1,12 @@
+[project]
+name = "trim"
+dynamic = ["version"]
+requires-python = ">=3.10,<3.14"
+dependencies = ["pandas",
+                "numpy",
+                "scikit-learn",
+                "autogluon.tabular[catboost,xgboost]==1.5"]
+
+
+[project.entry-points."ado.operators"]
+trim = "trim.operator"

@@ -163,7 +163,7 @@ copywrite headers --plan
 markdownlint-cli2 "**/*.md" "#.venv"
 detect-secrets scan --update .secrets.baseline
 detect-secrets audit .secrets.baseline --fail-on-unaudited --fail-on-live --fail-on-audited-real
-yamlfmt -lint .
+yamlfmt -lint -exclude ".venv" .
 ```
 
 The `uv lock --check` command verifies that the `uv.lock` lockfile is up-to-date

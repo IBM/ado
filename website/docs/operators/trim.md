@@ -605,7 +605,7 @@ This saves:
     Use ray_tune for optimization tasks instead of
     characterization.
 
-    [Ray Tune Documentation :octicons-arrow-right-24:](../../website/docs/operators/optimisation-with-ray-tune.md)
+    [Ray Tune Documentation :octicons-arrow-right-24:](https://ibm.github.io/ado/operators/optimisation-with-ray-tune/)
 
 </div>
 <!-- markdownlint-enable line-length -->

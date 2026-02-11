@@ -588,7 +588,7 @@ This saves:
     Learn about other exploration operators like RandomWalk and
     ray_tune.
 
-    [Explore Operators :octicons-arrow-right-24:](../../website/docs/operators/explore_operators.md)
+    [Explore Operators :octicons-arrow-right-24:](https://ibm.github.io/ado/operators/explore_operators/)
 
 - :octicons-beaker-24:{ .lg .middle } **Create Custom Experiments**
 

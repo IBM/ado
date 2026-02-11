@@ -596,7 +596,7 @@ This saves:
 
     Define your own experiments to use with TRIM.
 
-    [Custom Experiments Guide :octicons-arrow-right-24:](../../website/docs/actuators/creating-custom-experiments.md)
+    [Custom Experiments Guide :octicons-arrow-right-24:](https://ibm.github.io/ado/actuators/creating-custom-experiments/)
 
 - :octicons-search-24:{ .lg .middle } **Optimize with Ray Tune**
 

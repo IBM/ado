@@ -48,25 +48,27 @@ class ActuatorConfiguration(pydantic.BaseModel):
         )
 
         def validate_or_default_parameters(
-            actuator_instance: "ActuatorBase",
+            actuator_class: type["ActuatorBase"],
         ) -> GenericActuatorParameters:
             return (
-                actuator_instance.validate_parameters(parameters=self.parameters)
+                actuator_class.validate_parameters(parameters=self.parameters)
                 if self.parameters
-                else actuator_instance.default_parameters()
+                else actuator_class.default_parameters()
             )
 
         actuator_registry = ActuatorRegistry.globalRegistry()
 
         try:
-            actuator = actuator_registry.actuatorForIdentifier(self.actuatorIdentifier)
+            actuator_class = actuator_registry.actuatorForIdentifier(
+                self.actuatorIdentifier
+            )
         except UnknownActuatorError as error:
             raise ValueError(
                 f"Actuator {self.actuatorIdentifier} is not available in the registry. "
                 f"Registered actuators are: {','.join(actuator_registry.actuatorIdentifierMap.keys())}"
             ) from error
         else:
-            self.parameters = validate_or_default_parameters(actuator)
+            self.parameters = validate_or_default_parameters(actuator_class)
 
         return self
 

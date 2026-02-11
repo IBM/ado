@@ -4,6 +4,7 @@
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoShowEntitiesCommandParameters
+from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.dataframes import df_to_output
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
@@ -19,11 +20,16 @@ def show_operation_entities(parameters: AdoShowEntitiesCommandParameters) -> Non
 
     entities_type = "timeseries"
 
+    sql_store = get_sql_store(
+        project_context=parameters.ado_configuration.project_context
+    )
+
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         try:
             space = DiscoverySpace.from_operation_id(
                 operation_id=parameters.resource_id,
                 project_context=parameters.ado_configuration.project_context,
+                metadata_store=sql_store,
             )
         except (ResourceDoesNotExistError, NoRelatedResourcesError):
             status.stop()

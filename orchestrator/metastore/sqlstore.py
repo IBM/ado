@@ -33,19 +33,51 @@ from orchestrator.metastore.sql.utils import (
 if TYPE_CHECKING:
     import pandas as pd
 
+# Cache to track databases where we've verified tables exist
+# Key: database connection string, Value: True if tables exist
+_tables_exist_cache: dict[str, bool] = {}
+
 
 class SQLStore(ResourceStore):
     """Base class for SQLStores"""
 
     def __new__(cls, project_context: ProjectContext) -> "SQLResourceStore":
+        import logging
 
+        FORMAT = orchestrator.utilities.logging.FORMAT
+        LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
+        logging.basicConfig(level=LOGLEVEL, format=FORMAT)
+        log = logging.getLogger("SQLStore")
+
+        log.debug("Creating SQL engine...")
         engine = engine_for_sql_store(configuration=project_context.metadataStore)
-        inspector = sqlalchemy.inspect(engine)
+
+        # Get cache key from database connection string
+        cache_key = (
+            project_context.metadataStore.url().unicode_string()
+            if project_context.metadataStore.scheme != "sqlite"
+            else f"sqlite:///{project_context.metadataStore.path}"
+        )
+
+        # Check cache first to avoid network query
+        if cache_key in _tables_exist_cache:
+            tables_exist = _tables_exist_cache[cache_key]
+            log.debug(
+                f"Using cached table existence check result: tables_exist={tables_exist}"
+            )
+        else:
+            # Network query: check if tables exist
+            log.debug("Checking if 'resources' table exists (network query)...")
+            inspector = sqlalchemy.inspect(engine)
+            tables_exist = inspector.has_table("resources")
+            log.debug(f"Table existence check complete: tables_exist={tables_exist}")
+            # Cache the result
+            _tables_exist_cache[cache_key] = tables_exist
 
         # We set ensureExists manually by checking just one table.
         return SQLResourceStore(
             project_context=project_context,
-            ensureExists=not inspector.has_table("resources"),
+            ensureExists=not tables_exist,
         )
 
     def __init__(self, project_context: ProjectContext) -> None:
@@ -101,6 +133,13 @@ class SQLResourceStore(ResourceStore):
         if ensureExists:
             self.log.debug("Initialising SQL db if it does not exist")
             create_sql_resource_store(self.engine)
+            # Update cache after creating tables
+            cache_key = (
+                self.configuration.url().unicode_string()
+                if self.configuration.scheme != "sqlite"
+                else f"sqlite:///{self.configuration.path}"
+            )
+            _tables_exist_cache[cache_key] = True
             self.log.debug("Done")
 
         super().__init__()

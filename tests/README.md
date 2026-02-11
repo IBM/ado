@@ -1,65 +1,115 @@
-# Tests
+# Testing `ado`
 
-The tests assume you are running for the directory containing this directory
-i.e. the top directory of the `ado` repo.
+We provide a comprehensive set of tests to ensure the correctness of `ado-core`
+and its plugins. The tests are written using the `pytest` framework.
 
-We recommend using `uv sync` to install all test requirements:
+## Prerequisites
+
+### uv
+
+We recommend using `uv` to manage the development environment. `uv` can be
+installed following one of the installation methods provided in the
+[uv documentation](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Synchronizing the dependencies
+
+> [!CAUTION]
+>
+> `uv sync` will uninstall any existing dependencies that are not listed in the
+> `uv.lock` file. This ensure consistent environments.
+
+Synchronize the development environment with the `uv.lock` file by running the
+following command:
 
 ```commandline
 uv sync --group test --reinstall
 ```
 
-Note: This will also remove all packages not required for testing and sync
-all package versions to the lockfile.
-Local packages will be rebuilt.
+### Resource Store and Sample Store-specific requirements
 
-To execute all tests run:
+Resource Store and Sample Store tests have external dependencies on SQLite
+(version 3.38.0 or higher) and a container runtime compatible with
+Testcontainers.
 
-```commandline
-pytest tests/
-```
+#### Checking the SQLite version
 
-**NOTE**: Some tests require a SQLite version higher than 3.38.0. You can check
-the SQLite version you have installed with:
+To check the SQLite version, run the following command:
 
 ```commandline
 python -c 'import sqlite3; print(sqlite3.sqlite_version)'
 ```
 
-## Setting up access to ephemeral resource store
+The result should be `3.38.0` or higher.
 
-Some tests leverage the `testcontainers` python package to create an ephemeral
-resource store to run tests against. If you have docker/docker desktop running
-the tests should work once you have the following environment variable set
+#### Checking the container runtime
+
+Testcontainers requires a container runtime that is compatible with the Docker
+API. At the time of writing, the official Testcontainers website mentions
+explicit support for Docker Desktop, Colima, Rancher Desktop, and Podman.
+
+While Docker Desktop works out-of-the-box, instructions for configuring the
+other runtimes are available
+[on the Testcontainers website](https://java.testcontainers.org/supported_docker_environment/).
+
+## Running the tests
+
+> [!CAUTION]
+>
+> The tests **must** be run from the root directory of the `ado` repository.
+
+There are two ways to run the tests:
+
+1. **(RECOMMENDED)** Using one of the available `tox` environments.
+   - Tox can provision an appropriate Python version if it is not already
+     installed.
+   - Tox will ensure the Python environment is set up with all the required
+     dependencies.
+   - The complete suite of tests will be run, avoiding unexpected side-effects.
+2. Manually running `pytest`. This option allows running only a subset of the
+   tests but requires manual setup.
+
+### Using tox
+
+The list of supported Tox environments can always be queried by running
+`tox list`. As of the time of writing, we support testing on Python versions
+3.10-3.13 on Linux and macOS using locked and non-locked dependencies.
+
+To run the tests using Python 3.11, locked dependencies on a macOS machine, run
+the following command:
 
 ```commandline
-TESTCONTAINERS_RYUK_DISABLED=true
+tox -re py311-locked-macos
 ```
 
-If you do not have docker you can use
-[rancher desktop](https://docs.rancherdesktop.io/getting-started/installation/).
+### Using pytest
 
-When setting up rancher desktop ensure:
+Before running tests with `pytest`, run `uv sync --group test --reinstall` to
+synchronize the dependencies, in case they have changed since the last time the
+tests were run.
 
-- Administrative Access is enabled (required for exposing routes from test
-  containers without port-forward)
-- The container engine is `dockerd(moby)`
+To run the tests for `ado-core`, run the following command:
 
-both these are set from the rancher desktop UI preferences plane (the
-`Application` and `Container Engine` panes respectively).
+<!-- markdownlint-disable line-length -->
 
-**Note**: the tests do not stop the `testcontainer` containers. You must do this
-manually via the docker cli or the rancher desktop UI.
+```commandline
+pytest -n auto --cov=orchestrator --cov=plugins/operators --dist worksteal -rx -vv --log-level=INFO --color=yes tests/
+```
+
+<!-- markdownlint-enable line-length -->
+
+To run other tests, we recommend checking the `commands` section of the
+`tox.ini` file
 
 ## Coverage
 
-If you want to run with coverage first export the following env-var
+If you want to export the coverage report as HTML for further analysis, first
+export the following env-var:
 
 ```commandline
 export COVERAGE_PROCESS_START=.coveragerc
 ```
 
-this is required for obtaining coverage from tests involving remote ray actors.
+This is required for obtaining coverage from tests involving remote ray actors.
 
 Then either use (required `pytest-cov`)
 

@@ -11,15 +11,15 @@ project {
   header_ignore = [
     ".cra/**",
     ".eggs/**",
+    ".git/**",
     ".github/**",
     ".idea/**",
+    ".pre-commit-config.yaml",
     ".tox/**",
     ".venv/**",
     ".vscode/**",
-    "adorchestrator.egg-info/**",
+    "**build/lib/**",
     "dist/**",
     "toxenv/**",
-    "**build/lib/**",
-    ".pre-commit-config.yaml",
   ]
 }

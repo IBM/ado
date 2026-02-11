@@ -116,7 +116,7 @@ def execute_benchmark(
         f"{num_prompts!s}",
         "--save-result",
         "--metric-percentiles",
-        "25,75,99",
+        "25,50,75,99",
         "--percentile-metrics",
         "ttft,tpot,itl,e2el",
         "--result-dir",

@@ -23,32 +23,32 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
     console_print(
         f"{WARN}These functionalities are global, and not context-aware\n"
-        f"{WARN}This a local command. It will not reflect the actuators on a remote cluster.",
+        f"{WARN}This is a local command. It will not reflect the actuators on a remote cluster.",
         stderr=True,
     )
 
     import pandas as pd
 
-    import orchestrator.modules.actuators
-    import orchestrator.modules.actuators.registry
+    from orchestrator.modules.actuators.registry import ActuatorRegistry
 
     with Status(ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY) as spinner:
-        registry = (
-            orchestrator.modules.actuators.registry.ActuatorRegistry.globalRegistry()
-        )
+        registry = ActuatorRegistry.globalRegistry()
+        available_actuators = sorted(registry.actuatorIdentifierMap.keys())
 
+        # Validate actuator exists if specific ID provided
         if (
             parameters.resource_id
             and parameters.resource_id not in registry.actuatorIdentifierMap
         ):
             spinner.stop()
             console_print(
-                f"{ERROR}Actuator {parameters.resource_id} does not exist.\n"
-                f"{HINT}Available actuators are: {list(registry.actuatorIdentifierMap.keys())}",
+                f"{ERROR}Actuator '{parameters.resource_id}' does not exist.\n"
+                f"{HINT}Available actuators are: {available_actuators}",
                 stderr=True,
             )
             raise typer.Exit(1)
 
+        # Validate output format
         if parameters.output_format != AdoGetSupportedOutputFormats.DEFAULT:
             spinner.stop()
             console_print(
@@ -60,21 +60,20 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
         spinner.update(ADO_SPINNER_GETTING_OUTPUT_READY)
 
-        data = []
+        # Build column structure
         columns = ["ACTUATOR ID", "EXPERIMENTS"]
-
         if parameters.show_details:
             columns.extend(["DESCRIPTION", "VERSION"])
 
-        if parameters.resource_id:
-            actuator_identifiers = [parameters.resource_id]
-        else:
-            actuator_identifiers = registry.actuatorIdentifierMap.keys()
+        # Determine which actuators to display
+        actuator_identifiers = (
+            [parameters.resource_id] if parameters.resource_id else available_actuators
+        )
 
-        for actuator_id in sorted(actuator_identifiers):
+        # Collect actuator data
+        data = []
+        for actuator_id in actuator_identifiers:
             catalog = registry.catalogForActuatorIdentifier(actuator_id)
-
-            # Count all experiments
             total_experiments = len(catalog.experiments)
 
             row = [actuator_id, total_experiments]
@@ -83,17 +82,15 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
                 actuator_metadata = registry.actuatorMetadataMap.get(actuator_id, {})
                 row.extend(
                     [
-                        actuator_metadata.get("description") or "",
-                        actuator_metadata.get("version") or "",
+                        actuator_metadata.get("description", ""),
+                        actuator_metadata.get("version", ""),
                     ]
                 )
 
             data.append(row)
 
-        output_df = pd.DataFrame(
-            data=data,
-            columns=columns,
-        )
+        # Create DataFrame
+        output_df = pd.DataFrame(data=data, columns=columns)
 
         if output_df.empty:
             spinner.stop()

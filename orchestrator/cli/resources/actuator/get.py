@@ -13,7 +13,6 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     ERROR,
     HINT,
-    INFO,
     WARN,
     console_print,
 )
@@ -64,6 +63,9 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
         data = []
         columns = ["ACTUATOR ID", "EXPERIMENTS"]
 
+        if parameters.show_details:
+            columns.extend(["DESCRIPTION", "VERSION"])
+
         if parameters.resource_id:
             actuator_identifiers = [parameters.resource_id]
         else:
@@ -75,17 +77,18 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
             # Count all experiments
             total_experiments = len(catalog.experiments)
 
-            # Skip actuators with no experiments to show
-            if total_experiments == 0:
-                spinner.stop()
-                console_print(
-                    f"{INFO}Actuator {actuator_id} has been omitted as it does not provide any experiment.",
-                    stderr=True,
-                )
-                spinner.start()
-                continue
+            row = [actuator_id, total_experiments]
 
-            data.append([actuator_id, total_experiments])
+            if parameters.show_details:
+                actuator_metadata = registry.actuatorMetadataMap.get(actuator_id, {})
+                row.extend(
+                    [
+                        actuator_metadata.get("description") or "",
+                        actuator_metadata.get("version") or "",
+                    ]
+                )
+
+            data.append(row)
 
         output_df = pd.DataFrame(
             data=data,

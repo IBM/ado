@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 0
 # SPDX-License-Identifier: MIT
 experiments:
   - actuatorIdentifier: trainer

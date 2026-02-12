@@ -13,7 +13,7 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     ERROR,
     HINT,
-    WARN,
+    INFO,
     console_print,
 )
 from orchestrator.utilities.rich import dataframe_to_rich_table
@@ -22,8 +22,7 @@ from orchestrator.utilities.rich import dataframe_to_rich_table
 def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
     console_print(
-        f"{WARN}These functionalities are global, and not context-aware\n"
-        f"{WARN}This is a local command. It will not reflect the actuators on a remote cluster.",
+        f"{INFO}This is a local command. It will not reflect the actuators on a remote cluster.",
         stderr=True,
     )
 

@@ -154,6 +154,7 @@ nav:
       - Measure throughput of fine-tuning on a remote RayCluster: examples/finetune-remotely.md
       - Testing the throughput of an inference endpoint: examples/vllm-performance-endpoint.md
       - Exploring vLLM deployment performance: examples/vllm-performance-full.md
+      - Efficiently Exploring Parameter Spaces with TRIM: examples/trim.md
   - Core Concepts:
       - core-concepts/concepts.md
       - Entities and Entity Spaces: core-concepts/entity-spaces.md
@@ -185,3 +186,4 @@ nav:
       - Extending `ado` with new Operators: operators/creating-operators.md
       - The Random Walk Operator: operators/random-walk.md
       - The Ray Tune Operator: operators/optimisation-with-ray-tune.md
+      - The TRIM Operator: operators/trim.md

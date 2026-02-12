@@ -187,7 +187,7 @@ metadata:
 parameters:
   benchmark_retries: 3                  # Number of benchmark attempts (see Failure Handling)
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
-  image_secret: ""                      # Optional image pull secret
+  image_pull_secret_name: ""            # Optional image pull secret
   in_cluster: false                     # Set to true if running from within the cluster
   interpreter: python3                  # Language for test drivers/benchmarks
   max_environments: 1                   # Max concurrent vLLM deployments

@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -828,7 +828,7 @@ class RayTune(Search):
                 result_dict = {
                     "config": output.result.config,
                     "metrics": output.result.metrics,
-                    "error": output.result.error if output.result.error else None,
+                    "error": output.result.error or None,
                 }
                 resources = [
                     DataContainerResource(

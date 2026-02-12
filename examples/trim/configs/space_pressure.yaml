@@ -1,0 +1,21 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: 3a68bf
+metadata:
+  name: calculate_pressure_0-0-0
+entitySpace:
+  - identifier: temperature
+    propertyDomain:
+      domainRange: [270, 300]
+      interval: 2
+  - identifier: volume
+    propertyDomain:
+      domainRange: [1, 10]
+      interval: 1
+  - identifier: mol
+    propertyDomain:
+      domainRange: [0.1, 1]
+      interval: 0.1
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: calculate_pressure_ideal_gas

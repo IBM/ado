@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import abc
@@ -61,7 +61,7 @@ class DeleteFromDatabaseError(DatabaseOperationError):
             if rollback_occurred
             else "The deletion was not rolled back."
         )
-        additional_message = message if message else ""
+        additional_message = message or ""
 
         super().__init__(
             f"Failed to delete {resource_kind.value} {resource_id}. {additional_message}. {rollback_message}"

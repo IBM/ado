@@ -1,0 +1,1 @@
+../../../examples/trim/README.md

@@ -141,10 +141,12 @@ def my_custom_experiment(entity, actuator, parameterization):
 **Key Points:**
 
 - Specify all `required_properties` that the experiment needs
+- Any positional arguments to the function must be required_properties,
+they may be keyword arguments
 - List any `optional_properties`
+- An optional_property will be a keyword argument to the function. 
 - Define `output_property_identifiers` for measurement results
 - Include descriptive metadata
-- Function signature must match: `(entity, actuator, parameterization)`
 
 ---
 

@@ -221,5 +221,5 @@ ado create operation -f operation.yaml --use-latest
 ## Related Resources
 
 - For creating discoveryspace and operation YAML files, see
-  [formulate-ado-problems](../formulate-ado-problems/)
+  [formulate-discovery-problem](../formulate-discovery-problem/)
 - For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

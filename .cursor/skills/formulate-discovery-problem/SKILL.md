@@ -1,5 +1,5 @@
 ---
-name: formulate-ado-problems
+name: formulate-discovery-problem
 description: |
   Formulates problems for execution with ado by creating discoveryspace and
   operation YAML files. Guides through experiment selection, space creation,

@@ -1,6 +1,5 @@
 ---
-description: General development guidelines for ad-ado - code style, testing, quality checks, and commit standards
-alwaysApply: true
+description: General development guidelines for ado - code style, testing, quality checks, and commit standards
 ---
 
 # General Development Guidelines for ado
@@ -82,7 +81,7 @@ Use Test Driven Development
 - Run pytest: check tests
 - Iterate until tests pass
 
-## Writing Tests
+### Writing Tests
 
 - Check for existing fixtures before creating new ones:
   - `tests/fixtures/`
@@ -90,7 +89,7 @@ Use Test Driven Development
 - Test the full lifecycle for pydantic models:
     create → dump → create from dump
 
-## Code Linting
+### Code Linting
 
 - Linting must be run after any code changes and must pass before running tests.
 - Run **black** after changes:
@@ -114,7 +113,9 @@ Use Test Driven Development
 
 ---
 
-## Code Testing
+## Testing
+
+### Code Testing
 
 - Each subpackage has a corresponding test directory under `tests/`, for example:
   - `schema/`
@@ -129,14 +130,27 @@ Use Test Driven Development
 
     uv sync --reinstall --group test --group dev
 
----
-
-## YAML Testing
+### YAML Testing
 
 - Test any new or modified ado resource YAML using:
 
-    ado create RESOURCETYPE -f FILE --dry-run
+    uv run ado create RESOURCETYPE -f FILE --dry-run
+
+### ado CLI command-line construction and testing
+
+- Confirm all ado CLI commands and options written in documentation are correct
+
+   uv run ado [COMMAND] --help
+   uv run ado [COMMAND] [SUBCOMMAND1] ... --help
+
+- Leverage the --use-latest ado CLI command arg when writing documentation if
+an "ado create" or "ado show" command requires the identifier of a previously
+created resource
 
 ---
 
-- For plugin development, see [plugin-development.mdc](plugin-development.mdc)
+## Links
+
+- For plugin development, see [plugin-development.mdc](.cursor/rules/plugin-development.mdc)
+- For formulating problems with ado, see [formulate problems for ado](.cursor/skills/formulate-ado-problems/)
+- For using the ado CLI, see [using the ado CLI](.cursor/skills/using-ado-cli/)

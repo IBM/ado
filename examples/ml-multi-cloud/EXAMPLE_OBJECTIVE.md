@@ -63,18 +63,20 @@ pip install custom_experiment/
 then
 
 ```commandline
-ado get actuators --details
+ado get experiments --details
 ```
 
 will output something similar to:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-2          custom_experiments          CustomExperiments                        ml-multicloud-cost-v1.0       True
-3         molecule-embeddings                 Embeddings                   calculate-morgan-fingerprint       True
-4          molformer-toxicity         molformer-toxicity                               predict-toxicity       True
-5                     mordred         Mordred Descriptor                  mordred-descriptor-calculator       True
-6                       st4sd                      ST4SD                      toxicity-prediction-opera       True
+┌────────────────────┬─────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENT ID           │
+├────────────────────┼─────────────────────────┤
+│ custom_experiments │ ml-multicloud-cost-v1.0 │
+│ mock               │ test-experiment         │
+│ mock               │ test-experiment-two     │
+└────────────────────┴─────────────────────────┘
 ```
 <!-- markdownlint-enable line-length -->
 

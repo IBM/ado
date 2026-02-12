@@ -115,7 +115,7 @@ To add your experiments to `ado`:
 2. Run:
 
    ```shell
-   ado get actuators --details
+   ado get experiments
    ```
 
 All custom experiments are made available in `ado` through

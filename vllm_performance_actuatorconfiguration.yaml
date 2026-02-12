@@ -1,0 +1,22 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+actuatorIdentifier: vllm_performance
+metadata:
+  description: null
+  labels: null
+  name: null
+parameters:
+  benchmark_retries: 3
+  deployment_template: null
+  hf_token: ''
+  image_pull_secret_name: ''
+  in_cluster: false
+  interpreter: python3
+  max_environments: 1
+  namespace: null
+  node_selector: {}
+  pvc_name: null
+  pvc_template: null
+  retries_timeout: 5
+  service_template: null
+  verify_ssl: false

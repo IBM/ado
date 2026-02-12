@@ -13,6 +13,12 @@ description: |
 This skill guides you through creating discoveryspace and operation YAML files
 to formulate problems for execution with ado.
 
+## Tips
+
+- Unless directed otherwise place all YAML and .md files created in a
+  subdirectory of examples/ dedicated to the given problem.
+- Learn [ado CLI command-line construction and testing](../using-ado-cli/)
+
 ## Workflow Overview
 
 The process has two main phases:
@@ -20,7 +26,8 @@ The process has two main phases:
 1. **Create DiscoverySpace YAML** - Define experiments and entity space
 2. **Create Operation YAML** - Configure how to explore/analyze the space
 
-Each phase follows: choose → create → validate → iterate.
+Each phase follows a pattern: choose tool for task (experiment/operator) →
+create YAML for task → validate YAML → iterate.
 
 ## Phase 1: Create DiscoverySpace YAML
 
@@ -43,6 +50,14 @@ uv run ado describe experiment $EXPERIMENT_ID
 - Required constitutive properties (must be in entity space)
 - Optional properties (can use defaults or add to entity space)
 - Target properties (what the experiment measures)
+
+#### What to do if no experiment matching task available
+
+1. Learn how to extend ado:
+   [plugin-development.mdc](../../rules/plugin-development.mdc)
+2. Propose a custom experiment or actuator to user that would provide missing
+   functionality
+3. Wait for user input
 
 ### Step 1b: Create DiscoverySpace YAML
 
@@ -94,7 +109,8 @@ Review the template and configure parameters based on:
 
 **Structure:**
 
-See [skill-operation-structure.yaml](yaml-examples/skill-operation-structure.yaml).
+See
+[skill-operation-structure.yaml](yaml-examples/skill-operation-structure.yaml).
 
 ### Step 2d: Validate Operation YAML
 
@@ -121,45 +137,50 @@ Fix validation errors and repeat validation until successful.
 
 ### Entity Space Refinement Rules
 
-1. **Refine domains to reduce size** - Narrow property domains based on
-   user's query. Explain the refinement.
-2. **No redundant dimensions** - All entity space properties should be
-   required by at least one experiment (validation will catch this)
-3. **Domain compatibility** - Entity space property domains must be
-   compatible with experiment requirements (subdomain or equal)
+1. **Refine domains to reduce size** - Narrow property domains based on user's
+   query. Explain the refinement.
+2. **No redundant dimensions** - All entity space properties should be required
+   by at least one experiment (validation will catch this)
+3. **Domain compatibility** - Entity space property domains must be compatible
+   with experiment requirements (subdomain or equal)
 
 ### Property Domain Guidelines
 
 **Discrete (categorical):**
 
-See [skill-property-domain-discrete-categorical.yaml](yaml-examples/skill-property-domain-discrete-categorical.yaml).
+See
+[skill-property-domain-discrete-categorical.yaml](yaml-examples/skill-property-domain-discrete-categorical.yaml).
 
 **Discrete (numeric):**
 
-See [skill-property-domain-discrete-numeric.yaml](yaml-examples/skill-property-domain-discrete-numeric.yaml).
+See
+[skill-property-domain-discrete-numeric.yaml](yaml-examples/skill-property-domain-discrete-numeric.yaml).
 
 **Continuous:**
 
-See [skill-property-domain-continuous.yaml](yaml-examples/skill-property-domain-continuous.yaml).
+See
+[skill-property-domain-continuous.yaml](yaml-examples/skill-property-domain-continuous.yaml).
 
 ## Validation Checklist
 
 Before finalizing, verify:
 
-- [ ] All required experiment properties are in entity space
-- [ ] Entity space domains are compatible with experiment requirements
-- [ ] No redundant entity space dimensions
-- [ ] Optional properties only added if necessary (with explanation)
-- [ ] Default values only changed if necessary (with explanation)
-- [ ] Domain refinements explained
-- [ ] DiscoverySpace YAML validates (`--dry-run`)
-- [ ] Operation YAML validates (`--dry-run`)
+- All required experiment properties are in entity space
+- Entity space domains are compatible with experiment requirements
+- No redundant entity space dimensions
+- Optional properties only added if necessary (with explanation)
+- Default values only changed if necessary (with explanation)
+- Domain refinements explained
+- DiscoverySpace YAML validates (`--dry-run`)
+- Operation YAML validates (`--dry-run`)
+- All ado CLI commands and options are validate (uv run ado [COMMAND] --help)
 
 ## Common Issues and Solutions
 
 **Issue:** Validation error "required property not in entity space"
 
-- **Solution:** Add the missing property to `entitySpace` with appropriate domain
+- **Solution:** Add the missing property to `entitySpace` with appropriate
+  domain
 
 **Issue:** Validation error "domain incompatible"
 
@@ -168,8 +189,8 @@ Before finalizing, verify:
 
 **Issue:** Validation error "redundant dimension"
 
-- **Solution:** Remove properties from entity space that aren't required by
-  any experiment
+- **Solution:** Remove properties from entity space that aren't required by any
+  experiment
 
 **Issue:** Operation validation fails
 
@@ -192,5 +213,5 @@ Before finalizing, verify:
 When modifying or creating code while using this skill, follow:
 
 - [general-development.mdc](../../rules/general-development.mdc)
-- [plugin-development.mdc](../../rules/plugin-development.mdc) (if working
-  with plugins)
+- [plugin-development.mdc](../../rules/plugin-development.mdc) (if working with
+  plugins)

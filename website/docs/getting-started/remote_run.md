@@ -225,7 +225,6 @@ likely need to connect your laptop to this URL via a "port-forward".
 For example with OpenShift you can do this with the following `oc` command in a
 terminal other that the one you will submit the job from:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 
 ```commandline
 oc port-forward --namespace $NAMESPACE svc/$RAY_SERVICE_NAME 8265

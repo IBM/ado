@@ -132,18 +132,19 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     if parameters.dry_run:
         console_print(f"{INFO}The operation YAML is syntactically valid.", stderr=True)
 
-    with Status("Validating actuator configurations for operation") as status:
-        try:
-            op_resource_configuration.validate_actuatorconfigurations(
-                parameters.ado_configuration.project_context
-            )
-        except ValueError as e:
-            status.stop()
-            console_print(
-                f"{ERROR}The actuator configuration validation failed:\n{e}",
-                stderr=True,
-            )
-            raise typer.Exit(1) from e
+    if op_resource_configuration.actuatorConfigurationIdentifiers:
+        with Status("Validating actuator configurations for operation") as status:
+            try:
+                op_resource_configuration.validate_actuatorconfigurations(
+                    parameters.ado_configuration.project_context
+                )
+            except ValueError as e:
+                status.stop()
+                console_print(
+                    f"{ERROR}The actuator configuration validation failed:\n{e}",
+                    stderr=True,
+                )
+                raise typer.Exit(1) from e
 
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)

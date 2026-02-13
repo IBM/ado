@@ -5,12 +5,14 @@
 0  random_walk  explore
 1     ray_tune  explore
 </code></pre></div> <h2 id=installing-the-custom-experiment>Installing the custom experiment<a class=headerlink href=#installing-the-custom-experiment title="Permanent link">&para;</a></h2> <p>The custom experiment is defined in a Python package under <code>custom_actuator_function/</code>. To install it run:</p> <div class=highlight><pre><span></span><code>pip install custom_experiment/
-</code></pre></div> <p>then</p> <div class=highlight><pre><span></span><code>ado get actuators --details
-</code></pre></div> <p>will output something similar to:</p> <div class=highlight><pre><span></span><code>2          custom_experiments          CustomExperiments                        ml-multicloud-cost-v1.0       True
-3         molecule-embeddings                 Embeddings                   calculate-morgan-fingerprint       True
-4          molformer-toxicity         molformer-toxicity                               predict-toxicity       True
-5                     mordred         Mordred Descriptor                  mordred-descriptor-calculator       True
-6                       st4sd                      ST4SD                      toxicity-prediction-opera       True
+</code></pre></div> <p>then</p> <div class=highlight><pre><span></span><code>ado get experiments --details
+</code></pre></div> <p>will output something similar to:</p> <div class=highlight><pre><span></span><code>┌────────────────────┬─────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENT ID           │
+├────────────────────┼─────────────────────────┤
+│ custom_experiments │ ml-multicloud-cost-v1.0 │
+│ mock               │ test-experiment         │
+│ mock               │ test-experiment-two     │
+└────────────────────┴─────────────────────────┘
 </code></pre></div> <p>You can see the custom experiment provided by the package, <strong>ml-multicloud-cost-v1.0</strong> on the first line. Executing <code>ado describe experiment ml-multicloud-cost-v1.0</code> outputs:</p> <div class=highlight><pre><span></span><code>Identifier: custom_experiments.ml-multicloud-cost-v1.0
 
 Required Inputs:

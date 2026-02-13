@@ -5,7 +5,13 @@
 0  random_walk  explore
 1     ray_tune  explore
 </code></pre></div> <h3 id=install-the-custom-nevergrad_opt_3d_test_func-experiment>Install the custom <code>nevergrad_opt_3d_test_func</code> experiment<a class=headerlink href=#install-the-custom-nevergrad_opt_3d_test_func-experiment title="Permanent link">&para;</a></h3> <p>The <code>nevergrad_opt_3d_test_func</code> experiment enables measuring the following optimization test functions on a 3d space: 'discus', 'sphere', 'cigar', 'griewank', 'rosenbrock', 'st1'. See the <a href=https://github.com/facebookresearch/nevergrad/blob/main/nevergrad/functions/corefuncs.py>nevergrad docs</a> for definitions of these functions.</p> <p>To install it:</p> <div class=highlight><pre><span></span><code>pip<span class=w> </span>install<span class=w> </span>custom_experiments/
-</code></pre></div> <p>after this running <code>ado get actuators --details</code> should show the following line:</p> <div class=highlight><pre><span></span><code>1   custom_experiments  CustomExperiments                             nevergrad_opt_3d_test_func       True
+</code></pre></div> <p>after this running <code>ado get experiments</code> should show the following line:</p> <div class=highlight><pre><span></span><code>┌────────────────────┬────────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENT ID              │
+├────────────────────┼────────────────────────────┤
+│ custom_experiments │ nevergrad_opt_3d_test_func │
+│ mock               │ test-experiment            │
+│ mock               │ test-experiment-two        │
+└────────────────────┴────────────────────────────┘
 </code></pre></div> <p>and <code>ado describe experiment nevergrad_opt_3d_test_func</code> should output</p> <div class=highlight><pre><span></span><code>Identifier: custom_experiments.nevergrad_opt_3d_test_func
 
 Required Inputs:

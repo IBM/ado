@@ -231,9 +231,9 @@ and the best region is unlikely to be visited.
   dimensions of the `entityspace`, to explore their impact on throughput
 - Try varying `num_samples`, `gamma` and `n_initial_points` parameters of
   hyperopt
-  - You can keep running the optimization on the same `discoveryspace`. The
-    previous runs will not influence new runs, but their results will be reused,
-    speeding experimentation up
+    - You can keep running the optimization on the same `discoveryspace`. The
+      previous runs will not influence new runs, but their results will be reused,
+      speeding experimentation up
 - Measure the
   [performance of vLLM deployment configurations](vllm-performance-full.md)
 - Check the

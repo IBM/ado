@@ -64,6 +64,7 @@ dev = [
     "pytest-xdist>=3.6.1",
     "ruff>=0.12.1",
     "testcontainers>=4.10.0",
+    "tombi>=0.7.28",
     "tox>=4.26.0",
     "tox-uv>=1.25.0",
 ]

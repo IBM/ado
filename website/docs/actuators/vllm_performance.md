@@ -22,12 +22,25 @@
 > pip install ado-vllm-performance
 > ```
 >
-> This will automatically install both vLLM and GuideLLM benchmarking
-> tools, enabling all experiments:
+> By default vLLM and GuideLLM are optional dependencies of the actuator.
+> The default installation is useful for users to describe and create spaces,
+> and inspect the available experiments, but it would not allow for
+> experiments to be executed.
 >
-> - `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
-> - `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1`
->   (GuideLLM benchmarks)
+> To enable the vLLM experiments (`test-deployment-v1`, `test-endpoint-v1`),
+> install this actuator with:
+>
+> ```commandline
+> pip install ado-vllm-performance[vllm]
+> ```
+>
+> To enable the GuideLLM experiments (`test-deployment-guidellm-v1`,
+> `test-endpoint-guidellm-v1`)
+> install this actuator with:
+>
+> ```commandline
+> pip install ado-vllm-performance[guidellm]
+> ```
 
 ## Key Capabilities
 

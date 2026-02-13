@@ -3,6 +3,7 @@
 
 import logging
 import os
+import shutil
 import uuid
 from pathlib import Path
 
@@ -205,6 +206,16 @@ class VLLMPerformanceTest(ActuatorBase):
 
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
+
+        # Check if required tool is available based on experiment identifier
+        experiment_id_lower = experiment.identifier.lower()
+        required_tool = "guidellm" if "guidellm" in experiment_id_lower else "vllm"
+
+        if not shutil.which(required_tool):
+            raise MissingConfigurationForExperimentError(
+                f"Experiment {experiment.identifier} requires {required_tool} to be installed in the system. "
+                f"Please install {required_tool} before running this experiment."
+            )
 
         if experiment.identifier in [
             "test-deployment-v1",

@@ -21,10 +21,11 @@ following we will refer to this directory as `$RAY_JOB_DATA_DIR`.
 This will usually contain the following three YAML files:
 
 <!-- markdownlint-disable MD007 -->
+
 - A YAML file describing [the context](../resources/metastore.md) to use for the
   operation.
-    - You can use `ado get context -o yaml` to get this file for the context you
-      want to use
+  - You can use `ado get context -o yaml` to get this file for the context you
+    want to use
 - A YAML file describing [the operation](../resources/operation.md) to create.
 - A YAML file describing [the environment of the Ray job](#ray-runtime-environment-runtime-env)
 <!-- markdownlint-enable MD007 -->
@@ -37,13 +38,15 @@ can have any names.
 
 An example `runtime_env.yaml` which dynamically installs the latest release
 of `ado`, and some `ado` plugins, is:
+
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 uv: # One line for each plugin (actuator, operator) to install
   - ado-core
   - ado-ray-tune # If you aim to run a ray-tune operation
-  - ado-vllm-performance # Substitute with whatever plugins you need
+  - ado-vllm-performance[vllm] # Substitute with whatever plugins you need
 env_vars: # These env_vars are recommended.
   PYTHONUNBUFFERED: "x" # Turns off buffering of the jobs logs. Useful if there is some error
   OMP_NUM_THREADS: "1" # Restricts the number of threads started by the python process in the job. If this is not set it can cause the ray job to exceed OpenShift node thread limits.
@@ -53,9 +56,10 @@ env_vars: # These env_vars are recommended.
   HOME: "/tmp" # Optional: Use if python code used by operation assumes $HOME is writable which it may not be
   LOGLEVEL: "WARNING" # Optional: Set this to get more/less debug logs from ado
 ```
+
 <!-- markdownlint-enable line-length -->
 
->[!NOTE] Ray python package caching
+> [!NOTE] Ray python package caching
 >
 > Ray caches packages it is asked to install so they are
 > only downloaded, and potentially built, the first time
@@ -67,11 +71,13 @@ The command for submitting the job looks like:
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 ray job submit --no-wait --address http://localhost:8265 \
   --working-dir $PWD --runtime-env ray_runtime.yaml -v -- \
   ado -c context.yaml create operation -f operation.yaml
 ```
+
 <!-- markdownlint-enable line-length -->
 
 This creates a detached Ray job that runs on the cluster.
@@ -80,7 +86,7 @@ You can go to the ray dashboard
 to see the job status, logs, and more.
 You can read more about [ray submit command line options here](#ray-job-submit-options).
 
->[!NOTE] Specifying the context
+> [!NOTE] Specifying the context
 >
 > When you run remotely there is no active context.
 > Hence, you have to specify the context to use with the `-c` option to ado,
@@ -91,11 +97,11 @@ You can read more about [ray submit command line options here](#ray-job-submit-o
 There are three ways of installing ado and plugins on the remote cluster.
 
 - [Pre-installing](#pre-installing-ado-packages): Best when you are using the
-same actuators and operators constantly
+  same actuators and operators constantly
 - [Dynamic installation from pypi](#dynamic-installation-from-pypi):
-Best in general case
+  Best in general case
 - [Dynamic installation from source](#dynamic-installation-from-source):
-Best for developers
+  Best for developers
 
 ### Pre-installing ado packages
 
@@ -109,7 +115,8 @@ This method has the benefit of not having any overhead in job start from
 python package download or build steps.
 
 <!-- markdownlint-disable MD007 -->
->[!WARNING] Using additional plugins with pre-installed ado
+
+> [!WARNING] Using additional plugins with pre-installed ado
 >
 > If you need additional plugins or different versions of pre-installed
 > plugins **you must do a dynamic installation of `ado-core` and all
@@ -117,12 +124,13 @@ python package download or build steps.
 > This is because:
 >
 > - The pre-installed `ado` command is tied to the base-environment
->     - It will not see new packages. You need to install it
-> into the job's virtualenv
+>   - It will not see new packages. You need to install it
+>     into the job's virtualenv
 > - The ado_actuators namespace package will be superseded by one created in
-> the job's virtualenv
->     - Actuators in the same namespace package in the base environment
-> will not be seen
+>   the job's virtualenv
+>   - Actuators in the same namespace package in the base environment
+>     will not be seen
+
 <!-- markdownlint-enable MD007 -->
 
 ### Dynamic installation from pypi
@@ -137,7 +145,7 @@ If the `ado` plugins or `ado-core` version you need are not on pypi you can inst
 them from source. There are two steps:
 
 1. Build python wheels for `ado` and/or the required plugins
-you need to install from source
+   you need to install from source
 2. Tell Ray to install the wheels as part of the Ray job submission
 
 #### Building python wheels
@@ -151,25 +159,25 @@ you need to install from source
 
 In the top-level of the `ado` repository:
 
-  ```bash
-  # Creates  `dist/` directory with the wheel. It will have a name like `ado_core-$VERSION-py3-none.whl`
-  uv build -o dist --clear
-  # Copy the wheel to the Ray job directory
-  mv dist/*.whl $RAY_JOB_DATA_DIR
-  ```
+```bash
+# Creates  `dist/` directory with the wheel. It will have a name like `ado_core-$VERSION-py3-none.whl`
+uv build -o dist --clear
+# Copy the wheel to the Ray job directory
+mv dist/*.whl $RAY_JOB_DATA_DIR
+```
 
 ##### Build the plugin wheels
 
 In the top-level of the plugins package, for example, one of the
 subdirectories of "plugins/actuators/" in the `ado` repository, execute:
 
-  ```bash
-  : # Creates `dist/` directory in plugin directory with the wheel file. 
-  : # It will have a name like `$PLUGIN-NAME-$VERSION-py3-none.whl`
-  uv build -o dist --clear
-  # Copy the wheel to the ray job directory
-  mv dist/*.whl $RAY_JOB_DATA_DIR
-  ```
+```bash
+: # Creates `dist/` directory in plugin directory with the wheel file.
+: # It will have a name like `$PLUGIN-NAME-$VERSION-py3-none.whl`
+uv build -o dist --clear
+# Copy the wheel to the ray job directory
+mv dist/*.whl $RAY_JOB_DATA_DIR
+```
 
 #### Configuring installation of the wheels
 
@@ -186,10 +194,12 @@ Here you can reference the wheels with the following format.
 > Do not remove or modify the string ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}
 > when specifying the wheel names. It is required before every wheel you want to
 > upload and if it is changed the wheel installation will fail.
+
 <!-- markdownlint-disable-next-line MD028 -->
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 uv: # One line for each wheel to install, in this example there is two. Be sure to check spelling.
   - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/$ADO_CORE.whl
@@ -217,6 +227,7 @@ For example with OpenShift you can do this with the following `oc` command in a
 terminal other that the one you will submit the job from:
 
 <!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 oc port-forward --namespace $NAMESPACE svc/$RAY_SERVICE_NAME 8265
 ```
@@ -235,6 +246,7 @@ is restarted.
 > multiple protocols. This means that if only http traffic is allowed,
 > `ray job submit` will not work. This is usually why you need a port-forward
 > compared to, e.g. an OpenShift route.
+
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!TIP] Accessing the ray cluster dashboard
@@ -250,6 +262,7 @@ The environment of the ray job is given in a YAML file. An example is:
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 uv: # One line for each wheel/package to install, in this example there is two. Be sure to check spelling.
   - ado-core
@@ -263,6 +276,7 @@ env_vars: # These envars are recommend. Some plugins may require others. Check p
   HOME: "/tmp" # Optional: Use if python code used by operation assumes $HOME is writable which it may not be
   LOGLEVEL: "WARNING" # Optional: Set this to get more/less debug logs from ado
 ```
+
 <!-- markdownlint-enable line-length -->
 
 For further details on what you can configure via this file see the

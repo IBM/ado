@@ -32,9 +32,16 @@ dynamic = ["version"]
 dependencies = [
     "kubernetes >= 31.0.0",
     "ado-core",
-    "vllm>=0.12.0",
     "datasets>=2.20.0",
+]
+
+[project.optional-dependencies]
+guidellm = [
     "guidellm>=0.5.3",
+]
+
+vllm = [
+    "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
 ]
 
 [dependency-groups]
@@ -45,5 +52,5 @@ dev = [
 ]
 
 # Required when added as a workspace package
-#[tool.uv.sources]
-#ado-core = { workspace = true }
+[tool.uv.sources]
+ado-core = { workspace = true }

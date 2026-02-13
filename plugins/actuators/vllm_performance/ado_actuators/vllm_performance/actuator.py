@@ -214,7 +214,7 @@ class VLLMPerformanceTest(ActuatorBase):
         if not shutil.which(required_tool):
             raise MissingConfigurationForExperimentError(
                 f"Experiment {experiment.identifier} requires {required_tool} to be installed in the system. "
-                f"Please install {required_tool} before running this experiment."
+                f"Please install 'ado-vllm-performance[{required_tool}]' before running this experiment."
             )
 
         if experiment.identifier in [

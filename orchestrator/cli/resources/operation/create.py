@@ -129,6 +129,9 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         )
         raise typer.Exit(1)
 
+    if parameters.dry_run:
+        console_print(f"{INFO}The operation YAML is syntactically valid.", stderr=True)
+
     with Status("Validating actuator configurations for operation") as status:
         try:
             op_resource_configuration.validate_actuatorconfigurations(

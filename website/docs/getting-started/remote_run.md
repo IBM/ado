@@ -40,7 +40,6 @@ An example `runtime_env.yaml` which dynamically installs the latest release
 of `ado`, and some `ado` plugins, is:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
 
 ```yaml
 uv: # One line for each plugin (actuator, operator) to install

@@ -24,8 +24,8 @@ This will usually contain the following three YAML files:
 
 - A YAML file describing [the context](../resources/metastore.md) to use for the
   operation.
-  - You can use `ado get context -o yaml` to get this file for the context you
-    want to use
+    - You can use `ado get context -o yaml` to get this file for the context you
+      want to use
 - A YAML file describing [the operation](../resources/operation.md) to create.
 - A YAML file describing [the environment of the Ray job](#ray-runtime-environment-runtime-env)
 <!-- markdownlint-enable MD007 -->

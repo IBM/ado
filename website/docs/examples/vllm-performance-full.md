@@ -145,7 +145,7 @@ minimizing the number of deployment creations.
 Save the following as `random_walk_operation_grouped.yaml`:
 
 ```yaml
-{ % include "./example_yamls/random_walk_operation_grouped.yaml" % }
+{% include "./example_yamls/random_walk_operation_grouped.yaml" %}
 ```
 
 Then, start the operation with:

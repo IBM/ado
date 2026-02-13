@@ -1,7 +1,7 @@
 [project]
 name = "trim"
 dynamic = ["version"]
-description = "TRIM (Transfer Refined Iterative Modeling) efficiently samples a Discovery Space to build accurate predictive models with minimal data."
+description = "TRIM (Transfer Refined Iterative Modeling) builds an accurate predictive model from a small dataset by iteratively sampling a Discovery Space."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [

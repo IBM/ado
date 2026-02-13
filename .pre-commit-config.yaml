@@ -51,3 +51,8 @@ repos:
     rev: v0.21.0
     hooks:
       - id: yamlfmt
+  - repo: https://github.com/tombi-toml/tombi-pre-commit
+    rev: v0.7.28
+    hooks:
+      - id: tombi-format
+        args: ["--offline"]

@@ -1,12 +1,31 @@
 [project]
 name = "trim"
 dynamic = ["version"]
+description = "TRIM (Transfer Refined Iterative Modeling) builds an accurate predictive model from a small dataset by iteratively sampling a Discovery Space."
+readme = "README.md"
 requires-python = ">=3.10,<3.14"
-dependencies = ["pandas",
-                "numpy",
-                "scikit-learn",
-                "autogluon.tabular[catboost,xgboost]==1.5"]
-
+dependencies = [
+    "autogluon-tabular[catboost,xgboost]==1.5",
+    "numpy",
+    "pandas>=2.2.0",
+    "scikit-learn",
+]
 
 [project.entry-points."ado.operators"]
 trim = "trim.operator"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+pattern = "default-unprefixed"
+fallback-version = "0.0.0"
+tagged-metadata = true
+dirty = true
+bump = true

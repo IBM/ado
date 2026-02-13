@@ -536,13 +536,7 @@ ado get operation randomwalk-0.5.0-123abc -o yaml
 ##### Displaying all current experiments
 
 ```shell
-ado get actuators --details
-```
-
-##### Displaying all experiments for the st4sd actuator
-
-```shell
-ado get actuator st4sd --details --show-deprecated
+ado get experiments --details
 ```
 
 ##### Getting the yaml of a MeasurementRequest from an operation

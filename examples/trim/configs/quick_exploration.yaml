@@ -1,0 +1,27 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+operation:
+  module:
+    operationType: characterize
+    operatorName: trim
+  parameters:
+    targetOutput: pressure
+    outputDirectory: trim_quick
+    samplingBudget:
+      minPoints: 15
+      maxPoints: 50
+    noPriorsParameters:
+      sampling_strategy: 'clhs'
+    iterationSize: 5
+    stoppingCriterion:
+      enabled: true
+      meanThreshold: 0.8 # Stop relatively quickly
+      stdThreshold: 0.8
+    autoGluonArgs:
+      fitArgs:
+        time_limit: 30
+        presets: 'medium_quality'
+    finalModelAutoGluonArgs:
+      fitArgs:
+        time_limit: 300
+        presets: 'medium_quality'

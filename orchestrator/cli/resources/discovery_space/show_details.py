@@ -40,8 +40,10 @@ def show_discovery_space_details(parameters: AdoShowDetailsCommandParameters) ->
             identifier=parameters.resource_id,
         )
 
+        space_details = SpaceDetails.from_space(space=space)
+
     console_print(rich.rule.Rule(title="DETAILS"))
-    console_print(SpaceDetails.from_space(space=space).to_markdown())
+    console_print(space_details.to_markdown())
     orchestrator.cli.utils.resources.handlers.print_related_resources(
         resource_id=parameters.resource_id,
         resource_type=CoreResourceKinds.DISCOVERYSPACE,

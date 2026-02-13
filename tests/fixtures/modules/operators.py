@@ -16,7 +16,7 @@ from orchestrator.modules.operators.randomwalk import RandomWalk
 @pytest.fixture
 def expected_characterize_operators() -> list[str]:
 
-    return ["profile", "detect_anomalous_series"]
+    return ["profile", "detect_anomalous_series", "trim"]
 
 
 @pytest.fixture

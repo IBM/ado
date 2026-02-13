@@ -9,6 +9,49 @@ An experiment will define its inputs - the set of constitutive and observed
 properties it requires entities to have. It will also define the properties it
 measures.
 
+You can list them with `ado get experiments --details`. The output will be
+similar to:
+
+<!-- markdownlint-disable line-length -->
+```terminaloutput
+┌────────────────────┬─────────────────────────────────────┬─────────────────────────────────────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENT ID                       │ DESCRIPTION                                             │
+├────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────────────────┤
+│ SFTTrainer         │ finetune_full_benchmark-v1.0.0      │ Measures the performance of full-finetuning a model for │
+│                    │                                     │ a given (GPU model, number GPUS, batch_size,            │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ SFTTrainer         │ finetune_full_stability-v1.0.0      │ Performs 5 full finetune runs of 5 steps each on a      │
+│                    │                                     │ model and reports the fraction of those that resulted   │
+│                    │                                     │ in GPU OOM, Other error, or No Error for a given (GPU   │
+│                    │                                     │ model, number GPUS, batch_size, model_max_length)       │
+│                    │                                     │ combination.                                            │
+│ SFTTrainer         │ finetune_gptq-lora_benchmark-v1.0.0 │ Measures the performance of GPTQ-LORA tuning a model    │
+│                    │                                     │ for a given (GPU model, number GPUS, batch_size,        │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ SFTTrainer         │ finetune_lora_benchmark-v1.0.0      │ Measures the performance of LORA tuning a model for a   │
+│                    │                                     │ given (GPU model, number GPUS, batch_size,              │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ SFTTrainer         │ finetune_pt_benchmark-v1.0.0        │ Measures the performance of prompt-tuning a model for a │
+│                    │                                     │ given (GPU model, number GPUS, batch_size,              │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ custom_experiments │ acid_test                           │                                                         │
+│ custom_experiments │ avoid_oom_recommender               │ An AutoConf recommender that suggests the minimum       │
+│                    │                                     │ number of gpus per worker and number of workers         │
+│                    │                                     │ necessary to execute a Tuning job whilekeeping the per  │
+│                    │                                     │ GPU batch size constant                                 │
+│ custom_experiments │ calculate_density                   │                                                         │
+│ custom_experiments │ min_gpu_recommender                 │ An AutoConf plugin that suggests the minimum number of  │
+│                    │                                     │ gpus per worker and number of workers necessary to      │
+│                    │                                     │ execute a Tuning job                                    │
+│ custom_experiments │ ml-multicloud-cost-v1.0             │                                                         │
+│ custom_experiments │ nevergrad_opt_3d_test_func          │                                                         │
+│ mock               │ test-experiment                     │                                                         │
+│ mock               │ test-experiment-two                 │                                                         │
+│ robotic_lab        │ peptide_mineralization              │ Measures adsorption of peptide lanthanide combinations  │
+└────────────────────┴─────────────────────────────────────┴─────────────────────────────────────────────────────────┘
+```
+<!-- markdownlint-enable line-length -->
+
 ## Actuators
 
 Experiments are provided by Actuators. An Actuator usually provides sets of
@@ -17,133 +60,184 @@ similar input requirements. As such Actuators usually are related to a
 particular domain e.g., computational chemistry, foundation model inference,
 robotic biology lab.
 
-`ado get actuators --details` lists the available actuators and experiments.
-Below is a truncated example of the output:
+`ado get actuators --details` lists the available actuators, the number of
+experiments they provide, a description and their version. Below is an example
+of the output:
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
-                  ACTUATOR ID                 CATALOG ID                                  EXPERIMENT ID  SUPPORTED
-0         molecule-embeddings                 Embeddings                   calculate-morgan-fingerprint       True
-1          molformer-toxicity         molformer-toxicity                               predict-toxicity       True
-2                     mordred         Mordred Descriptor                  mordred-descriptor-calculator       True
-3                       st4sd                      ST4SD                      toxicity-prediction-opera       True
-4                       st4sd                      ST4SD                   band-gap-pm3-gamess-us:1.0.0       True
-5   materials-model-evaluator  materials-model-evaluator                          evaluate_with_clintox       True
-6   materials-model-evaluator  materials-model-evaluator                      evaluate_sider_for_target       True
-7      caikit-config-explorer     caikit-config-explorer                                     fmaas-perf       True
-8      caikit-config-explorer     caikit-config-explorer                   fmaas-perf-composable-gigaio       True
+┌────────────────────┬─────────────┬─────────────────────────────────────────────────────┬───────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENTS │ DESCRIPTION                                         │ VERSION                   │
+├────────────────────┼─────────────┼─────────────────────────────────────────────────────┼───────────────────────────┤
+│ SFTTrainer         │ 5           │ An actuator for benchmarking fine-tuning of         │ 1.5.1.dev13+ga1833142b    │
+│                    │             │ foundation models                                   │                           │
+│ custom_experiments │ 6           │ Actuator for applying user supplied custom          │ 1.5.1.dev8+531c6444.dirty │
+│                    │             │ experiments                                         │                           │
+│ mock               │ 2           │ A actuator class for testing                        │ 1.5.1.dev8+531c6444.dirty │
+│ replay             │ 0           │ Special actuator for handling externally defined    │ 1.5.1.dev8+531c6444.dirty │
+│                    │             │ experiments (experiments we don't have code for)    │                           │
+│ robotic_lab        │ 1           │ A template for creating an actuator                 │ 1.5.1.dev13+ga1833142b    │
+└────────────────────┴─────────────┴─────────────────────────────────────────────────────┴───────────────────────────┘
 ```
+
 <!-- markdownlint-enable line-length -->
 
-A primary way to extend `ado` is by developing new Actuators providing
-the ability to do experiments on entities in a new domain.
+A primary way to extend `ado` is by developing new Actuators providing the
+ability to do experiments on entities in a new domain.
 
 ### Example: Experiment from the SFTTrainer actuator
 
-Here is an example description of an experiment from the SFTTrainer actuator.
+Here is an example (truncated) description of an experiment from the SFTTrainer
+actuator.
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
-Identifier: SFTTrainer.finetune-full-fsdp-v1.6.0
+Identifier: SFTTrainer.finetune_pt_benchmark-v1.0.0
+Description: Measures the performance of prompt-tuning a model for a given (GPU model, number GPUS, batch_size,
+model_max_length, number nodes) combination.
 
-Measures the performance of full-fine tuning a model with FSDP+flash-attention for a given (GPU model, number GPUS, batch_size, model_max_length) combination.
 
-Inputs:
-  Constitutive Properties:
-      dataset_id
-      Domain:
+Required Inputs:
+
+   Constitutive Properties:
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: model_name
+     Description: The huggingface name or path to the model
+
+     Domain:
+
         Type: CATEGORICAL_VARIABLE_TYPE
-        Values: ['news-chars-1024-entries-1024', 'news-chars-1024-entries-256', 'news-chars-1024-entries-4096', 'news-chars-2048-entries-1024', 'news-chars-2048-entries-256', 'news-chars-2048-entries-4096', 'news-chars-512-entries-1024', 'news-chars-512-entries-256', 'news-chars-512-entries-4096', 'news-tokens-128kplus-entries-320', 'news-tokens-128kplus-entries-4096', 'news-tokens-16384plus-entries-4096']
+        Values: [
+            'allam-1-13b',
+            'granite-13b-v2',
+            'granite-20b-v2',
+            'granite-3-8b',
+            'granite-3.0-1b-a400m-base',
+            'granite-3.1-2b',
+            'granite-3.1-3b-a800m-instruct',
+            'granite-3.1-8b-instruct',
+            'granite-3.3-8b',
+            'granite-34b-code-base',
+            'granite-3b-1.5',
+            'granite-3b-code-base-128k',
+            'granite-4.0-1b',
+            'granite-4.0-350m',
+            'granite-4.0-h-1b',
+            'granite-4.0-h-micro',
+            'granite-4.0-h-small',
+            'granite-4.0-h-tiny',
+            'granite-4.0-micro',
+            'granite-7b-base',
+            'granite-8b-code-base',
+            'granite-8b-code-base-128k',
+            'granite-8b-code-instruct',
+            'granite-8b-japanese',
+            'granite-vision-3.2-2b',
+            'hf-tiny-model-private/tiny-random-BloomForCausalLM',
+            'llama-13b',
+            'llama-7b',
+            'llama2-70b',
+            'llama3-70b',
+            'llama3-8b',
+            'llama3.1-405b',
+            'llama3.1-70b',
+            'llama3.1-8b',
+            'llama3.2-1b',
+            'llama3.2-3b',
+            'llava-v1.6-mistral-7b',
+            'mistral-123b-v2',
+            'mistral-7b-v0.1',
+            'mixtral-8x7b-instruct-v0.1',
+            'smollm2-135m'
+        ]
 
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: model_max_length
+     Description: The maximum context size. Dataset entries with more tokens they are truncated. Entries with
+     fewer are padded
 
-      model_name
-      Domain:
-        Type: CATEGORICAL_VARIABLE_TYPE
-        Values: ['granite-13b-v2', 'granite-20b-v2', 'granite-34b-code-base', 'granite-3b-1.5', 'granite-3b-code-base-128k', 'granite-7b-base', 'granite-8b-code-base', 'granite-8b-code-base-128k', 'granite-8b-japanese', 'hf-tiny-model-private/tiny-random-BloomForCausalLM', 'llama-13b', 'llama-7b', 'llama2-70b', 'llama3-70b', 'llama3-8b', 'llama3.1-405b', 'llama3.1-70b', 'llama3.1-8b', 'mistral-7b-v0.1', 'mixtral-8x7b-instruct-v0.1']
+     Domain:
 
+        Type: DISCRETE_VARIABLE_TYPE
+        Interval: 1
+        Range: [1, 131073]
 
-      model_max_length
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [1, 131073]
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: batch_size
+     Description: The total batch size to use
 
-      torch_dtype
-      Domain:
-        Type: CATEGORICAL_VARIABLE_TYPE Values: ['bfloat16']
+     Domain:
 
-      number_gpus
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [2, 9]
+        Type: DISCRETE_VARIABLE_TYPE
+        Interval: 1
+        Range: [1, 4097]
 
-      gpu_model
-      Domain:
-        Type: CATEGORICAL_VARIABLE_TYPE
-        Values: ['NVIDIA-A100-SXM4-80GB', 'NVIDIA-A100-80GB-PCIe', 'Tesla-T4', 'L40S', 'Tesla-V100-PCIE-16GB']
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: number_gpus
+     Description: The total number of GPUs to use
 
+     Domain:
 
-      batch_size
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [1, 129]
+        Type: DISCRETE_VARIABLE_TYPE
+        Interval: 1
+        Range: [0, 33]
 
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Optional Inputs and Default Values:
+
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: max_steps
+     Description: The number of optimization steps to perform. Set to -1 to respect num_train_epochs instead
+
+     Domain:
+
+        Type: DISCRETE_VARIABLE_TYPE
+        Interval: 1
+        Range: [-1, 10001]
+
+     Default value: -1
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 Outputs:
-  finetune-full-fsdp-v1.6.0-gpu_compute_utilization_min
-  finetune-full-fsdp-v1.6.0-gpu_compute_utilization_avg
-  finetune-full-fsdp-v1.6.0-gpu_compute_utilization_max
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_min
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_avg
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_max
-  finetune-full-fsdp-v1.6.0-gpu_memory_utilization_peak
-  finetune-full-fsdp-v1.6.0-gpu_power_watts_min
-  finetune-full-fsdp-v1.6.0-gpu_power_watts_avg
-  finetune-full-fsdp-v1.6.0-gpu_power_watts_max
-  finetune-full-fsdp-v1.6.0-gpu_power_percent_min
-  finetune-full-fsdp-v1.6.0-gpu_power_percent_avg
-  finetune-full-fsdp-v1.6.0-gpu_power_percent_max
-  finetune-full-fsdp-v1.6.0-cpu_compute_utilization
-  finetune-full-fsdp-v1.6.0-cpu_memory_utilization
-  finetune-full-fsdp-v1.6.0-train_runtime
-  finetune-full-fsdp-v1.6.0-train_samples_per_second
-  finetune-full-fsdp-v1.6.0-train_steps_per_second
-  finetune-full-fsdp-v1.6.0-train_tokens_per_second
-  finetune-full-fsdp-v1.6.0-train_tokens_per_gpu_per_second
-  finetune-full-fsdp-v1.6.0-model_load_time
-  finetune-full-fsdp-v1.6.0-dataset_tokens_per_second
-  finetune-full-fsdp-v1.6.0-dataset_tokens_per_second_per_gpu
-  finetune-full-fsdp-v1.6.0-is_valid
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   finetune_pt_benchmark-v1.0.0-is_valid
+   finetune_pt_benchmark-v1.0.0-dataset_tokens_per_second_per_gpu
+   finetune_pt_benchmark-v1.0.0-train_runtime
+   finetune_pt_benchmark-v1.0.0-dataset_tokens_per_second
+   finetune_pt_benchmark-v1.0.0-train_samples_per_second
+   finetune_pt_benchmark-v1.0.0-train_steps_per_second
+   finetune_pt_benchmark-v1.0.0-train_tokens_per_second
+   finetune_pt_benchmark-v1.0.0-train_tokens_per_gpu_per_second
+   finetune_pt_benchmark-v1.0.0-cpu_compute_utilization
+   finetune_pt_benchmark-v1.0.0-cpu_memory_utilization
+   finetune_pt_benchmark-v1.0.0-gpu_compute_utilization_min
+   finetune_pt_benchmark-v1.0.0-gpu_compute_utilization_avg
+   finetune_pt_benchmark-v1.0.0-gpu_compute_utilization_max
+   finetune_pt_benchmark-v1.0.0-gpu_memory_utilization_min
+   finetune_pt_benchmark-v1.0.0-gpu_memory_utilization_avg
+   finetune_pt_benchmark-v1.0.0-gpu_memory_utilization_max
+   finetune_pt_benchmark-v1.0.0-gpu_memory_utilization_peak
+   finetune_pt_benchmark-v1.0.0-gpu_power_watts_min
+   finetune_pt_benchmark-v1.0.0-gpu_power_watts_avg
+   finetune_pt_benchmark-v1.0.0-gpu_power_watts_max
+   finetune_pt_benchmark-v1.0.0-gpu_power_percent_min
+   finetune_pt_benchmark-v1.0.0-gpu_power_percent_avg
+   finetune_pt_benchmark-v1.0.0-gpu_power_percent_max
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
+
 <!-- markdownlint-enable line-length -->
 
 The SFTTrainer actuator provides experiments which measure the performance of
 different fine-tuning techniques on a foundation model fine-tuning deployment
 configuration. Therefore, the entities it takes as input represent fine-tuning
 deployment configuration.
-
-### Example: Experiment from the ST4SD actuator
-
-Here is an example description of an experiment from the ST4SD actuator.
-
-```commandline
-Identifier: st4sd.band-gap-pm3-gamess-us:1.0.0
-
-Required Inputs:
-  Constitutive Properties:
-      smiles
-      Domain:
-        Type: UNKNOWN_VARIABLE_TYPE
-
-
-
-Outputs:
-  band-gap-pm3-gamess-us:1.0.0-band-gap
-  band-gap-pm3-gamess-us:1.0.0-homo
-  band-gap-pm3-gamess-us:1.0.0-lumo
-  band-gap-pm3-gamess-us:1.0.0-electric-moments
-  band-gap-pm3-gamess-us:1.0.0-total-energy
-```
-
-The ST4SD actuator provides experiments that perform computational measurements
-of entities, often molecules. Therefore, the entities it takes as input often
-represent molecules.
 
 ## Experiment Inputs
 
@@ -155,21 +249,30 @@ inputs.
 Experiments can define required inputs. There are properties an Entity must have
 values for, for it to be a valid input to the Experiment.
 
-For example for `SFTTrainer.finetune-full-fsdp-v1.6.0` shown above we can see it
-requires an Entity to have 7 constitutive properties defined: `dataset_id`,
-`model_name`, `model_max_length`, `torch_dtype`, `number_gpus`, `gpu_model`, and
-`batch_size`. Each one has a domain which defines the allowed values for that
-property - if an Entity has a value for a property that is not in the defined
-domain the experiment cannot run on it.
+For example for `SFTTrainer.finetune_pt_benchmark-v1.0.0` shown above we can see
+it requires an Entity to have 4 constitutive properties defined: `model_name`,
+`model_max_length`, `batch_size` and `number_gpus`. Each one has a domain which
+defines the allowed values for that property - if an Entity has a value for a
+property that is not in the defined domain the experiment cannot run on it.
 
-For example, the `number_gpu` property can only have the values 2,3,4,5,6,7 and
-8 (range is exclusive of upper bound)
+For example, the `number_gpu` property can only have the values from 0 to 32
+(range is exclusive of upper bound)
 
+<!-- markdownlint-disable line-length -->
 ```commandline
-      number_gpus
-      Domain:
-        Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [2, 9]
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: number_gpus
+     Description: The total number of GPUs to use
+
+     Domain:
+
+        Type: DISCRETE_VARIABLE_TYPE
+        Interval: 1
+        Range: [0, 33]
+
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
+<!-- markdownlint-enable line-length -->
 
 All the required inputs in the examples above are
 [constitutive properties](entity-spaces.md#entities). However, they can also be
@@ -188,58 +291,90 @@ addition, the default values of optional properties can be overridden to create
 
 An example experiment with optional properties is
 
+<!-- markdownlint-disable line-length -->
 ```terminaloutput
 Identifier: robotic_lab.peptide_mineralization
+Description: Measures adsorption of peptide lanthanide combinations
 
-Measures adsorption of peptide lanthanide combinations
 
 Required Inputs:
-  Constitutive Properties:
-      peptide_identifier
-      Domain:
+
+   Constitutive Properties:
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: peptide_identifier
+     Description: The identifier of the peptide to use
+
+     Domain:
+
         Type: CATEGORICAL_VARIABLE_TYPE
         Values: ['test_peptide', 'test_peptide_new']
 
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: peptide_concentration
+     Description: The concentration of the peptide
 
-      peptide_concentration
-      Domain:
+     Domain:
+
         Type: DISCRETE_VARIABLE_TYPE
         Values: [0.1, 0.4, 0.6, 0.8]
-        Range: [0.1, 1.8]
 
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: lanthanide_concentration
+     Description: The concentration of lanthanide
 
-      lanthanide_concentration
-      Domain:
+     Domain:
+
         Type: DISCRETE_VARIABLE_TYPE
         Values: [0.1, 0.4, 0.6, 0.8]
-        Range: [0.1, 1.8]
 
-
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 Optional Inputs and Default Values:
-  temperature
-  Domain:
-    Type: CONTINUOUS_VARIABLE_TYPE Range: [0, 100]
 
-  Default value: 23.0
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: temperature
+     Description: The temperature at which to execute the experiment
 
-  replicas
-  Domain:
-    Type: DISCRETE_VARIABLE_TYPE Interval: 1.0 Range: [1, 4]
+     Domain:
 
-  Default value: 1.0
+        Type: CONTINUOUS_VARIABLE_TYPE
+        Range: [0, 100]
 
-  robot_identifier
-  Domain:
-    Type: CATEGORICAL_VARIABLE_TYPE Values: ['harry', 'hermione']
+     Default value: 23
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: replicas
+     Description: How many replicas to average the adsorption_timeseries over
 
-  Default value: hermione
+     Domain:
 
+        Type: DISCRETE_VARIABLE_TYPE
+        Interval: 1
+        Range: [1, 4]
+
+     Default value: 1
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Identifier: robot_identifier
+     Description: The identifier of the robot to use to perform the experiment
+
+     Domain:
+
+        Type: CATEGORICAL_VARIABLE_TYPE
+        Values: ['harry', 'hermione']
+
+     Default value: 'hermione'
+    ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 Outputs:
-  peptide_mineralization-adsorption_timeseries
-  peptide_mineralization-adsorption_plateau_value
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   peptide_mineralization-adsorption_timeseries
+   peptide_mineralization-adsorption_plateau_value
+ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ```
+<!-- markdownlint-enable line-length -->
 
 Here you can see three optional properties, `temperature`, `replicas` and
 `robot_identifier` that are given default values.
@@ -254,10 +389,6 @@ The properties the experiment targets measuring are called `target properties`,
 and the properties it actually measures `observed properties`. If experiment `A`
 has target property `X`, then the observed property is `A-X` i.e. the value of
 target property `X` measured by experiment `A`.
-
-Looking at the definitions above for the `st4sd.band-gap-pm3-gamess-us:1.0.0`
-experiment we can see a target is `band-gap` and the corresponding observed
-property is `band-gap-pm3-gamess-us:1.0.0-band-gap`
 
 ## Measurement Space
 

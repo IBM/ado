@@ -273,7 +273,7 @@ def get_resource(
 
 
 
-    # List actuators and the experiments they provide
+    # List actuators and details about them
 
     ado get actuators --details
 

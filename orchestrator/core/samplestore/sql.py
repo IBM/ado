@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import contextlib
 import json
 import logging
 import typing
@@ -776,10 +777,6 @@ class SQLSampleStore(ActiveSampleStore):
         a single operation. It performs the entire operation in a single database
         query, avoiding the need to first fetch entity IDs and then fetch entities.
 
-        Note: We use DISTINCT to avoid duplicate entity rows when an entity has multiple
-        measurement results. We still group measurement results by entity in Python
-        since an entity may have multiple measurement results that need to be combined.
-
         Args:
             operation_id: The operation identifier to fetch entities for
 
@@ -787,7 +784,7 @@ class SQLSampleStore(ActiveSampleStore):
             List of Entity objects that were sampled in the specified operation
         """
         query = sqlalchemy.text(f"""
-            SELECT DISTINCT
+            SELECT
                 ent.identifier,
                 ent.representation,
                 res.data
@@ -808,27 +805,23 @@ class SQLSampleStore(ActiveSampleStore):
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 
-        # Build result dictionary to handle multiple measurement results per entity
-        # DISTINCT ensures we don't get duplicate entity rows, but we still need
-        # to group measurement results by entity
         entities_dict: dict[str, Entity] = {}
         for entity_identifier, entity_representation, result_data in cur:
-            if entity_identifier not in entities_dict:
-                try:
-                    entities_dict[entity_identifier] = Entity.model_validate(
-                        json.loads(entity_representation)
-                    )
-                    # Update cache if it exists
-                    if self._entities is not None:
-                        self._entities[entity_identifier] = entities_dict[
-                            entity_identifier
-                        ]
-                except Exception as error:
-                    raise FailedToDecodeStoredEntityError(
-                        entity_identifier=entity_identifier,
-                        entity_representation=entity_representation,
-                        cause=error,
-                    ) from error
+
+            if entity_identifier in self._entities:
+                entities_dict[entity_identifier] = self._entities[entity_identifier]
+                continue
+
+            try:
+                entity = Entity.model_validate(json.loads(entity_representation))
+                self._entities[entity_identifier] = entity
+                entities_dict[entity_identifier] = entity
+            except Exception as error:
+                raise FailedToDecodeStoredEntityError(
+                    entity_identifier=entity_identifier,
+                    entity_representation=entity_representation,
+                    cause=error,
+                ) from error
 
             if result_data is None:
                 self.log.debug(
@@ -839,6 +832,9 @@ class SQLSampleStore(ActiveSampleStore):
             try:
                 result_dict = json.loads(result_data)
                 if not result_dict.get("measurements", None):
+                    self.log.debug(
+                        f"Entity {entity_identifier} had no valid measurements associated to it."
+                    )
                     continue
 
                 measurement_result = ValidMeasurementResult.model_validate(result_dict)
@@ -849,10 +845,10 @@ class SQLSampleStore(ActiveSampleStore):
                     cause=error,
                 ) from error
 
-            # Add measurement result to entity
-            entities_dict[entity_identifier].add_measurement_result(
-                result=measurement_result
-            )
+            with contextlib.suppress(DuplicateMeasurementResultError):
+                entities_dict[entity_identifier].add_measurement_result(
+                    result=measurement_result
+                )
 
         return list(entities_dict.values())
 
@@ -1379,41 +1375,53 @@ class SQLSampleStore(ActiveSampleStore):
         """
         try:
             with self.engine.begin() as connectable:
-                # Step 1: Get per-entity statistics (total and valid measurement counts)
-                # Valid measurement: JSON_EXTRACT(res.data, '$.reason') IS NULL
-                # Invalid measurement: JSON_EXTRACT(res.data, '$.reason') IS NOT NULL
+                # Only the request has information on what operation it belongs to, as
+                # results can be associated with multiple requests. For this reason, we
+                # start by selecting all the requests that belong to the operation we
+                # are interested in, then join them to their results via the reqres table.
+                #
+                # We then select the entity identifier, along with the total number of
+                # results associated to it (counting on the index for speed) and the
+                # number of valid measurement results by checking how many results do not
+                # have the `reason` field (only found in invalid measurement results).
+                #
+                # We can then use this information to compute the fields we are interested in.
                 query_text = f"""
                     SELECT
-                        res.entity_id,
-                        COUNT(*) as total_measurements,
-                        SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL THEN 1 ELSE 0 END) as valid_measurements
-                    FROM {self._tablename}_measurement_requests req
-                    JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
-                    JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
-                    WHERE req.operation_id = :operation_id
-                    GROUP BY res.entity_id
+                        COUNT(DISTINCT entity_stats.entity_id) as total_entities,
+                        COUNT(
+                            DISTINCT CASE
+                            WHEN valid_measurements > 0
+                            THEN entity_stats.entity_id END
+                        ) as entities_with_at_least_one_successful,
+                        COUNT(
+                            DISTINCT CASE
+                            WHEN valid_measurements = total_measurements
+                            AND total_measurements > 0
+                            THEN entity_stats.entity_id END
+                        ) as entities_with_all_successful
+                    FROM (
+                        SELECT
+                            res.entity_id,
+                            COUNT(res.uid) as total_measurements,
+                            SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL THEN 1 ELSE 0 END) as valid_measurements
+                        FROM {self._tablename}_measurement_requests req
+                        JOIN {self._tablename}_measurement_requests_results reqres ON reqres.request_uid = req.uid
+                        JOIN {self._tablename}_measurement_results res ON reqres.result_uid = res.uid
+                        WHERE req.operation_id = :operation_id
+                        GROUP BY res.entity_id
+                    ) AS entity_stats
                 """  # noqa: S608 - self._tablename is not untrusted
 
                 query = sqlalchemy.text(query_text).bindparams(
                     operation_id=operation_id
                 )
                 cur = connectable.execute(query)
-
-                # Step 2: Process results in Python to compute final statistics
-                entities_with_all_successful = 0
-                entities_with_at_least_one_successful = 0
-                total_entities = 0
-
-                for row in cur:
-                    _entity_id, total_measurements, valid_measurements = row
-                    total_entities += 1
-                    if valid_measurements > 0:
-                        entities_with_at_least_one_successful += 1
-                    if (
-                        valid_measurements == total_measurements
-                        and total_measurements > 0
-                    ):
-                        entities_with_all_successful += 1
+                (
+                    total_entities,
+                    entities_with_at_least_one_successful,
+                    entities_with_all_successful,
+                ) = cur.one()
 
                 return {
                     "entities_with_all_successful_measurements": entities_with_all_successful,

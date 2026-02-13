@@ -1,29 +1,28 @@
+[project]
+name = "ado-ray-tune"
+dependencies = [
+  "bayesian-optimization>=1.4.0",
+  "nevergrad>=1.0.12",
+  "numba>=0.57.0; python_version > '3.10'",
+  "numba>=0.59.0; python_version > '3.11'",
+  "numba>=0.61.0; python_version > '3.12'",
+  # A minimum numba version is required to
+  # support certain Python versions.
+  # ref: https://github.com/numba/numba/releases
+  "numba>=0.63.0; python_version > '3.13'",
+  "paretoset>=1.2.4",
+  "ray[tune]>=2.9",
+  "scipy>=1.15.3",
+]
+dynamic = ["version"]
+
+[project.entry-points."ado.operators"]
+ado-ray-tune = "ado_ray_tune.operator_function"
+rifferla = "ado_ray_tune.rifferla"
+
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"
-
-[project]
-name = "ado-ray-tune"
-dynamic = ["version"]
-dependencies = [
-    "ray[tune]>=2.9",
-    "bayesian-optimization>=1.4.0",
-    "nevergrad>=1.0.12",
-    "paretoset>=1.2.4",
-    "scipy>=1.15.3",
-    # A minimum numba version is required to
-    # support certain Python versions.
-    # ref: https://github.com/numba/numba/releases
-    "numba>=0.63.0; python_version > '3.13'",
-    "numba>=0.61.0; python_version > '3.12'",
-    "numba>=0.59.0; python_version > '3.11'",
-    "numba>=0.57.0; python_version > '3.10'",
-]
-
-[project.entry-points."ado.operators"]
-ado-ray-tune = "ado_ray_tune.operator_function"
-rifferla = "ado_ray_tune.rifferla"
-

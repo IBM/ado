@@ -1,22 +1,24 @@
-[build-system]
-requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
-build-backend = "hatchling.build"
-
 [project]
 name = "density_test"
 description = "Example custom experiment from website docs"
 dynamic = ["version"]
 
+# Add entry point for custom experiments
+[project.entry-points."ado.custom_experiments"]
+optimization_test_functions = "density.density"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
 [tool.hatch.build]
 # Include the full namespace path
 include = [
-    "density/**",
+  "density/**",
 ]
 
 [tool.hatch.build.targets.wheel]
-only-include = [
-    "density"
-]
+only-include = ["density"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
@@ -29,8 +31,3 @@ fallback-version = "0.0.0"
 tagged-metadata = true
 dirty = true
 bump = true
-
-#Add entry point for custom experiments
-[project.entry-points."ado.custom_experiments"]
-optimization_test_functions = "density.density"
-

@@ -72,11 +72,17 @@ To install it:
 pip install custom_experiments/
 ```
 
-after this running `ado get actuators --details` should show the following line:
+after this running `ado get experiments` should show the following line:
 
 <!-- markdownlint-disable line-length -->
 ```commandline
-1   custom_experiments  CustomExperiments                             nevergrad_opt_3d_test_func       True
+┌────────────────────┬────────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENT ID              │
+├────────────────────┼────────────────────────────┤
+│ custom_experiments │ nevergrad_opt_3d_test_func │
+│ mock               │ test-experiment            │
+│ mock               │ test-experiment-two        │
+└────────────────────┴────────────────────────────┘
 ```
 <!-- markdownlint-enable line-length -->
 

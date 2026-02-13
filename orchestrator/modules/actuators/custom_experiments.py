@@ -667,10 +667,9 @@ def custom_experiment_executor(
 
 @ray.remote
 class CustomExperiments(ActuatorBase):
-    identifier = "custom_experiments"
+    """Actuator for applying user supplied custom experiments"""
 
-    """Actuator for applying user supplied custom experiments
-    """
+    identifier = "custom_experiments"
 
     def __init__(self, queue: "MeasurementQueue", params: dict | None = None) -> None:
         """

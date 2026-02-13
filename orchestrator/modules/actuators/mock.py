@@ -51,12 +51,12 @@ async def mock_experiment_wait(
 
 @ray.remote
 class MockActuator(ActuatorBase):
-    identifier = "mock"
-
     """A actuator class for testing
 
     Will make "random" measurements of any requested properties and submit them directly
     to StateUpdatesQueue"""
+
+    identifier = "mock"
 
     def __init__(self, queue: MeasurementQueue, params: dict | None = None) -> None:
 

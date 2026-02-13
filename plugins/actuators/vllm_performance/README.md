@@ -84,18 +84,30 @@ git clone https://github.com/IBM/ado.git
 Confirm that the actuator is installed:
 
 ```commandline
-ado get actuators --details
+ado get experiments --details
 ```
 
 You should see an output like below:
 
+<!-- markdownlint-disable line-length -->
 ```commandline
-        ACTUATOR ID        CATALOG ID                 EXPERIMENT ID  SUPPORTED
-0              mock              mock               test-experiment       True
-1              mock              mock           test-experiment-two       True
-2  vllm_performance  vllm_performance            test-deployment-v1       True
-3  vllm_performance  vllm_performance              test-endpoint-v1       True
+┌──────────────────┬─────────────────────────────┬───────────────────────────────────────────────────────────────────┐
+│ ACTUATOR ID      │ EXPERIMENT ID               │ DESCRIPTION                                                       │
+├──────────────────┼─────────────────────────────┼───────────────────────────────────────────────────────────────────┤
+│ mock             │ test-experiment             │                                                                   │
+│ mock             │ test-experiment-two         │                                                                   │
+│ vllm_performance │ test-deployment-guidellm-v1 │ VLLM performance testing using GuideLLM benchmark suite across    │
+│                  │                             │ compute resource and workload configuration                       │
+│ vllm_performance │ test-deployment-v1          │ VLLM performance testing across compute resource and workload     │
+│                  │                             │ configuration                                                     │
+│ vllm_performance │ test-endpoint-guidellm-v1   │ Test inference performance of a model served by vLLM endpoint     │
+│                  │                             │ using GuideLLM benchmark suite across inference workload          │
+│                  │                             │ configurations                                                    │
+│ vllm_performance │ test-endpoint-v1            │ Test inference performance of a model served by vLLM endpoint     │
+│                  │                             │ across inference workload configurations                          │
+└──────────────────┴─────────────────────────────┴───────────────────────────────────────────────────────────────────┘
 ```
+<!-- markdownlint-enable line-length -->
 
 On the last two lines you can see the new actuator and the experiments. You can
 understand the
@@ -134,14 +146,18 @@ metadata:
   name: null
 parameters:
   benchmark_retries: 3
-  hf_token: ""
-  image_pull_secret_name: ""
-  in_cluster: true
+  deployment_template: null
+  hf_token: ''
+  image_pull_secret_name: ''
+  in_cluster: false
   interpreter: python3
   max_environments: 1
   namespace: null
-  node_selector: ""
+  node_selector: {}
+  pvc_name: null
+  pvc_template: null
   retries_timeout: 5
+  service_template: null
   verify_ssl: false
 ```
 
@@ -162,7 +178,7 @@ We will discuss the other parameters later. Once you have put in the parameters,
 create the actuator configuration with:
 
 ```commandline
-ado create actuatorconfiguration -f `vllm_performance_actuatorconfiguration.yaml`
+ado create actuatorconfiguration -f vllm_performance_actuatorconfiguration.yaml
 ```
 
 Note: You can have multiple configurations for an actuator.

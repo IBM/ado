@@ -61,7 +61,7 @@ def test_get_robotic_lab_actuator() -> None:
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert "robotic_lab" in result.output
-        assert "peptide_mineralization" in result.output
+        assert "A template for creating" in result.output
 
 
 # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0

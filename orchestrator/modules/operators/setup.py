@@ -104,9 +104,9 @@ def setup_actuators(
     filtered_actuator_ids = list(set(filtered_actuator_ids))
 
     for actuatorIdentifier in filtered_actuator_ids:
-        cls = registry.actuatorForIdentifier(actuatorIdentifier)
+        actuator_class = registry.actuatorForIdentifier(actuatorIdentifier)
         try:
-            default_actuator_parameters = cls.default_parameters()
+            default_actuator_parameters = actuator_class.default_parameters()
         except pydantic.ValidationError as error:
             moduleLog.critical(
                 f"The default parameters for {actuatorIdentifier} cannot be used. Reason: \n {error} \nThey may need to be customised"
@@ -116,7 +116,7 @@ def setup_actuators(
         moduleLog.debug(f"Instantiating actuator: {actuatorIdentifier}")
 
         actuator: ActuatorActor = (
-            ray.remote(cls)
+            ray.remote(actuator_class)
             .options(name=actuatorIdentifier, namespace=namespace)
             .remote(
                 queue=measurement_queue,

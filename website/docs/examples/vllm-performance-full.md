@@ -126,7 +126,7 @@ scenario where requests arrive between 1 and 10 per second with sizes around
 2000 tokens.
 
 ```yaml
-{ % include "./example_yamls/vllm_deployment_space.yaml" % }
+{% include "./example_yamls/vllm_deployment_space.yaml" %}
 ```
 
 Save the above as `vllm_deployment_space.yaml`. Then run:

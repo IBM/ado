@@ -111,89 +111,6 @@ class UnexpectedCatalogRetrievalError(Exception):
     """The actuator catalog method raised on unexpected exception"""
 
 
-def _extract_base_actuator_class(
-    actuator: typing.Any,  # noqa: ANN401
-) -> "type[ActuatorBase]":
-    """Extracts the base actuator class from a potentially Ray-decorated class.
-
-    When a class is decorated with @ray.remote, it becomes an instance of
-    ray.actor.ActorClass. This function extracts the underlying base class
-    whether the input is decorated or not.
-
-    Args:
-        actuator: Either a Ray-decorated ActorClass instance or a regular class
-
-    Returns:
-        The base ActuatorBase class
-    """
-    from orchestrator.modules.actuators.base import ActuatorBase
-
-    # Check if it's a Ray-decorated class (ActorClass instance)
-    try:
-        import ray.actor
-
-        if isinstance(actuator, ray.actor.ActorClass):
-            # Ray stores the original class in the __ray_actor_class__ attribute
-            # This is Ray's internal attribute that holds the wrapped class
-            if hasattr(actuator, "__ray_actor_class__"):
-                original_class = actuator.__ray_actor_class__
-                if isinstance(original_class, type) and issubclass(
-                    original_class, ActuatorBase
-                ):
-                    return original_class
-
-            # Fallback: try standard __wrapped__ attribute
-            if hasattr(actuator, "__wrapped__"):
-                original_class = actuator.__wrapped__
-                if isinstance(original_class, type) and issubclass(
-                    original_class, ActuatorBase
-                ):
-                    return original_class
-
-            # Additional fallback: check the class type
-            if hasattr(actuator.__class__, "__ray_actor_class__"):
-                original_class = actuator.__class__.__ray_actor_class__
-                if isinstance(original_class, type) and issubclass(
-                    original_class, ActuatorBase
-                ):
-                    return original_class
-
-            # Last resort: try to find it in the MRO
-            import inspect
-
-            for cls in inspect.getmro(actuator.__class__):
-                if (
-                    cls is not ray.actor.ActorClass
-                    and isinstance(cls, type)
-                    and issubclass(cls, ActuatorBase)
-                    and cls is not ActuatorBase
-                ):
-                    # Found the original actuator class in the MRO
-                    return cls
-
-            # If we can't find the original class, this is an error
-            raise ValueError(
-                f"Could not extract base class from ActorClass {actuator}. "
-                "The ActorClass does not have __ray_actor_class__ attribute and "
-                "the original class was not found in the MRO."
-            )
-    except (ImportError, AttributeError) as e:
-        # Ray not available or not an ActorClass, continue to check if it's a regular class
-        moduleLogger.debug(f"Ray ActorClass check failed: {e}")
-
-    # Check if it's a regular class (not decorated)
-    if isinstance(actuator, type) and issubclass(actuator, ActuatorBase):
-        return actuator
-
-    # If it's already the base class (shouldn't happen but handle gracefully)
-    if isinstance(actuator, type):
-        return actuator
-
-    # If we can't determine, assume it's the class itself
-    # This maintains backward compatibility
-    return actuator
-
-
 class ActuatorRegistry:
     gRegistry = None
 
@@ -268,8 +185,6 @@ class ActuatorRegistry:
                 # This will handle both decorated and undecorated actuators
                 actuator_class = None
                 if issubclass(member.__class__, ActuatorBase):
-                    self.registerActuator(member.identifier, member, is_builtin=True)
-                    # Extract the base class (handles both decorated and undecorated)
                     actuator_class = _extract_base_actuator_class(member)
                 elif isinstance(member, ActuatorBase):
                     actuator_class = member

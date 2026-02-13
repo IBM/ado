@@ -32,7 +32,7 @@ to see the experiments each provides
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
-ado get actuators --details
+ado get experiments
 ```
 
 ## Special actuators: replay and custom_experiments

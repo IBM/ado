@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 import enum
@@ -180,7 +180,7 @@ def load_module_class_or_function(conf: ModuleConf) -> type | typing.Callable:
 
     """
 
-    attribute = conf.moduleClass if conf.moduleClass else conf.moduleFunction
+    attribute = conf.moduleClass or conf.moduleFunction
     try:
         retval = getattr(load_module(conf), attribute)
     except AttributeError as error:

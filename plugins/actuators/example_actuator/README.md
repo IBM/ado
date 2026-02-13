@@ -21,17 +21,22 @@ pip install .
 You can then confirm it's installed with:
 
 ```bash
-ado get actuators --details
+ado get experiments --details
 ```
 
 You will see:
 
+<!-- markdownlint-disable line-length -->
 ```commandline
-   ACTUATOR ID   CATALOG ID           EXPERIMENT ID  SUPPORTED
-0         mock         mock         test-experiment       True
-1         mock         mock     test-experiment-two       True
-2  robotic_lab  robotic_lab  peptide_mineralization       True
+┌─────────────┬────────────────────────┬────────────────────────────────────────────────────────┐
+│ ACTUATOR ID │ EXPERIMENT ID          │ DESCRIPTION                                            │
+├─────────────┼────────────────────────┼────────────────────────────────────────────────────────┤
+│ mock        │ test-experiment        │                                                        │
+│ mock        │ test-experiment-two    │                                                        │
+│ robotic_lab │ peptide_mineralization │ Measures adsorption of peptide lanthanide combinations │
+└─────────────┴────────────────────────┴────────────────────────────────────────────────────────┘
 ```
+<!-- markdownlint-enable line-length -->
 
 On the last line, you can see the new actuator and its experiment.
 

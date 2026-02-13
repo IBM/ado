@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import typing
 from typing import Any
@@ -125,7 +125,7 @@ def context_not_in_available_contexts_error_str(
 def unknown_experiment_error_str(error: UnknownExperimentError) -> str:
     return (
         f"{ERROR}The following experiment was not found: {error}\n"
-        f"{HINT}Check available experiments with {cyan('ado get actuators --details')}"
+        f"{HINT}Check available experiments with {cyan('ado get experiments')}"
     )
 
 

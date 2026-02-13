@@ -1,0 +1,27 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+operation:
+  module:
+    operationType: characterize
+    operatorName: trim
+  parameters:
+    targetOutput: throughput
+    outputDirectory: trim_production
+    samplingBudget:
+      minPoints: 25
+      maxPoints: 150
+    noPriorsParameters:
+      sampling_strategy: 'sobol'
+    iterationSize: 7
+    stoppingCriterion:
+      enabled: true
+      meanThreshold: 0.9
+      stdThreshold: 0.75
+    autoGluonArgs:
+      fitArgs:
+        time_limit: 60
+        presets: 'medium_quality'
+    finalModelAutoGluonArgs:
+      fitArgs:
+        time_limit: 1200
+        presets: 'good_quality'

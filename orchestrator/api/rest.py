@@ -16,7 +16,7 @@ The code uses the ``serve`` decorator from Ray Serve to expose the
 ``FastAPI`` instance to the Ray Serve traffic routing system.
 """
 
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
 from fastapi import FastAPI

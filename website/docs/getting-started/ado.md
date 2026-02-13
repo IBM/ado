@@ -380,6 +380,7 @@ Where:
     - _actuator_
     - _context_ (_ctx_)
     - _datacontainer_ (_dcr_)
+    - _experiment_ (_exp_)
     - _operation_ (_op_)
     - _operator_
     - _samplestore_ (_store_)
@@ -422,7 +423,7 @@ Where:
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
 - The `--show-deprecated` flag is available **only for
-  `ado get actuators --details`** and allows displaying experiments that have
+  `ado get experiments`** and allows displaying experiments that have
   been deprecated. They are otherwise hidden by default.
 
 #### Searching and Filtering
@@ -535,13 +536,7 @@ ado get operation randomwalk-0.5.0-123abc -o yaml
 ##### Displaying all current experiments
 
 ```shell
-ado get actuators --details
-```
-
-##### Displaying all experiments for the st4sd actuator
-
-```shell
-ado get actuator st4sd --details --show-deprecated
+ado get experiments --details
 ```
 
 ##### Getting the yaml of a MeasurementRequest from an operation

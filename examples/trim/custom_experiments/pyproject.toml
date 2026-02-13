@@ -1,0 +1,8 @@
+[project]
+dynamic = ['version']
+name = "trim_custom_experiments"
+description="A set of custom experiments used to test Trim Operation"
+
+[project.entry-points."ado.custom_experiments"]
+#This should be python file with your decorated function(s).
+trim_experiments = "trim_custom_experiments.experiments"

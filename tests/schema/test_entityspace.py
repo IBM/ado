@@ -1,4 +1,4 @@
-# Copyright (c) IBM Corporation
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 from typing import Any
 
@@ -100,7 +100,7 @@ def test_entity_space_compatibility_with_measurement_space() -> None:
 
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ):
         measurement_space.checkEntitySpaceCompatible(entity_space)
 
@@ -115,7 +115,7 @@ def test_entity_space_compatibility_with_measurement_space() -> None:
     entity_space = EntitySpaceRepresentation([cp1, cp2, cp3_mis_spelt])
     with pytest.raises(
         ValueError,
-        match="Identified a measurement space constitutive property not in entity space",
+        match="Identified that a required constitutive property for an experiment",
     ):
         measurement_space.checkEntitySpaceCompatible(entity_space)
 

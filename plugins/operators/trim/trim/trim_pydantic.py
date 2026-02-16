@@ -19,13 +19,15 @@ class SamplingBudget(pydantic.BaseModel):
     minPoints: Annotated[
         int,
         pydantic.Field(
-            description="Minimum number of points to sample, a suggestion is setting this equal to twice the number of features",
+            description="Minimum number of points to sample, "
+            "a suggestion is setting this equal to twice the number of features",
         ),
     ] = 18
     maxPoints: Annotated[
         int,
         pydantic.Field(
-            description="Maximum number of points to sample, default is setting this equal to 80 per cent of the target space",
+            description="Maximum number of points to sample, "
+            "default is setting this equal to 80 per cent of the target space",
         ),
     ] = 40
 
@@ -50,7 +52,8 @@ class AutoGluonArgs(BaseModel):
         dict,
         Field(
             default_factory=lambda: {"verbosity": 1},
-            description="A dictionary containing key-value pairs of AutoGluon optional parameters in Tabular Predictor",
+            description="A dictionary containing key-value pairs of "
+            "AutoGluon optional parameters in Tabular Predictor",
         ),
     ]
 
@@ -62,7 +65,8 @@ class AutoGluonArgs(BaseModel):
                 "presets": "medium",
                 "excluded_model_types": ["GBM"],
             },
-            description="A dictionary containing key-value pairs of AutoGluon optional parameters in Tabular Predictor fit",
+            description="A dictionary containing key-value pairs of "
+            "AutoGluon optional parameters in Tabular Predictor fit",
         ),
     ]
 
@@ -74,8 +78,8 @@ class TrimParameters(BaseModel):
         AutoGluonArgs,
         Field(
             default_factory=AutoGluonArgs,
-            description="""Contains pydantic models for both autogluon TabularPredictor and for its fit function.
-        Both models are dictionaries whose key-value pairs are AutoGluon optional parameters.""",
+            description="Contains pydantic models for both autogluon TabularPredictor and for its fit function. "
+            "Both models are dictionaries whose key-value pairs are AutoGluon optional parameters.",
         ),
     ]
 
@@ -83,10 +87,10 @@ class TrimParameters(BaseModel):
         AutoGluonArgs,
         Field(
             default_factory=AutoGluonArgs,
-            description="""Contains pydantic models for both autogluon TabularPredictor and for its fit function.
-        Both models are dictionaries whose key-value pairs are AutoGluon optional parameters.
-        These parameters are used when finalizing the model.
-        That is, all sampled points go in the training set""",
+            description="Contains pydantic models for both autogluon TabularPredictor and for its fit function."
+            "Both models are dictionaries whose key-value pairs are AutoGluon optional parameters."
+            "These parameters are used when finalizing the model."
+            "That is, all sampled points go in the training set",
         ),
     ]
 
@@ -100,18 +104,14 @@ class TrimParameters(BaseModel):
     outputDirectory: Annotated[
         str | None,
         pydantic.Field(
-            description="""
-            The relative path of the model directory from the root folder.
-        """,
+            description="The relative path of the model directory from the root folder.",
         ),
     ] = None
 
     debugDirectory: Annotated[
         str,
         pydantic.Field(
-            description="""
-            The relative path of the directory where debug files will be stored.
-        """,
+            description="The relative path of the directory where debug files will be stored.",
         ),
     ] = "debug_output"
 

@@ -141,7 +141,8 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             except ValueError as e:
                 status.stop()
                 console_print(
-                    f"{ERROR}The actuator configuration validation failed: {e}",
+                    f"{ERROR}The provided actuator configurations are "
+                    f"not compatible with the discovery space: {e}",
                     stderr=True,
                 )
                 raise typer.Exit(1) from e

@@ -24,7 +24,7 @@ file_name = "lh_dashboard_136_date_01_13_2026.csv"  # %change this to the data f
 path = os.path.join(data_root_dir, file_name)
 # %%
 REFIT = False
-TRAIN_FRACTION = 0.8
+TRAIN_FRACTION = 1
 PRESET_QUALITY = "medium_quality"
 COLS_TO_USE = [
     "model_name",
@@ -41,7 +41,7 @@ suffix = f"-clone-opt-train_frac_{TRAIN_FRACTION}"  # this will be attached to t
 
 df_original = pd.read_csv(path)
 clist = list(df_original.columns)
-logger.info("Models supported are", set(df_original["model_name"].values))
+logger.info(f"Models supported are: {set(df_original['model_name'].values)}")
 
 # %%
 target = "is_valid"
@@ -91,12 +91,12 @@ def log_metrics(
     if not df_test.empty:
         test_data = TabularDataset(df_test)
         metrics_dict = predictor.evaluate(test_data, silent=True)
-        logger.info("The model performance on the test data is", metrics_dict)
+        logger.info(f"The model performance on the test data is: {metrics_dict}")
     else:
         train_data = TabularDataset(df_train)
         metrics_dict = predictor.evaluate(train_data, silent=True)
         logger.info(f"The test df was empty, train fraction = {TRAIN_FRACTION}.")
-        logger.info(" The model performance on the training data is", metrics_dict)
+        logger.info(f"The model performance on the training data is: {metrics_dict}")
     return metrics_dict
 
 
@@ -105,7 +105,7 @@ predictor, df_train, df_test, elapsed_time = fit_tabular_predictor(
 )
 model_path = predictor.path
 size_original = predictor.disk_usage()
-logger.info("Model path is: ", model_path)
+logger.info(f"Model path is: {model_path}")
 
 
 # %% Refitting the original model is discretionary,  it improves inference speed but diminishes accuracy

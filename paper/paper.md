@@ -51,42 +51,48 @@ the research ecosystem.
 
 # Statement of need
 
-- **ADD INTEGRATION NEED: It can be very difficult to reuse techniques**
+Research in systems and computational science frequently relies on large‑scale
+experimental campaigns to benchmark performance, optimize configurations, and
+explore complex parameter spaces. Developers of research tools repeatedly
+implement the same cross‑cutting capabilities—such as experiment design,
+optimization workflows, configuration management, distributed execution, data
+handling, and results analysis—alongside their domain‑specific logic. This
+duplication leads to a fragmented ecosystem in which each project re‑creates
+similar infrastructure with varying robustness and limited interoperability. A
+consequence of this fragmentation is high friction around reuse of general
+experimental methods. Tools often become tightly coupled to their domain, making
+it difficult to share or extend methods across projects or research groups. The
+absence of a widely adopted platform also limits the development of advanced
+shared capabilities such as comprehensive provenance tracking, collaborative
+data sharing, and seamless integration of optimization or analysis techniques.
 
-Research in systems and computational science frequently requires executing
-large-scale experimental campaigns to benchmark performance, optimize
-configurations, or explore parameter spaces. Researchers developing such tools
-face a common pattern: they must implement features for experiment management,
-distributed execution, data storage, and result analysis in addition to
-domain-specific research questions _+ doe + optimization_. In our experience
-this repetitive work across projects leads to fragmented tooling ecosystems
-where each tool reinvents similar capabilities with varying levels of robustness
-and features. The lack of critical mass around any single infrastructure limits
-the sophistication of features like comprehensive provenance tracking,
-collaborative data sharing, and advanced optimization integration that could
-benefit all domains.
+[ADD BRIEF STATE-OF-THE-ART GAPS]
 
-`ado` addresses this problem by providing a reusable, extensible harness for
-computational experimentation that separates cross-cutting, platform, concerns
-from domain logic. The target audience includes both developers of research
-software who need a robust foundation for their tools, and research groups who
-want to leverage state-of-the-art optimization and benchmarking capabilities
-without the overhead of maintaining these core capabilities.
+ado addresses these challenges by providing a reusable, extensible harness for
+computational experimentation that cleanly separates platform‑level concerns
+from domain‑specific logic. [ADD USP]
 
-By standardizing how experiments are described, executed, and data is managed
-through the Discovery Space abstraction, `ado` enables several critical
-improvements over ad-hoc solutions:
+Its target audience includes (1) developers of
+research software who require a reliable foundation for implementing
+experimental workflows, and (2) research groups seeking state‑of‑the‑art
+optimization, sampling, and benchmarking capabilities without maintaining these
+core components themselves. By standardizing how experiments, sampling
+procedures, and analysis methods are described, executed, and managed, ado
+provides several advantages over ad‑hoc solutions:
 
-1. guaranteed provenance tracking ensures all experimental data maintains its
-   lineage,
-2. transparent data reuse across experiments and teams reduces redundant
-   computation,
-3. integration with production-grade optimization frameworks (Optuna
-   [@Akiba2019], Ray Tune) provides access to sophisticated search algorithms
-4. a plugin architecture allows domain experts to contribute experiments while
-   inheriting all platform capabilities.
+1. Transparent data reuse across experiments and teams reduces redundant
+   computation.
+2. Comprehensive provenance tracking preserves lineage for all data products.
+3. A structured DOE description language ensures campaigns are validated and
+   reproducible.
+4. A lightweight plugin architecture, based on simple function decoration,
+   allows domain experts to contribute experiments and analysis tools while
+   inheriting the full set of platform capabilities.
+5. Automatic interoperability between experiments, samplers, and analysis
+   methods—for example, all experiments can directly leverage advanced
+   optimization algorithms from systems such as Ray Tune.
 
-[MENTION SIMPLE DECORATION]
+[ADD CONCRETE EXAMPLE]
 
 # State of the field
 
@@ -154,6 +160,8 @@ The design of `ado` centers on providing a robust platform providing common
 capabilities for collaborative computational experimentation while maintaining
 extensibility and ease of use. Our design choices reflect deliberate trade-offs
 between performance, rigor, and developer experience.
+
+[ + KUBERNETES MODEL]
 
 ## TRACE Characteristics as Design Requirements
 

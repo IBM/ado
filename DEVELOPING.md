@@ -135,7 +135,7 @@ website provides instructions to:
 Prettier can be run as a CLI tool with:
 
 ```commandline
-npx prettier -w "**/*.md" --prose-wrap always
+prettier -w "**/*.md"
 ```
 
 ## Secret scanning

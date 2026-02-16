@@ -36,7 +36,7 @@ create YAML for task → validate YAML → iterate.
 **List available experiments:**
 
 ```bash
-uv run ado get actuators --details
+uv run ado get experiments --details
 ```
 
 **Describe a specific experiment:**

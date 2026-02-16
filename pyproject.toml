@@ -4,83 +4,82 @@ description = """ado is a unified platform for executing computational experimen
 It can be easily extended with new experiments or new analysis tools. It allows distributed teams of
 researchers and engineers to collaborate on projects, execute experiments, and share data.
 """
-keywords = ["discovery", "exploration", "optimization", "orchestration", "ray"]
 readme = "README.md"
-license-files = ["LICEN[CS]E*", "vendored/licenses/*.txt", "AUTHORS.md"]
-authors = [
-    { name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }
-]
-maintainers = [
-    { name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }
-]
+requires-python = ">=3.10,<3.14"
+license-files = ["AUTHORS.md", "LICEN[CS]E*", "vendored/licenses/*.txt"]
+authors = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
+maintainers = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
+keywords = ["discovery", "exploration", "optimization", "orchestration", "ray"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Topic :: Software Development :: Build Tools",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Build Tools",
 ]
-
+dependencies = [
+  "build>=1.3.0",
+  "colorlog>=6.9.0",
+  "jsonpath-ng>=1.7.0",
+  "numpy",
+  "pandas>=2.2.0",
+  "py-markdown-table>=1.3.0",
+  "pydantic>=2.10",
+  "pymysql[rsa]>=1.1.1",
+  "pyyaml>=6.0.2",
+  "ray[serve]>=2.9",
+  "sqlalchemy>2",
+  "typer>=0.16.1",
+]
 # Deps/Build-related section
 dynamic = ["version"]
-requires-python = ">=3.10,<3.14"
-dependencies = [
-    "build>=1.3.0",
-    "colorlog>=6.9.0",
-    "jsonpath-ng>=1.7.0",
-    "numpy",
-    "pandas>=2.2.0",
-    "py-markdown-table>=1.3.0",
-    "pydantic>=2.10",
-    "pymysql[rsa]>=1.1.1",
-    "pyyaml>=6.0.2",
-    "ray[serve]>=2.9",
-    "sqlalchemy>2",
-    "typer>=0.16.1",
-]
 
 [project.urls]
-Homepage = "https://ibm.github.io/ado/"
-#Documentation = "https://readthedocs.org"
-Repository = "https://github.com/IBM/ado"
-Issues = "https://github.com/IBM/ado/issues"
 Changelog = "https://github.com/IBM/ado/blob/main/CHANGELOG.md"
+Homepage = "https://ibm.github.io/ado/"
+Issues = "https://github.com/IBM/ado/issues"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/IBM/ado"
+
+[project.scripts]
+ado = "orchestrator.cli.core.cli:app"
+run_experiment = "orchestrator.utilities.run_experiment:main"
 
 [dependency-groups]
 dev = [
-    "black>=25.1.0",
-    "coverage>=7.10.2",
-    "detect-secrets @ git+https://github.com/ibm/detect-secrets.git",
-    "pip>=25.1.1",
-    "pre-commit>=4.2.0",
-    "pydevd>=3.3.0",
-    "pytest>=8.3.5",
-    "pytest-asyncio>=1.0.0",
-    "pytest-cov>=7.0.0",
-    "pytest-recording>=0.13.4",
-    "pytest-timeout>=2.4.0",
-    "pytest-xdist>=3.6.1",
-    "ruff>=0.12.1",
-    "testcontainers>=4.10.0",
-    "tox>=4.26.0",
-    "tox-uv>=1.25.0",
+  "black>=25.1.0",
+  "coverage>=7.10.2",
+  "detect-secrets @ git+https://github.com/ibm/detect-secrets.git",
+  "pip>=25.1.1",
+  "pre-commit>=4.2.0",
+  "pydevd>=3.3.0",
+  "pytest>=8.3.5",
+  "pytest-asyncio>=1.0.0",
+  "pytest-cov>=7.0.0",
+  "pytest-recording>=0.13.4",
+  "pytest-timeout>=2.4.0",
+  "pytest-xdist>=3.6.1",
+  "ruff>=0.12.1",
+  "testcontainers>=4.10.0",
+  "tombi>=0.7.28",
+  "tox>=4.26.0",
+  "tox-uv>=1.25.0",
 ]
 docs = [
-    "htmlmin>=0.1.12",
-    "mkdocs>=1.6.1",
-    "mkdocs-github-admonitions-plugin>=0.1.1",
-    "mkdocs-include-markdown-plugin>=7.1.6",
-    "mkdocs-material>=9.6.14",
-    "mkdocs-minify-plugin>=0.8.0",
-    "pygments>=2.19.1",
-    "pymdown-extensions>=10.15",
+  "htmlmin>=0.1.12",
+  "mkdocs>=1.6.1",
+  "mkdocs-github-admonitions-plugin>=0.1.1",
+  "mkdocs-include-markdown-plugin>=7.1.6",
+  "mkdocs-material>=9.6.14",
+  "mkdocs-minify-plugin>=0.8.0",
+  "pygments>=2.19.1",
+  "pymdown-extensions>=10.15",
 ]
 resolution-helpers = [
-    "urllib3>=2.5.0",
+  "urllib3>=2.5.0",
 ]
-
 # AP 2025-12-05:
 # ado-sfttrainer is currently incompatible with Python 3.13
 #   due to a dependency on aim/aimrocks
@@ -88,24 +87,34 @@ resolution-helpers = [
 #   due to a new requirement in vllm>=0.11.1 which brings in
 #   cuda dependencies.
 test = [
-    "ado-autoconf",
-    "ado-ray-tune",
-    "ado-sfttrainer; python_version < '3.13'",
-    "ado-vllm-performance; sys_platform != 'darwin'",
-    "anomalous-series",
-    "density-test",
-    "optimization-test-functions",
-    "pfas-custom-functions",
-    "profile-space",
-    "robotic-lab",
-    "trim"
+  "ado-autoconf",
+  "ado-ray-tune",
+  "ado-sfttrainer; python_version < '3.13'",
+  "ado-vllm-performance; sys_platform != 'darwin'",
+  "anomalous-series",
+  "density-test",
+  "optimization-test-functions",
+  "pfas-custom-functions",
+  "profile-space",
+  "robotic-lab",
+  "trim"
 ]
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["orchestrator"]
 
 [tool.uv]
 default-groups = ["dev", "docs"]
 required-environments = [
-    "sys_platform == 'darwin' and platform_machine == 'arm64'",
-    "sys_platform == 'linux' and platform_machine == 'x86_64'"
+  "sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "sys_platform == 'linux' and platform_machine == 'x86_64'"
 ]
 
 # Having our plugins in the workspace section makes it so
@@ -116,17 +125,17 @@ required-environments = [
 # added as path-based sources.
 [tool.uv.workspace]
 members = [
-    "plugins/custom_experiments/autoconf",
-    "plugins/operators/ray_tune",
-#    "plugins/actuators/sfttrainer",
-#    "plugins/actuators/vllm_performance",
-    "plugins/operators/anomalous_series",
-    "examples/density_example",
-    "examples/optimization_test_functions/custom_experiments",
-    "examples/pfas-generative-models/custom_actuator_function",
-    "plugins/operators/profile_space",
-    "plugins/actuators/example_actuator",
-    "plugins/operators/trim"
+  "plugins/custom_experiments/autoconf",
+  "plugins/operators/ray_tune",
+  # "plugins/actuators/sfttrainer",
+  #    "plugins/actuators/vllm_performance",
+  "plugins/operators/anomalous_series",
+  "examples/density_example",
+  "examples/optimization_test_functions/custom_experiments",
+  "examples/pfas-generative-models/custom_actuator_function",
+  "plugins/operators/profile_space",
+  "plugins/actuators/example_actuator",
+  "plugins/operators/trim"
 ]
 
 [tool.uv.sources]
@@ -142,20 +151,6 @@ profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
 trim = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
-
-[project.scripts]
-ado = "orchestrator.cli.core.cli:app"
-run_experiment = "orchestrator.utilities.run_experiment:main"
-
-[build-system]
-requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
-build-backend = "hatchling.build"
-
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
-
-[tool.hatch.build.targets.wheel]
-packages = ["orchestrator"]
 
 [tool.uv-dynamic-versioning]
 vcs = "git"

@@ -173,7 +173,7 @@ Before finalizing, verify:
 - Domain refinements explained
 - DiscoverySpace YAML validates (`--dry-run`)
 - Operation YAML validates (`--dry-run`)
-- All ado CLI commands and options are validate (uv run ado [COMMAND] --help)
+- All ado CLI commands and options are valid (uv run ado [COMMAND] --help)
 
 ## Common Issues and Solutions
 
@@ -212,6 +212,6 @@ Before finalizing, verify:
 
 When modifying or creating code while using this skill, follow:
 
-- [general-development.mdc](../../rules/general-development.mdc)
+- [AGENTS.md](../../../AGENTS.md)
 - [plugin-development.mdc](../../rules/plugin-development.mdc) (if working with
   plugins)

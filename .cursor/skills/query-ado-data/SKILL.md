@@ -291,6 +291,6 @@ See orchestrator/metastore/sqlstore.py
 
 When modifying or creating code while using this skill, follow:
 
-- [general-development.mdc](../../rules/general-development.mdc)
+- [AGENTS.md](../../../AGENTS.md)
 - [plugin-development.mdc](../../rules/plugin-development.mdc) (if working
   with plugins)

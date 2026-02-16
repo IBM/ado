@@ -8,7 +8,7 @@ alwaysApply: false
 
 These guidelines apply when developing plugins for ado.
 Plugins are developed under `plugins/` or `examples/` directories.
-All general development guidelines from `general-development.mdc` also apply.
+All general development guidelines from `AGENTS.md` also apply.
 
 ---
 

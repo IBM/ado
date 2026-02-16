@@ -300,9 +300,6 @@ def run(
         )
     )
 
-    if not remote:
-        initialize_ray_resource_cleaner()
-
     try:
         for reference in point.experiments:
             valid = True

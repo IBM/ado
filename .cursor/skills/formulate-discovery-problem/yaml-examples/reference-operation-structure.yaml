@@ -1,4 +1,4 @@
-# Copyright IBM Corporation 2025, 2026, 0
+# Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 spaces: [space_id_1, space_id_2] # Required - list of space identifiers
 operation: # Required - operation definition

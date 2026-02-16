@@ -2,7 +2,6 @@
 
 # SPDX-License-Identifier: MIT
 
-# %% Run this script with IPython
 import glob
 import logging
 import os
@@ -19,10 +18,10 @@ logger = logging.getLogger(__name__)
 logger.info("These are the available csvs")
 data_root_dir = "/../../autoconf_data"  # %change this to the data folder
 glob.glob("*", root_dir=data_root_dir)
-# %%
+
 file_name = "lh_dashboard_136_date_01_13_2026.csv"  # %change this to the data file name
 path = os.path.join(data_root_dir, file_name)
-# %%
+
 REFIT = False
 TRAIN_FRACTION = 1
 PRESET_QUALITY = "medium_quality"
@@ -43,7 +42,6 @@ df_original = pd.read_csv(path)
 clist = list(df_original.columns)
 logger.info(f"Models supported are: {set(df_original['model_name'].values)}")
 
-# %%
 target = "is_valid"
 
 
@@ -64,7 +62,7 @@ logger.info(
 )
 
 
-# %% TRAININING FUNCTION
+# TRAINING FUNCTION
 def fit_tabular_predictor(
     df: pd.DataFrame,
     train_fraction: float,
@@ -84,7 +82,7 @@ def fit_tabular_predictor(
     return predictor, df_train, df_test, elapsed_time
 
 
-# %% TEST
+# TEST
 def log_metrics(
     predictor: TabularPredictor, df_test: pd.DataFrame, df_train: pd.DataFrame
 ) -> dict[str, Any]:
@@ -108,7 +106,7 @@ size_original = predictor.disk_usage()
 logger.info(f"Model path is: {model_path}")
 
 
-# %% Refitting the original model is discretionary,  it improves inference speed but diminishes accuracy
+# Refitting the original model is discretionary, it improves inference speed but diminishes accuracy
 # docs at <https://auto.gluon.ai/stable/api/autogluon.tabular.TabularPredictor.html>
 if REFIT:
     predictor.refit_full(model="best", set_best_to_refit_full=True)
@@ -118,7 +116,7 @@ save_path_refit_clone_opt = model_path + suffix
 path_clone_opt = predictor.clone_for_deployment(path=save_path_refit_clone_opt)
 predictor_clone_opt = TabularPredictor.load(path=save_path_refit_clone_opt)
 
-# %% Logging size comparison
+# Logging size comparison
 size_opt = predictor_clone_opt.disk_usage()
 logger.info(f"Size Original:  {size_original} bytes")
 logger.info(f"Size Optimized: {size_opt} bytes")
@@ -126,7 +124,8 @@ logger.info(
     f"Optimized predictor achieved a {round((1 - (size_opt/size_original)) * 100, 1)}% reduction in disk usage."
 )
 metrics = log_metrics(predictor_clone_opt, df_test=df_test, df_train=df_train)
-# %% cleaning up files, keeping only the refit-opt model
+
+# Cleaning up files, keeping only the refit-opt model
 if model_path and os.path.isdir(model_path):
     try:
         shutil.rmtree(model_path, ignore_errors=True)
@@ -134,8 +133,8 @@ if model_path and os.path.isdir(model_path):
     except Exception as e:
         logger.info(f"Could not delete model directory '{model_path}': {e}")
 
-# %% saves in the model folder which is save_path_refit_clone_opt a the modelcard.csv which
-# has all the value fixed in this script (data_path, refit, suffix, train_percetages, size, etc) +
+# Saves in the model folder which is save_path_refit_clone_opt a the modelcard.csv which
+# has all the value fixed in this script (data_path, refit, suffix, train_percentages, size, etc) +
 # all the metrics contained in metrics dict which are additional columns in the csv
 # ('accuracy', 'balanced_accuracy', ...) to do this we extract key values pairs from metrics
 

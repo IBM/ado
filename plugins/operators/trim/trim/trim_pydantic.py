@@ -27,7 +27,7 @@ class SamplingBudget(pydantic.BaseModel):
         int,
         pydantic.Field(
             description="Maximum number of points to sample, "
-            "default is setting this equal to 80 per cent of the target space",
+            "a suggestion is setting this equal to 80 per cent of the target space",
         ),
     ] = 40
 
@@ -99,7 +99,7 @@ class TrimParameters(BaseModel):
         pydantic.Field(
             description="The measured property you will treat as a target variable",
         ),
-    ] = "hi"
+    ]
 
     outputDirectory: Annotated[
         str | None,
@@ -159,13 +159,22 @@ class TrimParameters(BaseModel):
     # ] = False
 
     @classmethod
-    def defaultOperation(cls) -> DiscoveryOperationConfiguration:
+    def defaultOperation(cls, targetOutput: str) -> DiscoveryOperationConfiguration:
+        """
+        Create a default operation configuration with the required targetOutput parameter.
+
+        Args:
+            targetOutput: The measured property to treat as a target variable (required)
+
+        Returns:
+            DiscoveryOperationConfiguration with default parameters
+        """
         return DiscoveryOperationConfiguration(
             module=OperatorFunctionConf(
                 operatorName="trim",
                 operationType=DiscoveryOperationEnum.CHARACTERIZE,
             ),
-            parameters=cls(),
+            parameters=cls(targetOutput=targetOutput),
         )
 
     @model_validator(mode="after")
@@ -238,8 +247,8 @@ class TrimParameters(BaseModel):
 
 
 if __name__ == "__main__":
-    params = TrimParameters.model_validate(TrimParameters())
+    # Test with required targetOutput parameter
+    params = TrimParameters.model_validate(TrimParameters(targetOutput="test"))
     print(
         f"type of model_validate output on TRIM default is {type(params)}, printing the full object gives {params}"
     )
-    print(f"Default operation is {TrimParameters.defaultOperation()}")

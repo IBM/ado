@@ -117,7 +117,10 @@ class TrimParameters(BaseModel):
 
     iterationSize: Annotated[
         int,
-        pydantic.Field(description="TRIM iteration size, sets"),
+        pydantic.Field(
+            description="TRIM iteration size, sets the number of models that"
+            "the stopping criterion considers when determining whether to stop"
+        ),
     ] = 5
 
     holdoutSize: Annotated[

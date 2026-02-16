@@ -146,8 +146,9 @@ class TrimParameters(BaseModel):
     noPriorParameters: Annotated[
         NoPriorsParameters,
         pydantic.Field(
-            default_factory=NoPriorsParameters,
-            description="Parameters of the no_priors_characterization operation",
+            default_factory=lambda: NoPriorsParameters(targetOutput=""),
+            description="Parameters of the no_priors_characterization operation. "
+            "The targetOutput will be automatically set from TrimParameters.targetOutput.",
         ),
     ]
 

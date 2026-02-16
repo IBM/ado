@@ -26,7 +26,7 @@ class NoPriorsParameters(BaseModel):
         Field(
             description="The measured property you will treat as a target variable.",
         ),
-    ] = ""
+    ]
 
     samples: Annotated[
         int,
@@ -66,7 +66,7 @@ class NoPriorsParameters(BaseModel):
 
 
 if __name__ == "__main__":
-    params = NoPriorsParameters.model_validate(NoPriorsParameters())
+    params = NoPriorsParameters.model_validate(NoPriorsParameters(targetOutput="test"))
     print(
         f"type of model_validate output on no-priors-characterization default is {type(params)}, printing the full object gives {params}"
     )

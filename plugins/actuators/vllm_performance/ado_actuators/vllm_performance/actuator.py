@@ -3,7 +3,6 @@
 
 import logging
 import os
-import shutil
 import uuid
 from pathlib import Path
 
@@ -207,15 +206,14 @@ class VLLMPerformanceTest(ActuatorBase):
         if experiment.deprecated is True:
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
-        # Check if required tool is available based on experiment identifier
+        # We make sure the tool required for this experiments gets installed in the Ray worker python environment
         experiment_id_lower = experiment.identifier.lower()
         required_tool = "guidellm" if "guidellm" in experiment_id_lower else "vllm"
+        experiment_ray_env = {"uv": [f"ado-vllm-performance[{required_tool}]"]}
 
-        if not shutil.which(required_tool):
-            raise MissingConfigurationForExperimentError(
-                f"Experiment {experiment.identifier} requires {required_tool} to be installed in the system. "
-                f"Please install 'ado-vllm-performance[{required_tool}]' before running this experiment."
-            )
+        logger.debug(
+            f"Experiment ({experiment.identifier}) - Ray task environment: {experiment_ray_env}"
+        )
 
         if experiment.identifier in [
             "test-deployment-v1",
@@ -231,7 +229,9 @@ class VLLMPerformanceTest(ActuatorBase):
 
             # Execute experiment
             # Note: Here the experiment instance is just passed for convenience since we retrieved it above
-            run_resource_and_workload_experiment.remote(
+            run_resource_and_workload_experiment.options(
+                runtime_env=experiment_ray_env
+            ).remote(
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,
@@ -242,7 +242,7 @@ class VLLMPerformanceTest(ActuatorBase):
             )
             self.local_port += len(request.entities)
         else:
-            run_workload_experiment.remote(
+            run_workload_experiment.options(runtime_env=experiment_ray_env).remote(
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,

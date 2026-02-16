@@ -1,17 +1,16 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import Annotated, ClassVar
+from typing import Annotated, Literal
 
-import pydantic
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, Field
 
 
 class NoPriorsParameters(BaseModel):
     """
     Parameters for sampling high-dimensional spaces without prior model structure.
 
-    The `sampling_strategy` is validated against the supported set documented below.
+    The `sampling_strategy` must be one of the Literals supported.
     Source of truth for supported strategies is the comment block right here:
 
         strategy (str): sampling subroutine:
@@ -21,15 +20,6 @@ class NoPriorsParameters(BaseModel):
         - 'clhs': refer to concatenated_latin_hypercube_sampling
         - 'sobol': sobol sampling
     """
-
-    # --- Supported strategies (centralized) ---
-    SUPPORTED_STRATEGIES: ClassVar[set[str]] = {
-        "random",
-        "one_shift",
-        "recursive_aggregation",
-        "clhs",
-        "sobol",
-    }
 
     targetOutput: Annotated[
         str,
@@ -58,7 +48,8 @@ class NoPriorsParameters(BaseModel):
     ] = 1
 
     sampling_strategy: Annotated[
-        str,
+        Literal["random", "one_shift", "recursive_aggregation", "clhs", "sobol"],
+        BeforeValidator(lambda s: s.lower()),
         Field(
             description=(
                 "Sampling subroutine. Supported values:\n"
@@ -72,31 +63,6 @@ class NoPriorsParameters(BaseModel):
             ),
         ),
     ] = "clhs"
-
-    @field_validator("sampling_strategy")
-    @classmethod
-    def _validate_strategy(cls, v: str) -> str:
-        """
-        Validate and normalize the sampling strategy:
-        - strip/normalize to lowercase
-        - ensure result is in SUPPORTED_STRATEGIES
-        """
-        if not isinstance(v, str):
-            raise TypeError("sampling_strategy must be a string.")
-
-        normalized = v.strip().lower()
-
-        if normalized not in cls.SUPPORTED_STRATEGIES:
-            raise pydantic.ValidationError(
-                [
-                    pydantic.errors.PydanticCustomError(
-                        "unsupported_strategy",
-                        (f"Unsupported sampling_strategy '{v}'. "),
-                    )
-                ],
-                cls,
-            )
-        return normalized
 
 
 if __name__ == "__main__":

@@ -151,10 +151,12 @@ class TrimParameters(BaseModel):
         ),
     ]
 
-    # disablePredictiveModeling: bool = pydantic.Field(
-    #     default=False,  # True,
-    #     description="Routes trim to a progressive sampler",
-    # )
+    # disablePredictiveModeling: Annotated[
+    #     bool,
+    #     pydantic.Field(
+    #         description="Routes trim to a progressive sampler",
+    #     ),
+    # ] = False
 
     @classmethod
     def defaultOperation(cls) -> DiscoveryOperationConfiguration:

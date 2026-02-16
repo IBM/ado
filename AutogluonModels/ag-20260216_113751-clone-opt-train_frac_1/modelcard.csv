@@ -1,2 +1,0 @@
-data_path,refit,suffix,train_fraction,preset_quality,size_original_bytes,size_optimized_bytes,elapsed_time,disk_usage_reduction_percent,accuracy,balanced_accuracy,mcc,roc_auc,f1,precision,recall
-/Users/danielelotito/Documents/github/ad-orchestrator/plugins/custom_experiments/autoconf/pg/data/lh_dashboard_136_date_01_13_2026.csv,False,-clone-opt-train_frac_1,1,medium_quality,347144407,1955237,33.14374923706055,99.4,0.9246688741721855,0.9228466494783192,0.8486380168610339,0.9823894835432255,0.9168797953964194,0.9358567965690845,0.8986571172784243

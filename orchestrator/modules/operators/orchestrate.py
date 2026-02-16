@@ -10,7 +10,6 @@ import signal
 import pydantic
 import ray
 import ray.util.queue
-from ray.runtime_env import RuntimeEnv
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
@@ -99,18 +98,24 @@ def orchestrate(
     else:
         # In local mode we can read a set of envvars a then export them into the ray environment
         # Currently we don't use it but keeping the code to recall how to do so if necessary
-        ray_env_vars = {}
-        moduleLog.debug(
-            f"Setting runtime environment variables based on local environment - {ray_env_vars}"
-        )
+        # ray_env_vars = {}
+        # moduleLog.debug(
+        #     f"Setting runtime environment variables based on local environment - {ray_env_vars}"
+        # )
+        # moduleLog.debug("Ensuring envvars are set the main process environment")
+        # for key, value in ray_env_vars.items():
+        #     os.environ[key] = value
+        #
+        # ray.init(
+        #     runtime_env=RuntimeEnv(env_vars=ray_env_vars, working_dir=None),
+        #     ignore_reinit_error=True,
+        # )
+
+        # Using RuntimeEnv with working_dir=None does not produce same behaviour as dict
         ray.init(
-            runtime_env=RuntimeEnv(env_vars=ray_env_vars, working_dir=None),
+            runtime_env={"working_dir": None},
             ignore_reinit_error=True,
         )
-
-        moduleLog.debug("Ensuring envvars are set the main process environment")
-        for key, value in ray_env_vars.items():
-            os.environ[key] = value
 
     #
     # Register signal handler

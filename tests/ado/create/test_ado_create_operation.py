@@ -59,7 +59,10 @@ def test_create_operation_dry_run_success(
         ],
     )
     assert result.exit_code == 0, result.output
-    expected_output = "The configuration passed is valid!\n"
+    expected_output = (
+        "INFO:   The operation YAML is syntactically valid.\n"
+        "The configuration passed is valid!\n"
+    )
     assert result.output == expected_output
 
 

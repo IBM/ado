@@ -2,6 +2,9 @@
 
 # SPDX-License-Identifier: MIT
 
+# To build the model on an environment which is as clean as possible
+# follow the instructions in plugins/custom_experiments/autoconf/autoconf/AutoGluonModels/README.md
+
 import glob
 import logging
 import os

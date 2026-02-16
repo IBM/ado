@@ -7,6 +7,20 @@ The current model is trained on ~15500 rows of data stored in
 30th October), achieving approximately 90% accuracy. You can find the models in
 [the directory with this README](./).
 
+To build the models on an environment which is as clean as possible run the
+following commands from the root of this project.
+
+```terminal
+uv sync --no-default-groups --python 3.12
+uv pip install -e plugins/custom_experiments/autoconf/
+```
+
+Then, run the script from the virtual environment
+
+```terminal
+.venv/bin/python plugins/custom_experiments/autoconf/autoconf/utils/autoconf_build/ml_classifier.py
+```
+
 ## Versioning Information
 
 All model subfolders in

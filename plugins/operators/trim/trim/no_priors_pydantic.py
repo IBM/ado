@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import ClassVar
+from typing import Annotated, ClassVar
 
 import pydantic
 from pydantic import BaseModel, Field, field_validator
@@ -31,39 +31,47 @@ class NoPriorsParameters(BaseModel):
         "sobol",
     }
 
-    targetOutput: str = Field(
-        default="",
-        description="The measured property you will treat as a target variable.",
-    )
-
-    samples: int = Field(
-        default=20,
-        ge=1,
-        description="Number of unique points to sample (must be >= 1).",
-    )
-
-    batchSize: int = Field(
-        default=1,
-        ge=1,
-        description=(
-            "Batch size parameter used by certain samplers (e.g., randomWalk) via continuous batching; "
-            "by default set equal to iterationSize in those contexts. Must be >= 1."
+    targetOutput: Annotated[
+        str,
+        Field(
+            description="The measured property you will treat as a target variable.",
         ),
-    )
+    ] = ""
 
-    sampling_strategy: str = Field(
-        default="clhs",
-        description=(
-            "Sampling subroutine. Supported values:\n"
-            " - 'random': selects random points from the beginning\n"
-            " - 'one_shift': see one_shift_then_random_points_high_dimensional_sampling\n"
-            " - 'recursive_aggregation': see recursive_aggregation_high_dimensional_sampling\n"
-            " - 'clhs': dimension-wise random without replacement until each dim cycles\n"
-            " - 'sobol': sobol sampling via scipy\n"
-            "Aliases: 'random_shifts' → 'recursive_aggregation'.\n"
-            "Validation is case-insensitive; value is normalized to lowercase."
+    samples: Annotated[
+        int,
+        Field(
+            ge=1,
+            description="Number of unique points to sample (must be >= 1).",
         ),
-    )
+    ] = 20
+
+    batchSize: Annotated[
+        int,
+        Field(
+            ge=1,
+            description=(
+                "Batch size parameter used by certain samplers (e.g., randomWalk) via continuous batching; "
+                "by default set equal to iterationSize in those contexts. Must be >= 1."
+            ),
+        ),
+    ] = 1
+
+    sampling_strategy: Annotated[
+        str,
+        Field(
+            description=(
+                "Sampling subroutine. Supported values:\n"
+                " - 'random': selects random points from the beginning\n"
+                " - 'one_shift': see one_shift_then_random_points_high_dimensional_sampling\n"
+                " - 'recursive_aggregation': see recursive_aggregation_high_dimensional_sampling\n"
+                " - 'clhs': dimension-wise random without replacement until each dim cycles\n"
+                " - 'sobol': sobol sampling via scipy\n"
+                "Aliases: 'random_shifts' → 'recursive_aggregation'.\n"
+                "Validation is case-insensitive; value is normalized to lowercase."
+            ),
+        ),
+    ] = "clhs"
 
     @field_validator("sampling_strategy")
     @classmethod

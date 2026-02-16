@@ -9,7 +9,7 @@ Concrete examples of formulating problems for ado execution.
 ### Step 1: Choose Experiments
 
 ```bash
-uv run ado get actuators --details
+uv run ado get experiments --details
 # Find: TrainerActuator.train_model
 uv run ado describe experiment TrainerActuator.train_model
 ```

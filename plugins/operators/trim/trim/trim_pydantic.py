@@ -193,6 +193,7 @@ class TrimParameters(BaseModel):
                 "Currently the holdout size must be equal to the iterationSize."
                 f"Setting it equals to it. Batch size = {self.iterationSize}"
             )
+            self.holdoutSize = self.iterationSize
         return self
 
     @model_validator(mode="after")

@@ -41,9 +41,10 @@
 >
 > ```bash
 > : # Create the space to explore based on a custom experiment
-> ado create space -f examples/trim/configs/space_pressure.yaml --new-sample-store
+> ado create space -f examples/trim/example_yamls/space_pressure.yaml --new-sample-store
 > : # Explore it with TRIM!
-> ado create operation -f examples/trim/configs/op_pressure.yaml --use-latest space
+> ado create operation -f examples/trim/example_yamls/op_pressure.yaml \
+>     --use-latest space
 > ```
 
 <!-- markdownlint-enable no-blanks-blockquote -->
@@ -79,7 +80,7 @@ First, create the `discoveryspace` by executing this command from the repository
 root:
 
 ```commandline
-ado create space -f examples/trim/configs/space_pressure.yaml --new-sample-store
+ado create space -f examples/trim/example_yamls/space_pressure.yaml --new-sample-store
 ```
 
 This will create a new space and a sample store to hold the measurement results.
@@ -95,7 +96,9 @@ Next, we will run an `operation` that uses TRIM to explore the `discoveryspace`.
 The configuration for our operation is in `op_pressure.yaml`:
 
 ```yaml
-{ % include-markdown "./configs/op_pressure.yaml" % }
+{% 
+  include-markdown "./example_yamls/op_pressure.yaml" 
+%}
 ```
 
 To run the operation, execute:
@@ -103,7 +106,7 @@ To run the operation, execute:
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-ado create operation -f examples/trim/configs/op_pressure.yaml --use-latest space
+ado create operation -f examples/trim/example_yamls/op_pressure.yaml --use-latest space
 ```
 
 <!-- markdownlint-enable line-length -->

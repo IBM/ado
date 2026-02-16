@@ -1,0 +1,29 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+spaces:
+  - space-c8717f-3a68bf
+operation:
+  module:
+    operationType: characterize
+    operatorName: trim
+  parameters:
+    batchSize: 1
+    autoGluonArgs:
+      fitArgs:
+        time_limit: 20
+        presets: medium
+        excluded_model_types:
+          - GBM
+      tabularPredictorArgs:
+        problem_type: regression
+    iterationSize: 5
+    outputDirectory: trim_models
+    stoppingCriterion:
+      enabled: true
+      meanThreshold: 0.9
+      stdThreshold: 0.75
+    noPriorsParameters:
+      targetOutput: pressure
+    targetOutput: pressure
+    taskId: null
+    taskValue: null

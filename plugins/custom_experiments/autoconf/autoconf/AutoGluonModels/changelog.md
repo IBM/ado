@@ -15,6 +15,7 @@ Please record the following for each model:
 - **Changes:**
   - Trained on updated lakehouse data (data up to 13th January 2026), no data left
     for the test set. Refit to improve inference speed, medium quality preset.
+    Trained in python 3.12.7.
   - Autogluon updated to V1.5
 - **Location:** `v3-1-0_ag-20260113_144232-refit-clone-opt-train_frac_1`
 
@@ -24,7 +25,7 @@ Please record the following for each model:
 - **Changes:**
   - Trained on updated lakehouse data (data up to 13th January 2026), no data left
     for the test set. No refit to improve prediction accuracy, medium quality
-    preset.
+    preset. Trained in python 3.12.7.
   - Autogluon updated to V1.5
 - **Location:** `v3-0-0_ag-20260113_144447-clone-opt-train_frac_1`
 

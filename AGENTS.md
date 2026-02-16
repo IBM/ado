@@ -4,7 +4,7 @@ description: General development guidelines for ado - code style, testing, quali
 
 # General Development Guidelines for ado
 
-These guidelines apply to all code development in the ad-orchestrator codebase.
+These guidelines apply to all code development in the ado codebase.
 
 ## Code Structure
 
@@ -46,8 +46,11 @@ These guidelines apply to all code development in the ad-orchestrator codebase.
   follow PEP8.
 - Use type annotations on all functions and methods, including return types.
 - Add docstrings to all functions and methods.
-- Use the pydantic annotated form for pydantic fields
-  (see `orchestrator/schema/entity.py`).
+- Use the pydantic annotated form for pydantic fields (see
+  `orchestrator/schema/entity.py`). Assign the default value to the Annotated
+  variable, not inside pydantic.Field. For any mutable default values such as
+  dictionaries, lists, tuples, or sets, use `default_factory` inside
+  pydantic.Field and do not assign a default to the Annotation.
 - Use discriminated unions when a type is a union
   (see `ExperimentType` in `orchestrator/schema/experiment.py`).
 - Use the `Defaultable` type from `orchestrator/utilities/pydantic` for

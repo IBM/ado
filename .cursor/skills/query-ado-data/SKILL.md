@@ -273,7 +273,7 @@ uv run ado get spaces -q 'config.entitySpace={"propertyDomain":{"values":["mistr
 ### Export operation entities to CSV
 
 ```bash
-uv run ado show entities operation OPERATION_ID --output-format csv > entities.csv
+uv run ado show entities operation OPERATION_ID --output-format csv 
 ```
 
 ### Get all resources related to a space

@@ -183,7 +183,7 @@ uv run ado template operation --operator-name OPERATOR_NAME > operation.yaml
 **List experiments:**
 
 ```bash
-uv run ado get actuators --details
+uv run ado get experiments --details
 ```
 
 **Describe experiment:**

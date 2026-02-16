@@ -130,6 +130,10 @@ Use Test Driven Development
 
     uv sync --reinstall --group test --group dev
 
+- Run tests in parallel (pytest-xdist) for quicker execution e.g.
+
+   uv run pytest -n4 tests/
+
 ### YAML Testing
 
 - Test any new or modified ado resource YAML using:

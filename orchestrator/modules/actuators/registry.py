@@ -35,6 +35,66 @@ CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
 
 
+def _extract_base_actuator_class(
+    actuator: typing.Any,  # noqa: ANN401
+) -> "type[ActuatorBase]":
+    """Extract the base actuator class from a potentially Ray-decorated class.
+
+    Args:
+        actuator: Either a Ray-decorated ActorClass instance or an undecorated
+            ActuatorBase subclass.
+
+    Returns:
+        The undecorated base ActuatorBase subclass.
+
+    Raises:
+        ValueError: If the actuator is a Ray ActorClass but the base class
+            cannot be extracted.
+    """
+    from orchestrator.modules.actuators.base import ActuatorBase
+
+    # First, check if this is already a regular class (not decorated)
+    try:
+        issubclass(actuator, ActuatorBase)
+    except TypeError:  # actuator is an instance -> decorated
+        pass
+    else:
+        return actuator
+
+    # Try to import Ray and check if it's an ActorClass
+    try:
+        import ray.actor
+
+        if issubclass(actuator.__class__, ray.actor.ActorClass):
+            # It's a Ray-decorated class, extract the original class
+            # Ray stores the original class in __ray_actor_class__
+            if hasattr(actuator, "__ray_actor_class__"):
+                original_class = actuator.__ray_actor_class__
+                if isinstance(original_class, type) and issubclass(
+                    original_class, ActuatorBase
+                ):
+                    return original_class
+
+            # Could not extract base class
+            raise ValueError(
+                f"Could not extract base ActuatorBase class from Ray ActorClass {actuator}. "
+                "The ActorClass does not expose the original class through expected attributes."
+            )
+    except ImportError:
+        # Ray not available, fall through
+        pass
+
+    # If we get here, it's neither a regular class nor a Ray ActorClass we can handle
+    # Check if it's an instance and raise a helpful error
+    if not isinstance(actuator, type):
+        raise TypeError(
+            f"Expected a class or Ray ActorClass, got instance of {type(actuator)}"
+        )
+
+    # It's a class but not an ActuatorBase subclass
+    raise TypeError(f"Expected ActuatorBase subclass, got {actuator}")
+
+
 class UnknownExperimentError(Exception):
     pass
 
@@ -107,19 +167,32 @@ class ActuatorRegistry:
                 importlib.import_module(module.name)
             ):
                 # MJ: The Actuator classes are decorated ray.remote
-                # This means the member mymodule.myactuatorclass will be an instance of ray "ActorClass(MyActuatorClass)" and not the class!
+                # This means the member mymodule.myactuatorclass will be an instance of ray
+                # "ActorClass(MyActuatorClass)" and not the class!
                 #
                 # Ray has added code so ActuatorBase.__subclasscheck__(ActorClass(MyActuatorClass))" returns True
                 # i.e. it identifies that the ray "wrapped" subclass is a subclass
                 #
-                # This finally means isinstance(mymodule.myactuatorclass, ActuatorBase) works although unexpectedly as you might expect the first arg to be a class not an instance
-                # Why? mymodule.myactorclass -> is an instance of ActorClass(MyActuatorClass) -> the class of this is  ActorClass(MyActuatorClass) -> this evaluates as subclass of ActuatorBase
+                # This finally means isinstance(mymodule.myactuatorclass, ActuatorBase) works although unexpectedly,
+                # as you would expect the first arg to be an instance not a class
+                # Why does it work? mymodule.myactorclass -> is an instance of ActorClass(MyActuatorClass) -> the class of this is  ActorClass(MyActuatorClass) -> this evaluates as subclass of ActuatorBase
 
                 # It's slightly clearer to use issubclass, as this is what you want to know, but correct for the fact that
                 # when "member" is an ActuatorBase subclass it will be decorated with a ray object, and we need to use __class__
 
+                # Check if this is an ActuatorBase subclass (decorated or not)
+
+                # This will handle both decorated and undecorated actuators
+                actuator_class = None
                 if issubclass(member.__class__, ActuatorBase):
-                    self.registerActuator(member.identifier, member, is_builtin=True)
+                    actuator_class = _extract_base_actuator_class(member)
+                elif isinstance(member, ActuatorBase):
+                    actuator_class = member
+
+                if actuator_class:
+                    self.registerActuator(
+                        actuator_class.identifier, actuator_class, is_builtin=True
+                    )
 
         try:
             import ado_actuators as plugins
@@ -197,6 +270,8 @@ class ActuatorRegistry:
                     # we do not need to check whether we have already
                     # registered the actuator
                     self.log.debug(f"Add actuator plugin {actuator}")
+                    # Extract base class in case actuator_class is Ray-decorated
+                    actuator_class = _extract_base_actuator_class(actuator_class)
                     self.registerActuator(
                         actuatorid=actuator_class.identifier,
                         actuatorClass=actuator_class,

@@ -49,6 +49,16 @@ def local_execution_closure(
     Returns:
         A callable that submits a local measurement request.
     """
+
+    # Assume run_experiment is being run directly
+    # We set working_dir = None to tell ray to use the CWD for all workers
+    # i.e. we are in local mode, code is local, no need to package
+    # This is required in particular because if "uv run" is used
+    # to execute a process that calls ray.init ray cannot work out that the workers
+    # can use the CWD of the main process.
+    ray.init(ignore_reinit_error=True, runtime_env={"working_dir": None})
+    initialize_ray_resource_cleaner()
+
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}
     queue = MeasurementQueue()
 
@@ -89,7 +99,7 @@ def local_execution_closure(
             else:
                 config = actuator_class.default_parameters()
 
-            actuators[reference.actuatorIdentifier] = actuator_class.remote(
+            actuators[reference.actuatorIdentifier] = ray.remote(actuator_class).remote(
                 queue=queue, params=config
             )
         actuator = actuators[reference.actuatorIdentifier]
@@ -128,7 +138,7 @@ def remote_execution_closure(
     experiment_timeout: int = 300,
     verify_certs: bool = False,
     requests_timeout: int = 60,
-) -> Callable[[ExperimentReference, Entity], MeasurementRequest]:
+) -> Callable[[ExperimentReference, Entity, bool, int], MeasurementRequest]:
     """Execute via ado API
 
     Parameters:
@@ -275,20 +285,6 @@ def run(
     entity = point.to_entity()
     console_print(f"Point: {point.entity}")
 
-    # Initialize Ray before creating ActuatorRegistry to prevent auto-initialization
-    # ActuatorRegistry loads plugins that may use ray decorators, which would trigger
-    # ray auto-init with default settings
-    # This is overridden the below but leads to unslightly logs
-    if not remote:
-        # Assume run_experiment is being run directly
-        # We set working_dir = None to tell ray to use the CWD for all workers
-        # i.e. we are in local mode, code is local, no need to package
-        # This is required in particular because if "uv run" is used
-        # to execute a process that calls ray.init ray cannot work out that the workers
-        # can use the CWD of the main process.
-        ray.init(ignore_reinit_error=True, runtime_env={"working_dir": None})
-        initialize_ray_resource_cleaner()
-
     registry = ActuatorRegistry()
     execute = (
         local_execution_closure(
@@ -303,9 +299,6 @@ def run(
             requests_timeout=request_timeout,
         )
     )
-
-    if not remote:
-        initialize_ray_resource_cleaner()
 
     try:
         for reference in point.experiments:

@@ -77,22 +77,20 @@ class TrimParameters(BaseModel):
     autoGluonArgs: Annotated[
         AutoGluonArgs,
         Field(
-            default_factory=AutoGluonArgs,
             description="Contains pydantic models for both autogluon TabularPredictor and for its fit function. "
             "Both models are dictionaries whose key-value pairs are AutoGluon optional parameters.",
         ),
-    ]
+    ] = AutoGluonArgs()
 
     finalModelAutoGluonArgs: Annotated[
         AutoGluonArgs,
         Field(
-            default_factory=AutoGluonArgs,
             description="Contains pydantic models for both autogluon TabularPredictor and for its fit function."
             "Both models are dictionaries whose key-value pairs are AutoGluon optional parameters."
             "These parameters are used when finalizing the model."
             "That is, all sampled points go in the training set",
         ),
-    ]
+    ] = AutoGluonArgs()
 
     targetOutput: Annotated[
         str,
@@ -133,10 +131,9 @@ class TrimParameters(BaseModel):
     samplingBudget: Annotated[
         SamplingBudget,
         pydantic.Field(
-            default_factory=SamplingBudget,
             description="Sampling budget configuration",
         ),
-    ]
+    ] = SamplingBudget()
 
     stoppingCriterion: Annotated[
         StoppingCriterion,
@@ -149,11 +146,10 @@ class TrimParameters(BaseModel):
     noPriorParameters: Annotated[
         NoPriorsParameters,
         pydantic.Field(
-            default_factory=lambda: NoPriorsParameters(targetOutput=""),
             description="Parameters of the no_priors_characterization operation. "
             "The targetOutput will be automatically set from TrimParameters.targetOutput.",
         ),
-    ]
+    ] = NoPriorsParameters(targetOutput="")
 
     # disablePredictiveModeling: Annotated[
     #     bool,

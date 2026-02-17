@@ -138,10 +138,9 @@ class TrimParameters(BaseModel):
     stoppingCriterion: Annotated[
         StoppingCriterion,
         pydantic.Field(
-            default_factory=StoppingCriterion,
             description="Stopping criterion configuration",
         ),
-    ]
+    ] = StoppingCriterion()
 
     noPriorParameters: Annotated[
         NoPriorsParameters,

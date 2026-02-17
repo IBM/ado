@@ -5,14 +5,20 @@ readme = "README.md"
 dependencies = [
   "ado-core",
   "datasets>=2.20.0",
-  "guidellm>=0.5.3",
   "kubernetes >= 31.0.0",
-  "vllm>=0.12.0",
 ]
 # [tool.setuptools.dynamic]
 # dependencies = {file = ["requirements.txt"]}
 # Deps/Build-related section
 dynamic = ["version"]
+
+[project.optional-dependencies]
+guidellm = [
+  "guidellm>=0.5.3",
+]
+vllm = [
+  "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
+]
 
 [dependency-groups]
 dev = [
@@ -20,10 +26,6 @@ dev = [
   "pre-commit>=4.2.0",
   "ruff>=0.12.1",
 ]
-
-# Required when added as a workspace package
-# [tool.uv.sources]
-# ado-core = { workspace = true }
 
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
@@ -45,3 +47,7 @@ vllm_performance = [
 
 [tool.setuptools_scm]
 root = "../../../"
+
+# Required when added as a workspace package
+[tool.uv.sources]
+ado-core = { workspace = true }

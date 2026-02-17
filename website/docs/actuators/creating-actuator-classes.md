@@ -116,8 +116,6 @@ The subclass has to implement two methods:
 - `submit`: This is an `async` method that `ado` will call to run an Experiment
   on an Entity.
 
-In addition, the case must be decorated with `@ray.remote`
-
 A sketch example:
 
 <!-- markdownlint-disable line-length -->
@@ -221,8 +219,6 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         ),
     ] = None
 
-
-@ray.remote
 class Actuator(ActuatorBase):
     identifier = "my_actuator"
     parameters_class = InferenceActuatorParameters
@@ -708,7 +704,7 @@ console.put.remote(message=RichConsoleProgressMessage(
 
 The actuator submit method invokes a Ray remote function `run_experiment`
 implemented by an experiment_executor. The actual name of this function and its
-parameters can be defined by the actuator implementer. Typically the set of
+parameters can be defined by the actuator implementer. Typically, the set of
 parameters includes:
 
 <!-- markdownlint-disable line-length -->

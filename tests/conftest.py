@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import uuid
+from collections.abc import Callable, Generator
 
 import pytest
+import ray
 
 from .fixtures.core.datacontainer import *
 from .fixtures.core.samplestore import *
@@ -30,8 +32,6 @@ from .fixtures.schema.results import *
 # or we will get create_sample_store fixture not found.
 from .fixtures.samplestore.crud_from_configurations import *
 
-from collections.abc import Callable
-
 
 @pytest.fixture(scope="session")
 def random_identifier() -> Callable[[], str]:
@@ -39,3 +39,15 @@ def random_identifier() -> Callable[[], str]:
         return str(uuid.uuid4()).replace("-", "_")[:8]
 
     return _random_identifier
+
+
+@pytest.fixture(scope="session", autouse=True)
+def initialize_ray() -> Generator[None, None, None]:
+    """Initialize Ray with working_dir=None to avoid package size issues during tests."""
+    # Using dict form instead of RuntimeEnv object - they behave differently
+    ray.init(
+        runtime_env={"working_dir": None},
+        ignore_reinit_error=True,
+    )
+    yield
+    ray.shutdown()

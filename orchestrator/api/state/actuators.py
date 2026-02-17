@@ -44,9 +44,11 @@ class ActuatorDictionaryActor:
             shared_queue: MeasurementQueue = ray.get_actor(
                 name="QueueMonitorActor", namespace="api"
             ).get_queue.remote()
+            actuator_class = ActuatorRegistry().actuatorForIdentifier(
+                actuatorid=actuator_id
+            )
             self.actuators_actors[actuator_id] = (
-                ActuatorRegistry()
-                .actuatorForIdentifier(actuatorid=actuator_id)
+                ray.remote(actuator_class)
                 .options(name=actuator_id, namespace="api", get_if_exists=True)
                 .remote(queue=shared_queue, params=None)
             )

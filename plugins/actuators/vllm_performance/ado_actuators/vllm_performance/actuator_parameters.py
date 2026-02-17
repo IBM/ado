@@ -82,7 +82,7 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def set_defaults_and_rename_deprecated(cls, values: Any) -> Any:  # noqa: ANN401
+    def rename_image_secret(cls, values: Any) -> Any:  # noqa: ANN401
 
         # We expect either a GenericActuatorParameters or a dict instance
         if not isinstance(values, GenericActuatorParameters) and not isinstance(
@@ -94,16 +94,6 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
             warn_deprecated_actuator_parameters_model_in_use,
         )
 
-        # Handle developer_mode default for backward compatibility
-        developer_mode_key = "developer_mode"
-        if isinstance(values, GenericActuatorParameters):
-            if not hasattr(values, developer_mode_key):
-                setattr(values, developer_mode_key, False)
-        else:
-            if developer_mode_key not in values:
-                values[developer_mode_key] = False
-
-        # Handle deprecated image_secret field
         old_key = "image_secret"
         new_key = "image_pull_secret_name"
 

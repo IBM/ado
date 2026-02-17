@@ -87,6 +87,17 @@ uv run ado describe space SPACE_ID
 uv run ado describe experiment EXPERIMENT_ID
 ```
 
+## Debugging
+
+If commands are not given expected output use
+the -l flag to activate different log levels
+
+e.g. for debug level logs
+
+```bash
+uv run ado -lDEBUG [COMMAND]
+```
+
 ## Terminology
 
 ### Entities

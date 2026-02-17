@@ -170,6 +170,8 @@ class ActuatorModuleConf(ModuleConf):
 
 
 if typing.TYPE_CHECKING:
+    from typing import TypeAlias
+
     from ray.actor import ActorHandle
 
-    ActuatorActor = type[ActorHandle[ActuatorBase]]
+    ActuatorActor: TypeAlias = ActorHandle[ActuatorBase]

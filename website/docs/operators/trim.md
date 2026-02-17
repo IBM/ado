@@ -447,16 +447,18 @@ parameters:
 For rapid prototyping with limited measurement budget:
 
 ```yaml
-{% include "../../../examples/trim/configs/quick_exploration.yaml" %}
+{% include "../../../examples/trim/example_yamls/quick_exploration.yaml" %}
 ```
 
 ### Example 2: High-Quality Characterization
 
 Balanced approach for production use:
 
+<!-- markdownlint-disable MD013 -->
 ```yaml
-{% include "../../../examples/trim/configs/high_quality_characterization.yaml" %}
+{% include "../../../examples/trim/example_yamls/high_quality_characterization.yaml" %}
 ```
+<!-- markdownlint-enable MD013 -->
 
 ---
 

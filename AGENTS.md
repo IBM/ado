@@ -116,6 +116,19 @@ Use Test Driven Development
 
 ---
 
+## Code Installation & Execution
+
+The project has a top-level virtual environment managed by uv.
+Plugins and examples within the repo are also uv managed and may have venvs.
+
+When installing packages, install into the top-level virtual environment.
+When executing code with uv, including pip, execute
+from the top level of this repo.
+This is avoid accidentally using the local uv environments of plugins and examples
+within the repo.
+
+---
+
 ## Testing
 
 ### Code Testing

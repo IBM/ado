@@ -207,13 +207,20 @@ class VLLMPerformanceTest(ActuatorBase):
             raise DeprecatedExperimentError(f"Experiment {experiment} is deprecated")
 
         # We make sure the tool required for this experiments gets installed in the Ray worker python environment
-        experiment_id_lower = experiment.identifier.lower()
-        required_tool = "guidellm" if "guidellm" in experiment_id_lower else "vllm"
-        experiment_ray_env = {"uv": [f"ado-vllm-performance[{required_tool}]"]}
-
-        logger.debug(
-            f"Experiment ({experiment.identifier}) - Ray task environment: {experiment_ray_env}"
-        )
+        # unless developer_mode is enabled
+        if self.actuator_parameters.developer_mode:
+            ray_options = {}
+            logger.info(
+                f"Experiment ({experiment.identifier}) - Developer mode enabled, skipping experiment dependencies installation"
+            )
+        else:
+            experiment_id_lower = experiment.identifier.lower()
+            required_tool = "guidellm" if "guidellm" in experiment_id_lower else "vllm"
+            experiment_ray_env = {"uv": [f"ado-vllm-performance[{required_tool}]"]}
+            ray_options = {"runtime_env": experiment_ray_env}
+            logger.debug(
+                f"Experiment ({experiment.identifier}) - Ray task environment: {experiment_ray_env}"
+            )
 
         if experiment.identifier in [
             "test-deployment-v1",
@@ -229,9 +236,7 @@ class VLLMPerformanceTest(ActuatorBase):
 
             # Execute experiment
             # Note: Here the experiment instance is just passed for convenience since we retrieved it above
-            run_resource_and_workload_experiment.options(
-                runtime_env=experiment_ray_env
-            ).remote(
+            run_resource_and_workload_experiment.options(**ray_options).remote(
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,
@@ -242,7 +247,7 @@ class VLLMPerformanceTest(ActuatorBase):
             )
             self.local_port += len(request.entities)
         else:
-            run_workload_experiment.options(runtime_env=experiment_ray_env).remote(
+            run_workload_experiment.options(**ray_options).remote(
                 request=request,
                 experiment=experiment,
                 state_update_queue=self._stateUpdateQueue,

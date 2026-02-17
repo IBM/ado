@@ -2,9 +2,9 @@
 
 > [!TIP] Overview
 >
-> The `vllm_performance` actuator **can automatically create and
-> benchmark [vLLM](https://github.com/vllm-project/vllm) inference
-> deployments on Kubernetes and OpenShift clusters**.
+> The `vllm_performance` actuator **can automatically create and benchmark
+> [vLLM](https://github.com/vllm-project/vllm) inference deployments on
+> Kubernetes and OpenShift clusters**.
 >
 > It is designed for robust, repeatable, and configurable experiment execution.
 > It is suitable for both simple one-off benchmarks and large parameter sweeps.
@@ -22,38 +22,25 @@
 > pip install ado-vllm-performance
 > ```
 >
-> By default vLLM and GuideLLM are optional dependencies of the actuator.
-> The default installation is useful for users to describe and create spaces,
-> and inspect the available experiments, but it would not allow for
-> experiments to be executed.
->
-> To enable the vLLM experiments (`test-deployment-v1`, `test-endpoint-v1`),
-> install this actuator with:
->
-> ```commandline
-> pip install ado-vllm-performance[vllm]
-> ```
->
-> To enable the GuideLLM experiments (`test-deployment-guidellm-v1`,
-> `test-endpoint-guidellm-v1`)
-> install this actuator with:
->
-> ```commandline
-> pip install ado-vllm-performance[guidellm]
-> ```
+> By default vLLM and GuideLLM are optional dependencies of the actuator. The
+> default installation is useful for users to describe and create spaces, and
+> inspect the available experiments, but it would not allow for experiments to
+> be executed. When submitting an experiment, the actuator will automatically
+> install vLLM or GuideLLM in the Ray task python environment if they are not
+> present.
 
 ## Key Capabilities
 
-- **Automated LLM benchmarking:** Deploys vLLM serving endpoints
-  on NVIDIA GPU-enabled OpenShift/Kubernetes clusters and runs
-  standardized serving benchmarks.
+- **Automated LLM benchmarking:** Deploys vLLM serving endpoints on NVIDIA
+  GPU-enabled OpenShift/Kubernetes clusters and runs standardized serving
+  benchmarks.
 - **Cluster integration:** Handles deployments and clean-up of vLLM inference
-  pods on OpenShift/Kubernetes, with configurable resource selection via namespace,
-  node selector, and PVC/service templates.
+  pods on OpenShift/Kubernetes, with configurable resource selection via
+  namespace, node selector, and PVC/service templates.
 - **Scenario configurability:** Supports customizing models, NVIDIA GPU types,
   node selection, retry behavior, concurrent deployments, and more
-- **Efficient sampling:** Supports grouped sampling which maximises reuse
-  of vLLM deployments, hence minimising time spent creating such deployments
+- **Efficient sampling:** Supports grouped sampling which maximises reuse of
+  vLLM deployments, hence minimising time spent creating such deployments
 - **Endpoint benchmarking:** Can also be used to benchmark existing OpenAI
   compatible endpoints
 
@@ -64,24 +51,24 @@ The `vllm_performance` actuator implements four experiments:
 - `test-deployment-v1`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
   configuration. It deploys servers with given configuration on kubernetes and
-  runs vLLM's built-in benchmarking tool
-  (`vllm bench serve`) on them with the given parameters.
+  runs vLLM's built-in benchmarking tool (`vllm bench serve`) on them with the
+  given parameters.
 - `test-endpoint-v1`: This experiment is equivalent to running
   `vllm bench serve` against an endpoint.
 - `test-deployment-guidellm-v1`: Similar to `test-deployment-v1`, but uses
-  GuideLLM (`guidellm benchmark run`)
-  for benchmarking instead of vLLM's built-in benchmarking tool.
-- `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses
   GuideLLM (`guidellm benchmark run`) for benchmarking instead of vLLM's
   built-in benchmarking tool.
+- `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses GuideLLM
+  (`guidellm benchmark run`) for benchmarking instead of vLLM's built-in
+  benchmarking tool.
 
 ---
 
 ## Running single experiments: Quick endpoint and deployment tests
 
-For rapid testing and debugging, you can use the [`run_experiment`](run_experiment.md)
-tool to execute individual experiments on a single point (entity).
-This is ideal when you want to:
+For rapid testing and debugging, you can use the
+[`run_experiment`](run_experiment.md) tool to execute individual experiments on
+a single point (entity). This is ideal when you want to:
 
 - Quickly check if your actuator installation and configuration works
 - Debug a deployment scenario or endpoint using the vllm_performance actuator
@@ -107,8 +94,8 @@ Then run:
 run_experiment point.yaml
 ```
 
-This will assess how many requests per second the endpoint can handle for the given
-model and configuration.
+This will assess how many requests per second the endpoint can handle for the
+given model and configuration.
 
 > [!TIP] Inference endpoint testing example
 >
@@ -117,16 +104,16 @@ model and configuration.
 
 ### Running a deployment test
 
-To launch and benchmark a temporary vLLM deployment
-(including provisioning on Kubernetes/OpenShift), you must provide both:
+To launch and benchmark a temporary vLLM deployment (including provisioning on
+Kubernetes/OpenShift), you must provide both:
 
 <!-- markdownlint-disable MD007 -->
 
 - An entity definition (as before)
-- The identifier of a valid `actuatorconfiguration` resource -
-This contains information necessary for accessing and creating
-deployments on the Kubernetes/OpenShift cluster -
-See [configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
+- The identifier of a valid `actuatorconfiguration` resource - This contains
+information necessary for accessing and creating deployments on the
+Kubernetes/OpenShift cluster - See
+[configuring the vllm_performance actuator](#configuring-the-vllm_performance-actuator)
 for details.
 <!-- markdownlint-enable MD007 -->
 
@@ -164,7 +151,8 @@ indicated actuator configuration, run the benchmark, and print results.
 
 > [!TIP] vLLM deployment example
 >
-> See [the vLLM deployment exploration example](../examples/vllm-performance-full.md)
+> See
+> [the vLLM deployment exploration example](../examples/vllm-performance-full.md)
 > for details on how to explore many deployment configurations.
 
 ---
@@ -186,9 +174,8 @@ covers several needs:
   and control automated clean-up.
 
 You supply this configuration information as an `ado`
-[`actuatorconfiguration` resource](../resources/actuatorconfig.md),
-which is a YAML file with the configuration options.
-An example is:
+[`actuatorconfiguration` resource](../resources/actuatorconfig.md), which is a
+YAML file with the configuration options. An example is:
 
 <!-- markdownlint-disable line-length -->
 
@@ -229,8 +216,9 @@ ado create actuatorconfiguration -f vllm_config.yaml
 
 > [!WARNING] GPU type
 >
-> The GPU type to use in an experiment is set via the experiment itself (test-deployment-v1).
-> **Do not** set this via the `node_selector` parameter of the configuration.
+> The GPU type to use in an experiment is set via the experiment itself
+> (test-deployment-v1). **Do not** set this via the `node_selector` parameter of
+> the configuration.
 
 <!-- markdownlint-disable-next-line MD028 -->
 
@@ -238,8 +226,8 @@ ado create actuatorconfiguration -f vllm_config.yaml
 >
 > For further details on specific options and advanced behavior see:
 >
-> - [Maximum number of deployments](#maximum-number-of-deployments)
->   (details on `max_environments`)
+> - [Maximum number of deployments](#maximum-number-of-deployments) (details on
+>   `max_environments`)
 > - [Handling benchmark failures](#handling-benchmark-failures) and
 >   [Deployment Clean-Up](#deployment-clean-up)
 > - [Grouped sampling for efficient deployment usage](#grouped-sampling-for-efficient-deployment-usage)
@@ -283,26 +271,24 @@ Ray cluster, including environment and package setup, see
 
 > [!IMPORTANT] RayCluster permissions
 >
-> If running with `in_cluster=True`, your RayCluster **must** be configured so that
-> jobs launched by `ado` have permissions to create and manage Kubernetes deployments,
-> pods, and services.
-> For configuring the necessary ServiceAccount, roles, and permissions,
-> see our [documentation on deploying RayClusters for `ado`](../getting-started/installing-backend-services.md).
+> If running with `in_cluster=True`, your RayCluster **must** be configured so
+> that jobs launched by `ado` have permissions to create and manage Kubernetes
+> deployments, pods, and services. For configuring the necessary ServiceAccount,
+> roles, and permissions, see our
+> [documentation on deploying RayClusters for `ado`](../getting-started/installing-backend-services.md).
 
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!TIP] Installing the `vllm_performance` actuator on a remote RayCluster
 >
-> If the `ado-vllm-performance` actuator is not installed in the
-> image used by the RayCluster you can have [ray install it following
-> this guide](../getting-started/remote_run.md).
+> If the `ado-vllm-performance` actuator is not installed in the image used by
+> the RayCluster you can have
+> [ray install it following this guide](../getting-started/remote_run.md).
 >
 > In particular, if a compatible version of vLLM and GuideLLM is not installed
-> in the image this step will require installing vLLM
-> (so `vllm bench serve` is available) and GuideLLM on each
-> RayCluster node.
-> This can take some time so you may see the `ado` `operation` output "hang"
-> while this is happening.
+> in the image this step will require installing vLLM (so `vllm bench serve` is
+> available) and GuideLLM on each RayCluster node. This can take some time so
+> you may see the `ado` `operation` output "hang" while this is happening.
 
 ### Maximum number of deployments
 
@@ -319,24 +305,22 @@ Some notes:
 <!-- markdownlint-disable MD007 -->
 
 - `max_environments` deployments are always created before any are deleted
-  - This means idle environments will remain until
-    there is a need to delete them
-  - This is to increases chances they can be
-    reused/minimise cost of redeploying
-- Environment creation is serialized - If `max_environments`
-is reached and all are active, the first experiment
-that requires a new environment will block. Subsequent experiment
-requests will queue behind it in FIFO order until it can proceed (i.e. delete
-an existing environment and create the one it needs)
+  - This means idle environments will remain until there is a need to delete
+    them
+  - This is to increases chances they can be reused/minimise cost of redeploying
+- Environment creation is serialized - If `max_environments` is reached and all
+are active, the first experiment that requires a new environment will block.
+Subsequent experiment requests will queue behind it in FIFO order until it can
+proceed (i.e. delete an existing environment and create the one it needs)
 <!-- markdownlint-enable MD007 -->
 
 ### Handling benchmark failures
 
 Once deployments are created and the vLLM health endpoint is responding to
 requests (pod running, container ready), or 20 mins has elapsed, the actuator
-runs `vllm bench serve` or GuideLLM against it. The 20min timeout is so the
-wait won't pend forever in a case where something goes wrong in K8s that means
-the health check will never pass.
+runs `vllm bench serve` or GuideLLM against it. The 20min timeout is so the wait
+won't pend forever in a case where something goes wrong in K8s that means the
+health check will never pass.
 
 When running the benchmark the actuator will try `benchmark_retries` times
 backing off exponentially based on `retries_timeout` to run the benchmark
@@ -410,16 +394,15 @@ executed).
 
 > [!IMPORTANT] Custom templates and executing on remote RayClusters
 >
-> The template path must be accessible where the actuator is running.
-> This is important to consider when running operation using
-> `vllm_performance` on a remote RayCluster.
-> To handle this we recommend:
+> The template path must be accessible where the actuator is running. This is
+> important to consider when running operation using `vllm_performance` on a
+> remote RayCluster. To handle this we recommend:
 >
-> - Put custom templates in the working directory (or a subdirectory of it)
->   that you will
+> - Put custom templates in the working directory (or a subdirectory of it) that
+>   you will
 >   [send to the RayCluster](../getting-started/remote_run.md#other-options)
-> - Create an `actuatorconfiguration` with the relative paths to the
->   templates from this working directory
+> - Create an `actuatorconfiguration` with the relative paths to the templates
+>   from this working directory
 
 ### Grouped sampling for efficient deployment usage
 

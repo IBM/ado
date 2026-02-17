@@ -15,7 +15,8 @@
 >
 > - We will define a space of vLLM deployment configurations to test with the
 >   `vllm_performance` actuator's `test-deployment-v1` experiment
->     - This experiment can create and characterize a vLLM deployment on Kubernetes
+>   - This experiment can create and characterize a vLLM deployment on
+>     Kubernetes
 > - Use the [`random_walk` operator](../operators/random-walk.md) to explore the
 >   space
 
@@ -28,7 +29,7 @@
 > - Install the following Python packages locally:
 >
 > ```bash
-> pip install ado-vllm-performance[vllm]
+> pip install ado-vllm-performance
 > ```
 
 <!-- markdownlint-disable-next-line MD028 -->
@@ -126,7 +127,7 @@ scenario where requests arrive between 1 and 10 per second with sizes around
 2000 tokens.
 
 ```yaml
-{% include "./example_yamls/vllm_deployment_space.yaml" %}
+{ % include "./example_yamls/vllm_deployment_space.yaml" % }
 ```
 
 Save the above as `vllm_deployment_space.yaml`. Then run:
@@ -145,7 +146,7 @@ minimizing the number of deployment creations.
 Save the following as `random_walk_operation_grouped.yaml`:
 
 ```yaml
-{% include "./example_yamls/random_walk_operation_grouped.yaml" %}
+{ % include "./example_yamls/random_walk_operation_grouped.yaml" % }
 ```
 
 Then, start the operation with:

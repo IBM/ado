@@ -152,28 +152,56 @@ they may be keyword arguments
 
 ## Testing Requirements
 
-### Test Location
+### Unit & Integration Test Location
 
-Keep tests **within the plugin package**, not in the top-level `tests/` directory.
+Keep unit and integration tests **within the plugin package**, 
+not in the top-level `tests/` directory.
 
 ### Testing Checklist
 
 Before considering a plugin complete, verify:
 
-- [ ] **Experiment execution**: Use `run_experiment` tool to verify custom_experiment or actuator experiments can run successfully
-- [ ] **Valid DiscoverySpace YAML**: Create and validate a discoveryspace YAML that uses the experiment/actuator
+- **Plugin Installation**: Install the plugin.
+
+If building the plugin in the ado repository install into the 
+top-level uv venv. 
+
+- **Confirm actuator or operator registration**: 
+
+Run
+
+```
+uv run ado get actuators --details
+```
+
+or 
+
+```
+uv run ado get operators
+```
+
+and confirm the plugin is installed
+
+- **Experiment execution**: Use the `run_experiment` tool to verify custom_experiment or actuator experiments can execute successfully
+
+For example:
+```
+uv run run_experiment point.yaml
+```
+
+- **Valid DiscoverySpace YAML**: Create and validate a discoveryspace YAML that uses the experiment/actuator
 
   ```bash
   ado create discoveryspace -f space.yaml --dry-run
   ```
 
-- [ ] **Valid Operation YAML**: Create and validate an operation YAML that uses the operator
+- **Valid Operation YAML**: Create and validate an operation YAML that uses the operator
 
   ```bash
   ado create operation -f operation.yaml --dry-run
   ```
 
-- [ ] **Unit tests pass**: Run pytest on the plugin package
+- **Unit tests pass**: Run pytest on the plugin package
 
   ```bash
   uv run pytest plugins/your_plugin_type/your_plugin/tests/

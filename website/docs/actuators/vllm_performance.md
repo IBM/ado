@@ -186,6 +186,7 @@ metadata:
   name: demo-vllm-perf
 parameters:
   benchmark_retries: 3                  # Number of benchmark attempts (see Failure Handling)
+  developer_mode: false                 # Set to true to skip automatic dependency installation (see Developer Mode)
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
   image_pull_secret_name: ""            # Optional image pull secret
   in_cluster: false                     # Set to true if running from within the cluster
@@ -248,6 +249,73 @@ uses the `vllm_performance` actuator.
 > ```shell
 > ado template actuatorconfiguration --actuator-identifier vllm_performance -o actuatorconfiguration.yaml
 > ```
+
+### Developer Mode
+
+The `developer_mode` configuration option controls whether the actuator
+automatically installs vLLM and GuideLLM dependencies in the Ray task
+environment when executing benchmark experiments.
+
+**Default behavior (`developer_mode: false`):**
+
+By default, when submitting an experiment, the actuator automatically installs
+the required benchmarking dependencies (vLLM or GuideLLM) in the Ray worker's
+Python environment where the benchmark will run. This ensures that benchmark
+experiments can execute even if these packages are not pre-installed in your Ray
+cluster or local environment. The actuator intelligently selects which tool to
+install based on the experiment type:
+
+- For experiments using vLLM's built-in benchmarking (`test-deployment-v1`,
+  `test-endpoint-v1`), it installs `ado-vllm-performance[vllm]`
+- For experiments using GuideLLM (`test-deployment-guidellm-v1`,
+  `test-endpoint-guidellm-v1`), it installs `ado-vllm-performance[guidellm]`
+
+> [!NOTE] Deployment vs. Benchmark environment
+>
+> The `developer_mode` flag only affects the Ray task environment where
+> benchmarks are executed. It does **not** affect vLLM deployments created on
+> Kubernetes/OpenShift, which use their own Docker images with vLLM
+> pre-installed.
+
+**Developer mode (`developer_mode: true`):**
+
+When enabled, the actuator skips automatic dependency installation in the Ray
+task environment. This is useful during development when:
+
+- Benchmarking dependencies are already installed in your Ray environment
+- You want to avoid the overhead of repeated installations during iterative
+  testing
+- You're working with custom or modified versions of vLLM or GuideLLM for
+  benchmarking
+
+> [!WARNING] Requirements for developer mode
+>
+> When using `developer_mode: true`, you must ensure that:
+>
+> - The required benchmarking tools (vLLM's `vllm bench serve` and/or GuideLLM)
+>   are already installed in the Python environment where Ray tasks execute
+> - The installed versions are compatible with the actuator
+>
+> If dependencies are missing, benchmark experiments will fail with import
+> errors.
+
+**Example configuration with developer mode:**
+
+```yaml
+actuatorIdentifier: vllm_performance
+metadata:
+  name: dev-vllm-config
+parameters:
+  developer_mode: true # Skip automatic dependency installation
+  namespace: "mynamespace"
+  # ... other parameters
+```
+
+> [!NOTE] Backward compatibility
+>
+> Existing actuator configurations that don't specify `developer_mode` will
+> automatically default to `false`, maintaining the current behavior of
+> automatic dependency installation.
 
 ---
 

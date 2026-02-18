@@ -52,7 +52,8 @@ dynamic = ["version"]  # Version set automatically by setuptools_scm
 
 ### Dependencies
 
-**Always include ado-core** in dependencies:
+**Always include ado-core** in the dependencies and mark it as being part of the
+workspace:
 
 ```toml
 [project]
@@ -60,7 +61,9 @@ dependencies = [
     "ado-core",
     # ... other dependencies
 ]
-```
+
+[tool.uv.sources]
+ado-core = { workspace = true }
 
 ### Adding Dependencies with uv
 
@@ -225,6 +228,7 @@ After making changes to plugin code, run linting at the plugin directory level:
 cd plugins/actuators/your_plugin/
 uv run black .
 uv run ruff check --fix .
+uv run tombi fmt .
 ```
 
 Fix any issues that ruff cannot automatically resolve.
@@ -248,17 +252,17 @@ where = ["."]
 exclude = ["build", "build.*", "examples"]
 
 [tool.setuptools.package-data]
-my_actuator = [
-    "actuator_definitions.yaml",
-    "experiments.yaml"
-]
+my_actuator = ["actuator_definitions.yaml", "experiments.yaml"]
+
+[tool.uv.sources]
+ado-core = { workspace = true }
 
 [project]
 name = "my-actuator"
 description = "Description of your actuator"
 dynamic = ["version"]
 dependencies = [
-    "ado-core",
+  "ado-core",
 ]
 ```
 
@@ -272,11 +276,14 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 root = "../../../"
 
+[tool.uv.sources]
+ado-core = { workspace = true }
+
 [project]
 name = "my-operator"
 dynamic = ["version"]
 dependencies = [
-    "ado-core",
+  "ado-core",
 ]
 
 [project.entry-points."ado.operators"]
@@ -286,30 +293,24 @@ my-operator = "my_operator.operator_function"
 ### Custom Experiment Example
 
 ```toml
-[build-system]
-requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
-build-backend = "hatchling.build"
-
 [project]
 name = "my-custom-experiment"
 description = "Description of your custom experiment"
 dynamic = ["version"]
 dependencies = [
-    "ado-core",
+  "ado-core",
 ]
 
 [project.entry-points."ado.custom_experiments"]
 my_experiment = "my_package.my_experiment"
 
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
 
-[tool.uv-dynamic-versioning]
-vcs = "git"
-style = "pep440"
-pattern = "default-unprefixed"
-fallback-version = "0.0.0"
-tagged-metadata = true
-dirty = true
-bump = true
+[tool.setuptools_scm]
+root = "../../../"
+
+[tool.uv.sources]
+ado-core = { workspace = true }
 ```

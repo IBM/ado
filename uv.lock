@@ -144,7 +144,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "ray", extras = ["serve"], specifier = ">=2.9" },
     { name = "sqlalchemy", specifier = ">2" },
-    { name = "typer", specifier = ">=0.16.1" },
+    { name = "typer", specifier = ">=0.22.0" },
 ]
 
 [package.metadata.requires-dev]

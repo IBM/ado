@@ -39,17 +39,16 @@ ado get operators
 Example output:
 
 ```commandline
-                                       OPERATOR          TYPE
-1                       detect_anomalous_series  characterize
-0                                       profile  characterize
-2                                   random_walk       explore
-3                                      ray_tune       explore
-9                       export_to_llm_lakehouse        export
-8  integrate_and_export_to_llm_lakehouse_format        export
-4                                add_experiment        modify
-7              generate_representative_subspace        modify
-5                                learning_split        modify
-6                                      rifferla        modify
+┌───────┬─────────────────────────┬──────────────┐
+│ INDEX │ OPERATOR                │ TYPE         │
+├───────┼─────────────────────────┼──────────────┤
+│ 0     │ detect_anomalous_series │ characterize │
+│ 1     │ profile                 │ characterize │
+│ 2     │ trim                    │ characterize │
+│ 3     │ random_walk             │ explore      │
+│ 4     │ ray_tune                │ explore      │
+│ 5     │ rifferla                │ modify       │
+└───────┴─────────────────────────┴──────────────┘
 ```
 
 ## Using operators

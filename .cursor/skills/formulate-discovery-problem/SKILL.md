@@ -64,7 +64,7 @@ uv run ado describe experiment $EXPERIMENT_ID
 **Generate initial template from experiment:**
 
 ```bash
-uv run ado template space --from-experiment $EXPERIMENT_ID > space.yaml
+uv run ado template space --from-experiment $EXPERIMENT_ID -o space.yaml
 ```
 
 **Manual structure:**

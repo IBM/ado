@@ -276,9 +276,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 root = "../../../"
 
-[tool.uv.sources]
-ado-core = { workspace = true }
-
 [project]
 name = "my-operator"
 dynamic = ["version"]

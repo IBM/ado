@@ -272,7 +272,7 @@ class OrderedPipPlugin(RuntimeEnvPlugin):
         with self._create_env_mtx[uri]:
             logger.info(f"Creating {uri} for {runtime_env}")
             try:
-                if anyio.Path(self.get_path_to_pip_venv(uri)).is_dir():
+                if await anyio.Path(self.get_path_to_pip_venv(uri)).is_dir():
                     logger.info(f"Virtual environment for {uri} already exists")
                     return self._cache[uri]
             except KeyError:

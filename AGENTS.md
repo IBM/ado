@@ -114,6 +114,9 @@ Use Test Driven Development
 
     pre-commit run yamlfmt
 
+- Run if TOML changed or added
+
+    uv run tombi fmt
 ---
 
 ## Code Installation & Execution

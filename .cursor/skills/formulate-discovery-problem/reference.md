@@ -171,7 +171,7 @@ uv run ado template operation --operator-name NAME --include-schema
 **Space from experiment:**
 
 ```bash
-uv run ado template space --from-experiment ACTUATOR.EXPERIMENT > space.yaml
+uv run ado template space --from-experiment EXPERIMENT > space.yaml
 ```
 
 **Operation template:**
@@ -189,7 +189,7 @@ uv run ado get experiments --details
 **Describe experiment:**
 
 ```bash
-uv run ado describe experiment ACTUATOR.EXPERIMENT
+uv run ado describe experiment EXPERIMENT
 ```
 
 **List operators:**

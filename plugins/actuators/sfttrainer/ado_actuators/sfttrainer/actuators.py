@@ -423,19 +423,15 @@ class FinetuneContext:
         self.number_cpus = max(self.entity_space.number_gpus, 1) * 2
 
         if self.typed_parameters.num_tokens_cache_directory is not None:
-            data_directory = (
-                pathlib.Path(self.typed_parameters.data_directory)
-                .expanduser()
-                .as_posix()
-            )
+            data_directory = pathlib.Path(
+                self.typed_parameters.data_directory
+            ).expanduser()
 
-            cache_directory = (
-                pathlib.Path(self.typed_parameters.num_tokens_cache_directory)
-                .expanduser()
-                .as_posix()
-            )
+            cache_directory = pathlib.Path(
+                self.typed_parameters.num_tokens_cache_directory
+            ).expanduser()
 
-            self.num_tokens_cache_dir = os.path.join(data_directory, cache_directory)
+            self.num_tokens_cache_dir = (data_directory / cache_directory).as_posix()
         else:
             self.num_tokens_cache_dir = None
 

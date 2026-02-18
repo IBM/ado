@@ -6,7 +6,7 @@ entity:
   gpu_model: NVIDIA-A100-80GB-PCIe
   tokens_per_sample: 8192
   batch_size: 16
-  model_version: 3.0.0
+  model_version: 3.1.0
 experiments:
   - actuatorIdentifier: custom_experiments
     experimentIdentifier: min_gpu_recommender

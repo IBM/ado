@@ -34,7 +34,7 @@ repos:
         additional_dependencies: ['tomli']
         args: ['--toml', 'pyproject.toml']
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.2
+    rev: 0.10.4
     hooks:
       - id: uv-lock
       - id: uv-export
@@ -44,7 +44,7 @@ repos:
     hooks:
       - id: add-headers
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.20.0
+    rev: v0.21.0
     hooks:
       - id: markdownlint-cli2
   - repo: https://github.com/google/yamlfmt
@@ -52,7 +52,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v0.7.28
+    rev: v0.7.31
     hooks:
       - id: tombi-format
         args: ["--offline"]

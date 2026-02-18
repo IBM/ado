@@ -90,6 +90,7 @@ test = [
   "ado-autoconf",
   "ado-ray-tune",
   "ado-sfttrainer; python_version < '3.13'",
+  "ado-trim",
   "ado-vllm-performance",
   "anomalous-series",
   "density-test",
@@ -97,7 +98,6 @@ test = [
   "pfas-custom-functions",
   "profile-space",
   "robotic-lab",
-  "trim"
 ]
 
 [build-system]
@@ -142,6 +142,7 @@ members = [
 ado-autoconf = { workspace = true, editable = true }
 ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
+ado-trim = { workspace = true, editable = true }
 ado-vllm-performance = { workspace = true, editable = true }
 anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }
@@ -149,7 +150,6 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
-trim = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [tool.uv-dynamic-versioning]

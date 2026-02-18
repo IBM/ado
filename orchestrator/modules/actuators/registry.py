@@ -12,19 +12,20 @@ import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
+from orchestrator.modules.actuators.base import (
+    ActuatorBase,
+)
 from orchestrator.modules.actuators.catalog import (
     ExperimentCatalog,
 )
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
+from orchestrator.utilities.distribution import distribution_from_module
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
     import pandas as pd
 
-    from orchestrator.modules.actuators.base import (
-        ActuatorBase,
-    )
     from orchestrator.schema.experiment import Experiment
 
 configure_logging()
@@ -32,6 +33,66 @@ configure_logging()
 ACTUATOR_CONFIGURATION_FILE_NAME = "actuator_definitions.yaml"
 CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
+
+
+def _extract_base_actuator_class(
+    actuator: typing.Any,  # noqa: ANN401
+) -> "type[ActuatorBase]":
+    """Extract the base actuator class from a potentially Ray-decorated class.
+
+    Args:
+        actuator: Either a Ray-decorated ActorClass instance or an undecorated
+            ActuatorBase subclass.
+
+    Returns:
+        The undecorated base ActuatorBase subclass.
+
+    Raises:
+        ValueError: If the actuator is a Ray ActorClass but the base class
+            cannot be extracted.
+    """
+    from orchestrator.modules.actuators.base import ActuatorBase
+
+    # First, check if this is already a regular class (not decorated)
+    try:
+        issubclass(actuator, ActuatorBase)
+    except TypeError:  # actuator is an instance -> decorated
+        pass
+    else:
+        return actuator
+
+    # Try to import Ray and check if it's an ActorClass
+    try:
+        import ray.actor
+
+        if issubclass(actuator.__class__, ray.actor.ActorClass):
+            # It's a Ray-decorated class, extract the original class
+            # Ray stores the original class in __ray_actor_class__
+            if hasattr(actuator, "__ray_actor_class__"):
+                original_class = actuator.__ray_actor_class__
+                if isinstance(original_class, type) and issubclass(
+                    original_class, ActuatorBase
+                ):
+                    return original_class
+
+            # Could not extract base class
+            raise ValueError(
+                f"Could not extract base ActuatorBase class from Ray ActorClass {actuator}. "
+                "The ActorClass does not expose the original class through expected attributes."
+            )
+    except ImportError:
+        # Ray not available, fall through
+        pass
+
+    # If we get here, it's neither a regular class nor a Ray ActorClass we can handle
+    # Check if it's an instance and raise a helpful error
+    if not isinstance(actuator, type):
+        raise TypeError(
+            f"Expected a class or Ray ActorClass, got instance of {type(actuator)}"
+        )
+
+    # It's a class but not an ActuatorBase subclass
+    raise TypeError(f"Expected ActuatorBase subclass, got {actuator}")
 
 
 class UnknownExperimentError(Exception):
@@ -73,25 +134,7 @@ class ActuatorRegistry:
     ) -> None:
         """Detects and loads Actuator plugins"""
 
-        # Mpass actuator ids to actuator configurations: G
-        self.actuatorConfigurationMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, "orchestrator.model.config.GenericActuatorParameters"]
-        if actuator_configurations:
-            self.actuatorConfigurationMap.update(actuator_configurations)
-
-        # Maps actuator ids to ActuatorBase instances
-        self.actuatorIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, "ActuatorBase"]
-        # Maps actuator ids to ExperimentCatalog instances
-        self.catalogIdentifierMap = (
-            {}
-        )  # type: typing.Dict[typing.AnyStr, ExperimentCatalog]
-        self.log = logging.getLogger("registry")
-        self.id = uuid.uuid4()
-
-        # We handle builtin actuators
+        import importlib.metadata
         import importlib.resources
         import inspect
         import pkgutil
@@ -99,6 +142,24 @@ class ActuatorRegistry:
         import orchestrator.modules.actuators as builtin_actuators
         from orchestrator.modules.actuators.base import ActuatorBase, ActuatorModuleConf
 
+        # Mpass actuator ids to actuator configurations: G
+        self.actuatorConfigurationMap: dict[str, GenericActuatorParameters] = {}
+        if actuator_configurations:
+            self.actuatorConfigurationMap.update(actuator_configurations)
+
+        # Maps actuator ids to ActuatorBase instances
+        self.actuatorIdentifierMap: dict[str, type[ActuatorBase]] = {}
+        # Maps actuator ids to ExperimentCatalog instances
+        self.catalogIdentifierMap: dict[str, ExperimentCatalog] = {}
+        # Maps actuator ids to metadata (version and description)
+        self.actuatorMetadataMap: dict[str, dict[str, str | None]] = {}
+        self.log = logging.getLogger("registry")
+        self.id = uuid.uuid4()
+
+        # Get ado-core version once for all builtin actuators
+        self._ado_core_version = importlib.metadata.version("ado-core")
+
+        # We handle builtin actuators
         for module in pkgutil.iter_modules(
             builtin_actuators.__path__, f"{builtin_actuators.__name__}."
         ):
@@ -106,19 +167,32 @@ class ActuatorRegistry:
                 importlib.import_module(module.name)
             ):
                 # MJ: The Actuator classes are decorated ray.remote
-                # This means the member mymodule.myactuatorclass will be an instance of ray "ActorClass(MyActuatorClass)" and not the class!
+                # This means the member mymodule.myactuatorclass will be an instance of ray
+                # "ActorClass(MyActuatorClass)" and not the class!
                 #
                 # Ray has added code so ActuatorBase.__subclasscheck__(ActorClass(MyActuatorClass))" returns True
                 # i.e. it identifies that the ray "wrapped" subclass is a subclass
                 #
-                # This finally means isinstance(mymodule.myactuatorclass, ActuatorBase) works although unexpectedly as you might expect the first arg to be a class not an instance
-                # Why? mymodule.myactorclass -> is an instance of ActorClass(MyActuatorClass) -> the class of this is  ActorClass(MyActuatorClass) -> this evaluates as subclass of ActuatorBase
+                # This finally means isinstance(mymodule.myactuatorclass, ActuatorBase) works although unexpectedly,
+                # as you would expect the first arg to be an instance not a class
+                # Why does it work? mymodule.myactorclass -> is an instance of ActorClass(MyActuatorClass) -> the class of this is  ActorClass(MyActuatorClass) -> this evaluates as subclass of ActuatorBase
 
                 # It's slightly clearer to use issubclass, as this is what you want to know, but correct for the fact that
                 # when "member" is an ActuatorBase subclass it will be decorated with a ray object, and we need to use __class__
 
+                # Check if this is an ActuatorBase subclass (decorated or not)
+
+                # This will handle both decorated and undecorated actuators
+                actuator_class = None
                 if issubclass(member.__class__, ActuatorBase):
-                    self.registerActuator(member.identifier, member)
+                    actuator_class = _extract_base_actuator_class(member)
+                elif isinstance(member, ActuatorBase):
+                    actuator_class = member
+
+                if actuator_class:
+                    self.registerActuator(
+                        actuator_class.identifier, actuator_class, is_builtin=True
+                    )
 
         try:
             import ado_actuators as plugins
@@ -196,9 +270,12 @@ class ActuatorRegistry:
                     # we do not need to check whether we have already
                     # registered the actuator
                     self.log.debug(f"Add actuator plugin {actuator}")
+                    # Extract base class in case actuator_class is Ray-decorated
+                    actuator_class = _extract_base_actuator_class(actuator_class)
                     self.registerActuator(
                         actuatorid=actuator_class.identifier,
                         actuatorClass=actuator_class,
+                        is_builtin=False,
                     )
 
     def __str__(self) -> str:
@@ -222,10 +299,69 @@ class ActuatorRegistry:
             }
         )
 
+    def _get_builtin_actuator_metadata(
+        self, actuator_class: "type[ActuatorBase]"
+    ) -> dict[str, str | None]:
+        """Extract metadata for builtin actuators.
+
+        Args:
+            actuator_class: The actuator class
+
+        Returns:
+            Dictionary with 'version' and 'description' keys
+        """
+        version = self._ado_core_version
+
+        # Get first line of docstring as description if available
+        description = None
+        try:
+            if actuator_class.__doc__:
+                description = actuator_class.__doc__.strip().split("\n")[0]
+        except (AttributeError, IndexError):
+            pass
+
+        return {"version": version, "description": description}
+
+    def _get_plugin_actuator_metadata(
+        self, actuator_class: "type[ActuatorBase]"
+    ) -> dict[str, str | None]:
+        """Extract metadata for plugin actuators.
+
+        Args:
+            actuator_class: The actuator class
+
+        Returns:
+            Dictionary with 'version' and 'description' keys
+        """
+        import importlib.metadata
+
+        version = None
+        description = None
+
+        try:
+            # Get the module name from the actuator class
+            module_name = actuator_class.__module__
+
+            # Find the distribution that contains this module
+            dist_name = distribution_from_module(module_name)
+
+            if dist_name:
+                # Get distribution metadata
+                dist = importlib.metadata.distribution(dist_name)
+                version = dist.metadata.get("Version", None)
+                description = dist.metadata.get("Summary", None)
+        except Exception as e:
+            self.log.debug(
+                f"Could not extract metadata for plugin actuator {actuator_class}: {e}"
+            )
+
+        return {"version": version, "description": description}
+
     def registerActuator(
         self,
         actuatorid: str,
         actuatorClass: "type[ActuatorBase]",
+        is_builtin: bool = False,
     ) -> None:
         """Adds an actuator and a catalog of experiments it can execute to the registry
 
@@ -235,10 +371,19 @@ class ActuatorRegistry:
             actuatorid: The id of this actuator. This id is how consumers will access it
             actuatorClass: The class that implements the actuator.
                 Note: Since these are decorated with "ray.remote" they will actually be instances of ray.actor.ActorClass
+            is_builtin: Whether this is a builtin actuator (from orchestrator.modules.actuators)
         """
 
         if self.actuatorIdentifierMap.get(actuatorid) is None:
             self.actuatorIdentifierMap[actuatorid] = actuatorClass
+
+            # Extract and store metadata
+            if is_builtin:
+                metadata = self._get_builtin_actuator_metadata(actuatorClass)
+            else:
+                metadata = self._get_plugin_actuator_metadata(actuatorClass)
+
+            self.actuatorMetadataMap[actuatorid] = metadata
 
     def catalogForActuatorIdentifier(self, actuatorid: str) -> ExperimentCatalog:
         """Returns the catalog for a given actuator via its identifier
@@ -316,22 +461,20 @@ class ActuatorRegistry:
 
         return catalog
 
-    def actuatorForIdentifier(
-        self, actuatorid: str
-    ) -> "orchestrator.modules.actuators.base.ActuatorBase":
+    def actuatorForIdentifier(self, actuatorid: str) -> type[ActuatorBase]:
         """Returns the actuator class corresponding to an identifier
 
         If the actuator has not been registered this method raises UnknownActuatorError
         """
 
         try:
-            acuatorClass = self.actuatorIdentifierMap[actuatorid]
+            actuator_class = self.actuatorIdentifierMap[actuatorid]
         except KeyError as error:
             raise UnknownActuatorError(
                 f"No actuator called {actuatorid} has been added to the registry"
             ) from error
 
-        return acuatorClass
+        return actuator_class
 
     def experimentForReference(
         self,

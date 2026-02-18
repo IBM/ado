@@ -1,0 +1,11 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+entitySpace:
+  - identifier: batch_size # Required
+    propertyDomain:
+      variableType: DISCRETE_VARIABLE_TYPE
+      values: [16, 32, 64]
+  - identifier: optimizer # Optional - exploring different optimizers
+    propertyDomain:
+      variableType: CATEGORICAL_VARIABLE_TYPE
+      values: [adam, sgd, rmsprop]

@@ -27,6 +27,7 @@ from orchestrator.core import CoreResourceKinds
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.base import ResourceDoesNotExistError
+from orchestrator.modules.actuators.registry import UnknownExperimentError
 
 
 def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None:
@@ -179,6 +180,22 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
         space_configuration.sampleStoreIdentifier = "default"
 
     if parameters.dry_run:
+        # Validate entity space against measurement space
+        try:
+            space_configuration.validate_entity_space_against_measurement_space()
+        except ValueError as error:
+            console_print(
+                f"{ERROR}Entity space validation failed: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
+        except UnknownExperimentError as error:
+            console_print(
+                f"{ERROR}Unknown experiment in configuration. This can be due to an actuator not being installed or if the referenced experiment is external: {error}",
+                stderr=True,
+            )
+            raise typer.Exit(1) from error
+
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
         return None
 

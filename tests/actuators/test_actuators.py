@@ -92,6 +92,8 @@ def test_custom_experiments(
     import orchestrator.modules.actuators.base
     import orchestrator.modules.actuators.registry
 
+    ray.init(ignore_reinit_error=True, runtime_env={"working_dir": None})
+
     # noinspection PyUnresolvedReferences
     custom_experiments = (
         orchestrator.modules.actuators.custom_experiments.CustomExperiments.remote(
@@ -110,15 +112,18 @@ def test_custom_experiments(
     #  - examples/pfas-generative-models/custom_actuator_function
     #  - examples/optimization_test_functions/custom_experiments
     # Locally this may not work because we might have more or less of these.
+    # SV 7/02/26
+    # This test needs to be updated every time a new custom experiment is added to ado
     assert (
-        len(catalog.experiments) == 4
-    ), "Expected 4 experiments in the custom_experiments catalog for testing "
+        len(catalog.experiments) == 5
+    ), "Expected 5 experiments in the custom_experiments catalog for testing "
 
     identifiers = {e.identifier for e in catalog.experiments}
     assert {
         "acid_test",
         "calculate_density",
         "min_gpu_recommender",
+        "avoid_oom_recommender",
         "nevergrad_opt_3d_test_func",
     } == identifiers, f"Expected the experiments to be called - acid_test, calculate_density, min_gpu_recommender, and nevergrad_opt_3d_test_func but they are called {identifiers}"
     loaded = custom_experiments.loadedExperiment.remote(
@@ -133,7 +138,7 @@ def test_custom_experiments(
         "custom_experiments"
     )
 
-    assert len(c.experiments) == 4
+    assert len(c.experiments) == 5
 
     for e in c.experiments:
         assert catalog.experimentForReference(e.reference) is not None

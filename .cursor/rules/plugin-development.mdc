@@ -1,0 +1,303 @@
+---
+description: Guidelines for developing ado plugins (actuators, operators, custom_experiments)
+globs: "{plugins,examples}/**/*"
+alwaysApply: false
+---
+
+# Plugin Development Guidelines
+
+These guidelines apply when developing plugins for ado.
+Plugins are developed under `plugins/` or `examples/` directories.
+All general development guidelines from `AGENTS.md` also apply.
+
+---
+
+## Plugin Structure
+
+### Package Organization
+
+- **Actuators**: Each actuator is its own package under `plugins/actuators/`
+- **Operators**: Each operator is its own package under `plugins/operators/`
+- **Custom Experiments**: Can have multiple custom experiments in a single package under `plugins/custom_experiments/`
+
+### Directory Layout
+
+Each plugin package should contain:
+
+- `pyproject.toml` - Package configuration
+- `tests/` - Unit and integration tests (keep within the plugin package)
+- YAML examples - Example discoveryspace and operation files for the plugin
+- Plugin implementation code
+
+---
+
+## Package Setup
+
+### Using setuptools_scm for Versioning
+
+Configure `pyproject.toml` to use `setuptools_scm` for automatic versioning:
+
+```toml
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = "../../../"  # Points to repo root
+
+[project]
+name = "your-plugin-name"
+dynamic = ["version"]  # Version set automatically by setuptools_scm
+```
+
+### Dependencies
+
+**Always include ado-core** in the dependencies:
+
+```toml
+[project]
+dependencies = [
+    "ado-core",
+    # ... other dependencies
+]
+
+### Adding Dependencies with uv
+
+Use `uv` to add new dependencies to your plugin:
+
+```bash
+cd plugins/actuators/your_plugin/
+uv add package-name
+```
+
+---
+
+## Plugin Registration
+
+### Actuators: Namespaced Packages
+
+Actuators use namespaced packages and require:
+
+1. Package structure under a namespace
+2. `actuator_definitions.yaml` file
+3. Optional `experiments.yaml` file
+
+```toml
+[tool.setuptools.package-data]
+your_actuator = [
+    "actuator_definitions.yaml",  # Required
+    "experiments.yaml"             # Optional
+]
+```
+
+### Operators and Custom Experiments: Entry Points
+
+Operators and custom experiments use entry points in `pyproject.toml`:
+
+**Operator Example:**
+
+```toml
+[project.entry-points."ado.operators"]
+ado-ray-tune = "ado_ray_tune.operator_function"
+```
+
+**Custom Experiment Example:**
+
+```toml
+[project.entry-points."ado.custom_experiments"]
+min_gpu_experiment = "autoconf.min_gpu_recommender"
+```
+
+---
+
+## Custom Experiments
+
+### Decorator Requirements
+
+Custom experiments **must** use the `@custom_experiment` decorator correctly:
+
+```python
+from orchestrator.modules.actuators.custom_experiments import custom_experiment
+from orchestrator.schema.property import ConstitutiveProperty
+
+# Define your properties
+MyProperty = ConstitutiveProperty(...)
+
+@custom_experiment(
+    required_properties=[MyProperty, ...],
+    optional_properties=[...],
+    output_property_identifiers=["output1", "output2"],
+    metadata={
+        "description": "Clear description of what this experiment does"
+    },
+    parameterization={},
+)
+def my_custom_experiment(entity, actuator, parameterization):
+    # Implementation
+    return results
+```
+
+**Key Points:**
+
+- Specify all `required_properties` that the experiment needs
+- Any positional arguments to the function must be required_properties,
+they may be keyword arguments
+- List any `optional_properties`
+- Any optional_property will be a keyword argument to the function. 
+- Define `output_property_identifiers` for measurement results
+- Include descriptive metadata
+
+---
+
+## Testing Requirements
+
+### Unit & Integration Test Location
+
+Keep unit and integration tests **within the plugin package**, 
+not in the top-level `tests/` directory.
+
+### Testing Checklist
+
+Before considering a plugin complete, verify:
+
+- **Plugin Installation**: Install the plugin.
+
+If building the plugin in the ado repository install into the 
+top-level uv venv. 
+
+- **Confirm actuator or operator registration**: 
+
+Run
+
+```
+uv run ado get actuators --details
+```
+
+or 
+
+```
+uv run ado get operators
+```
+
+and confirm the plugin is installed
+
+- **Experiment execution**: Use the `run_experiment` tool to verify custom_experiment or actuator experiments can execute successfully
+
+For example:
+```
+uv run run_experiment point.yaml
+```
+
+- **Valid DiscoverySpace YAML**: Create and validate a discoveryspace YAML that uses the experiment/actuator
+
+  ```bash
+  ado create discoveryspace -f space.yaml --dry-run
+  ```
+
+- **Valid Operation YAML**: Create and validate an operation YAML that uses the operator
+
+  ```bash
+  ado create operation -f operation.yaml --dry-run
+  ```
+
+- **Unit tests pass**: Run pytest on the plugin package
+
+  ```bash
+  uv run pytest plugins/your_plugin_type/your_plugin/tests/
+  ```
+
+### Example YAML Files
+
+Include example YAML files in your plugin package that demonstrate:
+
+- How to configure a discoveryspace with your actuator/experiment
+- How to configure an operation with your operator
+- Different use cases or configurations
+
+---
+
+## Linting
+
+After making changes to plugin code, run linting at the plugin directory level:
+
+```bash
+cd plugins/actuators/your_plugin/
+uv run black .
+uv run ruff check --fix .
+uv run tombi fmt .
+```
+
+Fix any issues that ruff cannot automatically resolve.
+
+---
+
+## Complete pyproject.toml Examples
+
+### Actuator Example
+
+```toml
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = "../../../"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["build", "build.*", "examples"]
+
+[tool.setuptools.package-data]
+my_actuator = ["actuator_definitions.yaml", "experiments.yaml"]
+
+[project]
+name = "my-actuator"
+description = "Description of your actuator"
+dynamic = ["version"]
+dependencies = [
+  "ado-core",
+]
+```
+
+### Operator Example
+
+```toml
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = "../../../"
+
+[project]
+name = "my-operator"
+dynamic = ["version"]
+dependencies = [
+  "ado-core",
+]
+
+[project.entry-points."ado.operators"]
+my-operator = "my_operator.operator_function"
+```
+
+### Custom Experiment Example
+
+```toml
+[project]
+name = "my-custom-experiment"
+description = "Description of your custom experiment"
+dynamic = ["version"]
+dependencies = [
+  "ado-core",
+]
+
+[project.entry-points."ado.custom_experiments"]
+my_experiment = "my_package.my_experiment"
+
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = "../../../"
+```

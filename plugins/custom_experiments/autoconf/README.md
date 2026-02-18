@@ -65,7 +65,7 @@ entity:
   gpu_model: NVIDIA-A100-80GB-PCIe
   tokens_per_sample: 8192
   batch_size: 16
-  model_version: 3.0.0
+  model_version: 3.1.0
 
 experiments:
   - actuatorIdentifier: custom_experiments
@@ -148,7 +148,7 @@ configuration = {
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 8192,
     "batch_size": 16,
-    "model_version": "3.0.0",
+    "model_version": "3.1.0",
 }
 
 measured_properties=min_gpu_recommender(**configuration)
@@ -192,7 +192,7 @@ configuration = {
     "gpu_model": "NVIDIA-A100-80GB-PCIe",
     "tokens_per_sample": 8192,
     "batch_size": 16,
-    "model_version": "3.0.0",
+    "model_version": "3.1.0",
 }
 
 entity = SpacePoint.model_validate({"entity":configuration}).to_entity()
@@ -271,7 +271,7 @@ entitySpace:
   - identifier: model_version
     propertyDomain:
       values:
-        - "3.0.0"
+        - "3.1.0"
 ```
 
 To execute this run:

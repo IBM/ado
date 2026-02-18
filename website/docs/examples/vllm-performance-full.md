@@ -13,11 +13,13 @@
 > whether you are optimizing for latency, throughput, or cost, you need to
 > explore the deployment parameter space. In this example:
 >
-> - We will define a space of vLLM deployment configurations to test with
-> the `vllm_performance` actuator's `test-deployment-v1` experiment
->       - This experiment can create and characterize a vLLM deployment on Kubernetes
-> - Use the [`random_walk` operator](../operators/random-walk.md) to
->   explore the space
+> - We will define a space of vLLM deployment configurations to test with the
+>   `vllm_performance` actuator's `test-deployment-v1` experiment
+>   - This experiment can create and characterize a vLLM deployment on
+>     Kubernetes
+> - Use the [`random_walk` operator](../operators/random-walk.md) to explore the
+>   space
+
 <!-- markdownlint-disable-next-line MD028 -->
 
 > [!IMPORTANT] Prerequisites
@@ -42,6 +44,7 @@
 > particular the following two fields are important:
 >
 > <!-- markdownlint-disable line-length -->
+>
 > ```yaml
 > hf_token: <your HuggingFace access token> # Required to access gated models
 > namespace: vllm-testing # you MUST set this to a namespace where you can create vLLM deployments
@@ -54,6 +57,7 @@
 > ado create op -f random_walk_operation_grouped.yaml \
 >    --with space=vllm_deployment_space.yaml --with ac=vllm_actuator_configuration.yaml
 > ```
+>
 > <!-- markdownlint-enable line-length -->
 >
 > See
@@ -123,9 +127,7 @@ scenario where requests arrive between 1 and 10 per second with sizes around
 2000 tokens.
 
 ```yaml
-{%
-  include "./example_yamls/vllm_deployment_space.yaml"
-%}
+{ % include "./example_yamls/vllm_deployment_space.yaml" % }
 ```
 
 Save the above as `vllm_deployment_space.yaml`. Then run:
@@ -144,9 +146,7 @@ minimizing the number of deployment creations.
 Save the following as `random_walk_operation_grouped.yaml`:
 
 ```yaml
-{%
-  include "./example_yamls/random_walk_operation_grouped.yaml"
-%}
+{ % include "./example_yamls/random_walk_operation_grouped.yaml" % }
 ```
 
 Then, start the operation with:
@@ -192,19 +192,21 @@ ado show entities space --output-format csv --use-latest
 ## Next steps
 
 <!-- markdownlint-disable MD028 -->
+
 - Try running the same operation with the
-  [GuideLLM](https://github.com/vllm-project/guidellm) benchmarking tool
-  by setting the `experimentIdentifier` field in the entity space definition
-  to `test-deployment-guidellm-v1`.
+  [GuideLLM](https://github.com/vllm-project/guidellm) benchmarking tool by
+  setting the `experimentIdentifier` field in the entity space definition to
+  `test-deployment-guidellm-v1`.
 - Try varying **`max_batch_tokens`** or **`gpu_memory_utilization`** to explore
   the impact on throughput.
 - Try creating a different `actuatorconfiguration` with more `max_environments`
   and running the random walk with a non-grouped sampler
 - Replace the model with a different HF checkpoint to compare performance.
 - Use the [**RayTune** operator](../operators/optimisation-with-ray-tune.md)
-  (see the [vLLM endpoint performance](vllm-performance-endpoint.md) example)
-  to find "best" configurations.
-- Run a  [multi-objective optimization](../operators/optimisation-with-ray-tune.md#multi-objective-optimization)
+  (see the [vLLM endpoint performance](vllm-performance-endpoint.md) example) to
+  find "best" configurations.
+- Run a
+  [multi-objective optimization](../operators/optimisation-with-ray-tune.md#multi-objective-optimization)
   to explore e.g. latency v throughput tradeoffs.
 - Run
   [the exploration on the OpenShift/Kubernetes cluster](../actuators/vllm_performance.md#the-in_cluster-configuration-option)

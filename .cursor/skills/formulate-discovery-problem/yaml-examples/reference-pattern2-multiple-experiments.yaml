@@ -1,0 +1,13 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: default
+entitySpace:
+  - identifier: batch_size
+    propertyDomain:
+      variableType: DISCRETE_VARIABLE_TYPE
+      values: [16, 32, 64]
+experiments:
+  - actuatorIdentifier: trainer
+    experimentIdentifier: train_model # Measures: accuracy
+  - actuatorIdentifier: evaluator
+    experimentIdentifier: evaluate_model # Requires: accuracy (from train_model)

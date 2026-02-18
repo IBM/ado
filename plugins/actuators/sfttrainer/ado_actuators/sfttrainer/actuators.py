@@ -633,11 +633,9 @@ class SFTTrainer(ActuatorBase):
                 If the current implementation of the actuator cannot handle the requested entity
         """
 
-        data_directory = (
-            pathlib.Path(actuator_parameters.data_directory).expanduser().as_posix()
-        )
+        data_directory = pathlib.Path(actuator_parameters.data_directory).expanduser()
         try:
-            data_path = os.path.join(data_directory, DatasetMap[space.dataset_id])
+            data_path = (data_directory / DatasetMap[space.dataset_id]).as_posix()
         except KeyError as error:
             raise NotImplementedError(
                 f"References unknown dataset {space.dataset_id}"

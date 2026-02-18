@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+import pathlib
 import traceback
 import typing
 from collections.abc import Callable
@@ -422,10 +423,15 @@ class FinetuneContext:
         self.number_cpus = max(self.entity_space.number_gpus, 1) * 2
 
         if self.typed_parameters.num_tokens_cache_directory is not None:
-            self.num_tokens_cache_dir = os.path.join(
-                self.typed_parameters.data_directory,
-                self.typed_parameters.num_tokens_cache_directory,
-            )
+            data_directory = pathlib.Path(
+                self.typed_parameters.data_directory
+            ).expanduser()
+
+            cache_directory = pathlib.Path(
+                self.typed_parameters.num_tokens_cache_directory
+            ).expanduser()
+
+            self.num_tokens_cache_dir = (data_directory / cache_directory).as_posix()
         else:
             self.num_tokens_cache_dir = None
 
@@ -622,10 +628,10 @@ class SFTTrainer(ActuatorBase):
             NotImplementedError:
                 If the current implementation of the actuator cannot handle the requested entity
         """
+
+        data_directory = pathlib.Path(actuator_parameters.data_directory).expanduser()
         try:
-            data_path = os.path.join(
-                actuator_parameters.data_directory, DatasetMap[space.dataset_id]
-            )
+            data_path = (data_directory / DatasetMap[space.dataset_id]).as_posix()
         except KeyError as error:
             raise NotImplementedError(
                 f"References unknown dataset {space.dataset_id}"
@@ -1093,7 +1099,7 @@ class SFTTrainer(ActuatorBase):
                 If the current implementation of the actuator cannot handle the requested entity
         """
         try:
-            if not anyio.Path(context.args.training_data_path).is_file():
+            if not await anyio.Path(context.args.training_data_path).is_file():
                 raise NotImplementedError(
                     f"training_data_path points to path {context.args.training_data_path} which is not a file. "
                     f"Double check your DiscoverySpace, ActuatorParameters, and the file storage of your cluster. "

@@ -89,10 +89,13 @@ The command `ado get operators` will list the names and types of the known
 operators e.g.
 
 ```commandline
-      OPERATOR     TYPE
-0  random_walk  explore
-1     ray_tune  explore
-2     rifferla   modify
+┌───────┬─────────────┬─────────┐
+│ INDEX │ OPERATOR    │ TYPE    │
+├───────┼─────────────┼─────────┤
+│ 0     │ random_walk │ explore │
+│ 1     │ ray_tune    │ explore │
+│ 2     │ rifferla    │ modify  │
+└───────┴─────────────┴─────────┘
 ```
 
 You use this information to specify the operator to use in the operation YAML,

@@ -48,9 +48,13 @@ should show an entry for `ray_tune` like below
 
 ```commandline
 Available operators by type:
-      OPERATOR     TYPE
-0  random_walk  explore
-1     ray_tune  explore
+┌───────┬─────────────┬─────────┐
+│ INDEX │ OPERATOR    │ TYPE    │
+├───────┼─────────────┼─────────┤
+│ 0     │ random_walk │ explore │
+│ 1     │ ray_tune    │ explore │
+│ 2     │ rifferla    │ modify  │
+└───────┴─────────────┴─────────┘
 ```
 
 ### Creating the `discoveryspace`

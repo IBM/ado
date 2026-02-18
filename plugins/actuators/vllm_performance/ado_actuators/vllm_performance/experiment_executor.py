@@ -372,10 +372,6 @@ def run_resource_and_workload_experiment(
     # 2. Updates MeasurementRequest with the results of the measurement and status
     # 3. Puts it in the stateUpdateQueue
 
-    logger.debug(
-        f"number of entities {len(request.entities)}, actuator parameters {actuator_parameters}, node selector {node_selector}"
-    )
-
     # placeholder for measurements
     measurements = []
     current_port = local_port - 1

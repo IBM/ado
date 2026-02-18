@@ -73,6 +73,12 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
     max_environments: Annotated[
         int, pydantic.Field(description="Maximum amount of concurrent environments")
     ] = 1
+    developer_mode: Annotated[
+        bool,
+        pydantic.Field(
+            description="If true, disables automatic installation of vllm and guidellm dependencies in Ray task environment. Useful for development when dependencies are already installed."
+        ),
+    ] = False
 
     @pydantic.model_validator(mode="before")
     @classmethod

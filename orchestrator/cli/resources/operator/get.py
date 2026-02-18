@@ -16,6 +16,9 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
 )
 from orchestrator.utilities.rich import dataframe_to_rich_table
+from orchestrator.utilities.strings import (
+    normalize_and_truncate_at_period,
+)
 
 
 def get_operator(parameters: AdoGetCommandParameters) -> None:
@@ -37,12 +40,16 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     for (
         collection
     ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
-        entries.extend(
-            [
-                {"OPERATOR": function_name, "TYPE": collection.type.value}
-                for function_name in collection.function_operations
-            ]
-        )
+        for function_name in collection.function_operations:
+            entry = {
+                "OPERATOR": function_name,
+                "TYPE": collection.type.value,
+            }
+            if parameters.show_details:
+                entry["DESCRIPTION"] = normalize_and_truncate_at_period(
+                    collection.function_operation_descriptions[function_name]
+                )
+            entries.append(entry)
 
     operators = pd.DataFrame(entries)
     if operators.empty:

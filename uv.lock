@@ -21,6 +21,7 @@ members = [
     "ado-autoconf",
     "ado-core",
     "ado-ray-tune",
+    "ado-trim",
     "ado-vllm-performance",
     "anomalous-series",
     "density-test",
@@ -28,7 +29,6 @@ members = [
     "pfas-custom-functions",
     "profile-space",
     "robotic-lab",
-    "trim",
 ]
 
 [[package]]
@@ -125,6 +125,7 @@ test = [
     { name = "ado-autoconf" },
     { name = "ado-ray-tune" },
     { name = "ado-sfttrainer", marker = "python_full_version < '3.13'" },
+    { name = "ado-trim" },
     { name = "ado-vllm-performance" },
     { name = "anomalous-series" },
     { name = "density-test" },
@@ -132,7 +133,6 @@ test = [
     { name = "pfas-custom-functions" },
     { name = "profile-space" },
     { name = "robotic-lab" },
-    { name = "trim" },
 ]
 
 [package.metadata]
@@ -186,6 +186,7 @@ test = [
     { name = "ado-autoconf", editable = "plugins/custom_experiments/autoconf" },
     { name = "ado-ray-tune", editable = "plugins/operators/ray_tune" },
     { name = "ado-sfttrainer", marker = "python_full_version < '3.13'", editable = "plugins/actuators/sfttrainer" },
+    { name = "ado-trim", editable = "plugins/operators/trim" },
     { name = "ado-vllm-performance", editable = "plugins/actuators/vllm_performance" },
     { name = "anomalous-series", editable = "plugins/operators/anomalous_series" },
     { name = "density-test", editable = "examples/density_example" },
@@ -193,7 +194,6 @@ test = [
     { name = "pfas-custom-functions", editable = "examples/pfas-generative-models/custom_actuator_function" },
     { name = "profile-space", editable = "plugins/operators/profile_space" },
     { name = "robotic-lab", editable = "plugins/actuators/example_actuator" },
-    { name = "trim", editable = "plugins/operators/trim" },
 ]
 
 [[package]]
@@ -238,6 +238,26 @@ requires-dist = [
     { name = "jwt" },
     { name = "psutil" },
     { name = "transformers", specifier = ">=4.44.2" },
+]
+
+[[package]]
+name = "ado-trim"
+source = { editable = "plugins/operators/trim" }
+dependencies = [
+    { name = "ado-core" },
+    { name = "autogluon-tabular", extra = ["catboost", "xgboost"] },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scikit-learn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ado-core", editable = "." },
+    { name = "autogluon-tabular", extras = ["catboost", "xgboost"], specifier = "==1.5" },
+    { name = "numpy" },
+    { name = "pandas", specifier = ">=2.2.0" },
+    { name = "scikit-learn" },
 ]
 
 [[package]]
@@ -1172,9 +1192,24 @@ dependencies = [
     { name = "scipy", version = "1.16.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.11' and platform_machine != 'x86_64') or (python_full_version >= '3.11' and sys_platform != 'linux')" },
     { name = "six", marker = "platform_machine != 'x86_64' or sys_platform != 'linux'" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/81/ae/63c9f572b9303da37fe69e1ab5d1e1461baa6a87685a57bc1fc493f94c28/catboost-1.2.9.tar.gz", hash = "sha256:6bb133970e5215c7047edcd6273ab6cf6ce7285336a9ee6df14d6bda05cdfbb4", size = 39918892, upload-time = "2026-02-18T12:09:20.709Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/55/2b6feb9ee8b0a28864cafb1df7571b4e40ed21e78d4aee06ffe16d575c9e/catboost-1.2.9-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:1f36402f704af1c250772ec17b18cca413eaa80d51e2c781d77eafcc0fc4be3f", size = 28695452, upload-time = "2026-02-17T10:18:04.435Z" },
     { url = "https://files.pythonhosted.org/packages/3c/99/a5c5be1a913672ad1b4ed84f5817b9654680e42bac9b5880672e19e524b7/catboost-1.2.9-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:3497ef8297966bffb45da348f25178b6adbf7d84d08eeaf1558922ddeef82938", size = 96567858, upload-time = "2026-02-17T10:18:08.3Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/fb/c289ce062935db8d18a6312793fade31a23958d5b0ca2f69aeae172c04b1/catboost-1.2.9-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:e610d2b2831124b47c08600e617cf29d13ad631b8d71fe5a6b190c086514dd0d", size = 96980896, upload-time = "2026-02-18T12:07:39.552Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/cc/5b546475dad8380849a1f0359552272eada81b50af3787b988d6130904d4/catboost-1.2.9-cp310-cp310-win_amd64.whl", hash = "sha256:6d585cfa1e5aaf4fb17290290cd5e9137d8797822366a0f302e4b289e07406a5", size = 100245595, upload-time = "2026-02-18T12:07:43.65Z" },
+    { url = "https://files.pythonhosted.org/packages/89/90/04a8efe11dd73fe92ef8144742a52c581fbb387e4ff6b10fba1efdf9a67d/catboost-1.2.9-cp311-cp311-macosx_11_0_universal2.whl", hash = "sha256:1fbf381d6cb150ed896f1bf7f3a13733c75c92a9caf4a2c6aebdc77285d9b129", size = 28703140, upload-time = "2026-02-18T12:07:47.097Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/d8/73f97303e1dcfba70de3c53a2eda7e2329c03113313867e30ddb38941027/catboost-1.2.9-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:e76090d3211c79c14aa4b93049f3bd6b13860fb0f1eb3a22290bfe5c1eae84df", size = 96574368, upload-time = "2026-02-18T12:07:50.721Z" },
+    { url = "https://files.pythonhosted.org/packages/79/8f/4079370ccc906c02416b0b3aeb4ef000665926cf08bfc60c9bfe7fcc7ca1/catboost-1.2.9-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:eee40886455fba5561f94ee7a18b403817682a8beecfde8cae42a1d674bf1517", size = 96987238, upload-time = "2026-02-18T12:07:55.311Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/a0/bf945fbd5f3e12df07f5c231f1ab8d218edc3258ae163ad6c62573f400c8/catboost-1.2.9-cp311-cp311-win_amd64.whl", hash = "sha256:1a026ebd1812dafa9ce290a2ccc669cd4be8363105fd6a5dc9551c8cadcbfa2b", size = 100242169, upload-time = "2026-02-18T12:07:59.64Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/08/acf13a23b5ef645dc0fd13579d9ec91935c32fcf9bb21bc73c2ccec486bd/catboost-1.2.9-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:003cad3698026b1830f035a9884776a3de2ecb11ae7838d8f971112c1bbc8c1e", size = 28737978, upload-time = "2026-02-18T12:08:02.743Z" },
+    { url = "https://files.pythonhosted.org/packages/37/dd/f6ceec7ee665e0a2dbb8d9b3208de74c5a907f150e7856af2127cd34f690/catboost-1.2.9-cp312-cp312-manylinux2014_aarch64.whl", hash = "sha256:f6681d3becba01259809529a5c95021b11bae594db10dee53a91179802dce20c", size = 96545533, upload-time = "2026-02-18T12:08:06.13Z" },
+    { url = "https://files.pythonhosted.org/packages/be/12/79229bf803ce69a6cad62dfce0a9a85efb4a5c7e9f89d384b85d33c50644/catboost-1.2.9-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:dd9064159527a85ddeed55a32d41df2906d0dedae059d8d1797ac12a2b3322b4", size = 96980064, upload-time = "2026-02-18T12:08:09.942Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/68/4ab99355992d29b8939dc3c8a95f415e3b1daeaa45c41235630ead6f6fcd/catboost-1.2.9-cp312-cp312-win_amd64.whl", hash = "sha256:e90277dab9a281697446ac7e5ffda00648b256d4f12be0fee2312273dcc53270", size = 100215556, upload-time = "2026-02-18T12:08:14.356Z" },
+    { url = "https://files.pythonhosted.org/packages/17/ac/54c1fbfacac7ccd3bbb2849e302997c4ee3d8b1dc532d28e5aea30e0dca0/catboost-1.2.9-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:41d5cdfeaa6eda8846ef4571cbb6ca454b21e7ee430cdd29399d562030fa1e33", size = 28682856, upload-time = "2026-02-18T12:08:17.563Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/3b/6784bfa18112705c276e8ded06a191f48f52fea233c1c9f2802077eb2c30/catboost-1.2.9-cp313-cp313-manylinux2014_aarch64.whl", hash = "sha256:1452fe9b249996171cc65ce139e598fd49c7be83251cf187a0c867e11bbac0ed", size = 96539511, upload-time = "2026-02-18T12:08:21.352Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/07/893b53c492fc2c827d0c6de5fe4d47cd016c57596b1f7318cc14cf57121f/catboost-1.2.9-cp313-cp313-manylinux2014_x86_64.whl", hash = "sha256:46a34a5f241c85f3184ca6fd7c3de338f2db8d6daf3ac05f81411f366e4387c8", size = 96967634, upload-time = "2026-02-18T12:08:25.493Z" },
+    { url = "https://files.pythonhosted.org/packages/33/5c/d111dadc275bdba94ee621f03f6f3d66ac8626e48113990c7b5107290efc/catboost-1.2.9-cp313-cp313-win_amd64.whl", hash = "sha256:94ae8dda7c624dfcf5471bc042959247c5f33c05ba1b7258fba77b63937af4f9", size = 100199943, upload-time = "2026-02-18T12:08:30.747Z" },
 ]
 
 [[package]]
@@ -7565,24 +7600,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c4/35/67252acc1b929dc88b6602e8c4a982e64f31e733b804c14bc24b47da35e6/transformers-4.57.6.tar.gz", hash = "sha256:55e44126ece9dc0a291521b7e5492b572e6ef2766338a610b9ab5afbb70689d3", size = 10134912, upload-time = "2026-01-16T10:38:39.284Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/03/b8/e484ef633af3887baeeb4b6ad12743363af7cce68ae51e938e00aaa0529d/transformers-4.57.6-py3-none-any.whl", hash = "sha256:4c9e9de11333ddfe5114bc872c9f370509198acf0b87a832a0ab9458e2bd0550", size = 11993498, upload-time = "2026-01-16T10:38:31.289Z" },
-]
-
-[[package]]
-name = "trim"
-source = { editable = "plugins/operators/trim" }
-dependencies = [
-    { name = "autogluon-tabular", extra = ["catboost", "xgboost"] },
-    { name = "numpy" },
-    { name = "pandas" },
-    { name = "scikit-learn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "autogluon-tabular", extras = ["catboost", "xgboost"], specifier = "==1.5" },
-    { name = "numpy" },
-    { name = "pandas", specifier = ">=2.2.0" },
-    { name = "scikit-learn" },
 ]
 
 [[package]]

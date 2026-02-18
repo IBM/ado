@@ -1,9 +1,10 @@
 [project]
-name = "trim"
+name = "ado-trim"
 description = "TRIM (Transfer Refined Iterative Modeling) builds an accurate predictive model from a small dataset by iteratively sampling a Discovery Space."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
+  "ado-core",
   "autogluon-tabular[catboost,xgboost]==1.5",
   "numpy",
   "pandas>=2.2.0",
@@ -15,17 +16,14 @@ dynamic = ["version"]
 trim = "trim.operator"
 
 [build-system]
-requires = ["hatchling", "uv-dynamic-versioning"]
-build-backend = "hatchling.build"
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
 
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
+[tool.setuptools]
+packages = ["trim"]
 
-[tool.uv-dynamic-versioning]
-vcs = "git"
-style = "pep440"
-pattern = "default-unprefixed"
-fallback-version = "0.0.0"
-tagged-metadata = true
-dirty = true
-bump = true
+[tool.setuptools_scm]
+root = "../../../"
+
+[tool.uv.sources]
+ado-core = { workspace = true }

@@ -94,7 +94,7 @@ uv run ado get operators
 **Get operator template:**
 
 ```bash
-uv run ado template operation --operator-name $OPERATOR_NAME > operation.yaml
+uv run ado template operation --operator-name $OPERATOR_NAME -o operation.yaml
 ```
 
 ### Step 2b: Decide Parameters

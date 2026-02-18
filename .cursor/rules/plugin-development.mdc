@@ -52,8 +52,7 @@ dynamic = ["version"]  # Version set automatically by setuptools_scm
 
 ### Dependencies
 
-**Always include ado-core** in the dependencies and mark it as being part of the
-workspace:
+**Always include ado-core** in the dependencies:
 
 ```toml
 [project]
@@ -61,9 +60,6 @@ dependencies = [
     "ado-core",
     # ... other dependencies
 ]
-
-[tool.uv.sources]
-ado-core = { workspace = true }
 
 ### Adding Dependencies with uv
 

@@ -151,7 +151,7 @@ within the repo.
 
 - Run tests in parallel (pytest-xdist) for quicker execution e.g.
 
-   uv run pytest -n4 tests/
+   uv run pytest -n auto tests/
 
 ### YAML Testing
 

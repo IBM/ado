@@ -90,7 +90,7 @@ test = [
   "ado-autoconf",
   "ado-ray-tune",
   "ado-sfttrainer; python_version < '3.13'",
-  "ado-vllm-performance; sys_platform != 'darwin'",
+  "ado-vllm-performance",
   "anomalous-series",
   "density-test",
   "optimization-test-functions",

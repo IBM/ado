@@ -52,8 +52,7 @@ dynamic = ["version"]  # Version set automatically by setuptools_scm
 
 ### Dependencies
 
-**Always include ado-core** in the dependencies and mark it as being part of the
-workspace:
+**Always include ado-core** in the dependencies:
 
 ```toml
 [project]
@@ -61,9 +60,6 @@ dependencies = [
     "ado-core",
     # ... other dependencies
 ]
-
-[tool.uv.sources]
-ado-core = { workspace = true }
 
 ### Adding Dependencies with uv
 
@@ -254,9 +250,6 @@ exclude = ["build", "build.*", "examples"]
 [tool.setuptools.package-data]
 my_actuator = ["actuator_definitions.yaml", "experiments.yaml"]
 
-[tool.uv.sources]
-ado-core = { workspace = true }
-
 [project]
 name = "my-actuator"
 description = "Description of your actuator"
@@ -275,9 +268,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"
-
-[tool.uv.sources]
-ado-core = { workspace = true }
 
 [project]
 name = "my-operator"
@@ -310,7 +300,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"
-
-[tool.uv.sources]
-ado-core = { workspace = true }
 ```

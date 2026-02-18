@@ -177,7 +177,7 @@ uv run ado template space --from-experiment EXPERIMENT > space.yaml
 **Operation template:**
 
 ```bash
-uv run ado template operation --operator-name OPERATOR_NAME > operation.yaml
+uv run ado template operation --operator-name OPERATOR_NAME -o operation.yaml
 ```
 
 **List experiments:**

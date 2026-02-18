@@ -250,9 +250,6 @@ exclude = ["build", "build.*", "examples"]
 [tool.setuptools.package-data]
 my_actuator = ["actuator_definitions.yaml", "experiments.yaml"]
 
-[tool.uv.sources]
-ado-core = { workspace = true }
-
 [project]
 name = "my-actuator"
 description = "Description of your actuator"

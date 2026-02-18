@@ -315,14 +315,8 @@ class ActuatorRegistry:
         # Get first line of docstring as description if available
         description = None
         try:
-            # Our actuators are currently wrapped with @ray.remote
-            # To access the unwrapped class we need to check
-            # __ray_actor_class__
             if actuator_class.__doc__:
                 description = actuator_class.__doc__.strip().split("\n")[0]
-            elif actuator_class.__ray_actor_class__.__doc__:
-                description = actuator_class.__ray_actor_class__.__doc__.split("\n")[0]
-
         except (AttributeError, IndexError):
             pass
 

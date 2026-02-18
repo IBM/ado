@@ -66,7 +66,7 @@ def dataframe_to_rich_table(
 
     # Add index column if requested
     if show_index:
-        index_name = df.index.name or "Index"
+        index_name = df.index.name or "INDEX"
         table.add_column(str(index_name))
 
     # Add columns

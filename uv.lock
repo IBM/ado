@@ -244,6 +244,7 @@ requires-dist = [
 name = "ado-trim"
 source = { editable = "plugins/operators/trim" }
 dependencies = [
+    { name = "ado-core" },
     { name = "autogluon-tabular", extra = ["catboost", "xgboost"] },
     { name = "numpy" },
     { name = "pandas" },
@@ -252,6 +253,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ado-core", editable = "." },
     { name = "autogluon-tabular", extras = ["catboost", "xgboost"], specifier = "==1.5" },
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.2.0" },

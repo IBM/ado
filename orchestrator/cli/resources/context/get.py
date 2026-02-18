@@ -75,7 +75,9 @@ def get_context(
             return
 
         console_print(
-            dataframe_to_rich_table(contexts_df, show_edge=True, box=rich.box.SQUARE)
+            dataframe_to_rich_table(
+                contexts_df, show_edge=True, show_index=True, box=rich.box.SQUARE
+            )
         )
         return
 

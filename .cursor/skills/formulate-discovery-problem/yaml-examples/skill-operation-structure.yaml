@@ -1,0 +1,15 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+spaces:
+  - space_identifier # From Phase 1
+operation:
+  module:
+    operatorName: operator_name
+    operationType: search # or modify, characterize, etc.
+  parameters:
+    param1: value1
+    param2: value2
+actuatorConfigurationIdentifiers: [actuator_config_id] # Optional
+metadata:
+  name: operation_name
+  description: Description of the operation

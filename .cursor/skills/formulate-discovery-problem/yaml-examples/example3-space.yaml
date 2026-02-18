@@ -1,0 +1,22 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: default
+entitySpace:
+  - identifier: learning_rate
+    propertyDomain:
+      variableType: CONTINUOUS_VARIABLE_TYPE
+      domainRange: [0.001, 0.1]
+  - identifier: batch_size
+    propertyDomain:
+      variableType: DISCRETE_VARIABLE_TYPE
+      values: [32, 64] # Reduced for smaller space
+  - identifier: optimizer
+    propertyDomain:
+      variableType: CATEGORICAL_VARIABLE_TYPE
+      values: [adam, sgd, rmsprop]
+experiments:
+  - actuatorIdentifier: TrainerActuator
+    experimentIdentifier: train_model
+metadata:
+  name: optimizer_comparison
+  description: Compare optimizers with different learning rates

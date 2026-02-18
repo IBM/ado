@@ -1,0 +1,8 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Minimal actuator config using mock actuator (available in test environment)
+actuatorIdentifier: mock
+parameters: {}
+metadata:
+  name: mock_config
+  description: Mock actuator configuration for testing

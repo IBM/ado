@@ -1,0 +1,11 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: default
+entitySpace:
+  - identifier: learning_rate
+    propertyDomain:
+      variableType: CONTINUOUS_VARIABLE_TYPE
+      domainRange: [0.001, 0.1]
+experiments:
+  - actuatorIdentifier: trainer
+    experimentIdentifier: train_model

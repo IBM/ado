@@ -1,0 +1,17 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+spaces:
+  - space-abc123 # From Step 3
+operation:
+  module:
+    operatorName: random_walk
+    operationType: search
+  parameters:
+    numberEntities: 50
+    batchSize: 1
+    samplerConfig:
+      mode: sequential
+      samplerType: generator
+metadata:
+  name: optimize_hyperparameters
+  description: Random walk to explore hyperparameter space

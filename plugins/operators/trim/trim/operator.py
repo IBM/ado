@@ -185,7 +185,10 @@ def trim(
     op_output_iterative_modeling = random_walk(
         discoverySpace=discoverySpace,
         operationInfo=FunctionOperationInfo.model_validate(
-            {"metadata": {"completed operation": "Iterative Modeling Operation"}}
+            {
+                "metadata": {"completed operation": "Iterative Modeling Operation"},
+                "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
+            }
         ),
         **trim_rwparams.model_dump(),
     )

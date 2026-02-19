@@ -1,12 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
+import importlib.metadata
 import os
 import pathlib
 import sqlite3
 from collections.abc import Callable
 
+import pandas as pd
 import pytest
+import rich.box
 import yaml
 from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
@@ -14,9 +16,12 @@ from typer.testing import CliRunner
 from orchestrator.cli.core.cli import app as ado
 from orchestrator.core import OperationResource, SampleStoreResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.samplestore.sql import SQLSampleStore
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.metastore.sqlstore import SQLStore
+from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_string
+from tests.utilities.cli_rendering import (
+    render_ado_resources_to_cli_output,
+)
 
 sqlite3_version = sqlite3.sqlite_version_info
 
@@ -60,8 +65,21 @@ def test_get_robotic_lab_actuator() -> None:
     result = runner.invoke(ado, ["get", "actuator", "robotic_lab", "--details"])
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert "robotic_lab" in result.output
-        assert "A template for creating" in result.output
+        expected_output = pd.DataFrame(
+            data={
+                "ACTUATOR ID": "robotic_lab",
+                "EXPERIMENTS": 1,
+                "DESCRIPTION": "A template for creating an actuator",
+                "VERSION": importlib.metadata.version("robotic_lab"),
+            },
+            index=pd.Index([0]),
+        )
+        rendered_output = render_to_string(
+            dataframe_to_rich_table(
+                expected_output, show_edge=True, box=rich.box.SQUARE
+            )
+        )
+        assert rendered_output in result.output
 
 
 # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
@@ -77,7 +95,6 @@ def test_field_querying(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    empty_sample_store: SQLSampleStore,
     sample_store_resource: SampleStoreResource,
 ) -> None:
 
@@ -104,6 +121,15 @@ def test_field_querying(
     )
     sql_store.addResource(operation_43dfdf)
 
+    sample_store_07c0fa = SampleStoreResource.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "tests/resources/samplestore/sample_store_07c0fa.yaml"
+            ).read_text()
+        )
+    )
+
+    sql_store.addResource(sample_store_07c0fa)
     sql_store.addResource(sample_store_resource)
 
     # ---------------------------------------------------------
@@ -122,8 +148,9 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_d5c036.identifier in result.output
-        assert operation_43dfdf.identifier not in result.output
+        assert (
+            render_ado_resources_to_cli_output(operation_d5c036) == result.output
+        ), result.output
 
     # ---------------------------------------------------------
     # Query scalar int field with float
@@ -141,8 +168,9 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_d5c036.identifier in result.output
-        assert operation_43dfdf.identifier not in result.output
+        assert (
+            render_ado_resources_to_cli_output(operation_d5c036) == result.output
+        ), result.output
 
     # ---------------------------------------------------------
     # Query scalar int field with string
@@ -160,8 +188,7 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_d5c036.identifier not in result.output
-        assert operation_43dfdf.identifier not in result.output
+        assert "Nothing was returned" in result.output
 
     # ---------------------------------------------------------
     # Query scalar null field with null
@@ -179,10 +206,7 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert empty_sample_store.identifier in result.output
-        assert sample_store_resource.identifier not in result.output
-        assert operation_d5c036.identifier not in result.output
-        assert operation_43dfdf.identifier not in result.output
+        assert render_ado_resources_to_cli_output(sample_store_07c0fa) == result.output
 
     # ---------------------------------------------------------
     # Query scalar null field with string
@@ -200,10 +224,7 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert empty_sample_store.identifier not in result.output
-        assert sample_store_resource.identifier not in result.output
-        assert operation_d5c036.identifier not in result.output
-        assert operation_43dfdf.identifier not in result.output
+        assert "Nothing was returned" in result.output, result.output
 
     # ---------------------------------------------------------
     # Query scalar boolean field with boolean
@@ -221,8 +242,9 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_d5c036.identifier in result.output
-        assert operation_43dfdf.identifier not in result.output
+        assert (
+            render_ado_resources_to_cli_output(operation_d5c036) == result.output
+        ), result.output
 
     # ---------------------------------------------------------
     # Query scalar boolean field with string
@@ -240,8 +262,7 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_d5c036.identifier not in result.output
-        assert operation_43dfdf.identifier not in result.output
+        assert "Nothing was returned" in result.output
 
     # ---------------------------------------------------------
     # Query array field with array
@@ -259,8 +280,10 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_43dfdf.identifier in result.output
-        assert operation_d5c036.identifier in result.output
+        assert (
+            render_ado_resources_to_cli_output([operation_d5c036, operation_43dfdf])
+            == result.output
+        ), result.output
 
     # ---------------------------------------------------------
     # Query array field with scalar
@@ -278,8 +301,9 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_43dfdf.identifier in result.output
-        assert operation_d5c036.identifier not in result.output
+        assert (
+            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
+        ), result.output
 
     # ---------------------------------------------------------
     # Query object field with object with nested array
@@ -297,8 +321,9 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_43dfdf.identifier in result.output
-        assert operation_d5c036.identifier not in result.output
+        assert (
+            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
+        ), result.output
 
     # ---------------------------------------------------------
     # Query object field with nested objects
@@ -316,5 +341,6 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert operation_43dfdf.identifier in result.output
-        assert operation_d5c036.identifier not in result.output
+        assert (
+            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
+        ), result.output

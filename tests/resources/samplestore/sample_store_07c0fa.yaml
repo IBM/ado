@@ -1,0 +1,19 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+config:
+  specification:
+    module:
+      moduleClass: SQLSampleStore
+      moduleName: orchestrator.core.samplestore.sql
+    parameters:
+      identifier: 07c0fa
+    storageLocation:
+      path: /tmp/ado/databases/local.db
+      sslVerify: false
+created: '2026-02-10T09:11:17.345194Z'
+identifier: 07c0fa
+status:
+  - event: created
+    recorded_at: '2026-02-10T09:11:17.345212Z'
+  - event: added
+    recorded_at: '2026-02-10T09:11:17.351275Z'

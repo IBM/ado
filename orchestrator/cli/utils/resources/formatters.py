@@ -72,7 +72,7 @@ def format_default_ado_get_single_resource(
     metadata = resource.config.metadata or ConfigurationMetadata()
     output = {
         "IDENTIFIER": resource.identifier,
-        "NAME": f"{metadata.name}" if metadata.name else "",
+        "NAME": metadata.name or "",
         "AGE": timedelta_to_string(
             time_since_timestamp(resource.created).total_seconds()
         ),

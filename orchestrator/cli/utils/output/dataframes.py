@@ -4,6 +4,7 @@
 import typing
 from typing import Literal
 
+import rich.box
 import typer
 
 from orchestrator.cli.utils.output.prints import (
@@ -14,6 +15,7 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
     magenta,
 )
+from orchestrator.utilities.rich import dataframe_to_rich_table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -39,7 +41,11 @@ def df_to_output(
         return
 
     if output_format == "console":
-        console_print(df, has_pandas_content=True)
+        console_print(
+            dataframe_to_rich_table(
+                df, show_edge=True, show_index=True, box=rich.box.SQUARE
+            )
+        )
         if (
             df.shape[0] >= DATAFRAME_ROWS_THRESHOLD
             or df.shape[1] >= DATAFRAME_COLS_THRESHOLD

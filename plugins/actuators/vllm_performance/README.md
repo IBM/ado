@@ -171,7 +171,7 @@ The three key parameters we have to set here are `hf_token`, `namespace`, and
   with available GPUs. Make sure it is formatted correctly, for example:
 
     ```text
-    node_selector: '{"kubernetes.io/hostname":"cpu16"}'
+    node_selector: {"kubernetes.io/hostname":"cpu16"}
     ```
 
 We will discuss the other parameters later. Once you have put in the parameters,
@@ -218,8 +218,8 @@ set of experiments to perform by the
 [measurement space](https://ibm.github.io/ado/core-concepts/actuators#measurementspace/).
 
 An example `discoveryspace` for vLLM inference benchmarking can be found in
-[`yamls/discoveryspace_override_defaults.yaml`](yamls/discoveryspace_override_defaults.yaml).
-This defines a simple discovery space with a **single** entity.
+[`yamls/discoveryspace_override_defaults_small.yaml`](yamls/discoveryspace_override_defaults_small.yaml).
+This defines a simple discovery space with four entities.
 
 Our sample space will benchmark vLLM serving the LLM specified by `model_name`,
 on a node (determined through `node_selector`) with a specific GPU
@@ -240,7 +240,7 @@ on a node (determined through `node_selector`) with a specific GPU
 Create the `discoveryspace`:
 
 ```commandline
-ado create space -f yamls/discoveryspace_override_defaults.yaml \
+ado create space -f yamls/discoveryspace_override_defaults_small.yaml \
                  --use-default-sample-store
 ```
 
@@ -256,7 +256,7 @@ Will output:
 
 <!-- markdownlint-disable line-length -->
 ```text
-Nothing was returned for entity type matching and property format observed in space space-c81773-df57a3.
+Nothing was returned for entity type matching and property format observed in space space-c81773-default.
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -271,8 +271,14 @@ The output will look like:
 
 <!-- markdownlint-disable line-length -->
 ```terminaloutput
-   model                             image                                           n_cpus  memory dtype  num_prompts  request_rate  max_concurrency  gpu_memory_utilization  cpu_offload  max_batch_tokens  max_num_seq  n_gpus  gpu_type
-0  ibm-granite/granite-3.3-8b-instruct  quay.io/dataprep1/data-prep-kit/vllm_image:0.1  8.0     128Gi  auto   500.0        -1.0          -1.0             0.9                     0.0          16384.0           256.0        1.0     NVIDIA-A100-80GB-PCIe
+┌───────┬────────────────┬────────────────┬────────┬────────┬───────┬─────────────┬──────────────┬────────────────┬────────────────┬─────────────┬─────────────────┬─────────────┬────────┬────────────────┐
+│ INDEX │ model          │ image          │ n_cpus │ memory │ dtype │ num_prompts │ request_rate │ max_concurren… │ gpu_memory_ut… │ cpu_offload │ max_batch_toke… │ max_num_seq │ n_gpus │ gpu_type       │
+├───────┼────────────────┼────────────────┼────────┼────────┼───────┼─────────────┼──────────────┼────────────────┼────────────────┼─────────────┼─────────────────┼─────────────┼────────┼────────────────┤
+│ 0     │ meta-llama/Ll… │ quay.io/datap… │ 8      │ 128Gi  │ auto  │ 100         │ 100          │ 100            │ 0.9            │ 0           │ 16384           │ 256         │ 1      │ NVIDIA-A100-8… │
+│ 1     │ meta-llama/Ll… │ quay.io/datap… │ 8      │ 128Gi  │ auto  │ 100         │ 100          │ 100            │ 0.9            │ 0           │ 32768           │ 256         │ 1      │ NVIDIA-A100-8… │
+│ 2     │ meta-llama/Ll… │ quay.io/datap… │ 8      │ 128Gi  │ auto  │ 250         │ 100          │ 100            │ 0.9            │ 0           │ 16384           │ 256         │ 1      │ NVIDIA-A100-8… │
+│ 3     │ meta-llama/Ll… │ quay.io/datap… │ 8      │ 128Gi  │ auto  │ 250         │ 100          │ 100            │ 0.9            │ 0           │ 32768           │ 256         │ 1      │ NVIDIA-A100-8… │
+└───────┴────────────────┴────────────────┴────────┴────────┴───────┴─────────────┴──────────────┴────────────────┴────────────────┴─────────────┴─────────────────┴─────────────┴────────┴────────────────┘
 ```
 <!-- markdownlint-enable line-length -->
 
@@ -312,7 +318,7 @@ point where these lines appear:
 ...
 =========== Starting Discovery Operation ===========
 
-(RandomWalk pid=2780) 'all' specified for number of entities to sample. This is 1 entities - the size of the entity space
+(RandomWalk pid=79429) 'all' specified for number of entities to sample. This is 4 entities - the size of the entity space
 ...
 ```
 <!-- markdownlint-enable line-length -->

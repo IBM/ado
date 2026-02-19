@@ -18,6 +18,7 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
 )
 from orchestrator.metastore.project import ProjectContext
+from orchestrator.utilities.rich import dataframe_to_rich_table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -27,6 +28,7 @@ def get_context(
     parameters: AdoGetCommandParameters,
     simplify_output: bool = False,
 ) -> None:
+    import rich.box
 
     available_contexts = parameters.ado_configuration.available_contexts
 
@@ -72,7 +74,11 @@ def get_context(
             console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
             return
 
-        console_print(contexts_df)
+        console_print(
+            dataframe_to_rich_table(
+                contexts_df, show_edge=True, show_index=True, box=rich.box.SQUARE
+            )
+        )
         return
 
     from orchestrator.cli.utils.resources.formatters import (
@@ -116,7 +122,9 @@ def _prepare_context_dataframe(
 ) -> "pd.DataFrame":
     import pandas as pd
 
-    default_context_column = ["*" if ctx == default_context else "" for ctx in contexts]
+    default_context_column = [
+        ":white_check_mark:" if ctx == default_context else "" for ctx in contexts
+    ]
     output_df = pd.DataFrame({"CONTEXT": contexts, "DEFAULT": default_context_column})
 
     # Sort contexts by name

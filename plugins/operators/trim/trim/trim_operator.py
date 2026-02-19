@@ -116,7 +116,7 @@ def trim(
                 f"in your space given your experiment. "
                 f"Another no-priors characterization will be run to sample {missing_points} additional points. "
                 f"Note that the maximum number of no-priors characterization operations is {max_iter}. "
-                f"No-priors characterization operation will be instantiated for n_samples = {no_priors_params.samples}."
+                f"No-priors characterization operation will be instantiated for {no_priors_params.samples} samples."
             )
 
         no_priors_sampler_config = CustomSamplerConfiguration(

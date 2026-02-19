@@ -79,9 +79,7 @@ def format_default_ado_get_single_resource(
     }
 
     if show_details:
-        output["DESCRIPTION"] = (
-            f'"{metadata.description}"' if metadata.description else None
-        )
+        output["DESCRIPTION"] = metadata.description or ""
         output["LABELS"] = json.dumps(metadata.labels) if metadata.labels else None
 
     if isinstance(resource, OperationResource):
@@ -138,6 +136,9 @@ def format_default_ado_get_multiple_resources(
 
     # Avoid printing null or None in the NAME column
     resources["NAME"] = resources["NAME"].fillna("")
+
+    if "DESCRIPTION" in resources.columns:
+        resources["DESCRIPTION"] = resources["DESCRIPTION"].fillna("")
 
     if "STATUS" in resources.columns:
         resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)

@@ -50,7 +50,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
     if parameters.entities_type not in supported_entity_types:
         supported_types_str = [t.value for t in supported_entity_types]
         raise typer.BadParameter(
-            f"type must be one of {supported_types_str} for ado show-entities space",
+            f"type must be one of {supported_types_str} for ado show entities space",
         )
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)

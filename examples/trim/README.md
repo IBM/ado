@@ -127,7 +127,7 @@ characterization phase.
 ```commandline
 2026-01-16 14:56:57,589 WARNING   MainThread           trim.utils.space_df_connector: get_df_at_least_one_measured_value: No measured properties found in the discovery space
 ...
-2026-01-16 14:56:57,656 WARNING   MainThread           trim.operator  : trim                : Only 0 points in the source space.
+2026-01-16 14:56:57,656 WARNING   MainThread           trim.trim_operator  : trim                : Only 0 points in the source space.
 Starting with no-prior characterization operation, it will sample 20 points.
 ```
 

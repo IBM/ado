@@ -295,20 +295,7 @@ def resource_select_created_field(
             statement = """DATETIME(data ->> '$.created')) as created"""
 
     else:
-        # FIXME AP 23/04/2024:
-        # Now that we have added timezone information to the timestamps, the created
-        # field may end with Z (zulu), causing the STR_TO_DATE function to return NaT
-        # As a workaround, we ensure that all our dates end with Z
-        # We also use JSON_UNQUOTE because by default JSON_EXTRACT returns quoted fields
-        # in mysql (-> is an alias)
-        dates_in_correct_format = (
-            'IF(JSON_UNQUOTE(data->"$.created") LIKE "%%Z", '
-            'JSON_UNQUOTE(data->"$.created"), '
-            'CONCAT(JSON_UNQUOTE(data->"$.created"), "Z"))'
-        )
-        statement = (
-            f"""STR_TO_DATE({dates_in_correct_format}, '%%Y-%%m-%%dT%%T.%%fZ')"""
-        )
+        statement = """STR_TO_DATE(data->>"$.created", '%%Y-%%m-%%dT%%T.%%fZ')"""
         if as_age:
             statement = f"""TIMESTAMPDIFF(SECOND, {statement}, NOW()) as age"""
         else:

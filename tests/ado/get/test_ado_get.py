@@ -16,11 +16,12 @@ from typer.testing import CliRunner
 from orchestrator.cli.core.cli import app as ado
 from orchestrator.core import OperationResource, SampleStoreResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.samplestore.sql import SQLSampleStore
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.metastore.sqlstore import SQLStore
 from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_string
-from tests.utilities.cli_rendering import render_operations_to_cli_output
+from tests.utilities.cli_rendering import (
+    render_ado_resources_to_cli_output,
+)
 
 sqlite3_version = sqlite3.sqlite_version_info
 
@@ -94,7 +95,6 @@ def test_field_querying(
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
-    empty_sample_store: SQLSampleStore,
     sample_store_resource: SampleStoreResource,
 ) -> None:
 
@@ -121,6 +121,15 @@ def test_field_querying(
     )
     sql_store.addResource(operation_43dfdf)
 
+    sample_store_07c0fa = SampleStoreResource.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "tests/resources/samplestore/sample_store_07c0fa.yaml"
+            ).read_text()
+        )
+    )
+
+    sql_store.addResource(sample_store_07c0fa)
     sql_store.addResource(sample_store_resource)
 
     # ---------------------------------------------------------
@@ -140,7 +149,7 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_operations_to_cli_output(operation_d5c036) == result.output
+            render_ado_resources_to_cli_output(operation_d5c036) == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -160,7 +169,7 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_operations_to_cli_output(operation_d5c036) == result.output
+            render_ado_resources_to_cli_output(operation_d5c036) == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -197,8 +206,7 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert empty_sample_store.identifier in result.output
-        assert sample_store_resource.identifier not in result.output
+        assert render_ado_resources_to_cli_output(sample_store_07c0fa) == result.output
 
     # ---------------------------------------------------------
     # Query scalar null field with string
@@ -216,8 +224,7 @@ def test_field_querying(
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        assert empty_sample_store.identifier not in result.output
-        assert sample_store_resource.identifier not in result.output
+        assert "Nothing was returned" in result.output, result.output
 
     # ---------------------------------------------------------
     # Query scalar boolean field with boolean
@@ -236,7 +243,7 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_operations_to_cli_output(operation_d5c036) == result.output
+            render_ado_resources_to_cli_output(operation_d5c036) == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -274,7 +281,7 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_operations_to_cli_output([operation_d5c036, operation_43dfdf])
+            render_ado_resources_to_cli_output([operation_d5c036, operation_43dfdf])
             == result.output
         ), result.output
 
@@ -295,7 +302,7 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_operations_to_cli_output(operation_43dfdf) == result.output
+            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -315,7 +322,7 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_operations_to_cli_output(operation_43dfdf) == result.output
+            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -335,5 +342,5 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_operations_to_cli_output(operation_43dfdf) == result.output
+            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
         ), result.output

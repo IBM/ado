@@ -244,9 +244,9 @@ def resource_select_data_field(
     #
     data_path = f"$.{field_name}"
     statement = (
-        "{statement_preamble} data -> '{data_path}' as {field_name}"
+        "{statement_preamble} data ->> '{data_path}' as {field_name}"
         if dialect == "sqlite"
-        else "{statement_preamble} data->'{data_path}' as {field_name}"
+        else "{statement_preamble} data->>'{data_path}' as {field_name}"
     )
 
     return statement.format(
@@ -266,10 +266,13 @@ def resource_select_metadata_field(
     statement_preamble = "SELECT" if needs_select else ","
 
     data_path = f"$.config.metadata.{field_name}"
+
+    # MySQL returns a JSON null instead of an SQL NULL when
+    # a field is null. Harmonize it by forcing a SQL NULL.
     statement = (
-        "{statement_preamble} data -> '{data_path}' as {field_name}"
+        "{statement_preamble} data ->> '{data_path}' as {field_name}"
         if dialect == "sqlite"
-        else "{statement_preamble} data->'{data_path}' as {field_name}"
+        else "{statement_preamble} NULLIF(data->>'{data_path}', 'null') as {field_name}"
     )
 
     return statement.format(

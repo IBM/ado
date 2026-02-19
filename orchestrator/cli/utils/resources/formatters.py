@@ -72,7 +72,7 @@ def format_default_ado_get_single_resource(
     metadata = resource.config.metadata or ConfigurationMetadata()
     output = {
         "IDENTIFIER": resource.identifier,
-        "NAME": f'"{metadata.name}"' if metadata.name else None,
+        "NAME": f'"{metadata.name}"' if metadata.name else "",
         "AGE": timedelta_to_string(
             time_since_timestamp(resource.created).total_seconds()
         ),
@@ -135,6 +135,9 @@ def format_default_ado_get_multiple_resources(
                 else "N/A"
             )
         )
+
+    # Avoid printing null or None in the NAME column
+    resources["NAME"] = resources["NAME"].fillna("")
 
     if "STATUS" in resources.columns:
         resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)

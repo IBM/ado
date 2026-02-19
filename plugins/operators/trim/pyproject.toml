@@ -12,7 +12,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
-trim = "trim.trim_operator"
+trim = "trim.operator"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]

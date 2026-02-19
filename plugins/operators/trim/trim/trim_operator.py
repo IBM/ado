@@ -134,7 +134,12 @@ def trim(
         op_output_characterization_no_prior = random_walk(
             discoverySpace=discoverySpace,
             operationInfo=FunctionOperationInfo.model_validate(
-                {"metadata": {"completed operation": "Characterization with no priors"}}
+                {
+                    "metadata": {
+                        "completed operation": "Characterization with no priors"
+                    },
+                    "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
+                }
             ),
             **no_priors_rwparams.model_dump(),
         )

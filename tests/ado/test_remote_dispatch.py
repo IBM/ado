@@ -1,0 +1,700 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+"""Tests for remote dispatch utilities and the --execution-context CLI option."""
+
+import pathlib
+import subprocess
+from unittest.mock import MagicMock, patch
+
+import pytest
+import yaml
+from typer.testing import CliRunner
+
+from orchestrator.cli.core.cli import app as ado
+from orchestrator.cli.utils.remote.dispatch import (
+    _copy_files_and_rewrite_args,
+    _strip_context_flag,
+    _write_runtime_env,
+    dispatch,
+    remove_execution_context_from_argv,
+)
+from orchestrator.core.executioncontext.config import (
+    ClusterExecutionType,
+    ExecutionContext,
+    JobExecutionType,
+    PackageConfiguration,
+    PortForwardConfiguration,
+)
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def cluster_execution_context() -> ExecutionContext:
+    """Minimal cluster ExecutionContext without port-forward."""
+    return ExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        packages=PackageConfiguration(fromPyPI=["ado-core"]),
+        wait=True,
+        envVars={"PYTHONUNBUFFERED": "x"},
+    )
+
+
+@pytest.fixture
+def cluster_execution_context_with_port_forward() -> ExecutionContext:
+    return ExecutionContext(
+        executionType=ClusterExecutionType(
+            clusterUrl="http://localhost:8265",
+            portForward=PortForwardConfiguration(
+                namespace="my-ns",
+                serviceName="my-ray-svc",
+                localPort=8265,
+            ),
+        ),
+    )
+
+
+@pytest.fixture
+def execution_context_file(
+    tmp_path: pathlib.Path,
+    cluster_execution_context: ExecutionContext,
+) -> pathlib.Path:
+    """Write a cluster ExecutionContext to a temp YAML file."""
+    path = tmp_path / "exec_context.yaml"
+    path.write_text(yaml.dump(cluster_execution_context.model_dump()))
+    return path
+
+
+@pytest.fixture
+def mysql_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
+    """A minimal MySQL context YAML file (non-SQLite)."""
+    content = {
+        "project": "test-project",
+        "metadataStore": {
+            "scheme": "mysql+pymysql",
+            "host": "db.example.com",
+            "port": 3306,
+            "user": "admin",
+            "password": "secret",
+            "database": "test-project",
+        },
+    }
+    path = tmp_path / "mysql_context.yaml"
+    path.write_text(yaml.dump(content))
+    return path
+
+
+@pytest.fixture
+def sqlite_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
+    """A SQLite context YAML file."""
+    project_id = "sqlite-test"
+    content = {
+        "project": project_id,
+        "metadataStore": {
+            "scheme": "sqlite",
+            "database": project_id,
+            "path": f"{project_id}.db",
+        },
+    }
+    path = tmp_path / "sqlite_context.yaml"
+    path.write_text(yaml.dump(content))
+    return path
+
+
+# ---------------------------------------------------------------------------
+# remove_execution_context_from_argv
+# ---------------------------------------------------------------------------
+
+
+def test_remove_execution_context_long_form() -> None:
+    argv = ["-c", "ctx.yaml", "--execution-context", "exc.yaml", "create", "operation"]
+    result = remove_execution_context_from_argv(argv)
+    assert result == ["-c", "ctx.yaml", "create", "operation"]
+
+
+def test_remove_execution_context_equals_form() -> None:
+    argv = ["--execution-context=exc.yaml", "get", "space"]
+    result = remove_execution_context_from_argv(argv)
+    assert result == ["get", "space"]
+
+
+def test_remove_execution_context_not_present() -> None:
+    argv = ["-c", "ctx.yaml", "get", "space"]
+    result = remove_execution_context_from_argv(argv)
+    assert result == ["-c", "ctx.yaml", "get", "space"]
+
+
+def test_remove_execution_context_strips_override_ado_app_dir() -> None:
+    """--override-ado-app-dir is a local-only flag and must not be forwarded."""
+    argv = [
+        "--override-ado-app-dir",
+        "/tmp/test",
+        "--execution-context",
+        "exc.yaml",
+        "get",
+        "space",
+    ]
+    result = remove_execution_context_from_argv(argv)
+    assert result == ["get", "space"]
+
+
+# ---------------------------------------------------------------------------
+# _strip_context_flag
+# ---------------------------------------------------------------------------
+
+
+def test_strip_context_flag_short_form() -> None:
+    args = ["-c", "ctx.yaml", "create", "operation", "-f", "op.yaml"]
+    result = _strip_context_flag(args)
+    assert result == ["create", "operation", "-f", "op.yaml"]
+
+
+def test_strip_context_flag_long_form() -> None:
+    args = ["--context", "ctx.yaml", "get", "space"]
+    result = _strip_context_flag(args)
+    assert result == ["get", "space"]
+
+
+def test_strip_context_flag_not_present() -> None:
+    args = ["create", "operation", "-f", "op.yaml"]
+    result = _strip_context_flag(args)
+    assert result == ["create", "operation", "-f", "op.yaml"]
+
+
+# ---------------------------------------------------------------------------
+# _copy_files_and_rewrite_args
+# ---------------------------------------------------------------------------
+
+
+def test_copy_files_and_rewrite_args_short_flag(tmp_path: pathlib.Path) -> None:
+    src = tmp_path / "src"
+    src.mkdir()
+    op_file = src / "operation.yaml"
+    op_file.write_text("kind: operation")
+
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = ["create", "operation", "-f", str(op_file)]
+    result = _copy_files_and_rewrite_args(args, dest)
+
+    assert result == ["create", "operation", "-f", "operation.yaml"]
+    assert (dest / "operation.yaml").read_text() == "kind: operation"
+
+
+def test_copy_files_and_rewrite_args_long_flag(tmp_path: pathlib.Path) -> None:
+    src = tmp_path / "op.yaml"
+    src.write_text("kind: operation")
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = ["create", "operation", "--file", str(src)]
+    result = _copy_files_and_rewrite_args(args, dest)
+
+    assert result == ["create", "operation", "--file", "op.yaml"]
+
+
+def test_copy_files_and_rewrite_args_equals_form(tmp_path: pathlib.Path) -> None:
+    src = tmp_path / "op.yaml"
+    src.write_text("kind: operation")
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = [f"--file={src}"]
+    result = _copy_files_and_rewrite_args(args, dest)
+
+    assert result == ["--file=op.yaml"]
+
+
+def test_copy_files_and_rewrite_args_no_files(tmp_path: pathlib.Path) -> None:
+    dest = tmp_path / "working"
+    dest.mkdir()
+    args = ["get", "space"]
+    result = _copy_files_and_rewrite_args(args, dest)
+    assert result == ["get", "space"]
+
+
+def test_copy_files_and_rewrite_args_basename_collision(tmp_path: pathlib.Path) -> None:
+    """Two -f files with the same basename should raise ValueError."""
+    src_a = tmp_path / "a" / "operation.yaml"
+    src_a.parent.mkdir()
+    src_a.write_text("kind: a")
+
+    src_b = tmp_path / "b" / "operation.yaml"
+    src_b.parent.mkdir()
+    src_b.write_text("kind: b")
+
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = ["-f", str(src_a), "-f", str(src_b)]
+    with pytest.raises(ValueError, match="basename collision"):
+        _copy_files_and_rewrite_args(args, dest)
+
+
+def test_copy_files_and_rewrite_args_with_file_path(tmp_path: pathlib.Path) -> None:
+    """--with space=path/to/space.yaml copies the file and rewrites to basename."""
+    space_file = tmp_path / "my_space.yaml"
+    space_file.write_text("kind: space")
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = ["create", "operation", "--with", f"space={space_file}"]
+    result = _copy_files_and_rewrite_args(args, dest)
+
+    assert result == ["create", "operation", "--with", "space=my_space.yaml"]
+    assert (dest / "my_space.yaml").read_text() == "kind: space"
+
+
+def test_copy_files_and_rewrite_args_with_resource_id(tmp_path: pathlib.Path) -> None:
+    """--with space=some-resource-id leaves the argument unchanged."""
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = ["create", "operation", "--with", "space=my-space-identifier"]
+    result = _copy_files_and_rewrite_args(args, dest)
+
+    assert result == ["create", "operation", "--with", "space=my-space-identifier"]
+
+
+def test_copy_files_and_rewrite_args_with_equals_form(tmp_path: pathlib.Path) -> None:
+    """--with=space=path/to/space.yaml (equals form) copies the file."""
+    space_file = tmp_path / "space.yaml"
+    space_file.write_text("kind: space")
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = [f"--with=space={space_file}"]
+    result = _copy_files_and_rewrite_args(args, dest)
+
+    assert result == ["--with=space=space.yaml"]
+
+
+def test_copy_files_and_rewrite_args_with_missing_file(tmp_path: pathlib.Path) -> None:
+    """--with value that looks like a path but doesn't exist raises FileNotFoundError."""
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = ["--with", "space=nonexistent.yaml"]
+    with pytest.raises(FileNotFoundError, match=r"nonexistent\.yaml"):
+        _copy_files_and_rewrite_args(args, dest)
+
+
+def test_copy_files_and_rewrite_args_with_collision_across_flags(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A --with file whose basename collides with a -f file raises ValueError."""
+    op_file = tmp_path / "a" / "resource.yaml"
+    op_file.parent.mkdir()
+    op_file.write_text("kind: operation")
+
+    space_file = tmp_path / "b" / "resource.yaml"
+    space_file.parent.mkdir()
+    space_file.write_text("kind: space")
+
+    dest = tmp_path / "working"
+    dest.mkdir()
+
+    args = ["-f", str(op_file), "--with", f"space={space_file}"]
+    with pytest.raises(ValueError, match="basename collision"):
+        _copy_files_and_rewrite_args(args, dest)
+
+
+# ---------------------------------------------------------------------------
+# _write_runtime_env
+# ---------------------------------------------------------------------------
+
+
+def test_write_runtime_env_pypi_only(
+    tmp_path: pathlib.Path,
+    cluster_execution_context: ExecutionContext,
+) -> None:
+    dest = tmp_path / "runtime_env.yaml"
+    _write_runtime_env(cluster_execution_context, [], dest)
+
+    loaded = yaml.safe_load(dest.read_text())
+    assert loaded["uv"] == ["ado-core"]
+    assert loaded["env_vars"] == {"PYTHONUNBUFFERED": "x"}
+
+
+def test_write_runtime_env_with_wheels(
+    tmp_path: pathlib.Path,
+) -> None:
+    ctx = ExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        packages=PackageConfiguration(fromPyPI=["ado-core"]),
+        envVars={},
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    _write_runtime_env(ctx, ["my_plugin-1.0-py3-none-any.whl"], dest)
+
+    loaded = yaml.safe_load(dest.read_text())
+    assert "ado-core" in loaded["uv"]
+    assert any("my_plugin" in p for p in loaded["uv"])
+    assert (
+        "${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/my_plugin-1.0-py3-none-any.whl"
+        in loaded["uv"]
+    )
+
+
+def test_write_runtime_env_no_packages(tmp_path: pathlib.Path) -> None:
+    ctx = ExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    _write_runtime_env(ctx, [], dest)
+
+    loaded = yaml.safe_load(dest.read_text())
+    # No uv key when there are no packages
+    assert "uv" not in loaded
+    assert "env_vars" not in loaded
+
+
+def test_write_runtime_env_env_vars_only(tmp_path: pathlib.Path) -> None:
+    ctx = ExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        envVars={"MY_VAR": "1"},
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    _write_runtime_env(ctx, [], dest)
+
+    loaded = yaml.safe_load(dest.read_text())
+    assert "uv" not in loaded
+    assert loaded["env_vars"] == {"MY_VAR": "1"}
+
+
+# ---------------------------------------------------------------------------
+# dispatch() — ray job submit command assembly
+# ---------------------------------------------------------------------------
+
+
+def test_dispatcher_assembles_ray_job_submit_command(
+    tmp_path: pathlib.Path,
+    cluster_execution_context: ExecutionContext,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    """Verify ray job submit is called with expected arguments."""
+    op_file = tmp_path / "operation.yaml"
+    op_file.write_text("kind: operation")
+
+    ado_args = [
+        "-c",
+        str(mysql_context_yaml_file),
+        "create",
+        "operation",
+        "-f",
+        str(op_file),
+    ]
+
+    captured_cmd: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
+        captured_cmd.append(cmd)
+        return MagicMock(returncode=0)
+
+    with patch(
+        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
+    ):
+        exit_code = dispatch(
+            execution_context=cluster_execution_context,
+            project_context_file=mysql_context_yaml_file,
+            ado_args=ado_args,
+        )
+
+    assert exit_code == 0
+    assert len(captured_cmd) == 1
+    cmd = captured_cmd[0]
+
+    assert cmd[0] == "ray"
+    assert cmd[1] == "job"
+    assert cmd[2] == "submit"
+    assert "--address" in cmd
+    assert "http://localhost:8265" in cmd
+    assert "--working-dir" in cmd
+    assert "--runtime-env" in cmd
+    assert "--" in cmd
+    assert "ado" in cmd
+
+    # The remote ado command should reference context by basename only
+    ado_part = cmd[cmd.index("ado") :]
+    assert "-c" in ado_part
+    assert mysql_context_yaml_file.name in ado_part
+
+    # --no-wait should NOT be present since wait=True
+    assert "--no-wait" not in cmd
+
+
+def test_dispatcher_no_wait(
+    tmp_path: pathlib.Path,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    ctx = ExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        wait=False,
+    )
+    captured_cmd: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
+        captured_cmd.append(cmd)
+        return MagicMock(returncode=0)
+
+    with patch(
+        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
+    ):
+        dispatch(
+            execution_context=ctx,
+            project_context_file=mysql_context_yaml_file,
+            ado_args=["get", "space"],
+        )
+
+    assert "--no-wait" in captured_cmd[0]
+
+
+def test_dispatcher_propagates_exit_code(
+    tmp_path: pathlib.Path,
+    mysql_context_yaml_file: pathlib.Path,
+    cluster_execution_context: ExecutionContext,
+) -> None:
+    with patch(
+        "orchestrator.cli.utils.remote.dispatch.subprocess.run",
+        return_value=MagicMock(returncode=2),
+    ):
+        exit_code = dispatch(
+            execution_context=cluster_execution_context,
+            project_context_file=mysql_context_yaml_file,
+            ado_args=["get", "space"],
+        )
+    assert exit_code == 2
+
+
+def test_dispatcher_job_type_raises_not_implemented(
+    tmp_path: pathlib.Path,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    ctx = ExecutionContext(executionType=JobExecutionType())
+    with pytest.raises(NotImplementedError, match="KubeRay"):
+        dispatch(
+            execution_context=ctx,
+            project_context_file=mysql_context_yaml_file,
+            ado_args=["get", "space"],
+        )
+
+
+def test_dispatcher_copies_context_and_op_file(
+    tmp_path: pathlib.Path,
+    mysql_context_yaml_file: pathlib.Path,
+    cluster_execution_context: ExecutionContext,
+) -> None:
+    """Context file and -f files are copied; paths in command are basenames only.
+
+    The working dir is a TemporaryDirectory cleaned up after dispatch, so we
+    inspect files from inside the fake_run callback while the dir still exists.
+    """
+    op_file = tmp_path / "my_operation.yaml"
+    op_file.write_text("kind: operation")
+
+    found_context = False
+    found_op = False
+    found_runtime_env = False
+
+    def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
+        nonlocal found_context, found_op, found_runtime_env
+        idx = cmd.index("--working-dir")
+        working_dir = pathlib.Path(cmd[idx + 1])
+        found_context = (working_dir / mysql_context_yaml_file.name).exists()
+        found_op = (working_dir / "my_operation.yaml").exists()
+        found_runtime_env = (working_dir / "runtime_env.yaml").exists()
+        return MagicMock(returncode=0)
+
+    with patch(
+        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
+    ):
+        dispatch(
+            execution_context=cluster_execution_context,
+            project_context_file=mysql_context_yaml_file,
+            ado_args=[
+                "-c",
+                str(mysql_context_yaml_file),
+                "create",
+                "operation",
+                "-f",
+                str(op_file),
+            ],
+        )
+
+    assert found_context, "context yaml was not copied to working dir"
+    assert found_op, "operation yaml was not copied to working dir"
+    assert found_runtime_env, "runtime_env.yaml was not generated in working dir"
+
+
+def test_dispatcher_runtime_env_contents(
+    tmp_path: pathlib.Path,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    """Verify runtime_env.yaml has the expected PyPI packages."""
+    ctx = ExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        packages=PackageConfiguration(fromPyPI=["ado-core", "ado-ray-tune"]),
+        envVars={"OMP_NUM_THREADS": "1"},
+    )
+
+    inspected_runtime_env: list[dict] = []
+
+    def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
+        idx = cmd.index("--runtime-env")
+        runtime_env_path = pathlib.Path(cmd[idx + 1])
+        inspected_runtime_env.append(yaml.safe_load(runtime_env_path.read_text()))
+        return MagicMock(returncode=0)
+
+    with patch(
+        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
+    ):
+        dispatch(
+            execution_context=ctx,
+            project_context_file=mysql_context_yaml_file,
+            ado_args=["get", "space"],
+        )
+
+    assert len(inspected_runtime_env) == 1
+    env = inspected_runtime_env[0]
+    assert "ado-core" in env["uv"]
+    assert "ado-ray-tune" in env["uv"]
+    assert env["env_vars"]["OMP_NUM_THREADS"] == "1"
+
+
+# ---------------------------------------------------------------------------
+# CLI integration: --execution-context flag
+# ---------------------------------------------------------------------------
+
+
+def test_cli_execution_context_sqlite_guard(
+    tmp_path: pathlib.Path,
+    sqlite_context_yaml_file: pathlib.Path,
+    execution_context_file: pathlib.Path,
+) -> None:
+    """ado should fail with a clear error when using --execution-context with SQLite."""
+    runner = CliRunner()
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "-c",
+            str(sqlite_context_yaml_file),
+            "--execution-context",
+            str(execution_context_file),
+            "get",
+            "space",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "SQLite" in result.output
+
+
+def test_cli_execution_context_missing_file(
+    tmp_path: pathlib.Path,
+) -> None:
+    """ado should fail gracefully if the execution context file doesn't exist."""
+    runner = CliRunner()
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "--execution-context",
+            str(tmp_path / "nonexistent.yaml"),
+            "get",
+            "space",
+        ],
+    )
+    assert result.exit_code == 1
+
+
+def test_cli_execution_context_invalid_yaml(
+    tmp_path: pathlib.Path,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    """ado should fail with a clear error when the execution context YAML is invalid."""
+    invalid_file = tmp_path / "bad_exec_ctx.yaml"
+    invalid_file.write_text("not_a_valid_field: true\nexecutionType: {type: cluster}")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "-c",
+            str(mysql_context_yaml_file),
+            "--execution-context",
+            str(invalid_file),
+            "get",
+            "space",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "not valid" in result.output
+
+
+def test_cli_execution_context_dispatches_remotely(
+    tmp_path: pathlib.Path,
+    mysql_context_yaml_file: pathlib.Path,
+    execution_context_file: pathlib.Path,
+) -> None:
+    """When --execution-context is valid and context is non-SQLite, ray job submit is called."""
+    captured: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
+        captured.append(cmd)
+        return MagicMock(returncode=0, spec=subprocess.CompletedProcess)
+
+    runner = CliRunner()
+    with patch(
+        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
+    ):
+        result = runner.invoke(
+            ado,
+            [
+                "--override-ado-app-dir",
+                str(tmp_path),
+                "-c",
+                str(mysql_context_yaml_file),
+                "--execution-context",
+                str(execution_context_file),
+                "get",
+                "space",
+            ],
+        )
+
+    # Should have exited with the ray job submit exit code (0)
+    assert result.exit_code == 0
+    assert len(captured) == 1
+    assert captured[0][0] == "ray"
+    assert "submit" in captured[0]
+
+
+def test_cli_execution_context_auto_sqlite_guard(
+    tmp_path: pathlib.Path,
+    execution_context_file: pathlib.Path,
+) -> None:
+    """When no context is manually set, ado auto-creates a local SQLite context.
+
+    Using --execution-context in this scenario must fail with the SQLite guard
+    message (the same as when a SQLite context is explicitly provided).
+    """
+    runner = CliRunner()
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "--execution-context",
+            str(execution_context_file),
+            "get",
+            "space",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "SQLite" in result.output

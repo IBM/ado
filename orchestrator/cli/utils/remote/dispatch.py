@@ -1,0 +1,667 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+
+import contextlib
+import logging
+import os
+import shlex
+import shutil
+import subprocess
+import tempfile
+import threading
+from collections.abc import Generator
+from pathlib import Path
+from urllib.parse import urlparse
+
+import yaml
+from rich.status import Status
+
+from orchestrator.cli.utils.output.prints import (
+    ADO_SPINNER_REMOTE_PORT_FORWARD,
+    ADO_SPINNER_REMOTE_PREPARING_FILES,
+)
+from orchestrator.core.executioncontext.config import (
+    ClusterExecutionType,
+    ExecutionContext,
+    JobExecutionType,
+    PortForwardConfiguration,
+)
+
+log = logging.getLogger(__name__)
+
+# Flags whose next argument is a file path that must be copied to the working dir
+_FILE_ARG_FLAGS = {"-f", "--file"}
+
+# --with KEY=VALUE flag: the VALUE part may be a file path (no short form)
+_WITH_FLAG = "--with"
+
+# Global context / project-context flags — handled specially
+_CONTEXT_FLAGS = {"-c", "--context"}
+
+# Port-forward tool preference order
+_PORT_FORWARD_TOOLS = ["oc", "kubectl"]
+
+# Flags that are local-only and must not be forwarded to the remote ado command
+_LOCAL_ONLY_FLAGS = {"--override-ado-app-dir"}
+
+# Substring written to stdout by oc/kubectl when the tunnel is bound and ready
+_PORT_FORWARD_READY_PATTERN = b"Forwarding from"
+
+# How long to wait for the port-forward tunnel to become ready
+_PORT_FORWARD_READY_TIMEOUT_S = 30.0
+
+
+def remove_execution_context_from_argv(argv: list[str]) -> list[str]:
+    """Return *argv* with ``--execution-context`` and its value removed.
+
+    Also strips flags that must not be forwarded to the remote cluster (e.g.
+    ``--override-ado-app-dir``).
+
+    Parameters
+    ----------
+    argv:
+        The full argument list (typically ``sys.argv[1:]``).
+
+    Returns
+    -------
+    list[str]
+        A copy of *argv* without the execution context flag, its value, and
+        any local-only flags.
+    """
+    _strip_with_value = {"--execution-context"} | _LOCAL_ONLY_FLAGS
+
+    result: list[str] = []
+    skip_next = False
+    for arg in argv:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in _strip_with_value:
+            skip_next = True
+            continue
+        if any(arg.startswith(f"{flag}=") for flag in _strip_with_value):
+            continue
+        result.append(arg)
+    return result
+
+
+def _find_port_forward_tool() -> str:
+    """Return the first available port-forward CLI tool (``oc`` or ``kubectl``).
+
+    Raises
+    ------
+    RuntimeError
+        If neither ``oc`` nor ``kubectl`` is available on PATH.
+    """
+    for tool in _PORT_FORWARD_TOOLS:
+        if shutil.which(tool):
+            return tool
+    raise RuntimeError(
+        f"Neither {' nor '.join(_PORT_FORWARD_TOOLS)} was found on PATH. "
+        "Install one of them to use port-forward with --execution-context."
+    )
+
+
+@contextlib.contextmanager
+def _port_forward_context(
+    pf_config: PortForwardConfiguration,
+    cluster_url: str,
+) -> Generator[None, None, None]:
+    """Context manager that starts a port-forward subprocess and tears it down on exit.
+
+    Waits until ``oc``/``kubectl`` writes ``"Forwarding from"`` to its stdout,
+    which is the authoritative signal that the tunnel is bound and ready to
+    accept connections.  This avoids the race condition of a fixed-duration
+    sleep where the tunnel may not yet be bound when the caller proceeds.
+
+    Parameters
+    ----------
+    pf_config:
+        Port-forward configuration from the execution context.
+    cluster_url:
+        The Ray cluster URL (used to extract the target service port).
+    """
+    parsed = urlparse(cluster_url)
+    service_port = parsed.port or 8265
+
+    tool = _find_port_forward_tool()
+    cmd = [
+        tool,
+        "port-forward",
+        "--namespace",
+        pf_config.namespace,
+        f"svc/{pf_config.serviceName}",
+        f"{pf_config.localPort}:{service_port}",
+    ]
+    log.info("Starting port-forward: %s", shlex.join(cmd))
+    proc = subprocess.Popen(  # noqa: S603
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    # A background thread drains stdout and signals when the tunnel is bound.
+    # Draining is necessary even after the ready signal to prevent the pipe
+    # buffer from filling and blocking the oc/kubectl process.
+    ready = threading.Event()
+
+    def _drain_stdout() -> None:
+        if proc.stdout is None:  # pragma: no cover
+            return
+        for line in proc.stdout:
+            if _PORT_FORWARD_READY_PATTERN in line:
+                ready.set()
+
+    stdout_thread = threading.Thread(target=_drain_stdout, daemon=True)
+    stdout_thread.start()
+
+    if not ready.wait(timeout=_PORT_FORWARD_READY_TIMEOUT_S):
+        proc.terminate()
+        try:
+            _, stderr_data = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            _, stderr_data = proc.communicate()
+        raise RuntimeError(
+            f"Port-forward did not become ready within {_PORT_FORWARD_READY_TIMEOUT_S}s.\n"
+            f"Command: {shlex.join(cmd)}\n"
+            f"stderr: {stderr_data.decode()}"
+        )
+
+    log.debug("Port-forward ready")
+    try:
+        yield
+    finally:
+        log.info("Tearing down port-forward (pid=%d)", proc.pid)
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+def _strip_context_flag(args: list[str]) -> list[str]:
+    """Return *args* with any ``-c``/``--context`` flag and its value removed.
+
+    Parameters
+    ----------
+    args:
+        Argument list to strip.
+
+    Returns
+    -------
+    list[str]
+        A copy of *args* without any ``-c``/``--context`` flag.
+    """
+    result: list[str] = []
+    skip_next = False
+    for arg in args:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in _CONTEXT_FLAGS:
+            skip_next = True
+            continue
+        if any(arg.startswith(f"{flag}=") for flag in _CONTEXT_FLAGS):
+            continue
+        result.append(arg)
+    return result
+
+
+def _copy_files_and_rewrite_args(
+    args: list[str],
+    working_dir: Path,
+) -> list[str]:
+    """Copy files referenced by ``-f``/``--file`` and ``--with`` flags into *working_dir*.
+
+    Returns a new argument list with the original file paths replaced by their
+    basenames (since inside the Ray job the working dir is the root).
+
+    For ``--with KEY=VALUE``, the value is treated as a file path using the
+    same heuristic as the ``ado create`` command: if it contains a ``.`` or
+    path separator it must resolve to an existing file; otherwise it is left
+    unchanged as a resource identifier.
+
+    Parameters
+    ----------
+    args:
+        Argument list potentially containing ``-f``/``--file`` or ``--with``
+        flags.
+    working_dir:
+        Destination directory for copied files.
+
+    Returns
+    -------
+    list[str]
+        A new argument list with file paths replaced by their basenames.
+
+    Raises
+    ------
+    ValueError
+        If two file arguments share the same basename, which would cause a
+        silent overwrite in the working directory.
+    FileNotFoundError
+        If a ``--with KEY=VALUE`` value looks like a path (contains ``.`` or
+        a path separator) but does not resolve to an existing file.
+    """
+    result: list[str] = []
+    copied_basenames: set[str] = set()
+    i = 0
+    while i < len(args):
+        arg = args[i]
+
+        # -f / --file VALUE  →  copy file, replace with basename
+        if arg in _FILE_ARG_FLAGS and i + 1 < len(args):
+            src = Path(args[i + 1]).resolve()
+            _copy_file_checked(src, working_dir, copied_basenames)
+            result.append(arg)
+            result.append(src.name)
+            i += 2
+            continue
+
+        # --file=VALUE form
+        matched_file_flag = False
+        for flag in _FILE_ARG_FLAGS:
+            if arg.startswith(f"{flag}="):
+                src = Path(arg.split("=", 1)[1]).resolve()
+                _copy_file_checked(src, working_dir, copied_basenames)
+                result.append(f"{flag}={src.name}")
+                matched_file_flag = True
+                break
+        if matched_file_flag:
+            i += 1
+            continue
+
+        # --with KEY=VALUE  →  copy file if value is a path, leave ID unchanged
+        if arg == _WITH_FLAG and i + 1 < len(args):
+            rewritten = _rewrite_with_value(args[i + 1], working_dir, copied_basenames)
+            result.append(arg)
+            result.append(rewritten)
+            i += 2
+            continue
+
+        # --with=KEY=VALUE form
+        if arg.startswith(f"{_WITH_FLAG}="):
+            kv = arg[len(_WITH_FLAG) + 1 :]  # strip "--with="
+            rewritten = _rewrite_with_value(kv, working_dir, copied_basenames)
+            result.append(f"{_WITH_FLAG}={rewritten}")
+            i += 1
+            continue
+
+        result.append(arg)
+        i += 1
+    return result
+
+
+def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:
+    """Rewrite the value part of a ``--with KEY=VALUE`` argument if it is a file.
+
+    Mirrors the path-detection logic in ``ado create``: a value is treated as
+    a file path when it contains a ``.`` or path separator.  If it resolves to
+    an existing file it is copied to *working_dir* and the argument is rewritten
+    to ``KEY=basename``.  If it looks like a path but the file is not found, a
+    ``FileNotFoundError`` is raised so the problem is caught locally rather than
+    on the remote cluster.  Plain resource identifiers are returned unchanged.
+
+    Parameters
+    ----------
+    kv:
+        The ``KEY=VALUE`` string from the ``--with`` argument.
+    working_dir:
+        Destination directory for copied files.
+    seen:
+        Set of basenames already copied; updated in-place on copy.
+
+    Returns
+    -------
+    str
+        The (possibly rewritten) ``KEY=VALUE`` string.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the value looks like a path but does not exist.
+    ValueError
+        If the file's basename collides with another already-copied file.
+    """
+    if "=" not in kv:
+        # Malformed --with value — pass through unchanged and let ado validate it
+        return kv
+
+    key, value = kv.split("=", 1)
+    value_looks_like_path = "." in value or os.sep in value
+    value_as_path = Path(value)
+
+    if value_as_path.exists() and value_as_path.is_file():
+        src = value_as_path.resolve()
+        _copy_file_checked(src, working_dir, seen)
+        return f"{key}={src.name}"
+
+    if value_looks_like_path:
+        raise FileNotFoundError(
+            f"--with {kv}: '{value}' looks like a file path but does not exist."
+        )
+
+    # Plain resource identifier — leave unchanged
+    return kv
+
+
+def _copy_file_checked(src: Path, working_dir: Path, seen: set[str]) -> None:
+    """Copy *src* into *working_dir*, raising ``ValueError`` on basename collision.
+
+    Parameters
+    ----------
+    src:
+        Resolved source file path.
+    working_dir:
+        Destination directory.
+    seen:
+        Set of basenames already copied; updated in-place.
+
+    Raises
+    ------
+    ValueError
+        If *src*'s basename already exists in *seen*.
+    """
+    if src.name in seen:
+        raise ValueError(
+            f"File basename collision: two file arguments resolve to the "
+            f"same filename '{src.name}'. Rename one of the files before "
+            "submitting remotely."
+        )
+    shutil.copy2(src, working_dir / src.name)
+    seen.add(src.name)
+
+
+def _build_source_wheels(
+    from_source: list[str],
+    working_dir: Path,
+    repo_root: Path,
+) -> list[str]:
+    """Build wheels for in-tree plugins and copy them into *working_dir*.
+
+    Each entry in *from_source* is a path relative to *repo_root* (or absolute).
+    Runs ``uv build --wheel -o dist --clear`` in each plugin directory.
+
+    Parameters
+    ----------
+    from_source:
+        Plugin directory paths to build.
+    working_dir:
+        Destination for built ``.whl`` files.
+    repo_root:
+        Base directory used to resolve relative paths in *from_source*.
+
+    Returns
+    -------
+    list[str]
+        Basenames of the wheel files copied to *working_dir*.
+    """
+    wheel_names: list[str] = []
+    for plugin_path_str in from_source:
+        plugin_path = Path(plugin_path_str)
+        if not plugin_path.is_absolute():
+            plugin_path = (repo_root / plugin_path).resolve()
+
+        if not plugin_path.is_dir():
+            raise FileNotFoundError(
+                f"fromSource plugin path does not exist: {plugin_path}"
+            )
+
+        dist_dir = plugin_path / "dist"
+        log.info("Building wheel for plugin at %s", plugin_path)
+        result = subprocess.run(  # noqa: S603
+            ["uv", "build", "--wheel", "-o", str(dist_dir), "--clear"],  # noqa: S607
+            cwd=str(plugin_path),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"uv build failed for {plugin_path}:\n{result.stderr}")
+
+        wheels = list(dist_dir.glob("*.whl"))
+        if not wheels:
+            raise RuntimeError(f"No wheel produced by uv build in {dist_dir}")
+
+        for whl in wheels:
+            dest = working_dir / whl.name
+            shutil.copy2(whl, dest)
+            wheel_names.append(whl.name)
+            log.info("Copied wheel %s to %s", whl.name, working_dir)
+
+    return wheel_names
+
+
+def _write_runtime_env(
+    execution_context: ExecutionContext,
+    wheel_names: list[str],
+    dest: Path,
+) -> None:
+    """Write the Ray runtime environment YAML to *dest*.
+
+    Combines PyPI packages, wheel references, and environment variables from
+    *execution_context* into a ``runtime_env.yaml`` compatible with
+    ``ray job submit --runtime-env``.
+
+    Parameters
+    ----------
+    execution_context:
+        The execution context describing packages and env vars.
+    wheel_names:
+        Basenames of wheel files present in the Ray working dir.
+    dest:
+        Path to write the generated ``runtime_env.yaml``.
+    """
+    uv_packages: list[str] = list(execution_context.packages.fromPyPI)
+    uv_packages.extend(
+        f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{wheel_name}"
+        for wheel_name in wheel_names
+    )
+
+    runtime_env: dict[str, list[str] | dict[str, str]] = {}
+    if uv_packages:
+        runtime_env["uv"] = uv_packages
+
+    if execution_context.envVars:
+        runtime_env["env_vars"] = dict(execution_context.envVars)
+
+    dest.write_text(yaml.dump(runtime_env, default_flow_style=False))
+    log.debug("Wrote runtime_env.yaml to %s", dest)
+
+
+def _run_ray_submit(
+    cluster_exec: ClusterExecutionType,
+    execution_context: ExecutionContext,
+    working_dir: Path,
+    runtime_env_path: Path,
+    remote_ado_args: list[str],
+) -> int:
+    """Construct and run the ``ray job submit`` command.
+
+    Parameters
+    ----------
+    cluster_exec:
+        Cluster execution type (contains ``clusterUrl``).
+    execution_context:
+        Full execution context (used for ``wait`` flag).
+    working_dir:
+        Working directory to send with the job.
+    runtime_env_path:
+        Path to the generated ``runtime_env.yaml``.
+    remote_ado_args:
+        The rewritten ado argument list for use inside the Ray job.
+
+    Returns
+    -------
+    int
+        The exit code of ``ray job submit``.
+    """
+    cmd = ["ray", "job", "submit"]
+
+    if not execution_context.wait:
+        cmd.append("--no-wait")
+
+    cmd += [
+        "--address",
+        cluster_exec.clusterUrl,
+        "--working-dir",
+        str(working_dir),
+        "--runtime-env",
+        str(runtime_env_path),
+        "-v",
+        "--",
+        "ado",
+        *remote_ado_args,
+    ]
+
+    log.info("Running: %s", shlex.join(cmd))
+    result = subprocess.run(cmd)  # noqa: S603
+    if result.returncode != 0:
+        log.error(
+            "ray job submit exited with code %d. "
+            "Check the output above for details.",
+            result.returncode,
+        )
+    return result.returncode
+
+
+def _dispatch_to_cluster(
+    cluster_exec: ClusterExecutionType,
+    execution_context: ExecutionContext,
+    project_context_file: Path,
+    ado_args: list[str],
+    working_dir: Path,
+    repo_root: Path,
+) -> int:
+    """Build the working directory and run ``ray job submit``.
+
+    Parameters
+    ----------
+    cluster_exec:
+        Resolved cluster execution type.
+    execution_context:
+        Full execution context.
+    project_context_file:
+        Absolute path to the project context YAML file to copy into the
+        working directory.
+    ado_args:
+        Full ado argument list (without ``--execution-context``).
+    working_dir:
+        Temporary directory to use as the Ray working directory.
+    repo_root:
+        Repository root for resolving relative ``fromSource`` paths.
+
+    Returns
+    -------
+    int
+        Exit code of ``ray job submit``.
+    """
+    pf = cluster_exec.portForward
+    pf_ctx = (
+        _port_forward_context(pf, cluster_exec.clusterUrl)
+        if pf is not None
+        else contextlib.nullcontext()
+    )
+
+    # Use an ExitStack so that:
+    #  - the Status spinner can be stopped before ray job submit produces output,
+    #  - while the port-forward context manager remains active for the duration
+    #    of the ray job submit call.
+    with contextlib.ExitStack() as stack:
+        status = stack.enter_context(Status(ADO_SPINNER_REMOTE_PREPARING_FILES))
+
+        # 1. Copy project context and any -f / --with files into the working directory
+        shutil.copy2(project_context_file, working_dir / project_context_file.name)
+        stripped_args = _strip_context_flag(ado_args)
+        rewritten_args = _copy_files_and_rewrite_args(stripped_args, working_dir)
+        remote_ado_args = ["-c", project_context_file.name, *rewritten_args]
+
+        # 2. Build wheels for fromSource plugins
+        wheel_names = _build_source_wheels(
+            execution_context.packages.fromSource,
+            working_dir,
+            repo_root,
+        )
+
+        # 3. Generate runtime_env.yaml
+        runtime_env_path = working_dir / "runtime_env.yaml"
+        _write_runtime_env(execution_context, wheel_names, runtime_env_path)
+
+        # 4. Establish port-forward (blocks until tunnel is bound and ready)
+        if pf is not None:
+            status.update(ADO_SPINNER_REMOTE_PORT_FORWARD)
+        stack.enter_context(pf_ctx)
+
+        # Stop the spinner before ray job submit starts producing its own output
+        status.stop()
+
+        return _run_ray_submit(
+            cluster_exec=cluster_exec,
+            execution_context=execution_context,
+            working_dir=working_dir,
+            runtime_env_path=runtime_env_path,
+            remote_ado_args=remote_ado_args,
+        )
+
+
+def dispatch(
+    execution_context: ExecutionContext,
+    project_context_file: Path,
+    ado_args: list[str],
+    repo_root: Path | None = None,
+) -> int:
+    """Dispatch an ado command to a remote Ray cluster via ``ray job submit``.
+
+    Handles building of temporary working directories, wheel compilation for
+    in-tree plugins, ``runtime_env.yaml`` generation, optional port-forwarding,
+    and the ``ray job submit`` invocation itself.
+
+    Parameters
+    ----------
+    execution_context:
+        Loaded and validated execution context.
+    project_context_file:
+        Absolute path to the project context YAML file.  This file will be
+        copied into the working directory and referenced via ``-c`` in the
+        remote ado command.
+    ado_args:
+        The full ado argument list **without** ``--execution-context`` and
+        its value.  May contain ``-c``/``--context`` (which will be
+        rewritten to reference the copied file) and ``-f``/``--file``
+        (whose files will be copied and paths rewritten).
+    repo_root:
+        Root of the ado repository, used to resolve relative ``fromSource``
+        paths.  Defaults to ``Path.cwd()``.
+
+    Returns
+    -------
+    int
+        The exit code of the ``ray job submit`` subprocess.
+
+    Raises
+    ------
+    NotImplementedError
+        If ``executionType`` is ``JobExecutionType`` (KubeRay - not yet
+        implemented).
+    RuntimeError
+        On port-forward startup failures or wheel build errors.
+    ValueError
+        If two file arguments share the same basename.
+    FileNotFoundError
+        If a ``--with`` value looks like a path but does not exist.
+    """
+    if isinstance(execution_context.executionType, JobExecutionType):
+        raise NotImplementedError(
+            "KubeRay job execution (executionType: job) is not yet implemented."
+        )
+
+    cluster_exec: ClusterExecutionType = execution_context.executionType
+    resolved_repo_root = repo_root or Path.cwd()
+
+    with tempfile.TemporaryDirectory(prefix="ado-remote-") as tmp_str:
+        return _dispatch_to_cluster(
+            cluster_exec=cluster_exec,
+            execution_context=execution_context,
+            project_context_file=project_context_file,
+            ado_args=ado_args,
+            working_dir=Path(tmp_str),
+            repo_root=resolved_repo_root,
+        )

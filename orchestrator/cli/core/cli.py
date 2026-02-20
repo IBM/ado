@@ -3,9 +3,12 @@
 
 import logging
 import pathlib
+import sys
 from typing import Annotated
 
+import pydantic
 import typer
+import yaml
 
 from orchestrator.cli.commands.context import (
     register_context_command,
@@ -23,6 +26,14 @@ from orchestrator.cli.commands.version import register_version_command
 from orchestrator.cli.core.config import AdoConfiguration
 from orchestrator.cli.models.types import AdoLoggingLevel
 from orchestrator.cli.utils.output.prints import ERROR, console_print
+from orchestrator.cli.utils.remote.dispatch import (
+    dispatch as remote_dispatch,
+)
+from orchestrator.cli.utils.remote.dispatch import (
+    remove_execution_context_from_argv,
+)
+from orchestrator.core.executioncontext.config import ExecutionContext
+from orchestrator.utilities.location import SQLiteStoreConfiguration
 from orchestrator.utilities.logging import configure_logging
 
 # Logging conf
@@ -33,7 +44,7 @@ SHARED_OPTIONS_PANEL_NAME = "Shared options"
 
 app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
-    options_metavar="[-c | --context <context_file>] [-l | --log-level <value>]",
+    options_metavar="[-c | --context <context_file>] [--execution-context <exec_context_file>] [-l | --log-level <value>]",
     no_args_is_help=True,
     pretty_exceptions_show_locals=False,
     short_help="",
@@ -108,6 +119,30 @@ def common_options(
             rich_help_panel=SHARED_OPTIONS_PANEL_NAME,
         ),
     ] = None,
+    execution_context_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--execution-context",
+            help="""Dispatch this ado command to a remote Ray cluster.
+
+            Provide a path to an ExecutionContext YAML file that describes the
+            remote Ray cluster (URL, optional port-forward configuration,
+            packages to install, and environment variables).
+
+            When provided, ado will package the necessary files, optionally
+            build plugin wheels, and submit the command to the cluster via
+            ``ray job submit`` instead of running it locally.
+
+            The active project context must use a non-SQLite (remote) metastore.
+
+            See https://ibm.github.io/ado/getting-started/remote_run/ for details.""",
+            show_default=False,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            rich_help_panel=SHARED_OPTIONS_PANEL_NAME,
+        ),
+    ] = None,
     log_level: Annotated[
         AdoLoggingLevel,
         typer.Option(
@@ -145,6 +180,21 @@ def common_options(
             )
             raise typer.Exit(1)
 
+    if execution_context_file:
+        if not execution_context_file.exists():
+            console_print(
+                f"{ERROR}The provided path {execution_context_file.resolve()} does not exist.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        if not execution_context_file.is_file():
+            console_print(
+                f"{ERROR}The provided path {execution_context_file.resolve()} is not a file.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
     # AP 27/05/2025:
     # If the user is running ado context/contexts we must not fail
     # as it would create a situation where the user is softlocked,
@@ -163,6 +213,105 @@ def common_options(
     )
 
     ctx.obj = ado_config
+
+    if execution_context_file:
+        _handle_remote_dispatch(
+            execution_context_file=execution_context_file,
+            ado_config=ado_config,
+            project_context_file=project_context_file,
+        )
+
+
+def _handle_remote_dispatch(
+    execution_context_file: pathlib.Path,
+    ado_config: AdoConfiguration,
+    project_context_file: pathlib.Path | None,
+) -> None:
+    """Validate, build, and dispatch the current ado invocation to a remote Ray cluster.
+
+    Called from ``common_options`` when ``--execution-context`` is present.
+    Exits the process via ``typer.Exit`` after dispatching (or on error).
+
+    Parameters
+    ----------
+    execution_context_file:
+        Path to the ExecutionContext YAML file.
+    ado_config:
+        The loaded AdoConfiguration for this invocation.
+    project_context_file:
+        Explicit project context file passed via ``-c``, or ``None`` if using
+        the active context.
+    """
+    # Guard: remote execution requires a loaded, non-SQLite project context
+    project_context = ado_config.project_context
+    if project_context is None:
+        console_print(
+            f"{ERROR}Cannot use --execution-context: no project context is active.\n"
+            "Activate a context with 'ado context set' or provide one with -c.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    if isinstance(project_context.metadataStore, SQLiteStoreConfiguration):
+        console_print(
+            f"{ERROR}Cannot use --execution-context with a SQLite project context.\n"
+            "Remote execution requires a non-SQLite (e.g. MySQL) metastore so the "
+            "remote Ray cluster can connect to the same database.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    # Load the execution context
+    try:
+        execution_context = ExecutionContext.model_validate(
+            yaml.safe_load(execution_context_file.read_text())
+        )
+    except pydantic.ValidationError as e:
+        console_print(
+            f"{ERROR}The execution context file is not valid:\n{e}",
+            stderr=True,
+        )
+        raise typer.Exit(1) from e
+
+    # Store on ado_config for potential downstream use
+    ado_config.set_execution_context(execution_context)
+
+    # Resolve the project context file path
+    if project_context_file is not None:
+        resolved_ctx_file = project_context_file.resolve()
+    else:
+        resolved_ctx_file = ado_config.project_context_path_from_active_context()
+
+    if resolved_ctx_file is None or not resolved_ctx_file.is_file():
+        console_print(
+            f"{ERROR}Cannot resolve the project context file for remote dispatch. "
+            "Ensure a context is active or provide one with -c.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    # Reconstruct the ado argument list without --execution-context
+    ado_args = remove_execution_context_from_argv(sys.argv[1:])
+
+    try:
+        exit_code = remote_dispatch(
+            execution_context=execution_context,
+            project_context_file=resolved_ctx_file,
+            ado_args=ado_args,
+        )
+    except (RuntimeError, FileNotFoundError, ValueError) as exc:
+        console_print(
+            f"{ERROR}Remote dispatch failed: {exc}",
+            stderr=True,
+        )
+        raise typer.Exit(1) from exc
+
+    if exit_code != 0:
+        console_print(
+            f"{ERROR}Remote dispatch failed (exit code {exit_code}).",
+            stderr=True,
+        )
+    raise typer.Exit(exit_code)
 
 
 if __name__ == "__main__":

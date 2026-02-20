@@ -1,23 +1,7 @@
 [
   {
-    "cve": "CVE-2024-48063",
-    "alwaysOmit": true,
-    "comment": "We require a specific torch version at the moment"
-  },
-  {
-    "cve": "CVE-2025-32434",
-    "alwaysOmit": true,
-    "comment": "We require a specific torch version at the moment"
-  },
-  {
-    "cve": "CVE-2025-2953",
-    "alwaysOmit": true,
-    "comment": "We require a specific torch version at the moment"
-  },
-  {
-    "cve": "CVE-2025-3730",
-    "alwaysOmit": true,
-    "comment": "We require a specific torch version at the moment"
+    "cve": "CVE-2025-69872",
+    "untilRemediationAvailable": true,
   },
   {
     "cve": "CVE-2025-5321",

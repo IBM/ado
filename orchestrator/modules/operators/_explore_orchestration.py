@@ -311,12 +311,12 @@ def orchestrate_explore_operation(
 
         def finalize_callback(operation_resource: OperationResource) -> None:
             # Even on exception we can still get entities submitted
-            logging.warning("Finalize callback - Getting entities submitted")
+            logging.debug("Finalize callback - Getting entities submitted")
             try:
                 operation_resource.metadata["entities_submitted"] = ray.get(
                     operator_actor.numberEntitiesSampled.remote(), timeout=10
                 )
-                logging.warning("Finalize callback - Getting experiments requested")
+                logging.debug("Finalize callback - Getting experiments requested")
                 operation_resource.metadata["experiments_requested"] = ray.get(
                     operator_actor.numberMeasurementsRequested.remote()
                 )

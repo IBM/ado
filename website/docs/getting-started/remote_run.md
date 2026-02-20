@@ -8,6 +8,147 @@
 > utilize multiple nodes and large amounts of compute-resource like GPUs. Such
 > resources may also be a requirement for certain experiments or actuators.
 
+## Using `--execution-context` (recommended)
+
+The `--execution-context` option automates the steps required to dispatch any
+`ado` command to a remote Ray cluster. It handles packaging files, building
+plugin wheels, generating the Ray runtime environment, and running
+`ray job submit` for you.
+
+### Prerequisites
+
+- Your active project context must use a non-SQLite (remote) metastore, such
+  as MySQL. Remote execution requires the Ray job to connect to the same
+  database as your local `ado` invocation.
+- `ray` must be installed and on your `PATH`.
+- If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
+  must be installed and authenticated.
+
+### Create an execution context file
+
+Create an `execution_context.yaml` file. The minimal example uses a cluster
+that is directly reachable at a known URL (e.g. via an open route):
+
+<!-- markdownlint-disable line-length -->
+
+```yaml
+executionType:
+  type: cluster
+  clusterUrl: "http://ray-cluster.my-namespace.svc.cluster.local:8265"
+packages:
+  fromPyPI:
+    - ado-core
+    - ado-ray-tune # Add any other plugins required by your operation
+envVars:
+  PYTHONUNBUFFERED: "x"
+  OMP_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  RAY_AIR_NEW_PERSISTENCE_MODE: "0"
+wait: false # Set to true to remain attached until the job finishes
+```
+
+<!-- markdownlint-enable line-length -->
+
+If your cluster is only reachable via a port-forward (common on OpenShift),
+add the `portForward` sub-field. `ado` will start the port-forward
+automatically before submitting and tear it down afterwards:
+
+<!-- markdownlint-disable line-length -->
+
+```yaml
+executionType:
+  type: cluster
+  clusterUrl: "http://localhost:8265" # Must match localPort below
+  portForward:
+    namespace: my-namespace
+    serviceName: my-ray-cluster-head-svc
+    localPort: 8265 # Default; the port oc/kubectl will bind locally
+packages:
+  fromPyPI:
+    - ado-core
+    - ado-ray-tune
+envVars:
+  PYTHONUNBUFFERED: "x"
+  OMP_NUM_THREADS: "1"
+wait: false
+```
+
+<!-- markdownlint-enable line-length -->
+
+To install in-tree plugins (e.g. development versions not yet on PyPI), add
+their repository-relative paths to `fromSource`. `ado` will build a wheel for
+each one and send it with the job:
+
+```yaml
+executionType:
+  type: cluster
+  clusterUrl: "http://localhost:8265"
+packages:
+  fromPyPI:
+    - ado-core
+  fromSource:
+    - plugins/actuators/vllm_performance
+wait: false
+envVars:
+  PYTHONUNBUFFERED: "x"
+```
+
+### Submitting commands
+
+Pass `--execution-context` as a global option before any `ado` command.
+Use `-c` to specify the project context for the remote cluster:
+
+<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable-next-line code-block-style -->
+
+```commandline
+ado -c mysql_context.yaml --execution-context execution_context.yaml create operation -f operation.yaml
+```
+
+<!-- markdownlint-enable line-length -->
+
+All `ado` commands are supported. For example, to query the metastore remotely:
+
+```commandline
+ado -c mysql_context.yaml --execution-context execution_context.yaml get space
+```
+
+> [!NOTE] What `--execution-context` does
+>
+> For each invocation `ado` will:
+>
+> 1. Copy the project context file and any `-f` resource files to a temporary
+>    working directory.
+> 2. Build wheels for any `fromSource` plugin paths.
+> 3. Generate a `runtime_env.yaml` from the `packages` and `envVars` fields.
+> 4. Start a port-forward if `portForward` is configured.
+> 5. Run `ray job submit` with the assembled working directory and runtime
+>    environment.
+> 6. Tear down the port-forward (if started) and exit with the job's exit code.
+
+<!-- markdownlint-disable-next-line MD028 -->
+
+> [!IMPORTANT] SQLite contexts are not supported
+>
+> `--execution-context` requires a non-SQLite project context (e.g. MySQL).
+> The remote Ray job must be able to connect to the same database as your local
+> `ado` invocation. `ado` will fail with a clear error if a SQLite context is
+> detected.
+
+You can use `ado get context -o yaml` to export the current context to a YAML
+file suitable for use with `-c`:
+
+```commandline
+ado get context -o yaml > mysql_context.yaml
+```
+
+## Manual approach (advanced)
+
+The sections below describe how to submit Ray jobs manually. This is useful
+when you need fine-grained control over the working directory, runtime
+environment, or `ray job submit` options, or when `--execution-context` does
+not cover your use case.
+
 ## Quickstart
 
 ### Getting ready

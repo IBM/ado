@@ -198,12 +198,12 @@ class TrimParameters(BaseModel):
     def set_no_priors_sample(self) -> "TrimParameters":
         if self.samplingBudget.minPoints != self.noPriorParameters.samples:
             logging.info(
-                "Overwriting the 'sample' Field of the no-priors characterization:\n Details: "
-                f"samplingBudget.minPoints, which is equal to {self.samplingBudget.minPoints}, "
-                f"is different from noPriorParameters.samples, which is equal to {self.noPriorParameters.samples}; "
-                "setting noPriorParameters.samples equals to samplingBudget.minPoints."
+                "Overwriting the 'samples' field of the no-priors characterization.\n"
+                f"  samplingBudget.minPoints = {self.samplingBudget.minPoints}\n"
+                f"  noPriorParameters.samples = {self.noPriorParameters.samples}\n"
+                f"  Setting noPriorParameters.samples = {self.samplingBudget.minPoints}"
             )
-        self.samplingBudget.minPoints = self.noPriorParameters.samples
+        self.noPriorParameters.samples = self.samplingBudget.minPoints
         return self
 
     @model_validator(mode="after")
@@ -236,11 +236,10 @@ class TrimParameters(BaseModel):
     def set_no_priors_target_output(self) -> "TrimParameters":
         if self.noPriorParameters.targetOutput != self.targetOutput:
             logging.debug(
-                f"A call to the model has been done. It probably retrieved the model with default options,"
-                f"this triggered the output of this message. Note the following:"
-                f"No priors characterization target output = {self.noPriorParameters.targetOutput }"
-                f"Trim target output = {self.targetOutput }"
-                f"Setting them equal to '{self.targetOutput }'."
+                "set_no_priors_target_output: Synchronizing target output between TRIM and no-priors characterization.\n"
+                f"  noPriorParameters.targetOutput = '{self.noPriorParameters.targetOutput}'\n"
+                f"  TrimParameters.targetOutput = '{self.targetOutput}'\n"
+                f"  Setting noPriorParameters.targetOutput = '{self.targetOutput}'"
             )
             self.noPriorParameters.targetOutput = self.targetOutput
         return self
@@ -248,7 +247,11 @@ class TrimParameters(BaseModel):
 
 if __name__ == "__main__":
     # Test with required targetOutput parameter
-    params = TrimParameters.model_validate(TrimParameters(targetOutput="test"))
-    print(
-        f"type of model_validate output on TRIM default is {type(params)}, printing the full object gives {params}"
+    params = TrimParameters.model_validate(
+        TrimParameters(
+            targetOutput="test",
+            samplingBudget=SamplingBudget(minPoints=10),
+            noPriorParameters=NoPriorsParameters(targetOutput="test", samples=2),
+        )
     )
+    print(f"Parameters set are:\n{params}")

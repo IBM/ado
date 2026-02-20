@@ -116,7 +116,7 @@ def trim(
                 f"in your space given your experiment. "
                 f"Another no-priors characterization will be run to sample {missing_points} additional points. "
                 f"Note that the maximum number of no-priors characterization operations is {max_iter}. "
-                f"No-priors characterization operation will be instantiated for n_samples = {no_priors_params.samples}."
+                f"No-priors characterization operation will be instantiated for {no_priors_params.samples} samples."
             )
 
         no_priors_sampler_config = CustomSamplerConfiguration(
@@ -134,7 +134,12 @@ def trim(
         op_output_characterization_no_prior = random_walk(
             discoverySpace=discoverySpace,
             operationInfo=FunctionOperationInfo.model_validate(
-                {"metadata": {"completed operation": "Characterization with no priors"}}
+                {
+                    "metadata": {
+                        "completed operation": "Characterization with no priors"
+                    },
+                    "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
+                }
             ),
             **no_priors_rwparams.model_dump(),
         )
@@ -180,7 +185,10 @@ def trim(
     op_output_iterative_modeling = random_walk(
         discoverySpace=discoverySpace,
         operationInfo=FunctionOperationInfo.model_validate(
-            {"metadata": {"completed operation": "Iterative Modeling Operation"}}
+            {
+                "metadata": {"completed operation": "Iterative Modeling Operation"},
+                "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
+            }
         ),
         **trim_rwparams.model_dump(),
     )

@@ -1,7 +1,8 @@
 [
   {
     "cve": "CVE-2025-69872",
-    "untilRemediationAvailable": true
+    "alwaysOmit": true,
+    "comment": "No fix available yet"
   },
   {
     "cve": "CVE-2025-5321",

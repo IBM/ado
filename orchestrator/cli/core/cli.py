@@ -26,7 +26,7 @@ from orchestrator.cli.commands.version import register_version_command
 from orchestrator.cli.core.config import AdoConfiguration
 from orchestrator.cli.models.types import AdoLoggingLevel
 from orchestrator.cli.utils.output.prints import ERROR, console_print
-from orchestrator.cli.utils.remote import REMOTE_STRIP_FLAGS, strip_flags
+from orchestrator.cli.utils.remote import SUBMISSION_STRIP_FLAGS, strip_flags
 from orchestrator.cli.utils.remote.dispatch import (
     dispatch as remote_dispatch,
 )
@@ -289,7 +289,7 @@ def _handle_remote_dispatch(
         raise typer.Exit(1)
 
     # Reconstruct the ado argument list without --execution-context
-    ado_args = strip_flags(sys.argv[1:], REMOTE_STRIP_FLAGS)
+    ado_args = strip_flags(sys.argv[1:], SUBMISSION_STRIP_FLAGS)
 
     try:
         exit_code = remote_dispatch(

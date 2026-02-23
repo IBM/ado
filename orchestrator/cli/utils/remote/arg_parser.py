@@ -1,52 +1,52 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Position-aware argument parsing utilities for remote dispatch.
+"""Position-aware argument parsing utilities for remote submission preparation.
 
 This module provides parsing functions for flags explicitly defined in
-orchestrator.cli.models.remote_dispatch. These are used for remote dispatch
-operations to handle flags that need special processing (stripping, file copying,
-value rewriting).
+orchestrator.cli.models.remote_dispatch. These are used to prepare commands
+for remote execution by handling flags that need special processing (stripping,
+file copying, value rewriting).
 """
 
 from collections.abc import Callable
 
 from orchestrator.cli.models.remote_dispatch import (
-    ParsedRemoteDispatchFlags,
-    RemoteDispatchFlagDefinition,
-    RemoteDispatchFlagOccurrence,
+    ParsedRemoteSubmissionFlags,
+    RemoteSubmissionFlagMatch,
+    RemoteSubmissionFlagSpec,
 )
 
 
 def parse_argv_with_positions(
     argv: list[str],
-    flag_definitions: list[RemoteDispatchFlagDefinition],
-) -> ParsedRemoteDispatchFlags:
-    """Parse argv tracking positions of remote dispatch flags and arguments.
+    flag_definitions: list[RemoteSubmissionFlagSpec],
+) -> ParsedRemoteSubmissionFlags:
+    """Parse argv tracking positions of remote submission flags and arguments.
 
     This is the core parsing function that recognizes only flags explicitly
-    defined in flag_definitions.py for remote dispatch operations.
+    defined in remote_dispatch.py for remote submission preparation.
 
     Args:
         argv: The argument list to parse.
-        flag_definitions: List of flag definitions to recognize.
+        flag_definitions: List of flag specs to recognize.
 
     Returns:
-        Parsed remote dispatch flags with position information.
+        Parsed remote submission flags with position information.
 
     Raises:
         ValueError: If a flag expecting a value is at the end of argv without a value.
 
     Examples:
-        >>> from orchestrator.cli.utils.remote.flag_definitions import FILE, CONTEXT
+        >>> from orchestrator.cli.models.remote_dispatch import FILE_SPEC, CONTEXT_SPEC
         >>> argv = ["-c", "ctx.yaml", "create", "op", "-f", "op.yaml"]
-        >>> parsed = parse_argv_with_positions(argv, [FILE, CONTEXT])
+        >>> parsed = parse_argv_with_positions(argv, [FILE_SPEC, CONTEXT_SPEC])
         >>> len(parsed.flag_occurrences)
         2
         >>> parsed.other_args
         [(2, 'create'), (3, 'op')]
     """
-    flag_occurrences: list[RemoteDispatchFlagOccurrence] = []
+    flag_occurrences: list[RemoteSubmissionFlagMatch] = []
     other_args: list[tuple[int, str]] = []
 
     i = 0
@@ -59,7 +59,7 @@ def parse_argv_with_positions(
             value_from_equals = flag_def.extract_value_from_equals_form(arg)
             if value_from_equals is not None:
                 flag_occurrences.append(
-                    RemoteDispatchFlagOccurrence(
+                    RemoteSubmissionFlagMatch(
                         position=i,
                         flag_name=arg.split("=", 1)[0],
                         value=value_from_equals,
@@ -80,7 +80,7 @@ def parse_argv_with_positions(
                         )
                     value = argv[i + 1]
                     flag_occurrences.append(
-                        RemoteDispatchFlagOccurrence(
+                        RemoteSubmissionFlagMatch(
                             position=i,
                             flag_name=arg,
                             value=value,
@@ -91,7 +91,7 @@ def parse_argv_with_positions(
                     i += 2
                 else:
                     flag_occurrences.append(
-                        RemoteDispatchFlagOccurrence(
+                        RemoteSubmissionFlagMatch(
                             position=i,
                             flag_name=arg,
                             value=None,
@@ -107,7 +107,7 @@ def parse_argv_with_positions(
             other_args.append((i, arg))
             i += 1
 
-    return ParsedRemoteDispatchFlags(
+    return ParsedRemoteSubmissionFlags(
         flag_occurrences=flag_occurrences, other_args=other_args
     )
 
@@ -119,7 +119,7 @@ def parse_argv_with_positions(
 
 def strip_flags(
     argv: list[str],
-    flags_to_strip: list[RemoteDispatchFlagDefinition],
+    flags_to_strip: list[RemoteSubmissionFlagSpec],
 ) -> list[str]:
     """Remove specified flags and their values from argv.
 
@@ -128,15 +128,15 @@ def strip_flags(
 
     Args:
         argv: The argument list to process.
-        flags_to_strip: List of flag definitions to remove.
+        flags_to_strip: List of flag specs to remove.
 
     Returns:
         New argument list without the specified flags.
 
     Examples:
-        >>> from orchestrator.cli.utils.remote.flag_definitions import EXECUTION_CONTEXT
+        >>> from orchestrator.cli.models.remote_dispatch import EXECUTION_CONTEXT_SPEC
         >>> argv = ["-c", "ctx.yaml", "--execution-context", "exec.yaml", "create", "op"]
-        >>> strip_flags(argv, [EXECUTION_CONTEXT])
+        >>> strip_flags(argv, [EXECUTION_CONTEXT_SPEC])
         ["-c", "ctx.yaml", "create", "op"]
     """
     parsed = parse_argv_with_positions(argv, flags_to_strip)
@@ -149,9 +149,9 @@ def strip_flags(
 
 def rewrite_flag_values(
     argv: list[str],
-    flags_to_rewrite: list[RemoteDispatchFlagDefinition],
+    flags_to_rewrite: list[RemoteSubmissionFlagSpec],
     value_rewriter: Callable[
-        [RemoteDispatchFlagOccurrence, RemoteDispatchFlagDefinition], str
+        [RemoteSubmissionFlagMatch, RemoteSubmissionFlagSpec], str
     ],
 ) -> list[str]:
     """Rewrite values of specified flags using a custom function.
@@ -161,8 +161,8 @@ def rewrite_flag_values(
 
     Args:
         argv: The argument list to process.
-        flags_to_rewrite: List of flag definitions whose values should be rewritten.
-        value_rewriter: Function that takes (RemoteDispatchFlagOccurrence, RemoteDispatchFlagDefinition) and returns
+        flags_to_rewrite: List of flag specs whose values should be rewritten.
+        value_rewriter: Function that takes (RemoteSubmissionFlagMatch, RemoteSubmissionFlagSpec) and returns
             the new value string.
 
     Returns:
@@ -170,11 +170,11 @@ def rewrite_flag_values(
 
     Examples:
         >>> from pathlib import Path
-        >>> from orchestrator.cli.utils.remote.flag_definitions import FILE
+        >>> from orchestrator.cli.models.remote_dispatch import FILE_SPEC
         >>> def to_basename(occ, flag_def):
         ...     return Path(occ.value).name if occ.value else occ.value
         >>> argv = ["-f", "/path/to/file.yaml"]
-        >>> rewrite_flag_values(argv, [FILE], to_basename)
+        >>> rewrite_flag_values(argv, [FILE_SPEC], to_basename)
         ["-f", "file.yaml"]
     """
     parsed = parse_argv_with_positions(argv, flags_to_rewrite)
@@ -184,7 +184,7 @@ def rewrite_flag_values(
         name: flag_def for flag_def in flags_to_rewrite for name in flag_def.names
     }
 
-    def transformer(occ: RemoteDispatchFlagOccurrence) -> str | None:
+    def transformer(occ: RemoteSubmissionFlagMatch) -> str | None:
         """Transform a single flag occurrence."""
         if occ.value is None:
             return None
@@ -200,10 +200,10 @@ def rewrite_flag_values(
 
 def filter_and_rewrite(
     argv: list[str],
-    flags_to_strip: list[RemoteDispatchFlagDefinition],
-    flags_to_rewrite: list[RemoteDispatchFlagDefinition],
+    flags_to_strip: list[RemoteSubmissionFlagSpec],
+    flags_to_rewrite: list[RemoteSubmissionFlagSpec],
     value_rewriter: Callable[
-        [RemoteDispatchFlagOccurrence, RemoteDispatchFlagDefinition], str
+        [RemoteSubmissionFlagMatch, RemoteSubmissionFlagSpec], str
     ],
 ) -> list[str]:
     """Combined operation: strip some flags and rewrite others.
@@ -236,7 +236,7 @@ def filter_and_rewrite(
         name: flag_def for flag_def in flags_to_rewrite for name in flag_def.names
     }
 
-    def transformer(occ: RemoteDispatchFlagOccurrence) -> str | None:
+    def transformer(occ: RemoteSubmissionFlagMatch) -> str | None:
         if occ.value is None or occ.flag_name in exclude_flags:
             return None
 

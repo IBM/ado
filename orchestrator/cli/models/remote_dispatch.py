@@ -1,10 +1,10 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Pydantic models for remote dispatch argument parsing.
+"""Pydantic models for remote submission preparation.
 
-This module contains all models and flag definitions for remote dispatch operations,
-centralizing flag metadata and parsing structures.
+This module contains specifications and parsing results for CLI flags
+that require special handling when preparing commands for remote execution.
 """
 
 from collections.abc import Callable
@@ -17,8 +17,13 @@ from pydantic import BaseModel, Field
 # ============================================================================
 
 
-class RemoteDispatchFlagDefinition(BaseModel):
-    """Metadata for a command-line flag used in remote dispatch.
+class RemoteSubmissionFlagSpec(BaseModel):
+    """Specification for a CLI flag requiring special handling during remote submission.
+
+    This defines the characteristics of flags that need processing when preparing
+    a CLI command for remote execution (e.g., stripping, file path rewriting).
+    This is NOT part of the remote execution mechanism itself, but rather describes
+    flags that the submission preparation logic needs to recognize and handle.
 
     Attributes:
         names: All forms of the flag (e.g., {"-f", "--file"}).
@@ -67,10 +72,10 @@ class RemoteDispatchFlagDefinition(BaseModel):
 # ============================================================================
 
 
-class RemoteDispatchFlagOccurrence(BaseModel):
-    """A single occurrence of a remote dispatch flag in argv.
+class RemoteSubmissionFlagMatch(BaseModel):
+    """A matched instance of a flag spec in actual CLI arguments.
 
-    This represents an occurrence of a flag explicitly defined in this module,
+    This represents a matched occurrence of a flag explicitly defined in this module,
     not just any arbitrary command-line flag.
 
     Attributes:
@@ -97,20 +102,20 @@ class RemoteDispatchFlagOccurrence(BaseModel):
     ]
 
 
-class ParsedRemoteDispatchFlags(BaseModel):
-    """Result of parsing argv for remote dispatch flags with position tracking.
+class ParsedRemoteSubmissionFlags(BaseModel):
+    """Result of parsing argv for remote submission flags with position tracking.
 
     This contains only the flags explicitly defined in this module,
     not all command-line arguments.
 
     Attributes:
-        flag_occurrences: All recognized remote dispatch flag occurrences with their positions.
+        flag_occurrences: All recognized remote submission flag matches with their positions.
         other_args: All non-flag arguments with their positions.
     """
 
     flag_occurrences: Annotated[
-        list[RemoteDispatchFlagOccurrence],
-        Field(description="All recognized flag occurrences"),
+        list[RemoteSubmissionFlagMatch],
+        Field(description="All recognized flag matches"),
     ]
     other_args: Annotated[
         list[tuple[int, str]],
@@ -121,7 +126,7 @@ class ParsedRemoteDispatchFlags(BaseModel):
         self,
         exclude_flags: set[str] | None = None,
         value_transformer: (
-            Callable[[RemoteDispatchFlagOccurrence], str | None] | None
+            Callable[[RemoteSubmissionFlagMatch], str | None] | None
         ) = None,
     ) -> list[str]:
         """Reconstruct argv with optional filtering and value transformation.
@@ -169,35 +174,35 @@ class ParsedRemoteDispatchFlags(BaseModel):
 # Flag Registry
 # ============================================================================
 
-EXECUTION_CONTEXT = RemoteDispatchFlagDefinition(
+EXECUTION_CONTEXT_SPEC = RemoteSubmissionFlagSpec(
     names=frozenset({"--execution-context"}),
     hasValue=True,
     stripFromRemote=True,
-    description="Path to ExecutionContext YAML for remote dispatch",
+    description="Path to ExecutionContext YAML for remote submission",
 )
 
-OVERRIDE_ADO_APP_DIR = RemoteDispatchFlagDefinition(
+OVERRIDE_ADO_APP_DIR_SPEC = RemoteSubmissionFlagSpec(
     names=frozenset({"--override-ado-app-dir"}),
     hasValue=True,
     stripFromRemote=True,
     description="Override ado app directory (testing only)",
 )
 
-CONTEXT = RemoteDispatchFlagDefinition(
+CONTEXT_SPEC = RemoteSubmissionFlagSpec(
     names=frozenset({"-c", "--context"}),
     hasValue=True,
     valueType="file_path",
     description="Project context file path",
 )
 
-FILE = RemoteDispatchFlagDefinition(
+FILE_SPEC = RemoteSubmissionFlagSpec(
     names=frozenset({"-f", "--file"}),
     hasValue=True,
     valueType="file_path",
     description="Input file path",
 )
 
-WITH = RemoteDispatchFlagDefinition(
+WITH_SPEC = RemoteSubmissionFlagSpec(
     names=frozenset({"--with"}),
     hasValue=True,
     valueType="key_value",
@@ -209,22 +214,22 @@ WITH = RemoteDispatchFlagDefinition(
 # ============================================================================
 
 # All flags that should be stripped before remote execution
-REMOTE_STRIP_FLAGS = [EXECUTION_CONTEXT, OVERRIDE_ADO_APP_DIR]
+SUBMISSION_STRIP_FLAGS = [EXECUTION_CONTEXT_SPEC, OVERRIDE_ADO_APP_DIR_SPEC]
 
 # All flags whose values are file paths that need copying
-FILE_COPY_FLAGS = [FILE, WITH]
+SUBMISSION_FILE_COPY_FLAGS = [FILE_SPEC, WITH_SPEC]
 
 # Context flags (for special handling)
-CONTEXT_FLAGS = [CONTEXT]
+SUBMISSION_CONTEXT_FLAGS = [CONTEXT_SPEC]
 
-# All flags recognized by the remote dispatch parser
-# (Not all CLI flags - only those relevant for remote submission)
-REMOTE_DISPATCH_FLAGS = [
-    EXECUTION_CONTEXT,
-    OVERRIDE_ADO_APP_DIR,
-    CONTEXT,
-    FILE,
-    WITH,
+# All flags recognized by the remote submission parser
+# (Not all CLI flags - only those relevant for remote submission preparation)
+REMOTE_SUBMISSION_FLAGS = [
+    EXECUTION_CONTEXT_SPEC,
+    OVERRIDE_ADO_APP_DIR_SPEC,
+    CONTEXT_SPEC,
+    FILE_SPEC,
+    WITH_SPEC,
 ]
 
 # Made with Bob

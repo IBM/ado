@@ -17,10 +17,10 @@ import yaml
 from rich.status import Status
 
 from orchestrator.cli.models.remote_dispatch import (
-    CONTEXT_FLAGS,
-    FILE_COPY_FLAGS,
-    RemoteDispatchFlagDefinition,
-    RemoteDispatchFlagOccurrence,
+    SUBMISSION_CONTEXT_FLAGS,
+    SUBMISSION_FILE_COPY_FLAGS,
+    RemoteSubmissionFlagMatch,
+    RemoteSubmissionFlagSpec,
 )
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_REMOTE_PORT_FORWARD,
@@ -172,8 +172,8 @@ def _copy_files_and_rewrite_args(
     copied_basenames: set[str] = set()
 
     def rewrite_file_value(
-        occ: RemoteDispatchFlagOccurrence,
-        flag_def: RemoteDispatchFlagDefinition,
+        occ: RemoteSubmissionFlagMatch,
+        flag_def: RemoteSubmissionFlagSpec,
     ) -> str:
         """Rewrite a file flag value by copying file and returning basename."""
         # This should never be None for flags with hasValue=True, but handle it
@@ -189,7 +189,7 @@ def _copy_files_and_rewrite_args(
         _copy_file_checked(src, working_dir, copied_basenames)
         return src.name
 
-    return rewrite_flag_values(args, FILE_COPY_FLAGS, rewrite_file_value)
+    return rewrite_flag_values(args, SUBMISSION_FILE_COPY_FLAGS, rewrite_file_value)
 
 
 def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:
@@ -471,7 +471,7 @@ def _dispatch_to_cluster(
 
         # 1. Copy project context and any -f / --with files into the working directory
         shutil.copy2(project_context_file, working_dir / project_context_file.name)
-        stripped_args = strip_flags(ado_args, CONTEXT_FLAGS)
+        stripped_args = strip_flags(ado_args, SUBMISSION_CONTEXT_FLAGS)
         rewritten_args = _copy_files_and_rewrite_args(stripped_args, working_dir)
         remote_ado_args = ["-c", project_context_file.name, *rewritten_args]
 

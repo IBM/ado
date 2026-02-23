@@ -4,8 +4,8 @@
 """Remote dispatch utilities for executing ado commands on Ray clusters."""
 
 from orchestrator.cli.utils.remote.arg_parser import (
-    FlagOccurrence,
-    ParsedArguments,
+    ParsedRemoteDispatchFlags,
+    RemoteDispatchFlagOccurrence,
     filter_and_rewrite,
     parse_argv_with_positions,
     rewrite_flag_values,
@@ -36,8 +36,8 @@ __all__ = [
     "REMOTE_STRIP_FLAGS",
     "WITH",
     "FlagDefinition",
-    "FlagOccurrence",
-    "ParsedArguments",
+    "ParsedRemoteDispatchFlags",
+    "RemoteDispatchFlagOccurrence",
     "dispatch",
     "filter_and_rewrite",
     "parse_argv_with_positions",

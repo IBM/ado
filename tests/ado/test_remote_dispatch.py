@@ -744,12 +744,14 @@ def test_strip_flags_preserves_order() -> None:
 def test_rewrite_flag_values_generic() -> None:
     """Test generic rewrite_flag_values function."""
     from orchestrator.cli.utils.remote.arg_parser import (
-        FlagOccurrence,
+        RemoteDispatchFlagOccurrence,
         rewrite_flag_values,
     )
     from orchestrator.cli.utils.remote.flag_definitions import FILE, FlagDefinition
 
-    def to_uppercase(occ: FlagOccurrence, flag_def: FlagDefinition) -> str:
+    def to_uppercase(
+        occ: RemoteDispatchFlagOccurrence, flag_def: FlagDefinition
+    ) -> str:
         return occ.value.upper() if occ.value else ""
 
     argv = ["-f", "file.yaml", "create"]

@@ -21,7 +21,7 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_REMOTE_PREPARING_FILES,
 )
 from orchestrator.cli.utils.remote.arg_parser import (
-    FlagOccurrence,
+    RemoteDispatchFlagOccurrence,
     rewrite_flag_values,
     strip_flags,
 )
@@ -172,7 +172,7 @@ def _copy_files_and_rewrite_args(
     copied_basenames: set[str] = set()
 
     def rewrite_file_value(
-        occ: FlagOccurrence,
+        occ: RemoteDispatchFlagOccurrence,
         flag_def: FlagDefinition,
     ) -> str:
         """Rewrite a file flag value by copying file and returning basename."""

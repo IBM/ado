@@ -1,10 +1,11 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Generic position-aware argument parsing utilities.
+"""Position-aware argument parsing utilities for remote dispatch.
 
-This module provides reusable parsing functions that maintain argument order
-and can be extended to handle new flags without code changes.
+This module provides parsing functions for flags explicitly defined in
+flag_definitions.py. These are used for remote dispatch operations to handle
+flags that need special processing (stripping, file copying, value rewriting).
 """
 
 from collections.abc import Callable
@@ -15,8 +16,11 @@ from pydantic import BaseModel, Field
 from orchestrator.cli.utils.remote.flag_definitions import FlagDefinition
 
 
-class FlagOccurrence(BaseModel):
-    """A single occurrence of a flag in argv.
+class RemoteDispatchFlagOccurrence(BaseModel):
+    """A single occurrence of a remote dispatch flag in argv.
+
+    This represents an occurrence of a flag explicitly defined in flag_definitions.py,
+    not just any arbitrary command-line flag.
 
     Attributes:
         position: Index in original argv where the flag appears.
@@ -42,30 +46,38 @@ class FlagOccurrence(BaseModel):
     ]
 
 
-class ParsedArguments(BaseModel):
-    """Result of parsing argv with position tracking.
+class ParsedRemoteDispatchFlags(BaseModel):
+    """Result of parsing argv for remote dispatch flags with position tracking.
+
+    This contains only the flags explicitly defined in flag_definitions.py,
+    not all command-line arguments.
 
     Attributes:
-        flag_occurrences: All recognized flag occurrences with their positions.
+        flag_occurrences: All recognized remote dispatch flag occurrences with their positions.
         other_args: All non-flag arguments with their positions.
     """
 
     flag_occurrences: Annotated[
-        list[FlagOccurrence], Field(description="All recognized flag occurrences")
+        list[RemoteDispatchFlagOccurrence],
+        Field(description="All recognized flag occurrences"),
     ]
     other_args: Annotated[
         list[tuple[int, str]],
         Field(description="All non-flag arguments with positions"),
     ]
 
-    def get_flags_by_name(self, flag_names: set[str]) -> list[FlagOccurrence]:
+    def get_flags_by_name(
+        self, flag_names: set[str]
+    ) -> list[RemoteDispatchFlagOccurrence]:
         """Get all occurrences of flags matching any of the given names."""
         return [occ for occ in self.flag_occurrences if occ.flag_name in flag_names]
 
     def reconstruct_argv(
         self,
         exclude_flags: set[str] | None = None,
-        value_transformer: Callable[[FlagOccurrence], str | None] | None = None,
+        value_transformer: (
+            Callable[[RemoteDispatchFlagOccurrence], str | None] | None
+        ) = None,
     ) -> list[str]:
         """Reconstruct argv with optional filtering and value transformation.
 
@@ -111,17 +123,18 @@ class ParsedArguments(BaseModel):
 def parse_argv_with_positions(
     argv: list[str],
     flag_definitions: list[FlagDefinition],
-) -> ParsedArguments:
-    """Parse argv tracking positions of all flags and arguments.
+) -> ParsedRemoteDispatchFlags:
+    """Parse argv tracking positions of remote dispatch flags and arguments.
 
-    This is the core parsing function that all other utilities build upon.
+    This is the core parsing function that recognizes only flags explicitly
+    defined in flag_definitions.py for remote dispatch operations.
 
     Args:
         argv: The argument list to parse.
         flag_definitions: List of flag definitions to recognize.
 
     Returns:
-        Parsed arguments with position information.
+        Parsed remote dispatch flags with position information.
 
     Raises:
         ValueError: If a flag expecting a value is at the end of argv without a value.
@@ -135,7 +148,7 @@ def parse_argv_with_positions(
         >>> parsed.other_args
         [(2, 'create'), (3, 'op')]
     """
-    flag_occurrences: list[FlagOccurrence] = []
+    flag_occurrences: list[RemoteDispatchFlagOccurrence] = []
     other_args: list[tuple[int, str]] = []
 
     i = 0
@@ -148,7 +161,7 @@ def parse_argv_with_positions(
             value_from_equals = flag_def.extract_value_from_equals_form(arg)
             if value_from_equals is not None:
                 flag_occurrences.append(
-                    FlagOccurrence(
+                    RemoteDispatchFlagOccurrence(
                         position=i,
                         flag_name=arg.split("=", 1)[0],
                         value=value_from_equals,
@@ -169,7 +182,7 @@ def parse_argv_with_positions(
                         )
                     value = argv[i + 1]
                     flag_occurrences.append(
-                        FlagOccurrence(
+                        RemoteDispatchFlagOccurrence(
                             position=i,
                             flag_name=arg,
                             value=value,
@@ -180,7 +193,7 @@ def parse_argv_with_positions(
                     i += 2
                 else:
                     flag_occurrences.append(
-                        FlagOccurrence(
+                        RemoteDispatchFlagOccurrence(
                             position=i,
                             flag_name=arg,
                             value=None,
@@ -196,7 +209,9 @@ def parse_argv_with_positions(
             other_args.append((i, arg))
             i += 1
 
-    return ParsedArguments(flag_occurrences=flag_occurrences, other_args=other_args)
+    return ParsedRemoteDispatchFlags(
+        flag_occurrences=flag_occurrences, other_args=other_args
+    )
 
 
 # ============================================================================
@@ -237,7 +252,7 @@ def strip_flags(
 def rewrite_flag_values(
     argv: list[str],
     flags_to_rewrite: list[FlagDefinition],
-    value_rewriter: Callable[[FlagOccurrence, FlagDefinition], str],
+    value_rewriter: Callable[[RemoteDispatchFlagOccurrence, FlagDefinition], str],
 ) -> list[str]:
     """Rewrite values of specified flags using a custom function.
 
@@ -247,7 +262,7 @@ def rewrite_flag_values(
     Args:
         argv: The argument list to process.
         flags_to_rewrite: List of flag definitions whose values should be rewritten.
-        value_rewriter: Function that takes (FlagOccurrence, FlagDefinition) and returns
+        value_rewriter: Function that takes (RemoteDispatchFlagOccurrence, FlagDefinition) and returns
             the new value string.
 
     Returns:
@@ -269,7 +284,7 @@ def rewrite_flag_values(
         name: flag_def for flag_def in flags_to_rewrite for name in flag_def.names
     }
 
-    def transformer(occ: FlagOccurrence) -> str | None:
+    def transformer(occ: RemoteDispatchFlagOccurrence) -> str | None:
         """Transform a single flag occurrence."""
         if occ.value is None:
             return None
@@ -287,7 +302,7 @@ def filter_and_rewrite(
     argv: list[str],
     flags_to_strip: list[FlagDefinition],
     flags_to_rewrite: list[FlagDefinition],
-    value_rewriter: Callable[[FlagOccurrence, FlagDefinition], str],
+    value_rewriter: Callable[[RemoteDispatchFlagOccurrence, FlagDefinition], str],
 ) -> list[str]:
     """Combined operation: strip some flags and rewrite others.
 
@@ -319,7 +334,7 @@ def filter_and_rewrite(
         name: flag_def for flag_def in flags_to_rewrite for name in flag_def.names
     }
 
-    def transformer(occ: FlagOccurrence) -> str | None:
+    def transformer(occ: RemoteDispatchFlagOccurrence) -> str | None:
         if occ.value is None or occ.flag_name in exclude_flags:
             return None
 

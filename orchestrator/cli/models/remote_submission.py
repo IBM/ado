@@ -105,21 +105,23 @@ class RemoteSubmissionFlagMatch(BaseModel):
 class ParsedRemoteSubmissionFlags(BaseModel):
     """Result of parsing argv for remote submission flags with position tracking.
 
-    This contains only the flags explicitly defined in this module,
-    not all command-line arguments.
+    This contains flags that require special handling during remote submission
+    preparation (stripping, file copying, value rewriting), not all CLI arguments.
 
     Attributes:
-        flag_occurrences: All recognized remote submission flag matches with their positions.
-        other_args: All non-flag arguments with their positions.
+        handled_flags: Flags requiring special processing (matched against specs).
+        passthrough_args: Arguments not requiring special processing, passed through unchanged.
     """
 
-    flag_occurrences: Annotated[
+    handled_flags: Annotated[
         list[RemoteSubmissionFlagMatch],
-        Field(description="All recognized flag matches"),
+        Field(
+            description="Flags requiring special processing during submission preparation"
+        ),
     ]
-    other_args: Annotated[
+    passthrough_args: Annotated[
         list[tuple[int, str]],
-        Field(description="All non-flag arguments with positions"),
+        Field(description="Arguments passed through unchanged to remote command"),
     ]
 
     def reconstruct_argv(
@@ -143,7 +145,7 @@ class ParsedRemoteSubmissionFlags(BaseModel):
 
         items: list[tuple[int, str]] = []
 
-        for occ in self.flag_occurrences:
+        for occ in self.handled_flags:
             if occ.flag_name in exclude_flags:
                 continue
 
@@ -163,7 +165,7 @@ class ParsedRemoteSubmissionFlags(BaseModel):
                     items.append((occ.value_position, value))
 
         # Add non-flag arguments
-        items.extend(self.other_args)
+        items.extend(self.passthrough_args)
 
         # Sort by position and extract args
         items.sort(key=lambda x: x[0])

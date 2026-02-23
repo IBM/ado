@@ -788,8 +788,8 @@ def test_value_starting_with_dash() -> None:
 
     argv = ["--with", "key=-123"]
     parsed = parse_argv_with_positions(argv, [WITH_SPEC])
-    assert len(parsed.flag_occurrences) == 1
-    assert parsed.flag_occurrences[0].value == "key=-123"
+    assert len(parsed.handled_flags) == 1
+    assert parsed.handled_flags[0].value == "key=-123"
 
 
 def test_empty_argv() -> None:
@@ -807,9 +807,9 @@ def test_multiple_occurrences_same_flag() -> None:
 
     argv = ["-f", "a.yaml", "cmd", "-f", "b.yaml"]
     parsed = parse_argv_with_positions(argv, [FILE_SPEC])
-    assert len(parsed.flag_occurrences) == 2
-    assert parsed.flag_occurrences[0].value == "a.yaml"
-    assert parsed.flag_occurrences[1].value == "b.yaml"
+    assert len(parsed.handled_flags) == 2
+    assert parsed.handled_flags[0].value == "a.yaml"
+    assert parsed.handled_flags[1].value == "b.yaml"
 
 
 def test_flag_spec_matches() -> None:
@@ -849,11 +849,11 @@ def test_parse_argv_with_positions_equals_form() -> None:
 
     argv = ["--file=test.yaml", "create", "op"]
     parsed = parse_argv_with_positions(argv, [FILE_SPEC])
-    assert len(parsed.flag_occurrences) == 1
-    assert parsed.flag_occurrences[0].flag_name == "--file"
-    assert parsed.flag_occurrences[0].value == "test.yaml"
-    assert parsed.flag_occurrences[0].is_equals_form is True
-    assert parsed.other_args == [(1, "create"), (2, "op")]
+    assert len(parsed.handled_flags) == 1
+    assert parsed.handled_flags[0].flag_name == "--file"
+    assert parsed.handled_flags[0].value == "test.yaml"
+    assert parsed.handled_flags[0].is_equals_form is True
+    assert parsed.passthrough_args == [(1, "create"), (2, "op")]
 
 
 def test_reconstruct_argv_maintains_order() -> None:

@@ -41,13 +41,13 @@ def parse_argv_with_positions(
         >>> from orchestrator.cli.models.remote_submission import FILE_SPEC, CONTEXT_SPEC
         >>> argv = ["-c", "ctx.yaml", "create", "op", "-f", "op.yaml"]
         >>> parsed = parse_argv_with_positions(argv, [FILE_SPEC, CONTEXT_SPEC])
-        >>> len(parsed.flag_occurrences)
+        >>> len(parsed.handled_flags)
         2
-        >>> parsed.other_args
+        >>> parsed.passthrough_args
         [(2, 'create'), (3, 'op')]
     """
-    flag_occurrences: list[RemoteSubmissionFlagMatch] = []
-    other_args: list[tuple[int, str]] = []
+    handled_flags: list[RemoteSubmissionFlagMatch] = []
+    passthrough_args: list[tuple[int, str]] = []
 
     i = 0
     while i < len(argv):
@@ -58,7 +58,7 @@ def parse_argv_with_positions(
             # Check for --flag=value form
             value_from_equals = flag_def.extract_value_from_equals_form(arg)
             if value_from_equals is not None:
-                flag_occurrences.append(
+                handled_flags.append(
                     RemoteSubmissionFlagMatch(
                         position=i,
                         flag_name=arg.split("=", 1)[0],
@@ -79,7 +79,7 @@ def parse_argv_with_positions(
                             f"Flag {arg} expects a value but is at end of arguments"
                         )
                     value = argv[i + 1]
-                    flag_occurrences.append(
+                    handled_flags.append(
                         RemoteSubmissionFlagMatch(
                             position=i,
                             flag_name=arg,
@@ -90,7 +90,7 @@ def parse_argv_with_positions(
                     )
                     i += 2
                 else:
-                    flag_occurrences.append(
+                    handled_flags.append(
                         RemoteSubmissionFlagMatch(
                             position=i,
                             flag_name=arg,
@@ -104,11 +104,11 @@ def parse_argv_with_positions(
                 break
 
         if not matched:
-            other_args.append((i, arg))
+            passthrough_args.append((i, arg))
             i += 1
 
     return ParsedRemoteSubmissionFlags(
-        flag_occurrences=flag_occurrences, other_args=other_args
+        handled_flags=handled_flags, passthrough_args=passthrough_args
     )
 
 
@@ -142,7 +142,7 @@ def strip_flags(
     parsed = parse_argv_with_positions(argv, flags_to_strip)
 
     # Collect all flag names that appeared
-    exclude_flags = {occ.flag_name for occ in parsed.flag_occurrences}
+    exclude_flags = {occ.flag_name for occ in parsed.handled_flags}
 
     return parsed.reconstruct_argv(exclude_flags=exclude_flags)
 
@@ -227,7 +227,7 @@ def filter_and_rewrite(
     strip_flag_names = {name for flag in flags_to_strip for name in flag.names}
     exclude_flags = {
         occ.flag_name
-        for occ in parsed.flag_occurrences
+        for occ in parsed.handled_flags
         if occ.flag_name in strip_flag_names
     }
 

@@ -4,14 +4,14 @@
 """Position-aware argument parsing utilities for remote submission preparation.
 
 This module provides parsing functions for flags explicitly defined in
-orchestrator.cli.models.remote_dispatch. These are used to prepare commands
+orchestrator.cli.models.remote_submission. These are used to prepare commands
 for remote execution by handling flags that need special processing (stripping,
 file copying, value rewriting).
 """
 
 from collections.abc import Callable
 
-from orchestrator.cli.models.remote_dispatch import (
+from orchestrator.cli.models.remote_submission import (
     ParsedRemoteSubmissionFlags,
     RemoteSubmissionFlagMatch,
     RemoteSubmissionFlagSpec,
@@ -25,7 +25,7 @@ def parse_argv_with_positions(
     """Parse argv tracking positions of remote submission flags and arguments.
 
     This is the core parsing function that recognizes only flags explicitly
-    defined in remote_dispatch.py for remote submission preparation.
+    defined in remote_submission.py for remote submission preparation.
 
     Args:
         argv: The argument list to parse.
@@ -38,7 +38,7 @@ def parse_argv_with_positions(
         ValueError: If a flag expecting a value is at the end of argv without a value.
 
     Examples:
-        >>> from orchestrator.cli.models.remote_dispatch import FILE_SPEC, CONTEXT_SPEC
+        >>> from orchestrator.cli.models.remote_submission import FILE_SPEC, CONTEXT_SPEC
         >>> argv = ["-c", "ctx.yaml", "create", "op", "-f", "op.yaml"]
         >>> parsed = parse_argv_with_positions(argv, [FILE_SPEC, CONTEXT_SPEC])
         >>> len(parsed.flag_occurrences)
@@ -134,7 +134,7 @@ def strip_flags(
         New argument list without the specified flags.
 
     Examples:
-        >>> from orchestrator.cli.models.remote_dispatch import EXECUTION_CONTEXT_SPEC
+        >>> from orchestrator.cli.models.remote_submission import EXECUTION_CONTEXT_SPEC
         >>> argv = ["-c", "ctx.yaml", "--execution-context", "exec.yaml", "create", "op"]
         >>> strip_flags(argv, [EXECUTION_CONTEXT_SPEC])
         ["-c", "ctx.yaml", "create", "op"]
@@ -170,7 +170,7 @@ def rewrite_flag_values(
 
     Examples:
         >>> from pathlib import Path
-        >>> from orchestrator.cli.models.remote_dispatch import FILE_SPEC
+        >>> from orchestrator.cli.models.remote_submission import FILE_SPEC
         >>> def to_basename(occ, flag_def):
         ...     return Path(occ.value).name if occ.value else occ.value
         >>> argv = ["-f", "/path/to/file.yaml"]

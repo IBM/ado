@@ -3,7 +3,7 @@
 
 """Remote dispatch utilities for executing ado commands on Ray clusters."""
 
-from orchestrator.cli.models.remote_dispatch import (
+from orchestrator.cli.models.remote_submission import (
     CONTEXT_SPEC,
     EXECUTION_CONTEXT_SPEC,
     FILE_SPEC,

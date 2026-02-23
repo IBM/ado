@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 import yaml
 from rich.status import Status
 
-from orchestrator.cli.models.remote_dispatch import (
+from orchestrator.cli.models.remote_submission import (
     SUBMISSION_CONTEXT_FLAGS,
     SUBMISSION_FILE_COPY_FLAGS,
     RemoteSubmissionFlagMatch,

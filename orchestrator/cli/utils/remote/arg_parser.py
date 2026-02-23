@@ -4,114 +4,18 @@
 """Position-aware argument parsing utilities for remote dispatch.
 
 This module provides parsing functions for flags explicitly defined in
-flag_definitions.py. These are used for remote dispatch operations to handle
-flags that need special processing (stripping, file copying, value rewriting).
+orchestrator.cli.models.remote_dispatch. These are used for remote dispatch
+operations to handle flags that need special processing (stripping, file copying,
+value rewriting).
 """
 
 from collections.abc import Callable
-from typing import Annotated
 
-from pydantic import BaseModel, Field
-
-from orchestrator.cli.utils.remote.flag_definitions import FlagDefinition
-
-
-class RemoteDispatchFlagOccurrence(BaseModel):
-    """A single occurrence of a remote dispatch flag in argv.
-
-    This represents an occurrence of a flag explicitly defined in flag_definitions.py,
-    not just any arbitrary command-line flag.
-
-    Attributes:
-        position: Index in original argv where the flag appears.
-        flag_name: The actual flag string used (e.g., "-f" or "--file").
-        value: The value associated with the flag, if any.
-        value_position: Position of value in argv if separate from flag, else None.
-        is_equals_form: True if flag was in --flag=value form.
-    """
-
-    model_config = {"frozen": True}
-
-    position: Annotated[int, Field(description="Index in original argv")]
-    flag_name: Annotated[str, Field(description="The actual flag string used")]
-    value: Annotated[
-        str | None, Field(default=None, description="Value associated with the flag")
-    ]
-    value_position: Annotated[
-        int | None,
-        Field(default=None, description="Position of value in argv if separate"),
-    ]
-    is_equals_form: Annotated[
-        bool, Field(description="True if flag was in --flag=value form")
-    ]
-
-
-class ParsedRemoteDispatchFlags(BaseModel):
-    """Result of parsing argv for remote dispatch flags with position tracking.
-
-    This contains only the flags explicitly defined in flag_definitions.py,
-    not all command-line arguments.
-
-    Attributes:
-        flag_occurrences: All recognized remote dispatch flag occurrences with their positions.
-        other_args: All non-flag arguments with their positions.
-    """
-
-    flag_occurrences: Annotated[
-        list[RemoteDispatchFlagOccurrence],
-        Field(description="All recognized flag occurrences"),
-    ]
-    other_args: Annotated[
-        list[tuple[int, str]],
-        Field(description="All non-flag arguments with positions"),
-    ]
-
-    def reconstruct_argv(
-        self,
-        exclude_flags: set[str] | None = None,
-        value_transformer: (
-            Callable[[RemoteDispatchFlagOccurrence], str | None] | None
-        ) = None,
-    ) -> list[str]:
-        """Reconstruct argv with optional filtering and value transformation.
-
-        Args:
-            exclude_flags: Set of flag names to exclude from output.
-            value_transformer: Optional function to transform flag values. If it returns None,
-                the original value is used.
-
-        Returns:
-            Reconstructed argument list maintaining original order.
-        """
-        exclude_flags = exclude_flags or set()
-
-        items: list[tuple[int, str]] = []
-
-        for occ in self.flag_occurrences:
-            if occ.flag_name in exclude_flags:
-                continue
-
-            # Transform value if transformer provided
-            value = occ.value
-            if value_transformer is not None:
-                transformed = value_transformer(occ)
-                if transformed is not None:
-                    value = transformed
-
-            # Add flag and value to items
-            if occ.is_equals_form:
-                items.append((occ.position, f"{occ.flag_name}={value}"))
-            else:
-                items.append((occ.position, occ.flag_name))
-                if value is not None and occ.value_position is not None:
-                    items.append((occ.value_position, value))
-
-        # Add non-flag arguments
-        items.extend(self.other_args)
-
-        # Sort by position and extract args
-        items.sort(key=lambda x: x[0])
-        return [arg for _, arg in items]
+from orchestrator.cli.models.remote_dispatch import (
+    FlagDefinition,
+    ParsedRemoteDispatchFlags,
+    RemoteDispatchFlagOccurrence,
+)
 
 
 def parse_argv_with_positions(

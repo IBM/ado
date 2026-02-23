@@ -16,19 +16,19 @@ from urllib.parse import urlparse
 import yaml
 from rich.status import Status
 
+from orchestrator.cli.models.remote_dispatch import (
+    CONTEXT_FLAGS,
+    FILE_COPY_FLAGS,
+    FlagDefinition,
+    RemoteDispatchFlagOccurrence,
+)
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_REMOTE_PORT_FORWARD,
     ADO_SPINNER_REMOTE_PREPARING_FILES,
 )
 from orchestrator.cli.utils.remote.arg_parser import (
-    RemoteDispatchFlagOccurrence,
     rewrite_flag_values,
     strip_flags,
-)
-from orchestrator.cli.utils.remote.flag_definitions import (
-    CONTEXT_FLAGS,
-    FILE_COPY_FLAGS,
-    FlagDefinition,
 )
 from orchestrator.core.executioncontext.config import (
     ClusterExecutionType,

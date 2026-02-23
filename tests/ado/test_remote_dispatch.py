@@ -397,9 +397,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
         captured_cmd.append(cmd)
         return MagicMock(returncode=0)
 
-    with patch(
-        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
-    ):
+    with patch("subprocess.run", side_effect=fake_run):
         exit_code = dispatch(
             execution_context=cluster_execution_context,
             project_context_file=mysql_context_yaml_file,
@@ -443,9 +441,7 @@ def test_dispatcher_no_wait(
         captured_cmd.append(cmd)
         return MagicMock(returncode=0)
 
-    with patch(
-        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
-    ):
+    with patch("subprocess.run", side_effect=fake_run):
         dispatch(
             execution_context=ctx,
             project_context_file=mysql_context_yaml_file,
@@ -461,7 +457,7 @@ def test_dispatcher_propagates_exit_code(
     cluster_execution_context: ExecutionContext,
 ) -> None:
     with patch(
-        "orchestrator.cli.utils.remote.dispatch.subprocess.run",
+        "subprocess.run",
         return_value=MagicMock(returncode=2),
     ):
         exit_code = dispatch(
@@ -511,9 +507,7 @@ def test_dispatcher_copies_context_and_op_file(
         found_runtime_env = (working_dir / "runtime_env.yaml").exists()
         return MagicMock(returncode=0)
 
-    with patch(
-        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
-    ):
+    with patch("subprocess.run", side_effect=fake_run):
         dispatch(
             execution_context=cluster_execution_context,
             project_context_file=mysql_context_yaml_file,
@@ -551,9 +545,7 @@ def test_dispatcher_runtime_env_contents(
         inspected_runtime_env.append(yaml.safe_load(runtime_env_path.read_text()))
         return MagicMock(returncode=0)
 
-    with patch(
-        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
-    ):
+    with patch("subprocess.run", side_effect=fake_run):
         dispatch(
             execution_context=ctx,
             project_context_file=mysql_context_yaml_file,
@@ -654,9 +646,7 @@ def test_cli_execution_context_dispatches_remotely(
         return MagicMock(returncode=0, spec=subprocess.CompletedProcess)
 
     runner = CliRunner()
-    with patch(
-        "orchestrator.cli.utils.remote.dispatch.subprocess.run", side_effect=fake_run
-    ):
+    with patch("subprocess.run", side_effect=fake_run):
         result = runner.invoke(
             ado,
             [
@@ -745,13 +735,13 @@ def test_rewrite_flag_values_generic() -> None:
     """Test generic rewrite_flag_values function."""
     from orchestrator.cli.models.remote_dispatch import (
         FILE,
-        FlagDefinition,
+        RemoteDispatchFlagDefinition,
         RemoteDispatchFlagOccurrence,
     )
     from orchestrator.cli.utils.remote.arg_parser import rewrite_flag_values
 
     def to_uppercase(
-        occ: RemoteDispatchFlagOccurrence, flag_def: FlagDefinition
+        occ: RemoteDispatchFlagOccurrence, flag_def: RemoteDispatchFlagDefinition
     ) -> str:
         return occ.value.upper() if occ.value else ""
 
@@ -762,11 +752,11 @@ def test_rewrite_flag_values_generic() -> None:
 
 def test_extensibility_new_flag() -> None:
     """Test that adding a new flag definition works without code changes."""
-    from orchestrator.cli.models.remote_dispatch import FlagDefinition
+    from orchestrator.cli.models.remote_dispatch import RemoteDispatchFlagDefinition
     from orchestrator.cli.utils.remote.arg_parser import strip_flags
 
     # Define a new flag
-    NEW_FLAG = FlagDefinition(
+    NEW_FLAG = RemoteDispatchFlagDefinition(
         names=frozenset({"--new-flag"}),
         hasValue=True,
     )
@@ -823,10 +813,12 @@ def test_multiple_occurrences_same_flag() -> None:
 
 
 def test_flag_definition_matches() -> None:
-    """Test FlagDefinition.matches() method."""
-    from orchestrator.cli.models.remote_dispatch import FlagDefinition
+    """Test RemoteDispatchFlagDefinition.matches() method."""
+    from orchestrator.cli.models.remote_dispatch import RemoteDispatchFlagDefinition
 
-    flag = FlagDefinition(names=frozenset({"-f", "--file"}), hasValue=True)
+    flag = RemoteDispatchFlagDefinition(
+        names=frozenset({"-f", "--file"}), hasValue=True
+    )
     assert flag.matches("-f")
     assert flag.matches("--file")
     assert flag.matches("--file=value")
@@ -834,10 +826,12 @@ def test_flag_definition_matches() -> None:
 
 
 def test_flag_definition_extract_value_from_equals_form() -> None:
-    """Test FlagDefinition.extract_value_from_equals_form() method."""
-    from orchestrator.cli.models.remote_dispatch import FlagDefinition
+    """Test RemoteDispatchFlagDefinition.extract_value_from_equals_form() method."""
+    from orchestrator.cli.models.remote_dispatch import RemoteDispatchFlagDefinition
 
-    flag = FlagDefinition(names=frozenset({"-f", "--file"}), hasValue=True)
+    flag = RemoteDispatchFlagDefinition(
+        names=frozenset({"-f", "--file"}), hasValue=True
+    )
     assert flag.extract_value_from_equals_form("--file=test.yaml") == "test.yaml"
     assert flag.extract_value_from_equals_form("-f=test.yaml") == "test.yaml"
     assert flag.extract_value_from_equals_form("--file") is None
@@ -845,10 +839,12 @@ def test_flag_definition_extract_value_from_equals_form() -> None:
 
 
 def test_flag_definition_get_canonical_name() -> None:
-    """Test FlagDefinition.get_canonical_name() method."""
-    from orchestrator.cli.models.remote_dispatch import FlagDefinition
+    """Test RemoteDispatchFlagDefinition.get_canonical_name() method."""
+    from orchestrator.cli.models.remote_dispatch import RemoteDispatchFlagDefinition
 
-    flag = FlagDefinition(names=frozenset({"-f", "--file"}), hasValue=True)
+    flag = RemoteDispatchFlagDefinition(
+        names=frozenset({"-f", "--file"}), hasValue=True
+    )
     assert flag.get_canonical_name() == "--file"
 
 

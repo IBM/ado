@@ -36,6 +36,7 @@ from orchestrator.core.executioncontext.config import (
     JobExecutionType,
     PortForwardConfiguration,
 )
+from orchestrator.metastore.project import ProjectContext
 
 log = logging.getLogger(__name__)
 
@@ -427,7 +428,7 @@ def _run_ray_submit(
 def _dispatch_to_cluster(
     cluster_exec: ClusterExecutionType,
     execution_context: ExecutionContext,
-    project_context_file: Path,
+    project_context: ProjectContext,
     ado_args: list[str],
     working_dir: Path,
     repo_root: Path,
@@ -440,9 +441,8 @@ def _dispatch_to_cluster(
         Resolved cluster execution type.
     execution_context:
         Full execution context.
-    project_context_file:
-        Absolute path to the project context YAML file to copy into the
-        working directory.
+    project_context:
+        The ProjectContext instance to serialize into the working directory.
     ado_args:
         Full ado argument list (without ``--execution-context``).
     working_dir:
@@ -469,24 +469,30 @@ def _dispatch_to_cluster(
     with contextlib.ExitStack() as stack:
         status = stack.enter_context(Status(ADO_SPINNER_REMOTE_PREPARING_FILES))
 
-        # 1. Copy project context and any -f / --with files into the working directory
-        shutil.copy2(project_context_file, working_dir / project_context_file.name)
+        # 1. Serialize project context to working directory
+        context_filename = "project_context.yaml"
+        context_file_path = working_dir / context_filename
+        context_file_path.write_text(
+            yaml.dump(project_context.model_dump(), default_flow_style=False)
+        )
+
+        # 2. Copy any -f / --with files into the working directory and strip -c flags
         stripped_args = strip_flags(ado_args, SUBMISSION_CONTEXT_FLAGS)
         rewritten_args = _copy_files_and_rewrite_args(stripped_args, working_dir)
-        remote_ado_args = ["-c", project_context_file.name, *rewritten_args]
+        remote_ado_args = ["-c", context_filename, *rewritten_args]
 
-        # 2. Build wheels for fromSource plugins
+        # 3. Build wheels for fromSource plugins
         wheel_names = _build_source_wheels(
             execution_context.packages.fromSource,
             working_dir,
             repo_root,
         )
 
-        # 3. Generate runtime_env.yaml
+        # 4. Generate runtime_env.yaml
         runtime_env_path = working_dir / "runtime_env.yaml"
         _write_runtime_env(execution_context, wheel_names, runtime_env_path)
 
-        # 4. Establish port-forward (blocks until tunnel is bound and ready)
+        # 5. Establish port-forward (blocks until tunnel is bound and ready)
         if pf is not None:
             status.update(ADO_SPINNER_REMOTE_PORT_FORWARD)
         stack.enter_context(pf_ctx)
@@ -505,7 +511,7 @@ def _dispatch_to_cluster(
 
 def dispatch(
     execution_context: ExecutionContext,
-    project_context_file: Path,
+    project_context: ProjectContext,
     ado_args: list[str],
     repo_root: Path | None = None,
 ) -> int:
@@ -519,15 +525,15 @@ def dispatch(
     ----------
     execution_context:
         Loaded and validated execution context.
-    project_context_file:
-        Absolute path to the project context YAML file.  This file will be
-        copied into the working directory and referenced via ``-c`` in the
-        remote ado command.
+    project_context:
+        The ProjectContext instance to serialize and send to the remote cluster.
+        This will be written to a file in the working directory and referenced
+        via ``-c`` in the remote ado command.
     ado_args:
         The full ado argument list **without** ``--execution-context`` and
         its value.  May contain ``-c``/``--context`` (which will be
-        rewritten to reference the copied file) and ``-f``/``--file``
-        (whose files will be copied and paths rewritten).
+        stripped) and ``-f``/``--file`` (whose files will be copied and
+        paths rewritten).
     repo_root:
         Root of the ado repository, used to resolve relative ``fromSource``
         paths.  Defaults to ``Path.cwd()``.
@@ -561,7 +567,7 @@ def dispatch(
         return _dispatch_to_cluster(
             cluster_exec=cluster_exec,
             execution_context=execution_context,
-            project_context_file=project_context_file,
+            project_context=project_context,
             ado_args=ado_args,
             working_dir=Path(tmp_str),
             repo_root=resolved_repo_root,

@@ -216,14 +216,12 @@ def common_options(
         _handle_remote_dispatch(
             execution_context_file=execution_context_file,
             ado_config=ado_config,
-            project_context_file=project_context_file,
         )
 
 
 def _handle_remote_dispatch(
     execution_context_file: pathlib.Path,
     ado_config: AdoConfiguration,
-    project_context_file: pathlib.Path | None,
 ) -> None:
     """Validate, build, and dispatch the current ado invocation to a remote Ray cluster.
 
@@ -235,14 +233,16 @@ def _handle_remote_dispatch(
     execution_context_file:
         Path to the ExecutionContext YAML file.
     ado_config:
-        The loaded AdoConfiguration for this invocation.
-    project_context_file:
-        Explicit project context file passed via ``-c``, or ``None`` if using
-        the active context.
+        The loaded AdoConfiguration for this invocation. Must have a valid
+        project context loaded (either from ``-c`` or the active context).
     """
-    # Guard: remote execution requires a loaded, non-SQLite project context
+    # Guard: remote execution requires a non-SQLite project context
+    # Note: AdoConfiguration.load() ensures project_context is set when not using
+    # do_not_fail_on_available_contexts, which is not the case here
     project_context = ado_config.project_context
     if project_context is None:
+        # This should never happen given AdoConfiguration.load() behavior,
+        # but we check for type safety
         console_print(
             f"{ERROR}Cannot use --execution-context: no project context is active.\n"
             "Activate a context with 'ado context set' or provide one with -c.",
@@ -274,27 +274,13 @@ def _handle_remote_dispatch(
     # Store on ado_config for potential downstream use
     ado_config.set_execution_context(execution_context)
 
-    # Resolve the project context file path
-    if project_context_file is not None:
-        resolved_ctx_file = project_context_file.resolve()
-    else:
-        resolved_ctx_file = ado_config.project_context_path_from_active_context()
-
-    if resolved_ctx_file is None or not resolved_ctx_file.is_file():
-        console_print(
-            f"{ERROR}Cannot resolve the project context file for remote dispatch. "
-            "Ensure a context is active or provide one with -c.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
     # Reconstruct the ado argument list without --execution-context
     ado_args = strip_flags(sys.argv[1:], SUBMISSION_STRIP_FLAGS)
 
     try:
         exit_code = remote_dispatch(
             execution_context=execution_context,
-            project_context_file=resolved_ctx_file,
+            project_context=project_context,
             ado_args=ado_args,
         )
     except (RuntimeError, FileNotFoundError, ValueError) as exc:

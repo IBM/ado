@@ -28,6 +28,7 @@ from orchestrator.core.executioncontext.config import (
     PackageConfiguration,
     PortForwardConfiguration,
 )
+from orchestrator.metastore.project import ProjectContext
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -87,6 +88,14 @@ def mysql_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
     path = tmp_path / "mysql_context.yaml"
     path.write_text(yaml.dump(content))
     return path
+
+
+@pytest.fixture
+def mysql_project_context(mysql_context_yaml_file: pathlib.Path) -> ProjectContext:
+    """Load a ProjectContext instance from the MySQL context YAML file."""
+    return ProjectContext.model_validate(
+        yaml.safe_load(mysql_context_yaml_file.read_text())
+    )
 
 
 @pytest.fixture
@@ -377,6 +386,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
     tmp_path: pathlib.Path,
     cluster_execution_context: ExecutionContext,
     mysql_context_yaml_file: pathlib.Path,
+    mysql_project_context: ProjectContext,
 ) -> None:
     """Verify ray job submit is called with expected arguments."""
     op_file = tmp_path / "operation.yaml"
@@ -400,7 +410,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
     with patch("subprocess.run", side_effect=fake_run):
         exit_code = dispatch(
             execution_context=cluster_execution_context,
-            project_context_file=mysql_context_yaml_file,
+            project_context=mysql_project_context,
             ado_args=ado_args,
         )
 
@@ -418,10 +428,10 @@ def test_dispatcher_assembles_ray_job_submit_command(
     assert "--" in cmd
     assert "ado" in cmd
 
-    # The remote ado command should reference context by basename only
+    # The remote ado command should reference context by fixed filename
     ado_part = cmd[cmd.index("ado") :]
     assert "-c" in ado_part
-    assert mysql_context_yaml_file.name in ado_part
+    assert "project_context.yaml" in ado_part
 
     # --no-wait should NOT be present since wait=True
     assert "--no-wait" not in cmd
@@ -430,6 +440,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
 def test_dispatcher_no_wait(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
+    mysql_project_context: ProjectContext,
 ) -> None:
     ctx = ExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
@@ -444,7 +455,7 @@ def test_dispatcher_no_wait(
     with patch("subprocess.run", side_effect=fake_run):
         dispatch(
             execution_context=ctx,
-            project_context_file=mysql_context_yaml_file,
+            project_context=mysql_project_context,
             ado_args=["get", "space"],
         )
 
@@ -455,6 +466,7 @@ def test_dispatcher_propagates_exit_code(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
     cluster_execution_context: ExecutionContext,
+    mysql_project_context: ProjectContext,
 ) -> None:
     with patch(
         "subprocess.run",
@@ -462,7 +474,7 @@ def test_dispatcher_propagates_exit_code(
     ):
         exit_code = dispatch(
             execution_context=cluster_execution_context,
-            project_context_file=mysql_context_yaml_file,
+            project_context=mysql_project_context,
             ado_args=["get", "space"],
         )
     assert exit_code == 2
@@ -471,12 +483,13 @@ def test_dispatcher_propagates_exit_code(
 def test_dispatcher_job_type_raises_not_implemented(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
+    mysql_project_context: ProjectContext,
 ) -> None:
     ctx = ExecutionContext(executionType=JobExecutionType())
     with pytest.raises(NotImplementedError, match="KubeRay"):
         dispatch(
             execution_context=ctx,
-            project_context_file=mysql_context_yaml_file,
+            project_context=mysql_project_context,
             ado_args=["get", "space"],
         )
 
@@ -485,6 +498,7 @@ def test_dispatcher_copies_context_and_op_file(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
     cluster_execution_context: ExecutionContext,
+    mysql_project_context: ProjectContext,
 ) -> None:
     """Context file and -f files are copied; paths in command are basenames only.
 
@@ -502,7 +516,7 @@ def test_dispatcher_copies_context_and_op_file(
         nonlocal found_context, found_op, found_runtime_env
         idx = cmd.index("--working-dir")
         working_dir = pathlib.Path(cmd[idx + 1])
-        found_context = (working_dir / mysql_context_yaml_file.name).exists()
+        found_context = (working_dir / "project_context.yaml").exists()
         found_op = (working_dir / "my_operation.yaml").exists()
         found_runtime_env = (working_dir / "runtime_env.yaml").exists()
         return MagicMock(returncode=0)
@@ -510,7 +524,7 @@ def test_dispatcher_copies_context_and_op_file(
     with patch("subprocess.run", side_effect=fake_run):
         dispatch(
             execution_context=cluster_execution_context,
-            project_context_file=mysql_context_yaml_file,
+            project_context=mysql_project_context,
             ado_args=[
                 "-c",
                 str(mysql_context_yaml_file),
@@ -521,7 +535,7 @@ def test_dispatcher_copies_context_and_op_file(
             ],
         )
 
-    assert found_context, "context yaml was not copied to working dir"
+    assert found_context, "context yaml was not serialized to working dir"
     assert found_op, "operation yaml was not copied to working dir"
     assert found_runtime_env, "runtime_env.yaml was not generated in working dir"
 
@@ -529,6 +543,7 @@ def test_dispatcher_copies_context_and_op_file(
 def test_dispatcher_runtime_env_contents(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
+    mysql_project_context: ProjectContext,
 ) -> None:
     """Verify runtime_env.yaml has the expected PyPI packages."""
     ctx = ExecutionContext(
@@ -548,7 +563,7 @@ def test_dispatcher_runtime_env_contents(
     with patch("subprocess.run", side_effect=fake_run):
         dispatch(
             execution_context=ctx,
-            project_context_file=mysql_context_yaml_file,
+            project_context=mysql_project_context,
             ado_args=["get", "space"],
         )
 

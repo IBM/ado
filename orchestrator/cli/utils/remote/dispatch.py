@@ -19,6 +19,7 @@ from rich.status import Status
 from orchestrator.cli.models.remote_submission import (
     SUBMISSION_CONTEXT_FLAGS,
     SUBMISSION_FILE_COPY_FLAGS,
+    SUBMISSION_STRIP_FLAGS,
     RemoteSubmissionFlagMatch,
     RemoteSubmissionFlagSpec,
 )
@@ -512,7 +513,7 @@ def _dispatch_to_cluster(
 def dispatch(
     execution_context: ExecutionContext,
     project_context: ProjectContext,
-    ado_args: list[str],
+    argv: list[str],
     repo_root: Path | None = None,
 ) -> int:
     """Dispatch an ado command to a remote Ray cluster via ``ray job submit``.
@@ -529,11 +530,10 @@ def dispatch(
         The ProjectContext instance to serialize and send to the remote cluster.
         This will be written to a file in the working directory and referenced
         via ``-c`` in the remote ado command.
-    ado_args:
-        The full ado argument list **without** ``--execution-context`` and
-        its value.  May contain ``-c``/``--context`` (which will be
-        stripped) and ``-f``/``--file`` (whose files will be copied and
-        paths rewritten).
+    argv:
+        The full ado argument list (sys.argv[1:]). This function will strip
+        ``--execution-context``, ``--override-ado-app-dir``, and other
+        submission-specific flags before processing.
     repo_root:
         Root of the ado repository, used to resolve relative ``fromSource``
         paths.  Defaults to ``Path.cwd()``.
@@ -562,6 +562,9 @@ def dispatch(
 
     cluster_exec: ClusterExecutionType = execution_context.executionType
     resolved_repo_root = repo_root or Path.cwd()
+
+    # Reconstruct the ado argument list without submission-specific flags
+    ado_args = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
 
     with tempfile.TemporaryDirectory(prefix="ado-remote-") as tmp_str:
         return _dispatch_to_cluster(

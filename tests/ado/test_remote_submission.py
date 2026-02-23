@@ -411,7 +411,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
         exit_code = dispatch(
             execution_context=cluster_execution_context,
             project_context=mysql_project_context,
-            ado_args=ado_args,
+            argv=ado_args,
         )
 
     assert exit_code == 0
@@ -456,7 +456,7 @@ def test_dispatcher_no_wait(
         dispatch(
             execution_context=ctx,
             project_context=mysql_project_context,
-            ado_args=["get", "space"],
+            argv=["get", "space"],
         )
 
     assert "--no-wait" in captured_cmd[0]
@@ -475,7 +475,7 @@ def test_dispatcher_propagates_exit_code(
         exit_code = dispatch(
             execution_context=cluster_execution_context,
             project_context=mysql_project_context,
-            ado_args=["get", "space"],
+            argv=["get", "space"],
         )
     assert exit_code == 2
 
@@ -490,7 +490,7 @@ def test_dispatcher_job_type_raises_not_implemented(
         dispatch(
             execution_context=ctx,
             project_context=mysql_project_context,
-            ado_args=["get", "space"],
+            argv=["get", "space"],
         )
 
 
@@ -525,7 +525,7 @@ def test_dispatcher_copies_context_and_op_file(
         dispatch(
             execution_context=cluster_execution_context,
             project_context=mysql_project_context,
-            ado_args=[
+            argv=[
                 "-c",
                 str(mysql_context_yaml_file),
                 "create",
@@ -564,7 +564,7 @@ def test_dispatcher_runtime_env_contents(
         dispatch(
             execution_context=ctx,
             project_context=mysql_project_context,
-            ado_args=["get", "space"],
+            argv=["get", "space"],
         )
 
     assert len(inspected_runtime_env) == 1

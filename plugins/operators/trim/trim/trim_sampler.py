@@ -82,6 +82,20 @@ class TrimSampleSelector(BaseSampler):
             )
             await debug_dir.mkdir(parents=True, exist_ok=True)
 
+    def _no_new_measurement_exception(self, additional_info: str = "") -> None:
+        msg = (
+            f"The current version of TRIM assumes that all measurements produce the observed target output property '{self.params.targetOutput}' "
+            "The measurements obtained with your experiment "
+            f"may not produce values for the target output property '{self.params.targetOutput}'."
+            f"This was detected during the Iterative Modeling phase. {additional_info}"
+            "This is insufficient for downstream processing."
+            "For more information, refer to the documentation here: `https://ibm.github.io/ado/operators/trim/`."
+        )
+        logger_trim_sampler.error(msg)
+        raise InsufficientDataError(
+            "Measurements are incompatible with the Iterative Modeling phase.\n\n" + msg
+        )
+
     def _core_iterator_logic(
         self,
         discoverySpace: DiscoverySpace,
@@ -168,6 +182,11 @@ class TrimSampleSelector(BaseSampler):
                         shorter_df_that_you_subtract=previous_source_df,
                     )
                 )
+                if len(one_additional_row) == 0:
+                    self._no_new_measurement_exception(
+                        additional_info=f"Detected when the source space size is {len(train_df)}"
+                    )
+
                 log_after_split_common_and_diff(
                     i,
                     compare_to_previous_source_df,
@@ -195,6 +214,10 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
+                if len(one_additional_row) == 0:
+                    self._no_new_measurement_exception(
+                        additional_info=f"Detected when the training DataFrame size is {len(train_df)}"
+                    )
                 yielded_rows += one_additional_row
                 previous_holdout_df = current_holdout_df
 
@@ -210,6 +233,10 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
+                if len(one_additional_row) == 0:
+                    self._no_new_measurement_exception(
+                        additional_info=f"Detected when the training DataFrame size is {len(train_df)}"
+                    )
 
                 log_before_first_holdout_update(
                     one_additional_row,

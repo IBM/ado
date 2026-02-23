@@ -66,12 +66,6 @@ class ParsedRemoteDispatchFlags(BaseModel):
         Field(description="All non-flag arguments with positions"),
     ]
 
-    def get_flags_by_name(
-        self, flag_names: set[str]
-    ) -> list[RemoteDispatchFlagOccurrence]:
-        """Get all occurrences of flags matching any of the given names."""
-        return [occ for occ in self.flag_occurrences if occ.flag_name in flag_names]
-
     def reconstruct_argv(
         self,
         exclude_flags: set[str] | None = None,

@@ -19,7 +19,7 @@ from rich.status import Status
 from orchestrator.cli.models.remote_dispatch import (
     CONTEXT_FLAGS,
     FILE_COPY_FLAGS,
-    FlagDefinition,
+    RemoteDispatchFlagDefinition,
     RemoteDispatchFlagOccurrence,
 )
 from orchestrator.cli.utils.output.prints import (
@@ -173,7 +173,7 @@ def _copy_files_and_rewrite_args(
 
     def rewrite_file_value(
         occ: RemoteDispatchFlagOccurrence,
-        flag_def: FlagDefinition,
+        flag_def: RemoteDispatchFlagDefinition,
     ) -> str:
         """Rewrite a file flag value by copying file and returning basename."""
         # This should never be None for flags with hasValue=True, but handle it

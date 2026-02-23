@@ -12,15 +12,15 @@ value rewriting).
 from collections.abc import Callable
 
 from orchestrator.cli.models.remote_dispatch import (
-    FlagDefinition,
     ParsedRemoteDispatchFlags,
+    RemoteDispatchFlagDefinition,
     RemoteDispatchFlagOccurrence,
 )
 
 
 def parse_argv_with_positions(
     argv: list[str],
-    flag_definitions: list[FlagDefinition],
+    flag_definitions: list[RemoteDispatchFlagDefinition],
 ) -> ParsedRemoteDispatchFlags:
     """Parse argv tracking positions of remote dispatch flags and arguments.
 
@@ -119,7 +119,7 @@ def parse_argv_with_positions(
 
 def strip_flags(
     argv: list[str],
-    flags_to_strip: list[FlagDefinition],
+    flags_to_strip: list[RemoteDispatchFlagDefinition],
 ) -> list[str]:
     """Remove specified flags and their values from argv.
 
@@ -149,8 +149,10 @@ def strip_flags(
 
 def rewrite_flag_values(
     argv: list[str],
-    flags_to_rewrite: list[FlagDefinition],
-    value_rewriter: Callable[[RemoteDispatchFlagOccurrence, FlagDefinition], str],
+    flags_to_rewrite: list[RemoteDispatchFlagDefinition],
+    value_rewriter: Callable[
+        [RemoteDispatchFlagOccurrence, RemoteDispatchFlagDefinition], str
+    ],
 ) -> list[str]:
     """Rewrite values of specified flags using a custom function.
 
@@ -160,7 +162,7 @@ def rewrite_flag_values(
     Args:
         argv: The argument list to process.
         flags_to_rewrite: List of flag definitions whose values should be rewritten.
-        value_rewriter: Function that takes (RemoteDispatchFlagOccurrence, FlagDefinition) and returns
+        value_rewriter: Function that takes (RemoteDispatchFlagOccurrence, RemoteDispatchFlagDefinition) and returns
             the new value string.
 
     Returns:
@@ -198,9 +200,11 @@ def rewrite_flag_values(
 
 def filter_and_rewrite(
     argv: list[str],
-    flags_to_strip: list[FlagDefinition],
-    flags_to_rewrite: list[FlagDefinition],
-    value_rewriter: Callable[[RemoteDispatchFlagOccurrence, FlagDefinition], str],
+    flags_to_strip: list[RemoteDispatchFlagDefinition],
+    flags_to_rewrite: list[RemoteDispatchFlagDefinition],
+    value_rewriter: Callable[
+        [RemoteDispatchFlagOccurrence, RemoteDispatchFlagDefinition], str
+    ],
 ) -> list[str]:
     """Combined operation: strip some flags and rewrite others.
 

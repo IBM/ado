@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 # ============================================================================
 
 
-class FlagDefinition(BaseModel):
+class RemoteDispatchFlagDefinition(BaseModel):
     """Metadata for a command-line flag used in remote dispatch.
 
     Attributes:
@@ -169,35 +169,35 @@ class ParsedRemoteDispatchFlags(BaseModel):
 # Flag Registry
 # ============================================================================
 
-EXECUTION_CONTEXT = FlagDefinition(
+EXECUTION_CONTEXT = RemoteDispatchFlagDefinition(
     names=frozenset({"--execution-context"}),
     hasValue=True,
     stripFromRemote=True,
     description="Path to ExecutionContext YAML for remote dispatch",
 )
 
-OVERRIDE_ADO_APP_DIR = FlagDefinition(
+OVERRIDE_ADO_APP_DIR = RemoteDispatchFlagDefinition(
     names=frozenset({"--override-ado-app-dir"}),
     hasValue=True,
     stripFromRemote=True,
     description="Override ado app directory (testing only)",
 )
 
-CONTEXT = FlagDefinition(
+CONTEXT = RemoteDispatchFlagDefinition(
     names=frozenset({"-c", "--context"}),
     hasValue=True,
     valueType="file_path",
     description="Project context file path",
 )
 
-FILE = FlagDefinition(
+FILE = RemoteDispatchFlagDefinition(
     names=frozenset({"-f", "--file"}),
     hasValue=True,
     valueType="file_path",
     description="Input file path",
 )
 
-WITH = FlagDefinition(
+WITH = RemoteDispatchFlagDefinition(
     names=frozenset({"--with"}),
     hasValue=True,
     valueType="key_value",

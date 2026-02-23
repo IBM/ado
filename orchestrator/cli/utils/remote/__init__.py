@@ -13,8 +13,8 @@ from orchestrator.cli.models.remote_dispatch import (
     REMOTE_DISPATCH_FLAGS,
     REMOTE_STRIP_FLAGS,
     WITH,
-    FlagDefinition,
     ParsedRemoteDispatchFlags,
+    RemoteDispatchFlagDefinition,
     RemoteDispatchFlagOccurrence,
 )
 from orchestrator.cli.utils.remote.arg_parser import (
@@ -35,8 +35,8 @@ __all__ = [
     "REMOTE_DISPATCH_FLAGS",
     "REMOTE_STRIP_FLAGS",
     "WITH",
-    "FlagDefinition",
     "ParsedRemoteDispatchFlags",
+    "RemoteDispatchFlagDefinition",
     "RemoteDispatchFlagOccurrence",
     "dispatch",
     "filter_and_rewrite",

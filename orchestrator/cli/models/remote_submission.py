@@ -194,6 +194,7 @@ CONTEXT_SPEC = RemoteSubmissionFlagSpec(
     names=frozenset({"-c", "--context"}),
     hasValue=True,
     valueType="file_path",
+    stripFromRemote=True,
     description="Project context file path",
 )
 
@@ -216,13 +217,14 @@ WITH_SPEC = RemoteSubmissionFlagSpec(
 # ============================================================================
 
 # All flags that should be stripped before remote execution
-SUBMISSION_STRIP_FLAGS = [EXECUTION_CONTEXT_SPEC, OVERRIDE_ADO_APP_DIR_SPEC]
+SUBMISSION_STRIP_FLAGS = [
+    EXECUTION_CONTEXT_SPEC,
+    OVERRIDE_ADO_APP_DIR_SPEC,
+    CONTEXT_SPEC,
+]
 
 # All flags whose values are file paths that need copying
 SUBMISSION_FILE_COPY_FLAGS = [FILE_SPEC, WITH_SPEC]
-
-# Context flags (for special handling)
-SUBMISSION_CONTEXT_FLAGS = [CONTEXT_SPEC]
 
 # All flags recognized by the remote submission parser
 # (Not all CLI flags - only those relevant for remote submission preparation)

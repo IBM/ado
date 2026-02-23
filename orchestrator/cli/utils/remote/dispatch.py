@@ -17,7 +17,6 @@ import yaml
 from rich.status import Status
 
 from orchestrator.cli.models.remote_submission import (
-    SUBMISSION_CONTEXT_FLAGS,
     SUBMISSION_FILE_COPY_FLAGS,
     SUBMISSION_STRIP_FLAGS,
     RemoteSubmissionFlagMatch,
@@ -477,9 +476,8 @@ def _dispatch_to_cluster(
             yaml.dump(project_context.model_dump(), default_flow_style=False)
         )
 
-        # 2. Copy any -f / --with files into the working directory and strip -c flags
-        stripped_args = strip_flags(ado_args, SUBMISSION_CONTEXT_FLAGS)
-        rewritten_args = _copy_files_and_rewrite_args(stripped_args, working_dir)
+        # 2. Copy any -f / --with files into the working directory and rewrite paths
+        rewritten_args = _copy_files_and_rewrite_args(ado_args, working_dir)
         remote_ado_args = ["-c", context_filename, *rewritten_args]
 
         # 3. Build wheels for fromSource plugins

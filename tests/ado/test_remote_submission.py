@@ -12,7 +12,7 @@ from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
 from orchestrator.cli.models.remote_submission import (
-    SUBMISSION_CONTEXT_FLAGS,
+    CONTEXT_SPEC,
     SUBMISSION_STRIP_FLAGS,
 )
 from orchestrator.cli.utils.remote import strip_flags
@@ -123,7 +123,7 @@ def sqlite_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
 def test_strip_remote_flags_long_form() -> None:
     argv = ["-c", "ctx.yaml", "--execution-context", "exc.yaml", "create", "operation"]
     result = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
-    assert result == ["-c", "ctx.yaml", "create", "operation"]
+    assert result == ["create", "operation"]
 
 
 def test_strip_remote_flags_equals_form() -> None:
@@ -135,7 +135,7 @@ def test_strip_remote_flags_equals_form() -> None:
 def test_strip_remote_flags_not_present() -> None:
     argv = ["-c", "ctx.yaml", "get", "space"]
     result = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
-    assert result == ["-c", "ctx.yaml", "get", "space"]
+    assert result == ["get", "space"]
 
 
 def test_strip_remote_flags_strips_override_ado_app_dir() -> None:
@@ -153,25 +153,25 @@ def test_strip_remote_flags_strips_override_ado_app_dir() -> None:
 
 
 # ---------------------------------------------------------------------------
-# strip_flags with SUBMISSION_CONTEXT_FLAGS (replaces _strip_context_flag)
+# strip_flags with context flags (replaces _strip_context_flag)
 # ---------------------------------------------------------------------------
 
 
 def test_strip_context_flags_short_form() -> None:
     args = ["-c", "ctx.yaml", "create", "operation", "-f", "op.yaml"]
-    result = strip_flags(args, SUBMISSION_CONTEXT_FLAGS)
+    result = strip_flags(args, [CONTEXT_SPEC])
     assert result == ["create", "operation", "-f", "op.yaml"]
 
 
 def test_strip_context_flags_long_form() -> None:
     args = ["--context", "ctx.yaml", "get", "space"]
-    result = strip_flags(args, SUBMISSION_CONTEXT_FLAGS)
+    result = strip_flags(args, [CONTEXT_SPEC])
     assert result == ["get", "space"]
 
 
 def test_strip_context_flags_not_present() -> None:
     args = ["create", "operation", "-f", "op.yaml"]
-    result = strip_flags(args, SUBMISSION_CONTEXT_FLAGS)
+    result = strip_flags(args, [CONTEXT_SPEC])
     assert result == ["create", "operation", "-f", "op.yaml"]
 
 

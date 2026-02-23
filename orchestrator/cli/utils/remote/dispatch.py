@@ -20,6 +20,17 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_REMOTE_PORT_FORWARD,
     ADO_SPINNER_REMOTE_PREPARING_FILES,
 )
+from orchestrator.cli.utils.remote.arg_parser import (
+    FlagOccurrence,
+    rewrite_flag_values,
+    strip_flags,
+)
+from orchestrator.cli.utils.remote.flag_definitions import (
+    CONTEXT_FLAGS,
+    FILE_COPY_FLAGS,
+    REMOTE_STRIP_FLAGS,
+    FlagDefinition,
+)
 from orchestrator.core.executioncontext.config import (
     ClusterExecutionType,
     ExecutionContext,
@@ -29,20 +40,8 @@ from orchestrator.core.executioncontext.config import (
 
 log = logging.getLogger(__name__)
 
-# Flags whose next argument is a file path that must be copied to the working dir
-_FILE_ARG_FLAGS = {"-f", "--file"}
-
-# --with KEY=VALUE flag: the VALUE part may be a file path (no short form)
-_WITH_FLAG = "--with"
-
-# Global context / project-context flags — handled specially
-_CONTEXT_FLAGS = {"-c", "--context"}
-
 # Port-forward tool preference order
 _PORT_FORWARD_TOOLS = ["oc", "kubectl"]
-
-# Flags that are local-only and must not be forwarded to the remote ado command
-_LOCAL_ONLY_FLAGS = {"--override-ado-app-dir"}
 
 # Substring written to stdout by oc/kubectl when the tunnel is bound and ready
 _PORT_FORWARD_READY_PATTERN = b"Forwarding from"
@@ -52,7 +51,7 @@ _PORT_FORWARD_READY_TIMEOUT_S = 30.0
 
 
 def remove_execution_context_from_argv(argv: list[str]) -> list[str]:
-    """Return *argv* with ``--execution-context`` and its value removed.
+    """Return *argv* with ``--execution-context`` and local-only flags removed.
 
     Also strips flags that must not be forwarded to the remote cluster (e.g.
     ``--override-ado-app-dir``).
@@ -67,22 +66,13 @@ def remove_execution_context_from_argv(argv: list[str]) -> list[str]:
     list[str]
         A copy of *argv* without the execution context flag, its value, and
         any local-only flags.
-    """
-    _strip_with_value = {"--execution-context"} | _LOCAL_ONLY_FLAGS
 
-    result: list[str] = []
-    skip_next = False
-    for arg in argv:
-        if skip_next:
-            skip_next = False
-            continue
-        if arg in _strip_with_value:
-            skip_next = True
-            continue
-        if any(arg.startswith(f"{flag}=") for flag in _strip_with_value):
-            continue
-        result.append(arg)
-    return result
+    Examples
+    --------
+    >>> remove_execution_context_from_argv(["-c", "ctx.yaml", "--execution-context", "exec.yaml"])
+    ["-c", "ctx.yaml"]
+    """
+    return strip_flags(argv, REMOTE_STRIP_FLAGS)
 
 
 def _find_port_forward_tool() -> str:
@@ -190,105 +180,63 @@ def _strip_context_flag(args: list[str]) -> list[str]:
     -------
     list[str]
         A copy of *args* without any ``-c``/``--context`` flag.
+
+    Examples
+    --------
+    >>> _strip_context_flag(["-c", "ctx.yaml", "create", "op"])
+    ["create", "op"]
     """
-    result: list[str] = []
-    skip_next = False
-    for arg in args:
-        if skip_next:
-            skip_next = False
-            continue
-        if arg in _CONTEXT_FLAGS:
-            skip_next = True
-            continue
-        if any(arg.startswith(f"{flag}=") for flag in _CONTEXT_FLAGS):
-            continue
-        result.append(arg)
-    return result
+    return strip_flags(args, CONTEXT_FLAGS)
 
 
 def _copy_files_and_rewrite_args(
     args: list[str],
     working_dir: Path,
 ) -> list[str]:
-    """Copy files referenced by ``-f``/``--file`` and ``--with`` flags into *working_dir*.
+    """Copy files referenced by flags into *working_dir* and rewrite paths.
 
-    Returns a new argument list with the original file paths replaced by their
-    basenames (since inside the Ray job the working dir is the root).
-
-    For ``--with KEY=VALUE``, the value is treated as a file path using the
-    same heuristic as the ``ado create`` command: if it contains a ``.`` or
-    path separator it must resolve to an existing file; otherwise it is left
-    unchanged as a resource identifier.
+    Returns a new argument list with file paths replaced by basenames.
 
     Parameters
     ----------
     args:
-        Argument list potentially containing ``-f``/``--file`` or ``--with``
-        flags.
+        Argument list potentially containing file flags.
     working_dir:
         Destination directory for copied files.
 
     Returns
     -------
     list[str]
-        A new argument list with file paths replaced by their basenames.
+        A new argument list with file paths replaced by basenames.
 
     Raises
     ------
     ValueError
-        If two file arguments share the same basename, which would cause a
-        silent overwrite in the working directory.
+        If two file arguments share the same basename.
     FileNotFoundError
-        If a ``--with KEY=VALUE`` value looks like a path (contains ``.`` or
-        a path separator) but does not resolve to an existing file.
+        If a ``--with KEY=VALUE`` value looks like a path but doesn't exist.
     """
-    result: list[str] = []
     copied_basenames: set[str] = set()
-    i = 0
-    while i < len(args):
-        arg = args[i]
 
-        # -f / --file VALUE  →  copy file, replace with basename
-        if arg in _FILE_ARG_FLAGS and i + 1 < len(args):
-            src = Path(args[i + 1]).resolve()
-            _copy_file_checked(src, working_dir, copied_basenames)
-            result.append(arg)
-            result.append(src.name)
-            i += 2
-            continue
+    def rewrite_file_value(
+        occ: FlagOccurrence,
+        flag_def: FlagDefinition,
+    ) -> str:
+        """Rewrite a file flag value by copying file and returning basename."""
+        # This should never be None for flags with hasValue=True, but handle it
+        if occ.value is None:
+            raise ValueError(f"Flag {occ.flag_name} has no value")
 
-        # --file=VALUE form
-        matched_file_flag = False
-        for flag in _FILE_ARG_FLAGS:
-            if arg.startswith(f"{flag}="):
-                src = Path(arg.split("=", 1)[1]).resolve()
-                _copy_file_checked(src, working_dir, copied_basenames)
-                result.append(f"{flag}={src.name}")
-                matched_file_flag = True
-                break
-        if matched_file_flag:
-            i += 1
-            continue
+        # Special handling for --with KEY=VALUE
+        if flag_def.valueType == "key_value":
+            return _rewrite_with_value(occ.value, working_dir, copied_basenames)
 
-        # --with KEY=VALUE  →  copy file if value is a path, leave ID unchanged
-        if arg == _WITH_FLAG and i + 1 < len(args):
-            rewritten = _rewrite_with_value(args[i + 1], working_dir, copied_basenames)
-            result.append(arg)
-            result.append(rewritten)
-            i += 2
-            continue
+        # Regular file path handling
+        src = Path(occ.value).resolve()
+        _copy_file_checked(src, working_dir, copied_basenames)
+        return src.name
 
-        # --with=KEY=VALUE form
-        if arg.startswith(f"{_WITH_FLAG}="):
-            kv = arg[len(_WITH_FLAG) + 1 :]  # strip "--with="
-            rewritten = _rewrite_with_value(kv, working_dir, copied_basenames)
-            result.append(f"{_WITH_FLAG}={rewritten}")
-            i += 1
-            continue
-
-        result.append(arg)
-        i += 1
-    return result
+    return rewrite_flag_values(args, FILE_COPY_FLAGS, rewrite_file_value)
 
 
 def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:

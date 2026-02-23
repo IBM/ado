@@ -28,7 +28,6 @@ from orchestrator.cli.utils.remote.arg_parser import (
 from orchestrator.cli.utils.remote.flag_definitions import (
     CONTEXT_FLAGS,
     FILE_COPY_FLAGS,
-    REMOTE_STRIP_FLAGS,
     FlagDefinition,
 )
 from orchestrator.core.executioncontext.config import (
@@ -48,31 +47,6 @@ _PORT_FORWARD_READY_PATTERN = b"Forwarding from"
 
 # How long to wait for the port-forward tunnel to become ready
 _PORT_FORWARD_READY_TIMEOUT_S = 30.0
-
-
-def remove_execution_context_from_argv(argv: list[str]) -> list[str]:
-    """Return *argv* with ``--execution-context`` and local-only flags removed.
-
-    Also strips flags that must not be forwarded to the remote cluster (e.g.
-    ``--override-ado-app-dir``).
-
-    Parameters
-    ----------
-    argv:
-        The full argument list (typically ``sys.argv[1:]``).
-
-    Returns
-    -------
-    list[str]
-        A copy of *argv* without the execution context flag, its value, and
-        any local-only flags.
-
-    Examples
-    --------
-    >>> remove_execution_context_from_argv(["-c", "ctx.yaml", "--execution-context", "exec.yaml"])
-    ["-c", "ctx.yaml"]
-    """
-    return strip_flags(argv, REMOTE_STRIP_FLAGS)
 
 
 def _find_port_forward_tool() -> str:
@@ -166,27 +140,6 @@ def _port_forward_context(
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
-
-
-def _strip_context_flag(args: list[str]) -> list[str]:
-    """Return *args* with any ``-c``/``--context`` flag and its value removed.
-
-    Parameters
-    ----------
-    args:
-        Argument list to strip.
-
-    Returns
-    -------
-    list[str]
-        A copy of *args* without any ``-c``/``--context`` flag.
-
-    Examples
-    --------
-    >>> _strip_context_flag(["-c", "ctx.yaml", "create", "op"])
-    ["create", "op"]
-    """
-    return strip_flags(args, CONTEXT_FLAGS)
 
 
 def _copy_files_and_rewrite_args(
@@ -518,7 +471,7 @@ def _dispatch_to_cluster(
 
         # 1. Copy project context and any -f / --with files into the working directory
         shutil.copy2(project_context_file, working_dir / project_context_file.name)
-        stripped_args = _strip_context_flag(ado_args)
+        stripped_args = strip_flags(ado_args, CONTEXT_FLAGS)
         rewritten_args = _copy_files_and_rewrite_args(stripped_args, working_dir)
         remote_ado_args = ["-c", project_context_file.name, *rewritten_args]
 

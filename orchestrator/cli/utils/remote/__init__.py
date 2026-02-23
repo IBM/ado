@@ -11,10 +11,7 @@ from orchestrator.cli.utils.remote.arg_parser import (
     rewrite_flag_values,
     strip_flags,
 )
-from orchestrator.cli.utils.remote.dispatch import (
-    dispatch,
-    remove_execution_context_from_argv,
-)
+from orchestrator.cli.utils.remote.dispatch import dispatch
 from orchestrator.cli.utils.remote.flag_definitions import (
     CONTEXT,
     CONTEXT_FLAGS,
@@ -44,7 +41,6 @@ __all__ = [
     "dispatch",
     "filter_and_rewrite",
     "parse_argv_with_positions",
-    "remove_execution_context_from_argv",
     "rewrite_flag_values",
     "strip_flags",
 ]

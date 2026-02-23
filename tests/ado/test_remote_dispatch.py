@@ -11,12 +11,15 @@ import yaml
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
+from orchestrator.cli.utils.remote import (
+    CONTEXT_FLAGS,
+    REMOTE_STRIP_FLAGS,
+    strip_flags,
+)
 from orchestrator.cli.utils.remote.dispatch import (
     _copy_files_and_rewrite_args,
-    _strip_context_flag,
     _write_runtime_env,
     dispatch,
-    remove_execution_context_from_argv,
 )
 from orchestrator.core.executioncontext.config import (
     ClusterExecutionType,
@@ -104,29 +107,29 @@ def sqlite_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
 
 
 # ---------------------------------------------------------------------------
-# remove_execution_context_from_argv
+# strip_flags with REMOTE_STRIP_FLAGS (replaces remove_execution_context_from_argv)
 # ---------------------------------------------------------------------------
 
 
-def test_remove_execution_context_long_form() -> None:
+def test_strip_remote_flags_long_form() -> None:
     argv = ["-c", "ctx.yaml", "--execution-context", "exc.yaml", "create", "operation"]
-    result = remove_execution_context_from_argv(argv)
+    result = strip_flags(argv, REMOTE_STRIP_FLAGS)
     assert result == ["-c", "ctx.yaml", "create", "operation"]
 
 
-def test_remove_execution_context_equals_form() -> None:
+def test_strip_remote_flags_equals_form() -> None:
     argv = ["--execution-context=exc.yaml", "get", "space"]
-    result = remove_execution_context_from_argv(argv)
+    result = strip_flags(argv, REMOTE_STRIP_FLAGS)
     assert result == ["get", "space"]
 
 
-def test_remove_execution_context_not_present() -> None:
+def test_strip_remote_flags_not_present() -> None:
     argv = ["-c", "ctx.yaml", "get", "space"]
-    result = remove_execution_context_from_argv(argv)
+    result = strip_flags(argv, REMOTE_STRIP_FLAGS)
     assert result == ["-c", "ctx.yaml", "get", "space"]
 
 
-def test_remove_execution_context_strips_override_ado_app_dir() -> None:
+def test_strip_remote_flags_strips_override_ado_app_dir() -> None:
     """--override-ado-app-dir is a local-only flag and must not be forwarded."""
     argv = [
         "--override-ado-app-dir",
@@ -136,30 +139,30 @@ def test_remove_execution_context_strips_override_ado_app_dir() -> None:
         "get",
         "space",
     ]
-    result = remove_execution_context_from_argv(argv)
+    result = strip_flags(argv, REMOTE_STRIP_FLAGS)
     assert result == ["get", "space"]
 
 
 # ---------------------------------------------------------------------------
-# _strip_context_flag
+# strip_flags with CONTEXT_FLAGS (replaces _strip_context_flag)
 # ---------------------------------------------------------------------------
 
 
-def test_strip_context_flag_short_form() -> None:
+def test_strip_context_flags_short_form() -> None:
     args = ["-c", "ctx.yaml", "create", "operation", "-f", "op.yaml"]
-    result = _strip_context_flag(args)
+    result = strip_flags(args, CONTEXT_FLAGS)
     assert result == ["create", "operation", "-f", "op.yaml"]
 
 
-def test_strip_context_flag_long_form() -> None:
+def test_strip_context_flags_long_form() -> None:
     args = ["--context", "ctx.yaml", "get", "space"]
-    result = _strip_context_flag(args)
+    result = strip_flags(args, CONTEXT_FLAGS)
     assert result == ["get", "space"]
 
 
-def test_strip_context_flag_not_present() -> None:
+def test_strip_context_flags_not_present() -> None:
     args = ["create", "operation", "-f", "op.yaml"]
-    result = _strip_context_flag(args)
+    result = strip_flags(args, CONTEXT_FLAGS)
     assert result == ["create", "operation", "-f", "op.yaml"]
 
 

@@ -82,6 +82,7 @@ dependencies = [
     { name = "ray", extra = ["serve"] },
     { name = "sqlalchemy" },
     { name = "typer" },
+    { name = "uv" },
 ]
 
 [package.dev-dependencies]
@@ -145,6 +146,7 @@ requires-dist = [
     { name = "ray", extras = ["serve"], specifier = ">=2.9" },
     { name = "sqlalchemy", specifier = ">2" },
     { name = "typer", specifier = ">=0.22.0" },
+    { name = "uv", specifier = ">=0.10.4" },
 ]
 
 [package.metadata.requires-dev]

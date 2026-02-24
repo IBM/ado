@@ -131,8 +131,8 @@ def log_unable_to_proceed_to_iterative_modeling_and_raise_error(
         else "your custom experiment (or actuator)"
     )
     msg = (
-        f"The current version of TRIM assumes that all measurements produce the observed target output property '{target_output}' "
-        f"The measurements obtained with {experiment_reference_msg}"
+        f"The current version of TRIM assumes that all measurements produce the observed target output property '{target_output}'. "
+        f"The measurements obtained with {experiment_reference_msg} "
         f"may not produce values for the target output property '{target_output}'. "
         f"This was detected during the no-priors characterization phase: {sampling_budget_min_points - number_of_points_with_target_output_measurement} out of {sampling_budget_min_points} "
         f"requested measurements did not contain the target output property '{target_output}'. "

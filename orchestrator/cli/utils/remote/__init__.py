@@ -17,7 +17,6 @@ from orchestrator.cli.models.remote_submission import (
     RemoteSubmissionFlagSpec,
 )
 from orchestrator.cli.utils.remote.arg_parser import (
-    filter_and_rewrite,
     parse_argv_with_positions,
     rewrite_flag_values,
     strip_flags,
@@ -37,7 +36,6 @@ __all__ = [
     "RemoteSubmissionFlagMatch",
     "RemoteSubmissionFlagSpec",
     "dispatch",
-    "filter_and_rewrite",
     "parse_argv_with_positions",
     "rewrite_flag_values",
     "strip_flags",

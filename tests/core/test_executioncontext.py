@@ -12,6 +12,7 @@ from orchestrator.core.executioncontext.config import (
     PackageConfiguration,
     PortForwardConfiguration,
 )
+from orchestrator.utilities.output import pydantic_model_as_yaml
 
 # ---------------------------------------------------------------------------
 # PortForwardConfiguration
@@ -251,7 +252,7 @@ def test_execution_context_yaml_round_trip() -> None:
         wait=True,
         envVars={"PYTHONUNBUFFERED": "x"},
     )
-    yaml_str = yaml.dump(ctx.model_dump())
+    yaml_str = pydantic_model_as_yaml(ctx)
     reloaded = ExecutionContext.model_validate(yaml.safe_load(yaml_str))
     assert reloaded == ctx
 

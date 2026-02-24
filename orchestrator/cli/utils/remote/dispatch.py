@@ -403,7 +403,7 @@ def _run_ray_submit(
 
     cmd += [
         "--address",
-        cluster_exec.clusterUrl,
+        cluster_exec.clusterUrl.unicode_string(),
         "--working-dir",
         str(working_dir),
         "--runtime-env",

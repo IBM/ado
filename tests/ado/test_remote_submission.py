@@ -29,6 +29,7 @@ from orchestrator.core.executioncontext.config import (
     PortForwardConfiguration,
 )
 from orchestrator.metastore.project import ProjectContext
+from orchestrator.utilities.output import pydantic_model_as_yaml
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -67,7 +68,7 @@ def execution_context_file(
 ) -> pathlib.Path:
     """Write a cluster ExecutionContext to a temp YAML file."""
     path = tmp_path / "exec_context.yaml"
-    path.write_text(yaml.dump(cluster_execution_context.model_dump()))
+    path.write_text(pydantic_model_as_yaml(cluster_execution_context))
     return path
 
 
@@ -422,7 +423,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
     assert cmd[1] == "job"
     assert cmd[2] == "submit"
     assert "--address" in cmd
-    assert "http://localhost:8265" in cmd
+    assert "http://localhost:8265/" in cmd
     assert "--working-dir" in cmd
     assert "--runtime-env" in cmd
     assert "--" in cmd
@@ -677,7 +678,7 @@ def test_cli_execution_context_dispatches_remotely(
         )
 
     # Should have exited with the ray job submit exit code (0)
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.output
     assert len(captured) == 1
     assert captured[0][0] == "ray"
     assert "submit" in captured[0]

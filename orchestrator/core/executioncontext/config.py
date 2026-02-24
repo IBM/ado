@@ -51,11 +51,13 @@ class ClusterExecutionType(pydantic.BaseModel):
     ] = "cluster"
 
     clusterUrl: Annotated[
-        str,
+        pydantic.HttpUrl,
+        pydantic.UrlConstraints(host_required=True, default_port=8265),
         pydantic.Field(
             description=(
-                "URL of the Ray cluster dashboard. This is either an open route URL "
-                "or an in-cluster URL. When portForward is provided, this must be "
+                "URL of the Ray cluster dashboard (host required, default port 8265). "
+                "This is either an open route URL or an in-cluster URL. "
+                "When portForward is provided, this must be "
                 "reachable via the forwarded local port (e.g. http://localhost:8265)."
             )
         ),
@@ -72,33 +74,6 @@ class ClusterExecutionType(pydantic.BaseModel):
             )
         ),
     ] = None
-
-    @pydantic.field_validator("clusterUrl", mode="before")
-    @classmethod
-    def validate_cluster_url(cls, value: object) -> object:
-        """Validate that clusterUrl is a well-formed URL with a scheme and host.
-
-        Raises
-        ------
-        ValueError
-            If the value is not a string or does not have a recognisable URL
-            scheme and host component.
-        """
-        if not isinstance(value, str):
-            return value
-        try:
-            parsed = pydantic.AnyUrl(value)
-        except Exception as exc:
-            raise ValueError(
-                f"clusterUrl '{value}' is not a valid URL. "
-                "Expected a full URL including scheme, e.g. http://localhost:8265"
-            ) from exc
-        if not parsed.host:
-            raise ValueError(
-                f"clusterUrl '{value}' must include a host, "
-                "e.g. http://localhost:8265"
-            )
-        return value
 
 
 class JobExecutionType(pydantic.BaseModel):

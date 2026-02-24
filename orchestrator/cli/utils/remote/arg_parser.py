@@ -142,7 +142,7 @@ def strip_flags(
     parsed = parse_argv_with_positions(argv, flags_to_strip)
 
     # Collect all flag names that appeared
-    exclude_flags = {occ.name for occ in parsed.handled_flags}
+    exclude_flags = {flag.name for flag in parsed.handled_flags}
 
     return parsed.reconstruct_argv(exclude_flags=exclude_flags)
 
@@ -171,8 +171,8 @@ def rewrite_flag_values(
     Examples:
         >>> from pathlib import Path
         >>> from orchestrator.cli.models.remote_submission import FILE_FLAG
-        >>> def to_basename(occ, flag_def):
-        ...     return Path(occ.value).name if occ.value else occ.value
+        >>> def to_basename(flag, flag_def):
+        ...     return Path(flag.value).name if flag.value else flag.value
         >>> argv = ["-f", "/path/to/file.yaml"]
         >>> rewrite_flag_values(argv, [FILE_FLAG], to_basename)
         ["-f", "file.yaml"]
@@ -184,16 +184,16 @@ def rewrite_flag_values(
         name: flag_def for flag_def in flags_to_rewrite for name in flag_def.names
     }
 
-    def transformer(occ: RemoteSubmissionFlagMatch) -> str | None:
+    def transformer(flag: RemoteSubmissionFlagMatch) -> str | None:
         """Transform a single flag occurrence."""
-        if occ.value is None:
+        if flag.value is None:
             return None
 
-        flag_def = flag_def_map.get(occ.name)
+        flag_def = flag_def_map.get(flag.name)
         if flag_def is None:
             return None
 
-        return value_rewriter(occ, flag_def)
+        return value_rewriter(flag, flag_def)
 
     return parsed.reconstruct_argv(value_transformer=transformer)
 

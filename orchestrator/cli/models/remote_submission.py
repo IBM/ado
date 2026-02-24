@@ -39,15 +39,13 @@ class RemoteSubmissionFlagSpec(BaseModel):
     hasValue: Annotated[bool, Field(description="Whether the flag expects a value")]
     valueType: Annotated[
         Literal["string", "file_path", "key_value"],
-        Field(default="string", description="Type of value expected"),
+        Field(description="Type of value expected"),
     ] = "string"
     stripFromRemote: Annotated[
         bool,
-        Field(default=False, description="Whether to remove before remote execution"),
+        Field(description="Whether to remove before remote execution"),
     ] = False
-    description: Annotated[
-        str, Field(default="", description="Human-readable description")
-    ] = ""
+    description: Annotated[str, Field(description="Human-readable description")] = ""
 
     def matches(self, arg: str) -> bool:
         """Check if arg matches this flag (including --flag=value form)."""
@@ -91,12 +89,12 @@ class RemoteSubmissionFlagMatch(BaseModel):
     position: Annotated[int, Field(description="Index in original argv")]
     flag_name: Annotated[str, Field(description="The actual flag string used")]
     value: Annotated[
-        str | None, Field(default=None, description="Value associated with the flag")
-    ]
+        str | None, Field(description="Value associated with the flag")
+    ] = None
     value_position: Annotated[
         int | None,
-        Field(default=None, description="Position of value in argv if separate"),
-    ]
+        Field(description="Position of value in argv if separate"),
+    ] = None
     is_equals_form: Annotated[
         bool, Field(description="True if flag was in --flag=value form")
     ]

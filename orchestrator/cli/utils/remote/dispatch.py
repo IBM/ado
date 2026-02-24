@@ -470,7 +470,7 @@ def _dispatch_to_cluster(
         status = stack.enter_context(Status(ADO_SPINNER_REMOTE_PREPARING_FILES))
 
         # 1. Serialize project context to working directory
-        context_filename = "project_context.yaml"
+        context_filename = f"{project_context.project}.yaml"
         context_file_path = working_dir / context_filename
         context_file_path.write_text(
             yaml.dump(project_context.model_dump(), default_flow_style=False)

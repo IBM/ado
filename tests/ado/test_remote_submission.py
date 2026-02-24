@@ -431,7 +431,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
     # The remote ado command should reference context by fixed filename
     ado_part = cmd[cmd.index("ado") :]
     assert "-c" in ado_part
-    assert "project_context.yaml" in ado_part
+    assert f"{mysql_project_context.project}.yaml" in ado_part
 
     # --no-wait should NOT be present since wait=True
     assert "--no-wait" not in cmd
@@ -516,7 +516,7 @@ def test_dispatcher_copies_context_and_op_file(
         nonlocal found_context, found_op, found_runtime_env
         idx = cmd.index("--working-dir")
         working_dir = pathlib.Path(cmd[idx + 1])
-        found_context = (working_dir / "project_context.yaml").exists()
+        found_context = (working_dir / f"{mysql_project_context.project}.yaml").exists()
         found_op = (working_dir / "my_operation.yaml").exists()
         found_runtime_env = (working_dir / "runtime_env.yaml").exists()
         return MagicMock(returncode=0)

@@ -103,11 +103,16 @@ class RemoteSubmissionFlagMatch(BaseModel):
 class ParsedRemoteSubmissionFlags(BaseModel):
     """Result of parsing argv for remote submission flags with position tracking.
 
-    This contains flags that require special handling during remote submission
-    preparation (stripping, file copying, value rewriting), not all CLI arguments.
+    This class contains all CLI flags and arguments, but is primarily used to handle
+    flags defined as RemoteSubmissionFlagSpec that require special processing during
+    remote submission preparation (stripping, file copying, value rewriting).
+
+    The handled_flags field contains only those flags matched against RemoteSubmissionFlagSpec
+    definitions, while passthrough_args contains all other arguments that don't require
+    special handling.
 
     Attributes:
-        handled_flags: Flags requiring special processing (matched against specs).
+        handled_flags: Flags matched against RemoteSubmissionFlagSpec requiring special processing.
         passthrough_args: Arguments not requiring special processing, passed through unchanged.
     """
 

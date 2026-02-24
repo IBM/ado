@@ -179,21 +179,21 @@ class ParsedRemoteSubmissionFlags(BaseModel):
 # Flag Registry
 # ============================================================================
 
-REMOTE_SPEC = RemoteSubmissionFlagSpec(
+REMOTE_FLAG = RemoteSubmissionFlagSpec(
     names=frozenset({"--remote"}),
     hasValue=True,
     stripFromRemote=True,
     description="Path to RemoteExecutionContext YAML for remote submission",
 )
 
-OVERRIDE_ADO_APP_DIR_SPEC = RemoteSubmissionFlagSpec(
+OVERRIDE_ADO_APP_DIR_FLAG = RemoteSubmissionFlagSpec(
     names=frozenset({"--override-ado-app-dir"}),
     hasValue=True,
     stripFromRemote=True,
     description="Override ado app directory (testing only)",
 )
 
-CONTEXT_SPEC = RemoteSubmissionFlagSpec(
+CONTEXT_FLAG = RemoteSubmissionFlagSpec(
     names=frozenset({"-c", "--context"}),
     hasValue=True,
     valueType="file_path",
@@ -201,14 +201,14 @@ CONTEXT_SPEC = RemoteSubmissionFlagSpec(
     description="Project context file path",
 )
 
-FILE_SPEC = RemoteSubmissionFlagSpec(
+FILE_FLAG = RemoteSubmissionFlagSpec(
     names=frozenset({"-f", "--file"}),
     hasValue=True,
     valueType="file_path",
     description="Input file path",
 )
 
-WITH_SPEC = RemoteSubmissionFlagSpec(
+WITH_FLAG = RemoteSubmissionFlagSpec(
     names=frozenset({"--with"}),
     hasValue=True,
     valueType="key_value",
@@ -221,22 +221,22 @@ WITH_SPEC = RemoteSubmissionFlagSpec(
 
 # All flags that should be stripped before remote execution
 SUBMISSION_STRIP_FLAGS = [
-    REMOTE_SPEC,
-    OVERRIDE_ADO_APP_DIR_SPEC,
-    CONTEXT_SPEC,
+    REMOTE_FLAG,
+    OVERRIDE_ADO_APP_DIR_FLAG,
+    CONTEXT_FLAG,
 ]
 
 # All flags whose values are file paths that need copying
-SUBMISSION_FILE_COPY_FLAGS = [FILE_SPEC, WITH_SPEC]
+SUBMISSION_FILE_COPY_FLAGS = [FILE_FLAG, WITH_FLAG]
 
 # All flags recognized by the remote submission parser
 # (Not all CLI flags - only those relevant for remote submission preparation)
 REMOTE_SUBMISSION_FLAGS = [
-    REMOTE_SPEC,
-    OVERRIDE_ADO_APP_DIR_SPEC,
-    CONTEXT_SPEC,
-    FILE_SPEC,
-    WITH_SPEC,
+    REMOTE_FLAG,
+    OVERRIDE_ADO_APP_DIR_FLAG,
+    CONTEXT_FLAG,
+    FILE_FLAG,
+    WITH_FLAG,
 ]
 
 # Made with Bob

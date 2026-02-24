@@ -12,7 +12,7 @@ from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
 from orchestrator.cli.models.remote_submission import (
-    CONTEXT_SPEC,
+    CONTEXT_FLAG,
     SUBMISSION_STRIP_FLAGS,
 )
 from orchestrator.cli.utils.remote import strip_flags
@@ -160,19 +160,19 @@ def test_strip_remote_flags_strips_override_ado_app_dir() -> None:
 
 def test_strip_context_flags_short_form() -> None:
     args = ["-c", "ctx.yaml", "create", "operation", "-f", "op.yaml"]
-    result = strip_flags(args, [CONTEXT_SPEC])
+    result = strip_flags(args, [CONTEXT_FLAG])
     assert result == ["create", "operation", "-f", "op.yaml"]
 
 
 def test_strip_context_flags_long_form() -> None:
     args = ["--context", "ctx.yaml", "get", "space"]
-    result = strip_flags(args, [CONTEXT_SPEC])
+    result = strip_flags(args, [CONTEXT_FLAG])
     assert result == ["get", "space"]
 
 
 def test_strip_context_flags_not_present() -> None:
     args = ["create", "operation", "-f", "op.yaml"]
-    result = strip_flags(args, [CONTEXT_SPEC])
+    result = strip_flags(args, [CONTEXT_FLAG])
     assert result == ["create", "operation", "-f", "op.yaml"]
 
 
@@ -717,40 +717,40 @@ def test_cli_execution_context_auto_sqlite_guard(
 def test_strip_flags_generic() -> None:
     """Test generic strip_flags function."""
     from orchestrator.cli.models.remote_submission import (
-        CONTEXT_SPEC,
-        REMOTE_SPEC,
+        CONTEXT_FLAG,
+        REMOTE_FLAG,
     )
     from orchestrator.cli.utils.remote.arg_parser import strip_flags
 
     argv = ["-c", "ctx.yaml", "--remote", "exec.yaml", "create", "op"]
 
     # Strip only remote context
-    result = strip_flags(argv, [REMOTE_SPEC])
+    result = strip_flags(argv, [REMOTE_FLAG])
     assert result == ["-c", "ctx.yaml", "create", "op"]
 
     # Strip only context
-    result = strip_flags(argv, [CONTEXT_SPEC])
+    result = strip_flags(argv, [CONTEXT_FLAG])
     assert result == ["--remote", "exec.yaml", "create", "op"]
 
     # Strip both
-    result = strip_flags(argv, [REMOTE_SPEC, CONTEXT_SPEC])
+    result = strip_flags(argv, [REMOTE_FLAG, CONTEXT_FLAG])
     assert result == ["create", "op"]
 
 
 def test_strip_flags_preserves_order() -> None:
     """Verify that strip_flags maintains exact argument order."""
-    from orchestrator.cli.models.remote_submission import FILE_SPEC
+    from orchestrator.cli.models.remote_submission import FILE_FLAG
     from orchestrator.cli.utils.remote.arg_parser import strip_flags
 
     argv = ["cmd", "-f", "a.yaml", "arg1", "-f", "b.yaml", "arg2"]
-    result = strip_flags(argv, [FILE_SPEC])
+    result = strip_flags(argv, [FILE_FLAG])
     assert result == ["cmd", "arg1", "arg2"]
 
 
 def test_rewrite_flag_values_generic() -> None:
     """Test generic rewrite_flag_values function."""
     from orchestrator.cli.models.remote_submission import (
-        FILE_SPEC,
+        FILE_FLAG,
         RemoteSubmissionFlagMatch,
         RemoteSubmissionFlagSpec,
     )
@@ -762,7 +762,7 @@ def test_rewrite_flag_values_generic() -> None:
         return occ.value.upper() if occ.value else ""
 
     argv = ["-f", "file.yaml", "create"]
-    result = rewrite_flag_values(argv, [FILE_SPEC], to_uppercase)
+    result = rewrite_flag_values(argv, [FILE_FLAG], to_uppercase)
     assert result == ["-f", "FILE.YAML", "create"]
 
 
@@ -789,40 +789,40 @@ def test_extensibility_new_flag() -> None:
 
 def test_flag_at_end_without_value() -> None:
     """Flag expecting value at end of argv should raise ValueError."""
-    from orchestrator.cli.models.remote_submission import FILE_SPEC
+    from orchestrator.cli.models.remote_submission import FILE_FLAG
     from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["create", "op", "-f"]
     with pytest.raises(ValueError, match="expects a value but is at end"):
-        parse_argv_with_positions(argv, [FILE_SPEC])
+        parse_argv_with_positions(argv, [FILE_FLAG])
 
 
 def test_value_starting_with_dash() -> None:
     """Values starting with dash should be treated as values, not flags."""
-    from orchestrator.cli.models.remote_submission import WITH_SPEC
+    from orchestrator.cli.models.remote_submission import WITH_FLAG
     from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["--with", "key=-123"]
-    parsed = parse_argv_with_positions(argv, [WITH_SPEC])
+    parsed = parse_argv_with_positions(argv, [WITH_FLAG])
     assert len(parsed.handled_flags) == 1
     assert parsed.handled_flags[0].value == "key=-123"
 
 
 def test_empty_argv() -> None:
     """Empty argv should be handled gracefully."""
-    from orchestrator.cli.models.remote_submission import REMOTE_SPEC
+    from orchestrator.cli.models.remote_submission import REMOTE_FLAG
     from orchestrator.cli.utils.remote.arg_parser import strip_flags
 
-    assert strip_flags([], [REMOTE_SPEC]) == []
+    assert strip_flags([], [REMOTE_FLAG]) == []
 
 
 def test_multiple_occurrences_same_flag() -> None:
     """Multiple occurrences of same flag should all be processed."""
-    from orchestrator.cli.models.remote_submission import FILE_SPEC
+    from orchestrator.cli.models.remote_submission import FILE_FLAG
     from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["-f", "a.yaml", "cmd", "-f", "b.yaml"]
-    parsed = parse_argv_with_positions(argv, [FILE_SPEC])
+    parsed = parse_argv_with_positions(argv, [FILE_FLAG])
     assert len(parsed.handled_flags) == 2
     assert parsed.handled_flags[0].value == "a.yaml"
     assert parsed.handled_flags[1].value == "b.yaml"
@@ -860,11 +860,11 @@ def test_flag_spec_get_canonical_name() -> None:
 
 def test_parse_argv_with_positions_equals_form() -> None:
     """Test parsing flags in --flag=value form."""
-    from orchestrator.cli.models.remote_submission import FILE_SPEC
+    from orchestrator.cli.models.remote_submission import FILE_FLAG
     from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["--file=test.yaml", "create", "op"]
-    parsed = parse_argv_with_positions(argv, [FILE_SPEC])
+    parsed = parse_argv_with_positions(argv, [FILE_FLAG])
     assert len(parsed.handled_flags) == 1
     assert parsed.handled_flags[0].flag_name == "--file"
     assert parsed.handled_flags[0].value == "test.yaml"
@@ -874,10 +874,10 @@ def test_parse_argv_with_positions_equals_form() -> None:
 
 def test_reconstruct_argv_maintains_order() -> None:
     """Test that reconstruct_argv maintains original argument order."""
-    from orchestrator.cli.models.remote_submission import CONTEXT_SPEC, FILE_SPEC
+    from orchestrator.cli.models.remote_submission import CONTEXT_FLAG, FILE_FLAG
     from orchestrator.cli.utils.remote.arg_parser import parse_argv_with_positions
 
     argv = ["-c", "ctx.yaml", "create", "op", "-f", "op.yaml"]
-    parsed = parse_argv_with_positions(argv, [FILE_SPEC, CONTEXT_SPEC])
+    parsed = parse_argv_with_positions(argv, [FILE_FLAG, CONTEXT_FLAG])
     reconstructed = parsed.reconstruct_argv()
     assert reconstructed == argv

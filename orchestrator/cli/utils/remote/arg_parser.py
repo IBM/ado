@@ -38,9 +38,9 @@ def parse_argv_with_positions(
         ValueError: If a flag expecting a value is at the end of argv without a value.
 
     Examples:
-        >>> from orchestrator.cli.models.remote_submission import FILE_SPEC, CONTEXT_SPEC
+        >>> from orchestrator.cli.models.remote_submission import FILE_FLAG, CONTEXT_FLAG
         >>> argv = ["-c", "ctx.yaml", "create", "op", "-f", "op.yaml"]
-        >>> parsed = parse_argv_with_positions(argv, [FILE_SPEC, CONTEXT_SPEC])
+        >>> parsed = parse_argv_with_positions(argv, [FILE_FLAG, CONTEXT_FLAG])
         >>> len(parsed.handled_flags)
         2
         >>> parsed.passthrough_args
@@ -134,9 +134,9 @@ def strip_flags(
         New argument list without the specified flags.
 
     Examples:
-        >>> from orchestrator.cli.models.remote_submission import REMOTE_SPEC
+        >>> from orchestrator.cli.models.remote_submission import REMOTE_FLAG
         >>> argv = ["-c", "ctx.yaml", "--remote", "exec.yaml", "create", "op"]
-        >>> strip_flags(argv, [REMOTE_SPEC])
+        >>> strip_flags(argv, [REMOTE_FLAG])
         ["-c", "ctx.yaml", "create", "op"]
     """
     parsed = parse_argv_with_positions(argv, flags_to_strip)
@@ -170,11 +170,11 @@ def rewrite_flag_values(
 
     Examples:
         >>> from pathlib import Path
-        >>> from orchestrator.cli.models.remote_submission import FILE_SPEC
+        >>> from orchestrator.cli.models.remote_submission import FILE_FLAG
         >>> def to_basename(occ, flag_def):
         ...     return Path(occ.value).name if occ.value else occ.value
         >>> argv = ["-f", "/path/to/file.yaml"]
-        >>> rewrite_flag_values(argv, [FILE_SPEC], to_basename)
+        >>> rewrite_flag_values(argv, [FILE_FLAG], to_basename)
         ["-f", "file.yaml"]
     """
     parsed = parse_argv_with_positions(argv, flags_to_rewrite)

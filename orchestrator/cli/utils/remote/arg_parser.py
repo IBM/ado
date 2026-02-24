@@ -185,7 +185,7 @@ def rewrite_flag_values(
     }
 
     def transformer(flag: RemoteSubmissionFlagMatch) -> str | None:
-        """Transform a single flag occurrence."""
+        """Transform a single flag match."""
         if flag.value is None:
             return None
 
@@ -226,7 +226,7 @@ def filter_and_rewrite(
     # Collect flags to exclude
     strip_flag_names = {name for flag in flags_to_strip for name in flag.names}
     exclude_flags = {
-        occ.name for occ in parsed.handled_flags if occ.name in strip_flag_names
+        flag.name for flag in parsed.handled_flags if flag.name in strip_flag_names
     }
 
     # Create rewrite mapping
@@ -234,15 +234,15 @@ def filter_and_rewrite(
         name: flag_def for flag_def in flags_to_rewrite for name in flag_def.names
     }
 
-    def transformer(occ: RemoteSubmissionFlagMatch) -> str | None:
-        if occ.value is None or occ.name in exclude_flags:
+    def transformer(flag_match: RemoteSubmissionFlagMatch) -> str | None:
+        if flag_match.value is None or flag_match.name in exclude_flags:
             return None
 
-        flag_def = rewrite_flag_map.get(occ.name)
+        flag_def = rewrite_flag_map.get(flag_match.name)
         if flag_def is None:
             return None
 
-        return value_rewriter(occ, flag_def)
+        return value_rewriter(flag_match, flag_def)
 
     return parsed.reconstruct_argv(
         exclude_flags=exclude_flags,

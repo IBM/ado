@@ -173,20 +173,20 @@ def _copy_files_and_rewrite_args(
     copied_basenames: set[str] = set()
 
     def rewrite_file_value(
-        occ: RemoteSubmissionFlagMatch,
-        flag_def: RemoteSubmissionFlagSpec,
+        flag_match: RemoteSubmissionFlagMatch,
+        flag_spec: RemoteSubmissionFlagSpec,
     ) -> str:
         """Rewrite a file flag value by copying file and returning basename."""
         # This should never be None for flags with hasValue=True, but handle it
-        if occ.value is None:
-            raise ValueError(f"Flag {occ.name} has no value")
+        if flag_match.value is None:
+            raise ValueError(f"Flag {flag_match.name} has no value")
 
         # Special handling for --with KEY=VALUE
-        if flag_def.valueType == "key_value":
-            return _rewrite_with_value(occ.value, working_dir, copied_basenames)
+        if flag_spec.valueType == "key_value":
+            return _rewrite_with_value(flag_match.value, working_dir, copied_basenames)
 
         # Regular file path handling
-        src = Path(occ.value).resolve()
+        src = Path(flag_match.value).resolve()
         _copy_file_checked(src, working_dir, copied_basenames)
         return src.name
 

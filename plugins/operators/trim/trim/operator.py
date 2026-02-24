@@ -11,14 +11,13 @@ from orchestrator.modules.operators.collections import characterize_operation
 from trim.trim_pydantic import (
     TrimParameters,
 )  # Importing this way works when the package is installed
-from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_and_save_characterization,
+    log_unable_to_proceed_to_iterative_modeling_and_raise_error,
 )
 from trim.utils.space_df_connector import get_source_and_target
 
 logger_trim = logging.getLogger(__name__)
-# logger_trim.setLevel(logging.DEBUG)
 
 
 @characterize_operation(
@@ -134,36 +133,11 @@ def trim(
             log_and_save_characterization(source_df, target_df)
 
         if len(source_df) < params.samplingBudget.minPoints:
-            try:
-                op_id = discoverySpace.operations["IDENTIFIER"].values[-1]
-                last_measured_entity = discoverySpace.measurement_results_for_operation(
-                    op_id
-                )[-1]
-                experiment_reference = str(last_measured_entity.experimentReference)
-            except Exception:
-                logger_trim.warning(
-                    f"It was not possible to obtain the experiment identifier from space with identifier {discoverySpace._identifier}"
-                )
-                experiment_reference = None
-
-            experiment_reference_msg = (
-                f"experiment `{experiment_reference}`"
-                if experiment_reference
-                else "your custom experiment (or actuator)"
-            )
-            msg = (
-                f"The current version of TRIM assumes that all measurements produce the observed target output property '{params.targetOutput}' "
-                f"The measurements obtained with {experiment_reference_msg}"
-                f"may not produce values for the target output property '{params.targetOutput}'. "
-                f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints} "
-                f"requested measurements did not contain the target output property '{params.targetOutput}'. "
-                "This is insufficient for starting the Iterative Modeling phase, the operation will exit with an error. "
-                "For more information, refer to the documentation here: `https://ibm.github.io/ado/operators/trim/`."
-            )
-            logger_trim.error(msg)
-            raise InsufficientDataError(
-                "Measurements are incompatible with the Iterative Modeling phase.\n\n"
-                + msg
+            log_unable_to_proceed_to_iterative_modeling_and_raise_error(
+                discoverySpace,
+                target_output=params.targetOutput,
+                sampling_budget_min_points=params.samplingBudget.minPoints,
+                number_of_points_with_target_output_measurement=len(source_df),
             )
 
     # TRIM Iterative Modeling

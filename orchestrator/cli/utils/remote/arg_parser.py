@@ -61,7 +61,7 @@ def parse_argv_with_positions(
                 handled_flags.append(
                     RemoteSubmissionFlagMatch(
                         position=i,
-                        flag_name=arg.split("=", 1)[0],
+                        name=arg.split("=", 1)[0],
                         value=value_from_equals,
                         value_position=None,
                         is_equals_form=True,
@@ -82,7 +82,7 @@ def parse_argv_with_positions(
                     handled_flags.append(
                         RemoteSubmissionFlagMatch(
                             position=i,
-                            flag_name=arg,
+                            name=arg,
                             value=value,
                             value_position=i + 1,
                             is_equals_form=False,
@@ -93,7 +93,7 @@ def parse_argv_with_positions(
                     handled_flags.append(
                         RemoteSubmissionFlagMatch(
                             position=i,
-                            flag_name=arg,
+                            name=arg,
                             value=None,
                             value_position=None,
                             is_equals_form=False,
@@ -142,7 +142,7 @@ def strip_flags(
     parsed = parse_argv_with_positions(argv, flags_to_strip)
 
     # Collect all flag names that appeared
-    exclude_flags = {occ.flag_name for occ in parsed.handled_flags}
+    exclude_flags = {occ.name for occ in parsed.handled_flags}
 
     return parsed.reconstruct_argv(exclude_flags=exclude_flags)
 
@@ -189,7 +189,7 @@ def rewrite_flag_values(
         if occ.value is None:
             return None
 
-        flag_def = flag_def_map.get(occ.flag_name)
+        flag_def = flag_def_map.get(occ.name)
         if flag_def is None:
             return None
 
@@ -226,9 +226,7 @@ def filter_and_rewrite(
     # Collect flags to exclude
     strip_flag_names = {name for flag in flags_to_strip for name in flag.names}
     exclude_flags = {
-        occ.flag_name
-        for occ in parsed.handled_flags
-        if occ.flag_name in strip_flag_names
+        occ.name for occ in parsed.handled_flags if occ.name in strip_flag_names
     }
 
     # Create rewrite mapping
@@ -237,10 +235,10 @@ def filter_and_rewrite(
     }
 
     def transformer(occ: RemoteSubmissionFlagMatch) -> str | None:
-        if occ.value is None or occ.flag_name in exclude_flags:
+        if occ.value is None or occ.name in exclude_flags:
             return None
 
-        flag_def = rewrite_flag_map.get(occ.flag_name)
+        flag_def = rewrite_flag_map.get(occ.name)
         if flag_def is None:
             return None
 

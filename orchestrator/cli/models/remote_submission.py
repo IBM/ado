@@ -78,7 +78,7 @@ class RemoteSubmissionFlagMatch(BaseModel):
 
     Attributes:
         position: Index in original argv where the flag appears.
-        flag_name: The actual flag string used (e.g., "-f" or "--file").
+        name: The actual flag string used (e.g., "-f" or "--file").
         value: The value associated with the flag, if any.
         value_position: Position of value in argv if separate from flag, else None.
         is_equals_form: True if flag was in --flag=value form.
@@ -87,7 +87,7 @@ class RemoteSubmissionFlagMatch(BaseModel):
     model_config = {"frozen": True}
 
     position: Annotated[int, Field(description="Index in original argv")]
-    flag_name: Annotated[str, Field(description="The actual flag string used")]
+    name: Annotated[str, Field(description="The actual flag string used")]
     value: Annotated[
         str | None, Field(description="Value associated with the flag")
     ] = None
@@ -148,24 +148,24 @@ class ParsedRemoteSubmissionFlags(BaseModel):
 
         items: list[tuple[int, str]] = []
 
-        for occ in self.handled_flags:
-            if occ.flag_name in exclude_flags:
+        for flag in self.handled_flags:
+            if flag.name in exclude_flags:
                 continue
 
             # Transform value if transformer provided
-            value = occ.value
+            value = flag.value
             if value_transformer is not None:
-                transformed = value_transformer(occ)
+                transformed = value_transformer(flag)
                 if transformed is not None:
                     value = transformed
 
             # Add flag and value to items
-            if occ.is_equals_form:
-                items.append((occ.position, f"{occ.flag_name}={value}"))
+            if flag.is_equals_form:
+                items.append((flag.position, f"{flag.name}={value}"))
             else:
-                items.append((occ.position, occ.flag_name))
-                if value is not None and occ.value_position is not None:
-                    items.append((occ.value_position, value))
+                items.append((flag.position, flag.name))
+                if value is not None and flag.value_position is not None:
+                    items.append((flag.value_position, value))
 
         # Add non-flag arguments
         items.extend(self.passthrough_args)

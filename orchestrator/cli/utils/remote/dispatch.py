@@ -179,7 +179,7 @@ def _copy_files_and_rewrite_args(
         """Rewrite a file flag value by copying file and returning basename."""
         # This should never be None for flags with hasValue=True, but handle it
         if occ.value is None:
-            raise ValueError(f"Flag {occ.flag_name} has no value")
+            raise ValueError(f"Flag {occ.name} has no value")
 
         # Special handling for --with KEY=VALUE
         if flag_def.valueType == "key_value":

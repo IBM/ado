@@ -866,7 +866,7 @@ def test_parse_argv_with_positions_equals_form() -> None:
     argv = ["--file=test.yaml", "create", "op"]
     parsed = parse_argv_with_positions(argv, [FILE_FLAG])
     assert len(parsed.handled_flags) == 1
-    assert parsed.handled_flags[0].flag_name == "--file"
+    assert parsed.handled_flags[0].name == "--file"
     assert parsed.handled_flags[0].value == "test.yaml"
     assert parsed.handled_flags[0].is_equals_form is True
     assert parsed.passthrough_args == [(1, "create"), (2, "op")]

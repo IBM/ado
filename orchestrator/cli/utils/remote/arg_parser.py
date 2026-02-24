@@ -134,9 +134,9 @@ def strip_flags(
         New argument list without the specified flags.
 
     Examples:
-        >>> from orchestrator.cli.models.remote_submission import EXECUTION_CONTEXT_SPEC
-        >>> argv = ["-c", "ctx.yaml", "--execution-context", "exec.yaml", "create", "op"]
-        >>> strip_flags(argv, [EXECUTION_CONTEXT_SPEC])
+        >>> from orchestrator.cli.models.remote_submission import REMOTE_SPEC
+        >>> argv = ["-c", "ctx.yaml", "--remote", "exec.yaml", "create", "op"]
+        >>> strip_flags(argv, [REMOTE_SPEC])
         ["-c", "ctx.yaml", "create", "op"]
     """
     parsed = parse_argv_with_positions(argv, flags_to_strip)

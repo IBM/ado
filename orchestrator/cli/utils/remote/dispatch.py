@@ -30,11 +30,11 @@ from orchestrator.cli.utils.remote.arg_parser import (
     rewrite_flag_values,
     strip_flags,
 )
-from orchestrator.core.executioncontext.config import (
+from orchestrator.core.remotecontext.config import (
     ClusterExecutionType,
-    ExecutionContext,
     JobExecutionType,
     PortForwardConfiguration,
+    RemoteExecutionContext,
 )
 from orchestrator.metastore.project import ProjectContext
 
@@ -63,7 +63,7 @@ def _find_port_forward_tool() -> str:
             return tool
     raise RuntimeError(
         f"Neither {' nor '.join(_PORT_FORWARD_TOOLS)} was found on PATH. "
-        "Install one of them to use port-forward with --execution-context."
+        "Install one of them to use port-forward with --remote."
     )
 
 
@@ -82,7 +82,7 @@ def _port_forward_context(
     Parameters
     ----------
     pf_config:
-        Port-forward configuration from the execution context.
+        Port-forward configuration from the remote execution context.
     cluster_url:
         The Ray cluster URL (used to extract the target service port).
     """
@@ -333,26 +333,26 @@ def _build_source_wheels(
 
 
 def _write_runtime_env(
-    execution_context: ExecutionContext,
+    remote_context: RemoteExecutionContext,
     wheel_names: list[str],
     dest: Path,
 ) -> None:
     """Write the Ray runtime environment YAML to *dest*.
 
     Combines PyPI packages, wheel references, and environment variables from
-    *execution_context* into a ``runtime_env.yaml`` compatible with
+    *remote_context* into a ``runtime_env.yaml`` compatible with
     ``ray job submit --runtime-env``.
 
     Parameters
     ----------
-    execution_context:
-        The execution context describing packages and env vars.
+    remote_context:
+        The remote execution context describing packages and env vars.
     wheel_names:
         Basenames of wheel files present in the Ray working dir.
     dest:
         Path to write the generated ``runtime_env.yaml``.
     """
-    uv_packages: list[str] = list(execution_context.packages.fromPyPI)
+    uv_packages: list[str] = list(remote_context.packages.fromPyPI)
     uv_packages.extend(
         f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{wheel_name}"
         for wheel_name in wheel_names
@@ -362,8 +362,8 @@ def _write_runtime_env(
     if uv_packages:
         runtime_env["uv"] = uv_packages
 
-    if execution_context.envVars:
-        runtime_env["env_vars"] = dict(execution_context.envVars)
+    if remote_context.envVars:
+        runtime_env["env_vars"] = dict(remote_context.envVars)
 
     dest.write_text(yaml.dump(runtime_env, default_flow_style=False))
     log.debug("Wrote runtime_env.yaml to %s", dest)
@@ -371,7 +371,7 @@ def _write_runtime_env(
 
 def _run_ray_submit(
     cluster_exec: ClusterExecutionType,
-    execution_context: ExecutionContext,
+    remote_context: RemoteExecutionContext,
     working_dir: Path,
     runtime_env_path: Path,
     remote_ado_args: list[str],
@@ -382,8 +382,8 @@ def _run_ray_submit(
     ----------
     cluster_exec:
         Cluster execution type (contains ``clusterUrl``).
-    execution_context:
-        Full execution context (used for ``wait`` flag).
+    remote_context:
+        Full remote execution context (used for ``wait`` flag).
     working_dir:
         Working directory to send with the job.
     runtime_env_path:
@@ -398,7 +398,7 @@ def _run_ray_submit(
     """
     cmd = ["ray", "job", "submit"]
 
-    if not execution_context.wait:
+    if not remote_context.wait:
         cmd.append("--no-wait")
 
     cmd += [
@@ -427,7 +427,7 @@ def _run_ray_submit(
 
 def _dispatch_to_cluster(
     cluster_exec: ClusterExecutionType,
-    execution_context: ExecutionContext,
+    remote_context: RemoteExecutionContext,
     project_context: ProjectContext,
     ado_args: list[str],
     working_dir: Path,
@@ -439,12 +439,12 @@ def _dispatch_to_cluster(
     ----------
     cluster_exec:
         Resolved cluster execution type.
-    execution_context:
-        Full execution context.
+    remote_context:
+        Full remote execution context.
     project_context:
         The ProjectContext instance to serialize into the working directory.
     ado_args:
-        Full ado argument list (without ``--execution-context``).
+        Full ado argument list (without ``--remote``).
     working_dir:
         Temporary directory to use as the Ray working directory.
     repo_root:
@@ -482,14 +482,14 @@ def _dispatch_to_cluster(
 
         # 3. Build wheels for fromSource plugins
         wheel_names = _build_source_wheels(
-            execution_context.packages.fromSource,
+            remote_context.packages.fromSource,
             working_dir,
             repo_root,
         )
 
         # 4. Generate runtime_env.yaml
         runtime_env_path = working_dir / "runtime_env.yaml"
-        _write_runtime_env(execution_context, wheel_names, runtime_env_path)
+        _write_runtime_env(remote_context, wheel_names, runtime_env_path)
 
         # 5. Establish port-forward (blocks until tunnel is bound and ready)
         if pf is not None:
@@ -501,7 +501,7 @@ def _dispatch_to_cluster(
 
         return _run_ray_submit(
             cluster_exec=cluster_exec,
-            execution_context=execution_context,
+            remote_context=remote_context,
             working_dir=working_dir,
             runtime_env_path=runtime_env_path,
             remote_ado_args=remote_ado_args,
@@ -509,7 +509,7 @@ def _dispatch_to_cluster(
 
 
 def dispatch(
-    execution_context: ExecutionContext,
+    remote_context: RemoteExecutionContext,
     project_context: ProjectContext,
     argv: list[str],
     repo_root: Path | None = None,
@@ -522,15 +522,15 @@ def dispatch(
 
     Parameters
     ----------
-    execution_context:
-        Loaded and validated execution context.
+    remote_context:
+        Loaded and validated remote execution context.
     project_context:
         The ProjectContext instance to serialize and send to the remote cluster.
         This will be written to a file in the working directory and referenced
         via ``-c`` in the remote ado command.
     argv:
         The full ado argument list (sys.argv[1:]). This function will strip
-        ``--execution-context``, ``--override-ado-app-dir``, and other
+        ``--remote``, ``--override-ado-app-dir``, and other
         submission-specific flags before processing.
     repo_root:
         Root of the ado repository, used to resolve relative ``fromSource``
@@ -553,12 +553,12 @@ def dispatch(
     FileNotFoundError
         If a ``--with`` value looks like a path but does not exist.
     """
-    if isinstance(execution_context.executionType, JobExecutionType):
+    if isinstance(remote_context.executionType, JobExecutionType):
         raise NotImplementedError(
             "KubeRay job execution (executionType: job) is not yet implemented."
         )
 
-    cluster_exec: ClusterExecutionType = execution_context.executionType
+    cluster_exec: ClusterExecutionType = remote_context.executionType
     resolved_repo_root = repo_root or Path.cwd()
 
     # Reconstruct the ado argument list without submission-specific flags
@@ -567,7 +567,7 @@ def dispatch(
     with tempfile.TemporaryDirectory(prefix="ado-remote-") as tmp_str:
         return _dispatch_to_cluster(
             cluster_exec=cluster_exec,
-            execution_context=execution_context,
+            remote_context=remote_context,
             project_context=project_context,
             ado_args=ado_args,
             working_dir=Path(tmp_str),

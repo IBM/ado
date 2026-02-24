@@ -176,11 +176,11 @@ class ParsedRemoteSubmissionFlags(BaseModel):
 # Flag Registry
 # ============================================================================
 
-EXECUTION_CONTEXT_SPEC = RemoteSubmissionFlagSpec(
-    names=frozenset({"--execution-context"}),
+REMOTE_SPEC = RemoteSubmissionFlagSpec(
+    names=frozenset({"--remote"}),
     hasValue=True,
     stripFromRemote=True,
-    description="Path to ExecutionContext YAML for remote submission",
+    description="Path to RemoteExecutionContext YAML for remote submission",
 )
 
 OVERRIDE_ADO_APP_DIR_SPEC = RemoteSubmissionFlagSpec(
@@ -218,7 +218,7 @@ WITH_SPEC = RemoteSubmissionFlagSpec(
 
 # All flags that should be stripped before remote execution
 SUBMISSION_STRIP_FLAGS = [
-    EXECUTION_CONTEXT_SPEC,
+    REMOTE_SPEC,
     OVERRIDE_ADO_APP_DIR_SPEC,
     CONTEXT_SPEC,
 ]
@@ -229,7 +229,7 @@ SUBMISSION_FILE_COPY_FLAGS = [FILE_SPEC, WITH_SPEC]
 # All flags recognized by the remote submission parser
 # (Not all CLI flags - only those relevant for remote submission preparation)
 REMOTE_SUBMISSION_FLAGS = [
-    EXECUTION_CONTEXT_SPEC,
+    REMOTE_SPEC,
     OVERRIDE_ADO_APP_DIR_SPEC,
     CONTEXT_SPEC,
     FILE_SPEC,

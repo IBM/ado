@@ -119,7 +119,7 @@ class PackageConfiguration(pydantic.BaseModel):
     ]
 
 
-class ExecutionContext(pydantic.BaseModel):
+class RemoteExecutionContext(pydantic.BaseModel):
     """Configuration for executing ado commands on a remote Ray cluster.
 
     Captures all information required to dispatch an ado command to a remote
@@ -127,10 +127,10 @@ class ExecutionContext(pydantic.BaseModel):
 
     Example usage::
 
-        ado --execution-context exc_context.yaml create operation -f operation.yaml
+        ado --remote remote_context.yaml create operation -f operation.yaml
 
-    The project context must use a non-SQLite (remote) metastore when an
-    execution context is provided.
+    The project context must use a non-SQLite (remote) metastore when a
+    remote execution context is provided.
     """
 
     model_config = pydantic.ConfigDict(extra="forbid")

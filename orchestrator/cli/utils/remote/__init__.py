@@ -5,9 +5,9 @@
 
 from orchestrator.cli.models.remote_submission import (
     CONTEXT_SPEC,
-    EXECUTION_CONTEXT_SPEC,
     FILE_SPEC,
     OVERRIDE_ADO_APP_DIR_SPEC,
+    REMOTE_SPEC,
     REMOTE_SUBMISSION_FLAGS,
     SUBMISSION_FILE_COPY_FLAGS,
     SUBMISSION_STRIP_FLAGS,
@@ -26,9 +26,9 @@ from orchestrator.cli.utils.remote.dispatch import dispatch
 
 __all__ = [
     "CONTEXT_SPEC",
-    "EXECUTION_CONTEXT_SPEC",
     "FILE_SPEC",
     "OVERRIDE_ADO_APP_DIR_SPEC",
+    "REMOTE_SPEC",
     "REMOTE_SUBMISSION_FLAGS",
     "SUBMISSION_FILE_COPY_FLAGS",
     "SUBMISSION_STRIP_FLAGS",

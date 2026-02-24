@@ -5,12 +5,12 @@ import pydantic
 import pytest
 import yaml
 
-from orchestrator.core.executioncontext.config import (
+from orchestrator.core.remotecontext.config import (
     ClusterExecutionType,
-    ExecutionContext,
     JobExecutionType,
     PackageConfiguration,
     PortForwardConfiguration,
+    RemoteExecutionContext,
 )
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
@@ -53,7 +53,7 @@ def test_cluster_execution_type_minimal() -> None:
     """type defaults to 'cluster' and portForward defaults to None."""
     cluster = ClusterExecutionType(clusterUrl="http://localhost:8265")
     assert cluster.type == "cluster"
-    assert cluster.clusterUrl == "http://localhost:8265"
+    assert str(cluster.clusterUrl) == "http://localhost:8265/"
     assert cluster.portForward is None
 
 
@@ -153,12 +153,12 @@ def test_package_configuration_lifecycle() -> None:
 
 
 # ---------------------------------------------------------------------------
-# ExecutionContext discriminated union routing
+# RemoteExecutionContext discriminated union routing
 # ---------------------------------------------------------------------------
 
 
-def test_execution_context_cluster_type() -> None:
-    ctx = ExecutionContext(
+def test_remote_execution_context_cluster_type() -> None:
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265")
     )
     assert isinstance(ctx.executionType, ClusterExecutionType)
@@ -167,12 +167,12 @@ def test_execution_context_cluster_type() -> None:
     assert ctx.packages.fromPyPI == []
 
 
-def test_execution_context_job_type() -> None:
-    ctx = ExecutionContext(executionType=JobExecutionType())
+def test_remote_execution_context_job_type() -> None:
+    ctx = RemoteExecutionContext(executionType=JobExecutionType())
     assert isinstance(ctx.executionType, JobExecutionType)
 
 
-def test_execution_context_discriminated_via_dict_cluster() -> None:
+def test_remote_execution_context_discriminated_via_dict_cluster() -> None:
     """Verify dict-based construction routes to ClusterExecutionType via discriminator."""
     data = {
         "executionType": {
@@ -180,29 +180,31 @@ def test_execution_context_discriminated_via_dict_cluster() -> None:
             "clusterUrl": "http://localhost:8265",
         }
     }
-    ctx = ExecutionContext.model_validate(data)
+    ctx = RemoteExecutionContext.model_validate(data)
     assert isinstance(ctx.executionType, ClusterExecutionType)
 
 
-def test_execution_context_discriminated_via_dict_job() -> None:
+def test_remote_execution_context_discriminated_via_dict_job() -> None:
     data = {"executionType": {"type": "job"}}
-    ctx = ExecutionContext.model_validate(data)
+    ctx = RemoteExecutionContext.model_validate(data)
     assert isinstance(ctx.executionType, JobExecutionType)
 
 
-def test_execution_context_invalid_type_discriminator() -> None:
+def test_remote_execution_context_invalid_type_discriminator() -> None:
     with pytest.raises(pydantic.ValidationError):
-        ExecutionContext.model_validate({"executionType": {"type": "unknown_type"}})
+        RemoteExecutionContext.model_validate(
+            {"executionType": {"type": "unknown_type"}}
+        )
 
 
 # ---------------------------------------------------------------------------
-# ExecutionContext full lifecycle (YAML round-trip)
+# RemoteExecutionContext full lifecycle (YAML round-trip)
 # ---------------------------------------------------------------------------
 
 
-def test_execution_context_lifecycle_cluster_no_port_forward() -> None:
+def test_remote_execution_context_lifecycle_cluster_no_port_forward() -> None:
     """Create → JSON dump → reload produces identical object."""
-    ctx = ExecutionContext(
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://ray.example.com:8265"),
         packages=PackageConfiguration(
             fromPyPI=["ado-core", "ado-ray-tune"],
@@ -212,14 +214,14 @@ def test_execution_context_lifecycle_cluster_no_port_forward() -> None:
         envVars={"PYTHONUNBUFFERED": "x", "OMP_NUM_THREADS": "1"},
     )
     dumped = ctx.model_dump()
-    reloaded = ExecutionContext.model_validate(dumped)
+    reloaded = RemoteExecutionContext.model_validate(dumped)
     assert reloaded == ctx
     assert reloaded.wait is False
     assert reloaded.envVars["OMP_NUM_THREADS"] == "1"
 
 
-def test_execution_context_lifecycle_cluster_with_port_forward() -> None:
-    ctx = ExecutionContext(
+def test_remote_execution_context_lifecycle_cluster_with_port_forward() -> None:
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(
             clusterUrl="http://localhost:8265",
             portForward=PortForwardConfiguration(
@@ -231,14 +233,14 @@ def test_execution_context_lifecycle_cluster_with_port_forward() -> None:
         packages=PackageConfiguration(fromPyPI=["ado-core"]),
     )
     dumped = ctx.model_dump()
-    reloaded = ExecutionContext.model_validate(dumped)
+    reloaded = RemoteExecutionContext.model_validate(dumped)
     assert reloaded == ctx
     assert reloaded.executionType.portForward.namespace == "prod-ns"
 
 
-def test_execution_context_yaml_round_trip() -> None:
+def test_remote_execution_context_yaml_round_trip() -> None:
     """Verify the model survives a YAML serialization round-trip (as users would use it)."""
-    ctx = ExecutionContext(
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(
             clusterUrl="http://localhost:8265",
             portForward=PortForwardConfiguration(
@@ -253,13 +255,13 @@ def test_execution_context_yaml_round_trip() -> None:
         envVars={"PYTHONUNBUFFERED": "x"},
     )
     yaml_str = pydantic_model_as_yaml(ctx)
-    reloaded = ExecutionContext.model_validate(yaml.safe_load(yaml_str))
+    reloaded = RemoteExecutionContext.model_validate(yaml.safe_load(yaml_str))
     assert reloaded == ctx
 
 
-def test_execution_context_rejects_extra_fields() -> None:
+def test_remote_execution_context_rejects_extra_fields() -> None:
     with pytest.raises(pydantic.ValidationError):
-        ExecutionContext.model_validate(
+        RemoteExecutionContext.model_validate(
             {
                 "executionType": {
                     "type": "cluster",

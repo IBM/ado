@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-"""Tests for remote submission utilities and the --execution-context CLI option."""
+"""Tests for remote submission utilities and the --remote CLI option."""
 
 import pathlib
 import subprocess
@@ -21,12 +21,12 @@ from orchestrator.cli.utils.remote.dispatch import (
     _write_runtime_env,
     dispatch,
 )
-from orchestrator.core.executioncontext.config import (
+from orchestrator.core.remotecontext.config import (
     ClusterExecutionType,
-    ExecutionContext,
     JobExecutionType,
     PackageConfiguration,
     PortForwardConfiguration,
+    RemoteExecutionContext,
 )
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
@@ -37,9 +37,9 @@ from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
 @pytest.fixture
-def cluster_execution_context() -> ExecutionContext:
-    """Minimal cluster ExecutionContext without port-forward."""
-    return ExecutionContext(
+def cluster_remote_context() -> RemoteExecutionContext:
+    """Minimal cluster RemoteExecutionContext without port-forward."""
+    return RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
         packages=PackageConfiguration(fromPyPI=["ado-core"]),
         wait=True,
@@ -48,8 +48,8 @@ def cluster_execution_context() -> ExecutionContext:
 
 
 @pytest.fixture
-def cluster_execution_context_with_port_forward() -> ExecutionContext:
-    return ExecutionContext(
+def cluster_remote_context_with_port_forward() -> RemoteExecutionContext:
+    return RemoteExecutionContext(
         executionType=ClusterExecutionType(
             clusterUrl="http://localhost:8265",
             portForward=PortForwardConfiguration(
@@ -62,13 +62,13 @@ def cluster_execution_context_with_port_forward() -> ExecutionContext:
 
 
 @pytest.fixture
-def execution_context_file(
+def remote_context_file(
     tmp_path: pathlib.Path,
-    cluster_execution_context: ExecutionContext,
+    cluster_remote_context: RemoteExecutionContext,
 ) -> pathlib.Path:
-    """Write a cluster ExecutionContext to a temp YAML file."""
-    path = tmp_path / "exec_context.yaml"
-    path.write_text(pydantic_model_as_yaml(cluster_execution_context))
+    """Write a cluster RemoteExecutionContext to a temp YAML file."""
+    path = tmp_path / "remote_context.yaml"
+    path.write_text(pydantic_model_as_yaml(cluster_remote_context))
     return path
 
 
@@ -122,13 +122,13 @@ def sqlite_context_yaml_file(tmp_path: pathlib.Path) -> pathlib.Path:
 
 
 def test_strip_remote_flags_long_form() -> None:
-    argv = ["-c", "ctx.yaml", "--execution-context", "exc.yaml", "create", "operation"]
+    argv = ["-c", "ctx.yaml", "--remote", "remote.yaml", "create", "operation"]
     result = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
     assert result == ["create", "operation"]
 
 
 def test_strip_remote_flags_equals_form() -> None:
-    argv = ["--execution-context=exc.yaml", "get", "space"]
+    argv = ["--remote=remote.yaml", "get", "space"]
     result = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
     assert result == ["get", "space"]
 
@@ -144,8 +144,8 @@ def test_strip_remote_flags_strips_override_ado_app_dir() -> None:
     argv = [
         "--override-ado-app-dir",
         "/tmp/test",
-        "--execution-context",
-        "exc.yaml",
+        "--remote",
+        "remote.yaml",
         "get",
         "space",
     ]
@@ -322,10 +322,10 @@ def test_copy_files_and_rewrite_args_with_collision_across_flags(
 
 def test_write_runtime_env_pypi_only(
     tmp_path: pathlib.Path,
-    cluster_execution_context: ExecutionContext,
+    cluster_remote_context: RemoteExecutionContext,
 ) -> None:
     dest = tmp_path / "runtime_env.yaml"
-    _write_runtime_env(cluster_execution_context, [], dest)
+    _write_runtime_env(cluster_remote_context, [], dest)
 
     loaded = yaml.safe_load(dest.read_text())
     assert loaded["uv"] == ["ado-core"]
@@ -335,7 +335,7 @@ def test_write_runtime_env_pypi_only(
 def test_write_runtime_env_with_wheels(
     tmp_path: pathlib.Path,
 ) -> None:
-    ctx = ExecutionContext(
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
         packages=PackageConfiguration(fromPyPI=["ado-core"]),
         envVars={},
@@ -353,7 +353,7 @@ def test_write_runtime_env_with_wheels(
 
 
 def test_write_runtime_env_no_packages(tmp_path: pathlib.Path) -> None:
-    ctx = ExecutionContext(
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
     )
     dest = tmp_path / "runtime_env.yaml"
@@ -366,7 +366,7 @@ def test_write_runtime_env_no_packages(tmp_path: pathlib.Path) -> None:
 
 
 def test_write_runtime_env_env_vars_only(tmp_path: pathlib.Path) -> None:
-    ctx = ExecutionContext(
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
         envVars={"MY_VAR": "1"},
     )
@@ -385,7 +385,7 @@ def test_write_runtime_env_env_vars_only(tmp_path: pathlib.Path) -> None:
 
 def test_dispatcher_assembles_ray_job_submit_command(
     tmp_path: pathlib.Path,
-    cluster_execution_context: ExecutionContext,
+    cluster_remote_context: RemoteExecutionContext,
     mysql_context_yaml_file: pathlib.Path,
     mysql_project_context: ProjectContext,
 ) -> None:
@@ -410,7 +410,7 @@ def test_dispatcher_assembles_ray_job_submit_command(
 
     with patch("subprocess.run", side_effect=fake_run):
         exit_code = dispatch(
-            execution_context=cluster_execution_context,
+            remote_context=cluster_remote_context,
             project_context=mysql_project_context,
             argv=ado_args,
         )
@@ -443,7 +443,7 @@ def test_dispatcher_no_wait(
     mysql_context_yaml_file: pathlib.Path,
     mysql_project_context: ProjectContext,
 ) -> None:
-    ctx = ExecutionContext(
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
         wait=False,
     )
@@ -455,7 +455,7 @@ def test_dispatcher_no_wait(
 
     with patch("subprocess.run", side_effect=fake_run):
         dispatch(
-            execution_context=ctx,
+            remote_context=ctx,
             project_context=mysql_project_context,
             argv=["get", "space"],
         )
@@ -466,7 +466,7 @@ def test_dispatcher_no_wait(
 def test_dispatcher_propagates_exit_code(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
-    cluster_execution_context: ExecutionContext,
+    cluster_remote_context: RemoteExecutionContext,
     mysql_project_context: ProjectContext,
 ) -> None:
     with patch(
@@ -474,7 +474,7 @@ def test_dispatcher_propagates_exit_code(
         return_value=MagicMock(returncode=2),
     ):
         exit_code = dispatch(
-            execution_context=cluster_execution_context,
+            remote_context=cluster_remote_context,
             project_context=mysql_project_context,
             argv=["get", "space"],
         )
@@ -486,10 +486,10 @@ def test_dispatcher_job_type_raises_not_implemented(
     mysql_context_yaml_file: pathlib.Path,
     mysql_project_context: ProjectContext,
 ) -> None:
-    ctx = ExecutionContext(executionType=JobExecutionType())
+    ctx = RemoteExecutionContext(executionType=JobExecutionType())
     with pytest.raises(NotImplementedError, match="KubeRay"):
         dispatch(
-            execution_context=ctx,
+            remote_context=ctx,
             project_context=mysql_project_context,
             argv=["get", "space"],
         )
@@ -498,7 +498,7 @@ def test_dispatcher_job_type_raises_not_implemented(
 def test_dispatcher_copies_context_and_op_file(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
-    cluster_execution_context: ExecutionContext,
+    cluster_remote_context: RemoteExecutionContext,
     mysql_project_context: ProjectContext,
 ) -> None:
     """Context file and -f files are copied; paths in command are basenames only.
@@ -524,7 +524,7 @@ def test_dispatcher_copies_context_and_op_file(
 
     with patch("subprocess.run", side_effect=fake_run):
         dispatch(
-            execution_context=cluster_execution_context,
+            remote_context=cluster_remote_context,
             project_context=mysql_project_context,
             argv=[
                 "-c",
@@ -547,7 +547,7 @@ def test_dispatcher_runtime_env_contents(
     mysql_project_context: ProjectContext,
 ) -> None:
     """Verify runtime_env.yaml has the expected PyPI packages."""
-    ctx = ExecutionContext(
+    ctx = RemoteExecutionContext(
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
         packages=PackageConfiguration(fromPyPI=["ado-core", "ado-ray-tune"]),
         envVars={"OMP_NUM_THREADS": "1"},
@@ -563,7 +563,7 @@ def test_dispatcher_runtime_env_contents(
 
     with patch("subprocess.run", side_effect=fake_run):
         dispatch(
-            execution_context=ctx,
+            remote_context=ctx,
             project_context=mysql_project_context,
             argv=["get", "space"],
         )
@@ -576,16 +576,16 @@ def test_dispatcher_runtime_env_contents(
 
 
 # ---------------------------------------------------------------------------
-# CLI integration: --execution-context flag
+# CLI integration: --remote flag
 # ---------------------------------------------------------------------------
 
 
-def test_cli_execution_context_sqlite_guard(
+def test_cli_remote_sqlite_guard(
     tmp_path: pathlib.Path,
     sqlite_context_yaml_file: pathlib.Path,
-    execution_context_file: pathlib.Path,
+    remote_context_file: pathlib.Path,
 ) -> None:
-    """ado should fail with a clear error when using --execution-context with SQLite."""
+    """ado should fail with a clear error when using --remote with SQLite."""
     runner = CliRunner()
     result = runner.invoke(
         ado,
@@ -594,8 +594,8 @@ def test_cli_execution_context_sqlite_guard(
             str(tmp_path),
             "-c",
             str(sqlite_context_yaml_file),
-            "--execution-context",
-            str(execution_context_file),
+            "--remote",
+            str(remote_context_file),
             "get",
             "space",
         ],
@@ -604,17 +604,17 @@ def test_cli_execution_context_sqlite_guard(
     assert "SQLite" in result.output
 
 
-def test_cli_execution_context_missing_file(
+def test_cli_remote_missing_file(
     tmp_path: pathlib.Path,
 ) -> None:
-    """ado should fail gracefully if the execution context file doesn't exist."""
+    """ado should fail gracefully if the remote execution context file doesn't exist."""
     runner = CliRunner()
     result = runner.invoke(
         ado,
         [
             "--override-ado-app-dir",
             str(tmp_path),
-            "--execution-context",
+            "--remote",
             str(tmp_path / "nonexistent.yaml"),
             "get",
             "space",
@@ -623,12 +623,12 @@ def test_cli_execution_context_missing_file(
     assert result.exit_code == 1
 
 
-def test_cli_execution_context_invalid_yaml(
+def test_cli_remote_invalid_yaml(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
 ) -> None:
-    """ado should fail with a clear error when the execution context YAML is invalid."""
-    invalid_file = tmp_path / "bad_exec_ctx.yaml"
+    """ado should fail with a clear error when the remote execution context YAML is invalid."""
+    invalid_file = tmp_path / "bad_remote_ctx.yaml"
     invalid_file.write_text("not_a_valid_field: true\nexecutionType: {type: cluster}")
 
     runner = CliRunner()
@@ -639,7 +639,7 @@ def test_cli_execution_context_invalid_yaml(
             str(tmp_path),
             "-c",
             str(mysql_context_yaml_file),
-            "--execution-context",
+            "--remote",
             str(invalid_file),
             "get",
             "space",
@@ -652,9 +652,9 @@ def test_cli_execution_context_invalid_yaml(
 def test_cli_execution_context_dispatches_remotely(
     tmp_path: pathlib.Path,
     mysql_context_yaml_file: pathlib.Path,
-    execution_context_file: pathlib.Path,
+    remote_context_file: pathlib.Path,
 ) -> None:
-    """When --execution-context is valid and context is non-SQLite, ray job submit is called."""
+    """When --remote is valid and context is non-SQLite, ray job submit is called."""
     captured: list[list[str]] = []
 
     def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
@@ -670,8 +670,8 @@ def test_cli_execution_context_dispatches_remotely(
                 str(tmp_path),
                 "-c",
                 str(mysql_context_yaml_file),
-                "--execution-context",
-                str(execution_context_file),
+                "--remote",
+                str(remote_context_file),
                 "get",
                 "space",
             ],
@@ -686,11 +686,11 @@ def test_cli_execution_context_dispatches_remotely(
 
 def test_cli_execution_context_auto_sqlite_guard(
     tmp_path: pathlib.Path,
-    execution_context_file: pathlib.Path,
+    remote_context_file: pathlib.Path,
 ) -> None:
     """When no context is manually set, ado auto-creates a local SQLite context.
 
-    Using --execution-context in this scenario must fail with the SQLite guard
+    Using --remote in this scenario must fail with the SQLite guard
     message (the same as when a SQLite context is explicitly provided).
     """
     runner = CliRunner()
@@ -699,8 +699,8 @@ def test_cli_execution_context_auto_sqlite_guard(
         [
             "--override-ado-app-dir",
             str(tmp_path),
-            "--execution-context",
-            str(execution_context_file),
+            "--remote",
+            str(remote_context_file),
             "get",
             "space",
         ],
@@ -718,22 +718,22 @@ def test_strip_flags_generic() -> None:
     """Test generic strip_flags function."""
     from orchestrator.cli.models.remote_submission import (
         CONTEXT_SPEC,
-        EXECUTION_CONTEXT_SPEC,
+        REMOTE_SPEC,
     )
     from orchestrator.cli.utils.remote.arg_parser import strip_flags
 
-    argv = ["-c", "ctx.yaml", "--execution-context", "exec.yaml", "create", "op"]
+    argv = ["-c", "ctx.yaml", "--remote", "exec.yaml", "create", "op"]
 
-    # Strip only execution context
-    result = strip_flags(argv, [EXECUTION_CONTEXT_SPEC])
+    # Strip only remote context
+    result = strip_flags(argv, [REMOTE_SPEC])
     assert result == ["-c", "ctx.yaml", "create", "op"]
 
     # Strip only context
     result = strip_flags(argv, [CONTEXT_SPEC])
-    assert result == ["--execution-context", "exec.yaml", "create", "op"]
+    assert result == ["--remote", "exec.yaml", "create", "op"]
 
     # Strip both
-    result = strip_flags(argv, [EXECUTION_CONTEXT_SPEC, CONTEXT_SPEC])
+    result = strip_flags(argv, [REMOTE_SPEC, CONTEXT_SPEC])
     assert result == ["create", "op"]
 
 
@@ -810,10 +810,10 @@ def test_value_starting_with_dash() -> None:
 
 def test_empty_argv() -> None:
     """Empty argv should be handled gracefully."""
-    from orchestrator.cli.models.remote_submission import EXECUTION_CONTEXT_SPEC
+    from orchestrator.cli.models.remote_submission import REMOTE_SPEC
     from orchestrator.cli.utils.remote.arg_parser import strip_flags
 
-    assert strip_flags([], [EXECUTION_CONTEXT_SPEC]) == []
+    assert strip_flags([], [REMOTE_SPEC]) == []
 
 
 def test_multiple_occurrences_same_flag() -> None:

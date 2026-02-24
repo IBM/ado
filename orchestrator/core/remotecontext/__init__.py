@@ -3,16 +3,16 @@
 
 from .config import (
     ClusterExecutionType,
-    ExecutionContext,
     JobExecutionType,
     PackageConfiguration,
     PortForwardConfiguration,
+    RemoteExecutionContext,
 )
 
 __all__ = [
     "ClusterExecutionType",
-    "ExecutionContext",
     "JobExecutionType",
     "PackageConfiguration",
     "PortForwardConfiguration",
+    "RemoteExecutionContext",
 ]

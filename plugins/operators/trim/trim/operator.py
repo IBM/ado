@@ -134,9 +134,26 @@ def trim(
             log_and_save_characterization(source_df, target_df)
 
         if len(source_df) < params.samplingBudget.minPoints:
+            try:
+                op_id = discoverySpace.operations["IDENTIFIER"].values[-1]
+                last_measured_entity = discoverySpace.measurement_results_for_operation(
+                    op_id
+                )[-1]
+                experiment_reference = str(last_measured_entity.experimentReference)
+            except Exception:
+                logger_trim.warning(
+                    f"It was not possible to obtain the experiment identifier from space with identifier {discoverySpace._identifier}"
+                )
+                experiment_reference = None
+
+            experiment_reference_msg = (
+                f"experiment `{experiment_reference}`"
+                if experiment_reference
+                else "your custom experiment (or actuator)"
+            )
             msg = (
                 f"The current version of TRIM assumes that all measurements produce the observed target output property '{params.targetOutput}' "
-                "The measurements obtained with your custom experiment (or actuator) "
+                f"The measurements obtained with {experiment_reference_msg}"
                 f"may not produce values for the target output property '{params.targetOutput}'. "
                 f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints} "
                 f"requested measurements did not contain the target output property '{params.targetOutput}'. "

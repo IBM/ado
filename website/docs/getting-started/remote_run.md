@@ -8,26 +8,25 @@
 > utilize multiple nodes and large amounts of compute-resource like GPUs. Such
 > resources may also be a requirement for certain experiments or actuators.
 
-## Using `--execution-context` (recommended)
+## Using `--remote` (recommended)
 
-The `--execution-context` option automates the steps required to dispatch any
-`ado` command to a remote Ray cluster. It handles packaging files, building
-plugin wheels, generating the Ray runtime environment, and running
-`ray job submit` for you.
+The `--remote` option automates the steps required to dispatch any `ado` command
+to a remote Ray cluster. It handles packaging files, building plugin wheels,
+generating the Ray runtime environment, and running `ray job submit` for you.
 
 ### Prerequisites
 
-- Your active project context must use a non-SQLite (remote) metastore, such
-  as MySQL. Remote execution requires the Ray job to connect to the same
-  database as your local `ado` invocation.
+- Your active project context must use a non-SQLite (remote) metastore, such as
+  MySQL. Remote execution requires the Ray job to connect to the same database
+  as your local `ado` invocation.
 - `ray` must be installed and on your `PATH`.
 - If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
   must be installed and authenticated.
 
-### Create an execution context file
+### Create a remote execution context file
 
-Create an `execution_context.yaml` file. The minimal example uses a cluster
-that is directly reachable at a known URL (e.g. via an open route):
+Create a `remote_context.yaml` file. The minimal example uses a cluster that is
+directly reachable at a known URL (e.g. via an open route):
 
 <!-- markdownlint-disable line-length -->
 
@@ -49,9 +48,9 @@ wait: false # Set to true to remain attached until the job finishes
 
 <!-- markdownlint-enable line-length -->
 
-If your cluster is only reachable via a port-forward (common on OpenShift),
-add the `portForward` sub-field. `ado` will start the port-forward
-automatically before submitting and tear it down afterwards:
+If your cluster is only reachable via a port-forward (common on OpenShift), add
+the `portForward` sub-field. `ado` will start the port-forward automatically
+before submitting and tear it down afterwards:
 
 <!-- markdownlint-disable line-length -->
 
@@ -95,14 +94,14 @@ envVars:
 
 ### Submitting commands
 
-Pass `--execution-context` as a global option before any `ado` command.
-Use `-c` to specify the project context for the remote cluster:
+Pass `--remote` as a global option before any `ado` command. Use `-c` to specify
+the project context for the remote cluster:
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
 
 ```commandline
-ado -c mysql_context.yaml --execution-context execution_context.yaml create operation -f operation.yaml
+ado -c mysql_context.yaml --remote remote_context.yaml create operation -f operation.yaml
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -110,10 +109,10 @@ ado -c mysql_context.yaml --execution-context execution_context.yaml create oper
 All `ado` commands are supported. For example, to query the metastore remotely:
 
 ```commandline
-ado -c mysql_context.yaml --execution-context execution_context.yaml get space
+ado -c mysql_context.yaml --remote remote_context.yaml get space
 ```
 
-> [!NOTE] What `--execution-context` does
+> [!NOTE] What `--remote` does
 >
 > For each invocation `ado` will:
 >
@@ -130,9 +129,9 @@ ado -c mysql_context.yaml --execution-context execution_context.yaml get space
 
 > [!IMPORTANT] SQLite contexts are not supported
 >
-> `--execution-context` requires a non-SQLite project context (e.g. MySQL).
-> The remote Ray job must be able to connect to the same database as your local
-> `ado` invocation. `ado` will fail with a clear error if a SQLite context is
+> `--remote` requires a non-SQLite project context (e.g. MySQL). The remote Ray
+> job must be able to connect to the same database as your local `ado`
+> invocation. `ado` will fail with a clear error if a SQLite context is
 > detected.
 
 You can use `ado get context -o yaml` to export the current context to a YAML
@@ -144,10 +143,9 @@ ado get context -o yaml > mysql_context.yaml
 
 ## Manual approach (advanced)
 
-The sections below describe how to submit Ray jobs manually. This is useful
-when you need fine-grained control over the working directory, runtime
-environment, or `ray job submit` options, or when `--execution-context` does
-not cover your use case.
+The sections below describe how to submit Ray jobs manually. This is useful when
+you need fine-grained control over the working directory, runtime environment,
+or `ray job submit` options, or when `--remote` does not cover your use case.
 
 ## Quickstart
 

@@ -17,7 +17,6 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
 )
 from orchestrator.core import CoreResourceKinds
-from orchestrator.core.executioncontext.config import ExecutionContext
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.location import SQLiteStoreConfiguration
 
@@ -32,7 +31,6 @@ ADO_CONFIG_FILE_NAME = "ado_cli_config.json"
 class AdoConfiguration(pydantic.BaseModel):
     _app_dir: Path = Path(typer.get_app_dir(ADO_APP_NAME))
     _project_context: ProjectContext | None = None
-    _execution_context: ExecutionContext | None = None
     active_context: str | None = None
     latest_resource_ids: dict[CoreResourceKinds, str] = {}
 
@@ -163,21 +161,6 @@ class AdoConfiguration(pydantic.BaseModel):
     def project_context(self) -> ProjectContext | None:
         """Return the active project context."""
         return self._project_context
-
-    @property
-    def execution_context(self) -> ExecutionContext | None:
-        """Return the active execution context, if one was provided."""
-        return self._execution_context
-
-    def set_execution_context(self, execution_context: ExecutionContext) -> None:
-        """Set the active execution context.
-
-        Parameters
-        ----------
-        execution_context:
-            The validated execution context to activate for this session.
-        """
-        self._execution_context = execution_context
 
     @property
     def available_contexts(self) -> list[str]:

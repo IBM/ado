@@ -32,6 +32,7 @@ dependencies = [
   "ray[serve]>=2.9",
   "sqlalchemy>2",
   "typer>=0.22.0",
+  "uv>=0.10.4",
 ]
 # Deps/Build-related section
 dynamic = ["version"]

@@ -467,7 +467,7 @@ executed).
 > remote RayCluster. To handle this we recommend:
 >
 > - Add the paths to the templates to
-> [the `additionalFiles` of the execution context YAML](../getting-started/remote_run.md#sending-additional-files)
+>   [the `additionalFiles` of the execution context YAML](../getting-started/remote_run.md#sending-additional-files)
 > - Create an `actuatorconfiguration` with the relative paths to the templates
 >   from this working directory
 

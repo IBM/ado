@@ -53,10 +53,8 @@ _PORT_FORWARD_READY_TIMEOUT_S = 30.0
 def _find_port_forward_tool() -> str:
     """Return the first available port-forward CLI tool (``oc`` or ``kubectl``).
 
-    Raises
-    ------
-    RuntimeError
-        If neither ``oc`` nor ``kubectl`` is available on PATH.
+    Raises:
+        RuntimeError: If neither ``oc`` nor ``kubectl`` is available on PATH.
     """
     for tool in _PORT_FORWARD_TOOLS:
         if shutil.which(tool):
@@ -79,12 +77,9 @@ def _port_forward_context(
     accept connections.  This avoids the race condition of a fixed-duration
     sleep where the tunnel may not yet be bound when the caller proceeds.
 
-    Parameters
-    ----------
-    pf_config:
-        Port-forward configuration from the remote execution context.
-    cluster_url:
-        The Ray cluster URL (used to extract the target service port).
+    Args:
+        pf_config: Port-forward configuration from the remote execution context.
+        cluster_url: The Ray cluster URL (used to extract the target service port).
     """
     parsed = urlparse(cluster_url)
     service_port = parsed.port or 8265
@@ -151,24 +146,16 @@ def _copy_files_and_rewrite_args(
 
     Returns a new argument list with file paths replaced by basenames.
 
-    Parameters
-    ----------
-    args:
-        Argument list potentially containing file flags.
-    working_dir:
-        Destination directory for copied files.
+    Args:
+        args: Argument list potentially containing file flags.
+        working_dir: Destination directory for copied files.
 
-    Returns
-    -------
-    list[str]
+    Returns:
         A new argument list with file paths replaced by basenames.
 
-    Raises
-    ------
-    ValueError
-        If two file arguments share the same basename.
-    FileNotFoundError
-        If a ``--with KEY=VALUE`` value looks like a path but doesn't exist.
+    Raises:
+        ValueError: If two file arguments share the same basename.
+        FileNotFoundError: If a ``--with KEY=VALUE`` value looks like a path but doesn't exist.
     """
     copied_basenames: set[str] = set()
 
@@ -203,26 +190,17 @@ def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:
     ``FileNotFoundError`` is raised so the problem is caught locally rather than
     on the remote cluster.  Plain resource identifiers are returned unchanged.
 
-    Parameters
-    ----------
-    kv:
-        The ``KEY=VALUE`` string from the ``--with`` argument.
-    working_dir:
-        Destination directory for copied files.
-    seen:
-        Set of basenames already copied; updated in-place on copy.
+    Args:
+        kv: The ``KEY=VALUE`` string from the ``--with`` argument.
+        working_dir: Destination directory for copied files.
+        seen: Set of basenames already copied; updated in-place on copy.
 
-    Returns
-    -------
-    str
+    Returns:
         The (possibly rewritten) ``KEY=VALUE`` string.
 
-    Raises
-    ------
-    FileNotFoundError
-        If the value looks like a path but does not exist.
-    ValueError
-        If the file's basename collides with another already-copied file.
+    Raises:
+        FileNotFoundError: If the value looks like a path but does not exist.
+        ValueError: If the file's basename collides with another already-copied file.
     """
     if "=" not in kv:
         # Malformed --with value — pass through unchanged and let ado validate it
@@ -249,19 +227,13 @@ def _rewrite_with_value(kv: str, working_dir: Path, seen: set[str]) -> str:
 def _copy_file_checked(src: Path, working_dir: Path, seen: set[str]) -> None:
     """Copy *src* into *working_dir*, raising ``ValueError`` on basename collision.
 
-    Parameters
-    ----------
-    src:
-        Resolved source file path.
-    working_dir:
-        Destination directory.
-    seen:
-        Set of basenames already copied; updated in-place.
+    Args:
+        src: Resolved source file path.
+        working_dir: Destination directory.
+        seen: Set of basenames already copied; updated in-place.
 
-    Raises
-    ------
-    ValueError
-        If *src*'s basename already exists in *seen*.
+    Raises:
+        ValueError: If *src*'s basename already exists in *seen*.
     """
     if src.name in seen:
         raise ValueError(
@@ -283,18 +255,12 @@ def _build_source_wheels(
     Each entry in *from_source* is a path relative to *repo_root* (or absolute).
     Runs ``uv build --wheel -o dist --clear`` in each plugin directory.
 
-    Parameters
-    ----------
-    from_source:
-        Plugin directory paths to build.
-    working_dir:
-        Destination for built ``.whl`` files.
-    repo_root:
-        Base directory used to resolve relative paths in *from_source*.
+    Args:
+        from_source: Plugin directory paths to build.
+        working_dir: Destination for built ``.whl`` files.
+        repo_root: Base directory used to resolve relative paths in *from_source*.
 
-    Returns
-    -------
-    list[str]
+    Returns:
         Basenames of the wheel files copied to *working_dir*.
     """
     wheel_names: list[str] = []
@@ -343,14 +309,10 @@ def _write_runtime_env(
     *remote_context* into a ``runtime_env.yaml`` compatible with
     ``ray job submit --runtime-env``.
 
-    Parameters
-    ----------
-    remote_context:
-        The remote execution context describing packages and env vars.
-    wheel_names:
-        Basenames of wheel files present in the Ray working dir.
-    dest:
-        Path to write the generated ``runtime_env.yaml``.
+    Args:
+        remote_context: The remote execution context describing packages and env vars.
+        wheel_names: Basenames of wheel files present in the Ray working dir.
+        dest: Path to write the generated ``runtime_env.yaml``.
     """
     uv_packages: list[str] = list(remote_context.packages.fromPyPI)
     uv_packages.extend(
@@ -378,22 +340,14 @@ def _run_ray_submit(
 ) -> int:
     """Construct and run the ``ray job submit`` command.
 
-    Parameters
-    ----------
-    cluster_exec:
-        Cluster execution type (contains ``clusterUrl``).
-    remote_context:
-        Full remote execution context (used for ``wait`` flag).
-    working_dir:
-        Working directory to send with the job.
-    runtime_env_path:
-        Path to the generated ``runtime_env.yaml``.
-    remote_ado_args:
-        The rewritten ado argument list for use inside the Ray job.
+    Args:
+        cluster_exec: Cluster execution type (contains ``clusterUrl``).
+        remote_context: Full remote execution context (used for ``wait`` flag).
+        working_dir: Working directory to send with the job.
+        runtime_env_path: Path to the generated ``runtime_env.yaml``.
+        remote_ado_args: The rewritten ado argument list for use inside the Ray job.
 
-    Returns
-    -------
-    int
+    Returns:
         The exit code of ``ray job submit``.
     """
     cmd = ["ray", "job", "submit"]
@@ -435,24 +389,15 @@ def _dispatch_to_cluster(
 ) -> int:
     """Build the working directory and run ``ray job submit``.
 
-    Parameters
-    ----------
-    cluster_exec:
-        Resolved cluster execution type.
-    remote_context:
-        Full remote execution context.
-    project_context:
-        The ProjectContext instance to serialize into the working directory.
-    ado_args:
-        Full ado argument list (without ``--remote``).
-    working_dir:
-        Temporary directory to use as the Ray working directory.
-    repo_root:
-        Repository root for resolving relative ``fromSource`` paths.
+    Args:
+        cluster_exec: Resolved cluster execution type.
+        remote_context: Full remote execution context.
+        project_context: The ProjectContext instance to serialize into the working directory.
+        ado_args: Full ado argument list (without ``--remote``).
+        working_dir: Temporary directory to use as the Ray working directory.
+        repo_root: Repository root for resolving relative ``fromSource`` paths.
 
-    Returns
-    -------
-    int
+    Returns:
         Exit code of ``ray job submit``.
     """
     pf = cluster_exec.portForward
@@ -520,38 +465,26 @@ def dispatch(
     in-tree plugins, ``runtime_env.yaml`` generation, optional port-forwarding,
     and the ``ray job submit`` invocation itself.
 
-    Parameters
-    ----------
-    remote_context:
-        Loaded and validated remote execution context.
-    project_context:
-        The ProjectContext instance to serialize and send to the remote cluster.
-        This will be written to a file in the working directory and referenced
-        via ``-c`` in the remote ado command.
-    argv:
-        The full ado argument list (sys.argv[1:]). This function will strip
-        ``--remote``, ``--override-ado-app-dir``, and other
-        submission-specific flags before processing.
-    repo_root:
-        Root of the ado repository, used to resolve relative ``fromSource``
-        paths.  Defaults to ``Path.cwd()``.
+    Args:
+        remote_context: Loaded and validated remote execution context.
+        project_context: The ProjectContext instance to serialize and send to the remote cluster.
+            This will be written to a file in the working directory and referenced
+            via ``-c`` in the remote ado command.
+        argv: The full ado argument list (sys.argv[1:]). This function will strip
+            ``--remote``, ``--override-ado-app-dir``, and other
+            submission-specific flags before processing.
+        repo_root: Root of the ado repository, used to resolve relative ``fromSource``
+            paths.  Defaults to ``Path.cwd()``.
 
-    Returns
-    -------
-    int
+    Returns:
         The exit code of the ``ray job submit`` subprocess.
 
-    Raises
-    ------
-    NotImplementedError
-        If ``executionType`` is ``JobExecutionType`` (KubeRay - not yet
-        implemented).
-    RuntimeError
-        On port-forward startup failures or wheel build errors.
-    ValueError
-        If two file arguments share the same basename.
-    FileNotFoundError
-        If a ``--with`` value looks like a path but does not exist.
+    Raises:
+        NotImplementedError: If ``executionType`` is ``JobExecutionType`` (KubeRay - not yet
+            implemented).
+        RuntimeError: On port-forward startup failures or wheel build errors.
+        ValueError: If two file arguments share the same basename.
+        FileNotFoundError: If a ``--with`` value looks like a path but does not exist.
     """
     if isinstance(remote_context.executionType, JobExecutionType):
         raise NotImplementedError(

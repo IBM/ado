@@ -165,3 +165,17 @@ class RemoteExecutionContext(pydantic.BaseModel):
             default_factory=dict,
         ),
     ]
+
+    additionalFiles: Annotated[
+        list[str],
+        pydantic.Field(
+            description=(
+                "Additional files or directories to send with the Ray job. "
+                "Paths may be absolute or relative to the directory where "
+                "``ado --remote`` is executed. "
+                "Symbolic links are created in the Ray working directory to "
+                "avoid unnecessary copies."
+            ),
+            default_factory=list,
+        ),
+    ]

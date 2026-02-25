@@ -299,6 +299,51 @@ def _copy_file_checked(src: Path, working_dir: Path, seen: set[str]) -> None:
     seen.add(src.name)
 
 
+def _symlink_additional_files(
+    files: list[str],
+    cwd: Path,
+    working_dir: Path,
+    seen: set[str],
+) -> None:
+    """Create symlinks in *working_dir* for each path listed in *files*.
+
+    Both regular files and directories are supported.  Relative paths are
+    resolved with respect to *cwd* (the directory where ``ado --remote`` was
+    invoked).  Symbolic links are used rather than copies to avoid duplicating
+    potentially large files or directory trees.
+
+    Args:
+        files: Paths from the ``additionalFiles`` config field.
+        cwd: Directory used to resolve relative paths.
+        working_dir: Ray working directory in which symlinks are created.
+        seen: Set of basenames already present in *working_dir*; updated in-place.
+
+    Raises:
+        FileNotFoundError: If a listed path does not exist.
+        ValueError: If a path's basename collides with an entry already present
+            in *working_dir*.
+    """
+    for file_str in files:
+        path = Path(file_str)
+        path = (cwd / path).resolve() if not path.is_absolute() else path.resolve()
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"additionalFiles entry '{file_str}' does not exist: {path}"
+            )
+        if path.name in seen:
+            raise ValueError(
+                f"File basename collision: additionalFiles entry '{file_str}' "
+                f"has basename '{path.name}' which conflicts with another entry "
+                "already included in the Ray working directory. "
+                "Rename the file or directory to avoid the conflict."
+            )
+
+        (working_dir / path.name).symlink_to(path)
+        seen.add(path.name)
+        log.debug("Symlinked additional path %s -> %s", working_dir / path.name, path)
+
+
 def _build_source_wheels(
     from_source: list[str],
     working_dir: Path,
@@ -440,6 +485,7 @@ def _dispatch_to_cluster(
     ado_args: list[str],
     working_dir: Path,
     repo_root: Path,
+    cwd: Path,
 ) -> int:
     """Build the working directory and run ``ray job submit``.
 
@@ -450,6 +496,7 @@ def _dispatch_to_cluster(
         ado_args: Full ado argument list (without ``--remote``).
         working_dir: Temporary directory to use as the Ray working directory.
         repo_root: Repository root for resolving relative ``fromSource`` paths.
+        cwd: Directory used to resolve relative paths in ``additionalFiles``.
 
     Returns:
         Exit code of ``ray job submit``.
@@ -479,18 +526,28 @@ def _dispatch_to_cluster(
         rewritten_args = _copy_files_and_rewrite_args(ado_args, working_dir)
         remote_ado_args = ["-c", context_filename, *rewritten_args]
 
-        # 3. Build wheels for fromSource plugins
+        # 3. Symlink any additionalFiles into the working directory.
+        #    Collect basenames already present to detect collisions.
+        seen_basenames: set[str] = {f.name for f in working_dir.iterdir()}
+        _symlink_additional_files(
+            remote_context.additionalFiles,
+            cwd,
+            working_dir,
+            seen_basenames,
+        )
+
+        # 4. Build wheels for fromSource plugins
         wheel_names = _build_source_wheels(
             remote_context.packages.fromSource,
             working_dir,
             repo_root,
         )
 
-        # 4. Generate runtime_env.yaml
+        # 5. Generate runtime_env.yaml
         runtime_env_path = working_dir / "runtime_env.yaml"
         _write_runtime_env(remote_context, wheel_names, runtime_env_path)
 
-        # 5. Establish port-forward (blocks until tunnel is bound and ready)
+        # 6. Establish port-forward (blocks until tunnel is bound and ready)
         if pf is not None:
             status.update(ADO_SPINNER_REMOTE_PORT_FORWARD)
         stack.enter_context(pf_ctx)
@@ -512,6 +569,7 @@ def dispatch(
     project_context: ProjectContext,
     argv: list[str],
     repo_root: Path | None = None,
+    cwd: Path | None = None,
 ) -> int:
     """Dispatch an ado command to a remote Ray cluster via ``ray job submit``.
 
@@ -529,6 +587,8 @@ def dispatch(
             submission-specific flags before processing.
         repo_root: Root of the ado repository, used to resolve relative ``fromSource``
             paths.  Defaults to ``Path.cwd()``.
+        cwd: Directory used to resolve relative paths in ``additionalFiles``.
+            Defaults to ``Path.cwd()``.
 
     Returns:
         The exit code of the ``ray job submit`` subprocess.
@@ -538,7 +598,8 @@ def dispatch(
             implemented).
         RuntimeError: On port-forward startup failures or wheel build errors.
         ValueError: If two file arguments share the same basename.
-        FileNotFoundError: If a ``--with`` value looks like a path but does not exist.
+        FileNotFoundError: If a ``--with`` value looks like a path but does not exist,
+            or if an ``additionalFiles`` entry does not exist.
     """
     if isinstance(remote_context.executionType, JobExecutionType):
         raise NotImplementedError(
@@ -547,6 +608,7 @@ def dispatch(
 
     cluster_exec: ClusterExecutionType = remote_context.executionType
     resolved_repo_root = repo_root or Path.cwd()
+    resolved_cwd = cwd or Path.cwd()
 
     # Reconstruct the ado argument list without submission-specific flags
     ado_args = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
@@ -559,4 +621,5 @@ def dispatch(
             ado_args=ado_args,
             working_dir=Path(tmp_str),
             repo_root=resolved_repo_root,
+            cwd=resolved_cwd,
         )

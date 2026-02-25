@@ -21,6 +21,7 @@ from orchestrator.cli.utils.remote import strip_flags
 from orchestrator.cli.utils.remote.dispatch import (
     _copy_files_and_rewrite_args,
     _port_forward_context,
+    _symlink_additional_files,
     _write_runtime_env,
     dispatch,
 )
@@ -316,6 +317,233 @@ def test_copy_files_and_rewrite_args_with_collision_across_flags(
     args = ["-f", str(op_file), "--with", f"space={space_file}"]
     with pytest.raises(ValueError, match="basename collision"):
         _copy_files_and_rewrite_args(args, dest)
+
+
+# ---------------------------------------------------------------------------
+# _symlink_additional_files
+# ---------------------------------------------------------------------------
+
+
+def test_symlink_additional_files_absolute_path(tmp_path: pathlib.Path) -> None:
+    """Absolute path is symlinked into the working directory."""
+    src = tmp_path / "extra.py"
+    src.write_text("# extra")
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    _symlink_additional_files([str(src)], tmp_path, working_dir, set())
+
+    link = working_dir / "extra.py"
+    assert link.is_symlink()
+    assert link.resolve() == src.resolve()
+    assert link.read_text() == "# extra"
+
+
+def test_symlink_additional_files_relative_path(tmp_path: pathlib.Path) -> None:
+    """Relative path is resolved against cwd and symlinked."""
+    src = tmp_path / "helper.py"
+    src.write_text("# helper")
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    _symlink_additional_files(["helper.py"], tmp_path, working_dir, set())
+
+    link = working_dir / "helper.py"
+    assert link.is_symlink()
+    assert link.read_text() == "# helper"
+
+
+def test_symlink_additional_files_updates_seen(tmp_path: pathlib.Path) -> None:
+    """The seen set is updated with the symlinked file's basename."""
+    src = tmp_path / "data.csv"
+    src.write_text("a,b")
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    seen: set[str] = set()
+    _symlink_additional_files([str(src)], tmp_path, working_dir, seen)
+
+    assert "data.csv" in seen
+
+
+def test_symlink_additional_files_missing_file(tmp_path: pathlib.Path) -> None:
+    """Non-existent path raises FileNotFoundError."""
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    with pytest.raises(FileNotFoundError, match="does not exist"):
+        _symlink_additional_files(["nonexistent.py"], tmp_path, working_dir, set())
+
+
+def test_symlink_additional_files_directory(tmp_path: pathlib.Path) -> None:
+    """A directory path is symlinked into the working directory."""
+    subdir = tmp_path / "mydir"
+    subdir.mkdir()
+    (subdir / "script.py").write_text("# script")
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    _symlink_additional_files([str(subdir)], tmp_path, working_dir, set())
+
+    link = working_dir / "mydir"
+    assert link.is_symlink()
+    assert link.resolve() == subdir.resolve()
+    assert (link / "script.py").read_text() == "# script"
+
+
+def test_symlink_additional_files_basename_collision_with_seen(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Collision with an existing basename in seen raises ValueError."""
+    src = tmp_path / "file.py"
+    src.write_text("# x")
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    with pytest.raises(ValueError, match="basename collision"):
+        _symlink_additional_files([str(src)], tmp_path, working_dir, {"file.py"})
+
+
+def test_symlink_additional_files_basename_collision_within_list(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Two additionalFiles entries sharing a basename raises ValueError."""
+    src_a = tmp_path / "a" / "shared.py"
+    src_a.parent.mkdir()
+    src_a.write_text("# a")
+    src_b = tmp_path / "b" / "shared.py"
+    src_b.parent.mkdir()
+    src_b.write_text("# b")
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+
+    with pytest.raises(ValueError, match="basename collision"):
+        _symlink_additional_files(
+            [str(src_a), str(src_b)], tmp_path, working_dir, set()
+        )
+
+
+def test_symlink_additional_files_empty_list(tmp_path: pathlib.Path) -> None:
+    """Empty additionalFiles list is a no-op."""
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    seen: set[str] = set()
+    _symlink_additional_files([], tmp_path, working_dir, seen)
+    assert list(working_dir.iterdir()) == []
+    assert seen == set()
+
+
+# ---------------------------------------------------------------------------
+# dispatch() — additionalFiles integration
+# ---------------------------------------------------------------------------
+
+
+def test_dispatcher_additional_files_symlinked(
+    tmp_path: pathlib.Path,
+    cluster_remote_context: RemoteExecutionContext,
+    mysql_project_context: ProjectContext,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    """additionalFiles entries are symlinked into the Ray working directory."""
+    extra_file = tmp_path / "my_function.py"
+    extra_file.write_text("def fn(): pass")
+
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        additionalFiles=[str(extra_file)],
+    )
+
+    found_symlink = False
+    symlink_target_correct = False
+
+    def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
+        nonlocal found_symlink, symlink_target_correct
+        idx = cmd.index("--working-dir")
+        working_dir = pathlib.Path(cmd[idx + 1])
+        link = working_dir / "my_function.py"
+        found_symlink = link.exists()
+        symlink_target_correct = (
+            link.is_symlink() and link.resolve() == extra_file.resolve()
+        )
+        return MagicMock(returncode=0)
+
+    with patch("subprocess.run", side_effect=fake_run):
+        exit_code = dispatch(
+            remote_context=ctx,
+            project_context=mysql_project_context,
+            argv=["-c", str(mysql_context_yaml_file), "get", "space"],
+            cwd=tmp_path,
+        )
+
+    assert exit_code == 0
+    assert found_symlink, "additional file was not found in working directory"
+    assert symlink_target_correct, "additional file is not a symlink to the source"
+
+
+def test_dispatcher_additional_files_relative_path(
+    tmp_path: pathlib.Path,
+    mysql_project_context: ProjectContext,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    """Relative additionalFiles paths are resolved relative to cwd."""
+    extra_file = tmp_path / "config.yaml"
+    extra_file.write_text("key: value")
+
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        additionalFiles=["config.yaml"],
+    )
+
+    found = False
+
+    def fake_run(cmd: list[str], **kwargs: object) -> MagicMock:
+        nonlocal found
+        idx = cmd.index("--working-dir")
+        working_dir = pathlib.Path(cmd[idx + 1])
+        found = (working_dir / "config.yaml").exists()
+        return MagicMock(returncode=0)
+
+    with patch("subprocess.run", side_effect=fake_run):
+        dispatch(
+            remote_context=ctx,
+            project_context=mysql_project_context,
+            argv=["get", "space"],
+            cwd=tmp_path,
+        )
+
+    assert found, "relative additionalFiles path was not resolved and symlinked"
+
+
+def test_dispatcher_additional_files_collision_with_copied_file(
+    tmp_path: pathlib.Path,
+    mysql_project_context: ProjectContext,
+    mysql_context_yaml_file: pathlib.Path,
+) -> None:
+    """additionalFiles basename collision with a -f file raises ValueError."""
+    shared_name = "operation.yaml"
+    op_file = tmp_path / "a" / shared_name
+    op_file.parent.mkdir()
+    op_file.write_text("kind: operation")
+
+    additional_file = tmp_path / "b" / shared_name
+    additional_file.parent.mkdir()
+    additional_file.write_text("kind: other")
+
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        additionalFiles=[str(additional_file)],
+    )
+
+    with (
+        pytest.raises(ValueError, match="basename collision"),
+        patch("subprocess.run", return_value=MagicMock(returncode=0)),
+    ):
+        dispatch(
+            remote_context=ctx,
+            project_context=mysql_project_context,
+            argv=["-f", str(op_file), "create", "operation"],
+            cwd=tmp_path,
+        )
 
 
 # ---------------------------------------------------------------------------

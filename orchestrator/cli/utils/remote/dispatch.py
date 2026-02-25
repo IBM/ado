@@ -622,13 +622,13 @@ def dispatch(
     # Reconstruct the ado argument list without submission-specific flags
     ado_args = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
 
-    with tempfile.TemporaryDirectory(prefix="ado-remote-") as tmp_str:
+    with tempfile.TemporaryDirectory(prefix="ado-remote-") as tmp_dir:
         return _dispatch_to_cluster(
             cluster_exec=cluster_exec,
             remote_context=remote_context,
             project_context=project_context,
             ado_args=ado_args,
-            working_dir=Path(tmp_str),
+            working_dir=Path(tmp_dir),
             repo_root=resolved_repo_root,
             cwd=resolved_cwd,
         )

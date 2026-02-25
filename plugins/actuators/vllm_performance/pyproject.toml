@@ -17,7 +17,7 @@ guidellm = [
   "guidellm>=0.5.3",
 ]
 vllm = [
-  "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
+  "vllm>=0.15.1,!=0.15;sys_platform!='darwin'",
 ]
 
 [dependency-groups]

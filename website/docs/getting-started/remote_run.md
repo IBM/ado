@@ -22,7 +22,6 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > will fail with a clear error if a SQLite context is detected.
 
 <!-- markdownlint-disable-next-line MD028 -->
-``
 > [!IMPORTANT] Cluster login
 >
 > If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`

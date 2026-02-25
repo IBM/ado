@@ -86,6 +86,31 @@ wait: false
 
 ## Submitting commands
 
+<!-- markdownlint-disable MD007 -->
+
+> [!WARNING] Ray version mismatch errors
+>
+> If you encounter an error like:
+>
+> ```text
+> RuntimeError: Changing the ray version is not allowed:
+>   current version: 2.54.0,   expect version: 2.52.1
+> ```
+>
+> This means the Ray version installed in your cluster differs from the version
+> that will be installed by your dependencies. To resolve this, explicitly pin
+> the Ray version in your `fromPyPI` section to match the cluster's version:
+>
+> ```yaml
+> packages:
+>   fromPyPI:
+>     - ado-core
+>     - ray==2.52.1 # Match the cluster's Ray version
+>     - ado-ray-tune
+> ```
+
+<!-- markdownlint-enable MD007 -->
+
 Pass `--remote` as a global option before any `ado` command.
 
 By default, `ado` will use the current active context as the context for the

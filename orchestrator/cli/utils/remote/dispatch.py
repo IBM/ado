@@ -9,7 +9,8 @@ import shutil
 import subprocess
 import tempfile
 import threading
-from collections.abc import Generator
+import time
+from collections.abc import Callable, Generator
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -48,6 +49,7 @@ _PORT_FORWARD_READY_PATTERN = b"Forwarding from"
 
 # How long to wait for the port-forward tunnel to become ready
 _PORT_FORWARD_READY_TIMEOUT_S = 30.0
+_PORT_FORWARD_READY_POLL_S = 0.1
 
 
 def _find_port_forward_tool() -> str:
@@ -65,6 +67,47 @@ def _find_port_forward_tool() -> str:
         f"Neither {' nor '.join(_PORT_FORWARD_TOOLS)} was found on PATH. "
         "Install one of them to use port-forward with --remote."
     )
+
+
+def _decode_joined_bytes(chunks: list[bytes]) -> str:
+    """Decode collected byte chunks for display in error messages."""
+    return b"".join(chunks).decode(errors="replace")
+
+
+def _start_stream_drain_thread(
+    stream: object,
+    *,
+    on_line: Callable[[bytes], None] | None = None,
+    sink: list[bytes] | None = None,
+) -> threading.Thread:
+    """Start a daemon thread that drains a subprocess stream."""
+
+    def _drain() -> None:
+        if stream is None:  # pragma: no cover
+            return
+        for line in stream:
+            if sink is not None:
+                sink.append(line)
+            if on_line is not None:
+                on_line(line)
+
+    thread = threading.Thread(target=_drain, daemon=True)
+    thread.start()
+    return thread
+
+
+def _wait_for_port_forward_ready(
+    proc: subprocess.Popen[bytes],
+    ready: threading.Event,
+) -> int | None:
+    """Wait for ready signal while failing fast if the process exits."""
+    deadline = time.monotonic() + _PORT_FORWARD_READY_TIMEOUT_S
+    while time.monotonic() < deadline:
+        if ready.wait(timeout=_PORT_FORWARD_READY_POLL_S):
+            return None
+        if (exit_code := proc.poll()) is not None:
+            return exit_code
+    return proc.poll()
 
 
 @contextlib.contextmanager
@@ -107,28 +150,37 @@ def _port_forward_context(
     # Draining is necessary even after the ready signal to prevent the pipe
     # buffer from filling and blocking the oc/kubectl process.
     ready = threading.Event()
+    stderr_chunks: list[bytes] = []
 
-    def _drain_stdout() -> None:
-        if proc.stdout is None:  # pragma: no cover
-            return
-        for line in proc.stdout:
-            if _PORT_FORWARD_READY_PATTERN in line:
-                ready.set()
+    stdout_thread = _start_stream_drain_thread(
+        proc.stdout,
+        on_line=lambda line: (
+            ready.set() if _PORT_FORWARD_READY_PATTERN in line else None
+        ),
+    )
+    stderr_thread = _start_stream_drain_thread(proc.stderr, sink=stderr_chunks)
 
-    stdout_thread = threading.Thread(target=_drain_stdout, daemon=True)
-    stdout_thread.start()
+    if (exit_code := _wait_for_port_forward_ready(proc, ready)) is not None:
+        stderr_thread.join(timeout=1)
+        raise RuntimeError(
+            "Port-forward process exited before becoming ready.\n"
+            f"Command: {shlex.join(cmd)}\n"
+            f"exit_code: {exit_code}\n"
+            f"stderr: {_decode_joined_bytes(stderr_chunks)}"
+        )
 
-    if not ready.wait(timeout=_PORT_FORWARD_READY_TIMEOUT_S):
+    if not ready.is_set():
         proc.terminate()
         try:
-            _, stderr_data = proc.communicate(timeout=5)
+            proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
-            _, stderr_data = proc.communicate()
+            proc.wait()
+        stderr_thread.join(timeout=1)
         raise RuntimeError(
             f"Port-forward did not become ready within {_PORT_FORWARD_READY_TIMEOUT_S}s.\n"
             f"Command: {shlex.join(cmd)}\n"
-            f"stderr: {stderr_data.decode()}"
+            f"stderr: {_decode_joined_bytes(stderr_chunks)}"
         )
 
     log.debug("Port-forward ready")
@@ -141,6 +193,8 @@ def _port_forward_context(
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
+        stdout_thread.join(timeout=1)
+        stderr_thread.join(timeout=1)
 
 
 def _copy_files_and_rewrite_args(

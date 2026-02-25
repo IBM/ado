@@ -512,7 +512,7 @@ def _dispatch_to_cluster(
     """
     pf = cluster_exec.portForward
     pf_ctx = (
-        _port_forward_context(pf, cluster_exec.clusterUrl)
+        _port_forward_context(pf, cluster_exec.clusterUrl.unicode_string())
         if pf is not None
         else contextlib.nullcontext()
     )

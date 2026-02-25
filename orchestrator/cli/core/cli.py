@@ -227,13 +227,10 @@ def _handle_remote_dispatch(
     Called from ``common_options`` when ``--remote`` is present.
     Exits the process via ``typer.Exit`` after dispatching (or on error).
 
-    Parameters
-    ----------
-    remote_context_file:
-        Path to the RemoteExecutionContext YAML file.
-    ado_config:
-        The loaded AdoConfiguration for this invocation. Must have a valid
-        project context loaded (either from ``-c`` or the active context).
+    Args:
+        remote_context_file: Path to the RemoteExecutionContext YAML file.
+        ado_config: The loaded AdoConfiguration for this invocation. Must have a valid
+            project context loaded (either from ``-c`` or the active context).
     """
     # Guard: remote execution requires a non-SQLite project context
     # Note: AdoConfiguration.load() ensures project_context is set when not using

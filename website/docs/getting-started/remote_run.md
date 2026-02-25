@@ -206,3 +206,31 @@ envVars:
 
 1. Build python wheels for those cpakges
 2. Instruct Ray to install the wheels as part of the Ray job submission
+
+## Sending additional files
+
+If you have additional files that need to be sent use the
+`additionalFiles` field of the execution context YAML.
+This can be required for example if an operator or actuator
+requires these files as input.
+
+The paths can be absolute or relative.
+If relative they are resolved with respect to the directory
+`ado --remote [COMMAND]` is executed from.
+
+```yaml
+executionType:
+  type: cluster
+  clusterUrl: "http://localhost:8265"
+packages:
+  fromPyPI:
+    - ado-core
+  fromSource:
+    - plugins/actuators/vllm_performance 
+wait: false
+envVars:
+  PYTHONUNBUFFERED: "x"
+additionalFiles:
+  - /absolute/path/to/data_file.csv
+  - path/to/my_data_dir/              # directories are also supported
+```

@@ -189,7 +189,11 @@ def _port_forward_context(
         except subprocess.TimeoutExpired:
             proc.kill()
         stdout_thread.join(timeout=1)
+        if stdout_thread.is_alive():
+            log.warning("stdout thread did not terminate within timeout")
         stderr_thread.join(timeout=1)
+        if stderr_thread.is_alive():
+            log.warning("stderr thread did not terminate within timeout")
 
 
 def _copy_files_and_rewrite_args(

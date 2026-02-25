@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: MIT
 """Tests for remote submission utilities and the --remote CLI option."""
 
+import importlib
 import pathlib
 import subprocess
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,6 +20,7 @@ from orchestrator.cli.models.remote_submission import (
 from orchestrator.cli.utils.remote import strip_flags
 from orchestrator.cli.utils.remote.dispatch import (
     _copy_files_and_rewrite_args,
+    _port_forward_context,
     _write_runtime_env,
     dispatch,
 )
@@ -381,6 +384,107 @@ def test_write_runtime_env_env_vars_only(tmp_path: pathlib.Path) -> None:
 # ---------------------------------------------------------------------------
 # dispatch() — ray job submit command assembly
 # ---------------------------------------------------------------------------
+
+
+class _FakePortForwardProcess:
+    """Minimal fake subprocess for testing port-forward lifecycle."""
+
+    def __init__(
+        self,
+        stdout_data: bytes,
+        stderr_data: bytes,
+        poll_value: int | None = None,
+    ) -> None:
+        self.stdout = BytesIO(stdout_data)
+        self.stderr = BytesIO(stderr_data)
+        self._poll_value = poll_value
+        self.terminated = False
+        self.killed = False
+        self.pid = 12345
+
+    def poll(self) -> int | None:
+        return self._poll_value
+
+    def terminate(self) -> None:
+        self.terminated = True
+
+    def wait(self, timeout: float | None = None) -> int:
+        return 0
+
+    def kill(self) -> None:
+        self.killed = True
+
+
+def test_port_forward_context_ready_and_teardown() -> None:
+    """Port-forward should become ready and terminate on context exit."""
+
+    # For patching
+    remote_dispatch_module = importlib.import_module(
+        "orchestrator.cli.utils.remote.dispatch"
+    )
+
+    fake_proc = _FakePortForwardProcess(
+        stdout_data=b"Forwarding from 127.0.0.1:8265 -> 8265\n",
+        stderr_data=b"",
+        poll_value=None,
+    )
+
+    with (
+        patch.object(
+            remote_dispatch_module,
+            "_find_port_forward_tool",
+            return_value="kubectl",
+        ),
+        patch.object(
+            remote_dispatch_module.subprocess, "Popen", return_value=fake_proc
+        ),
+        _port_forward_context(
+            PortForwardConfiguration(
+                namespace="my-ns",
+                serviceName="my-svc",
+                localPort=8265,
+            ),
+            "http://localhost:8265",
+        ),
+    ):
+        pass
+
+    assert fake_proc.terminated is True
+
+
+def test_port_forward_context_fails_fast_on_early_exit() -> None:
+    """Early process exit should fail before readiness timeout."""
+
+    remote_dispatch_module = importlib.import_module(
+        "orchestrator.cli.utils.remote.dispatch"
+    )
+
+    fake_proc = _FakePortForwardProcess(
+        stdout_data=b"",
+        stderr_data=b"service not found\n",
+        poll_value=1,
+    )
+
+    with (
+        patch.object(
+            remote_dispatch_module,
+            "_find_port_forward_tool",
+            return_value="kubectl",
+        ),
+        patch.object(
+            remote_dispatch_module.subprocess, "Popen", return_value=fake_proc
+        ),
+        pytest.raises(RuntimeError, match="exited before becoming ready"),
+        _port_forward_context(
+            PortForwardConfiguration(
+                namespace="my-ns",
+                serviceName="missing-service",
+                localPort=8265,
+            ),
+            "http://localhost:8265",
+        ),
+    ):
+        pass
 
 
 def test_dispatcher_assembles_ray_job_submit_command(

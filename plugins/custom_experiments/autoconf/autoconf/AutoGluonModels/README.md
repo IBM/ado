@@ -39,17 +39,18 @@ convention: `vX-Y-Z`, where `X`, `Y` and `Z` are integers.
   - **Rows**: Dataset used for building and testing the model.
 
 - **Minor version (Y):** Incremented when changes are made to:
-  - **Algorithms**: Modifications that may affect dependencies.
+  - **Algorithms**: Modifications that may affect the compatibility of the model
+    with certain environments.
   - **Inference speed**: Performance optimizations.
   - **Model performance**: Improvements in accuracy or other metrics.
   - **Model size**: Significant changes (≥10× difference).
 
 > **Note:** Minor version (`Y`) is not incremented if the major version (`X`) is
 > updated. Furthermore, if models differs by the training splits used they will
-> different in the minor version.
+> differ in the minor version.
 
-- **Patch version (Z):** Incremented when changes are made to:
-  - Parameters for model invocation (see below) are updated independent of model
+- **Patch version (Z):** Incremented for backward-compatible
+  bug fixes or other minor, non-functional changes.
 
 ## Available Versions
 

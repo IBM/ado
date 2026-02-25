@@ -8,7 +8,7 @@ repos:
       - id: detect-secrets # pragma: whitelist secret
         args: [--baseline, .secrets.baseline, --use-all-plugins, --fail-on-unaudited]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.1
+    rev: v0.15.2
     hooks:
       - id: ruff
         args:
@@ -20,7 +20,7 @@ repos:
     hooks:
       - id: black-jupyter
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
@@ -52,7 +52,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v0.7.31
+    rev: v0.7.32
     hooks:
       - id: tombi-format
         args: ["--offline"]

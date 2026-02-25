@@ -291,8 +291,13 @@ def _copy_file_checked(src: Path, working_dir: Path, seen: set[str]) -> None:
         seen: Set of basenames already copied; updated in-place.
 
     Raises:
-        ValueError: If *src*'s basename already exists in *seen*.
+        ValueError: If *src*'s basename already exists in *seen* or is empty.
     """
+    if not src.name:
+        raise ValueError(
+            f"Invalid file path: '{src}' resolves to a path with an empty basename. "
+            "Please provide a valid file path."
+        )
     if src.name in seen:
         raise ValueError(
             f"File basename collision: two file arguments resolve to the "

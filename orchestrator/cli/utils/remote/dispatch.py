@@ -189,7 +189,11 @@ def _port_forward_context(
         except subprocess.TimeoutExpired:
             proc.kill()
         stdout_thread.join(timeout=1)
+        if stdout_thread.is_alive():
+            log.warning("stdout thread did not terminate within timeout")
         stderr_thread.join(timeout=1)
+        if stderr_thread.is_alive():
+            log.warning("stderr thread did not terminate within timeout")
 
 
 def _copy_files_and_rewrite_args(
@@ -287,8 +291,13 @@ def _copy_file_checked(src: Path, working_dir: Path, seen: set[str]) -> None:
         seen: Set of basenames already copied; updated in-place.
 
     Raises:
-        ValueError: If *src*'s basename already exists in *seen*.
+        ValueError: If *src*'s basename already exists in *seen* or is empty.
     """
+    if not src.name:
+        raise ValueError(
+            f"Invalid file path: '{src}' resolves to a path with an empty basename. "
+            "Please provide a valid file path."
+        )
     if src.name in seen:
         raise ValueError(
             f"File basename collision: two file arguments resolve to the "
@@ -503,7 +512,7 @@ def _dispatch_to_cluster(
     """
     pf = cluster_exec.portForward
     pf_ctx = (
-        _port_forward_context(pf, cluster_exec.clusterUrl)
+        _port_forward_context(pf, cluster_exec.clusterUrl.unicode_string())
         if pf is not None
         else contextlib.nullcontext()
     )
@@ -613,13 +622,13 @@ def dispatch(
     # Reconstruct the ado argument list without submission-specific flags
     ado_args = strip_flags(argv, SUBMISSION_STRIP_FLAGS)
 
-    with tempfile.TemporaryDirectory(prefix="ado-remote-") as tmp_str:
+    with tempfile.TemporaryDirectory(prefix="ado-remote-") as tmp_dir:
         return _dispatch_to_cluster(
             cluster_exec=cluster_exec,
             remote_context=remote_context,
             project_context=project_context,
             ado_args=ado_args,
-            working_dir=Path(tmp_str),
+            working_dir=Path(tmp_dir),
             repo_root=resolved_repo_root,
             cwd=resolved_cwd,
         )

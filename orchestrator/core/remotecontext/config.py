@@ -5,6 +5,8 @@ from typing import Annotated, Literal
 
 import pydantic
 
+from orchestrator.utilities.pydantic import validate_rfc_1123
+
 
 class PortForwardConfiguration(pydantic.BaseModel):
     """Configuration for setting up a port-forward to a Ray cluster on OpenShift/Kubernetes.
@@ -17,12 +19,14 @@ class PortForwardConfiguration(pydantic.BaseModel):
 
     namespace: Annotated[
         str,
+        pydantic.AfterValidator(validate_rfc_1123),
         pydantic.Field(
             description="The OpenShift/Kubernetes namespace of the Ray cluster"
         ),
     ]
     serviceName: Annotated[
         str,
+        pydantic.AfterValidator(validate_rfc_1123),
         pydantic.Field(description="The name of the Ray cluster service to forward to"),
     ]
     localPort: Annotated[

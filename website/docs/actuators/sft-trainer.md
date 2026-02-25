@@ -1911,11 +1911,7 @@ following DiscoverySpace for 5 times:
 <!-- markdownlint-disable MD046 -->
 
 ```yaml
-{
-  % include
-  "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml"
-  %,
-}
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
 ```
 
 <!-- markdownlint-enable MD046 -->
@@ -1925,13 +1921,8 @@ Remember to switch off memoization in your RandomWalk operation definition:
 
 <!-- markdownlint-disable MD013 -->
 <!-- markdownlint-disable MD046 -->
-
 ```yaml
-{
-  % include
-  "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml"
-  %,
-}
+{% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
 ```
 
 <!-- markdownlint-enable MD046 -->
@@ -2316,30 +2307,27 @@ your log output will be similar to the snippet below.
 
 - ⚙️ **Customize Actuators using ActuatorConfiguration resources**
 
-  ***
+    ---
 
-  Learn how to use **ActuatorConfiguration** resources to customize the
-  SFTTrainer **Operations**
+    Learn how to use **ActuatorConfiguration** resources to customize the SFTTrainer **Operations**
 
-  [ActuatorConfiguration documentation](../resources/actuatorconfig.md)
+    [ActuatorConfiguration documentation](../resources/actuatorconfig.md)
 
 - 🖥️ **Ready to try it out?**
 
-  ***
+    ---
 
-  The SFTTrainer actuator can run experiments locally as well. Just follow the
-  example below to get started:
+    The SFTTrainer actuator can run experiments locally as well. Just follow the example below to get started:
 
-  :link: [Run a local fine-tuning experiment](../examples/finetune-locally.md)
+    :link: [Run a local fine-tuning experiment](../examples/finetune-locally.md)
 
 - :octicons-rocket-24:{ .lg .middle } **Take it to the next level**
 
-  ***
+    ---
 
-  Do you have a RayCluster with GPUs in it?
+    Do you have a RayCluster with GPUs in it?
 
-  :link:
-  [Run a fine-tuning experiment on a remote RayCluster](../examples/finetune-remotely.md)
+    :link: [Run a fine-tuning experiment on a remote RayCluster](../examples/finetune-remotely.md)
 
 </div>
 <!-- markdownlint-enable line-length -->

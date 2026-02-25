@@ -17,12 +17,11 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > [!IMPORTANT] Only remote project contexts are supported
 >
 > The project context used must be
-> [remote](http://localhost:8000/ado/resources/metastore/#contexts-for-remote-projects),
+> [remote](https://ibm.github.io/ado/resources/metastore/#contexts-for-remote-projects),
 > as it must be accessible when ado executes on the remote ray cluster. `ado`
 > will fail with a clear error if a SQLite context is detected.
 
 <!-- markdownlint-disable-next-line MD028 -->
-``
 > [!IMPORTANT] Cluster login
 >
 > If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
@@ -86,6 +85,31 @@ wait: false
 <!-- markdownlint-enable line-length -->
 
 ## Submitting commands
+
+<!-- markdownlint-disable MD007 -->
+
+> [!WARNING] Ray version mismatch errors
+>
+> If you encounter an error like:
+>
+> ```text
+> RuntimeError: Changing the ray version is not allowed:
+>   current version: 2.54.0,   expect version: 2.52.1
+> ```
+>
+> This means the Ray version installed in your cluster differs from the version
+> that will be installed by your dependencies. To resolve this, explicitly pin
+> the Ray version in your `fromPyPI` section to match the cluster's version:
+>
+> ```yaml
+> packages:
+>   fromPyPI:
+>     - ado-core
+>     - ray==2.52.1 # Match the cluster's Ray version
+>     - ado-ray-tune
+> ```
+
+<!-- markdownlint-enable MD007 -->
 
 Pass `--remote` as a global option before any `ado` command.
 
@@ -204,19 +228,17 @@ envVars:
 
 `ado` then will:
 
-1. Build python wheels for those cpakges
+1. Build python wheels for those packages
 2. Instruct Ray to install the wheels as part of the Ray job submission
 
 ## Sending additional files
 
-If you have additional files that need to be sent use the
-`additionalFiles` field of the execution context YAML.
-This can be required for example if an operator or actuator
-requires these files as input.
+If you have additional files that need to be sent use the `additionalFiles`
+field of the remote execution context YAML. This can be required for example if
+an operator or actuator requires these files as input.
 
-The paths can be absolute or relative.
-If relative they are resolved with respect to the directory
-`ado --remote [COMMAND]` is executed from.
+The paths can be absolute or relative. If relative they are resolved with
+respect to the directory `ado --remote [COMMAND]` is executed from.
 
 ```yaml
 executionType:
@@ -226,11 +248,11 @@ packages:
   fromPyPI:
     - ado-core
   fromSource:
-    - plugins/actuators/vllm_performance 
+    - plugins/actuators/vllm_performance
 wait: false
 envVars:
   PYTHONUNBUFFERED: "x"
 additionalFiles:
   - /absolute/path/to/data_file.csv
-  - path/to/my_data_dir/              # directories are also supported
+  - path/to/my_data_dir/ # directories are also supported
 ```

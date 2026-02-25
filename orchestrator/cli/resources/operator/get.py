@@ -21,11 +21,6 @@ from orchestrator.utilities.strings import (
 )
 
 
-def _normalized_operator_description(description: str | None) -> str:
-    """Return a stable one-line operator description for display."""
-    return normalize_and_truncate_at_period(description) if description else ""
-
-
 def get_operator(parameters: AdoGetCommandParameters) -> None:
 
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
@@ -51,8 +46,8 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
                 "TYPE": collection.type.value,
             }
             if parameters.show_details:
-                entry["DESCRIPTION"] = _normalized_operator_description(
-                    collection.function_operation_descriptions.get(function_name)
+                entry["DESCRIPTION"] = normalize_and_truncate_at_period(
+                    collection.function_operation_descriptions.get(function_name, "")
                 )
             entries.append(entry)
 

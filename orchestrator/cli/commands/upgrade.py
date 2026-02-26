@@ -36,6 +36,20 @@ def upgrade_resource(
             click_type=HiddenPluralChoice(AdoUpgradeSupportedResourceTypes),
         ),
     ],
+    apply_legacy_validator: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--apply-legacy-validator",
+            help="Apply legacy validators by identifier (e.g., 'csv_constitutive_columns_migration'). Can be specified multiple times.",
+        ),
+    ] = None,
+    list_legacy: Annotated[
+        bool,
+        typer.Option(
+            "--list-legacy",
+            help="List available legacy validators for this resource type",
+        ),
+    ] = False,
 ) -> None:
     """
     Upgrade resources and contexts.
@@ -52,12 +66,22 @@ def upgrade_resource(
     # Upgrade all operations
 
     ado upgrade operations
+
+    # List available legacy validators for sample stores
+
+    ado upgrade sample_stores --list-legacy
+
+    # Apply a legacy validator during upgrade
+
+    ado upgrade sample_stores --apply-legacy-validator csv_constitutive_columns_migration
     """
 
     ado_configuration: AdoConfiguration = ctx.obj
 
     parameters = AdoUpgradeCommandParameters(
         ado_configuration=ado_configuration,
+        apply_legacy_validator=apply_legacy_validator,
+        list_legacy=list_legacy,
     )
 
     method_mapping = {

@@ -235,6 +235,37 @@ def handle_ado_upgrade(
     parameters: "AdoUpgradeCommandParameters",
     resource_type: "CoreResourceKinds",
 ) -> None:
+    # Handle --list-legacy flag
+    if parameters.list_legacy:
+        from orchestrator.cli.utils.legacy import list_legacy_validators
+
+        list_legacy_validators(resource_type)
+        return
+
+    # Load legacy validators if specified
+    legacy_validators = []
+    if parameters.apply_legacy_validator:
+        from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+
+        # Import all validator modules to ensure they're registered
+        _import_legacy_validators()
+
+        for validator_id in parameters.apply_legacy_validator:
+            validator = LegacyValidatorRegistry.get_validator(validator_id)
+            if validator is None:
+                console_print(
+                    f"{ERROR}: Legacy validator '{validator_id}' not found",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
+            if validator.resource_type != resource_type:
+                console_print(
+                    f"{ERROR}: Legacy validator '{validator_id}' is for "
+                    f"{validator.resource_type.value}, not {resource_type.value}",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
+            legacy_validators.append(validator)
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
@@ -246,6 +277,25 @@ def handle_ado_upgrade(
 
         for idx, resource in enumerate(resources.values()):
             status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx +1 }/{len(resources)})")
+
+            # Apply legacy validators if specified
+            if legacy_validators:
+                resource_dict = resource.model_dump(mode="python")
+                for validator in legacy_validators:
+                    resource_dict = validator.validator_function(resource_dict)
+                # Reconstruct the resource from the modified dict
+                resource = type(resource).model_validate(resource_dict)
+
             sql_store.updateResource(resource=resource)
 
     console_print(SUCCESS)
+
+
+def _import_legacy_validators() -> None:
+    """Import all legacy validator modules to ensure they're registered"""
+    # Import validator modules to trigger decorator registration
+    try:
+        import orchestrator.core.legacy.validators.resource.entitysource_to_samplestore  # noqa: F401
+        import orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration  # noqa: F401
+    except ImportError:
+        pass  # Validators may not be available in all installations

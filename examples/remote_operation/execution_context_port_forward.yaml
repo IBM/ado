@@ -1,0 +1,43 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+#
+# Example execution context for a Ray cluster that is only reachable via
+# port-forward (e.g. an in-cluster service on OpenShift/Kubernetes with no
+# open Route).
+#
+# ado will automatically run:
+#   oc port-forward --namespace <namespace> svc/<serviceName> <localPort>:<clusterPort>
+# before submitting the job, and tear it down afterwards.
+# Either `oc` or `kubectl` must be on your PATH and you must be logged in.
+executionType:
+  type: cluster
+  clusterUrl: "http://localhost:8265"
+  portForward:
+    namespace: discovery-dev # OpenShift/Kubernetes namespace
+    serviceName: ray-disorch-head-svc # Name of the Ray head service
+    localPort: 8265 # Local port to bind (default: 8265)
+packages:
+  # PyPI packages installed into the Ray job's virtual environment at submit time.
+  fromPyPI:
+    - ado-core
+    - ado-ray-tune # include if the operation uses the ray_tune operator
+  # Python packages  to build as wheels and ship with the job.
+  # Relative paths are relative to where the ado --remote command is run
+  # Leave this empty (or omit the key) if you are not using local plugins.
+  fromSource: []
+# Set to false to submit the job without waiting for it to complete.
+# Useful for long-running operations where you do not need live log output.
+wait: true
+# Environment variables injected into the Ray job runtime.
+envVars:
+  PYTHONUNBUFFERED: "x" # Disable Python output buffering (recommended)
+  OMP_NUM_THREADS: "1" # Limit threads to avoid exceeding node limits
+  OPENBLAS_NUM_THREADS: "1"
+  # RAY_AIR_NEW_PERSISTENCE_MODE: "0"  # Required for the ray_tune operator
+  # LOGLEVEL: "INFO"                   # Optional: increase ado log verbosity
+
+# Additional files or directories to send with the Ray job.
+# Useful when an actuator configuration references local file paths
+# additionalFiles:
+#   - /absolute/path/to/data_file.csv
+#   - path/to/my_data_dir/              # directories are also supported

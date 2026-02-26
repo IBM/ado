@@ -174,7 +174,7 @@ See the full list of the actuator parameters you can set in the
 > and that you have configured your SFTTrainer actuator with the values we
 > provided above for the `hf_home` and `data_directory` parameters.
 
-### For RayClusters on Kubernetes/OpenShift - create a port-forward
+### For RayClusters on Kubernetes/OpenShift
 
 >[!TIP]
 >
@@ -289,7 +289,7 @@ In this section, we’ll focus on the second approach.
     $path_to_ado_root/plugins/actuators/sfttrainer/examples/build_wheels.sh
     ```
 
-    [Reference docs on using ado with remote RayClusters](../../getting-started/remote_run/#getting-ready).
+    [Reference docs on using ado with remote RayClusters](../../getting-started/remote_run/).
 <!-- markdownlint-enable code-block-style -->
 
 You will use the files you created during this step in later steps when

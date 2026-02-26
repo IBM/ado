@@ -47,6 +47,10 @@ ADO_SPINNER_DELETING_FROM_DB = "Deleting from database"
 ADO_SPINNER_INITIALIZING_DISCOVERY_SPACE = "Initializing Discovery Space"
 ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY = "Initializing Actuator Registry"
 
+# Remote dispatch spinners
+ADO_SPINNER_REMOTE_PREPARING_FILES = "Preparing input for remote execution"
+ADO_SPINNER_REMOTE_PORT_FORWARD = "Waiting for port-forward"
+
 # Consoles
 stdout_console = Console()
 stderr_console = Console(stderr=True)

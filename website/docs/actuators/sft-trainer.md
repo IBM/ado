@@ -35,15 +35,16 @@ must already include the appropriate version of `torch`:
 <!-- markdownlint-disable line-length -->
 
 - **`fms-hf-tuning <= 2.8.2`**
-
   - Install `torch==2.4.1`
-  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
+  - For RayClusters on Kubernetes, use:
+    `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
 
 - **`fms-hf-tuning > 2.8.2`**
   - Install `torch==2.6.0`
     - Requires Python 3.11
-  - For RayClusters on Kubernetes, use: `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
-<!-- markdownlint-enable line-length -->
+  - For RayClusters on Kubernetes, use:
+  `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+  <!-- markdownlint-enable line-length -->
 
 ## Available experiments
 
@@ -311,7 +312,7 @@ models.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      has full copy - equivalent to FULL_SHARD for single-node runs),
       [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
@@ -535,7 +536,7 @@ configurations.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
-      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`, 
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
       `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
       `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
@@ -558,7 +559,7 @@ configurations.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support 
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
       for NPU architecture or using CPU (use_cpu) or Ascend NPU.
       This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
@@ -573,7 +574,7 @@ configurations.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      has full copy - equivalent to FULL_SHARD for single-node runs),
       [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
@@ -827,7 +828,7 @@ adaptation.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
-      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`, 
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
       `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
       `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
@@ -852,7 +853,7 @@ adaptation.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support 
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
       for NPU architecture or using CPU (use_cpu) or Ascend NPU.
       This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
@@ -867,7 +868,7 @@ adaptation.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      has full copy - equivalent to FULL_SHARD for single-node runs),
       [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
@@ -1158,7 +1159,7 @@ memory constrained environments.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
-      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`, 
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
       `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
       `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
@@ -1181,7 +1182,7 @@ memory constrained environments.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support 
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
       for NPU architecture or using CPU (use_cpu) or Ascend NPU.
       This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
@@ -1196,7 +1197,7 @@ memory constrained environments.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      has full copy - equivalent to FULL_SHARD for single-node runs),
       [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
@@ -1442,7 +1443,7 @@ for performance.
       nodes. Each Node will use number_gpus/number_nodes GPUs.
       Each Node will use 1 process for each GPU it uses
     - fms_hf_tuning_version: Default is `2.1.2`. Which version of fms-hf-tuning
-      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`, 
+      to use. Available options are: `3.1.0`, `3.0.0.1`, `3.0.0`, 2.8.2`,
       `2.7.1`, `2.6.0`, `2.5.0`, `2.4.0`, `2.3.1`, `2.2.1`, `2.1.2`, `2.1.0`,
       `2.0.1`
     - enable_roce: Default is `False`. This setting is only in effect for multi-node
@@ -1467,7 +1468,7 @@ for performance.
       `galore_adamw_8bit_layerwise`, `galore_adafactor_layerwise`, `lomo`,
       `adalomo`, `grokadamw`, `schedule_free_adamw`, `schedule_free_sgd`
     - bf16: Default is `False`. Whether to use bf16 (mixed) precision instead of
-      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support 
+      32-bit. Requires Ampere or higher NVIDIA add bf16 mixed precision support
       for NPU architecture or using CPU (use_cpu) or Ascend NPU.
       This is an experimental API and it may change. Can be `True`, `False`.
     - gradient_checkpointing_use_reentrant: Default is `False` Specify whether to
@@ -1482,7 +1483,7 @@ for performance.
       optimizer states, gradients and parameters), " [2] SHARD_GRAD_OP (shards
       optimizer states and gradients), [3] NO_SHARD (DDP), [4] HYBRID_SHARD (shards
       optimizer states, gradients and parameters within each node while each node
-      has full copy - equivalent to FULL_SHARD for single-node runs), 
+      has full copy - equivalent to FULL_SHARD for single-node runs),
       [5] HYBRID_SHARD_ZERO2 (shards optimizer states and gradients
       within each node while each node has full copy). For more information, please
       refer the official PyTorch docs.
@@ -1791,8 +1792,8 @@ file:
 
 !!! info end
 
-    If you are using a remote RayCluster on Kubernetes remember to
-    [start a port-forward to the RayCluster head node](../../getting-started/remote_run/#specifying-the-remote-ray-cluster-to-submit-to-address).
+    If you are using a remote RayCluster on Kubernetes remember to start 
+    a port-forward to the RayCluster head node.
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
@@ -1882,8 +1883,8 @@ above section for generating datasets:
 
 !!! info end
 
-    If you are using a remote RayCluster on Kubernetes remember to
-    [start a port-forward to the RayCluster head node](../../getting-started/remote_run/#specifying-the-remote-ray-cluster-to-submit-to-address).
+    If you are using a remote RayCluster on Kubernetes remember to start
+    a port-forward to the RayCluster head node.
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
@@ -1896,22 +1897,23 @@ ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yam
 
 ## Metrics stability
 
-We recommend using the
-`auto_stop_method: WARMUP_60S_STABLE_120S_OR_10_STEPS`
+We recommend using the `auto_stop_method: WARMUP_60S_STABLE_120S_OR_10_STEPS`
 option, which helps fms-hf-tuning gather more reliable and stable measurements
-while keeping the duration of each task low.
-This configuration allows the actuator to reach a steady state before sampling,
-ensuring that both system and throughput metrics are highly consistent.
+while keeping the duration of each task low. This configuration allows the
+actuator to reach a steady state before sampling, ensuring that both system and
+throughput metrics are highly consistent.
 
-You can easily verify this stability of fms-hf-tuning yourself.
-For example, repeat the same [RandomWalk operation](../examples/finetune-remotely.md)
-on the following DiscoverySpace for 5 times:
+You can easily verify this stability of fms-hf-tuning yourself. For example,
+repeat the same [RandomWalk operation](../examples/finetune-remotely.md) on the
+following DiscoverySpace for 5 times:
 
 <!-- markdownlint-disable MD013 -->
 <!-- markdownlint-disable MD046 -->
+
 ```yaml
 {% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
 ```
+
 <!-- markdownlint-enable MD046 -->
 <!-- markdownlint-enable MD013 -->
 
@@ -1922,6 +1924,7 @@ Remember to switch off memoization in your RandomWalk operation definition:
 ```yaml
 {% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
 ```
+
 <!-- markdownlint-enable MD046 -->
 <!-- markdownlint-enable MD013 -->
 
@@ -1929,23 +1932,28 @@ Then after all five operations finish, obtain a CSV file containing the observed
 properties on the space you created like so:
 
 <!-- markdownlint-disable MD046 -->
+
 ```commandline
 ado show entities space --output-format csv $DISCOVERY_SPACE_ID
 ```
+
 <!-- markdownlint-enable MD046 -->
 
 Finally, use the script `sfttrainer_check_metrics_stability` that you get by
 installing the `ado-sfttrainer` package:
 
 <!-- markdownlint-disable MD046 -->
+
 ```commandline
 sfttrainer_check_metrics_stability $pathTotheCSVFileFromAbove
 ```
+
 <!-- markdownlint-enable MD046 -->
 
 You should see an output similar to this:
 
 <!-- markdownlint-disable MD046 -->
+
 ```text
 Total benchmarks analyzed: 63
 
@@ -1979,6 +1987,7 @@ Interpretation:
   - CV < 10%: Fair stability
   - CV ≥ 10%: Poor stability
 ```
+
 <!-- markdownlint-enable MD046 -->
 
 ## Configure your RayCluster for RDMA over Converged Ethernet (RoCE)

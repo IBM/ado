@@ -47,7 +47,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
             }
             if parameters.show_details:
                 entry["DESCRIPTION"] = normalize_and_truncate_at_period(
-                    collection.function_operation_descriptions[function_name]
+                    collection.function_operation_descriptions.get(function_name, "")
                 )
             entries.append(entry)
 

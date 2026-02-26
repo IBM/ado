@@ -76,6 +76,8 @@ def trim(
     source_df, target_df = get_source_and_target(
         discoverySpace, params.targetOutput, log_string="First query"
     )
+    initial_source_space_size = len(source_df)
+
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
             "metadata": {
@@ -148,11 +150,15 @@ def trim(
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=params
     )
+    numberEntities_iterative_modeling = (
+        len(source_df) - initial_source_space_size
+        if op_output_characterization_no_prior.operation
+        else params.samplingBudget.maxPoints
+    )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
-        # here you set up the rw params
         batchSize=1,
-        numberEntities=params.samplingBudget.maxPoints,
+        numberEntities=numberEntities_iterative_modeling,
         singleMeasurement=True,
     )
 

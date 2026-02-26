@@ -44,10 +44,6 @@ directly from PyPI:
 pip install ado-trim
 ```
 
-This will install the operator and its dependencies, including `ado-core`. Are
-you looking forward to use TRIM? Check the
-[quick start guide](https://ibm.github.io/ado/examples/trim/).
-
 ## More Information
 
 For detailed documentation, configuration guides, and more examples, please

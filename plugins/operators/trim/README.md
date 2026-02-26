@@ -37,7 +37,8 @@ measured values and predictions for all points in your space.
 
 ## Installation
 
-You can install the `TRIM` operator directly from PyPI:
+You can install the `TRIM` operator and its dependencies (including `ado-core`)
+directly from PyPI:
 
 ```bash
 pip install ado-trim

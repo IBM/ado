@@ -46,10 +46,10 @@ pip install ado-trim
 
 ## More Information
 
-For detailed documentation, configuration guides, and more examples, please
-visit the official ADO website:
+To learn more about TRIM and explore the full capabilities of ADO, including
+detailed documentation, configuration guides, and additional examples, visit the
+official ADO website:
 
-- **TRIM Example**:
-  [https://ibm.github.io/ado/examples/trim/](https://ibm.github.io/ado/examples/trim/)
-- **ADO Operators**:
-  [https://ibm.github.io/ado/operators/explore_operators/](https://ibm.github.io/ado/operators/explore_operators/)
+- **TRIM Quickstart**: <https://ibm.github.io/ado/examples/trim/>
+- **Configuring TRIM**: <https://ibm.github.io/ado/operators/trim/>
+- **ADO Documentation**: <https://ibm.github.io/ado/>

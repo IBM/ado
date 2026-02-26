@@ -20,16 +20,15 @@ The `TRIM` operator works in two main phases:
     space-filling algorithm to get a baseline understanding of the parameter
     space.
 
-2. **Iterative Modeling**:
-3. This phase begins by using all currently available data to train a single
-    preliminary AutoGluon model. The feature importance from this model is used
-    to order for all remaining unmeasured points. TRIM then enters a loop where
-    it:
+2. **Iterative Modeling**: This phase begins by using all currently available
+   data to train a single preliminary AutoGluon model. The feature importance
+   from this model is used to order for all remaining unmeasured points. TRIM
+   then enters a loop where it:
 
-    - Samples the next point and adds it to the dataset.
-    - Trains a model on the gathered data using `AutoGluon`.
-    - Evaluates the expected improvement of a model trained on a larger dataset
-    by comparing the new model's performance against that of previous models.
+   - Samples the next point and adds it to the dataset.
+   - Trains a model on the gathered data using `AutoGluon`.
+   - Evaluates the expected improvement of a model trained on a larger dataset
+     by comparing the new model's performance against that of previous models.
 
 This loop continues until the improvement is below a threshold, at which point
 TRIM automatically stops. Finally, it trains one high-quality model on all

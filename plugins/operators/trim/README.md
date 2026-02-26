@@ -5,26 +5,24 @@
 providing the Transfer Refined Iterative Modeling (TRIM) characterization
 operator.
 
-**TRIM** is designed to efficiently build
-a surrogate model of a complex system. It is ideal for scenarios where exploring
-a parameter space is time-consuming or expensive. TRIM intelligently samples
-just enough points to create a stable and accurate predictive model, saving
-significant time and resources.
+**TRIM** is designed to efficiently build a surrogate model of a complex system.
+It is ideal for scenarios where exploring a parameter space is time-consuming or
+expensive. TRIM intelligently samples just enough points to create a stable and
+accurate predictive model, saving significant time and resources.
 
 ## How it Works
 
 The `TRIM` operator works in two main phases:
 
 1. **No-Priors Characterization**: If the system has not been measured before,
-    TRIM starts by sampling a small, representative set of points using a
-    space-filling algorithm to get a baseline understanding of the parameter
-    space.
+   TRIM starts by sampling a small, representative set of points using a
+   space-filling algorithm to get a baseline understanding of the parameter
+   space.
 
 2. **Iterative Modeling**: This phase begins by using all currently available
    data to train a single preliminary surrogate model. The feature importance
    from this model is used to order for all remaining unmeasured points. TRIM
    then enters a loop where it:
-
    - Samples the next point and adds it to the dataset.
    - Trains a model on the gathered data.
    - Evaluates the expected improvement of a model trained on a larger dataset

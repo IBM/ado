@@ -5,7 +5,7 @@
 providing the Transfer Refined Iterative Modeling (TRIM) characterization
 operator.
 
-**TRIM (Transfer Refined Iterative Modeling)** is designed to efficiently build
+**TRIM** is designed to efficiently build
 a surrogate model of a complex system. It is ideal for scenarios where exploring
 a parameter space is time-consuming or expensive. TRIM intelligently samples
 just enough points to create a stable and accurate predictive model, saving

@@ -10,6 +10,16 @@ from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 from orchestrator.core.resources import CoreResourceKinds
 
 
+def _import_legacy_validators() -> None:
+    """Import all legacy validator modules to ensure they're registered"""
+    # Import validator modules to trigger decorator registration
+    try:
+        import orchestrator.core.legacy.validators.resource.entitysource_to_samplestore  # noqa: F401
+        import orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration  # noqa: F401
+    except ImportError:
+        pass  # Validators may not be available in all installations
+
+
 def list_legacy_validators(resource_type: CoreResourceKinds) -> None:
     """List all available legacy validators for a specific resource type
 
@@ -17,6 +27,9 @@ def list_legacy_validators(resource_type: CoreResourceKinds) -> None:
         resource_type: The resource type to list validators for
     """
     console = Console()
+
+    # Import all validator modules to ensure they're registered
+    _import_legacy_validators()
 
     # Get validators for this resource type
     validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)

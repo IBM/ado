@@ -277,7 +277,7 @@ class SQLResourceStore(ResourceStore):
         return resource
 
     def getResources(
-        self, identifiers: list[str]
+        self, identifiers: list[str], ignore_validation_errors: bool = True
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Retrieve multiple resources by identifier.
 
@@ -297,6 +297,9 @@ class SQLResourceStore(ResourceStore):
         Args:
             identifiers: The list of resource identifiers to retrieve.
                 Duplicate identifiers are ignored.
+            ignore_validation_errors: If True (default), resources with validation
+                errors are skipped and a warning is logged. If False, ValueError
+                is raised when a resource fails validation.
 
         Returns:
             dict[str, orchestrator.core.resources.ADOResource]:
@@ -304,6 +307,10 @@ class SQLResourceStore(ResourceStore):
                 database and the value is the corresponding deserialized
                 resource instance. If a particular identifier does not
                 exist, it will not appear in the returned dictionary.
+
+        Raises:
+            ValueError: If ignore_validation_errors is False and a resource
+                fails validation.
         """
 
         import pandas as pd
@@ -330,18 +337,19 @@ class SQLResourceStore(ResourceStore):
                 ):
                     d = json.loads(data)
                     custom_model_loader = kind_custom_model_load.get(kind)
-                    if custom_model_loader:
-                        resource = custom_model_loader(d, self.configuration)
-                        retval[identifier] = resource
-                    else:
-                        try:
-                            resource = orchestrator.core.kindmap[kind](**d)
-                        except pydantic.ValidationError as error:
-                            self.log.warning(
-                                f"Unable to create pydantic model for resource with id, {identifier} with data, {data}. {error}"
-                            )
+                    try:
+                        if custom_model_loader:
+                            resource = custom_model_loader(d, self.configuration)
                         else:
-                            retval[identifier] = resource
+                            resource = orchestrator.core.kindmap[kind].model_validate(d)
+                    except Exception as error:
+                        msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data}. {error}"
+                        if ignore_validation_errors:
+                            self.log.warning(msg)
+                        else:
+                            raise ValueError(msg) from error
+                    else:
+                        retval[identifier] = resource
 
         return retval
 
@@ -543,6 +551,7 @@ class SQLResourceStore(ResourceStore):
         kind: str,
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
+        ignore_validation_errors: bool = True,
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """
         Retrieve all resources of a given kind.
@@ -561,6 +570,9 @@ class SQLResourceStore(ResourceStore):
                 JSON-field selectors used to narrow the result set.  Each
                 selector maps a MySQL JSON path (e.g. ``"$.config.owner"``)
                 to the value the field must contain.
+            ignore_validation_errors (bool): If True (default), resources with
+                validation errors are skipped and a warning is logged. If False,
+                ValueError is raised when a resource fails validation.
 
         Returns:
             dict[str, orchestrator.core.resources.ADOResource]: A mapping
@@ -572,7 +584,8 @@ class SQLResourceStore(ResourceStore):
         Raises:
             ValueError: If ``kind`` is not a recognised
                 :class:`orchestrator.core.resources.CoreResourceKinds`
-                value.
+                value, or if ignore_validation_errors is False and a resource
+                fails validation.
 
         See Also:
             - getResourceIdentifiersOfKind's documentation
@@ -582,7 +595,10 @@ class SQLResourceStore(ResourceStore):
         identifiers = self.getResourceIdentifiersOfKind(
             kind=kind, version=version, field_selectors=field_selectors
         )
-        return self.getResources(identifiers=identifiers["IDENTIFIER"])
+        return self.getResources(
+            identifiers=identifiers["IDENTIFIER"],
+            ignore_validation_errors=ignore_validation_errors,
+        )
 
     def getRelatedSubjectResourceIdentifiers(
         self, identifier: str, kind: str | None = None, version: str | None = None

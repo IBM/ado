@@ -13,7 +13,7 @@ from trim.trim_pydantic import (
 )  # Importing this way works when the package is installed
 from trim.utils.logging_utils import (
     log_and_save_characterization,
-    log_unable_to_proceed_to_iterative_modeling_and_raise_error,
+    log_unable_to_proceed_with_iterative_modeling_and_raise_error,
 )
 from trim.utils.space_df_connector import get_source_and_target
 
@@ -135,11 +135,10 @@ def trim(
             log_and_save_characterization(source_df, target_df)
 
         if len(source_df) < params.samplingBudget.minPoints:
-            log_unable_to_proceed_to_iterative_modeling_and_raise_error(
+            log_unable_to_proceed_with_iterative_modeling_and_raise_error(
                 discoverySpace,
                 target_output=params.targetOutput,
-                sampling_budget_min_points=params.samplingBudget.minPoints,
-                number_of_points_with_target_output_measurement=len(source_df),
+                additional_info=f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints}.",
             )
 
     # TRIM Iterative Modeling

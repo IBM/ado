@@ -34,6 +34,7 @@ from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
     log_after_split_common_and_diff,
     log_before_first_holdout_update,
+    log_unable_to_proceed_with_iterative_modeling_and_raise_error,
     save_source_train_holdout_dfs,
     training_guardrail,
 )
@@ -81,20 +82,6 @@ class TrimSampleSelector(BaseSampler):
                 f"Creating a folder to save intermediate files:\n{debug_dir}\n\n"
             )
             await debug_dir.mkdir(parents=True, exist_ok=True)
-
-    def _no_new_measurement_exception(self, additional_info: str = "") -> None:
-        msg = (
-            f"The current version of TRIM assumes that all measurements produce the observed target output property '{self.params.targetOutput}'. "
-            "The measurements obtained with your experiment "
-            f"may not produce values for the target output property '{self.params.targetOutput}'. "
-            f"This was detected during the Iterative Modeling phase. {additional_info} "
-            "This is insufficient for downstream processing. "
-            "For more information, refer to the documentation here: `https://ibm.github.io/ado/operators/trim/`."
-        )
-        logger_trim_sampler.error(msg)
-        raise InsufficientDataError(
-            "Measurements are incompatible with the Iterative Modeling phase.\n\n" + msg
-        )
 
     def _core_iterator_logic(
         self,
@@ -183,8 +170,10 @@ class TrimSampleSelector(BaseSampler):
                     )
                 )
                 if len(one_additional_row) == 0:
-                    self._no_new_measurement_exception(
-                        additional_info=f"Detected when the source space size is {len(train_df)}"
+                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                        discoverySpace=discoverySpace,
+                        target_output=self.params.targetOutput,
+                        additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
                     )
 
                 log_after_split_common_and_diff(
@@ -215,8 +204,10 @@ class TrimSampleSelector(BaseSampler):
                     shorter_df_that_you_subtract=previous_source_df,
                 )
                 if len(one_additional_row) == 0:
-                    self._no_new_measurement_exception(
-                        additional_info=f"Detected when the training DataFrame size is {len(train_df)}"
+                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                        discoverySpace=discoverySpace,
+                        target_output=self.params.targetOutput,
+                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
                     )
                 yielded_rows += one_additional_row
                 previous_holdout_df = current_holdout_df
@@ -234,8 +225,10 @@ class TrimSampleSelector(BaseSampler):
                     shorter_df_that_you_subtract=previous_source_df,
                 )
                 if len(one_additional_row) == 0:
-                    self._no_new_measurement_exception(
-                        additional_info=f"Detected when the training DataFrame size is {len(train_df)}"
+                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                        discoverySpace=discoverySpace,
+                        target_output=self.params.targetOutput,
+                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
                     )
 
                 log_before_first_holdout_update(

@@ -90,24 +90,19 @@ def log_after_first_holdout_creation(
         )
 
 
-def log_unable_to_proceed_to_iterative_modeling_and_raise_error(
-    discoverySpace: DiscoverySpace,
-    target_output: str,
-    sampling_budget_min_points: int,
-    number_of_points_with_target_output_measurement: int,
+def log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+    discoverySpace: DiscoverySpace, target_output: str, additional_info: str = ""
 ) -> NoReturn:
     """Logs an error and raises InsufficientDataError when data is inadequate for iterative modeling.
 
-    This function is called when the no-priors characterization phase fails to collect
+    This function is called when the operator fails to collect
     enough measurements containing the specified `target_output`. It constructs and
     logs a detailed error message before raising an exception to halt the process.
 
     Args:
         discoverySpace: The discovery space being analyzed.
         target_output: The name of the required target output property.
-        sampling_budget_min_points: The minimum number of data points required.
-        number_of_points_with_target_output_measurement: The number of data points
-            in the space that actually have the target output.
+        additional_info: Additional string that details when this error is encountered. It should end with a dot ('.')
 
     Raises:
         InsufficientDataError: Always raised to halt the operation due to
@@ -134,8 +129,8 @@ def log_unable_to_proceed_to_iterative_modeling_and_raise_error(
         f"The current version of TRIM assumes that all measurements produce the observed target output property '{target_output}'. "
         f"The measurements obtained with {experiment_reference_msg} "
         f"may not produce values for the target output property '{target_output}'. "
-        f"This was detected during the no-priors characterization phase: {sampling_budget_min_points - number_of_points_with_target_output_measurement} out of {sampling_budget_min_points} "
         f"requested measurements did not contain the target output property '{target_output}'. "
+        f"Additional info: {additional_info} "
         "This is insufficient for starting the Iterative Modeling phase, the operation will exit with an error. "
         "For more information, refer to the documentation here: `https://ibm.github.io/ado/operators/trim/`."
     )

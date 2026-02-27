@@ -163,7 +163,7 @@ def handle_validation_error_with_legacy_suggestions(
     )
     console.print()
     console.print("[bold magenta]To list all legacy validators:[/bold magenta]")
-    console.print(f"  ado upgrade {resource_cli_name} --list-legacy")
+    console.print(f"  ado upgrade {resource_cli_name} --list-legacy-validators")
     console.print()
 
     raise typer.Exit(1) from error

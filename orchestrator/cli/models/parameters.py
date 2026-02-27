@@ -137,4 +137,4 @@ class AdoTemplateCommandParameters(pydantic.BaseModel):
 class AdoUpgradeCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     apply_legacy_validator: list[str] | None = None
-    list_legacy: bool = False
+    list_legacy_validators: bool = False

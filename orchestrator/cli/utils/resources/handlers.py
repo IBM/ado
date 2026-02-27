@@ -245,7 +245,7 @@ def handle_ado_upgrade(
     _import_legacy_validators()
 
     # Handle --list-legacy flag
-    if parameters.list_legacy:
+    if parameters.list_legacy_validators:
         from orchestrator.cli.utils.legacy.list import list_legacy_validators
 
         list_legacy_validators(resource_type)
@@ -452,7 +452,7 @@ def _handle_upgrade_validation_error(
         console.print(f"  ado upgrade {resource_cli_name} {validator_args}")
         console.print()
         console.print("[bold magenta]To list all legacy validators:[/bold magenta]")
-        console.print(f"  ado upgrade {resource_cli_name} --list-legacy")
+        console.print(f"  ado upgrade {resource_cli_name} --list-legacy-validators")
     else:
         console.print(
             "\n[yellow]No legacy validators are available for this resource type.[/yellow]"

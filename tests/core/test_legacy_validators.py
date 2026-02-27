@@ -218,7 +218,7 @@ class TestUpgradeHandlerIntegration:
         # Mock parameters
         mock_params = MagicMock()
         mock_params.apply_legacy_validator = ["test_upgrade_validator"]
-        mock_params.list_legacy = False
+        mock_params.list_legacy_validators = False
         mock_params.ado_configuration.project_context = "test_context"
 
         # Patch dependencies
@@ -265,7 +265,7 @@ class TestUpgradeHandlerIntegration:
         # Mock parameters trying to use operation validator on samplestore
         mock_params = MagicMock()
         mock_params.apply_legacy_validator = ["operation_validator"]
-        mock_params.list_legacy = False
+        mock_params.list_legacy_validators = False
         mock_params.ado_configuration.project_context = "test_context"
 
         mock_sql_store = MagicMock()
@@ -311,7 +311,7 @@ class TestUpgradeHandlerIntegration:
         # Mock parameters with non-existent validator
         mock_params = MagicMock()
         mock_params.apply_legacy_validator = ["nonexistent_validator"]
-        mock_params.list_legacy = False
+        mock_params.list_legacy_validators = False
         mock_params.ado_configuration.project_context = "test_context"
 
         mock_sql_store = MagicMock()

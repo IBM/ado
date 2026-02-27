@@ -44,10 +44,10 @@ def upgrade_resource(
             "Can be specified multiple times.",
         ),
     ] = None,
-    list_legacy: Annotated[
+    list_legacy_validators: Annotated[
         bool,
         typer.Option(
-            "--list-legacy",
+            "--list-legacy-validators",
             help="List available legacy validators for this resource type",
         ),
     ] = False,
@@ -70,7 +70,7 @@ def upgrade_resource(
 
     # List available legacy validators for sample stores
 
-    ado upgrade samplestores --list-legacy
+    ado upgrade samplestores --list-legacy-validators
 
     # Apply a legacy validator during upgrade
 
@@ -82,7 +82,7 @@ def upgrade_resource(
     parameters = AdoUpgradeCommandParameters(
         ado_configuration=ado_configuration,
         apply_legacy_validator=apply_legacy_validator,
-        list_legacy=list_legacy,
+        list_legacy_validators=list_legacy_validators,
     )
 
     method_mapping = {

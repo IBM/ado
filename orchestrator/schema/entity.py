@@ -716,9 +716,7 @@ class Entity(pydantic.BaseModel):
                         # Replace the target property with the virtual target property id
                         mean = vop.aggregate(expProperties[o])
                         expProperties.pop(o)
-                        expProperties[vop.virtualTargetPropertyIdentifier] = (
-                            mean.value
-                        )
+                        expProperties[vop.virtualTargetPropertyIdentifier] = mean.value
                     except (
                         ValueError,
                         TypeError,
@@ -736,7 +734,7 @@ class Entity(pydantic.BaseModel):
                         else:
                             pass
                 elif len(expProperties[o]) == 1:
-                    #If no aggregation and there is only 1 value we remove the list
+                    # If no aggregation and there is only 1 value we remove the list
                     expProperties[o] = expProperties[o][0]
 
             d.update(expProperties)

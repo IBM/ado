@@ -60,7 +60,7 @@ TRIM is particularly valuable when:
 > TRIM requires that your experiment can obtain a target variable measurement
 > for every entity in the space and that these measurements are of the same type
 > (numbers or strings, vectors are not supported). More details
-> [in the configuration guide](https://ibm.github.io/ado/operators/trim/#debugging-and-troubleshooting).
+> [in the troubleshooting section](#debugging-and-troubleshooting).
 
 <!-- markdownlint-enable no-blanks-blockquote -->
 

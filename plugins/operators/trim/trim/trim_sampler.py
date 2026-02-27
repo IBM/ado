@@ -84,11 +84,11 @@ class TrimSampleSelector(BaseSampler):
 
     def _no_new_measurement_exception(self, additional_info: str = "") -> None:
         msg = (
-            f"The current version of TRIM assumes that all measurements produce the observed target output property '{self.params.targetOutput}' "
+            f"The current version of TRIM assumes that all measurements produce the observed target output property '{self.params.targetOutput}'. "
             "The measurements obtained with your experiment "
-            f"may not produce values for the target output property '{self.params.targetOutput}'."
-            f"This was detected during the Iterative Modeling phase. {additional_info}"
-            "This is insufficient for downstream processing."
+            f"may not produce values for the target output property '{self.params.targetOutput}'. "
+            f"This was detected during the Iterative Modeling phase. {additional_info} "
+            "This is insufficient for downstream processing. "
             "For more information, refer to the documentation here: `https://ibm.github.io/ado/operators/trim/`."
         )
         logger_trim_sampler.error(msg)

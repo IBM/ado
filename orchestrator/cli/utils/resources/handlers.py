@@ -235,34 +235,33 @@ def handle_ado_upgrade(
     parameters: "AdoUpgradeCommandParameters",
     resource_type: "CoreResourceKinds",
 ) -> None:
+    """Upgrade resources, optionally applying legacy validators
+
+    Args:
+        parameters: Command parameters including legacy validator options
+        resource_type: The type of resource to upgrade
+    """
+    # Import all validator modules to ensure they're registered
+    _import_legacy_validators()
+
     # Handle --list-legacy flag
     if parameters.list_legacy:
-        from orchestrator.cli.utils.legacy import list_legacy_validators
+        from orchestrator.cli.utils.legacy.list import list_legacy_validators
 
         list_legacy_validators(resource_type)
         return
 
-    # Load legacy validators if specified
-    legacy_validators = []
+    # Get legacy validators if specified
+    legacy_validators = None
     if parameters.apply_legacy_validator:
         from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
-        # Import all validator modules to ensure they're registered
-        _import_legacy_validators()
-
+        legacy_validators = []
         for validator_id in parameters.apply_legacy_validator:
             validator = LegacyValidatorRegistry.get_validator(validator_id)
             if validator is None:
                 console_print(
-                    f"{ERROR}: Legacy validator '{validator_id}' not found",
-                    stderr=True,
-                )
-                raise typer.Exit(1)
-            if validator.resource_type != resource_type:
-                console_print(
-                    f"{ERROR}: Legacy validator '{validator_id}' is for "
-                    f"{validator.resource_type.value}, not {resource_type.value}",
-                    stderr=True,
+                    f"{ERROR}Unknown legacy validator: {validator_id}", stderr=True
                 )
                 raise typer.Exit(1)
             legacy_validators.append(validator)
@@ -270,23 +269,52 @@ def handle_ado_upgrade(
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
+
+    # Import resource class mapping for validation
+    from orchestrator.core import kindmap
+
     with Status(ADO_SPINNER_QUERYING_DB) as status:
-        resources = sql_store.getResourcesOfKind(
-            kind=resource_type.value,
-        )
+        # When legacy validators are specified, work with raw data
+        if legacy_validators:
 
-        for idx, resource in enumerate(resources.values()):
-            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx +1 }/{len(resources)})")
+            identifiers = sql_store.getResourceIdentifiersOfKind(
+                kind=resource_type.value
+            )
 
-            # Apply legacy validators if specified
-            if legacy_validators:
-                resource_dict = resource.model_dump(mode="python")
+            for idx, identifier in enumerate(identifiers):
+                status.update(
+                    ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(identifiers)})"
+                )
+
+                # Get raw data
+                resource_dict = sql_store.getResourceRaw(identifier)
+                if resource_dict is None:
+                    continue
+
+                # Apply legacy validators
                 for validator in legacy_validators:
                     resource_dict = validator.validator_function(resource_dict)
-                # Reconstruct the resource from the modified dict
-                resource = type(resource).model_validate(resource_dict)
 
-            sql_store.updateResource(resource=resource)
+                # Validate and save the migrated resource
+                resource_class = kindmap[resource_type.value]
+                resource = resource_class.model_validate(resource_dict)
+                sql_store.updateResource(resource=resource)
+        else:
+            # Normal upgrade path without legacy validators
+            try:
+                resources = sql_store.getResourcesOfKind(
+                    kind=resource_type.value, ignore_validation_errors=False
+                )
+            except ValueError as err:
+                # Validation error occurred - check if legacy validators can help
+                _handle_upgrade_validation_error(err, resource_type, parameters)
+                raise typer.Exit(1) from err
+
+            for idx, resource in enumerate(resources.values()):
+                status.update(
+                    ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})"
+                )
+                sql_store.updateResource(resource=resource)
 
     console_print(SUCCESS)
 
@@ -295,7 +323,140 @@ def _import_legacy_validators() -> None:
     """Import all legacy validator modules to ensure they're registered"""
     # Import validator modules to trigger decorator registration
     try:
+        # Discovery Space validators
+        import orchestrator.core.legacy.validators.discoveryspace.entitysource_to_samplestore  # noqa: F401
+        import orchestrator.core.legacy.validators.discoveryspace.properties_field_removal  # noqa: F401
+
+        # Operation validators
+        import orchestrator.core.legacy.validators.operation.actuators_field_removal  # noqa: F401
+        import orchestrator.core.legacy.validators.operation.randomwalk_mode_to_sampler_config  # noqa: F401
+
+        # Sample Store validators
         import orchestrator.core.legacy.validators.resource.entitysource_to_samplestore  # noqa: F401
+        import orchestrator.core.legacy.validators.samplestore.entitysource_migrations  # noqa: F401
         import orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration  # noqa: F401
     except ImportError:
         pass  # Validators may not be available in all installations
+
+
+def _handle_upgrade_validation_error(
+    error: ValueError,
+    resource_type: "CoreResourceKinds",
+    parameters: "AdoUpgradeCommandParameters",
+) -> None:
+    """Handle validation errors during upgrade by suggesting legacy validators
+
+    Analyzes the validation error to extract deprecated field names, finds
+    applicable legacy validators, and displays helpful suggestions to the user.
+
+    Args:
+        error: The ValueError containing validation error details
+        resource_type: The type of resource being upgraded
+        parameters: The upgrade command parameters
+    """
+    from rich.console import Console
+
+    from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+    from orchestrator.core.resources import CoreResourceKinds
+
+    console = Console()
+
+    # Import all validator modules to ensure they're registered
+    _import_legacy_validators()
+
+    # Extract error message
+    error_msg = str(error)
+
+    # Try to extract deprecated field names from the error message
+    # The error message contains validation errors with field names
+    deprecated_fields = []
+
+    # Look for common patterns in pydantic validation errors
+    import re
+
+    # Pattern: field_name followed by validation error
+    field_patterns = [
+        r"kind\s*\n\s*Input should be",  # kind field
+        r"moduleType\s*\n\s*Input should be",  # moduleType field
+        r"moduleClass\s*\n\s*",  # moduleClass field
+        r"moduleName\s*\n\s*",  # moduleName field
+        r"constitutivePropertyColumns",  # constitutivePropertyColumns field
+        r"propertyMap",  # propertyMap field
+        r"entitySourceIdentifier",  # entitySourceIdentifier field
+        r"properties\s*\n",  # properties field
+        r"actuators\s*\n",  # actuators field
+        r"mode\s*\n",  # mode field (for randomwalk)
+    ]
+
+    for pattern in field_patterns:
+        if re.search(pattern, error_msg, re.IGNORECASE):
+            # Extract the field name from the pattern
+            field_name = pattern.split(r"\s")[0].split(r"\\")[0]
+            if field_name not in deprecated_fields:
+                deprecated_fields.append(field_name)
+
+    # Find applicable legacy validators
+    validators = []
+    if deprecated_fields:
+        validators = LegacyValidatorRegistry.find_validators_for_fields(
+            resource_type=resource_type, field_names=deprecated_fields
+        )
+
+    # If no validators found by field matching, get all validators for this resource type
+    if not validators:
+        validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
+
+    # Display error message
+    console.print(
+        f"\n[bold red]Validation Error[/bold red] while upgrading {resource_type.value} resources"
+    )
+    console.print(
+        "\n[yellow]Some resources could not be loaded due to deprecated fields or values.[/yellow]"
+    )
+
+    if deprecated_fields:
+        console.print(
+            f"\nDeprecated fields detected: [yellow]{', '.join(deprecated_fields)}[/yellow]"
+        )
+
+    if validators:
+        console.print(
+            "\n[bold cyan]Available legacy validators that may help:[/bold cyan]\n"
+        )
+
+        # Map resource types to their CLI names
+        resource_name_mapping = {
+            CoreResourceKinds.SAMPLESTORE: "samplestore",
+            CoreResourceKinds.DISCOVERYSPACE: "discoveryspace",
+            CoreResourceKinds.OPERATION: "operation",
+            CoreResourceKinds.ACTUATORCONFIGURATION: "actuatorconfiguration",
+            CoreResourceKinds.DATACONTAINER: "datacontainer",
+        }
+        resource_cli_name = resource_name_mapping.get(
+            resource_type, resource_type.value
+        )
+
+        for validator in validators:
+            console.print(f"  • [green]{validator.identifier}[/green]")
+            console.print(f"    {validator.description}")
+            console.print(f"    Handles: {', '.join(validator.deprecated_fields)}")
+            console.print(f"    Deprecated: v{validator.deprecated_from_version}")
+            console.print()
+
+        console.print(
+            "[bold magenta]To upgrade using legacy validators:[/bold magenta]"
+        )
+        validator_args = " ".join(
+            f"--apply-legacy-validator {v.identifier}" for v in validators
+        )
+        console.print(f"  ado upgrade {resource_cli_name} {validator_args}")
+        console.print()
+        console.print("[bold magenta]To list all legacy validators:[/bold magenta]")
+        console.print(f"  ado upgrade {resource_cli_name} --list-legacy")
+    else:
+        console.print(
+            "\n[yellow]No legacy validators are available for this resource type.[/yellow]"
+        )
+        console.print("The resources may be too old or require manual intervention.")
+
+    console.print()

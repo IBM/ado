@@ -8,14 +8,14 @@ from orchestrator.core.resources import CoreResourceKinds
 
 
 @legacy_validator(
-    identifier="entitysource_to_samplestore",
+    identifier="samplestore_kind_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
     deprecated_fields=["kind"],
-    deprecated_from_version="1.2.0",
-    removed_from_version="1.5.0",
-    description="Migrates resources with kind='entitysource' to kind='samplestore'",
+    deprecated_from_version="0.9.6",
+    removed_from_version="1.0.0",
+    description="Converts resource kind from 'entitysource' to 'samplestore'",
 )
-def migrate_entitysource_to_samplestore(data: dict) -> dict:
+def migrate_entitysource_kind_to_samplestore(data: dict) -> dict:
     """Migrate old entitysource kind to samplestore
 
     Old format:

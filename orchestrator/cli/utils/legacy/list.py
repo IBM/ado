@@ -14,7 +14,17 @@ def _import_legacy_validators() -> None:
     """Import all legacy validator modules to ensure they're registered"""
     # Import validator modules to trigger decorator registration
     try:
+        # Discovery Space validators
+        import orchestrator.core.legacy.validators.discoveryspace.entitysource_to_samplestore  # noqa: F401
+        import orchestrator.core.legacy.validators.discoveryspace.properties_field_removal  # noqa: F401
+
+        # Operation validators
+        import orchestrator.core.legacy.validators.operation.actuators_field_removal  # noqa: F401
+        import orchestrator.core.legacy.validators.operation.randomwalk_mode_to_sampler_config  # noqa: F401
+
+        # Sample Store validators
         import orchestrator.core.legacy.validators.resource.entitysource_to_samplestore  # noqa: F401
+        import orchestrator.core.legacy.validators.samplestore.entitysource_migrations  # noqa: F401
         import orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration  # noqa: F401
     except ImportError:
         pass  # Validators may not be available in all installations

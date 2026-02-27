@@ -76,7 +76,12 @@ class SampleStoreSpecification(pydantic.BaseModel):
     def check_parameters_valid_for_sample_store_module(
         cls, parameters: dict, context: pydantic.ValidationInfo
     ) -> dict:
-        module = load_module_class_or_function(context.data["module"])
+
+        module_name = context.data.get("module")
+        if not module_name:
+            return parameters
+
+        module = load_module_class_or_function(module_name)
         validated_parameters = module.validate_parameters(parameters=parameters)
         # Convert Pydantic model back to dict for serialization
         if isinstance(validated_parameters, pydantic.BaseModel):
@@ -94,6 +99,11 @@ class SampleStoreSpecification(pydantic.BaseModel):
         # However if None is passed explicitly, which would happen on a load of a module which had the "none" default
         # this method will be called
         if storageLocation is not None:
+
+            module_name = context.data.get("module")
+            if not module_name:
+                return None
+
             sample_store_class = load_module_class_or_function(context.data["module"])
             storageLocationClass = sample_store_class.storage_location_class()
             # 24/04/2025 AP:

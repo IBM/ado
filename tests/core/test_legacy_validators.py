@@ -103,11 +103,13 @@ class TestLegacyValidatorWithPydantic:
 
         # Import the validator to register it
         from orchestrator.core.legacy.validators.resource.entitysource_to_samplestore import (  # noqa: F401
-            migrate_entitysource_to_samplestore,
+            migrate_entitysource_kind_to_samplestore,
         )
 
         # Get the validator
-        validator = LegacyValidatorRegistry.get_validator("entitysource_to_samplestore")
+        validator = LegacyValidatorRegistry.get_validator(
+            "samplestore_kind_entitysource_to_samplestore"
+        )
         assert validator is not None
         assert validator.resource_type == CoreResourceKinds.SAMPLESTORE
 

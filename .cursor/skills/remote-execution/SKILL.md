@@ -63,10 +63,10 @@ for both — do not add a separate `-c` flag unless explicitly switching context
 
 ```bash
 # Local: uses active context
-ado create space -f space.yaml
+uv run ado create space -f space.yaml
 
 # Remote: forwards the same active context automatically
-ado --remote morrigan_execution.yaml create operation \
+uv run ado --remote morrigan_execution.yaml create operation \
     -f operation.yaml --use-latest space
 ```
 
@@ -80,7 +80,7 @@ than the one currently active.
 **One step** — create space and operation together remotely:
 
 ```bash
-ado --remote execution_context.yaml create operation \
+uv run ado --remote execution_context.yaml create operation \
     -f operation.yaml \
     --with space=space.yaml
 ```
@@ -88,8 +88,8 @@ ado --remote execution_context.yaml create operation \
 **Two steps** — create space locally, run operation remotely:
 
 ```bash
-ado create space -f space.yaml
-ado --remote execution_context.yaml create operation \
+uv run ado create space -f space.yaml
+uv run ado --remote execution_context.yaml create operation \
     -f operation.yaml --use-latest space
 ```
 

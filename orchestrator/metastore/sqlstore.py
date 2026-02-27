@@ -343,14 +343,11 @@ class SQLResourceStore(ResourceStore):
                         else:
                             resource = orchestrator.core.kindmap[kind].model_validate(d)
                     except Exception as error:
+                        msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data}. {error}"
                         if ignore_validation_errors:
-                            self.log.warning(
-                                f"Unable to create pydantic model for resource with id, {identifier} with data, {data}. {error}"
-                            )
+                            self.log.warning(msg)
                         else:
-                            raise ValueError(
-                                f"Unable to create pydantic model for resource with id, {identifier} with data, {data}. {error}"
-                            ) from error
+                            raise ValueError(msg) from error
                     else:
                         retval[identifier] = resource
 

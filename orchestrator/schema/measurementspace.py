@@ -344,7 +344,9 @@ class MeasurementSpace:
             bool: True if the identifier is found in the specified format, False otherwise
 
         Note:
-            Virtual property identifiers are only checked when format is "observed" or "any"
+            Virtual property identifiers (base-aggregation, e.g. foo-mean) are checked for
+            all formats: "target" matches when base is a target property, "observed" when
+            base is an observed property, and "any" when base is either.
         """
         # Build set of property identifiers to check based on format
         identifiers_to_check: set[str] = set()
@@ -362,8 +364,12 @@ class MeasurementSpace:
         if identifier in identifiers_to_check:
             return True
 
-        # If not found and format is any/observed, check if it's a virtual property
-        if format in {"any", "observed"}:
+        # If not found, check if it's a virtual property (observed-based or target-based)
+        # For format "target", identifiers_to_check has target ids only, so virtual
+        # target identifiers (e.g. foo-mean) match when base foo is a target property.
+        # For format "observed", identifiers_to_check has observed ids, so virtual
+        # observed identifiers match. For "any", both are present.
+        if format in {"any", "observed", "target"}:
             try:
                 prop, _ = VirtualObservedProperty.parseIdentifier(identifier)
             except ValueError:

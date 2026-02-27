@@ -40,7 +40,8 @@ def upgrade_resource(
         list[str] | None,
         typer.Option(
             "--apply-legacy-validator",
-            help="Apply legacy validators by identifier (e.g., 'csv_constitutive_columns_migration'). Can be specified multiple times.",
+            help="Apply legacy validators by identifier (e.g., 'samplestore_kind_entitysource_to_samplestore'). "
+            "Can be specified multiple times.",
         ),
     ] = None,
     list_legacy: Annotated[
@@ -69,11 +70,11 @@ def upgrade_resource(
 
     # List available legacy validators for sample stores
 
-    ado upgrade sample_stores --list-legacy
+    ado upgrade samplestores --list-legacy
 
     # Apply a legacy validator during upgrade
 
-    ado upgrade sample_stores --apply-legacy-validator csv_constitutive_columns_migration
+    ado upgrade samplestores --apply-legacy-validator samplestore_kind_entitysource_to_samplestore
     """
 
     ado_configuration: AdoConfiguration = ctx.obj

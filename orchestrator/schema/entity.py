@@ -701,38 +701,42 @@ class Entity(pydantic.BaseModel):
                 op.targetProperty.identifier: op
                 for op in self.observedPropertiesFromExperimentReference(e)
             }
+            # This loop
+            # A) handles aggregation if present
+            # B) if there is only one value in the list it extracts it from the list
             for o in props:
-                if len(expProperties[o]) > 1:
-                    if aggregationMethod:
+                if aggregationMethod and expProperties[o]:
+                    try:
                         vop = VirtualObservedProperty(
                             baseObservedProperty=prop_map[o],
                             aggregationMethod=PropertyAggregationMethod(
                                 identifier=aggregationMethod
                             ),
                         )
+                        # Replace the target property with the virtual target property id
+                        mean = vop.aggregate(expProperties[o])
+                        expProperties.pop(o)
+                        expProperties[vop.virtualTargetPropertyIdentifier] = (
+                            mean.value
+                        )
+                    except (
+                        ValueError,
+                        TypeError,
+                    ) as error:
+                        # We can't take the mean of all the values for some reason
+                        # An example is that the values are arrays of different length
+                        import logging
 
-                        try:
-                            # Replace the target property with the virtual target property id
-                            mean = vop.aggregate(expProperties[o])
-                            expProperties.pop(o)
-                            expProperties[vop.virtualTargetPropertyIdentifier] = (
-                                mean.value
-                            )
-                        except (
-                            ValueError,
-                            TypeError,
-                        ) as error:
-                            # We can't take the mean of all the values for some reason
-                            # An example is that the values are arrays of different length
-                            import logging
-
-                            log = logging.getLogger("entity")
-                            log.debug(
-                                f"Unable to calculate mean of value for {o} due to {error}. Will not aggregate"
-                            )
-                    else:
-                        pass
-                else:
+                        log = logging.getLogger("entity")
+                        log.debug(
+                            f"Unable to calculate mean of value for {o} due to {error}. Will not aggregate"
+                        )
+                        if len(expProperties[o]) == 1:
+                            expProperties[o] = expProperties[o][0]
+                        else:
+                            pass
+                elif len(expProperties[o]) == 1:
+                    #If no aggregation and there is only 1 value we remove the list
                     expProperties[o] = expProperties[o][0]
 
             d.update(expProperties)

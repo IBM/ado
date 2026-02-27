@@ -128,8 +128,7 @@ def log_unable_to_proceed_with_iterative_modeling_and_raise_error(
     msg = (
         f"The current version of TRIM assumes that all measurements produce the observed target output property '{target_output}'. "
         f"The measurements obtained with {experiment_reference_msg} "
-        f"may not produce values for the target output property '{target_output}'. "
-        f"requested measurements did not contain the target output property '{target_output}'. "
+        f"did not contain the target output property '{target_output}'. "
         f"Additional info: {additional_info} "
         "This is insufficient for starting the Iterative Modeling phase, the operation will exit with an error. "
         "For more information, refer to the documentation here: `https://ibm.github.io/ado/operators/trim/`."

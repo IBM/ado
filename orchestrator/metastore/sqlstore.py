@@ -342,7 +342,7 @@ class SQLResourceStore(ResourceStore):
                             resource = custom_model_loader(d, self.configuration)
                         else:
                             resource = orchestrator.core.kindmap[kind].model_validate(d)
-                    except (ValueError, ModuleNotFoundError) as error:
+                    except Exception as error:
                         if ignore_validation_errors:
                             self.log.warning(
                                 f"Unable to create pydantic model for resource with id, {identifier} with data, {data}. {error}"

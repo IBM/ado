@@ -319,4 +319,3 @@ def test_matching_entities_table_virtual_property_with_multiple_values(
     assert virtual_id in df_with_vp.columns
     # Aggregated values should be scalar (not lists or None)
     assert df_with_vp[virtual_id].dropna().apply(lambda x: np.isscalar(x)).all()
-

@@ -165,6 +165,7 @@ class ResourceStore(abc.ABC):
         kind: str,
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
+        ignore_validation_errors: bool = True,
     ) -> dict[str, ADOResource]:
         """Returns all resource objects of a given kind
 
@@ -172,12 +173,15 @@ class ResourceStore(abc.ABC):
             kind: A string. A resource object type as defined by CoreResourceKinds
             version: A version of the kind. If None all versions of the resource kind are returned
             field_selectors: A list of dictionaries of key/value selectors to filter the resources by.
+            ignore_validation_errors: If True (default), resources with validation errors are skipped.
+                If False, ValueError is raised when a resource fails validation.
 
         Returns:
             A dictionary whose keys are identifiers and values are the resource objects of the requested kind
 
         Exceptions:
             Raise a ValueError if the kind is not ADOResource subclass
+            Raises ValueError if ignore_validation_errors is False and a resource fails validation
             Raises a SystemError if the backend is not active"""
 
     @abc.abstractmethod

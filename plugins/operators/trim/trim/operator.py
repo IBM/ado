@@ -13,11 +13,11 @@ from trim.trim_pydantic import (
 )  # Importing this way works when the package is installed
 from trim.utils.logging_utils import (
     log_and_save_characterization,
+    log_unable_to_proceed_with_iterative_modeling_and_raise_error,
 )
 from trim.utils.space_df_connector import get_source_and_target
 
 logger_trim = logging.getLogger(__name__)
-# logger_trim.setLevel(logging.DEBUG)
 
 
 @characterize_operation(
@@ -76,6 +76,8 @@ def trim(
     source_df, target_df = get_source_and_target(
         discoverySpace, params.targetOutput, log_string="First query"
     )
+    initial_source_space_size = len(source_df)
+
     op_output_characterization_no_prior = OperationOutput.model_validate(
         {
             "metadata": {
@@ -87,15 +89,7 @@ def trim(
     if logger_trim.isEnabledFor(logging.DEBUG):
         log_and_save_characterization(source_df, target_df)
 
-    # TODO: think about a better solution for the fact that the target output may
-    # not be acquired for every entity of your space given your experiment.
-    # e.g. you want throughput and throughput is only measured for valid runs
-    # and some of the runs are not valid
-    max_iter = 3
-    current_iter = 0
-    while (
-        len(source_df) < params.samplingBudget.minPoints
-    ) and current_iter < max_iter:
+    if len(source_df) < params.samplingBudget.minPoints:
         logger_trim.warning(
             f"Only {len(source_df)} points in the source space.\n"
             "Starting with no-prior characterization operation, "
@@ -104,21 +98,6 @@ def trim(
         )
 
         no_priors_params = params.noPriorParameters
-        if current_iter != 0:
-            # Computing number of missing samples
-            missing_points = params.samplingBudget.minPoints - len(source_df)
-            no_priors_params.samples = (
-                no_priors_params.samples + missing_points + current_iter
-            )
-            logger_trim.warning(
-                f"After {current_iter} prior characterizations, we still need {missing_points} additional samples. "
-                f"This is likely because the target output '{params.targetOutput}' may not be acquired for every entity "
-                f"in your space given your experiment. "
-                f"Another no-priors characterization will be run to sample {missing_points} additional points. "
-                f"Note that the maximum number of no-priors characterization operations is {max_iter}. "
-                f"No-priors characterization operation will be instantiated for {no_priors_params.samples} samples."
-            )
-
         no_priors_sampler_config = CustomSamplerConfiguration(
             module=nopriors_module, parameters=no_priors_params
         )
@@ -136,7 +115,8 @@ def trim(
             operationInfo=FunctionOperationInfo.model_validate(
                 {
                     "metadata": {
-                        "completed operation": "Characterization with no priors"
+                        "completed operation": "Characterization with no priors",
+                        "summary of collected data": f"No-priors characterization produced {len(source_df)} samples with the required property {params.targetOutput}. Minimal sample size: {params.samplingBudget.minPoints }",
                     },
                     "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
                 }
@@ -145,28 +125,23 @@ def trim(
         )
 
         source_df, target_df = get_source_and_target(
-            discoverySpace,
-            params.targetOutput,
-            log_string=f"No priors iter={current_iter}",
+            discoverySpace, params.targetOutput
         )
-        current_iter += 1
-        op_output_characterization_no_prior = OperationOutput.model_validate(
-            {
-                "metadata": {
-                    "skipping operation": f"Prior source space characterization: {len(source_df)} sample. Minimal sample size: {params.samplingBudget.minPoints }"
-                }
-            }
-        )
-        logger_trim.info(
-            f"op_output_characterization_no_prior.operation = {op_output_characterization_no_prior.operation} "
-        )
+
         if logger_trim.isEnabledFor(logging.DEBUG):
             logger_trim.debug(
                 "Saving updated source space after no-priors characterization"
             )
             log_and_save_characterization(source_df, target_df)
 
-    # Continuing with TRIM Iterative Modeling
+        if len(source_df) < params.samplingBudget.minPoints:
+            log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                discoverySpace,
+                target_output=params.targetOutput,
+                additional_info=f"This was detected during the no-priors characterization phase: {params.samplingBudget.minPoints - len(source_df)} out of {params.samplingBudget.minPoints}.",
+            )
+
+    # TRIM Iterative Modeling
     trim_module = SamplerModuleConf(
         moduleClass="TrimSampleSelector",  # this is the name of our custom sampler class -> which I guess is CustomSequentialSampleSelector
         moduleName="trim.trim_sampler",  ### If CustomSequentialSampleSelector is imported as "from trim.trim_sampler import TrimSampleSelector" then this is correct
@@ -174,11 +149,15 @@ def trim(
     trim_sampler_config = CustomSamplerConfiguration(
         module=trim_module, parameters=params
     )
+    numberEntities_iterative_modeling = (
+        len(source_df) - initial_source_space_size
+        if op_output_characterization_no_prior.operation
+        else params.samplingBudget.maxPoints
+    )
     trim_rwparams = RandomWalkParameters(
         samplerConfig=trim_sampler_config,
-        # here you set up the rw params
         batchSize=1,
-        numberEntities=params.samplingBudget.maxPoints,
+        numberEntities=numberEntities_iterative_modeling,
         singleMeasurement=True,
     )
 

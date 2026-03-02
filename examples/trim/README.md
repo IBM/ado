@@ -70,6 +70,15 @@ It works in two main phases:
 Finally, it trains one high-quality model on all the data it has collected and
 saves it for you to use.
 
+<!-- markdownlint-disable no-blanks-blockquote -->
+> [!CAUTION]
+>
+> The current version of TRIM assumes that all measurements produce
+> the observed target output property, here in the
+> `operation.parameters.targetOutput` field.
+> More details in [the relevant section](https://ibm.github.io/ado/operators/trim/#debugging-and-troubleshooting).
+<!-- markdownlint-enable no-blanks-blockquote -->
+
 ## Creating a `discoveryspace`
 
 A `discoveryspace` describes the parameters you want to explore (`entitySpace`)

@@ -52,6 +52,18 @@ TRIM is particularly valuable when:
 - You want a model that can predict unmeasured points
 - You need to balance exploration and exploitation
 
+<!-- markdownlint-disable no-blanks-blockquote -->
+
+> [!CAUTION]
+>
+> TRIM trains supervised tabular machine learning models. The current version of
+> TRIM requires that your experiment can obtain a target variable measurement
+> for every entity in the space and that these measurements are of the same type
+> (numbers or strings, vectors are not supported). More details
+> [in the troubleshooting section](#debugging-and-troubleshooting).
+
+<!-- markdownlint-enable no-blanks-blockquote -->
+
 ## How TRIM Works: The Three-Phase Workflow
 
 Understanding TRIM's internal workflow helps you configure it effectively.
@@ -551,8 +563,42 @@ TRIM maintains a rolling holdout set:
 
 ### Debugging and Troubleshooting
 
-Enable debug logging to save intermediate files.
-Set logging level when you launch your operation, for example:
+The current version of TRIM assumes that all measurements produce the observed
+target output property, if this is not the case TRIM raises
+`InsufficientDataError`. To inspect what happened you can show the entities in
+the space with the following command
+
+```terminal
+ado show entities --use-latest space
+```
+
+Looking at the output you will find out if the target output property
+`targetOutput` is not a measured property of the entities in the space. In this
+case you will see a message such as
+
+<!-- markdownlint-disable line-length -->
+
+```terminal
+INFO:   Nothing was returned for entity type measured and property format target in space space-12ba2a-f09e16.
+```
+
+<!-- markdownlint-enable line-length -->
+
+If you see entities instead, then some of these entities probably do not contain
+valid values for `targetOutput`. You can inspect these values and search for
+invalid ones such as `NANs` or `None` in the `targetOutput` column of the table
+you see on your terminal. To facilitate the detection of the column, you can run
+the same command with a property filter:
+
+```terminal
+ado show entities --use-latest space --property [targetOutput]
+```
+
+Here, remember to replace `"[targetOutput]"` with `targetOutput`.
+
+If you still need to troubleshoot,
+enable debug logging to save intermediate files. Set logging level when you
+launch your operation, for example:
 
 <!-- markdownlint-disable line-length -->
 
@@ -563,19 +609,13 @@ LOGLEVEL=DEBUG ado -l DEBUG create operation -f \
 
 <!-- markdownlint-enable line-length -->
 
-Set your preference for the debug directory
-in your experiment configuration:
+Debug logging saves source/target dataframes at each iteration.
+Set your preference for the debug directory in your experiment configuration:
 
 ```yaml
 parameters:
   debugDirectory: debug_output
 ```
-
-This saves:
-
-- Source/target dataframes at each iteration
-- Model performance metrics
-- Feature importance rankings
 
 ---
 

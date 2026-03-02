@@ -254,7 +254,7 @@ def get_source_and_target(
     keys = [c for c in dfu.columns if c in dfm.columns and c != "identifier"]
 
     if dfm.empty:
-        logger.warning("Empty source")
+        logger.warning("The source space is empty")
         return dfm, dfu
 
     df = dfu.merge(dfm, on=keys, how="left")

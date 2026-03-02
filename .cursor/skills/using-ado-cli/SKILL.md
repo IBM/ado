@@ -10,8 +10,8 @@ description:
 
 ## Command Verification
 
-Before writing or committing documentation with ado CLI commands, verify the
-syntax:
+Always run `--help` before writing any ado command in documentation, comments,
+or code. Do not rely on memory or analogy to other CLIs.
 
 ```bash
 # Verify top-level command
@@ -28,6 +28,47 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 - Options are spelled correctly (e.g., `--use-latest` not `--latest`)
 - Required arguments are included
 - Optional flags match actual CLI behavior
+
+## Commands That do not exist
+
+These plausible-sounding commands do not exist in ado. Do not write them:
+
+| ❌ Does not exist | ✅ Correct equivalent |
+| --- | --- |
+| `ado run` | `ado create operation -f op.yaml` |
+| `ado start` | `ado create operation -f op.yaml` |
+| `ado execute` | `ado create operation -f op.yaml` |
+| `ado launch` | `ado create operation -f op.yaml` |
+| `ado list` | `ado get spaces` / `ado get operations` |
+| `ado status` | `ado show details space SPACE_ID` |
+
+**Key principle**: `ado create operation` both *defines* and *starts* the operation
+in a single command. There is no separate "run" step.
+
+## Point Testing with run_experiment
+
+`run_experiment` is a **separate CLI entry point** (not an `ado` subcommand) for
+running a single entity through an experiment locally, without creating a space
+or operation. It is the correct tool for functional validation of custom experiments.
+
+```bash
+uv run run_experiment PATH_TO_POINT_YAML
+```
+
+A point YAML has the form:
+
+```yaml
+entity:
+  param_a: value_a
+  param_b: value_b
+
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: my_experiment
+```
+
+It prints the result as a pandas Series and exits. No metastore or Ray cluster
+needed beyond a local Ray instance (started automatically).
 
 ## Core Commands
 

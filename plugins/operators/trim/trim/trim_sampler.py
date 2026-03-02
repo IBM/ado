@@ -34,6 +34,7 @@ from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
     log_after_split_common_and_diff,
     log_before_first_holdout_update,
+    log_unable_to_proceed_with_iterative_modeling_and_raise_error,
     save_source_train_holdout_dfs,
     training_guardrail,
 )
@@ -168,6 +169,13 @@ class TrimSampleSelector(BaseSampler):
                         shorter_df_that_you_subtract=previous_source_df,
                     )
                 )
+                if len(one_additional_row) == 0:
+                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                        discoverySpace=discoverySpace,
+                        target_output=self.params.targetOutput,
+                        additional_info=f"Detected during Iterative Modeling, when the source space size is {len(train_df)}.",
+                    )
+
                 log_after_split_common_and_diff(
                     i,
                     compare_to_previous_source_df,
@@ -195,6 +203,12 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
+                if len(one_additional_row) == 0:
+                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                        discoverySpace=discoverySpace,
+                        target_output=self.params.targetOutput,
+                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                    )
                 yielded_rows += one_additional_row
                 previous_holdout_df = current_holdout_df
 
@@ -210,6 +224,12 @@ class TrimSampleSelector(BaseSampler):
                     longer_df_from_which_you_subtract=current_source_df,
                     shorter_df_that_you_subtract=previous_source_df,
                 )
+                if len(one_additional_row) == 0:
+                    log_unable_to_proceed_with_iterative_modeling_and_raise_error(
+                        discoverySpace=discoverySpace,
+                        target_output=self.params.targetOutput,
+                        additional_info=f"Detected during Iterative Modeling, when the training DataFrame size is {len(train_df)}.",
+                    )
 
                 log_before_first_holdout_update(
                     one_additional_row,

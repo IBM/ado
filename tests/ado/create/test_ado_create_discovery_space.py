@@ -322,6 +322,7 @@ def test_create_discovery_space_success_set_sample_store(
 
 def test_create_discovery_space_success_with_sample_store_from_file_with_replay_actuator(
     tmp_path: pathlib.Path,
+    ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
@@ -336,10 +337,6 @@ def test_create_discovery_space_success_with_sample_store_from_file_with_replay_
         "examples/ml-multi-cloud/ml_multicloud_space.yaml"
     )
 
-    sample_store_configuration_file = pathlib.Path(
-        "tests/resources/ml_multicloud_sample_store.yaml"
-    )
-
     runner = CliRunner()
     result = runner.invoke(
         ado,
@@ -351,7 +348,7 @@ def test_create_discovery_space_success_with_sample_store_from_file_with_replay_
             "-f",
             space_configuration_file,
             "--with",
-            f"store={sample_store_configuration_file}",
+            f"store={ml_multi_cloud_sample_store_configuration_file}",
         ],
     )
 

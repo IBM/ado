@@ -47,30 +47,51 @@ from orchestrator.schema.result import (
     MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
+from orchestrator.utilities.output import pydantic_model_as_yaml
+
+
+@pytest.fixture
+def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
+
+    # The file in the examples assumes ml_export.csv is in the same directory
+    raw_sample_store_configuration = yaml.safe_load(
+        pathlib.Path(
+            "examples/ml-multi-cloud/ml_multicloud_sample_store.yaml"
+        ).read_text()
+    )
+
+    raw_sample_store_configuration["copyFrom"][0]["storageLocation"][
+        "path"
+    ] = "examples/ml-multi-cloud/ml_export.csv"
+
+    return SampleStoreConfiguration.model_validate(raw_sample_store_configuration)
+
+
+@pytest.fixture
+def ml_multi_cloud_sample_store_configuration_file(
+    tmp_path: pathlib.Path,
+    ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
+) -> pathlib.Path:
+    file = tmp_path / "ml_multicloud_sample_store.yaml"
+    file.write_text(pydantic_model_as_yaml(ml_multi_cloud_sample_store_configuration))
+    return file
 
 
 @pytest.fixture
 def ml_multi_cloud_sample_store(
+    ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
     create_sample_store: Callable[[SampleStoreConfiguration], ActiveSampleStore],
 ) -> SQLSampleStore:
-    sample_store_configuration = SampleStoreConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("tests/resources/ml_multicloud_sample_store.yaml").read_text()
-        )
-    )
-    return create_sample_store(sample_store_configuration)
+    return create_sample_store(ml_multi_cloud_sample_store_configuration)
 
 
 @pytest.fixture
-def ml_multi_cloud_csv_sample_store() -> CSVSampleStore:
-    sample_store_configuration = SampleStoreConfiguration.model_validate(
-        yaml.safe_load(
-            pathlib.Path("tests/resources/ml_multicloud_sample_store.yaml").read_text()
-        )
-    )
+def ml_multi_cloud_csv_sample_store(
+    ml_multi_cloud_sample_store_configuration: SampleStoreConfiguration,
+) -> CSVSampleStore:
 
     csv_sample_store_parameters: SampleStoreReference = (
-        sample_store_configuration.copyFrom[0]
+        ml_multi_cloud_sample_store_configuration.copyFrom[0]
     )
 
     return CSVSampleStore(

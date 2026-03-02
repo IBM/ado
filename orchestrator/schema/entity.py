@@ -714,27 +714,33 @@ class Entity(pydantic.BaseModel):
                             ),
                         )
                         # Replace the target property with the virtual target property id
-                        mean = vop.aggregate(expProperties[o])
+                        aggregate_value = vop.aggregate(expProperties[o])
                         expProperties.pop(o)
-                        expProperties[vop.virtualTargetPropertyIdentifier] = mean.value
+                        expProperties[vop.virtualTargetPropertyIdentifier] = (
+                            aggregate_value.value
+                        )
+                        
+                        # Continue iterating on success - in other cases (no aggregation
+                        # and failure to aggregate), we replace lists with 1 element with
+                        # the element itself.
+                        continue         
                     except (
                         ValueError,
                         TypeError,
                     ) as error:
-                        # We can't take the mean of all the values for some reason
+                        # We can't aggregate all the values for some reason
                         # An example is that the values are arrays of different length
                         import logging
 
                         log = logging.getLogger("entity")
                         log.debug(
-                            f"Unable to calculate mean of value for {o} due to {error}. Will not aggregate"
+                            f"Unable to calculate aggregate value for {o} due to {error}. Will not aggregate"
                         )
-                        if len(expProperties[o]) == 1:
-                            expProperties[o] = expProperties[o][0]
-                        else:
-                            pass
-                elif len(expProperties[o]) == 1:
+
+                # No aggregation was requested or it failed
+                if len(expProperties[o]) == 1:
                     # If no aggregation and there is only 1 value we remove the list
+                    expProperties[o] = expProperties[o][0]
                     expProperties[o] = expProperties[o][0]
 
             d.update(expProperties)

@@ -719,11 +719,11 @@ class Entity(pydantic.BaseModel):
                         expProperties[vop.virtualTargetPropertyIdentifier] = (
                             aggregate_value.value
                         )
-                        
+
                         # Continue iterating on success - in other cases (no aggregation
                         # and failure to aggregate), we replace lists with 1 element with
                         # the element itself.
-                        continue         
+                        continue
                     except (
                         ValueError,
                         TypeError,

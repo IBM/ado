@@ -1,0 +1,30 @@
+[project]
+name = "ado-cplex-mip"
+description = "ado custom experiment for benchmarking CPLEX MIP solver performance across parameter configurations"
+dependencies = [
+  "ado-core",
+  # "cplex",
+]
+dynamic = ["version"]
+
+[project.entry-points."ado.custom_experiments"]
+cplex_mip = "cplex_mip_experiments.solve_mip"
+
+[dependency-groups]
+dev = [
+  "pytest>=9.0.1",
+]
+
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["build", "build.*", "tests"]
+
+[tool.setuptools_scm]
+root = "../../../"
+
+[tool.uv.sources]
+ado-core = { workspace = true }

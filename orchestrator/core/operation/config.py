@@ -272,7 +272,17 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     def ensure_module_is_installed(
         cls, module: OperatorModuleConf | OperatorFunctionConf
     ) -> OperatorModuleConf | OperatorFunctionConf:
+        """Validates that the operator module is installed and accessible.
 
+        Args:
+            module: The operator module or function configuration to validate.
+
+        Returns:
+            The validated module configuration.
+
+        Raises:
+            ValueError: If the operator module is not installed or cannot be imported.
+        """
         if isinstance(module, OperatorFunctionConf):
             return module
 
@@ -289,7 +299,18 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
     @pydantic.model_validator(mode="after")
     def validate_and_downcast_parameters(self) -> Self:
+        """Validates and downcasts operation parameters based on the module type.
 
+        For OperatorModuleConf modules, validates parameters using the operation's
+        validateOperationParameters method. For OperatorFunctionConf modules,
+        validates parameters against the configuration model if available.
+
+        Returns:
+            Self: The validated instance with downcast parameters.
+
+        Raises:
+            ValidationError: If parameter validation fails.
+        """
         if isinstance(self.module, OperatorModuleConf):
             # This is guaranteed to not raise an error thanks to ensure_module_is_installed
             operation = getattr(

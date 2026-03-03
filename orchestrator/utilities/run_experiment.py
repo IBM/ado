@@ -15,7 +15,11 @@ import requests
 import typer
 import yaml
 
-from orchestrator.cli.utils.output.prints import ERROR, WARN, console_print
+from orchestrator.cli.utils.output.prints import (
+    ERROR,
+    WARN,
+    console_print,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.modules.operators._cleanup import (
@@ -320,7 +324,7 @@ def run(
                 else:
                     console_print("Result:")
                     console_print(
-                        f"{request.series_representation(output_format='target')}\n",
+                        request.series_representation(output_format="target"),
                         has_pandas_content=True,
                         use_markup=False,
                     )

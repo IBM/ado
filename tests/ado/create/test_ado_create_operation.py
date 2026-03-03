@@ -206,3 +206,48 @@ def test_create_operation_success_with_discovery_space(
         ],
     )
     assert result.exit_code == 0, result.output
+
+
+def test_create_ml_multi_cloud_operation_success_lhc_sampler(
+    tmp_path: pathlib.Path,
+    ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    space_creation_result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "space",
+            "-f",
+            "examples/ml-multi-cloud/ml_multicloud_space.yaml",
+            "--with",
+            f"store={ml_multi_cloud_sample_store_configuration_file}",
+        ],
+    )
+    assert space_creation_result.exit_code == 0, space_creation_result.output
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "create",
+            "operation",
+            "-f",
+            "examples/ml-multi-cloud/lhc_sampler.yaml",
+            "--use-latest",
+            "space",
+        ],
+    )
+    assert result.exit_code == 0

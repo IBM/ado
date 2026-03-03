@@ -13,8 +13,10 @@ from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
 
-def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path) -> None:
-    sample_store_configuration_file = "tests/resources/ml_multicloud_sample_store.yaml"
+def test_create_sample_store_dry_run_success(
+    tmp_path: pathlib.Path,
+    ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
+) -> None:
     runner = CliRunner()
     result = runner.invoke(
         ado,
@@ -24,7 +26,7 @@ def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path) -> None:
             "create",
             "samplestore",
             "-f",
-            sample_store_configuration_file,
+            ml_multi_cloud_sample_store_configuration_file,
             "--dry-run",
         ],
     )
@@ -36,13 +38,14 @@ def test_create_sample_store_dry_run_success(tmp_path: pathlib.Path) -> None:
     assert result.output == expected_output
 
 
-def test_create_sample_store_dry_run_failure(tmp_path: pathlib.Path) -> None:
-    sample_store_configuration_file = pathlib.Path(
-        "tests/resources/ml_multicloud_sample_store.yaml"
-    )
+def test_create_sample_store_dry_run_failure(
+    tmp_path: pathlib.Path, ml_multi_cloud_sample_store_configuration_file: pathlib.Path
+) -> None:
+
     invalid_sample_store_configuration_file = tmp_path / "invalid_sample_store.yaml"
     invalid_sample_store_configuration_file.write_text(
-        sample_store_configuration_file.read_text() + "\nnonexistent-key: hello"
+        ml_multi_cloud_sample_store_configuration_file.read_text()
+        + "\nnonexistent-key: hello"
     )
 
     runner = CliRunner()
@@ -69,14 +72,12 @@ def test_create_sample_store_dry_run_failure(tmp_path: pathlib.Path) -> None:
 
 def test_create_sample_store_success(
     tmp_path: pathlib.Path,
+    ml_multi_cloud_sample_store_configuration_file: pathlib.Path,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
 ) -> None:
-    sample_store_configuration_file = pathlib.Path(
-        "tests/resources/ml_multicloud_sample_store.yaml"
-    )
 
     runner = CliRunner()
     create_active_ado_context(
@@ -90,7 +91,7 @@ def test_create_sample_store_success(
             "create",
             "samplestore",
             "-f",
-            sample_store_configuration_file,
+            ml_multi_cloud_sample_store_configuration_file,
         ],
     )
 

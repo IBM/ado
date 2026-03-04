@@ -6,7 +6,7 @@ dependencies = [
   "autogluon.tabular[catboost,xgboost]==1.5.0",
   "cloudpickle",
   "fastai",
-  "pandas",
+  "pandas==2.3.3",
   "pydantic",
   "torch",
 ]

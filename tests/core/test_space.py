@@ -298,3 +298,24 @@ def test_matching_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 def test_missing_entities_table(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert ml_multi_cloud_space.matchingEntitiesTable().shape[0] == 42
+
+
+def test_matching_entities_table_virtual_property_with_multiple_values(
+    ml_multi_cloud_space: DiscoverySpace,
+) -> None:
+    """Virtual property identifiers produce aggregated columns with scalar values for multi-valued properties."""
+    import numpy as np
+
+    from orchestrator.schema.virtual_property import PropertyAggregationMethodEnum
+
+    virtual_id = f"wallClockRuntime-{PropertyAggregationMethodEnum.mean.value}"
+
+    df_with_vp = ml_multi_cloud_space.matchingEntitiesTable(
+        property_type="target",
+        virtualPropertyIdentifiers=[virtual_id],
+    )
+
+    assert df_with_vp.shape[0] == 42
+    assert virtual_id in df_with_vp.columns
+    # Aggregated values should be scalar (not lists or None)
+    assert df_with_vp[virtual_id].dropna().apply(lambda x: np.isscalar(x)).all()

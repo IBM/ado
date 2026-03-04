@@ -661,6 +661,55 @@ def property_domain_to_ray_distribution(
     return retval
 
 
+def _validate_points_to_evaluate(
+    points_to_evaluate: list[dict] | None,
+    entity_space: EntitySpaceRepresentation,
+) -> None:
+    """Validate that each point in points_to_evaluate matches the entity space.
+
+    Each point must include all constitutive properties with values in their domains.
+    Extra properties are not allowed. Raises ValueError on first invalid point.
+
+    Args:
+        points_to_evaluate: List of point dicts from search_alg params, or None.
+        entity_space: The discovery space's entity space to validate against.
+
+    Raises:
+        ValueError: If any point is missing properties, has extra properties, or
+            has values outside the constitutive property domains.
+    """
+    if not points_to_evaluate:
+        return
+
+    space_property_ids = {cp.identifier for cp in entity_space.constitutiveProperties}
+
+    for i, point in enumerate(points_to_evaluate):
+        if not isinstance(point, dict):
+            raise ValueError(
+                f"points_to_evaluate[{i}] must be a dict of constitutive property "
+                f"id: value pairs, got {type(point).__name__}"
+            )
+        if not entity_space.isPointInSpace(point, allow_partial_matches=False):
+            point_ids = set(point.keys())
+            missing = space_property_ids - point_ids
+            extra = point_ids - space_property_ids
+            parts = []
+            if missing:
+                parts.append(f"missing properties: {sorted(missing)}")
+            if extra:
+                parts.append(f"extra properties not in space: {sorted(extra)}")
+            if not parts:
+                parts.append(
+                    "one or more values are not in the domain of their "
+                    "constitutive property"
+                )
+            raise ValueError(
+                f"points_to_evaluate[{i}] is invalid for this discovery space: {', '.join(parts)}. "
+                f"Space constitutive properties: {sorted(space_property_ids)}. "
+                f"Point keys: {sorted(point_ids)}."
+            )
+
+
 def search_space_from_explicit_entity_space(
     entitySpace: EntitySpaceRepresentation,
 ) -> dict:
@@ -816,6 +865,13 @@ class RayTune(Search):
                 search_space = search_space_from_explicit_entity_space(entity_space)
 
                 self.log.debug(search_space)
+
+                _validate_points_to_evaluate(
+                    points_to_evaluate=self.params.tuneConfig.search_alg.params.get(
+                        "points_to_evaluate"
+                    ),
+                    entity_space=entity_space,
+                )
 
                 # Create the tune instance
 

@@ -174,14 +174,6 @@ def csv_sample_store(
 
 
 @pytest.fixture
-def ml_multi_cloud_sample_store_configuration() -> SampleStoreConfiguration:
-    with open("tests/resources/ml_multicloud_sample_store.yaml") as f:
-        d = yaml.safe_load(f)
-
-    return SampleStoreConfiguration.model_validate(d)
-
-
-@pytest.fixture
 def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
     y = """
     copyFrom:
@@ -221,14 +213,6 @@ def sample_store_resource(
         identifier="test_source",
         config=ml_multi_cloud_sample_store_configuration,
     )
-
-
-valid_sample_store_configs = ["tests/resources/ml_multicloud_sample_store.yaml"]
-
-
-@pytest.fixture(params=valid_sample_store_configs)
-def valid_sample_store_config_file(request: pytest.FixtureRequest) -> str:
-    return request.param
 
 
 @pytest.fixture

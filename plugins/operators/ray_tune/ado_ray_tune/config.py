@@ -102,7 +102,12 @@ class RayTuneOrchestratorConfiguration(pydantic.BaseModel):
         ),
     ] = "none"
 
-    model_config = ConfigDict(extra="forbid")
+    # 2026-03-03 AP:
+    # We need ser_json_inf_nan="strings" because float("nan") when dumped
+    # to JSON by Pydantic becomes `null`. This would cause a ValidationError
+    # when reading the model from DB.
+    # ref: https://github.com/IBM/ado/issues/641
+    model_config = ConfigDict(extra="forbid", ser_json_inf_nan="strings")
 
 
 class OrchSearchAlgorithm(pydantic.BaseModel):

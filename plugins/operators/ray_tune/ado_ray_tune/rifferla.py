@@ -12,10 +12,7 @@ from orchestrator.core.datacontainer.resource import DataContainer
 from orchestrator.core.discoveryspace.config import EntityFilter
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    DiscoveryOperationConfiguration,
-    DiscoveryOperationEnum,
     FunctionOperationInfo,
-    OperatorFunctionConf,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.samplestore.sql import SQLSampleStore
@@ -80,18 +77,12 @@ class RifferlaParameters(pydantic.BaseModel):
     ] = EntityFilter.SAMPLED
 
     @classmethod
-    def defaultOperation(cls) -> DiscoveryOperationConfiguration:
-        return DiscoveryOperationConfiguration(
-            module=OperatorFunctionConf(
-                operatorName="rifferla",
-                operationType=DiscoveryOperationEnum.MODIFY,
-            ),
-            parameters=cls(
-                failed_metric="is_valid",
-                failed_value=1,
-                metric="train_tokens_per_second",
-                mode="max",
-            ),
+    def defaultOperationParameters(cls) -> "RifferlaParameters":
+        return cls(
+            failed_metric="is_valid",
+            failed_value=1,
+            metric="train_tokens_per_second",
+            mode="max",
         )
 
 
@@ -101,7 +92,7 @@ class RifferlaParameters(pydantic.BaseModel):
     description="Refines a space to produce one that is denser in entities that have min/max of a given observed property."
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
-    configuration_model_default=RifferlaParameters.defaultOperation(),
+    configuration_model_default=RifferlaParameters.defaultOperationParameters(),
 )
 def rifferla(
     discoverySpace: DiscoverySpace,

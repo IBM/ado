@@ -366,6 +366,12 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     counter = 0
     while waitingOnExperiments:
         time.sleep(1)
+        # Check for critical error (e.g. DiscoverySpaceManager crash) to avoid
+        # spinning forever waiting for measurements that will never arrive
+        if ray.get(driver.isCriticalError.remote()):
+            raise SystemError(
+                "Exiting trainable as notification of critical error received by operator"
+            )
         newDependentRequests = []
         newCompletedRequests = []
 

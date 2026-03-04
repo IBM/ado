@@ -57,7 +57,7 @@ requires-dist = [
     { name = "autogluon-tabular", extras = ["lightgbm"], marker = "extra == 'libomp'" },
     { name = "cloudpickle" },
     { name = "fastai" },
-    { name = "pandas", specifier = "==2.3.3" },
+    { name = "pandas", specifier = "<3.0.0" },
     { name = "pydantic" },
     { name = "torch" },
 ]

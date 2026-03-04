@@ -23,7 +23,7 @@ logger_trim = logging.getLogger(__name__)
 @characterize_operation(
     name="trim",
     configuration_model=TrimParameters,
-    configuration_model_default=TrimParameters(targetOutput="TO_BE_SET"),
+    configuration_model_default=TrimParameters.defaultOperationParameters(),
     description="""
                 Trim is used to characterise a Discovery space.
                 In its first implementation it starts from a space,

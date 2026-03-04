@@ -152,6 +152,10 @@ class TrimParameters(BaseModel):
     #     ),
     # ] = False
 
+    @classmethod
+    def defaultOperationParameters(cls) -> "TrimParameters":
+        return cls(targetOutput="TO_BE_SET")
+
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":
         if self.finalModelAutoGluonArgs == AutoGluonArgs():

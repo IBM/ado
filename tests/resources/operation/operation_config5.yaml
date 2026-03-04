@@ -8,4 +8,3 @@ operation:
   parameters:
     numberEntities: 1000
     batchSize: 1
-    mode: 'sequential'

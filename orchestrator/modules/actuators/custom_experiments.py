@@ -40,10 +40,11 @@ from orchestrator.schema.property import (
 )
 from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
-from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
+from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import InvalidMeasurementResult, ValidMeasurementResult
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.logging import configure_logging
+from orchestrator.utilities.support import compute_measurement_status
 
 configure_logging()
 
@@ -658,9 +659,7 @@ def custom_experiment_executor(
 
     if len(measurement_results) > 0:
         measurement_request.measurements = measurement_results
-        measurement_request.status = MeasurementRequestStateEnum.SUCCESS
-    else:
-        measurement_request.status = MeasurementRequestStateEnum.FAILED
+    measurement_request.status = compute_measurement_status(measurement_results)
 
     queue.put(measurement_request, block=False)
 

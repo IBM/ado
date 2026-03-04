@@ -1039,6 +1039,12 @@ def test_property_with_identifier_format_target(
         "invalid_metric", format="target"
     ), "Expected invalid identifier to fail with format='target'"
 
+    # Test virtual target property identifier (target prop + aggregation, e.g. foo-mean)
+    virtual_target_id = f"{target_id}-mean"
+    assert ms.propertyWithIdentifierInSpace(
+        virtual_target_id, format="target"
+    ), f"Expected virtual target identifier '{virtual_target_id}' to be found with format='target'"
+
 
 def test_property_with_identifier_format_observed(
     measurement_space_from_multiple_parameterized_experiments: MeasurementSpace,

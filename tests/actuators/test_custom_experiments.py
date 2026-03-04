@@ -10,6 +10,7 @@ from orchestrator.modules.actuators import custom_experiments
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
 from orchestrator.schema.point import SpacePoint
 from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 
 
 def test_custom_experiment_unknown_keys_are_dropped() -> None:
@@ -202,6 +203,46 @@ def test_derive_optional_properties_and_parameterization_basic_types_and_unsuppo
         optionals, _ = (
             custom_experiments.derive_optional_properties_and_parameterization(fn, [])
         )
+
+
+def test_custom_experiment_executor_invalid_result_status_is_failed() -> None:
+    """When custom experiment produces only InvalidMeasurementResult, status is FAILED."""
+
+    @custom_experiments.custom_experiment(output_property_identifiers=["x"])
+    def raises_fn(x: int):
+        raise ValueError("infeasible point")
+
+    entity = SpacePoint.model_validate({"entity": {"x": 1}}).to_entity()
+    exp = raises_fn._experiment
+    results: list = []
+
+    class MockQueue:
+        def put(self, item, block=False):
+            results.append(item)
+
+    request = MeasurementRequest(
+        operation_id="test-op",
+        requestIndex=0,
+        experimentReference=exp.reference,
+        entities=[entity],
+    )
+
+    custom_experiments.custom_experiment_executor(
+        raises_fn,
+        {},
+        request,
+        exp,
+        MockQueue(),
+    )
+
+    assert len(results) == 1
+    result = results[0]
+    assert result.status == MeasurementRequestStateEnum.FAILED
+    assert result.measurements is not None
+    assert len(result.measurements) == 1
+    from orchestrator.schema.result import InvalidMeasurementResult
+
+    assert isinstance(result.measurements[0], InvalidMeasurementResult)
 
 
 def test_check_parameters_and_infer() -> None:

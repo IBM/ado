@@ -142,7 +142,8 @@ Review the template and configure parameters based on:
 **Structure:**
 
 See
-[skill-operation-structure.yaml](yaml-examples/skill-operation-structure.yaml).
+[skill-operation-structure.yaml](yaml-examples/skill-operation-structure.yaml)
+for an example structure.
 
 ### Step 2d: Validate Operation YAML
 

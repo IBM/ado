@@ -24,23 +24,108 @@ class PropertyAggregationMethodEnum(enum.Enum):
     max = "max"
 
 
+def _to_nan_array(values: list) -> np.ndarray:
+    """Flatten nested lists and replace None with np.nan, returning a float array.
+
+    Handles nested lists (e.g. a single measurement whose value is itself a
+    list of per-seed results) by ravelling before conversion.
+
+    Args:
+        values: Potentially nested list of numeric values or None.
+
+    Returns:
+        1-D float64 numpy array with None replaced by np.nan.
+    """
+    flat = np.asarray(values, dtype=object).ravel()
+    return np.array([np.nan if v is None else float(v) for v in flat])
+
+
+def _mean_no_none(values: list) -> tuple[Any, Any]:
+    """Mean and standard error, ignoring None values.
+
+    Args:
+        values: List of numeric values, possibly containing None.
+
+    Returns:
+        Tuple of (mean, standard_error), or (None, None) if all values are None.
+    """
+    arr = _to_nan_array(values)
+    if np.all(np.isnan(arr)):
+        return None, None
+    n = int(np.sum(~np.isnan(arr)))
+    return float(np.nanmean(arr)), float(np.nanstd(arr) / np.sqrt(n))
+
+
+def median(values: list) -> tuple[Any, Any]:
+    """Median and MAD, ignoring None values.
+
+    Args:
+        values: List of numeric values, possibly containing None.
+
+    Returns:
+        Tuple of (median, median_absolute_deviation), or (None, None) if all
+        values are None.
+    """
+    arr = _to_nan_array(values)
+    if np.all(np.isnan(arr)):
+        return None, None
+    med = float(np.nanmedian(arr))
+    non_nan = arr[~np.isnan(arr)]
+    return med, float(np.median(np.absolute(non_nan - med)))
+
+
+def _min_no_none(values: list) -> tuple[Any, Any]:
+    """Minimum, ignoring None values."""
+    arr = _to_nan_array(values)
+    if np.all(np.isnan(arr)):
+        return None, None
+    return float(np.nanmin(arr)), None
+
+
+def _max_no_none(values: list) -> tuple[Any, Any]:
+    """Maximum, ignoring None values."""
+    arr = _to_nan_array(values)
+    if np.all(np.isnan(arr)):
+        return None, None
+    return float(np.nanmax(arr)), None
+
+
+def _std_no_none(values: list) -> tuple[Any, Any]:
+    """Standard deviation, ignoring None values."""
+    arr = _to_nan_array(values)
+    if np.all(np.isnan(arr)):
+        return None, None
+    return float(np.nanstd(arr)), None
+
+
+def _var_no_none(values: list) -> tuple[Any, Any]:
+    """Variance, ignoring None values."""
+    arr = _to_nan_array(values)
+    if np.all(np.isnan(arr)):
+        return None, None
+    return float(np.nanvar(arr)), None
+
+
 class PropertyAggregationMethod(pydantic.BaseModel):
     identifier: Annotated[PropertyAggregationMethodEnum, pydantic.Field()] = (
         PropertyAggregationMethodEnum.mean
     )
 
     def function(self, values: list) -> float | tuple[Any, Any] | tuple[Any, None]:
-        """
-        Apply property aggregation methods to values.
+        """Apply property aggregation methods to values.
 
-        Parameters:
-        values (list): A list of values to apply aggregation methods to.
+        None entries in values are ignored (treated as missing data). If all
+        values are None the returned aggregate value is also None.
+
+        Args:
+            values: A list of values to aggregate. May contain None entries and
+                nested lists (e.g. per-seed result vectors).
 
         Returns:
-        The result of applying the aggregation method to the values.
+            The result of applying the aggregation method to the values.
 
         Raises:
-        ValueError: If values is empty or none.
+            ValueError: If values is empty.
         """
         if not values:
             raise ValueError(
@@ -49,21 +134,13 @@ class PropertyAggregationMethod(pydantic.BaseModel):
         return functionMap[self.identifier](values)
 
 
-def median(values: list) -> float:
-    x = np.asarray(values)
-    return np.median(values), np.median(np.absolute(x - np.median(x)))
-
-
 functionMap = {
-    PropertyAggregationMethodEnum.mean: lambda x: (
-        np.asarray(x).mean(),
-        np.asarray(x).std() / np.sqrt(len(x)),
-    ),
+    PropertyAggregationMethodEnum.mean: _mean_no_none,
     PropertyAggregationMethodEnum.median: median,
-    PropertyAggregationMethodEnum.min: lambda x: (min(x), None),
-    PropertyAggregationMethodEnum.max: lambda x: (max(x), None),
-    PropertyAggregationMethodEnum.std: lambda x: (np.asarray(x).std(), None),
-    PropertyAggregationMethodEnum.variance: lambda x: (np.asarray(x).var(), None),
+    PropertyAggregationMethodEnum.min: _min_no_none,
+    PropertyAggregationMethodEnum.max: _max_no_none,
+    PropertyAggregationMethodEnum.std: _std_no_none,
+    PropertyAggregationMethodEnum.variance: _var_no_none,
 }
 
 

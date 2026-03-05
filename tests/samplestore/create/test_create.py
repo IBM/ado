@@ -60,9 +60,7 @@ def test_resource_cannot_be_created_twice(
 
 
 def test_create_operation_with_related_space(
-    random_operation_resource_from_file: Callable[
-        [str | None, str | None], OperationResource
-    ],
+    ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     create_resource_with_related_identifiers: Callable[
         [ADOResource, list[str], SQLStore], None
@@ -75,7 +73,7 @@ def test_create_operation_with_related_space(
 ) -> None:
     quantity = 3
 
-    operation = random_operation_resource_from_file()
+    operation = ml_multi_cloud_operation_resource()
     space_ids = [random_space_resource_from_db().identifier for _ in range(quantity)]
     create_resource_with_related_identifiers(
         resource=operation,
@@ -97,16 +95,14 @@ def test_create_operation_with_related_space(
 
 
 def test_exception_on_resource_with_related_identifier_if_related_id_does_not_exist(
-    random_operation_resource_from_file: Callable[
-        [str | None, str | None], OperationResource
-    ],
+    ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     create_resource_with_related_identifiers: Callable[
         [ADOResource, list[str], SQLStore], None
     ],
     sql_store: SQLStore,
 ) -> None:
-    operation = random_operation_resource_from_file()
+    operation = ml_multi_cloud_operation_resource()
     nonexistent_related_id = "IDoNotExist"
     with pytest.raises(
         ValueError,

@@ -200,6 +200,8 @@ def process_metric(
         # We use the last result
         return all_results[metric][-1]
 
+    failed = trainable_params.orchestrator_config.failed_metric_value
+
     # The metric is not in the results, so we need to process it
     # Check if this is a virtual metric using the measurement space, not the entity.
     # The measurement space is scoped to this operation's experiments, so it won't
@@ -215,18 +217,38 @@ def process_metric(
     except ValueError:
         log.warning(
             f"No experiment measured {metric} and it's not a valid virtual property.  "
-            f"Will set value of {metric} for {entity.identifier} to {trainable_params.orchestrator_config.failed_metric_value} "
+            f"Will set value of {metric} for {entity.identifier} to {failed} "
         )
-        processed_metric = trainable_params.orchestrator_config.failed_metric_value
+        processed_metric = failed
     else:
         if properties is not None:
             if len(properties) == 1:
-                value = entity.valueForProperty(property=properties[0])
-                processed_metric = (
-                    value.value
-                    if value is not None
-                    else trainable_params.orchestrator_config.failed_metric_value
-                )
+                virtual_prop = properties[0]
+                # Determine the key in all_results for the base property.
+                # all_results is keyed by targetProperty.identifier (metric_format="target")
+                # or by observed property identifier (metric_format="observed").
+                metric_format = trainable_params.orchestrator_config.metric_format
+                if metric_format == "target":
+                    base_key = (
+                        virtual_prop.baseObservedProperty.targetProperty.identifier
+                    )
+                else:
+                    base_key = virtual_prop.baseObservedProperty.identifier
+                base_values = all_results.get(base_key)
+                if base_values:
+                    aggregated = virtual_prop.aggregate(base_values)
+                    processed_metric = (
+                        aggregated.value
+                        if aggregated is not None and aggregated.value is not None
+                        else failed
+                    )
+                else:
+                    log.warning(
+                        f"{metric} is a valid virtual property name "
+                        f"however no experiment measured an underlying property with the required identifier. "
+                        f"Will set value of {metric} for {entity.identifier} to {failed}"
+                    )
+                    processed_metric = failed
             else:
                 raise ValueError(
                     f"Ambiguous virtual target metric provided - matches multiple observed properties. "
@@ -236,9 +258,9 @@ def process_metric(
             log.warning(
                 f"{metric} is a valid virtual property name "
                 f"however no experiment measured an underlying property with the required identifier. "
-                f"Will set value of {metric} for {entity.identifier} to {trainable_params.orchestrator_config.failed_metric_value}"
+                f"Will set value of {metric} for {entity.identifier} to {failed}"
             )
-            processed_metric = trainable_params.orchestrator_config.failed_metric_value
+            processed_metric = failed
 
     return processed_metric
 

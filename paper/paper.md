@@ -74,25 +74,19 @@ own protocols. For example in sampling workflows, it handles reuse of prior
 measurements, trial execution and monitoring, and time‑resolved measurement
 recording, maintaining consistency over a shared sample store.  
 This approach mirrors the advantages of declarative systems like SQL or
-Terraform: reduced boilerplate, fewer errors, and greater clarity. Researchers
-can contribute custom experiments or operators through a simple plugin
-interface. The result is a system that is context‑specific yet domain‑agnostic.
-The structured representation of experimental campaigns in `ado` aids code
-generation tools to automatically produce experiment definitions and enables
-natural language interfaces to formulate design spaces.
+Terraform: reduced boilerplate, fewer errors, and greater clarity.
+This declarative, structured, representation of experimental campaigns also
+aids code
+generation tools to automatically produce experiment definitions and to
+formulate design spaces (declarative YAML).
 
-ado extends its core-model features with valuable support capabilities.
-Declarative specifications (operations, configuration spaces) are stored in a
-database and their relationships tracked. Both the sample database and the
-specification database can be local or distributed, allowing distributed teams
-to collaborate and in the case of distributed sample databases, transparently
-reuse results. With Ray as the base execution engine this means ado can support
-a single researcher running on a laptop, to a distributed team executing on a
-large remote cluster. All functionality is accessible via a human‑centric CLI
-and a Python API. The target audience includes research and engineering teams
-that routinely conduct structured experiments, such as ML/GenAI benchmarking and
-fine‑tuning, simulation‑based design studies, systems and hardware tuning, and
-data/ETL configuration sweeps.
+ado extends its core model with valuable support capabilities. It uses a
+database for specifications and results that can be distributed to support team
+collaboration and transparent result reuse. Built on the Ray execution engine,
+ado seamlessly scales from a researcher's laptop to a large remote cluster, with
+all functionality accessible via a human-centric CLI and Python API.
+Researchers can contribute custom experiments or operators through a simple plugin
+interface. The result is a system that is context‑specific yet domain‑agnostic.
 
 # State of the field
 
@@ -106,24 +100,20 @@ objects.
 
 General black‑box optimization frameworks like Optuna,Ax,Nevergrad and RayTune
 are also key components for executing experiment campaigns, providing
-gradient-free, multi‑fidelity and multi‑objective optimization While these tools
+gradient-free, multi‑fidelity and multi‑objective optimization. While these tools
 are beginning to add data management features, for example, Optuna and RayTuen,
 support persistent storage for study resumption, they remain fundamentally
 code-centric. This approach requires users to define the optimizer, objective,
 and logging in code, which complicates turning individual runs into portable,
 team-level campaigns and fragments data reuse patterns.
 
-The need for integrated solution for handling experiment campaigns is seen in
-emerging robotic lab frameworks. One example is Experiment Orchestration Systems
-that seeks to provide a rigorous, repeatable definition of an experiment
-campaign in the context of physical experiments. Concretely, EOS models labs,
-devices, tasks, and optimizers via YAML/Python plugins; validates task
-parameters; schedules devices and shared resources; runs experiments and
-campaigns with a central orchestrator over Ray; aggregates results in durable
-storage (PostgreSQL plus S3‑compatible object storage); and includes built‑in
-sequential Bayesian optimization (BoFire/BoTorch). Its scope is intentionally
-the execution layer, answering how to physically carry out a specific experiment
-with robotics/instruments and synchronized actions.
+Emerging robotic lab frameworks also highlight the need for integrated campaign
+management. For instance, the Experiment Orchestration System (EOS) provides
+rigorous, repeatable execution for physical experiments using a plugin model to
+orchestrate lab equipment over Ray. Its scope, however, is intentionally the
+physical execution layer—answering how to carry out a specific experiment with
+instruments, rather than providing the domain-agnostic, declarative campaign
+semantics that ado offers.
 
 We identified that a new approach was necessary as these existing tools lack the
 core semantic model for an experiment campaign. Adding this to workflow managers
@@ -133,18 +123,11 @@ approach. For automated lab systems, their focus is on operational complexity of
 physical execution, examples like EOS do not aim to provide domain‑agnostic,
 declarative campaign semantics above the lab layer.
 
-ado synergizes with the above systems. Workflow managers remain excellent
-actuators and provenance capture points: ADO can trigger containerized tools,
-HPC jobs, or DAGs as trial executors, or be embedded as a step within larger
-workflows. Optimizers plug in behind a stable adapter: via Ray Tune, ADO can
-access a wide catalog of search algorithms and schedulers today, and it can
-integrate others (Optuna, SMAC3, Ax, Nevergrad) without changing the declarative
-surface. Considering a potential coupling to robotic lab technology, ADO can
-incorporate tools like EOS as actuators to run real experiments, while EOS could
-also invoke ADO to steer campaigns, combining ADO’s campaign semantics with
-EOS’s lab‑operations engine. Crucially, the fact that ado integrates cleanly
-with existing workflow engines, optimizer libraries, and autonomous‑lab systems,
-rather than displacing them, validates that a gap exists.
+ado synergizes with, rather than replaces, existing tools. It can use workflow
+managers like Galaxy as trial executors, integrate optimizers like Optuna and Ax
+via a stable adapter, and orchestrate physical experiments by coupling with
+robotic lab systems like EOS. The fact that ado integrates cleanly with these
+systems validates the existence of the semantic gap it fills.
 
 # Software design
 
@@ -189,7 +172,7 @@ A Discovery Space is composed of:
   to a configuration to measure its properties (the "how to measure").
 
 By explicitly associating the experiments (Action Space) with the configuration
-space and linking the resulting measurements back to that space, the Discovery
+space and linking the resulting measurements (samples) to the space, the Discovery
 Space model inherently becomes:
 
 - **Encapsulated and Actionable:** The space itself defines the valid
@@ -210,24 +193,11 @@ workload-agnostic capabilities that are a key goal of the program.
 
 The core of our architecture is implemented in Python, chosen for its ubiquity
 in scientific and research domains and its extensive ecosystem. For all data
-modeling, we leverage Pydantic as the foundational library. We use Pydantic for
-all data modeling. Its declarative, type-hinted models provide automatic
+modeling, we leverage Pydantic.
+Its declarative, type-hinted models provide automatic
 validation for all core abstractions (e.g., Discovery Space, configurations),
 ensuring data integrity, providing self-documenting schemas, and creating a
-clear target for AI code generation This approach provides several key benefits:
-
-- **Data Integrity and Reliability:** It guarantees the internal consistency of
-  all experimental artifacts, which is particularly valuable in collaborative
-  settings. Validation occurs before any expensive computation begins,
-  preventing runtime errors.
-- **Explicit and Self-Documenting Schemas:** The Pydantic models serve as
-  living, machine-readable documentation. This explicitness, while more verbose
-  than a terse domain-specific language, makes the system more transparent,
-  maintainable, and accessible to tooling.
-- **AI-Readiness:** The structured schemas provide a clear specification that an
-  LLM can target to produce valid configurations from natural language and
-  naturally enable iterative refinement: generated YAML can be validated by
-  pydantic, errors emitted, and these used to refine the YAML.
+clear target for AI code generation.
 
 ## Extensibility Through a Plugin Architecture
 

@@ -53,13 +53,13 @@ class LegacyValidatorRegistry:
 
     @classmethod
     def find_validators_for_fields(
-        cls, resource_type: CoreResourceKinds, field_names: list[str]
+        cls, resource_type: CoreResourceKinds, field_names: set[str]
     ) -> list[LegacyValidatorMetadata]:
         """Find validators that handle specific deprecated fields
 
         Args:
             resource_type: The resource type to filter by
-            field_names: List of field names to search for
+            field_names: Set of field names to search for
 
         Returns:
             List of validator metadata that handle any of the specified fields

@@ -69,24 +69,16 @@ def handle_resource_deletion_error(error: DeleteFromDatabaseError) -> NoReturn:
 
 def extract_deprecated_fields_from_validation_error(
     error: pydantic.ValidationError,
-) -> list[str]:
+) -> set[str]:
     """Extract field names from pydantic validation errors
 
     Args:
         error: The pydantic validation error
 
     Returns:
-        List of field names that caused validation errors
+        Set of field names that caused validation errors
     """
-    deprecated_fields = []
-    for err in error.errors():
-        # Get the field path from the error
-        if err.get("loc"):
-            # loc is a tuple of field names in the path
-            field_name = str(err["loc"][0])
-            if field_name not in deprecated_fields:
-                deprecated_fields.append(field_name)
-    return deprecated_fields
+    return {str(err["loc"][0]) for err in error.errors() if err.get("loc")}
 
 
 def handle_validation_error_with_legacy_suggestions(

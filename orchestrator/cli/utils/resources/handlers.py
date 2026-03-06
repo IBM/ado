@@ -369,7 +369,7 @@ def _handle_upgrade_validation_error(
 
     # Try to extract deprecated field names from the error message
     # The error message contains validation errors with field names
-    deprecated_fields = []
+    deprecated_fields: set[str] = set()
 
     # Look for common patterns in pydantic validation errors
     import re
@@ -392,8 +392,7 @@ def _handle_upgrade_validation_error(
         if re.search(pattern, error_msg, re.IGNORECASE):
             # Extract the field name from the pattern
             field_name = pattern.split(r"\s")[0].split(r"\\")[0]
-            if field_name not in deprecated_fields:
-                deprecated_fields.append(field_name)
+            deprecated_fields.add(field_name)
 
     # Find applicable legacy validators
     validators = []

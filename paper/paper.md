@@ -60,8 +60,9 @@ often managed with tools that fail to capture its essential structure.
 
 While scientific workflow systems like Galaxy, AiiDa, and Pachyderm excel at
 executing general directed acyclic graphs (DAGs), they are fundamentally
-context-free. They treat each step as a black box to be scheduled, forcing
-researchers to repeatedly re-implement common mechanisms for trial submission,
+context-free, treating each step as a black box. When it comes to
+implementing experiment campaigns this forces
+researchers to  implement mechanisms for trial submission,
 parameter handling, logging, and result collation. This imperative approach
 leads to duplicated engineering effort, inconsistent practices, and slower
 scientific progress.
@@ -124,8 +125,8 @@ physical execution, examples like EOS do not aim to provide domain‑agnostic,
 declarative campaign semantics above the lab layer.
 
 ado synergizes with, rather than replaces, existing tools. It can use workflow
-managers like Galaxy as trial executors, integrate optimizers like Optuna and Ax
-via a stable adapter, and orchestrate physical experiments by coupling with
+managers like Galaxy as trial executors, integrate optimizers like Optuna and Ax,
+and orchestrate physical experiments by coupling with
 robotic lab systems like EOS. The fact that ado integrates cleanly with these
 systems validates the existence of the semantic gap it fills.
 
@@ -154,7 +155,7 @@ produce.
 These principles ensure that a design of experiments (DoE) and its associated
 data can be understood, shared, extended, and analyzed without introducing
 inconsistencies. The TRACE requirements guided our search for a data model that
-would inherently exhibit these properties. Discovery Space as a Core Abstraction
+would inherently exhibit these properties.
 
 ## Discovery Space as a Core Abstraction
 
@@ -193,8 +194,8 @@ workload-agnostic capabilities that are a key goal of the program.
 
 The core of our architecture is implemented in Python, chosen for its ubiquity
 in scientific and research domains and its extensive ecosystem. For all data
-modeling, we leverage Pydantic.
-Its declarative, type-hinted models provide automatic
+modeling, we leverage the Pydantic framework.
+Pydantic's declarative, type-hinted models provide automatic
 validation for all core abstractions (e.g., Discovery Space, configurations),
 ensuring data integrity, providing self-documenting schemas, and creating a
 clear target for AI code generation.
@@ -208,7 +209,7 @@ our Pydantic data models, which serve as the data contract for the system.
 Plugins consume and produce validated Pydantic models for configurations,
 experiment definitions, and measurement results. This approach enables domain
 experts to contribute their specialized knowledge as self-contained plugins
-while immediately inheriting all of the platform's core capabilities, such as
+while immediately inheriting all the platform's core capabilities, such as
 the CLI, data provenance, and distributed execution.
 
 ## Distributed Execution with Ray
@@ -217,7 +218,7 @@ ado leverages Ray for distributed, scale-out execution of operations. This
 choice provides a seamless path from local, single-machine prototyping to
 large-scale cluster execution without requiring changes to the experiment
 definitions. By building on Ray, we delegate complex distributed computing
-concerns—such as resource management, scheduling, and fault tolerance—to a
+concerns, such as resource management, scheduling, and fault tolerance, to a
 robust, industry-standard framework, allowing ado's core logic to focus on
 domain-specific orchestration.
 

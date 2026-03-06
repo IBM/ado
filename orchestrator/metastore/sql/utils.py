@@ -27,7 +27,19 @@ def engine_for_sql_store(
         if configuration.scheme == "sqlite"
         else configuration.url().unicode_string()
     )
-    return sqlalchemy.create_engine(db_location, echo=False)
+    engine_args: dict = {"echo": False}
+    if configuration.scheme != "sqlite":
+        # Prevent "Lost connection to MySQL server during query" (error 2013) when
+        # connections sit idle during long-running operations (e.g. CPLEX trials).
+        # pool_pre_ping: test connections before use, evict stale ones
+        # This adds some latency on engine creation to test connection
+        engine_args["pool_pre_ping"] = True
+        # pool_recycle: recycle connections before MySQL wait_timeout (often 3600s)
+        # This is the alternative but requires knowing the timeout of the db
+        # Other components on the connection also may close the connection at
+        # other unknown intervals
+        # engine_args["pool_recycle"] = 1800
+    return sqlalchemy.create_engine(db_location, **engine_args)
 
 
 def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:

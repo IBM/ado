@@ -251,8 +251,8 @@ def _run_single_seed(
         logger.info("End solver %d of %d", solver_n, n_seeds)
         return {
             "solve_time_s": solve_time,
-            "objective_value": float("nan"),
-            "mip_gap": float("nan"),
+            "objective_value": None,
+            "mip_gap": None,
             "nodes_explored": 0,
             "solve_status": status,
         }
@@ -264,12 +264,12 @@ def _run_single_seed(
     try:
         obj = model.solution.get_objective_value()
     except cplex.exceptions.CplexSolverError:
-        obj = float("nan")
+        obj = None
 
     try:
         gap = model.solution.MIP.get_mip_relative_gap()
     except cplex.exceptions.CplexSolverError:
-        gap = float("nan")
+        gap = None
 
     logger.debug(
         "Seed %d finished: status=%s, time=%.2fs, obj=%s, gap=%s, nodes=%d",

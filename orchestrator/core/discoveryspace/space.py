@@ -331,7 +331,7 @@ class DiscoverySpace:
             )
         )
 
-        return cls.from_stored_configuration(
+        space = cls.from_stored_configuration(
             project_context=project_context,
             space_identifier=space_resource.identifier,
             metadata_store=metadata_store,
@@ -339,6 +339,8 @@ class DiscoverySpace:
             samplestore_resource=samplestore_resource,
             load_experiment_catalog=False,
         )
+        space._verified_operation_ids.add(operation_id)
+        return space
 
     def __init__(
         self,

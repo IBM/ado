@@ -1530,6 +1530,20 @@ class SQLSampleStore(ActiveSampleStore):
         self, db_cursor: sqlalchemy.CursorResult[typing.Any]
     ) -> list[MeasurementRequest]:
 
+        # PyMySQL buffers the full result set in memory, so fetchall() here adds
+        # no extra network round-trip.  We consume the cursor up-front so we can
+        # collect all entity IDs and pre-fetch any that are missing from the
+        # local cache in a single batched query.  The entityWithIdentifier
+        # fallback below is then only reached for entities added by a concurrent
+        # distributed process in the window between the batch fetch and now.
+        rows = db_cursor.fetchall()
+
+        # row[9] is entity id
+        missing_entity_ids = {row[9] for row in rows if row[9] not in self._entities}
+        if missing_entity_ids:
+            fetched = self._fetch_entities(entity_ids=missing_entity_ids)
+            self._entities.update(fetched)
+
         entries = {}
         measurement_results_for_entities = {}
 

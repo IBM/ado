@@ -297,11 +297,13 @@ class DiscoverySpace:
             raise_error_if_no_resource=True,
         ).config.spaces[0]
 
-        return cls.from_stored_configuration(
+        space = cls.from_stored_configuration(
             project_context=project_context,
             space_identifier=space_id,
             metadata_store=metadata_store,
         )
+        space._verified_operation_ids.add(operation_id)
+        return space
 
     def __init__(
         self,

@@ -66,10 +66,20 @@ class SQLStore(ResourceStore):
                 f"Using cached table existence check result: tables_exist={tables_exist}"
             )
         else:
-            # Network query: check if tables exist
+            # Use a direct SQL query rather than sqlalchemy.inspect() to avoid
+            # the Inspector's internal connection overhead.
             log.debug("Checking if 'resources' table exists (network query)...")
-            inspector = sqlalchemy.inspect(engine)
-            tables_exist = inspector.has_table("resources")
+            if project_context.metadataStore.scheme == "sqlite":
+                existence_query = sqlalchemy.text(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='resources'"
+                )
+            else:
+                existence_query = sqlalchemy.text(
+                    "SELECT 1 FROM information_schema.tables"
+                    " WHERE table_schema = DATABASE() AND table_name = 'resources' LIMIT 1"
+                )
+            with engine.connect() as conn:
+                tables_exist = conn.execute(existence_query).fetchone() is not None
             log.debug(f"Table existence check complete: tables_exist={tables_exist}")
             # Cache the result
             _tables_exist_cache[cache_key] = tables_exist

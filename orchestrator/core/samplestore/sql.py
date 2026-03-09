@@ -379,8 +379,8 @@ class SQLSampleStore(ActiveSampleStore):
 
         # Create the four backing tables only when they do not yet exist.
         # Use a single raw SQL probe (1 round-trip) as a fast path to avoid
-      # the ~4 SQL queries that create_all(checkfirst=True) issues when
-      # the tables are already present (4 table-existence checks)
+        # the ~4 SQL queries that create_all(checkfirst=True) issues when
+        # the tables are already present (4 table-existence checks)
         # The module level _source_table_verified enables skipping
         # even the probe for subsequent constructions within the same process.
         #

@@ -7,11 +7,6 @@ from typing import Annotated
 import pydantic
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from orchestrator.core.operation.config import (
-    DiscoveryOperationConfiguration,
-    DiscoveryOperationEnum,
-    OperatorFunctionConf,
-)
 from trim.no_priors_pydantic import NoPriorsParameters
 
 
@@ -158,23 +153,8 @@ class TrimParameters(BaseModel):
     # ] = False
 
     @classmethod
-    def defaultOperation(cls, targetOutput: str) -> DiscoveryOperationConfiguration:
-        """
-        Create a default operation configuration with the required targetOutput parameter.
-
-        Args:
-            targetOutput: The measured property to treat as a target variable (required)
-
-        Returns:
-            DiscoveryOperationConfiguration with default parameters
-        """
-        return DiscoveryOperationConfiguration(
-            module=OperatorFunctionConf(
-                operatorName="trim",
-                operationType=DiscoveryOperationEnum.CHARACTERIZE,
-            ),
-            parameters=cls(targetOutput=targetOutput),
-        )
+    def defaultOperationParameters(cls) -> "TrimParameters":
+        return cls(targetOutput="TO_BE_SET")
 
     @model_validator(mode="after")
     def set_final_model_args(self) -> "TrimParameters":

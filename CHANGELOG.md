@@ -1,3 +1,77 @@
+## [1.6.0](https://github.com/ibm/ado/compare/7061f8f399ea175fb3c2463d6813e0cb15f4d477..1.6.0) - 2026-03-05
+#### Features
+- (**agents**) add skill for remote execution (#633) - ([730cafb](https://github.com/ibm/ado/commit/730cafbe765987fef8ed6b4e1063003a1b48f9ce)) - Michael Johnston
+- (**agents**) update ado cli skill (#632) - ([763ca03](https://github.com/ibm/ado/commit/763ca03737db7c1d0c4415f3face780850aeea71)) - Michael Johnston
+- (**cli**) add --remote flag for automated remote Ray dispatch of ado CLI commands (#593) - ([493ea3f](https://github.com/ibm/ado/commit/493ea3f710f24e3a3aab2c3895ddcb2d51a62d06)) - Michael Johnston
+- (**cli**) use rich dataframe print for default ado get handlers (#584) - ([cd302b9](https://github.com/ibm/ado/commit/cd302b9452f60bf9a3c0fc39c0b9b11c93d74c1c)) - Alessandro Pomponio
+- (**cli**) use rich dataframe output in show commands (#586) - ([bcaa8df](https://github.com/ibm/ado/commit/bcaa8dfbd6def2a6e6233cc9e6e81355251f0fa0)) - Alessandro Pomponio
+- (**cli**) show operator description when using --details (#577) - ([0c36592](https://github.com/ibm/ado/commit/0c3659211078416429794d1a28a9b7c154691147)) - Alessandro Pomponio
+- (**cli**) use rich dataframe printing in ado get context (#571) - ([c75c33f](https://github.com/ibm/ado/commit/c75c33f750ca71d0c7c02209786e34d4b05120ec)) - Alessandro Pomponio
+- (**cli**) use rich dataframe printing for ado get operators (#578) - ([ffc5000](https://github.com/ibm/ado/commit/ffc50009b84ae65fac554304254bf421dba421fb)) - Alessandro Pomponio
+- (**core**) optionally raise exceptions when retrieving multiple resources (#626) - ([4643be5](https://github.com/ibm/ado/commit/4643be5b636c70e42dc39a65af3c7817bbcef24e)) - Alessandro Pomponio
+- (**core**) optimize entity retrieval with targeted SQL queries (#498) - ([a218a8f](https://github.com/ibm/ado/commit/a218a8ff7eaa6414e07f4c73bee1ca114d8fece8)) - Michael Johnston
+- (**trim**) introduce TRIM operator (#329) - ([b98c115](https://github.com/ibm/ado/commit/b98c11562c67dbb21fcd7e701cf7a732a62fc307)) - Daniele Lotito
+- (**utilities**) add show_index parameter in dataframe_to_rich_table (#531) - ([4e3eb9f](https://github.com/ibm/ado/commit/4e3eb9f8ab6ef6fd4e28a0423fed41ca523aa399)) - Alessandro Pomponio
+#### Bug Fixes
+- (**actuators**) use correct typing and classmethod decorators  (#517) - ([3748122](https://github.com/ibm/ado/commit/374812283c4b9050a53a0ebca3223622f21a16b0)) - Michael Johnston
+- (**autoconf**) retrain models due to dependency changes (#549) - ([f9ea285](https://github.com/ibm/ado/commit/f9ea285dca9cca49b6caddf463aa6568039c5f73)) - Daniele Lotito
+- (**cli**) correctly handle virtual properties in show entities (#630) - ([66ade7e](https://github.com/ibm/ado/commit/66ade7eb4a4c6aab924febebf75ed5bf1cc6bfe7)) - Michael Johnston
+- (**cli**) ensure run_experiment result is fully printed (#634) - ([4b63dbd](https://github.com/ibm/ado/commit/4b63dbddcd2e463908a7b1bf2bd45a3a968877a7)) - Michael Johnston
+- (**core**) use raw dictionary instead of RuntimeEnv to initialise ray (#546) - ([a9a1470](https://github.com/ibm/ado/commit/a9a147085918397bf3c951f223684840486c1cb0)) - Michael Johnston
+- (**custom_experiments**) compute measurement status instead of using if/else logic (#658) - ([0518e89](https://github.com/ibm/ado/commit/0518e89e5650beaac96cfe0634606c5542ba2a05)) - Michael Johnston
+- (**ordered_pip**) check whether venv directory already exists (#573) - ([5c41146](https://github.com/ibm/ado/commit/5c4114633156a6d7216d0626c7824597d8a77889)) - Vassilis Vassiliadis
+- (**ray_tune**) do not modify search algorithm parameters in-place (#656) - ([43aa30e](https://github.com/ibm/ado/commit/43aa30ed030215038074387c4c0b43184c518fef)) - Alessandro Pomponio
+- (**ray_tune**) prevent deadlock by polling for critical errors (#657) - ([241cfff](https://github.com/ibm/ado/commit/241cfff5635071025961d4bbfcc0958aad283f32)) - Michael Johnston
+- (**ray_tune**) serialize nan as a string (#642) - ([bab609a](https://github.com/ibm/ado/commit/bab609a565de9eb50f573929f32033e119de45db)) - Alessandro Pomponio
+- (**ray_tune**) validate points_to_evaluate option of samplers (#631) - ([e03c4d3](https://github.com/ibm/ado/commit/e03c4d3bf1249e967b0026fd5685a5944ae973e0)) - Michael Johnston
+- (**rifferla**) return correct model default when registering operator (#651) - ([10b8fda](https://github.com/ibm/ado/commit/10b8fda66f3c977d18ca51eb238f835f5289a30c)) - Alessandro Pomponio
+- (**sfttrainer**) check whether dataset path exists and it's a file (#574) - ([3c1615c](https://github.com/ibm/ado/commit/3c1615c93aa9b4d0b499d08da5a6993b4db5a342)) - Vassilis Vassiliadis
+- (**trim**) return correct model default when registering operator (#649) - ([c179f8b](https://github.com/ibm/ado/commit/c179f8b3ed84d367c896349f298286eb36392d43)) - Alessandro Pomponio
+- (**trim**) propagate actuator configuration ids to sub-operations (#583) - ([3ed26da](https://github.com/ibm/ado/commit/3ed26daf38397f29ba12a916aed451f6b48fc217)) - Daniele Lotito
+- (**vllm_performance**) Added 50th percentile metric to vllm bench experiments (#529) - ([3bc30b6](https://github.com/ibm/ado/commit/3bc30b655705510d8af0cb4e8efe300d25c123d5)) - Christian Pinto
+#### Documentation
+- (**agents**) improve planning for formulating a discovery problem (#635) - ([6393abb](https://github.com/ibm/ado/commit/6393abb58e9c1ceb8470ce2b335cc3927bf26d7c)) - Michael Johnston
+- (**agents**) add coding agent skills and rules (#483) - ([b4a4042](https://github.com/ibm/ado/commit/b4a40428ac550c1f0e9ec77896eef4c37c8a3bf3)) - Michael Johnston
+- (**autoconf**) clarify model versioning rationale (#604) - ([d772e19](https://github.com/ibm/ado/commit/d772e197631ee484e283abfa52cd867b621891a7)) - Daniele Lotito
+- (**changelog**) update changelog (#519) - ([7061f8f](https://github.com/ibm/ado/commit/7061f8f399ea175fb3c2463d6813e0cb15f4d477)) - Alessandro Pomponio
+- (**contributing**) exclude venv folders from checks (#526) - ([e48a20c](https://github.com/ibm/ado/commit/e48a20ca9c64338edfb9a3eaadcab6ab6005e3cf)) - Alessandro Pomponio
+- (**test**) update test instructions (#530) - ([d91ce62](https://github.com/ibm/ado/commit/d91ce6263b007192d3d2283ce7924357d4e3695e)) - Alessandro Pomponio
+- (**trim**) clarify requirements on target observed property (#602) - ([a3aa3e5](https://github.com/ibm/ado/commit/a3aa3e5804634879fc3a9be45b04e24c4f034d52)) - Daniele Lotito
+- (**trim**) add readme for PyPI (#621) - ([2f9a49f](https://github.com/ibm/ado/commit/2f9a49fe2680f335b9e97d3b130d217272199ca1)) - Daniele Lotito
+- (**trim**) fix the inclusion of TRIM example_yamls files (#552) - ([8982a1b](https://github.com/ibm/ado/commit/8982a1bcd8f2e145db571acfaeea802000ace24f)) - Vassilis Vassiliadis
+- update prettier instructions (#551) - ([552e0cf](https://github.com/ibm/ado/commit/552e0cfd0e7b760cf69354fe9c388a6aeac1b24d)) - Michael Johnston
+#### Build system
+- (**autoconf**) require pandas version <3.0.0 (#648) - ([d17eb67](https://github.com/ibm/ado/commit/d17eb675f7a3f04d1fbc6be048f40cc5ead10d26)) - Srikumar Venugopal
+- (**deps**) update dependencies (#659) - ([f4f411f](https://github.com/ibm/ado/commit/f4f411fe18ec2b22b5920409067163ebbb5b7f36)) - Alessandro Pomponio
+- (**deps**) update dependencies (#637) - ([8096303](https://github.com/ibm/ado/commit/80963037504c014c388b79d22534f076f219dd93)) - Alessandro Pomponio
+- (**deps**) update dependencies (#609) - ([fe08fc5](https://github.com/ibm/ado/commit/fe08fc5610b1a515f2ce3e44c9c56cd378af467e)) - Alessandro Pomponio
+- (**deps**) update dependencies (#596) - ([6278d1a](https://github.com/ibm/ado/commit/6278d1a4e5a93821411887356463a71f6a493114)) - Alessandro Pomponio
+- (**deps**) update dependencies (#592) - ([49a4e39](https://github.com/ibm/ado/commit/49a4e3940dee3b3e4480945876466c68adf07e2c)) - Alessandro Pomponio
+- (**deps**) update dependencies (#561) - ([76878ea](https://github.com/ibm/ado/commit/76878ea17e77933c3c02fe07ebe61b9f7d15e5b6)) - Alessandro Pomponio
+- (**deps**) require typer>=0.22.0 (#560) - ([5e5a67d](https://github.com/ibm/ado/commit/5e5a67d14d96f30fa584af121ff12fdd60872043)) - Alessandro Pomponio
+- (**deps**) update dependencies (#545) - ([514fec9](https://github.com/ibm/ado/commit/514fec96d85e3114e9412adcd95dc452e12bad65)) - Alessandro Pomponio
+- (**deps**) update dependencies (#525) - ([716a353](https://github.com/ibm/ado/commit/716a353bf1f25423720d3606cdc89b53f5a41515)) - Alessandro Pomponio
+- (**pre-commit**) update hooks (#653) - ([209de45](https://github.com/ibm/ado/commit/209de4550601c7cf60510ac261662db044e778bb)) - Alessandro Pomponio
+- (**pre-commit**) update hooks (#597) - ([03f9f99](https://github.com/ibm/ado/commit/03f9f9907ecd1cd1e82940340de46a8245421a45)) - Alessandro Pomponio
+- (**pre-commit**) update hooks (#539) - ([7a5e388](https://github.com/ibm/ado/commit/7a5e388e58ea202930d9d7c4eef6d97a283887e1)) - Alessandro Pomponio
+- (**trim**) rename wheel to ado-trim (#566) - ([91fc67a](https://github.com/ibm/ado/commit/91fc67a7f8cc85fee572cec92146bfc08c1c9599)) - Alessandro Pomponio
+- (**trim**) use uv for pyproject (#542) - ([950b451](https://github.com/ibm/ado/commit/950b451c4c61b2632afaa3ce372a87faaa008b87)) - Alessandro Pomponio
+- (**vllm_performance**) make vLLM and GuideLLM optional dependencies (#540) - ([c4d6572](https://github.com/ibm/ado/commit/c4d6572144759b4d6e1de97cbabcf6dbef10c86e)) - Christian Pinto
+#### Refactoring
+- (**cli**) add validation message for operation yaml in create --dry-run (#538) - ([f49b17f](https://github.com/ibm/ado/commit/f49b17fffbc7c08126d8ac26d1c029c4a2853f25)) - Alessandro Pomponio
+- (**cli**) update ado get actuators (#535) - ([8effadc](https://github.com/ibm/ado/commit/8effadce9c6702dbcc02e2c4998660c4ab204cd9)) - Alessandro Pomponio
+- (**core**) decorate actuators with ray.remote dynamically (#544) - ([0bbe316](https://github.com/ibm/ado/commit/0bbe31671b82038a14cd12a177f31099b53b3892)) - Michael Johnston
+- (**examples**) update CSVSampleStores with old keys (#611) - ([f6236ea](https://github.com/ibm/ado/commit/f6236eabcd8ef754e76db54ca4e04533658febf9)) - Alessandro Pomponio
+- (**metastore**) use ->> operator to extract unquoted fields (#582) - ([a57ddd9](https://github.com/ibm/ado/commit/a57ddd9969d82f3378ce7b8e7bfcbbe4cb9e0023)) - Alessandro Pomponio
+- (**metastore**) remove legacy non tz-aware date handling (#581) - ([6ed0811](https://github.com/ibm/ado/commit/6ed08115d9e4abebc04c588561eccec2a432062f)) - Alessandro Pomponio
+- (**modules**) simplify docstring extraction logic (#565) - ([32234f6](https://github.com/ibm/ado/commit/32234f6507d8268d7e96a85d9d00cd2aa1d12dcf)) - Alessandro Pomponio
+- (**tests**) fix flaky test_get_experiments_plural_alias (#640) - ([fee447a](https://github.com/ibm/ado/commit/fee447a48145c45a1ca1bbd45e804e5dbeddac17)) - Alessandro Pomponio
+- (**trim**) use Annotated pattern and default_factory for pydantic (#548) - ([6f4a79c](https://github.com/ibm/ado/commit/6f4a79cfc14f6394415ce1ae9c4b19b6a973430a)) - Alessandro Pomponio
+#### Style
+- add tombi for formatting toml (#543) - ([d8c3f73](https://github.com/ibm/ado/commit/d8c3f732112fffa4dfee35bf864181bf4f3208a0)) - Alessandro Pomponio
+
+- - -
+
 ## [1.5.0](https://github.com/ibm/ado/compare/1.4.1..1.5.0) - 2026-02-09
 #### Features
 - (**autoconf**) Introduce a new recommender for per_device_train_batch_size (#500) - ([1cead81](https://github.com/ibm/ado/commit/1cead8158187be3c45a7134d81a909493d7fb825)) - Srikumar Venugopal
@@ -373,5 +447,3 @@
 - replace references to the old repository with the refs to the new ones (#2) - ([9fae2bf](https://github.com/ibm/ado/commit/9fae2bfa1010589f9b28cd5270c16f03763184c4)) - Vassilis Vassiliadis
 #### Build system
 - add dynamic versioning to actuators and operators (#3) - ([3ab9c4d](https://github.com/ibm/ado/commit/3ab9c4d51fd64030c167cfc5a9b7e19402dd8107)) - Vassilis Vassiliadis
-
-

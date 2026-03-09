@@ -119,54 +119,61 @@ class OrchSearchAlgorithm(pydantic.BaseModel):
         ),
     ]
 
-    @pydantic.model_validator(mode="after")
-    def map_optuna_sampler_name_to_instance(self) -> "OrchSearchAlgorithm":
+    def parameters_for_ray_tune(self) -> dict:
+        match self.name.lower():
+            case "optuna":
+                return self._optuna_parameters_to_ray_tune()
+            case "nevergrad":
+                return self._nevergrad_parameters_to_ray_tune()
+            case _:
+                return self.params.copy()
 
-        if self.name.lower() != "optuna":
-            return self
+    def _optuna_parameters_to_ray_tune(self) -> dict:
 
-        sampler_parameters = self.params.get("sampler_parameters")
-        if not (optuna_sampler := self.params.get("sampler")):
-            if sampler_parameters:
-                raise ValueError(
-                    "Optuna sampler parameters specified but no sampler specified"
-                )
-            return self
+        ray_tune_parameters = self.params.copy()
+        sampler_parameters = ray_tune_parameters.get("sampler_parameters")
+        optuna_sampler = ray_tune_parameters.get("sampler")
+        if not optuna_sampler and sampler_parameters:
+            raise ValueError(
+                "Optuna sampler parameters specified but no sampler specified"
+            )
 
-        try:
-            import optuna.samplers
+        if optuna_sampler and sampler_parameters:
+            try:
+                import optuna.samplers
 
-            sampler_cls = getattr(optuna.samplers, optuna_sampler)
-        except (ImportError, AttributeError) as ex:
-            raise ImportError(
-                f"Optuna sampler '{optuna_sampler}' not found in optuna.samplers. Original error: {ex}"
-            ) from ex
-        # instantiate the sampler with any provided parameters
-        sampler_instance = (
-            sampler_cls(**sampler_parameters) if sampler_parameters else sampler_cls()
-        )
-        self.params["sampler"] = sampler_instance
-        # delete sampler_parameters
-        self.params.pop("sampler_parameters", None)
+                sampler_cls = getattr(optuna.samplers, optuna_sampler)
+            except (ImportError, AttributeError) as ex:
+                raise ImportError(
+                    f"Optuna sampler '{optuna_sampler}' not found in optuna.samplers. Original error: {ex}"
+                ) from ex
 
-        return self
+            # instantiate the sampler with any provided parameters
+            sampler_instance = (
+                sampler_cls(**sampler_parameters)
+                if sampler_parameters
+                else sampler_cls()
+            )
 
-    @pydantic.model_validator(mode="after")
-    def map_nevergrad_optimizer_name_to_type(self) -> "OrchSearchAlgorithm":
+            ray_tune_parameters["sampler"] = sampler_instance
+            ray_tune_parameters.pop("sampler_parameters", None)
 
-        if self.name != "nevergrad":
-            return self
+        return ray_tune_parameters
+
+    def _nevergrad_parameters_to_ray_tune(self) -> dict:
+
+        ray_tune_parameters = self.params.copy()
 
         # nevergrad wrapper requires passing the class of the optimizer in the "optimizer" param
         # here we have to switch from string to class
         # Note: The NevergradSearch interface types optimizer as optional, but it's not
         # We let Nevergrad handle this
-        if optimizer := self.params.get("optimizer"):
+        if optimizer := ray_tune_parameters.get("optimizer"):
             import nevergrad
 
-            self.params["optimizer"] = nevergrad.optimizers.registry[optimizer]
+            ray_tune_parameters["optimizer"] = nevergrad.optimizers.registry[optimizer]
 
-        return self
+        return ray_tune_parameters
 
 
 class OrchStopperAlgorithm(pydantic.BaseModel):
@@ -220,32 +227,37 @@ class OrchTuneConfig(pydantic.BaseModel):
     model_config = ConfigDict(extra="allow")
 
     def rayTuneConfig(self) -> ray.tune.TuneConfig:
+
         tune_options = self.model_dump()
+        ray_tune_parameters = self.search_alg.parameters_for_ray_tune()
+
         if self.search_alg.name.lower() == "optuna":
             return create_optuna_ray_tune_config(
                 metric=self.metric,
                 mode=self.mode,
-                parameters=self.search_alg.params,
+                parameters=ray_tune_parameters,
                 tune_options=tune_options,
             )
 
+        # 2026/03/04: at the moment only optuna supports multi-objective optimization
         if isinstance(self.metric, list) or isinstance(self.mode, list):
             raise Exception(
                 f"Multi-objective optimization with {self.search_alg.name} is not supported in ado_ray_tune."
             )
+
         if self.search_alg.name == "lhu_sampler":
             return create_lhu_ray_tune_config(
                 mode=self.mode,
                 metric=self.metric,
                 tune_options=tune_options,
-                parameters=self.search_alg.params,
+                parameters=ray_tune_parameters,
             )
         return create_general_ray_tune_config(
             self.search_alg.name,
             mode=self.mode,
             metric=self.metric,
             tune_options=tune_options,
-            parameters=self.search_alg.params,
+            parameters=ray_tune_parameters,
         )
 
 

@@ -225,7 +225,6 @@ In this section, we’ll focus on the second approach.
     pip:
        - ado-sfttrainer
     env_vars:
-      env_vars:
         AIM_UI_TELEMETRY_ENABLED: "0"
         # We set HOME to /tmp because "import aim.utils.tracking" tries to write under $HOME/.aim_profile.
         # However, the process lacks permissions to do so and that leads to an ImportError exception.
@@ -259,7 +258,6 @@ In this section, we’ll focus on the second approach.
     pip:
        - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ado_sfttrainer-1.1.0.dev152+g23c7ba34e-py3-none-any.whl
     env_vars:
-       env_vars:
        AIM_UI_TELEMETRY_ENABLED: "0"
        # We set HOME to /tmp because "import aim.utils.tracking" tries to write under $HOME/.aim_profile.
        # However, the process lacks permissions to do so and that leads to an ImportError exception.

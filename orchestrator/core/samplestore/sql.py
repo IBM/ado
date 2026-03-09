@@ -1547,7 +1547,7 @@ class SQLSampleStore(ActiveSampleStore):
         entries = {}
         measurement_results_for_entities = {}
 
-        for entry in db_cursor:
+        for entry in rows:
             (
                 uid,
                 experiment_reference,

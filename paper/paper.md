@@ -58,14 +58,14 @@ analyze the outcomes to guide the next iteration. This recurring workflow, the
 experiment campaign, is central to modern research and development, yet it is
 often managed with tools that fail to capture its essential structure.
 
-While scientific workflow systems like Galaxy, AiiDa, and Pachyderm excel at
-executing general directed acyclic graphs (DAGs), they are fundamentally
-context-free, treating each step as a black box. When it comes to
-implementing experiment campaigns this forces
-researchers to  implement mechanisms for trial submission,
-parameter handling, logging, and result collation. This imperative approach
-leads to duplicated engineering effort, inconsistent practices, and slower
-scientific progress.
+Scientific workflow systems like Galaxy, AiiDa, and Pachyderm excel at executing
+general directed acyclic graphs (DAGs) , however they are fundamentally
+context-free, treating each step as a black box [@10.1093/nar/gkae410,
+@Huber2020, @pachyderm]. When it comes to implementing experiment campaigns this
+forces researchers to implement mechanisms for trial submission, parameter
+handling, logging, and result collation. This imperative approach leads to
+duplicated engineering effort, inconsistent practices, and slower scientific
+progress.
 
 ado directly addresses this gap. Instead of orchestrating arbitrary DAGs, ado
 provides a semantic experimentation model centered on experiment campaigns.
@@ -75,19 +75,19 @@ own protocols. For example in sampling workflows, it handles reuse of prior
 measurements, trial execution and monitoring, and time‑resolved measurement
 recording, maintaining consistency over a shared sample store.  
 This approach mirrors the advantages of declarative systems like SQL or
-Terraform: reduced boilerplate, fewer errors, and greater clarity.
-This declarative, structured, representation of experimental campaigns also
-aids code
+Terraform: reduced boilerplate, fewer errors, and greater clarity. This
+declarative, structured, representation of experimental campaigns also aids code
 generation tools to automatically produce experiment definitions and to
 formulate design spaces (declarative YAML).
 
 ado extends its core model with valuable support capabilities. It uses a
 database for specifications and results that can be distributed to support team
 collaboration and transparent result reuse. Built on the Ray execution engine,
-ado seamlessly scales from a researcher's laptop to a large remote cluster, with
-all functionality accessible via a human-centric CLI and Python API.
-Researchers can contribute custom experiments or operators through a simple plugin
-interface. The result is a system that is context‑specific yet domain‑agnostic.
+ado seamlessly scales from a researcher's laptop to a large remote cluster
+[@Moritz2018], with all functionality accessible via a human-centric CLI and
+Python API. Researchers can contribute custom experiments or operators through a
+simple plugin interface. The result is a system that is context‑specific yet
+domain‑agnostic.
 
 # State of the field
 
@@ -101,8 +101,9 @@ objects.
 
 General black‑box optimization frameworks like Optuna,Ax,Nevergrad and RayTune
 are also key components for executing experiment campaigns, providing
-gradient-free, multi‑fidelity and multi‑objective optimization. While these tools
-are beginning to add data management features, for example, Optuna and RayTuen,
+gradient-free, multi‑fidelity and multi‑objective optimization [@Akiba2019,
+@olson2025ax, @10.1145/3460310.3460312, @Liaw2018]. While these tools are
+beginning to add data management features, for example, Optuna and RayTune,
 support persistent storage for study resumption, they remain fundamentally
 code-centric. This approach requires users to define the optimizer, objective,
 and logging in code, which complicates turning individual runs into portable,
@@ -111,10 +112,10 @@ team-level campaigns and fragments data reuse patterns.
 Emerging robotic lab frameworks also highlight the need for integrated campaign
 management. For instance, the Experiment Orchestration System (EOS) provides
 rigorous, repeatable execution for physical experiments using a plugin model to
-orchestrate lab equipment over Ray. Its scope, however, is intentionally the
-physical execution layer—answering how to carry out a specific experiment with
-instruments, rather than providing the domain-agnostic, declarative campaign
-semantics that ado offers.
+orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. Its scope, however,
+is intentionally the physical execution layer—answering how to carry out a
+specific experiment with instruments, rather than providing the domain-agnostic,
+declarative campaign semantics that ado offers.
 
 We identified that a new approach was necessary as these existing tools lack the
 core semantic model for an experiment campaign. Adding this to workflow managers
@@ -125,10 +126,10 @@ physical execution, examples like EOS do not aim to provide domain‑agnostic,
 declarative campaign semantics above the lab layer.
 
 ado synergizes with, rather than replaces, existing tools. It can use workflow
-managers like Galaxy as trial executors, integrate optimizers like Optuna and Ax,
-and orchestrate physical experiments by coupling with
-robotic lab systems like EOS. The fact that ado integrates cleanly with these
-systems validates the existence of the semantic gap it fills.
+managers like Galaxy as trial executors, integrate optimizers like Optuna and
+Ax, and orchestrate physical experiments by coupling with robotic lab systems
+like EOS. The fact that ado integrates cleanly with these systems validates the
+existence of the semantic gap it fills.
 
 # Software design
 
@@ -194,11 +195,11 @@ workload-agnostic capabilities that are a key goal of the program.
 
 The core of our architecture is implemented in Python, chosen for its ubiquity
 in scientific and research domains and its extensive ecosystem. For all data
-modeling, we leverage the Pydantic framework.
-Pydantic's declarative, type-hinted models provide automatic
-validation for all core abstractions (e.g., Discovery Space, configurations),
-ensuring data integrity, providing self-documenting schemas, and creating a
-clear target for AI code generation.
+modeling, we leverage the Pydantic framework [@pydantic]. Pydantic's
+declarative, type-hinted models provide automatic validation for all core
+abstractions (e.g., Discovery Space, configurations), ensuring data integrity,
+providing self-documenting schemas, and creating a clear target for AI code
+generation.
 
 ## Extensibility Through a Plugin Architecture
 
@@ -209,18 +210,18 @@ our Pydantic data models, which serve as the data contract for the system.
 Plugins consume and produce validated Pydantic models for configurations,
 experiment definitions, and measurement results. This approach enables domain
 experts to contribute their specialized knowledge as self-contained plugins
-while immediately inheriting all the platform's core capabilities, such as
-the CLI, data provenance, and distributed execution.
+while immediately inheriting all the platform's core capabilities, such as the
+CLI, data provenance, and distributed execution.
 
 ## Distributed Execution with Ray
 
-ado leverages Ray for distributed, scale-out execution of operations. This
-choice provides a seamless path from local, single-machine prototyping to
-large-scale cluster execution without requiring changes to the experiment
-definitions. By building on Ray, we delegate complex distributed computing
-concerns, such as resource management, scheduling, and fault tolerance, to a
-robust, industry-standard framework, allowing ado's core logic to focus on
-domain-specific orchestration.
+ado leverages Ray for distributed, scale-out execution of operations
+[@Moritz2018]. This choice provides a path from local, single-machine
+prototyping to large-scale cluster execution without requiring changes to the
+experiment definitions. By building on Ray, we delegate complex distributed
+computing concerns, such as resource management, scheduling, and fault
+tolerance, to a robust, industry-standard framework, allowing ado's core logic
+to focus on domain-specific orchestration.
 
 A key feature is that while the ado operations run as Ray applications,
 individual plugins (actuators and operators) are not required to use Ray's
@@ -242,9 +243,9 @@ community adoption.
   watsonx.ai platform. The resulting artifacts, including the sft-trainer plugin
   and recommender models built from this data, are now publicly available.
 - Advanced Performance Analysis: The framework was used for detailed performance
-  analysis of geospatial models on vLLm. The resulting vllm-performance plugin,
-  which includes unique features like automated deployment and tear-down, has
-  been open-sourced.
+  analysis of geospatial models on vLLM [@kwon2023efficient]. The resulting
+  vllm-performance plugin, which includes unique features like automated
+  deployment and tear-down, has been open-sourced.
 - Accelerated Experimentation: We developed a method for rapidly building
   performance models from prior data to accelerate benchmarking. This novel
   capability is delivered via the trim operator plugin. ado is designed as a

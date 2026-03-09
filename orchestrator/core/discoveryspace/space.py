@@ -77,16 +77,22 @@ def _perform_preflight_checks_for_sample_store_methods(
             )
 
         operation_id = kwargs.get("operation_id") or args[0]
-        space_for_operation = self._metadataStore.getResource(
-            identifier=operation_id,
-            kind=CoreResourceKinds.OPERATION,
-            raise_error_if_no_resource=True,
-        ).config.spaces[0]
 
-        if self.uri != space_for_operation:
-            raise ValueError(
-                f"Operation {operation_id} does not belong to space {self.uri}, but rather to {space_for_operation}"
-            )
+        # Skip the DB round-trip when we've already verified this operation
+        # belongs to this space (e.g. the space was built via from_operation_id).
+        if operation_id not in self._verified_operation_ids:
+            space_for_operation = self._metadataStore.getResource(
+                identifier=operation_id,
+                kind=CoreResourceKinds.OPERATION,
+                raise_error_if_no_resource=True,
+            ).config.spaces[0]
+
+            if self.uri != space_for_operation:
+                raise ValueError(
+                    f"Operation {operation_id} does not belong to space {self.uri}, but rather to {space_for_operation}"
+                )
+
+            self._verified_operation_ids.add(operation_id)
 
         return f(self, *args, **kwargs)
 
@@ -297,12 +303,14 @@ class DiscoverySpace:
             raise_error_if_no_resource=True,
         ).config.spaces[0]
 
-        return cls.from_stored_configuration(
+        space = cls.from_stored_configuration(
             project_context=project_context,
             space_identifier=space_id,
             metadata_store=metadata_store,
             load_experiment_catalog=False,
         )
+        space._verified_operation_ids.add(operation_id)
+        return space
 
     def __init__(
         self,
@@ -391,6 +399,10 @@ class DiscoverySpace:
             if identifier is not None
             else f"space-{str(uuid.uuid4())[:6]}-{self._sample_store.identifier}"
         )
+
+        # Operation IDs that have already passed the preflight ownership check.
+        # Pre-populated by from_operation_id to avoid a redundant DB round-trip.
+        self._verified_operation_ids: set[str] = set()
 
     def __rich__(self) -> "RenderableType":
         """Rich console representation of the DiscoverySpace."""

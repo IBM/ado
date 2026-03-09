@@ -131,6 +131,7 @@ class DiscoverySpace:
         project_context: ProjectContext,
         identifier: str | None = None,
         metadata_store: "SQLResourceStore | None" = None,
+        load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
         """Creates a discovery space from a config
 
@@ -144,6 +145,9 @@ class DiscoverySpace:
                 Otherwise, a new space not connected to the previous stored data may be created (depends on how the
                 discovery space generates the id versus how the id used to store was generated)
             metadata_store: Optional SQLResourceStore instance to reuse. If None, a new instance will be created.
+            load_experiment_catalog: When ``True`` (default) the samplestore's experiment catalog is
+                loaded and registered with the actuator registry.  Set to ``False`` for read-only
+                paths (e.g. CLI show commands) where replay experiment resolution is not needed.
 
         """
 
@@ -172,7 +176,7 @@ class DiscoverySpace:
 
         ## Add any external experiments to the replay actuators catalog
         externalCatalogs = []
-        if sample_store is not None:
+        if load_experiment_catalog and sample_store is not None:
             moduleLogger.debug(
                 f"Loading external experiments from sample store: {sample_store.identifier}"
             )
@@ -221,6 +225,7 @@ class DiscoverySpace:
         project_context: ProjectContext,
         space_identifier: str,
         metadata_store: "SQLResourceStore | None" = None,
+        load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
 
         from orchestrator.metastore.sqlstore import SQLResourceStore
@@ -254,6 +259,7 @@ class DiscoverySpace:
             project_context=project_context,
             identifier=space_identifier,
             metadata_store=metadata_store,
+            load_experiment_catalog=load_experiment_catalog,
         )
 
     @classmethod
@@ -295,6 +301,7 @@ class DiscoverySpace:
             project_context=project_context,
             space_identifier=space_id,
             metadata_store=metadata_store,
+            load_experiment_catalog=False,
         )
 
     def __init__(

@@ -137,6 +137,7 @@ class DiscoverySpace:
         project_context: ProjectContext,
         identifier: str | None = None,
         metadata_store: "SQLResourceStore | None" = None,
+        samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
         load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
         """Creates a discovery space from a config
@@ -151,6 +152,8 @@ class DiscoverySpace:
                 Otherwise, a new space not connected to the previous stored data may be created (depends on how the
                 discovery space generates the id versus how the id used to store was generated)
             metadata_store: Optional SQLResourceStore instance to reuse. If None, a new instance will be created.
+            samplestore_resource: Optional pre-fetched SampleStoreResource. When provided the metastore
+                round-trip to fetch the samplestore is skipped.
             load_experiment_catalog: When ``True`` (default) the samplestore's experiment catalog is
                 loaded and registered with the actuator registry.  Set to ``False`` for read-only
                 paths (e.g. CLI show commands) where replay experiment resolution is not needed.
@@ -168,12 +171,13 @@ class DiscoverySpace:
 
         entitySpace = None
 
-        resource = metadata_store.getResource(
-            identifier=conf.sampleStoreIdentifier,
-            kind=CoreResourceKinds.SAMPLESTORE,
-            raise_error_if_no_resource=True,
-        )
-        sample_store = load_sample_store_from_resource(resource)
+        if samplestore_resource is None:
+            samplestore_resource = metadata_store.getResource(
+                identifier=conf.sampleStoreIdentifier,
+                kind=CoreResourceKinds.SAMPLESTORE,
+                raise_error_if_no_resource=True,
+            )
+        sample_store = load_sample_store_from_resource(samplestore_resource)
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(
@@ -231,23 +235,38 @@ class DiscoverySpace:
         project_context: ProjectContext,
         space_identifier: str,
         metadata_store: "SQLResourceStore | None" = None,
+        space_resource: "orchestrator.core.DiscoverySpaceResource | None" = None,
+        samplestore_resource: "orchestrator.core.SampleStoreResource | None" = None,
         load_experiment_catalog: bool = True,
     ) -> "DiscoverySpace":
+        """Creates a DiscoverySpace from a stored space identifier.
 
-        from orchestrator.metastore.sqlstore import SQLResourceStore
+        Args:
+            project_context: Project context used to connect to the metadata store.
+            space_identifier: Identifier of the stored DiscoverySpace resource.
+            metadata_store: Optional SQLResourceStore instance to reuse.
+            space_resource: Optional pre-fetched DiscoverySpaceResource. When provided
+                the metastore round-trip to fetch the space is skipped.
+            samplestore_resource: Optional pre-fetched SampleStoreResource. Forwarded
+                to :meth:`from_configuration` to skip the samplestore round-trip.
+            load_experiment_catalog: Forwarded to :meth:`from_configuration`.
+        """
+        from orchestrator.metastore.sqlstore import SQLStore
 
         moduleLogger.debug("Accessing discovery space metadata store")
         if metadata_store is None:
-            metadata_store = SQLResourceStore(project_context=project_context)
-        moduleLogger.debug(
-            f"Retrieving configuration for discovery space {space_identifier}"
-        )
-        resource = metadata_store.getResource(
-            identifier=space_identifier,
-            kind=CoreResourceKinds.DISCOVERYSPACE,
-            raise_error_if_no_resource=True,
-        )
-        conf = resource.config
+            metadata_store = SQLStore(project_context=project_context)
+
+        if space_resource is None:
+            moduleLogger.debug(
+                f"Retrieving configuration for discovery space {space_identifier}"
+            )
+            space_resource = metadata_store.getResource(
+                identifier=space_identifier,
+                kind=CoreResourceKinds.DISCOVERYSPACE,
+                raise_error_if_no_resource=True,
+            )
+        conf = space_resource.config
 
         moduleLogger.debug(f"Retrieved configuration is: {conf}")
 
@@ -265,6 +284,7 @@ class DiscoverySpace:
             project_context=project_context,
             identifier=space_identifier,
             metadata_store=metadata_store,
+            samplestore_resource=samplestore_resource,
             load_experiment_catalog=load_experiment_catalog,
         )
 
@@ -290,23 +310,33 @@ class DiscoverySpace:
             ResourceDoesNotExistError: If the specified operation or related space do not exist.
             NoRelatedResourcesError: If no sample store is associated with the specified operation or related space.
         """
-        from orchestrator.metastore.sqlstore import SQLResourceStore
+        from orchestrator.metastore.sqlstore import SQLStore
 
         if metadata_store is None:
-            metadata_store = SQLResourceStore(project_context=project_context)
+            metadata_store = SQLStore(project_context=project_context)
 
+        # Fetch the operation, its space, and the space's samplestore in a
+        # single SQL JOIN rather than three sequential round-trips.
         # FIXME AP 12/06/2025:
         # We are using the first space - which may become a problem in the future
-        space_id = metadata_store.getResource(
-            identifier=operation_id,
-            kind=CoreResourceKinds.OPERATION,
-            raise_error_if_no_resource=True,
-        ).config.spaces[0]
+        _, space_resource, samplestore_resource = (
+            metadata_store.get_resource_and_producers(
+                identifier=operation_id,
+                kind=CoreResourceKinds.OPERATION,
+                chain=[
+                    ("$.config.spaces[0]", CoreResourceKinds.DISCOVERYSPACE),
+                    ("$.config.sampleStoreIdentifier", CoreResourceKinds.SAMPLESTORE),
+                ],
+                raise_error_if_no_resource=True,
+            )
+        )
 
         space = cls.from_stored_configuration(
             project_context=project_context,
-            space_identifier=space_id,
+            space_identifier=space_resource.identifier,
             metadata_store=metadata_store,
+            space_resource=space_resource,
+            samplestore_resource=samplestore_resource,
             load_experiment_catalog=False,
         )
         space._verified_operation_ids.add(operation_id)

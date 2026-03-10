@@ -71,23 +71,25 @@ ado directly addresses this gap. Instead of orchestrating arbitrary DAGs, ado
 provides a semantic experimentation model centered on experiment campaigns.
 Users define configuration spaces and operations on them (e.g. sampling or
 analysis), declaratively. ado then applies the required orchestration using its
-own protocols. For example in sampling workflows, it handles reuse of prior
+own protocols. For example, in sampling workflows, it handles reuse of prior
 measurements, trial execution and monitoring, and time‑resolved measurement
 recording, maintaining consistency over a shared sample store.  
 This approach mirrors the advantages of declarative systems like SQL or
 Terraform: reduced boilerplate, fewer errors, and greater clarity. This
 declarative, structured, representation of experimental campaigns also aids code
 generation tools to automatically produce experiment definitions and to
-formulate design spaces (declarative YAML).
+formulate design spaces.
 
-ado extends its core model with valuable support capabilities. It uses a
-database for specifications and results that can be distributed to support team
-collaboration and transparent result reuse. Built on the Ray execution engine,
-ado seamlessly scales from a researcher's laptop to a large remote cluster
-[@Moritz2018], with all functionality accessible via a human-centric CLI and
-Python API. Researchers can contribute custom experiments or operators through a
-simple plugin interface. The result is a system that is context‑specific yet
-domain‑agnostic.
+ado extends its core model with valuable support capabilities. Specifications
+(configuration spaces, operations) and measurements are stored in a database
+that has a flexible deployment options. A local database is available by default
+for standalone work, while a connection to a shared, central database can be
+configured to support team collaboration and transparent result reuse. Built on
+the Ray execution engine, ado seamlessly scales from a researcher's laptop to a
+large remote cluster [@Moritz2018], with all functionality accessible via a
+human-centric CLI and Python API. Researchers can contribute custom experiments
+or operators through a simple plugin interface. The result is a system that is
+context‑specific yet domain‑agnostic.
 
 # State of the field
 
@@ -107,15 +109,15 @@ beginning to add data management features, for example, Optuna and RayTune,
 support persistent storage for study resumption, they remain fundamentally
 code-centric. This approach requires users to define the optimizer, objective,
 and logging in code, which complicates turning individual runs into portable,
-team-level campaigns and fragments data reuse patterns.
+team-level campaigns and hinders data reuse.
 
 Emerging robotic lab frameworks also highlight the need for integrated campaign
 management. For instance, the Experiment Orchestration System (EOS) provides
 rigorous, repeatable execution for physical experiments using a plugin model to
-orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. Its scope, however,
-is intentionally the physical execution layer—answering how to carry out a
-specific experiment with instruments, rather than providing the domain-agnostic,
-declarative campaign semantics that ado offers.
+orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. It's scope, however,
+is intentionally physical execution, answering how to carry out a
+specific experiment with instruments, rather than providing domain-agnostic,
+declarative campaign semantics.
 
 We identified that a new approach was necessary as these existing tools lack the
 core semantic model for an experiment campaign. Adding this to workflow managers
@@ -133,33 +135,32 @@ existence of the semantic gap it fills.
 
 # Software design
 
-## TRACE Characteristics as Design Requirements
+## TRACE Design Requirements
 
-We first established TRACE, a set of five governing principles for managing the
-artifacts of an experimental campaign. These principles provide a framework for
-the entire information lifecycle, ensuring the transparent handling of the
-configuration space definition, the execution of experiments, and the data they
-produce.
+We first established TRACE, a set of five requirements for managing the
+artifacts of an experimental campaign or study.
 
 <!-- markdownlint-disable line-length -->
 
-| Characteristic     | Description                                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Time-Resolved**  | Tracks when and how data is added to a study, preserving the time-series of sampling processes.                                  |
-| **Reconcilable**   | Provides a mechanism to consistently add data from a common context into a specific study.                                       |
-| **Actionable**     | Enables the execution of new measurements to add information, with the necessary instructions contained within the study itself. |
-| **Common Context** | Utilizes a shared storage mechanism and a unified schema, allowing data to be shared across multiple studies.                    |
-| **Encapsulated**   | Defines what configurations and measurements are valid for a study, preventing contamination from unrelated data.                |
+| Characteristic     | Description                                                                                                                             |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| **Time-Resolved**  | The time-series of sampling processes adding data to a study is preserved                                                               |
+| **Reconcilable**   | There is a consistent protocol for adding data from a common context into a specific study                                              |
+| **Actionable**     | A study must contain all necessary information for adding a new measurement to itself                                                   |
+| **Common Context** | There is a schema and storage mechanism allowing data to be shared across multiple studies                                              |
+| **Encapsulated**   | The study rigorously defines the valid configurations and measurements, preventing contamination from unrelated data                    |
 
 <!-- markdownlint-enable line-length -->
 
-These principles ensure that a design of experiments (DoE) and its associated
+A system satisfying these requirements would ensure that a design of experiments
+(DoE)
+and its associated
 data can be understood, shared, extended, and analyzed without introducing
-inconsistencies. The TRACE requirements guided our search for a data model that
-would inherently exhibit these properties.
+inconsistencies.
 
 ## Discovery Space as a Core Abstraction
 
+The TRACE characteristics guided our search for a data-model.
 First we noted that configuration search campaigns have well-defined
 mathematical properties,
 
@@ -171,16 +172,16 @@ mathematical properties,
 - **A sample set:** This is the set of points currently sampled and measured for
   a given combination of a configuration probability space and an action space
   - It the union of the **sample timeseries** of operations on that combination
-  - The Discovery Space, the central data model in the system's architecture,
-    combines these properties. Discovery Space is **encapsulated**, as it
-    defines what measurements and configurations it allows; it is **actionable**
-    as it contains information on how to obtain measurements; and it is
-    **time-resolved** as it contains the sample timeseries. We obtain a **common
-    context** by storing the sample timeseries in a shared sample store with a
-    common schema. Finally, it is **reconcillable** as we enforce that samples
-    in the common context are only part of the sample set of a discovery space
-    if they are part of the sample timeseries of an operation on that space.
-    Hence, it displays the TRACE characteristics.
+  
+The Discovery Space, the central data model in the system's architecture,
+combines these properties. By containing the configuration probability space and
+action space definitions it is **encapsulated** and **actionable**; it is
+**time-resolved** as it contains the sample set. We obtain a **common
+context** by storing the sample timeseries in a shared sample store with a
+common schema. Finally, it is **reconcilable** as we enforce that samples
+in the common context are only part of the sample set of a discovery space
+if they are part of the sample timeseries of an operation on that space.
+Hence, it displays the TRACE characteristics.
 
 The Discovery Space abstraction effectively decouples workload-specific
 experiments from the search and optimization algorithms, enabling the kind of

@@ -60,9 +60,9 @@ experiment campaign, is central to modern research and development, yet it is
 often managed with tools that fail to capture its essential structure.
 
 Scientific workflow systems like Galaxy, AiiDa, and Pachyderm excel at executing
-general directed acyclic graphs (DAGs) , however they are fundamentally
-context-free, treating each step as a black box [@10.1093/nar/gkae410,
-@Huber2020, @pachyderm]. When it comes to implementing experiment campaigns this
+general directed acyclic graphs (DAGs), however they are fundamentally
+context-free, treating each step as a black box [@10.1093/nar/gkae410;
+@Huber2020; @pachyderm]. When it comes to implementing experiment campaigns this
 forces researchers to implement mechanisms for trial submission, parameter
 handling, logging, and result collation. This imperative approach leads to
 duplicated engineering effort, inconsistent practices, and slower scientific
@@ -109,8 +109,8 @@ objects.
 
 General black‑box optimization frameworks like Optuna,Ax,Nevergrad and RayTune
 are also key components for executing experiment campaigns, providing
-gradient-free, multi‑fidelity and multi‑objective optimization [@Akiba2019,
-@olson2025ax, @10.1145/3460310.3460312, @Liaw2018]. While these tools are
+gradient-free, multi‑fidelity and multi‑objective optimization [@Akiba2019;
+@olson2025ax; @10.1145/3460310.3460312; @Liaw2018]. While these tools are
 beginning to add data management features, for example, Optuna and RayTune,
 support persistent storage for study resumption, they remain fundamentally
 code-centric. This approach requires users to define the optimizer, objective,

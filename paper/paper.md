@@ -179,7 +179,8 @@ that configuration search campaigns have well-defined mathematical properties,
 ![A view of a Discovery Space data model instance. The left-hand side
 shows the key data components of the model. The right-hand side shows the process
 that occurs when there
-is a request to sample and measure a point.\label{fig:discoveryspace}](discovery_space_v1.drawio.svg)
+is a request to sample and measure a point.\label{fig:discoveryspace}](discovery_space_v1.drawio.svg){
+width=50% }
 
 ![A view of data-sharing between Discovery Spaces. Each space reads/writes
 samples and time-series
@@ -188,7 +189,8 @@ In this case both spaces have same action space and contain point X.
 If point X is measured on Discovery Space A it will not appear in sample set
 of Discovery Space B until it is requested to be measured via B (_reconcillable_).
 Note: when it is the result placed by
-Discovery Space A may be reused\label{fig:ds_interaction}](ds_interaction_v2.drawio.svg)
+Discovery Space A may be reused\label{fig:ds_interaction}](ds_interaction_v2.drawio.svg){
+width=80% }
 
 The Discovery Space, the central data model in the system's architecture,
 combines these properties (see \autoref{fig:discoveryspace}). By containing the

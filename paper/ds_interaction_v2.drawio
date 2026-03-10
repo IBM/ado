@@ -25,13 +25,13 @@
             <mxPoint x="514" y="210" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-17" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font face=&quot;Courier New&quot; style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;write configuration A and measurements results to shared store&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font face=&quot;Courier New&quot; style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;associate with operation timeseries&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-17" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font face=&quot;Courier New&quot; style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;write configuration X and measurements results to shared store&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font face=&quot;Courier New&quot; style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;associate with operation timeseries&lt;/b&gt;&lt;/font&gt;&lt;/div&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="30" width="200" x="60" y="350" as="geometry" />
         </mxCell>
-        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-18" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=light-dark(#000000, #ce6100);fontSize=15;" value="&lt;div style=&quot;font-size: 15px; line-height: 100%;&quot;&gt;Sample and Measure Configuration A&lt;/div&gt;&lt;div style=&quot;font-size: 15px; line-height: 100%;&quot;&gt;&lt;i&gt;(operation scoped)&amp;nbsp;&lt;/i&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-18" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=light-dark(#000000, #ce6100);fontSize=15;" value="&lt;div style=&quot;font-size: 15px; line-height: 100%;&quot;&gt;Sample and Measure Configuration X&lt;/div&gt;&lt;div style=&quot;font-size: 15px; line-height: 100%;&quot;&gt;&lt;i&gt;(operation scoped)&amp;nbsp;&lt;/i&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="50" width="170" x="177" y="90" as="geometry" />
         </mxCell>
-        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-20" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;p style=&quot;line-height: 100%;&quot;&gt;Read Configuration A&lt;/p&gt;" vertex="1">
+        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-20" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;" value="&lt;p style=&quot;line-height: 100%;&quot;&gt;Read Configuration X&lt;/p&gt;" vertex="1">
           <mxGeometry height="50" width="120" x="444" y="90" as="geometry" />
         </mxCell>
         <mxCell id="ym0Z1sJrXf9dR6gCxVNW-21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#007FFF;strokeWidth=2;fontColor=#000000;fontSize=15;" value="&lt;p style=&quot;line-height: 100%;&quot;&gt;Measure&lt;/p&gt;" vertex="1">
@@ -40,7 +40,7 @@
         <mxCell id="ym0Z1sJrXf9dR6gCxVNW-27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#007FFF;strokeWidth=2;fontColor=#000000;fontSize=15;" value="&lt;p style=&quot;line-height: 100%;&quot;&gt;Query Operation Timeseries&lt;/p&gt;" vertex="1">
           <mxGeometry height="60" width="120" x="446" y="220" as="geometry" />
         </mxCell>
-        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-31" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontFamily=Courier New;fontSize=11;" value="&lt;div&gt;&lt;b&gt;is configuration A in any operation timeseries associated with DiscoverySpace B?&amp;nbsp;&lt;/b&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="ym0Z1sJrXf9dR6gCxVNW-31" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontFamily=Courier New;fontSize=11;" value="&lt;div&gt;&lt;b&gt;is configuration X in any operation timeseries associated with DiscoverySpace B?&amp;nbsp;&lt;/b&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="30" width="200" x="510" y="350" as="geometry" />
         </mxCell>
         <mxCell id="ym0Z1sJrXf9dR6gCxVNW-32" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fillColor=#dae8fc;strokeColor=light-dark(#e7167b, #5c79a3);strokeWidth=2;" target="ym0Z1sJrXf9dR6gCxVNW-21" value="">

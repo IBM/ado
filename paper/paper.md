@@ -182,6 +182,12 @@ that occurs when there
 is a request to sample and measure a point.\label{fig:discoveryspace}](discovery_space_v1.drawio.svg){
 width=50% }
 
+The Discovery Space, the central data model in the system's architecture,
+combines these properties (see \autoref{fig:discoveryspace}). By containing the
+configuration probability space and action space definitions it is
+**encapsulated** and **actionable**; it is **time-resolved** as it contains the
+sample set.
+
 ![A view of data-sharing between Discovery Spaces. Each space reads/writes
 samples and time-series
 membership details from a shared sample store (_common context_).
@@ -192,12 +198,8 @@ Note: when it is the result placed by
 Discovery Space A may be reused\label{fig:ds_interaction}](ds_interaction_v2.drawio.svg){
 width=80% }
 
-The Discovery Space, the central data model in the system's architecture,
-combines these properties (see \autoref{fig:discoveryspace}). By containing the
-configuration probability space and action space definitions it is
-**encapsulated** and **actionable**; it is **time-resolved** as it contains the
-sample set. We obtain a **common context** by storing the sample timeseries in a
-shared sample store with a common schema. Finally, it is **reconcilable** as we
+We obtain a **common context** by storing the sample timeseries in a
+shared sample store with a common schema. Finally, it is **reconcilable** as
 enforce that samples in the common context are only part of the sample set of a
 discovery space if they are part of the sample timeseries of an operation on
 that space (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE

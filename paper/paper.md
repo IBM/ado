@@ -84,7 +84,7 @@ formulate design spaces.
 ![A schematic overview of the ado architecture, illustrating its human-centered
 declarative interface, a scalable and extensible core, and a central database
 that enables collaboration, reuse, and
-data provenance.](ADOSchematic.png){label="ado"}
+data provenance.\label{fig:ado}](ADOSchematic.png)
 
 ado extends its core model with valuable support capabilities. Specifications
 (configuration spaces, operations) and measurements are stored in a database
@@ -95,7 +95,7 @@ the Ray execution engine, ado seamlessly scales from a researcher's laptop to a
 large remote cluster [@Moritz2018], with all functionality accessible via a
 human-centric CLI and Python API. Researchers can contribute custom experiments
 or operators through a simple plugin interface. The result is a system that is
-context‑specific yet domain‑agnostic (see \autoref{ado}).
+context‑specific yet domain‑agnostic (see \autoref{fig:ado}).
 
 # State of the field
 
@@ -179,7 +179,7 @@ that configuration search campaigns have well-defined mathematical properties,
 ![A view of a Discovery Space data model instance. The left-hand side
 shows the key data components of the model. The right-hand side shows the process
 that occurs when there
-is a request to sample and measure a point.](discovery_space_v1.drawio.svg){label="discoveryspace"}
+is a request to sample and measure a point.\label{fig:discoveryspace}](discovery_space_v1.drawio.svg)
 
 ![A view of data-sharing between Discovery Spaces. Each space reads/writes
 samples and time-series
@@ -188,17 +188,17 @@ In this case both spaces have same action space and contain point X.
 If point X is measured on Discovery Space A it will not appear in sample set
 of Discovery Space B until it is requested to be measured via B (_reconcillable_).
 Note: when it is the result placed by
-Discovery Space A may be reused](ds_interaction_v2.drawio.svg){label="ds_interaction"}
+Discovery Space A may be reused\label{fig:ds_interaction}](ds_interaction_v2.drawio.svg)
 
 The Discovery Space, the central data model in the system's architecture,
-combines these properties (see \autoref{discoveryspace}). By containing the
+combines these properties (see \autoref{fig:discoveryspace}). By containing the
 configuration probability space and action space definitions it is
 **encapsulated** and **actionable**; it is **time-resolved** as it contains the
 sample set. We obtain a **common context** by storing the sample timeseries in a
 shared sample store with a common schema. Finally, it is **reconcilable** as we
 enforce that samples in the common context are only part of the sample set of a
 discovery space if they are part of the sample timeseries of an operation on
-that space (see \autoref{ds_interaction}. Hence, it displays the TRACE
+that space (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE
 characteristics.
 
 The Discovery Space abstraction effectively decouples workload-specific

@@ -120,7 +120,7 @@ team-level campaigns and hinders data reuse.
 Emerging robotic lab frameworks also highlight the need for integrated campaign
 management. For instance, the Experiment Orchestration System (EOS) provides
 rigorous, repeatable execution for physical experiments using a plugin model to
-orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. It's scope, however,
+orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. Its scope, however,
 is intentionally physical execution, answering how to carry out a specific
 experiment with instruments, rather than providing domain-agnostic, declarative
 campaign semantics.

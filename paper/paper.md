@@ -9,17 +9,18 @@ tags:
   - foundation-models
 authors:
   - name: Michael A. Johnston
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0003-1337-440X
     corresponding: true
     equal-contrib: true
     affiliation: 1
   - name: Alessandro Pomponio
     equal-contrib: true
     affiliation: 1
+    orcid: 0000-0003-1655-7500
 affiliations:
-  - name: IBM Research Europe - Ireland
-    index: 1
-    ror: 00hx57361
+  - index: 1
+    name: IBM Research - Ireland
+    ror: 04jnxr720
 date: 9 February 2026
 bibliography: paper.bib
 ---

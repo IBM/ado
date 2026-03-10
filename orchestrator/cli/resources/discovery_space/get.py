@@ -3,6 +3,7 @@
 import typing
 
 import pydantic
+import rich.box
 import typer
 import yaml
 from rich.status import Status
@@ -32,6 +33,7 @@ from orchestrator.core.discoveryspace.config import (
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.schema.entityspace import EntitySpaceRepresentation
 from orchestrator.schema.point import SpacePoint
+from orchestrator.utilities.rich import dataframe_to_rich_table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -57,7 +59,11 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
             if output_df.empty:
                 console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
             else:
-                console_print(output_df)
+                console_print(
+                    dataframe_to_rich_table(
+                        output_df, show_edge=True, box=rich.box.SQUARE
+                    )
+                )
 
         else:
             console_print(
@@ -80,7 +86,11 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
             if output_df.empty:
                 console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
             else:
-                console_print(output_df)
+                console_print(
+                    dataframe_to_rich_table(
+                        output_df, show_edge=True, box=rich.box.SQUARE
+                    )
+                )
 
         return
 

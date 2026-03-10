@@ -59,6 +59,9 @@ These guidelines apply to all code development in the ado codebase.
   - are always defaulted to a different type.
 - Use absolute imports within the repository unless the file already uses
   relative imports.
+- Use `orchestrator.utilities.output.pydantic_model_as_yaml` for serializing
+  pydantic models to YAML.
+- Use Google style for docstrings.
 
 ---
 
@@ -117,6 +120,7 @@ Use Test Driven Development
 - Run if TOML changed or added
 
     uv run tombi fmt
+
 ---
 
 ## Code Installation & Execution

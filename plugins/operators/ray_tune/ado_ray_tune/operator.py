@@ -50,6 +50,7 @@ from orchestrator.schema.property_value import ConstitutivePropertyValue
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
 from orchestrator.schema.result import ValidMeasurementResult
+from orchestrator.schema.virtual_property import VirtualObservedProperty
 from orchestrator.utilities.environment import enable_ray_actor_coverage
 from orchestrator.utilities.support import prepare_dependent_experiment_input
 
@@ -172,10 +173,12 @@ def process_metric(
     Processes a single metric for a given entity.
 
     If the metric is in all_results, it returns the last result.
-    If the metric is not in the all_results, it checks if it is a virtual property.
+    If the metric is not in the all_results, it checks if it is a virtual property
+    defined in the measurement space. Using the measurement space (rather than the
+    entity) ensures the lookup is scoped to the experiments of the current operation,
+    avoiding ambiguous matches from prior operations stored on the entity.
     If it is, it returns the value of the virtual property.
     If it is not, it returns the failed metric value.
-
 
     Args:
         metric (str): Name or identifier of the metric to process.
@@ -187,7 +190,8 @@ def process_metric(
         Any: The processed metric value, or the failed metric value if the metric could not be found or computed.
 
     Raises:
-        ValueError: If the metric is a virtual property and there are multiple observed properties with the same identifier.
+        ValueError: If the metric is a virtual property and multiple observed properties
+            in the measurement space share the same identifier (user configuration error).
     """
 
     log = logging.getLogger(f"trainable-{entity.identifier}")
@@ -196,26 +200,55 @@ def process_metric(
         # We use the last result
         return all_results[metric][-1]
 
+    failed = trainable_params.orchestrator_config.failed_metric_value
+
     # The metric is not in the results, so we need to process it
-    # Check if this is a virtual metric
+    # Check if this is a virtual metric using the measurement space, not the entity.
+    # The measurement space is scoped to this operation's experiments, so it won't
+    # return spurious matches from observed properties accumulated by the entity
+    # across prior operations.
     log.debug(f"No measured properties match {metric} - checking if a virtual property")
     try:
-        properties = entity.virtualObservedPropertiesFromIdentifier(metric)
+        properties = (
+            VirtualObservedProperty.from_observed_properties_matching_identifier(
+                trainable_params.measurement_space.observedProperties, metric
+            )
+        )
     except ValueError:
         log.warning(
             f"No experiment measured {metric} and it's not a valid virtual property.  "
-            f"Will set value of {metric} for {entity.identifier} to {trainable_params.orchestrator_config.failed_metric_value} "
+            f"Will set value of {metric} for {entity.identifier} to {failed} "
         )
-        processed_metric = trainable_params.orchestrator_config.failed_metric_value
+        processed_metric = failed
     else:
         if properties is not None:
             if len(properties) == 1:
-                value = entity.valueForProperty(property=properties[0])
-                processed_metric = (
-                    value.value
-                    if value is not None
-                    else trainable_params.orchestrator_config.failed_metric_value
-                )
+                virtual_prop = properties[0]
+                # Determine the key in all_results for the base property.
+                # all_results is keyed by targetProperty.identifier (metric_format="target")
+                # or by observed property identifier (metric_format="observed").
+                metric_format = trainable_params.orchestrator_config.metric_format
+                if metric_format == "target":
+                    base_key = (
+                        virtual_prop.baseObservedProperty.targetProperty.identifier
+                    )
+                else:
+                    base_key = virtual_prop.baseObservedProperty.identifier
+                base_values = all_results.get(base_key)
+                if base_values:
+                    aggregated = virtual_prop.aggregate(base_values)
+                    processed_metric = (
+                        aggregated.value
+                        if aggregated is not None and aggregated.value is not None
+                        else failed
+                    )
+                else:
+                    log.warning(
+                        f"{metric} is a valid virtual property name "
+                        f"however no experiment measured an underlying property with the required identifier. "
+                        f"Will set value of {metric} for {entity.identifier} to {failed}"
+                    )
+                    processed_metric = failed
             else:
                 raise ValueError(
                     f"Ambiguous virtual target metric provided - matches multiple observed properties. "
@@ -225,9 +258,9 @@ def process_metric(
             log.warning(
                 f"{metric} is a valid virtual property name "
                 f"however no experiment measured an underlying property with the required identifier. "
-                f"Will set value of {metric} for {entity.identifier} to {trainable_params.orchestrator_config.failed_metric_value}"
+                f"Will set value of {metric} for {entity.identifier} to {failed}"
             )
-            processed_metric = trainable_params.orchestrator_config.failed_metric_value
+            processed_metric = failed
 
     return processed_metric
 
@@ -366,6 +399,12 @@ def tune_trainable(config: dict, parameters: dict) -> dict[str, Any]:
     counter = 0
     while waitingOnExperiments:
         time.sleep(1)
+        # Check for critical error (e.g. DiscoverySpaceManager crash) to avoid
+        # spinning forever waiting for measurements that will never arrive
+        if ray.get(driver.isCriticalError.remote()):
+            raise SystemError(
+                "Exiting trainable as notification of critical error received by operator"
+            )
         newDependentRequests = []
         newCompletedRequests = []
 
@@ -661,6 +700,55 @@ def property_domain_to_ray_distribution(
     return retval
 
 
+def _validate_points_to_evaluate(
+    points_to_evaluate: list[dict] | None,
+    entity_space: EntitySpaceRepresentation,
+) -> None:
+    """Validate that each point in points_to_evaluate matches the entity space.
+
+    Each point must include all constitutive properties with values in their domains.
+    Extra properties are not allowed. Raises ValueError on first invalid point.
+
+    Args:
+        points_to_evaluate: List of point dicts from search_alg params, or None.
+        entity_space: The discovery space's entity space to validate against.
+
+    Raises:
+        ValueError: If any point is missing properties, has extra properties, or
+            has values outside the constitutive property domains.
+    """
+    if not points_to_evaluate:
+        return
+
+    space_property_ids = {cp.identifier for cp in entity_space.constitutiveProperties}
+
+    for i, point in enumerate(points_to_evaluate):
+        if not isinstance(point, dict):
+            raise ValueError(
+                f"points_to_evaluate[{i}] must be a dict of constitutive property "
+                f"id: value pairs, got {type(point).__name__}"
+            )
+        if not entity_space.isPointInSpace(point, allow_partial_matches=False):
+            point_ids = set(point.keys())
+            missing = space_property_ids - point_ids
+            extra = point_ids - space_property_ids
+            parts = []
+            if missing:
+                parts.append(f"missing properties: {sorted(missing)}")
+            if extra:
+                parts.append(f"extra properties not in space: {sorted(extra)}")
+            if not parts:
+                parts.append(
+                    "one or more values are not in the domain of their "
+                    "constitutive property"
+                )
+            raise ValueError(
+                f"points_to_evaluate[{i}] is invalid for this discovery space: {', '.join(parts)}. "
+                f"Space constitutive properties: {sorted(space_property_ids)}. "
+                f"Point keys: {sorted(point_ids)}."
+            )
+
+
 def search_space_from_explicit_entity_space(
     entitySpace: EntitySpaceRepresentation,
 ) -> dict:
@@ -816,6 +904,13 @@ class RayTune(Search):
                 search_space = search_space_from_explicit_entity_space(entity_space)
 
                 self.log.debug(search_space)
+
+                _validate_points_to_evaluate(
+                    points_to_evaluate=self.params.tuneConfig.search_alg.params.get(
+                        "points_to_evaluate"
+                    ),
+                    entity_space=entity_space,
+                )
 
                 # Create the tune instance
 

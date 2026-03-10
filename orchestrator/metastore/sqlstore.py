@@ -160,6 +160,101 @@ class SQLResourceStore(ResourceStore):
     def engine(self) -> sqlalchemy.Engine:
         return self._engine
 
+    def get_resource_and_producers(
+        self,
+        identifier: str,
+        kind: CoreResourceKinds,
+        chain: list[tuple[str, CoreResourceKinds]],
+        raise_error_if_no_resource: bool = False,
+    ) -> list[orchestrator.core.resources.ADOResource | None]:
+        """Fetch a resource and a chain of producer resources in a single SQL JOIN.
+
+        Each entry in ``chain`` defines how to reach the next resource: the
+        JSON path within the *previous* resource's ``data`` column that holds
+        the identifier of the next resource, and the ``CoreResourceKinds`` of
+        that next resource.  This traverses N hops in one round-trip rather
+        than N+1 sequential queries.
+
+        The ``->>`` operator is used for JSON path extraction; it is supported
+        by both MySQL and SQLite 3.38+.
+
+        Args:
+            identifier: Identifier of the starting resource.
+            kind: Kind of the starting resource.
+            chain: Ordered list of ``(json_path, kind)`` pairs.  Each pair
+                describes one hop: ``json_path`` (e.g.
+                ``'$.config.spaces[0]'``) is a JSON path expression in the
+                *previous* resource's ``data`` column whose unquoted value is
+                the identifier of the next resource.
+            raise_error_if_no_resource: When ``True``, raises
+                :class:`ResourceDoesNotExistError` if any resource in the
+                chain cannot be resolved.
+
+        Returns:
+            A list of ``len(chain) + 1`` deserialized
+            :class:`~orchestrator.core.resources.ADOResource` instances.  The
+            first element corresponds to the starting resource; subsequent
+            elements correspond to each hop in ``chain``.
+
+        Raises:
+            ResourceDoesNotExistError: When ``raise_error_if_no_resource`` is
+                ``True`` and any resource in the chain cannot be found.
+        """
+        n = len(chain)
+
+        # Build SELECT with explicit per-resource column aliases to avoid
+        # collisions when the same column name appears across table aliases.
+        selects = ", ".join(
+            f"r{i}.data AS r{i}_data, r{i}.kind AS r{i}_kind" for i in range(n + 1)
+        )
+
+        # Each JOIN hop resolves the next resource identifier from the JSON
+        # field of the previous resource.  Kind filtering is included in the
+        # ON clause so an incorrect kind never silently matches.
+        joins = "\n".join(
+            f"JOIN resources r{i + 1}"
+            f"  ON r{i + 1}.identifier = r{i}.data->>'{json_path}'"
+            f" AND r{i + 1}.kind = '{linked_kind.value}'"
+            for i, (json_path, linked_kind) in enumerate(chain)
+        )
+
+        # selects and joins are built from CoreResourceKinds enum values and
+        # literal JSON paths only; no user-supplied text is interpolated.
+        query = sqlalchemy.text(
+            f"SELECT {selects} FROM resources r0 {joins}"  # noqa: S608
+            " WHERE r0.identifier = :identifier AND r0.kind = :kind"
+        ).bindparams(identifier=identifier, kind=kind.value)
+
+        with self.engine.connect() as connectable:
+            row = connectable.execute(query).fetchone()
+
+        if row is None:
+            if raise_error_if_no_resource:
+                raise ResourceDoesNotExistError(resource_id=identifier, kind=kind)
+            return [None] * (n + 1)
+
+        mapping = row._mapping
+        all_kinds = [kind] + [k for _, k in chain]
+        resources = []
+        for i, _rk in enumerate(all_kinds):
+            data_raw = mapping[f"r{i}_data"]
+            kind_val = mapping[f"r{i}_kind"]
+            d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
+            custom_loader = kind_custom_model_load.get(kind_val)
+            if custom_loader:
+                resource = custom_loader(d, self.configuration)
+            else:
+                resource = orchestrator.core.kindmap[kind_val](**d)
+
+            if orchestrator.core.resources.VersionIsGreaterThan(
+                resource.version, d.get("version", "v0")
+            ):
+                self.updateResource(resource)
+
+            resources.append(resource)
+
+        return resources
+
     def getResourceRaw(self, identifier: str) -> dict | None:
         """Retrieve the raw JSON data for a resource.
 
@@ -277,7 +372,7 @@ class SQLResourceStore(ResourceStore):
         return resource
 
     def getResources(
-        self, identifiers: list[str]
+        self, identifiers: list[str], ignore_validation_errors: bool = True
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Retrieve multiple resources by identifier.
 
@@ -297,6 +392,9 @@ class SQLResourceStore(ResourceStore):
         Args:
             identifiers: The list of resource identifiers to retrieve.
                 Duplicate identifiers are ignored.
+            ignore_validation_errors: If True (default), resources with validation
+                errors are skipped and a warning is logged. If False, ValueError
+                is raised when a resource fails validation.
 
         Returns:
             dict[str, orchestrator.core.resources.ADOResource]:
@@ -304,6 +402,10 @@ class SQLResourceStore(ResourceStore):
                 database and the value is the corresponding deserialized
                 resource instance. If a particular identifier does not
                 exist, it will not appear in the returned dictionary.
+
+        Raises:
+            ValueError: If ignore_validation_errors is False and a resource
+                fails validation.
         """
 
         import pandas as pd
@@ -330,18 +432,19 @@ class SQLResourceStore(ResourceStore):
                 ):
                     d = json.loads(data)
                     custom_model_loader = kind_custom_model_load.get(kind)
-                    if custom_model_loader:
-                        resource = custom_model_loader(d, self.configuration)
-                        retval[identifier] = resource
-                    else:
-                        try:
-                            resource = orchestrator.core.kindmap[kind](**d)
-                        except pydantic.ValidationError as error:
-                            self.log.warning(
-                                f"Unable to create pydantic model for resource with id, {identifier} with data, {data}. {error}"
-                            )
+                    try:
+                        if custom_model_loader:
+                            resource = custom_model_loader(d, self.configuration)
                         else:
-                            retval[identifier] = resource
+                            resource = orchestrator.core.kindmap[kind].model_validate(d)
+                    except Exception as error:
+                        msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data}. {error}"
+                        if ignore_validation_errors:
+                            self.log.warning(msg)
+                        else:
+                            raise ValueError(msg) from error
+                    else:
+                        retval[identifier] = resource
 
         return retval
 
@@ -543,6 +646,7 @@ class SQLResourceStore(ResourceStore):
         kind: str,
         version: str | None = None,
         field_selectors: list[dict[str, str]] | None = None,
+        ignore_validation_errors: bool = True,
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """
         Retrieve all resources of a given kind.
@@ -561,6 +665,9 @@ class SQLResourceStore(ResourceStore):
                 JSON-field selectors used to narrow the result set.  Each
                 selector maps a MySQL JSON path (e.g. ``"$.config.owner"``)
                 to the value the field must contain.
+            ignore_validation_errors (bool): If True (default), resources with
+                validation errors are skipped and a warning is logged. If False,
+                ValueError is raised when a resource fails validation.
 
         Returns:
             dict[str, orchestrator.core.resources.ADOResource]: A mapping
@@ -572,7 +679,8 @@ class SQLResourceStore(ResourceStore):
         Raises:
             ValueError: If ``kind`` is not a recognised
                 :class:`orchestrator.core.resources.CoreResourceKinds`
-                value.
+                value, or if ignore_validation_errors is False and a resource
+                fails validation.
 
         See Also:
             - getResourceIdentifiersOfKind's documentation
@@ -582,7 +690,10 @@ class SQLResourceStore(ResourceStore):
         identifiers = self.getResourceIdentifiersOfKind(
             kind=kind, version=version, field_selectors=field_selectors
         )
-        return self.getResources(identifiers=identifiers["IDENTIFIER"])
+        return self.getResources(
+            identifiers=identifiers["IDENTIFIER"],
+            ignore_validation_errors=ignore_validation_errors,
+        )
 
     def getRelatedSubjectResourceIdentifiers(
         self, identifier: str, kind: str | None = None, version: str | None = None

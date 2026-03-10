@@ -6,7 +6,6 @@ import typing
 from typing import Any
 
 import pytest
-import yaml
 
 import orchestrator.core
 import orchestrator.utilities
@@ -212,15 +211,6 @@ def test_sample_store_smiles(pfas_sample_store: SQLSampleStore) -> None:
     assert not pfas_sample_store.isPassive
 
     assert pfas_sample_store.numberOfEntities == 101
-
-
-def test_sample_store_config_file_valid(valid_sample_store_config_file: str) -> None:
-    import pathlib
-
-    valid_sample_store_config_file = pathlib.Path(valid_sample_store_config_file)
-    orchestrator.core.samplestore.config.SampleStoreConfiguration.model_validate(
-        yaml.safe_load(valid_sample_store_config_file.read_text())
-    )
 
 
 def test_sample_store_specification(

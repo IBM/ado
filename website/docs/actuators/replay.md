@@ -39,27 +39,27 @@ The relevant fields are:
 - `storageLocation`: This is the path the CSV file
 - `parameters.identifierColumn`: This is the column in the CSV, if any, to use
   as the identifier of the created entities.
-- `parameters.constitutivePropertyColumns`: This is a list of the columns in the
-  CSV file that define the constitutive properties of the entities
+- `parameters.constitutivePropertyMap`: This is a list of the columns in the CSV
+  file that define the constitutive properties of the entities
 - `experiments`: This section defines the experiments that were used to generate
   the data in the CSV file
   - `experiments.experimentIdentifier`: This is the name for the experiment in
     ado
-  - `experiments.propertyMap`: This is a dictionary mapping the names of the
-    properties experiment as they will appear in `ado` to column names in the
-    CSV
+  - `experiments.observedPropertyMap`: This is a dictionary mapping the names of
+    the properties experiment as they will appear in `ado` to column names in
+    the CSV
 
 The above YAML says to associate the data in the columns `wallClockRuntime` and
 `status` with an experiment 'benchmark_performance' that measures properties
 with the same name.
 
-The `propertyMap` field allows you to handle column headers had names that are
-not suitable for names of properties. For example if there was a column with
-measurements on a molecule called `Real_pKa (-0.83, 10.58)`, you might want to
-associate this with a property called `pka` instead:
+The `observedPropertyMap` field allows you to handle column headers had names
+that are not suitable for names of properties. For example if there was a column
+with measurements on a molecule called `Real_pKa (-0.83, 10.58)`, you might want
+to associate this with a property called `pka` instead:
 
 ```yaml
-propertyMap:
+observedPropertyMap:
   pka: "Real_pKa (-0.83, 10.58)"
 ```
 

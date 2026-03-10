@@ -244,9 +244,9 @@ def resource_select_data_field(
     #
     data_path = f"$.{field_name}"
     statement = (
-        "{statement_preamble} data -> '{data_path}' as {field_name}"
+        "{statement_preamble} data ->> '{data_path}' as {field_name}"
         if dialect == "sqlite"
-        else "{statement_preamble} data->'{data_path}' as {field_name}"
+        else "{statement_preamble} data->>'{data_path}' as {field_name}"
     )
 
     return statement.format(
@@ -266,10 +266,13 @@ def resource_select_metadata_field(
     statement_preamble = "SELECT" if needs_select else ","
 
     data_path = f"$.config.metadata.{field_name}"
+
+    # MySQL returns a JSON null instead of an SQL NULL when
+    # a field is null. Harmonize it by forcing a SQL NULL.
     statement = (
-        "{statement_preamble} data -> '{data_path}' as {field_name}"
+        "{statement_preamble} data ->> '{data_path}' as {field_name}"
         if dialect == "sqlite"
-        else "{statement_preamble} data->'{data_path}' as {field_name}"
+        else "{statement_preamble} NULLIF(data->>'{data_path}', 'null') as {field_name}"
     )
 
     return statement.format(
@@ -295,20 +298,7 @@ def resource_select_created_field(
             statement = """DATETIME(data ->> '$.created')) as created"""
 
     else:
-        # FIXME AP 23/04/2024:
-        # Now that we have added timezone information to the timestamps, the created
-        # field may end with Z (zulu), causing the STR_TO_DATE function to return NaT
-        # As a workaround, we ensure that all our dates end with Z
-        # We also use JSON_UNQUOTE because by default JSON_EXTRACT returns quoted fields
-        # in mysql (-> is an alias)
-        dates_in_correct_format = (
-            'IF(JSON_UNQUOTE(data->"$.created") LIKE "%%Z", '
-            'JSON_UNQUOTE(data->"$.created"), '
-            'CONCAT(JSON_UNQUOTE(data->"$.created"), "Z"))'
-        )
-        statement = (
-            f"""STR_TO_DATE({dates_in_correct_format}, '%%Y-%%m-%%dT%%T.%%fZ')"""
-        )
+        statement = """STR_TO_DATE(data->>"$.created", '%%Y-%%m-%%dT%%T.%%fZ')"""
         if as_age:
             statement = f"""TIMESTAMPDIFF(SECOND, {statement}, NOW()) as age"""
         else:

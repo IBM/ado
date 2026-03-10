@@ -1,28 +1,29 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-metadata:
-  name: "ml_multi_cloud"
-  description: "samplestore initialised with ml_multi_cloud data"
-specification:
-  module:
-    moduleName: orchestrator.core.samplestore.sql
-    moduleClass: SQLSampleStore
 copyFrom:
   - module:
       moduleClass: CSVSampleStore
       moduleName: orchestrator.core.samplestore.csv
-    storageLocation:
-      path: 'ml_export.csv'
     parameters:
-      generatorIdentifier: 'multi-cloud-ml'
-      identifierColumn: 'config'
-      constitutivePropertyColumns:
-        - cpu_family
-        - vcpu_size
-        - nodes
-        - provider
       experiments:
-        - experimentIdentifier: 'benchmark_performance'
-          propertyMap:
-            wallClockRuntime: 'wallClockRuntime'
-            status: 'status'
+        - actuatorIdentifier: replay
+          constitutivePropertyMap:
+            - cpu_family
+            - vcpu_size
+            - nodes
+            - provider
+          experimentIdentifier: benchmark_performance
+          observedPropertyMap:
+            - wallClockRuntime
+            - status
+      generatorIdentifier: multi-cloud-ml
+      identifierColumn: config
+    storageLocation:
+      path: ml_export.csv
+metadata:
+  description: samplestore initialised with ml_multi_cloud data
+  name: ml_multi_cloud
+specification:
+  module:
+    moduleClass: SQLSampleStore
+    moduleName: orchestrator.core.samplestore.sql

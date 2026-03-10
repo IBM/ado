@@ -22,7 +22,7 @@
 > pip install ado-vllm-performance
 > ```
 >
-> By default vLLM and GuideLLM are optional dependencies of the actuator. The
+> By default, vLLM and GuideLLM are optional dependencies of the actuator. The
 > default installation is useful for users to describe and create spaces, and
 > inspect the available experiments, but it would not allow for experiments to
 > be executed. When submitting an experiment, the actuator will automatically
@@ -466,9 +466,8 @@ executed).
 > important to consider when running operation using `vllm_performance` on a
 > remote RayCluster. To handle this we recommend:
 >
-> - Put custom templates in the working directory (or a subdirectory of it) that
->   you will
->   [send to the RayCluster](../getting-started/remote_run.md#other-options)
+> - Add the paths to the templates to
+>   [the `additionalFiles` of the execution context YAML](../getting-started/remote_run.md#sending-additional-files)
 > - Create an `actuatorconfiguration` with the relative paths to the templates
 >   from this working directory
 

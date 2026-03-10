@@ -34,6 +34,7 @@ from orchestrator.cli.utils.resources.formatters import (
 )
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.metastore.base import ResourceDoesNotExistError
+from orchestrator.utilities.rich import dataframe_to_rich_table
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.models.parameters import (
@@ -105,6 +106,8 @@ def handle_ado_get_default_format(
     resource_type: "CoreResourceKinds",
 ) -> None:
 
+    import rich.box
+
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
@@ -127,7 +130,11 @@ def handle_ado_get_default_format(
                 console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
                 return
 
-            console_print(output_df, has_pandas_content=True)
+            console_print(
+                dataframe_to_rich_table(
+                    output_df, box=rich.box.SQUARE, show_index=True, show_edge=True
+                )
+            )
             return
 
         resource = sql_store.getResource(
@@ -144,7 +151,9 @@ def handle_ado_get_default_format(
             resource=resource, show_details=parameters.show_details
         )
 
-        console_print(output_df, has_pandas_content=True)
+        console_print(
+            dataframe_to_rich_table(output_df, box=rich.box.SQUARE, show_edge=True)
+        )
 
 
 def print_related_resources(

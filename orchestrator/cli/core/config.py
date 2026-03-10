@@ -159,6 +159,7 @@ class AdoConfiguration(pydantic.BaseModel):
 
     @property
     def project_context(self) -> ProjectContext | None:
+        """Return the active project context."""
         return self._project_context
 
     @property

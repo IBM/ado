@@ -174,7 +174,7 @@ See the full list of the actuator parameters you can set in the
 > and that you have configured your SFTTrainer actuator with the values we
 > provided above for the `hf_home` and `data_directory` parameters.
 
-### For RayClusters on Kubernetes/OpenShift - create a port-forward
+### For RayClusters on Kubernetes/OpenShift
 
 >[!TIP]
 >
@@ -225,7 +225,6 @@ In this section, we’ll focus on the second approach.
     pip:
        - ado-sfttrainer
     env_vars:
-      env_vars:
         AIM_UI_TELEMETRY_ENABLED: "0"
         # We set HOME to /tmp because "import aim.utils.tracking" tries to write under $HOME/.aim_profile.
         # However, the process lacks permissions to do so and that leads to an ImportError exception.
@@ -259,7 +258,6 @@ In this section, we’ll focus on the second approach.
     pip:
        - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ado_sfttrainer-1.1.0.dev152+g23c7ba34e-py3-none-any.whl
     env_vars:
-       env_vars:
        AIM_UI_TELEMETRY_ENABLED: "0"
        # We set HOME to /tmp because "import aim.utils.tracking" tries to write under $HOME/.aim_profile.
        # However, the process lacks permissions to do so and that leads to an ImportError exception.
@@ -289,7 +287,7 @@ In this section, we’ll focus on the second approach.
     $path_to_ado_root/plugins/actuators/sfttrainer/examples/build_wheels.sh
     ```
 
-    [Reference docs on using ado with remote RayClusters](../../getting-started/remote_run/#getting-ready).
+    [Reference docs on using ado with remote RayClusters](../../getting-started/remote_run/).
 <!-- markdownlint-enable code-block-style -->
 
 You will use the files you created during this step in later steps when

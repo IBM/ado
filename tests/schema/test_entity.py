@@ -750,6 +750,50 @@ def test_experiment_series_multiple_observed(
         ), f"Expected the series representation with aggregation to have 1 value for key {vp.virtualTargetPropertyIdentifier}"
 
 
+def test_experiment_series_aggregate_single_list_valued_property(
+    entity_for_parameterized_experiment: tuple[Entity, Experiment],
+) -> None:
+    """Aggregation with --aggregate mean should reduce a single list-valued property to its mean.
+
+    When a property has one value that is itself a list (e.g. wallClockRuntime=[1.0, 2.0, 3.0]
+    from a single measurement with multiple runs), --aggregate mean should produce
+    wallClockRuntime-mean=2.0, not leave the raw list (which can display as NaN).
+    """
+    test_entity, exp = entity_for_parameterized_experiment
+    if not exp.observedProperties:
+        pytest.skip("No observed properties to test")
+    ref = exp.reference
+
+    # One measurement result with a single property whose value is a list
+    op = exp.observedProperties[0]
+    list_value = [1.0, 2.0, 3.0]
+    result = ValidMeasurementResult(
+        entityIdentifier=test_entity.identifier,
+        measurements=[ObservedPropertyValue(value=list_value, property=op)],
+    )
+    test_entity.add_measurement_result(result)
+
+    ser = test_entity.experimentSeries(
+        experimentReferences=[ref],
+        aggregationMethod=PropertyAggregationMethodEnum.mean,
+    )
+    assert ser, "Expected a series to be returned"
+    ser = ser[0]
+
+    vp = VirtualObservedProperty(
+        baseObservedProperty=op,
+        aggregationMethod=PropertyAggregationMethod(
+            identifier=PropertyAggregationMethodEnum.mean
+        ),
+    )
+    aggregated = ser.get(vp.virtualTargetPropertyIdentifier)
+    assert aggregated is not None, (
+        "With --aggregate mean, a single list-valued property should produce "
+        "a virtual property (e.g. wallClockRuntime-mean)"
+    )
+    assert aggregated == 2.0, f"Mean of [1,2,3] should be 2.0, got {aggregated}"
+
+
 def test_required_constitutive_properties_present(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ) -> None:

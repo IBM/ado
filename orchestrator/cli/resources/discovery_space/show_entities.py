@@ -29,6 +29,10 @@ from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import ResourceDoesNotExistError
+from orchestrator.schema.virtual_property import (
+    PropertyAggregationMethodEnum,
+    VirtualObservedProperty,
+)
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -50,7 +54,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
     if parameters.entities_type not in supported_entity_types:
         supported_types_str = [t.value for t in supported_entity_types]
         raise typer.BadParameter(
-            f"type must be one of {supported_types_str} for ado show-entities space",
+            f"type must be one of {supported_types_str} for ado show entities space",
         )
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
@@ -115,15 +119,25 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
         output_df: pd.DataFrame = pd.DataFrame()
         status.update(f"Finding {parameters.entities_type.value} entities")
 
+        virtual_property_ids: list[str] | None = None
+        if parameters.properties:
+            virtual_property_ids = [
+                p
+                for p in parameters.properties
+                if VirtualObservedProperty.isVirtualPropertyIdentifier(p)
+            ] or None
+
         if parameters.entities_type == AdoShowEntitiesSupportedEntityTypes.MATCHING:
             output_df = space.matchingEntitiesTable(
                 property_type=parameters.entities_property_format.value,
                 aggregationMethod=parameters.aggregation_method,
+                virtualPropertyIdentifiers=virtual_property_ids,
             )
         elif parameters.entities_type == AdoShowEntitiesSupportedEntityTypes.MEASURED:
             output_df = space.measuredEntitiesTable(
                 property_type=parameters.entities_property_format.value,
                 aggregationMethod=parameters.aggregation_method,
+                virtualPropertyIdentifiers=virtual_property_ids,
             )
         elif parameters.entities_type == AdoShowEntitiesSupportedEntityTypes.UNMEASURED:
             unsampled_entities = unmeasured_entities_from_space(space)
@@ -157,11 +171,14 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
         available_properties_formatted = "-\t" + "\n-\t".join(
             p.identifier for p in available_properties
         )
+        aggregation_methods = ", ".join(m.value for m in PropertyAggregationMethodEnum)
         if not properties_set.issubset(df_column_set):
             console_print(
                 f"{ERROR}{properties_set.difference(df_column_set)} are not in the available properties.\n"
                 f"{HINT}Available ones for the {parameters.entities_property_format.value} format are:\n"
-                f"{available_properties_formatted}",
+                f"{available_properties_formatted}\n"
+                f"{HINT}Virtual properties (e.g. {cyan('<property>-<method>')}) are also supported "
+                f"where method is one of: {aggregation_methods}",
                 stderr=True,
             )
             raise typer.Exit(1)

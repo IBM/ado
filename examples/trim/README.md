@@ -70,6 +70,15 @@ It works in two main phases:
 Finally, it trains one high-quality model on all the data it has collected and
 saves it for you to use.
 
+<!-- markdownlint-disable no-blanks-blockquote -->
+> [!CAUTION]
+>
+> The current version of TRIM assumes that all measurements produce
+> the observed target output property, here in the
+> `operation.parameters.targetOutput` field.
+> More details in [the relevant section](https://ibm.github.io/ado/operators/trim/#debugging-and-troubleshooting).
+<!-- markdownlint-enable no-blanks-blockquote -->
+
 ## Creating a `discoveryspace`
 
 A `discoveryspace` describes the parameters you want to explore (`entitySpace`)
@@ -230,7 +239,7 @@ To see the entities of the space that have been measured, you can run:
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-ado show entities space --use-latest space
+ado show entities space --use-latest
 ```
 
 <!-- markdownlint-enable line-length -->
@@ -241,20 +250,51 @@ values.
 <!-- markdownlint-disable line-length -->
 
 ```text
-                             identifier generatorid                                    experiment_id  temperature  volume  mol     pressure
-0   temperature.270.0-volume.5.0-mol.0.2         unk  custom_experiments.calculate_pressure_ideal_gas        270.0     5.0  0.2    89.796196
-1   temperature.296.0-volume.8.0-mol.0.6         unk  custom_experiments.calculate_pressure_ideal_gas        296.0     8.0  0.6   184.581070
-2   temperature.274.0-volume.9.0-mol.0.9         unk  custom_experiments.calculate_pressure_ideal_gas        274.0     9.0  0.9   227.816276
-3   temperature.272.0-volume.4.0-mol.0.7         unk  custom_experiments.calculate_pressure_ideal_gas        272.0     4.0  0.7   395.768421
-4   temperature.292.0-volume.3.0-mol.0.4         unk  custom_experiments.calculate_pressure_ideal_gas        292.0     3.0  0.4   323.709745
-5   temperature.276.0-volume.2.0-mol.0.3         unk  custom_experiments.calculate_pressure_ideal_gas        276.0     2.0  0.3   344.218752
-6   temperature.288.0-volume.7.0-mol.0.5         unk  custom_experiments.calculate_pressure_ideal_gas        288.0     7.0  0.5   171.040374
-7   temperature.284.0-volume.1.0-mol.0.1         unk  custom_experiments.calculate_pressure_ideal_gas        284.0     1.0  0.1   236.130738
-8   temperature.286.0-volume.6.0-mol.0.8         unk  custom_experiments.calculate_pressure_ideal_gas        286.0     6.0  0.8   317.058174
-9   temperature.278.0-volume.1.0-mol.0.6         unk  custom_experiments.calculate_pressure_ideal_gas        278.0     1.0  0.6  1386.852365
-10  temperature.294.0-volume.3.0-mol.0.1         unk  custom_experiments.calculate_pressure_ideal_gas        294.0     3.0  0.1    81.481734
-11  temperature.280.0-volume.8.0-mol.0.3         unk  custom_experiments.calculate_pressure_ideal_gas        280.0     8.0  0.3    87.301857
-...
+┌───────┬──────────────────────────────────┬─────────────┬─────────────────────────────────────────────────┬─────────────┬────────┬─────┬────────────────────┐
+│ INDEX │ identifier                       │ generatorid │ experiment_id                                   │ temperature │ volume │ mol │ pressure           │
+├───────┼──────────────────────────────────┼─────────────┼─────────────────────────────────────────────────┼─────────────┼────────┼─────┼────────────────────┤
+│ 0     │ temperature.270-volume.1-mol.0.1 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 270         │ 1      │ 0.1 │ 224.49049068600002 │
+│ 1     │ temperature.270-volume.2-mol.0.1 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 270         │ 2      │ 0.1 │ 112.24524534300001 │
+│ 2     │ temperature.270-volume.8-mol.0.2 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 270         │ 8      │ 0.2 │ 56.122622671500004 │
+│ 3     │ temperature.272-volume.8-mol.0.9 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 272         │ 8      │ 0.9 │ 254.4225561108     │
+│ 4     │ temperature.274-volume.1-mol.0.2 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 274         │ 1      │ 0.2 │ 455.6325514664     │
+│ 5     │ temperature.274-volume.4-mol.0.9 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 274         │ 4      │ 0.9 │ 512.5866203997     │
+│ 6     │ temperature.274-volume.8-mol.0.5 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 274         │ 8      │ 0.5 │ 142.38517233325    │
+│ 7     │ temperature.276-volume.3-mol.0.8 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 276         │ 3      │ 0.8 │ 611.9444486848     │
+│ 8     │ temperature.276-volume.7-mol.0.4 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 276         │ 7      │ 0.4 │ 131.1309532896     │
+│ 9     │ temperature.278-volume.4-mol.0.6 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 278         │ 4      │ 0.6 │ 346.7130911706     │
+│ 10    │ temperature.278-volume.7-mol.0.2 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 278         │ 7      │ 0.2 │ 66.04058879440001  │
+│ 11    │ temperature.280-volume.2-mol.0.8 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 280         │ 2      │ 0.8 │ 931.219813216      │
+│ 12    │ temperature.280-volume.6-mol.0.9 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 280         │ 6      │ 0.9 │ 349.207429956      │
+│ 13    │ temperature.280-volume.9-mol.0.3 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 280         │ 9      │ 0.3 │ 77.60165110133333  │
+│ 14    │ temperature.282-volume.1-mol.0.7 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 282         │ 1      │ 0.7 │ 1641.2749207932    │
+│ 15    │ temperature.282-volume.6-mol.0.5 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 282         │ 6      │ 0.5 │ 195.389871523      │
+│ 16    │ temperature.282-volume.6-mol.0.7 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 282         │ 6      │ 0.7 │ 273.5458201322     │
+│ 17    │ temperature.282-volume.7-mol.0.6 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 282         │ 7      │ 0.6 │ 200.97243928080002 │
+│ 18    │ temperature.284-volume.3-mol.0.4 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 284         │ 3      │ 0.4 │ 314.8409844682667  │
+│ 19    │ temperature.284-volume.7-mol.0.9 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 284         │ 7      │ 0.9 │ 303.5966635944     │
+│ 20    │ temperature.286-volume.4-mol.0.1 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 286         │ 4      │ 0.1 │ 59.448407718700004 │
+│ 21    │ temperature.286-volume.8-mol.0.3 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 286         │ 8      │ 0.3 │ 89.17261157805001  │
+│ 22    │ temperature.286-volume.9-mol.0.7 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 286         │ 9      │ 0.7 │ 184.9506017915111  │
+│ 23    │ temperature.288-volume.2-mol.0.3 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 288         │ 2      │ 0.3 │ 359.1847850976     │
+│ 24    │ temperature.288-volume.7-mol.0.8 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 288         │ 7      │ 0.8 │ 273.6645981696     │
+│ 25    │ temperature.290-volume.4-mol.0.7 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 290         │ 4      │ 0.7 │ 421.9589778635     │
+│ 26    │ temperature.290-volume.5-mol.0.3 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 290         │ 5      │ 0.3 │ 144.67164955319998 │
+│ 27    │ temperature.292-volume.8-mol.0.6 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 292         │ 8      │ 0.6 │ 182.0867313342     │
+│ 28    │ temperature.292-volume.9-mol.0.4 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 292         │ 9      │ 0.4 │ 107.90324819804444 │
+│ 29    │ temperature.294-volume.1-mol.0.4 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 294         │ 1      │ 0.4 │ 977.7808038768001  │
+│ 30    │ temperature.294-volume.3-mol.0.5 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 294         │ 3      │ 0.5 │ 407.408668282      │
+│ 31    │ temperature.294-volume.5-mol.0.5 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 294         │ 5      │ 0.5 │ 244.44520096920002 │
+│ 32    │ temperature.296-volume.3-mol.0.1 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 296         │ 3      │ 0.1 │ 82.03603116426667  │
+│ 33    │ temperature.296-volume.4-mol.0.3 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 296         │ 4      │ 0.3 │ 184.5810701196     │
+│ 34    │ temperature.296-volume.5-mol.0.1 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 296         │ 5      │ 0.1 │ 49.22161869856     │
+│ 35    │ temperature.296-volume.5-mol.0.7 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 296         │ 5      │ 0.7 │ 344.55133088992    │
+│ 36    │ temperature.296-volume.9-mol.0.1 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 296         │ 9      │ 0.1 │ 27.345343721422225 │
+│ 37    │ temperature.298-volume.2-mol.0.5 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 298         │ 2      │ 0.5 │ 619.427465041      │
+│ 38    │ temperature.298-volume.5-mol.0.9 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 298         │ 5      │ 0.9 │ 445.98777482952    │
+│ 39    │ temperature.298-volume.6-mol.0.2 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 298         │ 6      │ 0.2 │ 82.59032867213334  │
+│ 40    │ temperature.298-volume.9-mol.0.9 │ unk         │ custom_experiments.calculate_pressure_ideal_gas │ 298         │ 9      │ 0.9 │ 247.7709860164     │
+└───────┴──────────────────────────────────┴─────────────┴─────────────────────────────────────────────────┴─────────────┴────────┴─────┴────────────────────┘
 ```
 
 <!-- markdownlint-enable line-length -->

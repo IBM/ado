@@ -81,6 +81,11 @@ declarative, structured, representation of experimental campaigns also aids code
 generation tools to automatically produce experiment definitions and to
 formulate design spaces.
 
+![A schematic overview of the ado architecture, illustrating its human-centered
+declarative interface, a scalable and extensible core, and a central database
+that enables collaboration, reuse, and
+data provenance.](ADOSchematic.png){label="ado"}
+
 ado extends its core model with valuable support capabilities. Specifications
 (configuration spaces, operations) and measurements are stored in a database
 that has a flexible deployment options. A local database is available by default
@@ -90,7 +95,7 @@ the Ray execution engine, ado seamlessly scales from a researcher's laptop to a
 large remote cluster [@Moritz2018], with all functionality accessible via a
 human-centric CLI and Python API. Researchers can contribute custom experiments
 or operators through a simple plugin interface. The result is a system that is
-context‑specific yet domain‑agnostic.
+context‑specific yet domain‑agnostic (see \autoref{ado}).
 
 # State of the field
 
@@ -116,9 +121,9 @@ Emerging robotic lab frameworks also highlight the need for integrated campaign
 management. For instance, the Experiment Orchestration System (EOS) provides
 rigorous, repeatable execution for physical experiments using a plugin model to
 orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. It's scope, however,
-is intentionally physical execution, answering how to carry out a
-specific experiment with instruments, rather than providing domain-agnostic,
-declarative campaign semantics.
+is intentionally physical execution, answering how to carry out a specific
+experiment with instruments, rather than providing domain-agnostic, declarative
+campaign semantics.
 
 We identified that a new approach was necessary as these existing tools lack the
 core semantic model for an experiment campaign. Adding this to workflow managers
@@ -143,27 +148,24 @@ artifacts of an experimental campaign or study.
 
 <!-- markdownlint-disable line-length -->
 
-| Characteristic     | Description                                                                                                                             |
-|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| **Time-Resolved**  | The time-series of sampling processes adding data to a study is preserved                                                               |
-| **Reconcilable**   | There is a consistent protocol for adding data from a common context into a specific study                                              |
-| **Actionable**     | A study must contain all necessary information for adding a new measurement to itself                                                   |
-| **Common Context** | There is a schema and storage mechanism allowing data to be shared across multiple studies                                              |
-| **Encapsulated**   | The study rigorously defines the valid configurations and measurements, preventing contamination from unrelated data                    |
+| Characteristic     | Description                                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| **Time-Resolved**  | The time-series of sampling processes adding data to a study is preserved                                            |
+| **Reconcilable**   | There is a consistent protocol for adding data from a common context into a specific study                           |
+| **Actionable**     | A study must contain all necessary information for adding a new measurement to itself                                |
+| **Common Context** | There is a schema and storage mechanism allowing data to be shared across multiple studies                           |
+| **Encapsulated**   | The study rigorously defines the valid configurations and measurements, preventing contamination from unrelated data |
 
 <!-- markdownlint-enable line-length -->
 
 A system satisfying these requirements would ensure that a design of experiments
-(DoE)
-and its associated
-data can be understood, shared, extended, and analyzed without introducing
-inconsistencies.
+(DoE) and its associated data can be understood, shared, extended, and analyzed
+without introducing inconsistencies.
 
 ## Discovery Space as a Core Abstraction
 
-The TRACE characteristics guided our search for a data-model.
-First we noted that configuration search campaigns have well-defined
-mathematical properties,
+The TRACE characteristics guided our search for a data-model. First we noted
+that configuration search campaigns have well-defined mathematical properties,
 
 - **A Configuration Probability Space:** This defines the dimensions of the
   configuration space being explored (the "what") and the probability
@@ -173,16 +175,31 @@ mathematical properties,
 - **A sample set:** This is the set of points currently sampled and measured for
   a given combination of a configuration probability space and an action space
   - It the union of the **sample timeseries** of operations on that combination
-  
+
+![A view of a Discovery Space data model instance. The left-hand side
+shows the key data components of the model. The right-hand side shows the process
+that occurs when there
+is a request to sample and measure a point.](discovery_space_v1.drawio.svg){label="discoveryspace"}
+
+![A view of data-sharing between Discovery Spaces. Each space reads/writes
+samples and time-series
+membership details from a shared sample store (_common context_).
+In this case both spaces have same action space and contain point X.
+If point X is measured on Discovery Space A it will not appear in sample set
+of Discovery Space B until it is requested to be measured via B (_reconcillable_).
+Note: when it is the result placed by
+Discovery Space A may be reused](ds_interaction_v2.drawio.svg){label="ds_interaction"}
+
 The Discovery Space, the central data model in the system's architecture,
-combines these properties. By containing the configuration probability space and
-action space definitions it is **encapsulated** and **actionable**; it is
-**time-resolved** as it contains the sample set. We obtain a **common
-context** by storing the sample timeseries in a shared sample store with a
-common schema. Finally, it is **reconcilable** as we enforce that samples
-in the common context are only part of the sample set of a discovery space
-if they are part of the sample timeseries of an operation on that space.
-Hence, it displays the TRACE characteristics.
+combines these properties (see \autoref{discoveryspace}). By containing the
+configuration probability space and action space definitions it is
+**encapsulated** and **actionable**; it is **time-resolved** as it contains the
+sample set. We obtain a **common context** by storing the sample timeseries in a
+shared sample store with a common schema. Finally, it is **reconcilable** as we
+enforce that samples in the common context are only part of the sample set of a
+discovery space if they are part of the sample timeseries of an operation on
+that space (see \autoref{ds_interaction}. Hence, it displays the TRACE
+characteristics.
 
 The Discovery Space abstraction effectively decouples workload-specific
 experiments from the search and optimization algorithms, enabling the kind of

@@ -146,6 +146,10 @@ def orchestrate(
         actuatorConfigurationIdentifiers=operation_resource_configuration.actuatorConfigurationIdentifiers,
     )
 
+    operation_parameters = operation_resource_configuration.operation.parameters
+    if isinstance(operation_parameters, pydantic.BaseModel):
+        operation_parameters = operation_parameters.model_dump()
+
     try:
         if isinstance(
             operation_resource_configuration.operation.module,
@@ -158,7 +162,7 @@ def orchestrate(
                 output = orchestrate_explore_operation(
                     operator_module=operation_resource_configuration.operation.module,
                     discovery_space=discovery_space,
-                    parameters=operation_resource_configuration.operation.parameters,
+                    parameters=operation_parameters,
                     operation_info=operation_info,
                 )
             else:
@@ -170,7 +174,7 @@ def orchestrate(
                 operation_resource_configuration.operation.module.operationFunction()(
                     discovery_space,
                     operationInfo=operation_info,
-                    **operation_resource_configuration.operation.parameters,
+                    **operation_parameters,
                 )
             )  # type: OperationOutput
     except KeyboardInterrupt:

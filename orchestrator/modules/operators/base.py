@@ -81,7 +81,7 @@ class DiscoveryOperationBase(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def validateOperationParameters(
         cls,
-        parameters: dict,
+        parameters: dict | pydantic.BaseModel,
     ) -> pydantic.BaseModel:
         """If the parameters are valid returns a model for them.
 

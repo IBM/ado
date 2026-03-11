@@ -4,8 +4,8 @@ spaces:
   - 'space-d1f737-fcb7d1'
 operation:
   module:
-    moduleClass: "RayTune"
-    moduleName: "ray_tune.operator"
+    operatorName: "ray_tune"
+    operationType: "search"
   parameters:
     tuneConfig:
       search_alg:

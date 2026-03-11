@@ -1,9 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import json
-import pathlib
-import uuid
 from collections.abc import Callable
 
 import pytest
@@ -14,6 +11,7 @@ import orchestrator.core.operation.resource
 from orchestrator.core import ADOResource
 from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
+    DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
 )
 from orchestrator.core.operation.resource import OperationResource
@@ -21,54 +19,40 @@ from orchestrator.metastore.sqlstore import SQLStore
 
 
 @pytest.fixture
-def random_operation_resource_from_file(
+def ml_multi_cloud_operation_resource(
     random_identifier: Callable[[], str],
-) -> Callable[[str | None, str | None], OperationResource]:
+    ml_multi_cloud_operation_configuration: DiscoveryOperationResourceConfiguration,
+) -> Callable[[str | None], OperationResource]:
 
-    def _random_operation_resource_from_file(
-        sample_store_id: str | None = None,
+    def _ml_multi_cloud_operation_resource(
         space_id: str | None = None,
     ) -> OperationResource:
-        file = pathlib.Path("tests/resources/operation/operation_resource.json")
-        random_resource_id = str(uuid.uuid4())
-        if not sample_store_id:
-            sample_store_id = random_identifier()
-        if not space_id:
-            space_id = random_identifier()
 
-        # Get the model
-        operation = (
-            orchestrator.core.operation.resource.OperationResource.model_validate(
-                json.loads(file.read_text())
-            )
+        if space_id:
+            ml_multi_cloud_operation_configuration.spaces = [space_id]
+
+        return OperationResource(
+            operationType=DiscoveryOperationEnum.SEARCH,
+            operatorIdentifier=random_identifier(),
+            config=ml_multi_cloud_operation_configuration,
         )
 
-        # Final touch-ups
-        operation.identifier = random_resource_id
-        operation.config.spaces = [space_id]
-        return operation
-
-    return _random_operation_resource_from_file
+    return _ml_multi_cloud_operation_resource
 
 
 @pytest.fixture
-def random_operation_resource_from_db(
-    random_operation_resource_from_file: Callable[
-        [str | None, str | None], OperationResource
-    ],
+def ml_multi_cloud_operation_resource_from_db(
+    ml_multi_cloud_operation_resource: Callable[[str | None], OperationResource],
     create_resources: Callable[[list[ADOResource], SQLStore], None],
-) -> Callable[[str | None, str | None], OperationResource]:
-    def _random_operation_resource_from_db(
-        sample_store_id: str | None = None,
+) -> Callable[[str | None], OperationResource]:
+    def _ml_multi_cloud_operation_resource_from_db(
         space_id: str | None = None,
     ) -> OperationResource:
-        operation = random_operation_resource_from_file(
-            sample_store_id=sample_store_id, space_id=space_id
-        )
+        operation = ml_multi_cloud_operation_resource(space_id=space_id)
         create_resources(resources=[operation])
         return operation
 
-    return _random_operation_resource_from_db
+    return _ml_multi_cloud_operation_resource_from_db
 
 
 valid_operation_configs = [

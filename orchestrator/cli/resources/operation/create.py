@@ -28,7 +28,6 @@ from orchestrator.cli.utils.resources.formatters import most_important_status_up
 from orchestrator.core import CoreResourceKinds
 from orchestrator.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
-    OperatorModuleConf,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.core.operation.resource import (
@@ -43,12 +42,11 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     from orchestrator.modules.operators.base import InterruptedOperationError
 
     try:
-        op_resource_configuration = (
+        op_resource_configuration: DiscoveryOperationResourceConfiguration = (
             DiscoveryOperationResourceConfiguration.model_validate(
                 yaml.safe_load(parameters.resource_configuration_file.read_text())
             )
         )
-        validate_operation(op_resource_configuration)
     except (pydantic.ValidationError, ValueError) as e:
         console_print(
             f"{ERROR}The operation configuration provided was not valid:\n{e}",
@@ -60,7 +58,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         op_resource_configuration = override_values_in_pydantic_model(
             model=op_resource_configuration, override_values=parameters.override_values
         )
-        validate_operation(op_resource_configuration)
 
     if parameters.with_resources:
 
@@ -120,8 +117,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         reuse_requested_latest_identifiers(
             resource_configuration=op_resource_configuration, parameters=parameters
         )
-
-    validate_operation(op_resource_configuration)
 
     if len(op_resource_configuration.spaces) > 1:
         console_print(
@@ -204,64 +199,10 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
     return output_operation_result(result=operation_output)
 
 
-def validate_operation(
-    resource_configuration: DiscoveryOperationResourceConfiguration,
-) -> None:
-    import orchestrator.modules.operators.base
-
-    if isinstance(
-        resource_configuration.operation.module,
-        OperatorModuleConf,
-    ):
-        module_name = resource_configuration.operation.module.moduleName
-        module_class = resource_configuration.operation.module.moduleClass
-        import importlib
-
-        try:
-            operation: orchestrator.modules.operators.base.DiscoveryOperationBase = (
-                getattr(importlib.import_module(module_name), module_class)
-            )
-        except ModuleNotFoundError as e:
-            console_print(
-                f"{ERROR}Cannot run operation. Operator {module_name}.{module_class} is not installed.",
-                stderr=True,
-            )
-            raise typer.Exit(1) from e
-
-        operation.validateOperationParameters(
-            resource_configuration.operation.parameters
-        )
-
-    # AP: it is an OperatorFunctionConf
-    else:
-
-        import orchestrator.modules.operators.collections
-
-        configuration_model = (
-            orchestrator.modules.operators.collections.operationCollectionMap[
-                resource_configuration.operation.module.operationType
-            ].configuration_model_for_operation(
-                resource_configuration.operation.module.operatorName
-            )
-        )
-
-        if not configuration_model:
-            console_print(
-                f"{WARN}No configuration model was available for operation "
-                f"{resource_configuration.operation.module.operatorName} of type "
-                f"{resource_configuration.operation.module.operationType}",
-                stderr=True,
-            )
-            return
-
-        configuration_model.model_validate(resource_configuration.operation.parameters)
-
-
 def reuse_requested_latest_identifiers(
     resource_configuration: DiscoveryOperationResourceConfiguration,
     parameters: AdoCreateCommandParameters,
 ) -> None:
-    updated = False
 
     if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.use_latest:
         latest_recorded_actuator_configuration = (
@@ -279,7 +220,6 @@ def reuse_requested_latest_identifiers(
             )
             raise typer.Exit(1)
 
-        updated = True
         resource_configuration.actuatorConfigurationIdentifiers = [
             latest_recorded_actuator_configuration
         ]
@@ -306,7 +246,6 @@ def reuse_requested_latest_identifiers(
             )
             raise typer.Exit(1)
 
-        updated = True
         resource_configuration.spaces = [latest_recorded_space]
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(
@@ -316,9 +255,6 @@ def reuse_requested_latest_identifiers(
             ),
             stderr=True,
         )
-
-    if updated:
-        validate_operation(resource_configuration)
 
 
 def output_operation_result(result: OperationOutput) -> str | None:

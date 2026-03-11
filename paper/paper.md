@@ -129,18 +129,17 @@ team-level campaigns and hinders data reuse.
 Emerging robotic lab frameworks also highlight the need for integrated campaign
 management. For instance, the Experiment Orchestration System (EOS) provides
 rigorous, repeatable execution for physical experiments using a plugin model to
-orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. Its scope, however,
-is intentionally physical execution, answering how to carry out a specific
-experiment with instruments, rather than providing domain-agnostic, declarative
-campaign semantics.
+orchestrate lab equipment over Ray [@Angelopoulos2025_EOS]. Its scope is
+intentionally physical execution, answering how to carry out a specific
+repeatable experiment with lab instruments.
 
 We identified that a new approach was necessary as these existing tools lack the
 core semantic model for an experiment campaign. Adding this to workflow managers
 would conflict with their open-ended DAG design, while adding it to a single
 optimizer library would not generalize and would retain a code-first, fragmented
-approach. For automated lab systems, their focus is on operational complexity of
-physical execution, examples like EOS do not aim to provide domain‑agnostic,
-declarative campaign semantics above the lab layer.
+approach. For automated lab systems, their focus is on managing operational
+complexity , not providing domain‑agnostic, declarative campaign semantics above
+the lab layer.
 
 ado synergizes with, rather than replaces, existing tools. It can use workflow
 managers like Galaxy as experiment executors, integrate optimizers like Optuna
@@ -172,7 +171,12 @@ artifacts of an experimental campaign or study.
 
 A system satisfying these requirements would ensure that a design of experiments
 (DoE) and its associated data can be understood, shared, extended, and analyzed
-without introducing inconsistencies.
+without introducing inconsistencies. In this way, the TRACE requirements offer a
+concrete implementation of theFAIR Principles (Findable,
+Accessible, Interoperable, and Reusable) [@wilkinson2016fair].
+Where FAIR describes _what_
+qualities a digital asset should possess, TRACE defines _how_ to construct
+systems that generate inherently FAIR data from inception of an experiment campaign.
 
 ## Discovery Space as a Core Abstraction
 
@@ -264,9 +268,10 @@ patterns.
 # Research impact statement
 
 Although ado is a newly open-source framework, it has been internally
-battle-tested on complex industrial workloads and research questions. Its impact
-and utility are demonstrated by a range of publicly available artifacts derived
-from its extensive internal use, which provide a strong foundation for community
+battle-tested on complex industrial workloads and research questions
+[@johnston2025efficientreuseablecloudconfiguration]. Its impact and utility are
+demonstrated by a range of publicly available artifacts derived from its
+extensive internal use, which provide a strong foundation for community
 adoption.
 
 - Large-Scale Benchmarking: We generated all fine-tuning benchmarks for IBM's

@@ -4,8 +4,12 @@ title:
 tags:
   - Python
   - benchmarking
+  - design-of-experiments
+  - experiment campaigns
   - optimization
   - provenance
+  - data sharing
+  - data reuse
   - foundation-models
 authors:
   - name: Michael A. Johnston
@@ -45,7 +49,8 @@ predictive modeling tools, alongside concrete experiments targeting
 foundation-model performance. Our aim is for ado to become a focal point for
 developing and consuming advanced capabilities for defining and executing
 experiment campaigns that accelerate computational research, from initial design
-to final analysis.
+to final analysis. ado is open-source and available at
+<https://github.com/ibm/ado> [@johnston_2026_18957620].
 
 # Statement of need
 
@@ -62,7 +67,7 @@ often managed with tools that fail to capture its essential structure.
 Scientific and ML workflow systems like Galaxy, AiiDa, and Kubeflow excel at
 executing general directed acyclic graphs (DAGs), however they are fundamentally
 context-free, treating each step as a black box [@10.1093/nar/gkae410;
-@Huber2020; George2022EndtoendML]. When it comes to implementing experiment
+@Huber2020; @George2022EndtoendML]. When it comes to implementing experiment
 campaigns this forces researchers to implement mechanisms for trial submission,
 parameter handling, logging, and result collation. This imperative approach
 leads to duplicated engineering effort, inconsistent practices, and slower
@@ -102,8 +107,8 @@ context‑specific yet domain‑agnostic (see \autoref{fig:ado}).
 Mature workflow managers such as Galaxy, AiiDA, and Kubeflow excel at scalable,
 reliable DAG orchestration with strong provenance/lineage and tight alignment to
 common execution substrates (HPC/cloud for Galaxy/AiiDA; Kubernetes‑native
-pipelines for MLFLow). As discussed in the previous section, they are strong for
-general workflow execution and provenance but are not ideal for implementing
+pipelines for Kubeflow). As discussed in the previous section, they are strong
+for general workflow execution and provenance but are not ideal for implementing
 experiment campaigns as first‑class, semantically constrained objects.
 Similarly, ML lifecycle management tools like MLFlow provide robust experiment
 tracking, logging parameters, metrics, and artifacts management for individual
@@ -140,11 +145,11 @@ declarative campaign semantics above the lab layer.
 ado synergizes with, rather than replaces, existing tools. It can use workflow
 managers like Galaxy as experiment executors, integrate optimizers like Optuna
 and Ax, and orchestrate physical experiments by coupling with robotic lab
-systems like EOS. At the same time, individual experiment implementations
-within ado's plugin architecture can leverage frameworks like MLFlow for
-fine-grained, domain-specific tracking, while reporting only the salient
-metrics back to the campaign level. The fact that ado integrates
-cleanly with these systems validates the existence of the semantic gap it fills.
+systems like EOS. At the same time, individual experiment implementations within
+ado's plugin architecture can leverage frameworks like MLFlow for fine-grained,
+domain-specific tracking, while reporting only the salient metrics back to the
+campaign level. The fact that ado integrates cleanly with these systems
+validates the existence of the semantic gap it fills.
 
 # Software design
 
@@ -200,14 +205,14 @@ samples and time-series
 membership details from a shared sample store (_common context_).
 In this case both spaces have same action space and contain point X.
 If point X is measured on Discovery Space A it will not appear in sample set
-of Discovery Space B until it is requested to be measured via B (_reconcillable_).
+of Discovery Space B until it is requested to be measured via B (_reconcilable_).
 Note: when it is, the result placed by
 Discovery Space A may be reused\label{fig:ds_interaction}](ds_interaction_v2.drawio.png){
 width=80% }
 
 We obtain a **common context** by storing the sample timeseries in a shared
-sample store with a common schema. Finally, it is **reconcilable** as enforce
-that samples in the common context are only part of the sample set of a
+sample store with a common schema. Finally, it is **reconcilable** as it
+enforces that samples in the common context are only part of the sample set of a
 discovery space if they are part of the sample timeseries of an operation on
 that space (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE
 characteristics.
@@ -261,20 +266,25 @@ patterns.
 Although ado is a newly open-source framework, it has been internally
 battle-tested on complex industrial workloads and research questions. Its impact
 and utility are demonstrated by a range of publicly available artifacts derived
-from its extensive internal use, which providing a strong foundation for
-community adoption.
+from its extensive internal use, which provide a strong foundation for community
+adoption.
 
 - Large-Scale Benchmarking: We generated all fine-tuning benchmarks for IBM's
-  watsonx.ai platform. The resulting artifacts, including the sft-trainer plugin
-  and recommender models built from this data, are now publicly available.
+  watsonx.ai platform. The resulting artifacts, including the
+  [sft-trainer plugin](https://ibm.github.io/ado/actuators/sft-trainer/) and
+  [recommender models built from this data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf),
+  are now publicly available.
 - Advanced Performance Analysis: The framework was used for detailed performance
   analysis of geospatial models on vLLM [@kwon2023efficient]. The resulting
-  vllm-performance plugin, which includes unique features like automated
-  deployment and tear-down, has been open-sourced.
+  [vllm-performance plugin](https://ibm.github.io/ado/actuators/vllm_performance/),
+  which includes unique features like automated deployment and tear-down, has
+  been open-sourced.
 - Accelerated Experimentation: We developed a method for rapidly building
   performance models from prior data to accelerate benchmarking. This novel
-  capability is delivered via the trim operator plugin. ado is designed as a
-  platform to support reproducible and extensible research.
+  capability is delivered via
+  [the TRIM operator plugin](https://ibm.github.io/ado/operators/trim/). TRIM
+  applies feature-importance-guided active learning to select and measure a
+  minimal set of configurations for building an AutoGluon tabular surrogate.
 
 ado is a community-ready platform for reproducible research, released as
 open-source code with extensive documentation. Its plugin architecture provides
@@ -283,20 +293,16 @@ accelerate our own research, believing others can derive similar advantages.
 
 # AI Usage Disclosure
 
-Generative AI tools were utilized in the development of this project for both
-the manuscript and the codebase. Human authors reviewed and validated all
-AI-generated content and are ultimately responsible for the final work.
+Generative AI tools were utilized for both the manuscript and the codebase.
+Human authors reviewed and validated all AI-generated content and are ultimately
+responsible for the final work.
 
-## Manuscript
-
-AI-assisted technologies were used to refine sentence structure and to review
+For manuscript writing, AI was used to refine sentence structure and to review
 the manuscript against the journal's submission requirements for clarity and
 compliance.
 
-## Code
-
-Our development process incorporates AI coding agents within a structured
-framework that ensures code quality and effective human oversight.
+For code our development process incorporates AI coding agents within a
+structured framework that ensures code quality and effective human oversight.
 
 - AI-Assisted Development: We use AI coding assistants for routine development
   tasks and to draft complex implementation plans.
@@ -313,7 +319,10 @@ framework that ensures code quality and effective human oversight.
 
 # Acknowledgements
 
-We acknowledge contributions from many people during the internal genesis of
-ado:
+We acknowledge contributions from many people in development of ado, both during
+its internal genesis and after: Vassilis Vassiliadis, Christian Pinto, Srikumar
+Venugopal, Daniele Lotito, Michele Gazetti, Burkhard Ringelin, Boris Lublinsky,
+Renato Maia, Renato Cerqueira, Gabriela Pinheiro, Raphael Melo, Christoph
+Hagleitner
 
 # References

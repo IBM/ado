@@ -79,8 +79,8 @@ Users define configuration spaces and operations on them (e.g. sampling or
 analysis), declaratively. ado then applies the required orchestration using its
 own protocols. For example, in sampling workflows, it handles reuse of prior
 measurements, trial execution and monitoring, and time‑resolved measurement
-recording, maintaining consistency over a shared sample store.  
-This approach mirrors the advantages of declarative systems like SQL or
+recording, maintaining consistency over a shared sample store.This approach mirrors
+the advantages of declarative systems like SQL or
 Terraform: reduced boilerplate, fewer errors, and greater clarity. This
 declarative, structured, representation of experimental campaigns also aids code
 generation tools to automatically produce experiment definitions and to
@@ -106,12 +106,12 @@ context‑specific yet domain‑agnostic (see \autoref{fig:ado}).
 
 Mature workflow managers such as Galaxy, AiiDA, and Kubeflow excel at scalable,
 reliable DAG orchestration with strong provenance/lineage and tight alignment to
-common execution substrates (HPC/cloud for Galaxy/AiiDA; Kubernetes‑native
+common execution platforms (e.g. HPC for AiiDA; Kubernetes‑native
 pipelines for Kubeflow). As discussed in the previous section, they are strong
 for general workflow execution and provenance but are not ideal for implementing
 experiment campaigns as first‑class, semantically constrained objects.
 Similarly, ML lifecycle management tools like MLFlow provide robust experiment
-tracking, metric logging, artifacts management features for individual
+tracking, metric logging, and artifacts management features for individual
 runs [@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
 construct for an experiment campaign, leaving researchers to implement the logic
 for managing collections of runs as a coherent whole.
@@ -239,8 +239,8 @@ generation.
 ## Extensibility Through a Plugin Architecture
 
 ado is built on a plugin architecture to ensure extensibility while maintaining
-a stable core. This design allows adding new experiments (actuators) analysis
-tools (operators) and storage backends. This extensibility is unified through
+a stable core. This design allows adding new experiments (actuators), analysis
+tools (operators),  and storage backends. This extensibility is unified through
 our Pydantic data models, which serve as the data contract for the system.
 Plugins consume and produce validated Pydantic models for configurations,
 experiment definitions, and measurement results. This approach enables domain
@@ -275,17 +275,17 @@ demonstrated by a range of publicly available artifacts derived from its
 extensive internal use, which provide a strong foundation for community
 adoption.
 
-- Large-Scale Benchmarking: We generated all fine-tuning benchmarks for IBM's
+- **Large-Scale Benchmarking:** We generated all fine-tuning benchmarks for IBM's
   watsonx.ai platform. The resulting artifacts, including the
   [sft-trainer plugin](https://ibm.github.io/ado/actuators/sft-trainer/) and
   [recommender models built from this data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf),
   are now publicly available.
-- Advanced Performance Analysis: The framework was used for detailed performance
+- **Advanced Performance Analysis:** The framework was used for detailed performance
   analysis of geospatial models on vLLM [@kwon2023efficient]. The resulting
   [vllm-performance plugin](https://ibm.github.io/ado/actuators/vllm_performance/),
   which includes unique features like automated deployment and tear-down, has
   been open-sourced.
-- Accelerated Experimentation: We developed a method for rapidly building
+- **Accelerated Benchmarking:** We developed a method for rapidly building
   performance models from prior data to accelerate benchmarking. This novel
   capability is delivered via
   [the TRIM operator plugin](https://ibm.github.io/ado/operators/trim/). TRIM

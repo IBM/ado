@@ -79,12 +79,11 @@ Users define configuration spaces and operations on them (e.g. sampling or
 analysis), declaratively. ado then applies the required orchestration using its
 own protocols. For example, in sampling workflows, it handles reuse of prior
 measurements, trial execution and monitoring, and time‑resolved measurement
-recording, maintaining consistency over a shared sample store.This approach mirrors
-the advantages of declarative systems like SQL or
-Terraform: reduced boilerplate, fewer errors, and greater clarity. This
-declarative, structured, representation of experimental campaigns also aids code
-generation tools to automatically produce experiment definitions and to
-formulate design spaces.
+recording, maintaining consistency over a shared sample store.This approach
+mirrors the advantages of declarative systems like SQL or Terraform: reduced
+boilerplate, fewer errors, and greater clarity. This declarative, structured,
+representation of experimental campaigns also aids code generation tools to
+automatically produce experiment definitions and to formulate design spaces.
 
 ![A schematic overview of the ado architecture, illustrating its human-centered
 declarative interface, a scalable and extensible core, and a central database
@@ -106,13 +105,13 @@ context‑specific yet domain‑agnostic (see \autoref{fig:ado}).
 
 Mature workflow managers such as Galaxy, AiiDA, and Kubeflow excel at scalable,
 reliable DAG orchestration with strong provenance/lineage and tight alignment to
-common execution platforms (e.g. HPC for AiiDA; Kubernetes‑native
-pipelines for Kubeflow). As discussed in the previous section, they are strong
-for general workflow execution and provenance but are not ideal for implementing
-experiment campaigns as first‑class, semantically constrained objects.
-Similarly, ML lifecycle management tools like MLFlow provide robust experiment
-tracking, metric logging, and artifacts management features for individual
-runs [@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
+common execution platforms (e.g. HPC for AiiDA; Kubernetes‑native pipelines for
+Kubeflow). As discussed in the previous section, they are strong for general
+workflow execution and provenance but are not ideal for implementing experiment
+campaigns as first‑class, semantically constrained objects. Similarly, ML
+lifecycle management tools like MLFlow provide robust experiment tracking,
+metric logging, and artifacts management features for individual runs
+[@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
 construct for an experiment campaign, leaving researchers to implement the logic
 for managing collections of runs as a coherent whole.
 
@@ -141,9 +140,9 @@ approach. For automated lab systems, their focus is on managing operational
 complexity, not providing domain‑agnostic, declarative campaign semantics above
 the lab layer.
 
-ado synergizes with, rather than replaces, these existing tools. It can use workflow
-managers like AiiDA as experiment executors, integrate optimizers like Optuna
-and Ax, and orchestrate physical experiments by coupling with robotic lab
+ado synergizes with, rather than replaces, these existing tools. It can use
+workflow managers like AiiDA as experiment executors, integrate optimizers like
+Optuna and Ax, and orchestrate physical experiments by coupling with robotic lab
 systems like EOS. At the same time, individual experiment implementations within
 ado's plugin architecture can leverage frameworks like MLFlow for fine-grained,
 domain-specific tracking, while reporting only the salient metrics back to the
@@ -172,12 +171,11 @@ artifacts of an experimental campaign or study.
 A system satisfying these requirements would ensure that a design of experiments
 (DoE) and its associated data can be understood, shared, extended, and analyzed
 without introducing inconsistencies. In this way, the TRACE requirements offer a
-concrete implementation of the FAIR Principles (Findable,
-Accessible, Interoperable, and Reusable) [@wilkinson2016fair].
-Where FAIR describes _what_
+concrete implementation of the FAIR Principles (Findable, Accessible,
+Interoperable, and Reusable) [@wilkinson2016fair]. Where FAIR describes _what_
 qualities a digital asset should possess, TRACE defines _how_ to construct
-systems that generate inherently FAIR data from the
-inception of an experiment campaign.
+systems that generate inherently FAIR data from the inception of an experiment
+campaign.
 
 ## Discovery Space as a Core Abstraction
 
@@ -240,7 +238,7 @@ generation.
 
 ado is built on a plugin architecture to ensure extensibility while maintaining
 a stable core. This design allows adding new experiments (actuators), analysis
-tools (operators),  and storage backends. This extensibility is unified through
+tools (operators), and storage backends. This extensibility is unified through
 our Pydantic data models, which serve as the data contract for the system.
 Plugins consume and produce validated Pydantic models for configurations,
 experiment definitions, and measurement results. This approach enables domain
@@ -275,13 +273,14 @@ demonstrated by a range of publicly available artifacts derived from its
 extensive internal use, which provide a strong foundation for community
 adoption.
 
-- **Large-Scale Benchmarking:** We generated all fine-tuning benchmarks for IBM's
-  watsonx.ai platform. The resulting artifacts, including the
+- **Large-Scale Benchmarking:** We generated all fine-tuning benchmarks for
+  IBM's watsonx.ai platform. The resulting artifacts, including the
   [sft-trainer plugin](https://ibm.github.io/ado/actuators/sft-trainer/) and
   [recommender models built from this data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf),
   are now publicly available.
-- **Advanced Performance Analysis:** The framework was used for detailed performance
-  analysis of geospatial models on vLLM [@kwon2023efficient]. The resulting
+- **Advanced Performance Analysis:** The framework was used for detailed
+  performance analysis of geospatial models on vLLM [@kwon2023efficient]. The
+  resulting
   [vllm-performance plugin](https://ibm.github.io/ado/actuators/vllm_performance/),
   which includes unique features like automated deployment and tear-down, has
   been open-sourced.
@@ -324,6 +323,10 @@ structured framework that ensures code quality and effective human oversight.
   employ AI tools to aid in their assessment.
 
 # Acknowledgements
+
+ado is partially funded by the European Union through the Smart Networks and
+Services Joint Undertaking (SNS JU) under grant agreement No. 101192750 (Project
+6G-DALI).
 
 We acknowledge contributions from many people in development of ado, both during
 its internal genesis and after: Vassilis Vassiliadis, Christian Pinto, Srikumar

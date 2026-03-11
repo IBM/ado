@@ -7,15 +7,15 @@ import typing
 
 from pydantic import BaseModel
 
-from orchestrator.core.discoveryspace.samplers import BaseSampler
-from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from trim.no_priors_pydantic import NoPriorsParameters
-from trim.utils.order import order_df_for_sampling_with_no_priors
-from trim.utils.space_df_connector import (
+from no_priors_characterization.no_priors_pydantic import NoPriorsParameters
+from no_priors_characterization.utils.order import order_df_for_sampling_with_no_priors
+from no_priors_characterization.utils.space_df_connector import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
 )
+from orchestrator.core.discoveryspace.samplers import BaseSampler
+from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
+from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 
 logger_no_priors = logging.getLogger(__name__)
 

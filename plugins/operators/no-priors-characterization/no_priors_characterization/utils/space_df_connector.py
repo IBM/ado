@@ -522,6 +522,3 @@ def get_list_of_entities_from_df_and_space(
         """
         logging.warning(numberEntities_log)
     return list_of_entities
-
-
-# %%

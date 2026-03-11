@@ -8,67 +8,12 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from autogluon.tabular import TabularPredictor
-from no_priors_characterization.utils import get_sampling_indices_multi_dimensional
 
-from trim.trim_pydantic import AutoGluonArgs
-from trim.utils.miscellaneous import delete_dir
+from no_priors_characterization.utils.high_dimensional_sampling import (
+    get_sampling_indices_multi_dimensional,
+)
 
 logger = logging.getLogger(__name__)
-
-
-def get_feature_importance_order(
-    source_df: pd.DataFrame,
-    target_output: str,
-    min_measured_entities: int,
-    autoGluonArgs: AutoGluonArgs,
-) -> tuple[tuple[str, ...], dict[str, float]]:
-    """
-    Train a TabularPredictor on the source space and return:
-      - ordered_tuple_most_important_first: tuple of features sorted by importance
-      - importance_dict: feature -> importance score
-
-    Minimal checks:
-      - source_df has at least min_measured_entities rows
-      - 'identifier' is dropped if present
-      - model directory is removed after use
-    """
-    # 1) Guardrail
-    if len(source_df) < min_measured_entities:
-        msg = (
-            f"Not enough measured entities: {len(source_df)} < {min_measured_entities}"
-        )
-        logger.warning(msg)
-
-    # 2) Train predictor
-    train_df = source_df.drop(
-        columns=[c for c in ["identifier"] if c in source_df.columns]
-    )
-
-    predictor = TabularPredictor(
-        label=target_output, **autoGluonArgs.tabularPredictorArgs
-    )
-
-    logger.info(
-        f"Fitting AutoGluon TabularPredictor; train cols: {list(train_df.columns)}"
-    )
-    predictor.fit(train_data=train_df, **autoGluonArgs.fitArgs)
-
-    # 3) Feature importances
-    fi_df = predictor.feature_importance(train_df).sort_values(
-        "importance", ascending=False
-    )
-    importance_dict = fi_df["importance"].to_dict()
-    ordered_tuple_most_important_first = tuple(fi_df.index)
-
-    logger.info(f"Top features: {list(ordered_tuple_most_important_first[:5])}")
-
-    # 4) Cleanup model directory
-    logger.info(f"AutoGluon model directory: {predictor.path}")
-    delete_dir(predictor.path)
-    del predictor
-
-    return ordered_tuple_most_important_first, importance_dict
 
 
 def reorder_df_by_importance(
@@ -159,9 +104,16 @@ def order_df_for_sampling_with_no_priors(
 
     if n > len(df_unique):
         logging.warning(
-            f"Requested {n} samples, but DataFrame has only {len(df_unique)} rows. Adjusting n."
+            f"Requested {n} samples, but DataFrame has only {len(df_unique)} rows. Adjusting n to {len(df_unique)}."
         )
-        n = min(n, len(df_unique))
+        n = len(df_unique)
+
+    if n <= 0:
+        logging.error(
+            f"No samples available to select. DataFrame has {len(df_unique)} rows and {n} samples were requested."
+        )
+        # Return empty DataFrame with same columns as input
+        return pd.DataFrame(columns=df_unique.columns)
 
     # Build dictionaries
     def _get_sorted_uniques(prop: str) -> list:
@@ -269,17 +221,19 @@ def order_df_for_get_index_list_nn_high_dimensional(
     df = df.sort_values(by=constitutive_properties).reset_index(drop=True)
 
     expected_len = math.prod(dimensions)
+
+    # Generate all possible combinations based on actual unique values in DataFrame
+    unique_values = [
+        sorted(df[prop].dropna().unique()) for prop in constitutive_properties
+    ]
+    all_combinations = list(itertools.product(*unique_values))
+    actual_expected_len = len(all_combinations)
+
     if len(df) != expected_len:
         logger.warning(
             f"DataFrame length mismatch: expected {expected_len} (product of {dimensions}), "
-            f"but got {len(df)}."
+            f"but got {len(df)}. Actual unique combinations: {actual_expected_len}."
         )
-
-        # Generate all possible combinations of constitutive properties
-        unique_values = [
-            sorted(df[prop].dropna().unique()) for prop in constitutive_properties
-        ]
-        all_combinations = list(itertools.product(*unique_values))
 
         # Identify existing combinations
         existing_combinations = {

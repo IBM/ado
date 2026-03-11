@@ -89,6 +89,7 @@ resolution-helpers = [
 #   cuda dependencies.
 test = [
   "ado-autoconf",
+  "ado-no-priors-characterization",
   "ado-ray-tune",
   "ado-sfttrainer; python_version < '3.13'",
   "ado-trim",
@@ -136,11 +137,13 @@ members = [
   "examples/pfas-generative-models/custom_actuator_function",
   "plugins/operators/profile_space",
   "plugins/actuators/example_actuator",
-  "plugins/operators/trim"
+  "plugins/operators/trim",
+  "plugins/operators/no-priors-characterization"
 ]
 
 [tool.uv.sources]
 ado-autoconf = { workspace = true, editable = true }
+ado-no-priors-characterization = { workspace = true, editable = true }
 ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { workspace = true, editable = true }

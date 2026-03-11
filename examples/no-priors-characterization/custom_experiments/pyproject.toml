@@ -1,0 +1,9 @@
+[project]
+name = "no_priors_custom_experiments"
+description = "A set of custom experiments used to test No-Priors Characterization Operation"
+dependencies = ["numpy"]
+dynamic = ["version"]
+
+[project.entry-points."ado.custom_experiments"]
+# This should be python file with your decorated function(s).
+no_priors_experiments = "no_priors_custom_experiments.experiments"

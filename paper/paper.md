@@ -59,14 +59,14 @@ analyze the outcomes to guide the next iteration. This recurring workflow, the
 experiment campaign, is central to modern research and development, yet it is
 often managed with tools that fail to capture its essential structure.
 
-Scientific workflow systems like Galaxy, AiiDa, and Pachyderm excel at executing
-general directed acyclic graphs (DAGs), however they are fundamentally
+Scientific and ML workflow systems like Galaxy, AiiDa, and Kubeflow excel at
+executing general directed acyclic graphs (DAGs), however they are fundamentally
 context-free, treating each step as a black box [@10.1093/nar/gkae410;
-@Huber2020; @pachyderm]. When it comes to implementing experiment campaigns this
-forces researchers to implement mechanisms for trial submission, parameter
-handling, logging, and result collation. This imperative approach leads to
-duplicated engineering effort, inconsistent practices, and slower scientific
-progress.
+@Huber2020; George2022EndtoendML]. When it comes to implementing experiment
+campaigns this forces researchers to implement mechanisms for trial submission,
+parameter handling, logging, and result collation. This imperative approach
+leads to duplicated engineering effort, inconsistent practices, and slower
+scientific progress.
 
 ado directly addresses this gap. Instead of orchestrating arbitrary DAGs, ado
 provides a semantic experimentation model centered on experiment campaigns.
@@ -99,13 +99,17 @@ context‑specific yet domain‑agnostic (see \autoref{fig:ado}).
 
 # State of the field
 
-Mature workflow managers such as Galaxy, AiiDA, and Pachyderm excel at scalable,
+Mature workflow managers such as Galaxy, AiiDA, and Kubeflow excel at scalable,
 reliable DAG orchestration with strong provenance/lineage and tight alignment to
-common execution substrates (HPC/cloud for Galaxy/AiiDA; Kubernetes‑native,
-data‑versioned pipelines for Pachyderm). As discussed in the previous section,
-they are strong for general workflow execution and provenance but are not ideal
-for implementing experiment campaigns as first‑class, semantically constrained
-objects.
+common execution substrates (HPC/cloud for Galaxy/AiiDA; Kubernetes‑native
+pipelines for MLFLow). As discussed in the previous section, they are strong for
+general workflow execution and provenance but are not ideal for implementing
+experiment campaigns as first‑class, semantically constrained objects.
+Similarly, ML lifecycle management tools like MLFlow provide robust experiment
+tracking, logging parameters, metrics, and artifacts management for individual
+runs [@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
+construct for an experiment campaign, leaving researchers to implement the logic
+for managing collections of runs as a coherent whole.
 
 General black‑box optimization frameworks like Optuna,Ax,Nevergrad and RayTune
 are also key components for executing experiment campaigns, providing
@@ -134,10 +138,13 @@ physical execution, examples like EOS do not aim to provide domain‑agnostic,
 declarative campaign semantics above the lab layer.
 
 ado synergizes with, rather than replaces, existing tools. It can use workflow
-managers like Galaxy as trial executors, integrate optimizers like Optuna and
-Ax, and orchestrate physical experiments by coupling with robotic lab systems
-like EOS. The fact that ado integrates cleanly with these systems validates the
-existence of the semantic gap it fills.
+managers like Galaxy as experiment executors, integrate optimizers like Optuna
+and Ax, and orchestrate physical experiments by coupling with robotic lab
+systems like EOS. At the same time, individual experiment implementations
+within ado's plugin architecture can leverage frameworks like MLFlow for
+fine-grained, domain-specific tracking, while reporting only the salient
+metrics back to the campaign level. The fact that ado integrates
+cleanly with these systems validates the existence of the semantic gap it fills.
 
 # Software design
 
@@ -194,13 +201,13 @@ membership details from a shared sample store (_common context_).
 In this case both spaces have same action space and contain point X.
 If point X is measured on Discovery Space A it will not appear in sample set
 of Discovery Space B until it is requested to be measured via B (_reconcillable_).
-Note: when it is the result placed by
-Discovery Space A may be reused\label{fig:ds_interaction}](ds_interaction_v2.drawio.svg){
+Note: when it is, the result placed by
+Discovery Space A may be reused\label{fig:ds_interaction}](ds_interaction_v2.drawio.png){
 width=80% }
 
-We obtain a **common context** by storing the sample timeseries in a
-shared sample store with a common schema. Finally, it is **reconcilable** as
-enforce that samples in the common context are only part of the sample set of a
+We obtain a **common context** by storing the sample timeseries in a shared
+sample store with a common schema. Finally, it is **reconcilable** as enforce
+that samples in the common context are only part of the sample set of a
 discovery space if they are part of the sample timeseries of an operation on
 that space (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE
 characteristics.

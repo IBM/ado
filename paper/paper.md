@@ -111,7 +111,7 @@ pipelines for Kubeflow). As discussed in the previous section, they are strong
 for general workflow execution and provenance but are not ideal for implementing
 experiment campaigns as first‑class, semantically constrained objects.
 Similarly, ML lifecycle management tools like MLFlow provide robust experiment
-tracking, logging parameters, metrics, and artifacts management for individual
+tracking, metric logging, artifacts management features for individual
 runs [@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
 construct for an experiment campaign, leaving researchers to implement the logic
 for managing collections of runs as a coherent whole.
@@ -138,11 +138,11 @@ core semantic model for an experiment campaign. Adding this to workflow managers
 would conflict with their open-ended DAG design, while adding it to a single
 optimizer library would not generalize and would retain a code-first, fragmented
 approach. For automated lab systems, their focus is on managing operational
-complexity , not providing domain‑agnostic, declarative campaign semantics above
+complexity, not providing domain‑agnostic, declarative campaign semantics above
 the lab layer.
 
-ado synergizes with, rather than replaces, existing tools. It can use workflow
-managers like Galaxy as experiment executors, integrate optimizers like Optuna
+ado synergizes with, rather than replaces, these existing tools. It can use workflow
+managers like AiiDA as experiment executors, integrate optimizers like Optuna
 and Ax, and orchestrate physical experiments by coupling with robotic lab
 systems like EOS. At the same time, individual experiment implementations within
 ado's plugin architecture can leverage frameworks like MLFlow for fine-grained,
@@ -172,11 +172,12 @@ artifacts of an experimental campaign or study.
 A system satisfying these requirements would ensure that a design of experiments
 (DoE) and its associated data can be understood, shared, extended, and analyzed
 without introducing inconsistencies. In this way, the TRACE requirements offer a
-concrete implementation of theFAIR Principles (Findable,
+concrete implementation of the FAIR Principles (Findable,
 Accessible, Interoperable, and Reusable) [@wilkinson2016fair].
 Where FAIR describes _what_
 qualities a digital asset should possess, TRACE defines _how_ to construct
-systems that generate inherently FAIR data from inception of an experiment campaign.
+systems that generate inherently FAIR data from the
+inception of an experiment campaign.
 
 ## Discovery Space as a Core Abstraction
 

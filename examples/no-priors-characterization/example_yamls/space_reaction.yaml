@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 sampleStoreIdentifier: 3a68bf
 metadata:
-  name: calculate_reaction_yield_0-0-0
+  name: reaction_yield_space
 entitySpace:
   - identifier: temperature
     propertyDomain:

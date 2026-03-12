@@ -91,7 +91,7 @@ automatically producing experiment definitions and formulating design spaces.
 ![A schematic overview of the ado architecture, illustrating its human-centered
 declarative interface, a scalable and extensible core, and a central database
 that enables collaboration, reuse, and
-data provenance.\label{fig:ado}](ADOSchematic.png)
+data provenance.\label{fig:ado}](ADOSchematic.png){width=70%}
 
 ado extends its core model with valuable support capabilities. Specifications
 (configuration spaces, operations) and measurements are stored in a database
@@ -198,7 +198,7 @@ that configuration search campaigns have well-defined mathematical properties:
 shows the key data components of the model. The right-hand side shows the process
 that occurs when there
 is a request to sample and measure a point.\label{fig:discoveryspace}](discovery_space_v1.drawio.svg){
-width=50% }
+width=65%}
 
 The **Discovery Space**, the central data model in the system's architecture,
 combines these properties (see \autoref{fig:discoveryspace}). By containing the
@@ -214,7 +214,7 @@ If point X is measured on Discovery Space A, it will not appear in the sample se
 of Discovery Space B until it is requested to be measured via B (_reconcilable_).
 Note: when it is, the result placed by
 Discovery Space A may be reused.\label{fig:ds_interaction}](ds_interaction_v2.drawio.png){
-width=80% }
+width=80%}
 
 We obtain a **common context** by storing the sample time series in a shared
 sample store with a common schema. Finally, it is **reconcilable** as it

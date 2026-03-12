@@ -10,9 +10,6 @@ from no_priors_characterization.utils.one_dimensional_sampling import (
     get_index_list_ordered_partitions,
     get_index_list_van_der_corput,
 )
-from no_priors_characterization.utils.order import (
-    reorder_df_by_importance,
-)
 from no_priors_characterization.utils.space_df_connector import (
     get_df_all_entities_no_measurements,
     get_list_of_entities_from_df_and_space,
@@ -20,6 +17,7 @@ from no_priors_characterization.utils.space_df_connector import (
     get_source_and_target,
     get_space,
 )
+from orchestrator.utilities.pandas import sort_rows_by_column_names
 
 __all__ = [
     "concatenated_latin_hypercube_sampling",
@@ -31,5 +29,5 @@ __all__ = [
     "get_sampling_indices_multi_dimensional",
     "get_source_and_target",
     "get_space",
-    "reorder_df_by_importance",
+    "sort_rows_by_column_names",
 ]

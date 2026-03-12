@@ -1,6 +1,6 @@
 ---
 title:
-  "ado: A Python framework for computational experimentation and benchmarking"
+  "ado: a Python framework for computational experimentation and benchmarking"
 tags:
   - Python
   - benchmarking

@@ -59,7 +59,7 @@ class TestRequiredProperties:
 
 class TestOptionalProperties:
     def test_all_optional_properties_present(self, experiment: Experiment) -> None:
-        """All ten optional properties must be defined."""
+        """All eleven optional properties must be defined."""
         optional_ids = {p.identifier for p in experiment.optionalProperties}
         expected = {
             "mps_file",
@@ -72,6 +72,7 @@ class TestOptionalProperties:
             "rins_frequency",
             "cut_passes",
             "parallel",
+            "progress_interval_s",
         }
         assert expected == optional_ids
 
@@ -214,16 +215,23 @@ class TestDefaultParameterization:
         assert param_map["mps_file"] == DEFAULT_MPS
 
     def test_parallel_default(self, experiment: Experiment) -> None:
-        """Default parallel must be False (serial execution)."""
+        """Default parallel must be True (Ray remote execution)."""
         param_map = {
             p.property.identifier: p.value for p in experiment.defaultParameterization
         }
-        assert not param_map["parallel"]
+        assert param_map["parallel"]
+
+    def test_progress_interval_default(self, experiment: Experiment) -> None:
+        """Default progress_interval_s must be 0 (disabled)."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map["progress_interval_s"] == 0
 
 
 class TestTargetProperties:
     def test_all_target_properties_present(self, experiment: Experiment) -> None:
-        """All five target (output) properties must be defined."""
+        """All target (output) properties must be defined."""
         target_ids = {p.identifier for p in experiment.targetProperties}
         expected = {
             "solve_times",
@@ -231,6 +239,11 @@ class TestTargetProperties:
             "mip_gaps",
             "nodes_explored",
             "solve_statuses",
+            "progress_time_grid",
+            "objective_over_time",
+            "best_bound_over_time",
+            "nodes_explored_over_time",
+            "mip_gap_over_time",
         }
         assert expected == target_ids
 
@@ -255,6 +268,7 @@ class TestSolveMipVectorOutput:
             "mip_gap": 0.01 * seed,
             "nodes_explored": 100 * (seed + 1),
             "solve_status": "optimal",
+            "progress_samples": [],
         }
 
     def test_returns_vectors_of_correct_length(
@@ -265,7 +279,7 @@ class TestSolveMipVectorOutput:
             "cplex_mip_experiments.solve_mip._run_single_seed",
             side_effect=lambda **kw: self._make_seed_result(kw["seed"]),
         ):
-            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=3)
+            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=3, parallel=False)
 
         assert len(result["solve_times"]) == 3
         assert len(result["objective_values"]) == 3
@@ -281,7 +295,7 @@ class TestSolveMipVectorOutput:
             "cplex_mip_experiments.solve_mip._run_single_seed",
             side_effect=lambda **kw: self._make_seed_result(kw["seed"]),
         ):
-            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2)
+            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2, parallel=False)
 
         assert set(result.keys()) == {
             "solve_times",
@@ -289,6 +303,11 @@ class TestSolveMipVectorOutput:
             "mip_gaps",
             "nodes_explored",
             "solve_statuses",
+            "progress_time_grid",
+            "objective_over_time",
+            "best_bound_over_time",
+            "nodes_explored_over_time",
+            "mip_gap_over_time",
         }
 
     def test_seeds_are_zero_indexed_and_sequential(
@@ -304,7 +323,7 @@ class TestSolveMipVectorOutput:
         with patch(
             "cplex_mip_experiments.solve_mip._run_single_seed", side_effect=capture_seed
         ):
-            solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=4)
+            solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=4, parallel=False)
 
         assert called_seeds == [0, 1, 2, 3]
 
@@ -319,7 +338,7 @@ class TestSolveMipVectorOutput:
         with patch(
             "cplex_mip_experiments.solve_mip._run_single_seed", side_effect=capture_seed
         ):
-            solve_mip_func(mps_file=DEFAULT_MPS)
+            solve_mip_func(mps_file=DEFAULT_MPS, parallel=False)
 
         assert len(called_seeds) == 5
 
@@ -332,6 +351,52 @@ class TestSolveMipVectorOutput:
             pytest.raises(ValueError, match="parallel=True requires"),
         ):
             solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2, parallel=True)
+
+    def test_progress_interval_produces_aligned_time_series(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """With progress_interval_s=60, output has aligned time-series."""
+
+        def make_result_with_progress(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            seed = kw["seed"]
+            base = self._make_seed_result(seed)
+            # Simulate samples at t=0 and t=60
+            base["progress_samples"] = [
+                {
+                    "elapsed": 0.0,
+                    "best_objective": -100.0 - seed,
+                    "best_bound": -90.0 - seed,
+                    "nodes_explored": 0,
+                    "mip_gap": 0.1,
+                },
+                {
+                    "elapsed": 60.0,
+                    "best_objective": -105.0 - seed,
+                    "best_bound": -95.0 - seed,
+                    "nodes_explored": 100 * (seed + 1),
+                    "mip_gap": 0.05,
+                },
+            ]
+            return base
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=make_result_with_progress,
+        ):
+            result = solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                progress_interval_s=60.0,
+                time_limit_s=120.0,
+                parallel=False,
+            )
+
+        assert result["progress_time_grid"] == [0.0, 60.0, 120.0]
+        assert len(result["objective_over_time"]) == 2
+        assert len(result["objective_over_time"][0]) == 3
+        assert result["objective_over_time"][0][0] == -100.0
+        assert result["objective_over_time"][0][1] == -105.0
+        assert result["objective_over_time"][0][2] == -105.0  # forward-fill
 
 
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
@@ -380,8 +445,8 @@ class TestCommunityEditionLimits:
             )
         assert exc_info.value.args[2] == 1016
 
-    def test_other_cplex_errors_return_nan_result(self) -> None:
-        """Non-1016 CPLEX errors must return a structured result with NaNs, not raise."""
+    def test_other_cplex_errors_return_none_result(self) -> None:
+        """Non-1016 CPLEX errors must return a structured result with None values, not raise."""
         from unittest.mock import MagicMock, patch
 
         import cplex
@@ -418,14 +483,14 @@ class TestCommunityEditionLimits:
                 cut_passes=0,
             )
         assert result["solve_status"] == "cplex_error_1234"
-        assert result["objective_value"] != result["objective_value"]  # NaN
-        assert result["mip_gap"] != result["mip_gap"]  # NaN
+        assert result["objective_value"] is None
+        assert result["mip_gap"] is None
 
 
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
 class TestRunSingleSeedIntegration:
     def test_run_single_seed_returns_expected_keys(self) -> None:
-        """_run_single_seed must return all five expected keys."""
+        """_run_single_seed must return all expected keys including progress_samples."""
         from cplex_mip_experiments.solve_mip import _run_single_seed
 
         result = _run_single_seed(
@@ -447,6 +512,7 @@ class TestRunSingleSeedIntegration:
             "mip_gap",
             "nodes_explored",
             "solve_status",
+            "progress_samples",
         }
 
     def test_run_single_seed_solve_time_is_positive(self) -> None:

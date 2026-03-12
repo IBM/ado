@@ -160,6 +160,122 @@ Parallel = ConstitutiveProperty(
     ),
 )
 
+ProgressInterval = ConstitutiveProperty(
+    identifier="progress_interval_s",
+    metadata={
+        "description": (
+            "Interval in seconds for capturing intermediate MIP progress metrics. "
+            "When > 0, a callback records best_objective, best_bound, nodes_explored, "
+            "and mip_gap at each interval. Outputs progress_time_grid and aligned "
+            "time-series (objective_over_time, etc.). When 0, progress capture is disabled."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[0, 86400],  # 0 = disabled, up to 24h
+    ),
+)
+
+# Sentinel for "no incumbent" from CPLEX (e.g. 1e75).
+_NO_INCUMBENT_SENTINEL = 1e70
+
+
+def _make_progress_callback(
+    interval_seconds: float,
+    samples: list[dict[str, Any]],
+) -> type:
+    """Create a MIPInfoCallback subclass that records progress at fixed intervals."""
+    import cplex
+
+    class ProgressCallbackImpl(cplex.callbacks.MIPInfoCallback):
+        def __init__(self, env: object) -> None:
+            super().__init__(env)
+            self._interval = interval_seconds
+            self._samples = samples
+            self._last_t: float | None = None
+
+        def __call__(self) -> None:
+            t = self.get_time() - self.get_start_time()
+            if self._last_t is None or t >= self._last_t + self._interval:
+                self._last_t = t
+                best_obj = self.get_incumbent_objective_value()
+                best_bound = self.get_best_objective_value()
+                nodes = self.get_num_nodes()
+                if abs(best_obj) >= _NO_INCUMBENT_SENTINEL:
+                    best_obj = None
+                if abs(best_bound) >= _NO_INCUMBENT_SENTINEL:
+                    best_bound = None
+                if best_obj is not None and best_bound is not None and best_obj != 0:
+                    gap = abs(best_bound - best_obj) / abs(best_obj)
+                else:
+                    gap = None
+                self._samples.append(
+                    {
+                        "elapsed": t,
+                        "best_objective": best_obj,
+                        "best_bound": best_bound,
+                        "nodes_explored": nodes,
+                        "mip_gap": gap,
+                    }
+                )
+
+    return ProgressCallbackImpl
+
+
+def _align_to_grid(
+    samples: list[dict[str, Any]],
+    time_grid: list[float],
+) -> dict[str, list[float | None]]:
+    """Forward-fill samples onto a fixed time grid.
+
+    For each grid point t, use the last sample with elapsed <= t.
+    Returns dict of metric -> list of values (one per grid point).
+    """
+    aligned: dict[str, list[float | None]] = {
+        "best_objective": [],
+        "best_bound": [],
+        "nodes_explored": [],
+        "mip_gap": [],
+    }
+    sample_idx = 0
+    last: dict[str, float | None] = {
+        "best_objective": None,
+        "best_bound": None,
+        "nodes_explored": None,
+        "mip_gap": None,
+    }
+    for t in time_grid:
+        while sample_idx < len(samples) and samples[sample_idx]["elapsed"] <= t:
+            s = samples[sample_idx]
+            last["best_objective"] = s["best_objective"]
+            last["best_bound"] = s["best_bound"]
+            nodes = s["nodes_explored"]
+            last["nodes_explored"] = float(nodes) if nodes is not None else None
+            last["mip_gap"] = s["mip_gap"]
+            sample_idx += 1
+        aligned["best_objective"].append(last["best_objective"])
+        aligned["best_bound"].append(last["best_bound"])
+        aligned["nodes_explored"].append(last["nodes_explored"])
+        aligned["mip_gap"].append(last["mip_gap"])
+    return aligned
+
+
+def _build_time_grid(
+    interval_s: float,
+    time_limit_s: float,
+    max_elapsed: float,
+) -> list[float]:
+    """Build time grid [0, interval, 2*interval, ...] up to cap."""
+    if interval_s <= 0:
+        return []
+    cap = time_limit_s if time_limit_s < 1e70 else max_elapsed
+    grid: list[float] = []
+    t = 0.0
+    while t <= cap:
+        grid.append(t)
+        t += interval_s
+    return grid
+
 
 def _run_single_seed(
     *,
@@ -174,6 +290,7 @@ def _run_single_seed(
     n_threads: int,
     rins_frequency: int,
     cut_passes: int,
+    progress_interval_s: float = 0,
 ) -> dict[str, Any]:
     """Run CPLEX on a single MPS instance with the given random seed and parameters.
 
@@ -186,10 +303,11 @@ def _run_single_seed(
         variable_selection: Variable selection strategy (CPX_PARAM_VARSEL).
         heuristic_frequency: Heuristic frequency (CPX_PARAM_HEURFREQ).
         time_limit_s: Time limit in seconds (CPX_PARAM_TILIM).
+        progress_interval_s: If > 0, capture progress at this interval (seconds).
 
     Returns:
         Dictionary with keys: solve_time_s, objective_value, mip_gap,
-        nodes_explored, solve_status.
+        nodes_explored, solve_status, and progress_samples when progress_interval_s > 0.
     """
     import cplex
 
@@ -213,6 +331,12 @@ def _run_single_seed(
     model.parameters.timelimit.set(time_limit_s)
     model.parameters.mip.display.set(4)
     model.parameters.mip.interval.set(100)
+
+    progress_samples: list[dict[str, Any]] = []
+    if progress_interval_s > 0:
+        model.register_callback(
+            _make_progress_callback(progress_interval_s, progress_samples)
+        )
 
     logger.debug(
         "Solving %s with seed=%d, n_threads=%d, node_selection=%d, "
@@ -255,6 +379,7 @@ def _run_single_seed(
             "mip_gap": None,
             "nodes_explored": 0,
             "solve_status": status,
+            "progress_samples": [],
         }
     solve_time = time.perf_counter() - t0
 
@@ -289,6 +414,7 @@ def _run_single_seed(
         "mip_gap": gap,
         "nodes_explored": nodes,
         "solve_status": status,
+        "progress_samples": progress_samples,
     }
 
 
@@ -305,6 +431,7 @@ def _run_single_seed(
         RinsFrequency,
         CutPasses,
         Parallel,
+        ProgressInterval,
     ],
     output_property_identifiers=[
         "solve_times",
@@ -312,6 +439,11 @@ def _run_single_seed(
         "mip_gaps",
         "nodes_explored",
         "solve_statuses",
+        "progress_time_grid",
+        "objective_over_time",
+        "best_bound_over_time",
+        "nodes_explored_over_time",
+        "mip_gap_over_time",
     ],
     metadata={
         "description": (
@@ -335,6 +467,7 @@ def solve_mip(
     rins_frequency: int = 0,
     cut_passes: int = 0,
     parallel: bool = True,
+    progress_interval_s: float = 0,
 ) -> dict[str, list]:
     """Solve a MIP instance with CPLEX across multiple random seeds.
 
@@ -354,6 +487,8 @@ def solve_mip(
             -1=no cuts, 0=automatic, n=at most n passes.
         parallel: If True, run each seed as a Ray remote task (requires ray_remote).
             If False, run seeds in serial.
+        progress_interval_s: If > 0, capture intermediate progress at this interval
+            (seconds). Outputs progress_time_grid and aligned time-series.
 
     Returns:
         Dictionary with vector-valued outputs (one element per seed):
@@ -362,6 +497,10 @@ def solve_mip(
         - mip_gaps: Final relative MIP gaps.
         - nodes_explored: B&B nodes processed.
         - solve_statuses: CPLEX status strings.
+        When progress_interval_s > 0, also:
+        - progress_time_grid: Shared time points (seconds).
+        - objective_over_time, best_bound_over_time, nodes_explored_over_time,
+          mip_gap_over_time: list[list] of aligned values [seed][time_idx].
     """
     import ray
 
@@ -378,6 +517,7 @@ def solve_mip(
             n_threads=n_threads,
             rins_frequency=rins_frequency,
             cut_passes=cut_passes,
+            progress_interval_s=progress_interval_s,
         )
 
     if parallel:
@@ -395,10 +535,36 @@ def solve_mip(
             result = _run_one(seed)
             results.append(result)
 
-    return {
+    out: dict[str, list] = {
         "solve_times": [r["solve_time_s"] for r in results],
         "objective_values": [r["objective_value"] for r in results],
         "mip_gaps": [r["mip_gap"] for r in results],
         "nodes_explored": [r["nodes_explored"] for r in results],
         "solve_statuses": [r["solve_status"] for r in results],
     }
+
+    if progress_interval_s > 0:
+        all_samples = [r.get("progress_samples", []) for r in results]
+        max_elapsed = max(
+            (s["elapsed"] for samples in all_samples for s in samples),
+            default=0.0,
+        )
+        time_grid = _build_time_grid(progress_interval_s, time_limit_s, max_elapsed)
+        aligned_per_seed = [
+            _align_to_grid(samples, time_grid) for samples in all_samples
+        ]
+        out["progress_time_grid"] = time_grid
+        out["objective_over_time"] = [a["best_objective"] for a in aligned_per_seed]
+        out["best_bound_over_time"] = [a["best_bound"] for a in aligned_per_seed]
+        out["nodes_explored_over_time"] = [
+            a["nodes_explored"] for a in aligned_per_seed
+        ]
+        out["mip_gap_over_time"] = [a["mip_gap"] for a in aligned_per_seed]
+    else:
+        out["progress_time_grid"] = []
+        out["objective_over_time"] = []
+        out["best_bound_over_time"] = []
+        out["nodes_explored_over_time"] = []
+        out["mip_gap_over_time"] = []
+
+    return out

@@ -1,6 +1,6 @@
 ---
 title:
-  "ado: A python framework for computational experimentation and benchmarking"
+  "ado: A Python framework for computational experimentation and benchmarking"
 tags:
   - Python
   - benchmarking
@@ -42,7 +42,7 @@ configuration management), execution (parallel and scale‑out), and data
 (sharing, provenance, and reuse). ado provides these capabilities out-of-the-box
 to all domains through a lightweight plugin model, where integrating new
 components can be as simple as decorating a Python function. This is enabled by
-the core abstraction, _the discovery space_, ado is built on.
+the core abstraction, _the Discovery Space_, ado is built on.
 
 Out-of-the-box, ado includes state-of-the-art optimization algorithms and
 predictive modeling tools, alongside concrete experiments targeting
@@ -64,7 +64,7 @@ analyze the outcomes to guide the next iteration. This recurring workflow, the
 experiment campaign, is central to modern research and development, yet it is
 often managed with tools that fail to capture its essential structure.
 
-Scientific and ML workflow systems like Galaxy, AiiDa, and Kubeflow excel at
+Scientific and ML workflow systems like Galaxy, AiiDA, and Kubeflow excel at
 executing general directed acyclic graphs (DAGs), however they are fundamentally
 context-free, treating each step as a black box [@10.1093/nar/gkae410;
 @Huber2020; @George2022EndtoendML]. When it comes to implementing experiment
@@ -75,7 +75,7 @@ scientific progress.
 
 ado directly addresses this gap. Instead of orchestrating arbitrary DAGs, ado
 provides a semantic experimentation model centered on experiment campaigns.
-Users define configuration spaces and operations on them (e.g. sampling or
+Users define configuration spaces and operations on them (e.g., sampling or
 analysis), declaratively. ado then applies the required orchestration using its
 own protocols. For example, in sampling workflows, it handles reuse of prior
 measurements, trial execution and monitoring, and time‑resolved measurement
@@ -109,14 +109,14 @@ common execution platforms (e.g. HPC for AiiDA; Kubernetes‑native pipelines fo
 Kubeflow). As discussed in the previous section, they are strong for general
 workflow execution and provenance but are not ideal for implementing experiment
 campaigns as first‑class, semantically constrained objects. Similarly, ML
-lifecycle management tools like MLFlow provide robust experiment tracking,
+lifecycle management tools like MLflow provide robust experiment tracking,
 metric logging, and artifacts management features for individual runs
 [@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
 construct for an experiment campaign, leaving researchers to implement the logic
 for managing collections of runs as a coherent whole.
 
-General black‑box optimization frameworks like Optuna,Ax,Nevergrad and RayTune
-are also key components for executing experiment campaigns, providing
+General black‑box optimization frameworks like Optuna, Ax, Nevergrad, and
+RayTune are also key components for executing experiment campaigns, providing
 gradient-free, multi‑fidelity and multi‑objective optimization [@Akiba2019;
 @olson2025ax; @10.1145/3460310.3460312; @Liaw2018]. While these tools are
 beginning to add data management features, for example, Optuna and RayTune,
@@ -144,7 +144,7 @@ ado synergizes with, rather than replaces, these existing tools. It can use
 workflow managers like AiiDA as experiment executors, integrate optimizers like
 Optuna and Ax, and orchestrate physical experiments by coupling with robotic lab
 systems like EOS. At the same time, individual experiment implementations within
-ado's plugin architecture can leverage frameworks like MLFlow for fine-grained,
+ado's plugin architecture can leverage frameworks like MLflow for fine-grained,
 domain-specific tracking, while reporting only the salient metrics back to the
 campaign level. The fact that ado integrates cleanly with these systems
 validates the existence of the semantic gap it fills.
@@ -189,7 +189,8 @@ that configuration search campaigns have well-defined mathematical properties,
   to a configuration to measure its properties (the "how to measure").
 - **A sample set:** This is the set of points currently sampled and measured for
   a given combination of a configuration probability space and an action space
-  - It the union of the **sample timeseries** of operations on that combination
+  - It is the union of the **sample timeseries** of operations on that
+    combination
 
 ![A view of a Discovery Space data model instance. The left-hand side
 shows the key data components of the model. The right-hand side shows the process

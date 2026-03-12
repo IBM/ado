@@ -36,9 +36,9 @@ bibliography: paper.bib
 The **Accelerated Discovery Orchestrator (ado)** is a Python package that
 addresses a recurring challenge in research software development: implementing
 common capabilities for design of experiments (DoE) and execution of related
-computational experiment campaigns. These cross‑cutting capabilities span
-methodology (design‑space specification, sampling, analysis), interface (CLI and
-configuration management), execution (parallel and scale‑out), and data
+computational experiment campaigns. These cross-cutting capabilities span
+methodology (design-space specification, sampling, analysis), interface (CLI and
+configuration management), execution (parallel and scale-out), and data
 (sharing, provenance, and reuse).
 
 ado delivers these capabilities across domains through a lightweight plugin
@@ -49,8 +49,8 @@ Out-of-the-box, ado includes state-of-the-art optimization algorithms and
 predictive modeling tools, alongside concrete experiments targeting
 foundation-model performance. Our aim is for ado to become a focal point for
 developing and consuming advanced capabilities for defining and executing
-experiment campaigns that accelerate computational research - from initial
-design to final analysis.
+experiment campaigns that accelerate computational research, from initial design
+to final analysis.
 
 ado is open source and available at <https://github.com/ibm/ado>
 [@johnston_2026_18957620].
@@ -63,12 +63,12 @@ experimentation is remarkably uniform. Whether tuning hyperparameters,
 benchmarking foundation models, or sweeping simulation parameters, researchers
 consistently follow a structured pattern: define a configuration space; select
 points within it; execute experiments at those points; record results; and
-analyze the outcomes to guide the next iteration. This recurring workflow - the
-_experiment campaign_ - is central to modern research and development, yet it is
+analyze the outcomes to guide the next iteration. This recurring workflow, the
+_experiment campaign_, is central to modern research and development, yet it is
 often managed with tools that fail to capture its essential structure.
 
 Scientific and ML workflow systems like Galaxy, AiiDA, and Kubeflow excel at
-executing general directed acyclic graphs (DAGs); however, they are
+executing general directed acyclic graphs (DAGs). However, they are
 fundamentally context-free, treating each step as a black box
 [@10.1093/nar/gkae410; @Huber2020; @George2022EndtoendML]. When it comes to
 implementing experiment campaigns, this forces researchers to implement
@@ -81,7 +81,7 @@ provides a semantic experimentation model centered on experiment campaigns.
 Users define configuration spaces and operations on them (e.g., sampling or
 analysis) declaratively. ado then applies the required orchestration using its
 own protocols. For example, in sampling workflows, it handles reuse of prior
-measurements, trial execution and monitoring, and time‑resolved measurement
+measurements, trial execution and monitoring, and time-resolved measurement
 recording, maintaining consistency over a shared sample store. This approach
 mirrors the advantages of declarative systems like SQL or Terraform: reduced
 boilerplate, fewer errors, and greater clarity. This structured, declarative
@@ -102,28 +102,28 @@ the Ray execution engine, ado seamlessly scales from a researcher's laptop to a
 large remote cluster [@Moritz2018], with all functionality accessible via a
 human-centric CLI and Python API. Researchers can contribute custom experiments
 or operators through a simple plugin interface. The result is a system that is
-context‑specific yet domain‑agnostic (see \autoref{fig:ado}).
+context-specific yet domain-agnostic (see \autoref{fig:ado}).
 
 # State of the field
 
 Mature workflow managers such as Galaxy, AiiDA, and Kubeflow excel at scalable,
 reliable DAG orchestration with strong provenance/lineage and tight alignment to
-common execution platforms (e.g., HPC for AiiDA; Kubernetes‑native pipelines for
+common execution platforms (e.g., HPC for AiiDA; Kubernetes-native pipelines for
 Kubeflow). As discussed in the previous section, they are strong for general
 workflow execution and provenance but are not ideal for implementing experiment
-campaigns as first‑class, semantically constrained objects. Similarly, ML
+campaigns as first-class, semantically constrained objects. Similarly, ML
 lifecycle management tools like MLflow provide robust experiment tracking,
 metric logging, and artifact management features for individual runs
 [@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
 construct for an experiment campaign, leaving researchers to implement the logic
 for managing collections of runs as a coherent whole.
 
-General black‑box optimization frameworks like Optuna, Ax, Nevergrad, and Ray
+General black-box optimization frameworks like Optuna, Ax, Nevergrad, and Ray
 Tune are also key components for executing experiment campaigns, providing
-gradient-free, multi‑fidelity, and multi‑objective optimization [@Akiba2019;
+gradient-free, multi-fidelity, and multi-objective optimization [@Akiba2019;
 @olson2025ax; @10.1145/3460310.3460312; @Liaw2018]. While these tools are
-beginning to add data management features - for example, Optuna and Ray Tune
-support persistent storage for study resumption - they remain fundamentally
+beginning to add data management features, for example, Optuna and Ray Tune
+support persistent storage for study resumption, they remain fundamentally
 code-centric. This approach requires users to define the optimizer, objective,
 and logging in code, which complicates turning individual runs into portable,
 team-level campaigns and hinders data reuse.
@@ -140,7 +140,7 @@ the core semantic model for an experiment campaign. Adding this to workflow
 managers would conflict with their open-ended DAG design, while adding it to a
 single optimizer library would not generalize and would retain a code-first,
 fragmented approach. For automated lab systems, their focus is on managing
-operational complexity, not providing domain‑agnostic, declarative campaign
+operational complexity, not providing domain-agnostic, declarative campaign
 semantics above the lab layer.
 
 ado synergizes with, rather than replaces, these existing tools. It can use
@@ -174,7 +174,7 @@ artifacts of an experimental campaign or study.
 A system satisfying these requirements would ensure that a design of experiments
 (DoE) and its associated data can be understood, shared, extended, and analyzed
 without introducing inconsistencies. In this way, the TRACE requirements offer a
-concrete operationalization of the FAIR Principles (Findable, Accessible,
+concrete implementation of the FAIR Principles (Findable, Accessible,
 Interoperable, and Reusable) [@wilkinson2016fair]. Where FAIR describes _what_
 qualities a digital asset should possess, TRACE defines _how_ to construct
 systems that generate inherently FAIR data from the inception of an experiment
@@ -234,8 +234,8 @@ in scientific and research domains and its extensive ecosystem. For all data
 modeling, we leverage the Pydantic framework [@pydantic]. Pydantic's
 declarative, type-hinted models provide automatic validation for all core
 abstractions (e.g., Discovery Space, configurations), ensuring data integrity,
-providing self-documenting schemas, and creating a clear target for AI-assisted
-code generation.
+providing self-documenting schemas, and creating a clear target for AI code
+generation.
 
 ## Extensibility Through a Plugin Architecture
 
@@ -256,8 +256,8 @@ ado leverages Ray for distributed, scale-out execution of operations
 prototyping to large-scale cluster execution without requiring changes to the
 experiment definitions. By building on Ray, we delegate complex distributed
 computing concerns - such as resource management, scheduling, and fault
-tolerance - to a robust, industry-standard framework, allowing ado's core logic
-to focus on domain-specific orchestration.
+tolerance - to a robust, industry-standard framework. This allows ado's core
+logic to focus on domain-specific orchestration.
 
 A key feature is that while the ado operations run as Ray applications,
 individual plugins (actuators and operators) are not required to use Ray's

@@ -51,20 +51,27 @@ class NoPriorsSampleSelector(BaseSampler):
         ) -> typing.Callable[[], typing.AsyncGenerator[list[Entity], None]]:
 
             logger_no_priors.info("Characterization with no-priors starts.\n")
-            logger_no_priors.info(f"PARAMETERS ARE:\n{self.params}\n\n")
+            logger_no_priors.info(f"Parameters are:\n{self.params}\n\n")
 
             discoverySpace = await stateHandle.discoverySpace.remote()
             source_df, target_df = get_source_and_target(
                 discoverySpace, self.params.targetOutput
             )
             logger_no_priors.info(f"Target dataframe has length {len(target_df)}")
+
+            # The 'samples' parameter specifies the number of NEW entities to sample,
+            # regardless of how many entities have already been measured in the space
+            logger_no_priors.info(
+                f"Space has {len(source_df)} measured entities. "
+                f"Sampling {self.params.samples} new entities as requested."
+            )
             target_df = order_df_for_sampling_with_no_priors(
                 target_df,
                 [
                     cp.identifier
                     for cp in discoverySpace.entitySpace.constitutiveProperties
                 ],
-                self.params.samples - len(source_df),
+                self.params.samples,
                 strategy=self.params.sampling_strategy,
             )
             list_of_entities_for_no_prior_characterization = (

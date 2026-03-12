@@ -15,7 +15,7 @@
 > 1. Defining the parameter space to explore.
 > 2. Creating an `operation` that uses no-priors characterization to sample
 >    points using a chosen strategy.
-> 3. Observing the sampling process as it measures the target output prerty with
+> 3. Observing the sampling process as it measures the target output property with
 >    the selected strategy.
 
 > [!IMPORTANT] Prerequisites

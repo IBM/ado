@@ -16,31 +16,6 @@ from no_priors_characterization.utils.high_dimensional_sampling import (
 logger = logging.getLogger(__name__)
 
 
-def reorder_df_by_importance(
-    df: pd.DataFrame,
-    importance_feature_list: tuple[str, ...] | list[str],
-) -> pd.DataFrame:
-    """
-    Reorder df rows by feature importance (descending order priority of columns).
-    Minimal checks only:
-      - ensure importance_feature_list is not empty
-      - warn if some features are missing in df
-      - sort by the features that exist in df
-    """
-    if not importance_feature_list:
-        raise ValueError("importance_feature_list is empty.")
-
-    missing = [c for c in importance_feature_list if c not in df.columns]
-    if missing:
-        logger.error("Columns not present in target df: %s", missing)
-
-    sort_cols = [c for c in importance_feature_list if c in df.columns]
-    if not sort_cols:
-        raise ValueError("None of the importance features are present in df.")
-
-    return df.sort_values(by=sort_cols).reset_index(drop=True)
-
-
 def order_df_for_sampling_with_no_priors(
     df: pd.DataFrame,
     constitutive_properties: list[str],
@@ -50,44 +25,24 @@ def order_df_for_sampling_with_no_priors(
     """
     Orders a DataFrame for high-dimensional sampling without prior knowledge.
 
+    Deduplicates rows based on constitutive properties, orders them for sampling,
+    and returns a subset of n samples using the specified strategy.
+
     Args:
-        df (pd.DataFrame):
-            The input dataset containing at least the columns specified in `constitutive_properties`.
-            May contain duplicate configurations across the constitutive properties, which will
-            be removed before sampling.
-        constitutive_properties (list[str]):
-            Column names that define the configuration space (axes of the high-dimensional grid).
+        df: Input dataset containing at least the columns specified in
+            constitutive_properties. May contain duplicate configurations.
+        constitutive_properties: Column names defining the configuration space.
             Uniqueness is enforced over the Cartesian product of these properties.
-        n (int):
-            Number of samples (orders) to generate. If larger than the deduplicated DataFrame length,
-            it is reduced to fit and a warning is logged.
-        strategy (str):
-            Sampling subroutine identifier. Passed through to `get_order_list_nn_high_dimensional`;
-            see that function's documentation for supported strategies and behavior.
+        n: Number of samples to generate. Adjusted if larger than available
+            unique configurations.
+        strategy: Sampling strategy - "random", "clhs", or "sobol".
 
     Returns:
-        pd.DataFrame:
-            A view of the ordered, deduplicated DataFrame (`df_unique`) restricted to the rows
-            at `indices_to_sample`. The returned DataFrame preserves the column schema of `df`
-            and has `n` rows (after any adjustment). Index is positional (0..n-1) because
-            `.iloc` is used and `df_unique` was reset with `drop=True`.
+        DataFrame with n sampled rows, preserving the original column schema.
+        Index is positional (0..n-1).
 
-    Steps:
-
-    0. Filter dataset so that for each combination of constitutive properties you only have one row
-    1. Extract unique values for each constitutive property.
-    2. Build:
-        - value_dict_unordered: keys = properties, values = unique unordered lists.
-        - value_dict: same as above but ordered ascending.
-        - space_dict: keys = properties, values = length of each list.
-        - dimensions: list of lengths (dimensionality).
-    3. Order the DataFrame so that index mapping aligns with high-dimensional sampling.
-    4. Generate orders_to_sample using get_order_list_nn_high_dimensional().
-    5. Map these orders to actual DataFrame indices.
-    6. Return a DataFrame with rows corresponding to sampled indices.
-        Row ith is the row corresponding to indeces_to_sample[i]
-
-    If n > len(df), log a warning and adjust n to min(n, len(df)).
+    Raises:
+        ValueError: If n <= 0 after adjustment or no samples are available.
     """
 
     # Filtering
@@ -118,15 +73,13 @@ def order_df_for_sampling_with_no_priors(
     # Build dictionaries
     def _get_sorted_uniques(prop: str) -> list:
         """Helper to safely sort unique values for a property."""
-        # Note: using set() handles duplicates, but be aware that set({nan, nan})
-        # can result in multiple NaNs. consider df_unique[prop].unique() for safer handling.
-        vals = set(df_unique[prop].values)
+        vals = df_unique[prop].unique()
         try:
             return sorted(vals)
         except TypeError:
             logging.warning(
                 f"Cannot sort mixed types for property '{prop}'. "
-                "Keeping original order (it may be inconsistent due to the use of sets)."
+                "Keeping original order."
             )
             return list(vals)
 
@@ -137,7 +90,6 @@ def order_df_for_sampling_with_no_priors(
     dimensions = list(space_dict.values())
 
     # Order DataFrame for index mapping
-    # NOTE: just added .reset_index(drop=True)
     df_unique = order_df_for_get_index_list_nn_high_dimensional(
         df_unique, constitutive_properties, dimensions=dimensions
     ).reset_index(drop=True)
@@ -170,102 +122,78 @@ def order_df_for_get_index_list_nn_high_dimensional(
     df: pd.DataFrame, constitutive_properties: list[str], dimensions: list[int]
 ) -> pd.DataFrame:
     """
-    Ensure a DataFrame is ordered and complete for high-dimensional index generation.
+    Ensure DataFrame is ordered and complete for high-dimensional index generation.
 
-    This utility prepares `df` so that its rows align with the Cartesian product
-    implied by `constitutive_properties` and `dimensions`. Specifically:
+    Prepares the DataFrame so rows align with the Cartesian product implied by
+    constitutive_properties and dimensions. Sorts rows, validates completeness,
+    and injects missing combinations if needed.
 
-    1. Sort rows by the provided constitutive properties in the given order.
-    2. Validate that the DataFrame length matches the expected size:
-        `expected_len = product(dimensions)`.
-    3. If rows are missing:
-        - Log a warning.
-        - Generate all possible combinations of unique values for each constitutive property.
-        - Identify missing combinations and inject them as new rows.
-            Non-constitutive columns in injected rows are filled with `NaN`.
-    4. Return the augmented and re-sorted DataFrame.
+    Args:
+        df: Input DataFrame containing at least the columns in constitutive_properties.
+        constitutive_properties: Column names defining the high-dimensional space.
+            Order determines sort priority.
+        dimensions: Expected cardinality for each constitutive property.
+            Used to compute expected_len = product(dimensions).
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Input DataFrame containing at least the columns listed in `constitutive_properties`.
-    constitutive_properties : list[str]
-        Column names that define the high-dimensional space (e.g., factors or grid axes).
-        The order determines the sort priority.
-    dimensions : list[int]
-        Expected cardinality for each constitutive property. Used to compute
-        `expected_len = math.prod(dimensions)` for consistency checks.
+    Returns:
+        DataFrame sorted by constitutive_properties and augmented with any missing
+        combinations. Injected rows have NaN for non-constitutive columns.
 
-    Returns
-    -------
-    pd.DataFrame
-        A DataFrame sorted by `constitutive_properties` and augmented with any missing
-        combinations, ensuring coverage of the full Cartesian product implied by `dimensions`.
-
-    Notes
-    -----
-    - Injected rows will have `NaN` for all non-constitutive columns.
-    - If `dimensions` and the actual unique values in `df` disagree, the function uses
-        observed unique values to generate combinations.
-    - This function is useful for downstream routines that assume a complete
-        and ordered representation of the sampling space.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'A': [1, 2], 'B': ['x', 'y'], 'value': [0.1, 0.2]})
-    >>> order_df_for_get_index_list_nn_high_dimensional(df, ['A', 'B'], [2, 2])
-    # Returns a DataFrame with 4 rows covering all (A,B) pairs, sorted by A then B.
+    Notes:
+        If dimensions and actual unique values disagree, uses observed unique
+        values to generate combinations.
     """
-
     # Sort by constitutive properties
     df = df.sort_values(by=constitutive_properties).reset_index(drop=True)
 
     expected_len = math.prod(dimensions)
 
-    # Generate all possible combinations based on actual unique values in DataFrame
+    # Return early if already complete
+    if len(df) == expected_len:
+        return df
+
+    # Generate all possible combinations based on actual unique values
     unique_values = [
         sorted(df[prop].dropna().unique()) for prop in constitutive_properties
     ]
     all_combinations = list(itertools.product(*unique_values))
     actual_expected_len = len(all_combinations)
 
-    if len(df) != expected_len:
-        logger.warning(
-            f"DataFrame length mismatch: expected {expected_len} (product of {dimensions}), "
-            f"but got {len(df)}. Actual unique combinations: {actual_expected_len}."
+    logger.warning(
+        f"DataFrame length mismatch: expected {expected_len} (product of {dimensions}), "
+        f"but got {len(df)}. Actual unique combinations: {actual_expected_len}."
+    )
+
+    # Identify existing combinations
+    existing_combinations = {
+        tuple(row[prop] for prop in constitutive_properties) for _, row in df.iterrows()
+    }
+
+    # Find missing combinations
+    missing_combinations = [
+        comb for comb in all_combinations if comb not in existing_combinations
+    ]
+
+    if missing_combinations:
+        logger.info(
+            f"Injecting {len(missing_combinations)} missing rows to satisfy the property."
         )
+        injected_rows = []
+        for comb in missing_combinations:
+            row_data = dict(zip(constitutive_properties, comb, strict=False))
+            # Fill other columns with NaN
+            for col in df.columns:
+                if col not in constitutive_properties:
+                    row_data[col] = pd.NA
+            injected_rows.append(row_data)
 
-        # Identify existing combinations
-        existing_combinations = {
-            tuple(row[prop] for prop in constitutive_properties)
-            for _, row in df.iterrows()
-        }
+        # Append missing rows
+        df = pd.concat([df, pd.DataFrame(injected_rows)], ignore_index=True)
 
-        # Find missing combinations
-        missing_combinations = [
-            comb for comb in all_combinations if comb not in existing_combinations
-        ]
+        # Sort again after injection
+        df = df.sort_values(by=constitutive_properties).reset_index(drop=True)
 
-        if missing_combinations:
-            logger.info(
-                f"Injecting {len(missing_combinations)} missing rows to satisfy the property."
-            )
-            injected_rows = []
-            for comb in missing_combinations:
-                row_data = dict(zip(constitutive_properties, comb, strict=False))
-                # Fill other columns with NaN
-                for col in df.columns:
-                    if col not in constitutive_properties:
-                        row_data[col] = pd.NA
-                injected_rows.append(row_data)
-
-            # Append missing rows
-            df = pd.concat([df, pd.DataFrame(injected_rows)], ignore_index=True)
-
-            # Sort again after injection
-            df = df.sort_values(by=constitutive_properties).reset_index(drop=True)
-
-            logger.info(f"Injected rows: {injected_rows}")
+        logger.info(f"Injected rows: {injected_rows}")
 
     return df
 

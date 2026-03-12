@@ -6,17 +6,17 @@ providing initial exploration of discovery spaces using high-dimensional
 sampling strategies.
 
 **No-Priors Characterization** is designed for unbiased exploration when no
-measured data exists yet. It samples the discovery space without relying on
-feature importance or predictive models, establishing an initial dataset for
-subsequent model-based exploration. This operator is ideal for starting new
-discovery campaigns or avoiding bias in early-stage exploration.
+measured data exists yet, establishing an initial dataset for subsequent
+model-based exploration. This operator is ideal for avoiding bias in
+early-stage exploration of discovery spaces.
 
 ## How it Works
 
-The `No-Priors Characterization` operator uses sophisticated sampling strategies
+The `No-Priors Characterization` operator uses different sampling strategies
 to ensure good coverage of the discovery space:
 
-- **`random`**: Random sampling across the space for unbiased exploration
+- **`random`**: Random sampling across the space for unbiased exploration.
+  This provides the baseline sampling approach.
 - **`clhs`** (Concatenated Latin Hypercube Sampling): Ensures uniform coverage
   by enforcing stratification in each dimension independently. Each dimension
   cycles through all possible values before repeating.

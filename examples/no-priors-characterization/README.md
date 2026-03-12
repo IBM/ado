@@ -60,32 +60,43 @@ parameter space systematically without requiring any prior knowledge or
 existing data. It's perfect for initial exploration of a system where you want
 to gather representative samples across the entire parameter space.
 
+**Handling Existing Measurements**: If the discovery space already contains
+measured entities for the target property, the operator automatically:
+
+- Identifies which entities have already been measured
+- Excludes them from sampling
+- Adjusts the sample count to collect only the remaining needed measurements
+- For example, if you request 30 samples and 10 are already measured, it will
+  collect 20 new samples from the unmeasured entities
+
 The operator supports three sampling strategies:
 
 1. **Random Sampling (`random`)**: Uniformly random sampling across the
    parameter space. Fast and simple, but may not provide optimal coverage.
 
-2. **Sobol Sampling (`sobol`)**: A quasi-random low-discrepancy sampling
+2. **Concatenated Latin Hypercube Sampling (`clhs`)**: An adaptation of Latin
+   Hypercube Sampling for discrete spaces. Good coverage in each dimension is
+   obtained by avoiding measuring parameters combinations with many common
+   values. Particularly effective for high-dimensional spaces.
+
+3. **Sobol Sampling (`sobol`)**: A quasi-random low-discrepancy sampling
    method that provides better space-filling properties than pure random
    sampling. It has been adapted for discrete parameter spaces. It falls back
    to Concatenated Latin Hypercube Sampling when collisions are detected
    during the discretization process.
 
-3. **Concatenated Latin Hypercube Sampling (`clhs`)**: An adaptation of Latin
-   Hypercube Sampling for discrete spaces. Good coverage in each dimension is
-   obtained by avoiding measuring parameters combinations with many common
-   values. Particularly effective for high-dimensional spaces.
-
-The operator samples a specified number of points in batches, measures them
-using the configured experiment, and stores the results in the sample store.
-
 <!-- markdownlint-disable no-blanks-blockquote -->
 > [!CAUTION]
 >
 > In the current version of no-priors characterization, if not all
-> measurements produce the observed target output property, specified in the
-> `operation.parameters.targetOutput` field, you will.
+> measurements produce the observed target output property specified in the
+> `operation.parameters.targetOutput` field, the operation may fail or produce
+> incomplete results. Ensure all experiments return the expected target property.
+
 <!-- markdownlint-enable no-blanks-blockquote -->
+
+The operator samples a specified number of points in batches, measures them
+using the configured experiment, and stores the results in the sample store.
 
 ## Creating a `discoveryspace`
 
@@ -128,11 +139,13 @@ different sampling strategies:
 The configuration for a basic sampling operation using CLHS is in
 `op_basic_sampling.yaml`:
 
+<!-- prettier-ignore-start -->
 ```yaml
-{% 
-  include-markdown "./example_yamls/op_basic_sampling.yaml" 
+{%
+  include-markdown "./example_yamls/op_basic_sampling.yaml"
 %}
 ```
+<!-- prettier-ignore-end -->
 
 To run the operation, execute:
 
@@ -148,7 +161,8 @@ ado create operation -f \
 
 ### Quick Exploration with Random Sampling
 
-For faster exploration with random sampling:
+For faster exploration with random sampling (uses random sampling with 20 samples
+and batch size of 5 for quick initial exploration):
 
 ```commandline
 ado create operation -f \
@@ -156,9 +170,13 @@ ado create operation -f \
   --use-latest space
 ```
 
+**Note**: Each operation samples different points from the space based on its
+strategy and parameters, even when using the same discovery space.
+
 ### Thorough Coverage with Sobol Sequence
 
-For comprehensive coverage using Sobol sequences:
+For comprehensive coverage using Sobol sequences (uses Sobol sampling with 100
+samples and batch size of 1 for detailed parameter space coverage):
 
 ```commandline
 ado create operation -f \
@@ -250,21 +268,6 @@ yield values.
 ```
 
 <!-- markdownlint-enable line-length -->
-
-## Comparing Sampling Strategies
-
-The three provided example configurations demonstrate different use cases:
-
-- **Basic Sampling (`op_basic_sampling.yaml`)**: Uses CLHS with 30 samples and
-  batch size of 1. Good for general-purpose exploration with excellent coverage.
-
-- **Quick Exploration (`op_quick_exploration.yaml`)**: Uses random sampling
-  with 20 samples and batch size of 5. Fastest option for initial exploration
-  when you need results quickly.
-
-- **Thorough Coverage (`op_thorough_coverage.yaml`)**: Uses Sobol sequences
-  with 100 samples and batch size of 1. Best for comprehensive characterization
-  when you need detailed coverage of the parameter space.
 
 ## Takeaways
 

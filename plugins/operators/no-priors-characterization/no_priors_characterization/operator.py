@@ -58,16 +58,16 @@ def no_priors_characterization(
     logger.info(f"Parameters: {params}")
 
     # Configure the no-priors sampler
-    nopriors_module = SamplerModuleConf(
+    no_priors_module = SamplerModuleConf(
         moduleClass="NoPriorsSampleSelector",
         moduleName="no_priors_characterization.no_priors_sampler",
     )
 
     no_priors_sampler_config = CustomSamplerConfiguration(
-        module=nopriors_module, parameters=params
+        module=no_priors_module, parameters=params
     )
 
-    no_priors_rwparams = RandomWalkParameters(
+    no_priors_random_walk_params = RandomWalkParameters(
         samplerConfig=no_priors_sampler_config,
         batchSize=params.batchSize,
         numberEntities=params.samples,
@@ -91,7 +91,7 @@ def no_priors_characterization(
                 ),
             }
         ),
-        **no_priors_rwparams.model_dump(),
+        **no_priors_random_walk_params.model_dump(),
     )
 
     logger.info("No-priors characterization completed")

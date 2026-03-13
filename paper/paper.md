@@ -219,16 +219,6 @@ This allows domain experts to contribute self-contained plugins for experiments,
 sampling, and analysis tools, which immediately and safely inherit all the
 platform's core capabilities
 
-## Distributed Execution with Ray
-
-ado leverages Ray for distributed execution of operations [@Moritz2018]. This
-provides a path from single-machine prototyping to large-scale execution without
-requiring changes to the experiment definitions. A key feature is that plugins
-are not required to use Ray's constructs. This gives plugin developers
-flexibility: they can choose to leverage Ray, or adopt other means of scaling,
-such as by spawning external workflows. This ensures that ado can accommodate a
-wide range of use cases and integration patterns.
-
 # Research impact statement
 
 ado has been internally battle-tested on complex industrial workloads and

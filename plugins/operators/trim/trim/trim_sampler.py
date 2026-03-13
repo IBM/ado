@@ -33,9 +33,9 @@ from no_priors_characterization.utils import (
     get_index_list_van_der_corput,
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
-    reorder_df_by_importance,
 )
 
+from orchestrator.utilities.pandas import sort_rows_by_column_names
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
@@ -712,7 +712,7 @@ class TrimSampleSelector(BaseSampler):
             raise ValueError(msg)
 
         # Order merged dataframe by source space feature importance
-        merged_df_ordered_by_source_importance = reorder_df_by_importance(
+        merged_df_ordered_by_source_importance = sort_rows_by_column_names(
             merged_df, ordered_features
         )
 

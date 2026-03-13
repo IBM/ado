@@ -46,11 +46,10 @@ model, where integrating new components can be as simple as decorating a Python
 function. This is enabled by ado's core abstraction: the _Discovery Space_.
 
 Out-of-the-box, ado includes state-of-the-art optimization algorithms and
-predictive modeling tools, alongside concrete experiments targeting
+predictive modeling tools, alongside experiments targeting
 foundation-model performance. Our aim is for ado to become a focal point for
 developing and consuming advanced capabilities for defining and executing
-experiment campaigns that accelerate computational research, from initial design
-to final analysis.
+experiment campaigns.
 
 ado is open source and available at <https://github.com/ibm/ado>
 [@johnston_2026_18957620].
@@ -62,8 +61,8 @@ learning, physics simulation, and hardware design, the process of
 experimentation is remarkably uniform. Whether tuning hyperparameters,
 benchmarking foundation models, or sweeping simulation parameters, researchers
 consistently follow a structured pattern: define a configuration space; select
-points within it; execute experiments at those points; record results; and
-analyze the outcomes to guide the next iteration. This recurring workflow, the
+points; execute experiments; record results; and
+analyze the outcomes to guide the next iteration. This workflow, the
 _experiment campaign_, is central to modern research and development, yet it is
 often managed with tools that fail to capture its essential structure.
 
@@ -126,7 +125,7 @@ fragmented approach. For automated lab systems, their focus is on managing
 operational complexity, not providing domain-agnostic, declarative campaign
 semantics above the lab layer.
 
-ado synergizes with, rather than replaces, these existing tools. It can use
+ado synergizes with, rather than replaces, these tools. It can use
 workflow managers as experiment executors, integrate optimization frameworks,
 and orchestrate physical experiments by coupling with robotic lab systems. At
 the same time, individual experiment implementations within ado's plugin
@@ -187,7 +186,7 @@ configuration probability space and action space definitions it is
 **encapsulated** and **actionable**; it is **time-resolved** as it contains the
 sample set.
 
-![A view of data sharing between Discovery Spaces. Each space reads/writes
+![Data sharing between Discovery Spaces. Each space reads/writes
 samples and time series
 membership details from a shared sample store (_common context_).
 In this case both spaces have the same action space and contain point X.
@@ -198,56 +197,44 @@ width=80% }
 
 We obtain a **common context** by storing the sample time series in a shared
 sample store with a common schema. Finally, it is **reconcilable** as it
-enforces that samples in the common context are only part of the sample set of a
-Discovery Space if they are part of the sample time series of an operation on
-that space (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE
+enforces a strict membership rule for its sample set: only samples in the
+common-context that are associated with an operation conducted on that space are
+included. (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE
 characteristics.
 
 The Discovery Space abstraction effectively decouples workload-specific
 experiments from the search and optimization algorithms, enabling the kind of
 versatile, workload-agnostic capabilities that are a key goal of the program.
 
-## Data Modeling with Python and Pydantic
+## Pydantic-based Core Architecture
 
-The core of our architecture is implemented in Python, chosen for its ubiquity
-in scientific and research domains and its extensive ecosystem. For all data
-modeling, we leverage the Pydantic framework [@pydantic]. Pydantic's
-declarative, type-hinted models provide automatic validation for all core
-abstractions ensuring data integrity, providing self-documenting schemas, and
-creating a clear target for AI code generation.
+ado is implemented in Python, chosen for its ubiquity in scientific domains.
+Central to ado is the Pydantic framework, which we use for all data modeling.
+These Pydantic models serve as the primary user-facing components, providing
+automatic validation, self-documenting schemas, and a clear target for AI code
+generation.
 
-## Extensibility Through a Plugin Architecture
-
-ado is built on a plugin architecture to ensure extensibility while maintaining
-a stable core. This design allows adding new experiments, analysis tools, and
-storage backends. This extensibility is enabled via our Pydantic data models,
-which serve as the data contract for the system. This approach enables domain
-experts to contribute self-contained plugins while immediately inheriting all
-the platform's core capabilities.
+They also serve as the data-contract for ado's extensible plugin architecture.
+This allows domain experts to contribute self-contained plugins for experiments,
+sampling, and analysis tools, which immediately and safely inherit all the
+platform's core capabilities
 
 ## Distributed Execution with Ray
 
-ado leverages Ray for distributed, scale-out execution of operations
-[@Moritz2018]. This choice provides a path from local, single-machine
-prototyping to large-scale cluster execution without requiring changes to the
-experiment definitions. By building on Ray, we delegate complex distributed
-computing concerns to a robust, industry-standard framework. This allows ado's
-core logic to focus on domain-specific orchestration.
-
-A key feature is that individual plugins are not required to use Ray's
-constructs. This gives plugin authors flexibility: they can choose to leverage
-Ray actors and tasks to scale their own internal logic, or they can orchestrate
-experiments through other means, such as by spawning external workflows. This
-ensures that ado can accommodate a wide range of use cases and integration
-patterns.
+ado leverages Ray for distributed execution of operations [@Moritz2018]. This
+provides a path from single-machine prototyping to large-scale execution without
+requiring changes to the experiment definitions. A key feature is that plugins
+are not required to use Ray's constructs. This gives plugin developers
+flexibility: they can choose to leverage Ray, or adopt other means of scaling,
+such as by spawning external workflows. This ensures that ado can accommodate a
+wide range of use cases and integration patterns.
 
 # Research impact statement
 
-Although ado is a newly open source framework, it has been internally
-battle-tested on complex industrial workloads and research questions
-[@johnston2025efficientreuseablecloudconfiguration]. Its impact and utility are
-demonstrated by a range of publicly available artifacts, which provide a strong
-foundation for community adoption.
+ado has been internally battle-tested on complex industrial workloads and
+research questions [@johnston2025efficientreuseablecloudconfiguration]. Its
+impact and utility are demonstrated by a range of publicly available artifacts,
+which provide a strong foundation for community adoption.
 
 - **Large-Scale Benchmarking:** We generated all fine-tuning benchmarks for
   IBM's watsonx.ai platform. The resulting artifacts, including the

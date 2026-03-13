@@ -232,8 +232,8 @@ which provide a strong foundation for community adoption.
   [recommender models built from this data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf),
   are now publicly available.
 - **Advanced Performance Analysis:** The framework was used for detailed
-  performance analysis of geospatial models on vLLM [@kwon2023efficient]. The
-  resulting
+  performance analysis of geospatial models on vLLM [@10.1145/3600006.3613165].
+  The resulting
   [vllm-performance plugin](https://ibm.github.io/ado/actuators/vllm_performance/),
   which includes unique features like automated deployment and tear-down, has
   been open sourced.

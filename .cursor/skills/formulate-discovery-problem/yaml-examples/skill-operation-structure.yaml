@@ -4,11 +4,14 @@ spaces:
   - space_identifier # From Phase 1
 operation:
   module:
-    operatorName: operator_name
+    operatorName: random_walk # could be any operator_name
     operationType: search # or modify, characterize, etc.
   parameters:
-    param1: value1
-    param2: value2
+    # These must include the appropriate parameters for the operator
+    # that is defined by operatorName. In this case we override
+    # defaults from RandomWalkParameters
+    numberEntities: 100
+    batchSize: 10
 actuatorConfigurationIdentifiers: [actuator_config_id] # Optional
 metadata:
   name: operation_name

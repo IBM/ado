@@ -1,8 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
+import pathlib
 
 import pytest
+import yaml
 from ado_ray_tune.operator import RayTune
 
 import orchestrator.core
@@ -51,29 +52,23 @@ def randomWalkConf(
         config = DiscoveryOperationResourceConfiguration(**d)
 
     if request.param == "all":
-        config.operation.parameters["numberEntities"] = "all"
+        config.operation.parameters.numberEntities = "all"
 
     return config
 
 
-@pytest.fixture(params=["valueGreaterThanSize", "extraField"])
-def invalidRandomWalkConf(
-    request: pytest.FixtureRequest,
-) -> DiscoveryOperationResourceConfiguration:
+@pytest.fixture
+def invalidRandomWalkConf() -> DiscoveryOperationResourceConfiguration:
 
-    import yaml
+    config = DiscoveryOperationResourceConfiguration.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml"
+            ).read_text()
+        )
+    )
 
-    with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
-        d = yaml.safe_load(f)
-        config = DiscoveryOperationResourceConfiguration(**d)
-
-    if request.param == "valueGreaterThanSize":
-        config.operation.parameters["numberEntities"] = 62
-    elif request.param == "extraField":
-        parameters = config.operation.parameters.copy()
-        parameters.pop("numberEntities")
-        parameters["number-iterations"] = 10
-        config.operation.parameters = parameters
+    config.operation.parameters.numberEntities = 62
 
     return config
 

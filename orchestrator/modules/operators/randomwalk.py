@@ -432,7 +432,9 @@ class RandomWalk(Characterize):
         return RandomWalkParameters()
 
     @classmethod
-    def validateOperationParameters(cls, parameters: dict) -> RandomWalkParameters:
+    def validateOperationParameters(
+        cls, parameters: dict | pydantic.BaseModel
+    ) -> RandomWalkParameters:
 
         return RandomWalkParameters.model_validate(parameters)
 

@@ -304,20 +304,20 @@ def test_random_walk_config(
 
     # Test extra params not allowed
 
-    parameters = randomWalkConf.operation.parameters.copy()
-    parameters["foo"] = "bar"
+    parameters_dict = randomWalkConf.operation.parameters.model_dump()
+    parameters_dict["foo"] = "bar"
 
     with pytest.raises(pydantic.ValidationError):
-        RandomWalk.validateOperationParameters(parameters=parameters)
+        RandomWalk.validateOperationParameters(parameters=parameters_dict)
 
     # Test extra params not allowed
 
-    parameters = randomWalkConf.operation.parameters.copy()
-    parameters.pop("numberEntities")
-    parameters["number-iterations"] = 6
+    parameters_dict = randomWalkConf.operation.parameters.model_dump()
+    parameters_dict.pop("numberEntities")
+    parameters_dict["number-iterations"] = 6
 
     with pytest.raises(pydantic.ValidationError):
-        RandomWalk.validateOperationParameters(parameters=parameters)
+        RandomWalk.validateOperationParameters(parameters=parameters_dict)
 
 
 def test_random_walk_custom_sampler_config() -> None:
@@ -400,11 +400,11 @@ def test_ray_tune_config(
         parameters=raytuneConf.operation.parameters
     )
 
-    parameters = raytuneConf.operation.parameters.copy()
-    parameters["foo"] = "bar"
+    parameters_dict = raytuneConf.operation.parameters.model_dump()
+    parameters_dict["foo"] = "bar"
 
     with pytest.raises(pydantic.ValidationError):
-        RandomWalk.validateOperationParameters(parameters=parameters)
+        RandomWalk.validateOperationParameters(parameters=parameters_dict)
 
 
 def test_run_random_walk_operation(
@@ -424,7 +424,9 @@ def test_run_random_walk_operation(
         parameters=randomWalkConf.operation.parameters
     )
 
-    operationOutput = random_walk(discoverySpace, **randomWalkConf.operation.parameters)
+    operationOutput = random_walk(
+        discoverySpace, **randomWalkConf.operation.parameters.model_dump()
+    )
 
     assert isinstance(
         operationOutput, orchestrator.core.operation.operation.OperationOutput
@@ -491,7 +493,7 @@ def test_random_walk_fail_invalid_config(
     # This is captured and raise as a OperationException
     try:
         random_walk(
-            discoverySpace, **invalidRandomWalkConf.operation.parameters
+            discoverySpace, **invalidRandomWalkConf.operation.parameters.model_dump()
         )  # type: orchestrator.modules.operators.base.OperationOutput
     except orchestrator.core.operation.operation.OperationException as error:
         operation = error.operation
@@ -542,7 +544,7 @@ def test_run_ray_tune_operation(
     import ado_ray_tune.operator_function
 
     operationOutput = ado_ray_tune.operator_function.ray_tune(
-        discoverySpace, **raytuneConf.operation.parameters
+        discoverySpace, **raytuneConf.operation.parameters.model_dump()
     )
 
     assert isinstance(

@@ -166,27 +166,14 @@ class ActuatorRegistry:
             for _name, member in inspect.getmembers(
                 importlib.import_module(module.name)
             ):
-                # MJ: The Actuator classes are decorated ray.remote
-                # This means the member mymodule.myactuatorclass will be an instance of ray
-                # "ActorClass(MyActuatorClass)" and not the class!
-                #
-                # Ray has added code so ActuatorBase.__subclasscheck__(ActorClass(MyActuatorClass))" returns True
-                # i.e. it identifies that the ray "wrapped" subclass is a subclass
-                #
-                # This finally means isinstance(mymodule.myactuatorclass, ActuatorBase) works although unexpectedly,
-                # as you would expect the first arg to be an instance not a class
-                # Why does it work? mymodule.myactorclass -> is an instance of ActorClass(MyActuatorClass) -> the class of this is  ActorClass(MyActuatorClass) -> this evaluates as subclass of ActuatorBase
-
-                # It's slightly clearer to use issubclass, as this is what you want to know, but correct for the fact that
-                # when "member" is an ActuatorBase subclass it will be decorated with a ray object, and we need to use __class__
-
-                # Check if this is an ActuatorBase subclass (decorated or not)
-
-                # This will handle both decorated and undecorated actuators
+                # Builtin actuators are undecorated; operators/setup.py applies
+                # ray.remote when instantiating them.
                 actuator_class = None
-                if issubclass(member.__class__, ActuatorBase):
-                    actuator_class = _extract_base_actuator_class(member)
-                elif isinstance(member, ActuatorBase):
+                if (
+                    isinstance(member, type)
+                    and member is not ActuatorBase
+                    and issubclass(member, ActuatorBase)
+                ):
                     actuator_class = member
 
                 if actuator_class:
@@ -370,7 +357,6 @@ class ActuatorRegistry:
         Parameters:
             actuatorid: The id of this actuator. This id is how consumers will access it
             actuatorClass: The class that implements the actuator.
-                Note: Since these are decorated with "ray.remote" they will actually be instances of ray.actor.ActorClass
             is_builtin: Whether this is a builtin actuator (from orchestrator.modules.actuators)
         """
 

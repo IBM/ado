@@ -5,7 +5,6 @@
 import pytest
 
 import orchestrator.core.samplestore.csv
-import orchestrator.plugins.samplestores.gt4sd
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.experiment import Experiment
@@ -49,9 +48,16 @@ def experiment_catalogs() -> list[ExperimentCatalog]:
             {
                 "experimentIdentifier": "transformer-toxicity-inference-experiment",
                 "actuatorIdentifier": "replay",
-                "observedPropertyMap": dict(
-                    orchestrator.plugins.samplestores.gt4sd.GT4SDTransformer.propertyMap
-                ),
+                "observedPropertyMap": {
+                    "logws": "GenLogws",
+                    "logd": "GenLogd",
+                    "loghl": "GenLoghl",
+                    "pka": "GenPka",
+                    "biodegradation halflife": "GenBiodeg",
+                    "bcf": "GenBcf",
+                    "ld50": "GenLd50",
+                    "scscore": "GenScscore",
+                },
                 "constitutivePropertyMap": ["smiles"],
             }
         ],

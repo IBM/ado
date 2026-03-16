@@ -156,9 +156,9 @@ ado create operation -f \
 
 <!-- markdownlint-enable line-length -->
 
-### Quick Exploration with Random Sampling
+### Exploration with Random Sampling
 
-For faster exploration with random sampling (uses random sampling with 20 samples
+For an exploration with random sampling (uses random sampling with 20 samples
 and batch size of 5 for quick initial exploration):
 
 ```commandline

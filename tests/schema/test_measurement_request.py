@@ -483,7 +483,7 @@ def test_measurement_request_series_representation(
         assert series["result_index"] == expected_result_id
         assert series["entity_index"] == i
         assert series["identifier"] == random_request.entities[i].identifier
-        assert series["experiment_id"] == random_request.experimentReference
+        assert series["experiment_id"] == str(random_request.experimentReference)
         assert series["valid"]
 
 

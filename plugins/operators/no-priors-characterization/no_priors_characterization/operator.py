@@ -75,22 +75,27 @@ def no_priors_characterization(
     )
 
     # Execute the random walk with the no-priors sampler
+    from orchestrator.core.metadata import ConfigurationMetadata
+
+    # Create metadata with custom fields for tracking no-priors parameters
+    metadata = ConfigurationMetadata(
+        name="No-priors characterization",
+        description=f"No-priors characterization using {params.sampling_strategy} strategy with {params.samples} samples",
+    )
+    # Add custom fields using extra="allow" in ConfigurationMetadata
+    metadata.sampling_strategy = params.sampling_strategy  # type: ignore[attr-defined]
+    metadata.samples = params.samples  # type: ignore[attr-defined]
+
+    updated_operation_info = FunctionOperationInfo(
+        metadata=metadata,
+        actuatorConfigurationIdentifiers=(
+            operationInfo.actuatorConfigurationIdentifiers if operationInfo else []
+        ),
+    )
+
     op_output = random_walk(
         discoverySpace=discoverySpace,
-        operationInfo=FunctionOperationInfo.model_validate(
-            {
-                "metadata": {
-                    "completed operation": "No-priors characterization",
-                    "sampling_strategy": params.sampling_strategy,
-                    "samples": params.samples,
-                },
-                "actuatorConfigurationIdentifiers": (
-                    operationInfo.actuatorConfigurationIdentifiers
-                    if operationInfo
-                    else []
-                ),
-            }
-        ),
+        operationInfo=updated_operation_info,
         **no_priors_random_walk_params.model_dump(),
     )
 

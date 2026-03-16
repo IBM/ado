@@ -80,8 +80,9 @@ These guidelines apply to all code development in the ado codebase.
 
 Use Test Driven Development
 
-- Write tests first
-    - Do not create mock implementations
+- For changes to existing code: First search for tests
+  that call this code and update them so the new behaviour is tested
+- For new functionality: Write tests first
 - Run pytest: confirm tests fail
 - Implement the code to be tested
 - Run pytest: check tests
@@ -92,6 +93,8 @@ Use Test Driven Development
 - Check for existing fixtures before creating new ones:
   - `tests/fixtures/`
 - Do not mock by default; prefer integration tests.
+  - Search for existing fixtures that provide same functionality
+  - If you really feel a mock is correct, confirm with the user before implementing
 - Test the full lifecycle for pydantic models:
     create → dump → create from dump
 
@@ -131,7 +134,7 @@ Plugins and examples within the repo are also uv managed and may have venvs.
 When installing packages, install into the top-level virtual environment.
 When executing code with uv, including pip, execute
 from the top level of this repo.
-This is avoid accidentally using the local uv environments of plugins and examples
+This is to avoid accidentally using the local uv environments of plugins and examples
 within the repo.
 
 ---
@@ -141,13 +144,19 @@ within the repo.
 ### Code Testing
 
 - Each subpackage has a corresponding test directory under `tests/`, for example:
-  - `schema/`
-  - `core/`
-  - `actuators/`
-  - `operators/`
-  - `metastore/`
-  - `cli/`
-- As a final validation step, run tests for all impacted subpackages.
+  - `tests/schema/`
+  - `tests/core/`
+  - `tests/actuators/`
+  - `tests/operators/`
+  - `tests/metastore/`
+  - `tests/cli/`
+- Test files are often named after the **class or concept** being tested.
+  For example, `MeasurementResult` (defined in `result.py`) is
+  tested in `test_measurement_result.py`. When changing a class, look for
+  a test file whose name matches the class name before grepping.
+- To find all tests relevant to a change, search by the name of each modified
+  function, method, or field
+- As a final validation step after a change, run tests for all impacted subpackages.
 - All tests must pass before submitting changes.
 - Ensure the virtual environment is correctly set up before running tests:
 

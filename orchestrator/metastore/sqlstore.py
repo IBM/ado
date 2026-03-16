@@ -564,10 +564,13 @@ class SQLResourceStore(ResourceStore):
                     dialect=self.engine.dialect.name,
                 )
             )
-            select_space = orchestrator.metastore.sql.statements.resource_select_config_spaces_first(
-                output_column="space",
-                needs_select=False,
-                dialect=self.engine.dialect.name,
+            select_space = (
+                orchestrator.metastore.sql.statements.resource_select_data_field(
+                    field_name="config.spaces[0]",
+                    needs_select=False,
+                    dialect=self.engine.dialect.name,
+                    output_field_name="space",
+                )
             )
             select_statement = f"{select_statement} {select_status} {select_space}"
 

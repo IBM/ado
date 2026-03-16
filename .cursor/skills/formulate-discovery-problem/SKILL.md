@@ -47,9 +47,14 @@ See [remote execution](../remote-execution/SKILL.md) for remote execution skills
 - Unless directed otherwise place all YAML and .md files created in a
   subdirectory of examples/ dedicated to the given problem.
 - If you want to change the default value of an optional property use
-experiment parameterization, rather than setting a single valued property in
-the entity space
+  experiment parameterization, rather than setting a single valued property in
+  the entity space
+- Before creating a space or actuator configuration, check if one already
+  exists — see [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
 - Learn [ado CLI command-line construction and testing](../using-ado-cli/)
+- For metadata conventions, dynamic references (--use-latest, --with, --set),
+  and resource-specific guidance, see
+  [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
 
 ## Workflow Overview
 

@@ -29,6 +29,43 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 - Required arguments are included
 - Optional flags match actual CLI behavior
 
+## Common Option Mistakes
+
+### Output Format Options
+
+Different commands use different flags for output format. **Always verify with `--help`**.
+
+| Command | Correct Flag | ❌ Common Mistakes |
+| ------- | ----------- | ----------------- |
+| `ado get` | `--output` or `-o` | `--output-format`, `--format` |
+| `ado show entities` | `--output-format` | `--format`, `--output`, `-o` |
+| `ado show requests` | `--output-format` or `-o` | `--format` |
+| `ado show results` | `--output-format` or `-o` | `--format` |
+
+**Examples:**
+
+```bash
+# ✅ Correct
+uv run ado get operations --output json
+uv run ado get operations -o json
+uv run ado show entities space SPACE_ID --output-format csv
+
+# ❌ Wrong - will fail
+uv run ado get operations --output-format json
+uv run ado show entities space SPACE_ID --format csv
+uv run ado show entities space SPACE_ID --output csv
+```
+
+### Platform-Specific Issues
+
+When writing scripts that use grep or other shell commands:
+
+**Example with grep patterns:**
+
+- ❌ Don't use: `grep -P` (Perl regex, not available on macOS)
+- ✅ Use: `grep -E` (extended regex, cross-platform)
+- ✅ Or: basic grep patterns without flags
+
 ## Commands That do not exist
 
 These plausible-sounding commands do not exist in ado. Do not write them:

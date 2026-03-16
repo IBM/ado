@@ -32,6 +32,7 @@ serve run orchestrator.api.rest:ado_rest_api
 You should see output similar to this:
 
 <!-- markdownlint-disable line-length -->
+
 ```terminaloutput
 2025-09-19 11:50:39,727 INFO scripts.py:507 -- Running import path: 'orchestrator.api.rest:ado_rest_api'.
 2025-09-19 11:50:45,496 INFO worker.py:1942 -- Started a local Ray instance. View the dashboard at 127.0.0.1:8265
@@ -45,6 +46,7 @@ INFO 2025-09-19 11:50:48,852 serve 98612 -- Connecting to existing Serve app in 
 (ServeController pid=98727) INFO 2025-09-19 11:50:49,177 controller 98727 -- Adding 1 replica to Deployment(name='AdoRESTApi', app='default').
 INFO 2025-09-19 11:50:50,096 serve 98612 -- Application 'default' is ready at http://127.0.0.1:8000/.
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Once you see the final line, the API is running. Open the interactive OpenAPI
@@ -57,9 +59,13 @@ Ray Serve applications are deployed on Kuberay via
 [`RayService`s](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/rayservice.html).
 An example RayService is provided:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include-markdown "./ado-api-rayserve.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 From the root of the ado project directory, you can deploy it with:
 

@@ -63,6 +63,8 @@ def format_default_ado_get_single_resource(
     )
 
     if isinstance(resource, OperationResource):
+        # Insert before AGE to produce STATUS, EXIT_STATE, SPACE, AGE:
+        # each insert(-1) goes just before AGE, so insert in reverse desired order
         columns.insert(-1, "STATUS")
         columns.insert(-1, "EXIT_STATE")
         columns.insert(-1, "SPACE")
@@ -119,8 +121,6 @@ def format_default_ado_get_multiple_resources(
     columns = list(resources.columns)
 
     if resource_kind == CoreResourceKinds.OPERATION:
-        columns.insert(-1, "EXIT_STATE")
-
         resources["STATUS"] = resources["STATUS"].apply(
             lambda x: most_important_status_update(
                 status_model.model_validate(json.loads(x)).root if x else None
@@ -135,6 +135,11 @@ def format_default_ado_get_multiple_resources(
                 else "N/A"
             )
         )
+
+        op_cols = ["STATUS", "EXIT_STATE", "SPACE"]
+        pre_op = [c for c in columns if c not in op_cols and c != "AGE"]
+        columns = pre_op + op_cols + ["AGE"]
+        resources = resources[columns].copy()
 
     # Avoid printing null or None in the NAME column
     resources["NAME"] = resources["NAME"].fillna("")

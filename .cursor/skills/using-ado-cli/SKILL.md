@@ -33,7 +33,9 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 
 ### Output Format Options
 
-Different commands use different flags for output format. **Always verify with `--help`**.
+Different commands use different flags for output format. **Always verify with
+`--help`**. To print the complete resource details, use `json`, `yaml`, or
+`raw` formats.
 
 | Command | Correct Flag | ❌ Common Mistakes |
 | ------- | ----------- | ----------------- |

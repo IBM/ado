@@ -22,8 +22,8 @@ to ensure good coverage of the discovery space:
 - **`sobol`**: Sobol sequence sampling for quasi-random low-discrepancy coverage
 
 The operator retrieves already-measured entities from the discovery space,
-calculates how many additional samples are needed, orders the unmeasured
-entities using the specified sampling strategy, and yields entities in batches
+orders the unmeasured entities using the specified sampling strategy,
+and yields entities in batches
 for measurement.
 
 ## Installation

@@ -7,8 +7,7 @@ sampling strategies.
 
 **No-Priors Characterization** is designed for unbiased exploration when no
 measured data exists yet, establishing an initial dataset for subsequent
-model-based exploration. This operator is ideal for avoiding bias in
-early-stage exploration of discovery spaces.
+model-based exploration.
 
 ## How it Works
 

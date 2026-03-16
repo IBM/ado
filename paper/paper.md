@@ -51,9 +51,6 @@ foundation-model performance. Our aim is for ado to become a focal point for
 developing and consuming advanced capabilities for defining and executing
 experiment campaigns.
 
-ado is open source and available at <https://github.com/ibm/ado>
-[@johnston_2026_18957620].
-
 # Statement of need
 
 While the domains of computational science are diverse, spanning machine

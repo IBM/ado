@@ -64,10 +64,8 @@ to gather representative samples across the entire parameter space.
 measured entities for the target property, the operator automatically:
 
 - Identifies which entities have already been measured
-- Excludes them from sampling
-- Adjusts the sample count to collect only the remaining needed measurements
-- For example, if you request 30 samples and 10 are already measured, it will
-  collect 20 new samples from the unmeasured entities
+- Excludes them from sampling, so that the operator will measure the
+  desired amount of entities
 
 The operator supports three sampling strategies:
 

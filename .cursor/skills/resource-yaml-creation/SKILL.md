@@ -61,6 +61,8 @@ Creates a dependency inline and injects its ID automatically.
 
 ```bash
 # Create space + actuatorconfiguration + operation in one command
+# Note: You cannot use --with store=store.yaml or store_id here
+# The space must use default store or have a valid store_id in the YAML
 uv run ado create operation -f operation.yaml \
   --with space=space.yaml \
   --with actuatorconfiguration=config.yaml

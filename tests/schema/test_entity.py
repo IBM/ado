@@ -635,8 +635,8 @@ def test_experiment_series(
             ser[ov.property.targetProperty.identifier] == ov.value
         ), f"Expected the experiment series for {ref} to contain a key:value for {ov}"
 
-    assert (
-        ser.get("experiment_id") == ref
+    assert ser.get("experiment_id") == str(
+        ref
     ), f"Expected the value of the 'experiment_id' key to be to {ref}"
 
     # Test  experiment_series with virtual_properties

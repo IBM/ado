@@ -21,12 +21,25 @@ def pfas_sample_store_configuration_str() -> str:
         moduleClass: SQLSampleStore
     copyFrom:
     - module:
-        moduleClass: GT4SDTransformer
-        moduleName: orchestrator.plugins.samplestores.gt4sd
+        moduleClass: CSVSampleStore
+        moduleName: orchestrator.core.samplestore.csv
       storageLocation:
         path: 'tests/test_generations.csv'
       parameters:
         generatorIdentifier: 'gt4sd-pfas-transformer-model-one'
+        identifierColumn: 'smiles'
+        experiments:
+          - experimentIdentifier: 'transformer-toxicity-inference-experiment'
+            observedPropertyMap:
+              logws: GenLogws
+              logd: GenLogd
+              loghl: GenLoghl
+              pka: GenPka
+              "biodegradation halflife": GenBiodeg
+              bcf: GenBcf
+              ld50: GenLd50
+              scscore: GenScscore
+            constitutivePropertyMap: [smiles]
     """
 
 

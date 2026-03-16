@@ -131,7 +131,7 @@ markdownlint-cli2 "**/*.md" "#.venv" --fix
 >
 > - **Nested lists** that must stay indented with 4 spaces (Prettier collapses
 >   to 2).
-> - **Preprocessor tags** like `{% include %}` that must not change.
+> - **Preprocessor tags** like `{%` that must not change.
 > - **Components using `---` fences** (cards, metadata blocks) that get
 >   converted to `***`.
 > - **Admonitions** (`!!! info`, `> [!CAUTION]`): if there's no blank line after

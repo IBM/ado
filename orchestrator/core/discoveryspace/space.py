@@ -891,11 +891,15 @@ class DiscoverySpace:
         operation_id: str,
         output_format: typing.Literal["target", "observed"],
         limit_to_properties: list[str] | None = None,
+        aggregation_method: (
+            orchestrator.schema.virtual_property.PropertyAggregationMethodEnum | None
+        ) = None,
     ) -> "DataFrame":
         return self.sample_store.complete_measurement_request_with_results_timeseries(
             operation_id=operation_id,
             output_format=output_format,
             limit_to_properties=limit_to_properties,
+            aggregation_method=aggregation_method,
         )
 
     @_perform_preflight_checks_for_sample_store_methods

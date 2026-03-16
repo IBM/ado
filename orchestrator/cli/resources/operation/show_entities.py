@@ -40,6 +40,7 @@ def show_operation_entities(parameters: AdoShowEntitiesCommandParameters) -> Non
             operation_id=parameters.resource_id,
             output_format=parameters.entities_property_format.value,
             limit_to_properties=parameters.properties,
+            aggregation_method=parameters.aggregation_method,
         )
 
     file_name = f"{parameters.resource_id}_description_{entities_type}_{parameters.entities_property_format.value}.{parameters.entities_output_format.value}"

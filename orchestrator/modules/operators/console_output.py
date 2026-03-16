@@ -244,9 +244,13 @@ def output_operation_results(
     if len(discovery_space.measurementSpace.experiments) == 1:
         df = df.drop(columns=["experiment_id"], errors="ignore")
     else:
-        df["experiment_id"] = df["experiment_id"].apply(
-            lambda x: x.experimentIdentifier
-        )
+
+        def _experiment_id_display(value: object) -> str:
+            if isinstance(value, str):
+                return value.split(".", 1)[1] if "." in value else value
+            return value.experimentIdentifier
+
+        df["experiment_id"] = df["experiment_id"].apply(_experiment_id_display)
 
     # AP 09/12/2025:
     # rich does not really give us tools to dynamically determine the height

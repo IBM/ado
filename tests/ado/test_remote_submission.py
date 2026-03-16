@@ -556,7 +556,9 @@ def test_write_runtime_env_pypi_only(
     cluster_remote_context: RemoteExecutionContext,
 ) -> None:
     dest = tmp_path / "runtime_env.yaml"
-    _write_runtime_env(cluster_remote_context, [], dest)
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(cluster_remote_context, [], dest, tmp_path, working_dir, set())
 
     loaded = yaml.safe_load(dest.read_text())
     assert loaded["uv"] == ["ado-core"]
@@ -572,7 +574,11 @@ def test_write_runtime_env_with_wheels(
         envVars={},
     )
     dest = tmp_path / "runtime_env.yaml"
-    _write_runtime_env(ctx, ["my_plugin-1.0-py3-none-any.whl"], dest)
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(
+        ctx, ["my_plugin-1.0-py3-none-any.whl"], dest, tmp_path, working_dir, set()
+    )
 
     loaded = yaml.safe_load(dest.read_text())
     assert "ado-core" in loaded["uv"]
@@ -588,7 +594,9 @@ def test_write_runtime_env_no_packages(tmp_path: pathlib.Path) -> None:
         executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
     )
     dest = tmp_path / "runtime_env.yaml"
-    _write_runtime_env(ctx, [], dest)
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
     loaded = yaml.safe_load(dest.read_text())
     # No uv key when there are no packages
@@ -602,11 +610,34 @@ def test_write_runtime_env_env_vars_only(tmp_path: pathlib.Path) -> None:
         envVars={"MY_VAR": "1"},
     )
     dest = tmp_path / "runtime_env.yaml"
-    _write_runtime_env(ctx, [], dest)
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
 
     loaded = yaml.safe_load(dest.read_text())
     assert "uv" not in loaded
     assert loaded["env_vars"] == {"MY_VAR": "1"}
+
+
+def test_write_runtime_env_local_wheel_in_pypi(tmp_path: pathlib.Path) -> None:
+    """Local .whl paths in fromPyPI are copied to working_dir and rewritten."""
+    local_whl = tmp_path / "my_local-1.0-py3-none-any.whl"
+    local_whl.write_bytes(b"fake wheel")
+
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        packages=PackageConfiguration(fromPyPI=[str(local_whl), "ado-core"]),
+    )
+    dest = tmp_path / "runtime_env.yaml"
+    working_dir = tmp_path / "working"
+    working_dir.mkdir()
+    _write_runtime_env(ctx, [], dest, tmp_path, working_dir, set())
+
+    assert (working_dir / local_whl.name).exists()
+    loaded = yaml.safe_load(dest.read_text())
+    assert "ado-core" in loaded["uv"]
+    assert f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{local_whl.name}" in loaded["uv"]
+    assert str(local_whl) not in loaded["uv"]
 
 
 # ---------------------------------------------------------------------------

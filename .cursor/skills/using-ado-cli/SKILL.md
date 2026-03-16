@@ -58,6 +58,22 @@ uv run ado show entities space SPACE_ID --format csv
 uv run ado show entities space SPACE_ID --output csv
 ```
 
+### Command Order
+
+The correct order is `ado [COMMAND] [RESOURCE_TYPE]`, not the reverse.
+
+```bash
+# ✅ Correct
+uv run ado get operation OPERATION_ID
+uv run ado get operations
+uv run ado create space -f space.yaml
+
+# ❌ Wrong - will fail
+uv run ado operation get OPERATION_ID
+uv run ado operations get
+uv run ado space create -f space.yaml
+```
+
 ### Platform-Specific Issues
 
 When writing scripts that use grep or other shell commands:

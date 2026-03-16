@@ -65,6 +65,7 @@ def format_default_ado_get_single_resource(
     if isinstance(resource, OperationResource):
         columns.insert(-1, "STATUS")
         columns.insert(-1, "EXIT_STATE")
+        columns.insert(-1, "SPACE")
 
     if not resource:
         return pd.DataFrame(columns=columns)
@@ -91,6 +92,7 @@ def format_default_ado_get_single_resource(
             and status_update.exit_state is not None
             else "N/A"
         )
+        output["SPACE"] = resource.config.spaces[0] if resource.config.spaces else ""
 
     # AP: if we don't set the index manually, pandas will complain with
     #   ValueError: If using all scalar values, you must pass an index
@@ -136,6 +138,9 @@ def format_default_ado_get_multiple_resources(
 
     # Avoid printing null or None in the NAME column
     resources["NAME"] = resources["NAME"].fillna("")
+
+    if "SPACE" in resources.columns:
+        resources["SPACE"] = resources["SPACE"].fillna("")
 
     if "DESCRIPTION" in resources.columns:
         resources["DESCRIPTION"] = resources["DESCRIPTION"].fillna("")

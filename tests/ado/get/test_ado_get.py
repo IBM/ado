@@ -304,6 +304,8 @@ def test_field_querying(
         assert (
             render_ado_resources_to_cli_output(operation_43dfdf) == result.output
         ), result.output
+        # Verify the SPACE column is populated with the correct discovery space identifier
+        assert "space-7dab39-c0c30f" in result.output, result.output
 
     # ---------------------------------------------------------
     # Query object field with object with nested array

@@ -261,7 +261,18 @@ def resource_select_config_spaces_first(
     needs_select: bool = False,
     dialect: Literal["mysql", "sqlite"] = "mysql",
 ) -> str:
-    """Extract the first discovery space identifier from config.spaces array."""
+    """Extract the first discovery space identifier from config.spaces array.
+
+    Args:
+        output_column: The SQL alias for the extracted column.
+        needs_select: If True, prefix with SELECT; otherwise prefix with a
+            comma (for appending to an existing SELECT clause).
+        dialect: The SQL dialect to use. Determines the JSON extraction syntax.
+
+    Returns:
+        A SQL fragment that extracts ``config.spaces[0]`` from the ``data``
+        column and aliases it as ``output_column``.
+    """
     statement_preamble = "SELECT" if needs_select else ","
     data_path = "$.config.spaces[0]"
     statement = (

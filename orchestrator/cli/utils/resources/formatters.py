@@ -64,7 +64,6 @@ def format_default_ado_get_single_resource(
 
     if isinstance(resource, OperationResource):
         # Insert before AGE to produce STATUS, EXIT_STATE, SPACE, AGE:
-        # each insert(-1) goes just before AGE, so insert in reverse desired order
         columns.insert(-1, "STATUS")
         columns.insert(-1, "EXIT_STATE")
         columns.insert(-1, "SPACE")
@@ -115,11 +114,7 @@ def format_default_ado_get_multiple_resources(
     if resource_kind == CoreResourceKinds.OPERATION:
         status_model = pydantic.RootModel[list[OperationResourceStatus]]
 
-    # AP 13-12-2024:
-    # The exit state column should be there just for operations
-    # we do some trickery to ensure we put it before age
     columns = list(resources.columns)
-
     if resource_kind == CoreResourceKinds.OPERATION:
         resources["STATUS"] = resources["STATUS"].apply(
             lambda x: most_important_status_update(
@@ -140,6 +135,7 @@ def format_default_ado_get_multiple_resources(
         pre_op = [c for c in columns if c not in op_cols and c != "AGE"]
         columns = pre_op + op_cols + ["AGE"]
         resources = resources[columns].copy()
+        resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)
 
     # Avoid printing null or None in the NAME column
     resources["NAME"] = resources["NAME"].fillna("")
@@ -149,9 +145,6 @@ def format_default_ado_get_multiple_resources(
 
     if "DESCRIPTION" in resources.columns:
         resources["DESCRIPTION"] = resources["DESCRIPTION"].fillna("")
-
-    if "STATUS" in resources.columns:
-        resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)
 
     # AP: the default formatting of timedelta objects is too verbose
     # we convert it to

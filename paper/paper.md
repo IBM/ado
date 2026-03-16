@@ -46,10 +46,9 @@ model, where integrating new components can be as simple as decorating a Python
 function. This is enabled by ado's core abstraction: the _Discovery Space_.
 
 Out-of-the-box, ado includes state-of-the-art optimization algorithms and
-predictive modeling tools, alongside experiments targeting
-foundation-model performance. Our aim is for ado to become a focal point for
-developing and consuming advanced capabilities for defining and executing
-experiment campaigns.
+predictive modeling tools, alongside experiments targeting foundation-model
+performance. Our aim is for ado to become a focal point for developing and
+consuming advanced capabilities for defining and executing experiment campaigns.
 
 ado is open source and available at <https://github.com/ibm/ado>
 [@johnston_2026_18957620].
@@ -61,10 +60,10 @@ learning, physics simulation, and hardware design, the process of
 experimentation is remarkably uniform. Whether tuning hyperparameters,
 benchmarking foundation models, or sweeping simulation parameters, researchers
 consistently follow a structured pattern: define a configuration space; select
-points; execute experiments; record results; and
-analyze the outcomes to guide the next iteration. This workflow, the
-_experiment campaign_, is central to modern research and development, yet it is
-often managed with tools that fail to capture its essential structure.
+points; execute experiments; record results; and analyze the outcomes to guide
+the next iteration. This workflow, the _experiment campaign_, is central to
+modern research and development, yet it is often managed with tools that fail to
+capture its essential structure.
 
 Scientific and ML workflow systems like Galaxy, AiiDA, and Kubeflow excel at
 executing general directed acyclic graphs (DAGs). However, they are
@@ -87,7 +86,7 @@ also aids code generators in creating experiment definitions and design spaces.
 
 ado extends its core model with valuable support capabilities. Specifications
 (configuration spaces, operations) and measurements are stored in a database
-with flexible deployment options (local or remote shared). It leverages Ray to
+with flexible deployment options (local or shared remote). It leverages Ray to
 seamlessly scale from a researcher's laptop to a large remote cluster
 [@Moritz2018], with all functionality accessible via a human-centric CLI and
 Python API. Researchers can contribute custom experiments or operators through a
@@ -97,10 +96,10 @@ simple plugin interface (see \autoref{fig:ado}).
 
 Mature workflow managers such as Galaxy, AiiDA, and Kubeflow excel at scalable,
 reliable DAG orchestration with strong provenance and tight alignment to common
-execution platforms (e.g., HPC for AiiDA; Kubernetes Kubeflow). As discussed in
-the previous section, they not ideal for implementing experiment campaigns. ML
-lifecycle management tools like MLflow provide robust experiment tracking,
-metric logging, and artifact management features for individual runs
+execution platforms (e.g., HPC for AiiDA; Kubernetes for Kubeflow). As discussed
+in the previous section, they are not ideal for implementing experiment
+campaigns. ML lifecycle management tools like MLflow provide robust experiment
+tracking, metric logging, and artifact management features for individual runs
 [@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
 construct for an experiment campaign.
 
@@ -108,7 +107,7 @@ General black-box optimization frameworks like Optuna, Ax, Nevergrad, and Ray
 Tune are also key components for executing experiment campaigns [@Akiba2019;
 @olson2025ax; @10.1145/3460310.3460312; @Liaw2018]. While these tools are
 beginning to add data management features, for example, persistent storage for
-study resumption, they require users to define the optimizer, objective, logging
+resuming studies, they require users to define the optimizer, objective, logging
 etc. in code.
 
 Emerging robotic lab frameworks also highlight the need for integrated campaign
@@ -125,10 +124,10 @@ fragmented approach. For automated lab systems, their focus is on managing
 operational complexity, not providing domain-agnostic, declarative campaign
 semantics above the lab layer.
 
-ado synergizes with, rather than replaces, these tools. It can use
-workflow managers as experiment executors, integrate optimization frameworks,
-and orchestrate physical experiments by coupling with robotic lab systems. At
-the same time, individual experiment implementations within ado's plugin
+ado synergizes with, rather than replaces, these tools. It can use workflow
+managers as experiment executors, integrate optimization frameworks, and
+orchestrate physical experiments by coupling with robotic lab systems. At the
+same time, individual experiment implementations within ado's plugin
 architecture can leverage frameworks like MLflow for fine-grained,
 domain-specific tracking. The fact that ado integrates cleanly with these
 systems validates the existence of the gap it fills.
@@ -177,7 +176,7 @@ that configuration search campaigns have well-defined mathematical properties:
 
 ![A view of a Discovery Space data model instance. The left-hand side
 shows the key data components of the model. The right-hand side shows the
-sample and measurement process for a point.\label{fig:discoveryspace}](discovery_space_v1.drawio.svg){
+sampling and measurement process for a point.\label{fig:discoveryspace}](discovery_space_v1.drawio.svg){
 width=50% }
 
 The **Discovery Space**, the central data model in the system's architecture,
@@ -230,7 +229,7 @@ which provide a strong foundation for community adoption.
   IBM's watsonx.ai platform. The resulting artifacts, including the
   [sft-trainer plugin](https://ibm.github.io/ado/actuators/sft-trainer/) and
   [recommender models built from this data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf),
-  are now publicly available.
+  are publicly available.
 - **Advanced Performance Analysis:** The framework was used for detailed
   performance analysis of geospatial models on vLLM [@10.1145/3600006.3613165].
   The resulting

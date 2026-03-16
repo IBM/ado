@@ -25,6 +25,3 @@ exclude = ["build", "build.*", "tests"]
 
 [tool.setuptools_scm]
 root = "../../../"
-
-[tool.uv.sources]
-ado-core = { workspace = true }

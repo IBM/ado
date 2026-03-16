@@ -80,7 +80,7 @@ def sort_rows_by_column_names(
     # Check for missing columns
     missing = column_names_set.difference(df_columns_set)
     if missing:
-        logger.error("Columns not present in target df: %s", missing)
+        logger.warning("Columns not present in target df: %s", missing)
 
     # Check if any columns exist
     if column_names_set.isdisjoint(df_columns_set):

@@ -8,8 +8,8 @@ from orchestrator.metastore.sqlstore import SQLStore
 
 
 def test_update_operation(
-    random_operation_resource_from_db: Callable[
-        [str | None, str | None], OperationResource
+    ml_multi_cloud_operation_resource_from_db: Callable[
+        [str | None], OperationResource
     ],
     sql_store: SQLStore,
     update_resource: Callable[[ADOResource, SQLStore], None],
@@ -17,7 +17,7 @@ def test_update_operation(
         [str, CoreResourceKinds], ADOResource | None
     ],
 ) -> None:
-    operation = random_operation_resource_from_db()
+    operation = ml_multi_cloud_operation_resource_from_db()
 
     metadata = {
         "new_samples_generated": 10,

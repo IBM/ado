@@ -1530,10 +1530,23 @@ class SQLSampleStore(ActiveSampleStore):
         self, db_cursor: sqlalchemy.CursorResult[typing.Any]
     ) -> list[MeasurementRequest]:
 
+        # We consume the whole result cursor early to extract the set of entities
+        # identifiers for which we have results and fetch missing ones in a batch
+        # to reduce network overhead. The fallback entityWithIdentifier call should
+        # only be reached for entities added by a concurrent distributed process
+        # in the window between the batch fetch and now.
+        rows = db_cursor.fetchall()
+
+        # row[9] is entity id
+        missing_entity_ids = {row[9] for row in rows if row[9] not in self._entities}
+        if missing_entity_ids:
+            fetched = self._fetch_entities(entity_ids=missing_entity_ids)
+            self._entities.update(fetched)
+
         entries = {}
         measurement_results_for_entities = {}
 
-        for entry in db_cursor:
+        for entry in rows:
             (
                 uid,
                 experiment_reference,

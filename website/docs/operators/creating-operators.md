@@ -37,9 +37,10 @@ next sections describe the decorator, its parameters, and the structure of the
 operation function itself.
 
 <!-- markdownlint-disable line-length -->
+
 ```python
-from orchestrator.modules.operators.collections import
-    characterize_operation  # Import the decorator from this module depending on the type of operation your operator performs
+import typing
+from orchestrator.modules.operators.collections import characterize_operation  # Import the decorator from this module depending on the type of operation your operator performs
 
 
 @characterize_operation(
@@ -52,19 +53,20 @@ from orchestrator.modules.operators.collections import
 )
 def detect_anomalous_series(
         discoverySpace: DiscoverySpace,
-        operationInfo: typing.Optional[FunctionOperationInfo] = None,
-        **parameters,
+        operationInfo: FunctionOperationInfo | None = None,
+        **parameters: typing.Any,
 ) -> OperationOutput:
     # Your operation logic - can also call other Python modules etc.
     ...
     return operationOutput
 ```
+
 <!-- markdownlint-disable line-length -->
 
 ### Operator Type
 
-The first thing you need to do is decide what type of operator you are
-creating. The choices are
+The first thing you need to do is decide what type of operator you are creating.
+The choices are
 [explore, characterize, learn, modify, fuse, export, or compare](working-with-operators.md).
 You then import the decorator for this operator type from
 `orchestrator.modules.operators.collections` and use it to decorate your
@@ -90,24 +92,30 @@ If your operation type is `explore`, `characterize`, `learn` or `modify`, your
 function should have a parameter `discoverySpace` i.e.
 
 ```python
+import typing
+
+
 def detect_anomalous_series(
-    discoverySpace: DiscoverySpace,
-    operationInfo: typing.Optional[FunctionOperationInfo] = None,
-    **parameters,
+        discoverySpace: DiscoverySpace,
+        operationInfo: FunctionOperationInfo | None = None,
+        **parameters: typing.Any,
 ) -> OperationOutput:
-   ...
+    ...
 ```
 
 If it is `fuse` or `compare` your function should have a parameter
 `discoverySpaces` which is a list of `discoveryspaces` i.e.
 
 ```python
+import typing
+
+
 def detect_anomalous_series(
-    discoverySpaces: list[DiscoverySpace],
-    operationInfo: typing.Optional[FunctionOperationInfo] = None,
-    **parameters,
+        discoverySpaces: list[DiscoverySpace],
+        operationInfo: FunctionOperationInfo | None = None,
+        **parameters: typing.Any,
 ) -> OperationOutput:
-   ...
+    ...
 ```
 
 Operator functions also take an optional third parameter, `operationInfo`, that
@@ -146,7 +154,7 @@ inputs = MyOperatorOptions.model_validate(parameters)
 
 ### Providing an example operation configuration
 
-The decorators `configuration_model_default` parameter takes a example of your
+The decorators `configuration_model_default` parameter takes an example of your
 operators parameters. If your operator's parameter model has defaults for all
 fields then the simplest approach is to use those as the value of
 `configuration_model_default`:
@@ -214,12 +222,12 @@ class OperationOutput(pydantic.BaseModel):
 The key fields to set are:
 
 - **resources**: A list of `ado` resources your operation created.
-- **existStatus**: Indicates if the operation worked or not
+- **exitStatus**: Indicates if the operation worked or not
 
 ### Returning non-ado resource data
 
 If you have non-ado resource data you want to return from your operation, for
-example pandas DataFrames, paths to files, text, lists etc. you can use `ado`s
+example pandas DataFrames, paths to files, text, lists etc. you can use `ado`'s
 [`datacontainer`](../resources/datacontainer.md) resource.
 
 ### Example
@@ -444,9 +452,9 @@ def my_learning_operation(...):
 
 > [!IMPORTANT]
 >
-> The name used to call an operator function is the name of the
-> operator. This is the name given to the decorator `name` parameter and is the
-> name shown by `ado get operators`
+> The name used to call an operator function is the name of the operator. This
+> is the name given to the decorator `name` parameter and is the name shown by
+> `ado get operators`
 
 You access the data of the operation from the OperationOutput instance it
 returns. Any `ado` resources the nested operation creates will have been
@@ -456,14 +464,14 @@ automatically added to the correct project by `ado`.
 
 > [!NOTE]
 >
-> If your operator does not create any ado resources, you don't need
-> to do anything.
+> If your operator does not create any ado resources, you don't need to do
+> anything.
 
 Your operator must ensure that all resources it creates, along with their
 relationships, are recorded in the project database if a keyboard interrupt
 (CTRL+C) occurs during execution. For details on how resources are handled under
-normal conditions, see [Storing Returned
-Resources](#storing-returned-resources).
+normal conditions, see
+[Storing Returned Resources](#storing-returned-resources).
 
 By default, ado ensures that when a keyboard interrupt (CTRL+C) occurs:
 

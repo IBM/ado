@@ -256,6 +256,26 @@ def resource_select_data_field(
     )
 
 
+def resource_select_config_spaces_first(
+    output_column: str = "space",
+    needs_select: bool = False,
+    dialect: Literal["mysql", "sqlite"] = "mysql",
+) -> str:
+    """Extract the first discovery space identifier from config.spaces array."""
+    statement_preamble = "SELECT" if needs_select else ","
+    data_path = "$.config.spaces[0]"
+    statement = (
+        "{statement_preamble} data ->> '{data_path}' as {output_column}"
+        if dialect == "sqlite"
+        else "{statement_preamble} data->>'{data_path}' as {output_column}"
+    )
+    return statement.format(
+        statement_preamble=statement_preamble,
+        data_path=data_path,
+        output_column=output_column,
+    )
+
+
 def resource_select_metadata_field(
     field_name: str,
     needs_select: bool = False,

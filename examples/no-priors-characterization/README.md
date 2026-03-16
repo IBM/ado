@@ -138,12 +138,11 @@ The configuration for a basic sampling operation using CLHS is in
 `op_basic_sampling.yaml`:
 
 <!-- prettier-ignore-start -->
+
 ```yaml
 {%
   include-markdown "./example_yamls/op_basic_sampling.yaml"
 %}
-```
-<!-- prettier-ignore-end -->
 
 To run the operation, execute:
 

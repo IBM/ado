@@ -64,10 +64,10 @@ def format_default_ado_get_single_resource(
     )
 
     if isinstance(resource, OperationResource):
-        # Insert before AGE to produce STATUS, EXIT_STATE, SPACE, AGE:
+        # Insert before AGE to produce SPACE, STATUS, EXIT_STATE, AGE:
+        columns.insert(-1, "SPACE")
         columns.insert(-1, "STATUS")
         columns.insert(-1, "EXIT_STATE")
-        columns.insert(-1, "SPACE")
 
     if not resource:
         return pd.DataFrame(columns=columns)
@@ -134,7 +134,7 @@ def format_default_ado_get_multiple_resources(
         resources = reorder_dataframe_columns(
             df=resources,
             move_to_start=[],
-            move_to_end=["STATUS", "EXIT_STATE", "SPACE", "AGE"],
+            move_to_end=["SPACE", "STATUS", "EXIT_STATE", "AGE"],
         )
         columns = list(resources.columns)
 

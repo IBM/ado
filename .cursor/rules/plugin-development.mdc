@@ -76,7 +76,7 @@ By default, plugins added in-tree are not workspace members and should
 not be added to `[tool.uv.workspace]` members in the root `pyproject.toml`.
 
 This means the plugins pyproject.toml should not include a `[tool.uv.sources]`
-section resolving `ado-core` via`{ workspace = true }`.
+section resolving `ado-core` via `{ workspace = true }`.
 
 Only add a plugin to the workspace when explicitly
 asked, for example when the plugin must be included in `uv sync` for CI or

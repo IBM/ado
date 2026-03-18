@@ -31,9 +31,9 @@
 > ```bash
 > pip install ado-core
 > ```
-<!-- markdownlint-disable-next-line MD028 -->
 
 <!-- markdownlint-disable line-length -->
+
 > [!TIP] TL;DR
 >
 > To create the `discoveryspace` and explore it with a random walk execute:
@@ -44,7 +44,7 @@
 > : # Explore!
 > ado create op -f randomwalk_ml_multicloud_operation.yaml --use-latest space
 > ```
->
+
 <!-- markdownlint-enable line-length -->
 
 ## Using pre-existing data with `ado`
@@ -73,11 +73,15 @@ Success! Created sample store with identifier $SAMPLE_STORE_IDENTIFIER
 
 You can see all available sample stores using `ado get samplestores`.
 
+<!-- markdownlint-disable code-block-style -->
+
 !!! info end
-    <!-- markdownlint-disable-next-line code-block-style -->
+
     You only need to create this `samplestore` once.
     It can be reused in multiple `discoveryspaces`
     or examples that require the `ml_export.csv` data.
+
+<!-- markdownlint-enable code-block-style -->
 
 ## Creating a `discoveryspace` for the `ml-multi-cloud` data
 
@@ -109,70 +113,70 @@ This will output:
 Identifier: 'space-19b2de-6da1f4'
 
 Entity Space:
-                                                                             
-   Number of entities: 48                                                    
-                                                                             
-   Categorical properties:                                                   
-                                                                             
-      name       values                                                      
-     ────────────────────────────                                            
-      provider   ['A', 'B', 'C']                                             
-                                                                             
-   Discrete properties:                                                      
-                                                                             
-      name         range   interval   values                                 
-     ──────────────────────────────────────────────                          
-      cpu_family   None    None       [0, 1]                                 
-      vcpu_size    None    None       [0, 1]                                 
-      nodes        None    None       [2, 3, 4, 5]                           
-                                                                             
-                                                                             
+
+   Number of entities: 48
+
+   Categorical properties:
+
+      name       values
+     ────────────────────────────
+      provider   ['A', 'B', 'C']
+
+   Discrete properties:
+
+      name         range   interval   values
+     ──────────────────────────────────────────────
+      cpu_family   None    None       [0, 1]
+      vcpu_size    None    None       [0, 1]
+      nodes        None    None       [2, 3, 4, 5]
+
+
 Measurement Space:
-                                                                             
-   Experiments:                                                              
-                                                                             
-      experiment                                   supported                 
-     ────────────────────────────────────────────────────────                
-      replay.benchmark_performance                 True                      
-      custom_experiments.ml-multicloud-cost-v1.0   True                      
-                                                                             
-    ─────────────────── replay.benchmark_performance ────────────────────    
-     Inputs:                                                                 
-                                                                             
-        parameter    type       value   parameterized                        
-       ───────────────────────────────────────────────                       
-        cpu_family   required   None    na                                   
-        nodes        required   None    na                                   
-        provider     required   None    na                                   
-        vcpu_size    required   None    na                                   
-                                                                             
-     Outputs:                                                                
-                                                                             
-        target property                                                      
-       ──────────────────                                                    
-        wallClockRuntime                                                     
-        status                                                               
-                                                                             
-    ─────────────────────────────────────────────────────────────────────    
-                                                                             
-    ──────────── custom_experiments.ml-multicloud-cost-v1.0 ─────────────    
-     Inputs:                                                                 
-                                                                             
-        parameter                    type       value   parameterized        
-       ───────────────────────────────────────────────────────────────       
-        nodes                        required   None    na                   
-        cpu_family                   required   None    na                   
-        benchmark_performance-wal…   required   None    na                   
-                                                                             
-     Outputs:                                                                
-                                                                             
-        target property                                                      
-       ─────────────────                                                     
-        total_cost                                                           
-                                                                             
-    ─────────────────────────────────────────────────────────────────────    
-                                                                             
-                                                                             
+
+   Experiments:
+
+      experiment                                   supported
+     ────────────────────────────────────────────────────────
+      replay.benchmark_performance                 True
+      custom_experiments.ml-multicloud-cost-v1.0   True
+
+    ─────────────────── replay.benchmark_performance ────────────────────
+     Inputs:
+
+        parameter    type       value   parameterized
+       ───────────────────────────────────────────────
+        cpu_family   required   None    na
+        nodes        required   None    na
+        provider     required   None    na
+        vcpu_size    required   None    na
+
+     Outputs:
+
+        target property
+       ──────────────────
+        wallClockRuntime
+        status
+
+    ─────────────────────────────────────────────────────────────────────
+
+    ──────────── custom_experiments.ml-multicloud-cost-v1.0 ─────────────
+     Inputs:
+
+        parameter                    type       value   parameterized
+       ───────────────────────────────────────────────────────────────
+        nodes                        required   None    na
+        cpu_family                   required   None    na
+        benchmark_performance-wal…   required   None    na
+
+     Outputs:
+
+        target property
+       ─────────────────
+        total_cost
+
+    ─────────────────────────────────────────────────────────────────────
+
+
 Sample Store identifier: 6da1f4
 ```
 
@@ -181,10 +185,13 @@ Sample Store identifier: 6da1f4
 > The set of points is defined by the properties in the `Entity Space` - here
 > '_cpu_family_', '_provider_', '_vcpu_size_' and '_nodes_' - and the values
 > those properties can take.
+
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
+
 > [!TIP]
-> Consider why the size of the entityspace is 48. Compare this to the
-> number of rows in `ml_export.csv`.
+>
+> Consider why the size of the entityspace is 48. Compare this to the number of
+> rows in `ml_export.csv`.
 
 ## Exploring the `discoveryspace`
 
@@ -193,9 +200,13 @@ created. Since we already have the data, `ado` will transparently identify and
 reuse it. An example operation file is given in
 `randomwalk_ml_multicloud_operation.yaml`. The contents are:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include "./randomwalk_ml_multicloud_operation.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 To run the operation execute:
 
@@ -208,12 +219,14 @@ you will see the following lines for each entity (point in the entity space)
 sampled and measured:
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
 (RandomWalk pid=14797) Continuous batching: SUBMIT EXPERIMENT. Submitting experiment replay.benchmark_performance for provider.B-cpu_family.1-vcpu_size.1-nodes.4
 (RandomWalk pid=14797)
 (RandomWalk pid=14797) Continuous batching: SUMMARY. Entities sampled and submitted: 2. Experiments completed: 1 Waiting on 1 active requests. There are 0 dependent experiments
 (RandomWalk pid=14797) Continuous Batching: EXPERIMENT COMPLETION. Received finished notification for experiment in measurement request in group 1: request-randomwalk-0.9.6.dev91+884f713b.dirty-c5ed4b-579021-experiment-benchmark_performance-entities-provider.B-cpu_family.1-vcpu_size.1-nodes.4 (explicit_grid_sample_generator)-requester-randomwalk-0.9.6.dev91+884f713b.dirty-c5ed4b-time-2025-07-29 20:03:00.976809+01:00
 ```
+
 <!-- markdownlint-enable line-length -->
 
 The first line, "SUBMIT EXPERIMENT", indicates the entity -
@@ -276,7 +289,9 @@ above, it is `randomwalk-0.9.4.dev30+564196d4.dirty-b8a233`.
 > `ado` transparently executes experiments or memoizes data as appropriate - so
 > the operator does not need to know if a measurement needs to be performed at
 > the time it requests it, or if previous data can be reused.
+
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
+
 > [!TIP]
 >
 > Operations are **domain agnostic**. If you look in
@@ -301,6 +316,7 @@ measurement results. You will see something like the following (the sampling is
 random so the order can be different):
 
 <!-- markdownlint-disable line-length -->
+
 ```text
 ┌───────────────┬──────────────┬───────────────┬───────────────┬────────────┬───────────────┬───────┬──────────┬───────────┬────────────────┬───────────────┬──────────────┬────────────────┬───────────────┬──────────────┬───────┐
 │ request_index │ result_index │ identifier    │ experiment_id │ cpu_family │ generatorid   │ nodes │ provider │ vcpu_size │ reason         │ wallClockRun… │ status       │ total_cost     │ request_id    │ entity_index │ valid │
@@ -485,6 +501,7 @@ random so the order can be different):
 │               │              │               │               │            │               │       │          │           │ replay.benchm… │               │              │                │               │              │       │
 └───────────────┴──────────────┴───────────────┴───────────────┴────────────┴───────────────┴───────┴──────────┴───────────┴────────────────┴───────────────┴──────────────┴────────────────┴───────────────┴──────────────┴───────┘
 ```
+
 <!-- markdownlint-enable line-length -->
 
 > [!TIP] Some things to note and consider:
@@ -520,8 +537,8 @@ will give you a summary of what has been measured.
 
 > [!NOTE]
 >
-> If you want to run these commands with the latest space created
-> use the `--use-latest` flag as above
+> If you want to run these commands with the latest space created use the
+> `--use-latest` flag as above
 
 ### Resource provenance
 
@@ -566,7 +583,8 @@ of `show entities operation` for the two operations, and `show entities space`.
   multiple different domains without modification.
 - **memoization**: By default `ado` will identify if a measurement has already
   been completed on an entity and reuse it
-- **provenance**: `ado` stores the relationship between the resources it creates.
+- **provenance**: `ado` stores the relationship between the resources it
+  creates.
 - **results viewing**: `ado show entities` outputs the data in a
   `discoveryspace` or measured in an `operation`.
 - **measurement timeseries**: The sequence (timeseries) of measurements,

@@ -40,9 +40,13 @@ by a transformer model and stored in a CSV file under `data/`
 
 The `samplestore` resource configuration looks like
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include "./gen_models_transformer_test_sample_store.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 The command to create the `samplestore` is:
 
@@ -56,9 +60,13 @@ This outputs a `samplestore` id which you should record for the next step.
 
 The `discoveryspace` configuration looks like:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include "./space_transformer_simple.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 You can see the experiment `calculate_morgan_fingerprint` from the
 `molecule_embeddings` actuator is selected in the `measurementspace`.
@@ -76,9 +84,13 @@ space, including `calculate_morgan_fingerprint` to them.
 
 The `operation` resource configuration looks like:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include "./operation_random_walk_test.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 Start the operation:
 
@@ -102,6 +114,8 @@ ado show details space --use-latest
 
 ## Next Steps
 
+<!-- prettier-ignore-start -->
+
 1. Increase the number of molecules in the operation and run again.
       - You will see the first 10 molecules are not measured again - they are
         "memoized"
@@ -111,3 +125,5 @@ ado show details space --use-latest
 3. Have them run another operation and observe how you can retrieve the results
 4. If you run multiple operations, try using `ado show entities operation` to
    get the output from a particular operation
+
+<!-- prettier-ignore-end -->

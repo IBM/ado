@@ -1,11 +1,12 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 > [!NOTE]
 >
 > For a fully working example, see
 > [search a space with an optimizer](../examples/best-configuration-search.md)
 
-`ado` enables you to use Python functions as experiments by registering
-them as custom experiments using a decorator.
+`ado` enables you to use Python functions as experiments by registering them as
+custom experiments using a decorator.
 
 ## The structure of a custom experiment package
 
@@ -20,8 +21,9 @@ $YOUR_REPO_NAME/
     experiments.py
 ```
 
-In addition, you must register an entry-point to the group `ado.custom_experiments`
-in your `pyproject.toml` so `ado` can find your custom_experiment automatically:
+In addition, you must register an entry-point to the group
+`ado.custom_experiments` in your `pyproject.toml` so `ado` can find your
+custom_experiment automatically:
 
 ```toml
 [project.entry-points."ado.custom_experiments"]
@@ -32,19 +34,22 @@ my_experiment = "my_custom_package.experiments"
 > [!NOTE]
 >
 > 1. You can have more than one decorated function in a module.
-> 2. If you want to have functions in different modules you
->    need to register each module as an entrypoint.
+> 2. If you want to have functions in different modules you need to register
+>    each module as an entrypoint.
 
 ## Decorating your custom experiment function
 
-**To define a custom experiment, decorate your function with `@custom_experiment`.**
+**To define a custom experiment, decorate your function with
+`@custom_experiment`.**
 
 In the simplest case:
 
 - type your parameters using python `typing`
 - return the output in a dictionary of key value pairs
-- define the set of output property keys in the
-  `output_property_identifiers` parameter of the decorator
+- define the set of output property keys in the `output_property_identifiers`
+  parameter of the decorator
+
+<!-- prettier-ignore-start -->
 
 ```python
 {%
@@ -52,29 +57,29 @@ In the simplest case:
 %}
 ```
 
+<!-- prettier-ignore-end -->
+
 **Experiment Naming:**
 
-The experiment will be registered with the name of the decorated
-Python function (e.g., `calculate_density`).
+The experiment will be registered with the name of the decorated Python function
+(e.g., `calculate_density`).
 
 **Required Properties:**
 
-Each positional parameter in the signature will become a
-required property.
+Each positional parameter in the signature will become a required property.
 
 **Return Value:**
 
-The function must return a dictionary whose keys
-include at least one of the output names you listed in
-`output_property_identifiers` (e.g., "density" above),
-and the values are the measured results.
-If no keys in the dictionary match the names in `output_property_identifiers`  
+The function must return a dictionary whose keys include at least one of the
+output names you listed in `output_property_identifiers` (e.g., "density"
+above), and the values are the measured results. If no keys in the dictionary
+match the names in `output_property_identifiers`  
 the experiment result will be marked as invalid.
 
 > [!NOTE]
 >
-> Only keys listed in `output_property_identifiers` are extracted
-> from the returned dictionary, any extra keys are ignored.
+> Only keys listed in `output_property_identifiers` are extracted from the
+> returned dictionary, any extra keys are ignored.
 
 **Property Domains:**
 
@@ -86,22 +91,20 @@ the experiment result will be marked as invalid.
 
 > [!IMPORTANT]
 >
-> If a positional parameter has a different type to above e.g.string
-> `ado` cannot automatically determine a domain and you will get an
-> exception on trying to use the function.
-> In this case see
+> If a positional parameter has a different type to above e.g.string `ado`
+> cannot automatically determine a domain and you will get an exception on
+> trying to use the function. In this case see
 > [define the domain of input parameters](#defining-the-domains-of-required-properties)
 
 ### Keyword parameters and optional properties
 
-Keyword parameters in your function signature will be converted to
-optional properties of the custom experiment.
-The `parameterization` for the optional properties is the value of
-keyword in the signature.
+Keyword parameters in your function signature will be converted to optional
+properties of the custom experiment. The `parameterization` for the optional
+properties is the value of keyword in the signature.
 
-The domain inference rules are the same as given above with one addition,
-types other than float,int and literal, are assigned an open categorical domain
-with a single "known" value, the keyword parameters default.
+The domain inference rules are the same as given above with one addition, types
+other than float,int and literal, are assigned an open categorical domain with a
+single "known" value, the keyword parameters default.
 
 ---
 
@@ -118,24 +121,25 @@ To add your experiments to `ado`:
    ado get experiments
    ```
 
-All custom experiments are made available in `ado` through
-the special actuator called `custom_experiments`.
-Your experiment will be listed under the `custom_experiments` actuator
-using the function's name.
+All custom experiments are made available in `ado` through the special actuator
+called `custom_experiments`. Your experiment will be listed under the
+`custom_experiments` actuator using the function's name.
 
 ### Testing your custom experiment
 
-You can test your custom experiment
-using the [`run_experiment`](run_experiment.md) command line tool.
-Save the following YAML to a file `point.yaml`
+You can test your custom experiment using the
+[`run_experiment`](run_experiment.md) command line tool. Save the following YAML
+to a file `point.yaml`
 
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- prettier-ignore-start -->
 
 ```yaml
 {%
    include "../../../examples/density_example/point.yaml"
 %}
 ```
+
+<!-- prettier-ignore-end -->
 
 then execute:
 
@@ -145,11 +149,11 @@ run_experiment point.yaml
 
 ### Using your custom experiment in a `discoveryspace`
 
-To use a custom experiment in `discoveryspace`
-you specify it in its `measurementspace` - exactly like other experiments.
+To use a custom experiment in `discoveryspace` you specify it in its
+`measurementspace` - exactly like other experiments.
 
-Here is a toy example using the `calculate_density` custom experiment
-defined above:
+Here is a toy example using the `calculate_density` custom experiment defined
+above:
 
 ```yaml
 entitySpace:
@@ -171,30 +175,31 @@ experiments:
 
 The simplest case described in
 [decorating you custom experiment function](#decorating-your-custom-experiment-function)
-is enough to get started with a custom experiment.
-However, if your function has particular types or if you want to refine
-domain information you need to access more advanced features of the decorator.
+is enough to get started with a custom experiment. However, if your function has
+particular types or if you want to refine domain information you need to access
+more advanced features of the decorator.
 
 ### Defining the domains of required properties
 
-Python functions don't carry any domain information so in many cases
-the domain inferred from the type will be too broad.
-In this case you can define the domains explicitly in the decorator.
+Python functions don't carry any domain information so in many cases the domain
+inferred from the type will be too broad. In this case you can define the
+domains explicitly in the decorator.
 
 > [!IMPORTANT]
 >
-> Once you define one required property explicitly you must define them all explicitly.
+> Once you define one required property explicitly you must define them all
+> explicitly.
 
 Defining the domain explicitly enables:
 
 - Better input validation when creating `spaces`
 - Automated construction of relevant discovery spaces (via `ado template`)
 - Control of what are considered required and optional properties
-- Finer grained control of the domain (e.g. you can have a float
-  parameter but make the domain discrete)
+- Finer grained control of the domain (e.g. you can have a float parameter but
+  make the domain discrete)
 
-In the following example, we explicitly indicate that the mass and volume parameters
-of our `calculate_density` function are positive numbers.
+In the following example, we explicitly indicate that the mass and volume
+parameters of our `calculate_density` function are positive numbers.
 
 ```python
 from typing import Dict, Any
@@ -229,8 +234,8 @@ def calculate_density(mass, volume) -> Dict[str, Any]:
 
 > [!NOTE]
 >
-> Every non-keyword parameter in your python function is **required**.
-> However, you can make any keyword parameter required by adding it to
+> Every non-keyword parameter in your python function is **required**. However,
+> you can make any keyword parameter required by adding it to
 > required_properties parameter of the decorator
 
 ### Defining the domains of optional properties
@@ -244,9 +249,8 @@ to the decorator.
 
 > [!IMPORTANT]
 >
-> Once you define one optional property explicitly you must define them
-> all explicitly.
-> Similarly once you define the parameterization of an optional
+> Once you define one optional property explicitly you must define them all
+> explicitly. Similarly once you define the parameterization of an optional
 > property explicitly you must define the all explicitly.
 
 ```python
@@ -272,35 +276,31 @@ def calculate_density(mass, volume, round_result: bool = False):
     return {"density": density_value}
 ```
 
-The above registers `round_result` as an optional properties
-of the experiment, with its value in the function signature as the default parameterization.
+The above registers `round_result` as an optional properties of the experiment,
+with its value in the function signature as the default parameterization.
 
 ### Supplying metadata
 
-You can also supply a `metadata` dictionary to the "metadata" parameter of
-the decorator.
-Use this to record experiment-level documentation, categories, etc.
+You can also supply a `metadata` dictionary to the "metadata" parameter of the
+decorator. Use this to record experiment-level documentation, categories, etc.
 This is illustrated in the above example.
 
 ---
 
 ### Configuring execution
 
-The `custom_experiment` decorator exposes two parameters
-for controlling how a custom experiment is executed by `ado`:
+The `custom_experiment` decorator exposes two parameters for controlling how a
+custom experiment is executed by `ado`:
 
 #### `use_ray`
 
-If `True` (the default), the custom experiment will be run
-as a Ray remote function.
-This allows multiple instances to execute in parallel
-across a Ray cluster.
+If `True` (the default), the custom experiment will be run as a Ray remote
+function. This allows multiple instances to execute in parallel across a Ray
+cluster.
 
-If `False`, only one instance of the custom
-experiment can execute at a time.
-In addition, once an instance of the custom experiment
-is started no _other_ custom experiments can run
-until it is finished
+If `False`, only one instance of the custom experiment can execute at a time. In
+addition, once an instance of the custom experiment is started no _other_ custom
+experiments can run until it is finished
 
 #### `ray_options`
 
@@ -312,13 +312,12 @@ until it is finished
 
 > [!WARNING]
 >
-> If the values given via `ray_options` don't match the expected types,
-> or additional keys are specified, the decorator will raise an exception.
+> If the values given via `ray_options` don't match the expected types, or
+> additional keys are specified, the decorator will raise an exception.
 
-This optional parameter allows controlling how Ray schedules
-your custom experiment and its execution environment.
-Its value is a dict with one or more of the
-following keys:
+This optional parameter allows controlling how Ray schedules your custom
+experiment and its execution environment. Its value is a dict with one or more
+of the following keys:
 
 - `num_cpus` (float): Number of CPUs to allocate to this experiment.
 - `num_gpus` (float): Number of GPUs to allocate.
@@ -347,15 +346,14 @@ for more information on these parameters.
 
 ## Using your decorated function in code
 
-The decorated function can be called
-directly in Python as normal e.g.,
+The decorated function can be called directly in Python as normal e.g.,
 
 ```python
 result = calculate_density(8, 4)  # {'density': 2}
 ```
 
-The `custom_experiment` decorator attaches the
-ado `Experiment` object generated from the decoration as an attribute e.g.
+The `custom_experiment` decorator attaches the ado `Experiment` object generated
+from the decoration as an attribute e.g.
 
 ```python
 from orchestrator.schema.experiment import Experiment
@@ -367,12 +365,11 @@ print(exp_obj.optionalProperties)
 print(exp_obj.targetProperties)
 ```
 
-When you call the decorated function, its arguments are
-automatically validated against the required and optional inputs
-specified in the decorator, including domain constraints.
-If you call it with missing, extra, or out-of-domain arguments,
-the function will raise a `ValueError` describing what was invalid and why.
-For example:
+When you call the decorated function, its arguments are automatically validated
+against the required and optional inputs specified in the decorator, including
+domain constraints. If you call it with missing, extra, or out-of-domain
+arguments, the function will raise a `ValueError` describing what was invalid
+and why. For example:
 
 ```python
 # Value outside domain - an error will be raised
@@ -382,5 +379,5 @@ result = calculate_density(mass=0, volume=10)
 ## Next Steps
 
 See  
-[search a space with an optimizer](../examples/best-configuration-search.md)
-for a complete practical workflow using custom experiments.
+[search a space with an optimizer](../examples/best-configuration-search.md) for
+a complete practical workflow using custom experiments.

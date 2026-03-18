@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 ## Overview
 
 > [!TIP]
@@ -109,6 +110,8 @@ pip install hpbandster ConfigSpace
 When configuring a `ray_tune` operation there are three groups of parameters to
 consider:
 
+<!-- prettier-ignore-start -->
+
 - [Tuning Configuration](#tune-config): general optimization parameters
     - This includes specific
          [Optimizer Parameters](#optimizer-parameters-search_algparams)
@@ -118,6 +121,8 @@ consider:
          optimization should stop
 - [Orchestrator Configuration](#orchestrator-config): parameters related to
   `ado`
+
+<!-- prettier-ignore-end -->
 
 For example, the default parameters and values for a `ray_tune` operation are:
 
@@ -166,6 +171,8 @@ measurements of those points. They are related to `ado` concepts of `entities`
 The `orchestratorConfig` section currently supports the following parameters,
 which are all optional:
 
+<!-- prettier-ignore-start -->
+
 - `metric_format` (default "target")
     - Controls the format for all metric (property) names given in
       the operation configuration
@@ -184,6 +191,8 @@ which are all optional:
      is used.
     - If false already measured entities will be re-measured.
 
+<!-- prettier-ignore-end -->
+
 > [!IMPORTANT] Metric format consistency
 >
 > All metrics in a configuration must use the same format
@@ -194,6 +203,8 @@ The `tuneConfig` section supports many of the
 [parameters of the `ray.tune.TuneConfig` class](https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html).
 
 **Supported parameters:**
+
+<!-- prettier-ignore-start -->
 
 - `metric` (required)
     - The metric to optimize. Format depends on `orchestratorConfig.metric_format`:
@@ -209,6 +220,8 @@ The `tuneConfig` section supports many of the
     - **Note**: this can also be controlled via most optimizers parameters. If not
         set, the default value depends on the optimizer
 - `time_budget_s`: How many second to run the optimizer for
+
+<!-- prettier-ignore-end -->
 
 **Unsupported parameters:**
 
@@ -305,13 +318,11 @@ print(list(nevergrad.optimizers.registry.keys()))
 #### optuna parameters
 
 The optuna optimizer allows fine-grained control over its sampling algorithm via
-the `sampler` parameter.
-To specify which sampler to use with optuna,
-provide its class name as a string (as defined in
+the `sampler` parameter. To specify which sampler to use with optuna, provide
+its class name as a string (as defined in
 [optuna.samplers](https://optuna.readthedocs.io/en/stable/reference/samplers/index.html)).
 You may also provide a dictionary of parameters for the sampler class via the
-`sampler_parameters` key.
-These will be used to instantiate the sampler.
+`sampler_parameters` key. These will be used to instantiate the sampler.
 
 Example:
 
@@ -326,9 +337,9 @@ tuneConfig:
         group: true
 ```
 
-This will use the optuna `TPESampler` with the provided keyword arguments.
-For a complete list of samplers and their available parameters,
-see the [Optuna samplers documentation](https://optuna.readthedocs.io/en/stable/reference/samplers/index.html).
+This will use the optuna `TPESampler` with the provided keyword arguments. For a
+complete list of samplers and their available parameters, see the
+[Optuna samplers documentation](https://optuna.readthedocs.io/en/stable/reference/samplers/index.html).
 
 ### Run Config
 
@@ -345,9 +356,9 @@ disk. Since `ado` automatically stores the results and operation details in
 
 - `stop` - see [Stoppers](#stoppers)
 - `storage_path`:
-    - `ado` defaults this to "/tmp/ray_results" as this directory is writable in
-      the default `ado` image used in ray clusters.
-      - If you change this path, ensure it is writable
+  - `ado` defaults this to "/tmp/ray_results" as this directory is writable in
+    the default `ado` image used in ray clusters.
+    - If you change this path, ensure it is writable
 
 **Other supported parameters:**
 
@@ -410,15 +421,15 @@ stopper, cannot currently be used with `ado`.
 
 - **SimpleStopper**: Stops if there is no improvement in the target metric after
   N steps
-- **GrowthStopper**: Stops when the improvement in the target metric is less than
-  a threshold for N steps
+- **GrowthStopper**: Stops when the improvement in the target metric is less
+  than a threshold for N steps
 - **MaxSamplesStopper**: Stops when a certain number of samples have been drawn.
   It is less ambiguous than `tuneConfig.num_samples`
-- **InformationGainStopper**: Stops when samples are no longer providing significant
-  additional information on how the constitutive properties of the entity space
-  are related to the target property.
-- **BayesianMetricDifferenceStopper**: Stops when the difference between two metrics
-  is known (with a target confidence) to be above or below a threshold
+- **InformationGainStopper**: Stops when samples are no longer providing
+  significant additional information on how the constitutive properties of the
+  entity space are related to the target property.
+- **BayesianMetricDifferenceStopper**: Stops when the difference between two
+  metrics is known (with a target confidence) to be above or below a threshold
 
 <!-- markdownlint-disable descriptive-link-text -->
 
@@ -511,11 +522,13 @@ tuneConfig:
 
 ## Multi-Objective Optimization
 
-RayTune via `ado` supports multi-objective optimization via the `optuna` optimizer.
-To configure this, set both `metric` and `mode` as lists in your `tuneConfig`.
-For example to search for
+RayTune via `ado` supports multi-objective optimization via the `optuna`
+optimizer. To configure this, set both `metric` and `mode` as lists in your
+`tuneConfig`. For example to search for
 [vLLM deployment configurations](../examples/vllm-performance-full.md) that
 minimise latency while maximising token throughput:
+
+<!-- prettier-ignore-start -->
 
 ```yaml
 {%
@@ -523,8 +536,11 @@ minimise latency while maximising token throughput:
 %}
 ```
 
-The entries in `metric` and `mode` should correspond (order matters).
-Optuna will attempt to optimize for all objectives using its multi-objective capabilities.
+<!-- prettier-ignore-end -->
+
+The entries in `metric` and `mode` should correspond (order matters). Optuna
+will attempt to optimize for all objectives using its multi-objective
+capabilities.
 
 If you specify multiple metrics or modes with an optimizer other than optuna,
 `ado` will raise an error and explain that multi-objective optimization is only
@@ -533,6 +549,7 @@ supported with optuna.
 For more details, see:
 
 <!-- markdownlint-disable line-length -->
+
 - [Optuna multi-objective optimization documentation](https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/003_multi_objective.html)
 - [Ray Tune OptunaSearch documentation](https://docs.ray.io/en/latest/tune/api/doc/ray.tune.search.optuna.OptunaSearch.html#multi-objective-optimization)
 <!-- markdownlint-enable line-length -->
@@ -571,42 +588,42 @@ For a `datacontainer` created by a `ray_tune` operation, an example output is:
 
 ```terminaloutput
 Identifier: datacontainer-a5a33316
-                                                                             
- ─────────────────────────────── Basic Data ──────────────────────────────── 
-                                                                             
-    Label: 'best_result'                                                     
-    {                                                                        
-        'config': {                                                          
-            'x2': -0.6739656478980461,                                       
-            'x1': 0.8532760228340539,                                        
-            'x0': -2.5705928842344696                                        
-        },                                                                   
-        'metrics': {                                                         
-            'function_value': 1106.8717468085306,                            
-            'timestamp': 1769680394,                                         
-            'checkpoint_dir_name': None,                                     
-            'done': True,                                                    
-            'training_iteration': 1,                                         
-            'trial_id': 'e07dd2f6',                                          
-            'date': '2026-01-29_09-53-14',                                   
-            'time_this_iter_s': 1.0830578804016113,                          
-            'time_total_s': 1.0830578804016113,                              
-            'pid': 34110,                                                    
-            'hostname': 'MacBook-Pro-di-Alessandro.local',                   
-            'node_ip': '127.0.0.1',                                          
-            'config': {                                                      
-                'x2': -0.6739656478980461,                                   
-                'x1': 0.8532760228340539,                                    
-                'x0': -2.5705928842344696                                    
-            },                                                               
-            'time_since_restore': 1.0830578804016113,                        
-            'iterations_since_restore': 1,                                   
-            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'           
-        },                                                                   
-        'error': None                                                        
-    }                                                                        
-                                                                             
- ─────────────────────────────────────────────────────────────────────────── 
+
+ ─────────────────────────────── Basic Data ────────────────────────────────
+
+    Label: 'best_result'
+    {
+        'config': {
+            'x2': -0.6739656478980461,
+            'x1': 0.8532760228340539,
+            'x0': -2.5705928842344696
+        },
+        'metrics': {
+            'function_value': 1106.8717468085306,
+            'timestamp': 1769680394,
+            'checkpoint_dir_name': None,
+            'done': True,
+            'training_iteration': 1,
+            'trial_id': 'e07dd2f6',
+            'date': '2026-01-29_09-53-14',
+            'time_this_iter_s': 1.0830578804016113,
+            'time_total_s': 1.0830578804016113,
+            'pid': 34110,
+            'hostname': 'MacBook-Pro-di-Alessandro.local',
+            'node_ip': '127.0.0.1',
+            'config': {
+                'x2': -0.6739656478980461,
+                'x1': 0.8532760228340539,
+                'x0': -2.5705928842344696
+            },
+            'time_since_restore': 1.0830578804016113,
+            'iterations_since_restore': 1,
+            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'
+        },
+        'error': None
+    }
+
+ ───────────────────────────────────────────────────────────────────────────
 ```
 
 We can see here that the point found is
@@ -759,6 +776,8 @@ when it observes the mutual information is converging.
 
 This stopper considers two ways that the mutual information can change:
 
+<!-- prettier-ignore-start -->
+
 1. **mutual information value**: If the value is changing by less than a
    threshold, it is considered "converging"
 2. **properties contribution to the mutual information**: This can be measured
@@ -769,6 +788,8 @@ This stopper considers two ways that the mutual information can change:
       2. Change in the set of constitutive properties which contribute most to the
          mutual information with metric. If the set of propertiers is not changing,
          the mutual information is considered to be converging.
+
+<!-- prettier-ignore-end -->
 
 The stopper will only stop when it sees _both_ the **mutual information value**
 and the **properties that contribute to it** converging.
@@ -799,11 +820,10 @@ keywordParams:
 
 ### BayesianMetricDifferenceStopper
 
-Stops a run when it can tell with high confidence if the
-average (absolute) difference between two metrics is above
-or below a threshold.
-It is designed to be used with a non-correlated, random, sampler e.g.,
-the [LHU Sampler](#latin-hypercube-sampler)
+Stops a run when it can tell with high confidence if the average (absolute)
+difference between two metrics is above or below a threshold. It is designed to
+be used with a non-correlated, random, sampler e.g., the
+[LHU Sampler](#latin-hypercube-sampler)
 
 An example use case is comparing if an experiment with two different
 parameterizations e.g. software version, produces the same or different value
@@ -820,22 +840,22 @@ for a metric.
 #### Example: Detect significant performance changes
 
 We have an experiment that measures the performance of a framework for a task.
-It can be parameterized to use different versions of the framework.
-We want to know if version 2 performs differently than version 1.
+It can be parameterized to use different versions of the framework. We want to
+know if version 2 performs differently than version 1.
 
 ```yaml
-
 name: "BayesianMetricDifferenceStopper"
 keywordParams:
-  metric_a: "test-version:1.performance"  # v1 measurement
-  metric_b: "test-version:2.performance"  # v2 measurement
-  threshold: 100                  # Stop when we know |v1-v2| > or < 100
-  target_probability: 0.95        # 95% confidence
-  min_samples: 10                 # Wait for 10 trials minimum
+  metric_a: "test-version:1.performance" # v1 measurement
+  metric_b: "test-version:2.performance" # v2 measurement
+  threshold: 100 # Stop when we know |v1-v2| > or < 100
+  target_probability: 0.95 # 95% confidence
+  min_samples: 10 # Wait for 10 trials minimum
 ```
 
-**Interpretation**: Stop when 95% confident that the absolute performance difference
-between the framework versions is above or below 100 tokens per second.
+**Interpretation**: Stop when 95% confident that the absolute performance
+difference between the framework versions is above or below 100 tokens per
+second.
 
 !!! info end
 
@@ -846,18 +866,22 @@ between the framework versions is above or below 100 tokens per second.
 
 #### How It Works
 
-1. **Collect**: Gathers differences from each trial (skips trials
-with missing/NaN metrics)
+1. **Collect**: Gathers differences from each trial (skips trials with
+   missing/NaN metrics)
 2. **Wait**: Waits for `min_samples` usable samples before deciding
-3. **Analyze**: Uses Bayesian statistics to estimate probability P(|A-B| > threshold)
+3. **Analyze**: Uses Bayesian statistics to estimate probability P(|A-B| >
+   threshold)
    - Calculate via sum of two-tails P((A-B) > threshold) + P((A-B) < -threshold)
 4. **Stop**:
-   - When P(|A-B| > threshold) > target_probability OR P(|A-B| < threshold) > target_probability
+   - When P(|A-B| > threshold) > target_probability OR P(|A-B| < threshold) >
+     target_probability
 
 ## What's next
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-start -->
+
 <div class="grid cards" markdown>
 
 - :octicons-workflow-24:{ .lg .middle } **Try Searching for the Best Configurations**
@@ -877,4 +901,8 @@ with missing/NaN metrics)
     [Latin Hyper-Cube sampler example :octicons-arrow-right-24:](../examples/lhu.md)
 
 </div>
+
+<!-- prettier-ignore-end -->
+
+<!-- markdownlint-enable no-inline-html -->
 <!-- markdownlint-enable line-length -->

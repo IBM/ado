@@ -163,7 +163,7 @@ def test_valid_measurement_result_series_representation(
         observed_series_representation,
     ]:
         assert representation["identifier"] == expected_entity_identifier
-        assert representation["experiment_id"] == expected_experiment_identifier
+        assert representation["experiment_id"] == str(expected_experiment_identifier)
         assert representation["valid"] == expected_validity
 
     assert expected_target_property_identifier in target_series_representation
@@ -277,6 +277,6 @@ def test_invalid_measurement_result_series_representation(
         observed_series_representation,
     ]:
         assert representation["identifier"] == expected_entity_identifier
-        assert representation["experiment_id"] == expected_experiment_identifier
+        assert representation["experiment_id"] == str(expected_experiment_identifier)
         assert representation["valid"] == expected_validity
         assert representation["reason"] == expected_reason

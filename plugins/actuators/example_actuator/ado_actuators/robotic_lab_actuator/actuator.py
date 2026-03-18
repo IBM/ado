@@ -5,7 +5,6 @@ import uuid
 from typing import Annotated
 
 import pydantic
-import ray
 import yaml
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
@@ -42,7 +41,6 @@ class RoboticLabParameters(GenericActuatorParameters):
 # 1. Provide a catalog of Experiments it can execute - the catalog method
 # 2. Provide a way to run those experiments asynchronously - the submit method
 # 3. Provide the results of the experiments - via the Results Queue
-@ray.remote
 class RoboticLab(ActuatorBase):
 
     identifier = (

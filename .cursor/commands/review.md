@@ -1,8 +1,9 @@
 # review
 
-- Review the changes in the current branch
+- Review the committed changes in the current branch
 - Be picky
-- Use general-development rules to evaluate code
+- Use [AGENTS.md](../../AGENTS.md)
+and [plugin-development.md](../rules/plugin-development.mdc) to evaluate code
 - Link comments to code
 - Format report with following sections (omit if not relevant)
   - Overview: What is changed

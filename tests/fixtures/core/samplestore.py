@@ -178,13 +178,25 @@ def sample_store_configuration_smiles_yaml() -> dict[str, Any]:  # noqa: ANN401
     y = """
     copyFrom:
     - module:
-        moduleClass: GT4SDTransformer
-        moduleName: orchestrator.plugins.samplestores.gt4sd
+        moduleClass: CSVSampleStore
+        moduleName: orchestrator.core.samplestore.csv
       storageLocation:
         path: 'tests/test_generations.csv'
       parameters:
-        source: 'tests/test_generations.csv'
         generatorIdentifier: 'gt4sd-pfas-transformer-model-one'
+        identifierColumn: 'smiles'
+        experiments:
+          - experimentIdentifier: 'transformer-toxicity-inference-experiment'
+            observedPropertyMap:
+              logws: GenLogws
+              logd: GenLogd
+              loghl: GenLoghl
+              pka: GenPka
+              "biodegradation halflife": GenBiodeg
+              bcf: GenBcf
+              ld50: GenLd50
+              scscore: GenScscore
+            constitutivePropertyMap: [smiles]
     """
 
     return yaml.safe_load(y)
@@ -200,7 +212,7 @@ def sample_store_configuration_smiles(
         )
     )
 
-    assert source_conf.copyFrom[0].module.moduleClass == "GT4SDTransformer"
+    assert source_conf.copyFrom[0].module.moduleClass == "CSVSampleStore"
 
     return source_conf
 

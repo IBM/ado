@@ -664,7 +664,6 @@ def custom_experiment_executor(
     queue.put(measurement_request, block=False)
 
 
-@ray.remote
 class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments"""
 

@@ -120,10 +120,40 @@ markdownlint-cli2 "**/*.md" "#.venv" --fix
 
 ### Prettier for lines too long
 
-> [!WARNING]
+> [!CAUTION]
 >
-> Prettier might undo some changes that `markdownlint-cli2` has done. A common
-> error is adding a line after the `markdownlint-disable-next-line` comments
+> **Using Prettier with MkDocs / MkDocs‑Material**
+>
+> Some MkDocs and MkDocs‑Material features rely on Markdown behavior that isn't
+> part of the standard spec. Since Prettier reformats Markdown strictly
+> according to the spec, it can rewrite certain patterns in ways that break
+> rendering.
+>
+> Common issues include:
+>
+> - **Nested lists** that must stay indented with 4 spaces (Prettier collapses
+>   to 2).
+> - **Preprocessor tags** like `{%` that must not change.
+> - **Components using `---` fences** (cards, metadata blocks) that get
+>   converted to `***`.
+> - **Admonitions** (`!!! info`, `> [!CAUTION]`): if there's no blank line after
+>   the admonition header, Prettier may reflow the first content line into the
+>   header, causing it to be rendered as the title.
+> - **markdownlint-cli2**: `markdownlint-disable-next-line` may break if
+>   Prettier inserts a blank line below it; use `markdownlint-disable` and
+>   `markdownlint-enable` instead
+>
+> If a page uses these patterns, consider disabling Prettier for that section.
+> **NOTE**: a blank line is required before the annotations for them to be
+> picked up by Prettier:
+>
+> ```markdown
+> <!-- prettier-ignore-start -->
+>
+> ...content...
+> 
+> <!-- prettier-ignore-end -->
+> ```
 
 Line-too-long errors do not get automatically fixed by `markdownlint-cli2`. We
 recommend using `prettier` to autoformat markdown in that case. The official
@@ -295,7 +325,7 @@ highlighting any issues and preventing the commit if problems are found.
 7. **uv export failures**: commit the updated `requirements.txt` file. It has
    been updated following changes to the lock file.
 8. **Markdown linter failures**: `markdownlint-cli2` usually fixes most issues
-   automatically. If you review its error message and still don’t see a clear
+   automatically. If you review its error message and still don't see a clear
    explanation or solution, try recommitting your changes and let the tool
    re-run.
 

@@ -6,8 +6,6 @@ import logging
 import random
 import uuid
 
-import ray
-
 import orchestrator.modules.actuators.catalog
 import orchestrator.schema.property_value
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
@@ -49,7 +47,6 @@ async def mock_experiment_wait(
     stateUpdateQueue.put_nowait(request)
 
 
-@ray.remote
 class MockActuator(ActuatorBase):
     """A actuator class for testing
 

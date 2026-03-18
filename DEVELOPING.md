@@ -120,7 +120,9 @@ markdownlint-cli2 "**/*.md" "#.venv" --fix
 
 ### Prettier for lines too long
 
-> [!CAUTION] Using Prettier with MkDocs / MkDocs‑Material
+> [!CAUTION]
+>
+> **Using Prettier with MkDocs / MkDocs‑Material**
 >
 > Some MkDocs and MkDocs‑Material features rely on Markdown behavior that isn't
 > part of the standard spec. Since Prettier reformats Markdown strictly

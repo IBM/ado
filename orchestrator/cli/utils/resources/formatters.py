@@ -42,6 +42,7 @@ from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
 from orchestrator.utilities.output import (
     printable_pydantic_model,
 )
+from orchestrator.utilities.pandas import reorder_dataframe_columns
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -63,6 +64,8 @@ def format_default_ado_get_single_resource(
     )
 
     if isinstance(resource, OperationResource):
+        # Insert before AGE to produce SPACE, STATUS, EXIT_STATE, AGE:
+        columns.insert(-1, "SPACE")
         columns.insert(-1, "STATUS")
         columns.insert(-1, "EXIT_STATE")
 
@@ -91,6 +94,7 @@ def format_default_ado_get_single_resource(
             and status_update.exit_state is not None
             else "N/A"
         )
+        output["SPACE"] = resource.config.spaces[0] if resource.config.spaces else ""
 
     # AP: if we don't set the index manually, pandas will complain with
     #   ValueError: If using all scalar values, you must pass an index
@@ -111,20 +115,13 @@ def format_default_ado_get_multiple_resources(
     if resource_kind == CoreResourceKinds.OPERATION:
         status_model = pydantic.RootModel[list[OperationResourceStatus]]
 
-    # AP 13-12-2024:
-    # The exit state column should be there just for operations
-    # we do some trickery to ensure we put it before age
     columns = list(resources.columns)
-
     if resource_kind == CoreResourceKinds.OPERATION:
-        columns.insert(-1, "EXIT_STATE")
-
         resources["STATUS"] = resources["STATUS"].apply(
             lambda x: most_important_status_update(
                 status_model.model_validate(json.loads(x)).root if x else None
             )
         )
-
         resources["EXIT_STATE"] = resources["STATUS"].apply(
             lambda x: (
                 x.exit_state.value
@@ -133,15 +130,19 @@ def format_default_ado_get_multiple_resources(
                 else "N/A"
             )
         )
+        resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)
+        resources = reorder_dataframe_columns(
+            df=resources,
+            move_to_start=[],
+            move_to_end=["SPACE", "STATUS", "EXIT_STATE", "AGE"],
+        )
+        columns = list(resources.columns)
 
     # Avoid printing null or None in the NAME column
     resources["NAME"] = resources["NAME"].fillna("")
 
     if "DESCRIPTION" in resources.columns:
         resources["DESCRIPTION"] = resources["DESCRIPTION"].fillna("")
-
-    if "STATUS" in resources.columns:
-        resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)
 
     # AP: the default formatting of timedelta objects is too verbose
     # we convert it to

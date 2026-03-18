@@ -185,6 +185,25 @@ created resource
 
 ---
 
+## Agent Skills
+
+When writing agent skills:
+
+- Be brief and to the point
+- Avoid ambiguous statements
+- Avoid duplication - check the following sources and link existing relevant data
+   - other skills
+   - the examples under examples/
+   - the documentation under docs/
+- When creating YAML or code examples, prefer:
+   - using an external file
+   - linking it or including its contents in SKILL.md
+   - write tests for such files
+- Ensure the metadata of the skill is sufficient so it triggers
+  when likely to be required
+
+---
+
 ## Links
 
 - For plugin development, see [plugin-development.mdc](.cursor/rules/plugin-development.mdc)

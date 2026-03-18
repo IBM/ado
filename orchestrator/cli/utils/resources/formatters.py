@@ -42,6 +42,7 @@ from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
 from orchestrator.utilities.output import (
     printable_pydantic_model,
 )
+from orchestrator.utilities.pandas import reorder_dataframe_columns
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -121,7 +122,6 @@ def format_default_ado_get_multiple_resources(
                 status_model.model_validate(json.loads(x)).root if x else None
             )
         )
-
         resources["EXIT_STATE"] = resources["STATUS"].apply(
             lambda x: (
                 x.exit_state.value
@@ -130,18 +130,16 @@ def format_default_ado_get_multiple_resources(
                 else "N/A"
             )
         )
-
-        op_cols = ["STATUS", "EXIT_STATE", "SPACE"]
-        pre_op = [c for c in columns if c not in op_cols and c != "AGE"]
-        columns = pre_op + op_cols + ["AGE"]
-        resources = resources[columns].copy()
         resources["STATUS"] = resources["STATUS"].apply(lambda x: x.event.value)
+        resources = reorder_dataframe_columns(
+            df=resources,
+            move_to_start=[],
+            move_to_end=["STATUS", "EXIT_STATE", "SPACE", "AGE"],
+        )
+        columns = list(resources.columns)
 
     # Avoid printing null or None in the NAME column
     resources["NAME"] = resources["NAME"].fillna("")
-
-    if "SPACE" in resources.columns:
-        resources["SPACE"] = resources["SPACE"].fillna("")
 
     if "DESCRIPTION" in resources.columns:
         resources["DESCRIPTION"] = resources["DESCRIPTION"].fillna("")

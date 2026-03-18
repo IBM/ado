@@ -354,16 +354,6 @@ def _symlink_additional_files(
         log.debug("Symlinked additional path %s -> %s", working_dir / path.name, path)
 
 
-def _newest_source_mtime(plugin_path: Path) -> float:
-    """Return the mtime of the most recently modified source file in *plugin_path*."""
-    newest = 0.0
-    for ext in ("*.py", "*.toml", "*.cfg"):
-        for f in plugin_path.rglob(ext):
-            if f.is_file():
-                newest = max(newest, f.stat().st_mtime)
-    return newest
-
-
 def _build_source_wheels(
     from_source: list[str],
     working_dir: Path,
@@ -373,8 +363,6 @@ def _build_source_wheels(
 
     Each entry in *from_source* is a path relative to *repo_root* (or absolute).
     Runs ``uv build --wheel -o dist --clear`` in each plugin directory.
-    Verifies each wheel was freshly built (newer than source files) so that
-    source changes between remote executions produce a new wheel.
 
     Args:
         from_source: Plugin directory paths to build.
@@ -402,8 +390,6 @@ def _build_source_wheels(
         console_print(f"Building wheel for source package: {display_path}")
 
         dist_dir = plugin_path / "dist"
-        source_max_mtime = _newest_source_mtime(plugin_path)
-        build_start = time.time()
         result = subprocess.run(  # noqa: S603
             ["uv", "build", "--wheel", "-o", str(dist_dir), "--clear"],  # noqa: S607
             cwd=str(plugin_path),
@@ -416,22 +402,6 @@ def _build_source_wheels(
         wheels = list(dist_dir.glob("*.whl"))
         if not wheels:
             raise RuntimeError(f"No wheel produced by uv build in {dist_dir}")
-
-        # Confirm wheels were freshly built (newer than source) so source changes
-        # between executions produce a new wheel.
-        for whl in wheels:
-            whl_mtime = whl.stat().st_mtime
-            if whl_mtime < build_start - 2:
-                raise RuntimeError(
-                    f"Wheel {whl.name} appears to be reused (mtime predates build). "
-                    "Expected a fresh build."
-                )
-            if source_max_mtime > 0 and whl_mtime < source_max_mtime - 2:
-                raise RuntimeError(
-                    f"Wheel {whl.name} is older than source (mtime {whl_mtime} < "
-                    f"newest source {source_max_mtime}). Source changes must produce "
-                    "a new wheel."
-                )
 
         for whl in wheels:
             dest = working_dir / whl.name
@@ -451,9 +421,9 @@ def identify_and_copy_local_wheels(
 ) -> tuple[list[str], list[str]]:
     """Identify local wheel paths in the fromPyPI YAML section and copy into the working directory.
 
-    Entries that look like local file paths (contain path separators) and exist
-    as .whl files are copied into the working dir so they are distributed to all
-    Ray nodes.
+    Entries that resolve to existing .whl files are copied into the working dir
+    so they are distributed to all Ray nodes. Other entries are treated as
+    PyPI package names and left unchanged.
 
     Args:
         from_pypi: The fromPyPI package list.
@@ -470,22 +440,17 @@ def identify_and_copy_local_wheels(
     local_wheel_basenames: list[str] = []
 
     for entry in from_pypi:
-        looks_like_path = "/" in entry or "\\" in entry
-        if not looks_like_path or not entry.lower().endswith(".whl"):
-            pypi_packages.append(entry)
-            continue
-
         path = Path(entry)
         if not path.is_absolute():
             path = (cwd / path).resolve()
-        if not path.exists() or not path.is_file():
-            pypi_packages.append(entry)
-            continue
 
-        _copy_file_checked(path, working_dir, seen_basenames)
-        local_wheel_basenames.append(path.name)
-        pypi_packages.append(f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{path.name}")
-        log.debug("Copied local wheel %s for runtime env", path.name)
+        if path.suffix.lower() == ".whl" and path.is_file():
+            _copy_file_checked(path, working_dir, seen_basenames)
+            local_wheel_basenames.append(path.name)
+            pypi_packages.append(f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{path.name}")
+            log.debug("Copied local wheel %s for runtime env", path.name)
+        else:
+            pypi_packages.append(entry)
 
     return pypi_packages, local_wheel_basenames
 

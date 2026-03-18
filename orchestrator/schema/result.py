@@ -121,7 +121,7 @@ class ValidMeasurementResult(MeasurementResult):
 
         rep = {
             "identifier": self.entityIdentifier,
-            "experiment_id": self.experimentReference,
+            "experiment_id": str(self.experimentReference),
             "valid": True,
         }
 
@@ -199,7 +199,7 @@ class InvalidMeasurementResult(MeasurementResult):
         return pd.Series(
             {
                 "identifier": self.entityIdentifier,
-                "experiment_id": self.experimentReference,
+                "experiment_id": str(self.experimentReference),
                 "valid": False,
                 "reason": self.reason,
             },

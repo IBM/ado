@@ -50,7 +50,7 @@ def try_instantiate_experiment(
 
     import ray
 
-    actor = ado_actuators.sfttrainer.actuators.SFTTrainer.remote(
+    actor = ray.remote(ado_actuators.sfttrainer.actuators.SFTTrainer).remote(
         queue=None,
         params=GenericActuatorParameters(),
     )

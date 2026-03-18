@@ -40,7 +40,6 @@ logger = logging.getLogger(__name__)
 # 1. Provide a catalog of Experiments it can execute - the catalog method
 # 2. Provide a way to run those experiments asynchronously - the submit method
 # 3. Provide the results of the experiments - via the Results Queue
-@ray.remote
 class VLLMPerformanceTest(ActuatorBase):
     identifier = "vllm_performance"  # The user-facing label you want this actuator to be called by
     parameters_class = (

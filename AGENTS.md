@@ -181,3 +181,4 @@ created resource
 - For plugin development, see [plugin-development.mdc](.cursor/rules/plugin-development.mdc)
 - For formulating problems with ado, see [formulate problems for ado](.cursor/skills/formulate-discovery-problem/)
 - For using the ado CLI, see [using the ado CLI](.cursor/skills/using-ado-cli/)
+- For creating resource YAML files, see [resource-yaml-creation](.cursor/skills/resource-yaml-creation/)

@@ -4,8 +4,6 @@
 import logging
 import uuid
 
-import ray
-
 import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import ActuatorBase
@@ -84,7 +82,6 @@ def replay(
     return requests
 
 
-@ray.remote
 class Replay(ActuatorBase):
     """Special actuator for handling externally defined experiments (experiments we don't have code for)
 

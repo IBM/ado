@@ -500,6 +500,45 @@ class PropertyDomain(pydantic.BaseModel):
                     "The domainRange field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
                 )
 
+        elif value == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+            # Binary variables must have either no values specified, or exactly two values
+            # that represent False and True (in any order)
+            if values.data.get("values") is not None:
+                provided_values = values.data.get("values")
+
+                # Must have exactly 2 values
+                if len(provided_values) != 2:
+                    raise ValueError(
+                        f"BINARY_VARIABLE_TYPE must have exactly 2 values representing [False, True], "
+                        f"but got {provided_values}. "
+                        f"If you want to restrict the domain to a single boolean value, "
+                        f"use DISCRETE_VARIABLE_TYPE with values [0] or [1] instead."
+                    )
+
+                # Check if the values are equivalent to [False, True]
+                if sorted(provided_values) != [False, True]:
+                    raise ValueError(
+                        f"BINARY_VARIABLE_TYPE must have values equivalent to [False, True], "
+                        f"but got {provided_values}. "
+                        f"If you want to restrict the domain to a single boolean value, "
+                        f"use DISCRETE_VARIABLE_TYPE with values [0] or [1] instead."
+                    )
+
+                # Convert everything to [False, True] for consistency
+                values.data["values"] = [False, True]
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field for a BINARY_VARIABLE_TYPE must be None"
+                )
+
+            # For simplicity, do not accept a domainRange.
+            # It would otherwise have to be [0,2[.
+            if values.data.get("domainRange") is not None:
+                raise ValueError(
+                    "The domainRange field for a BINARY_VARIABLE_TYPE must be None"
+                )
+
         return value
 
     @pydantic.model_serializer

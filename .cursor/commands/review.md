@@ -28,7 +28,7 @@ When evaluating changes to code evaluate against the guidelines in
 
 ## Skill Review
 
-Agent skills are text document under .cursor/skills/.
+Agent skills are text documents under .cursor/skills/.
 
 - Evaluate based on [Agent Skills Guidelines](../../AGENTS.md#agent-skills).
 - For each skill (new or modified) ensure you check the following for related

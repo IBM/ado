@@ -70,7 +70,7 @@ skill:
      repo
 6. **Summary**
    - Summarize the review.
-   - Be clear if the skill should be (a) largely kept as is; (b) required major
+   - Be clear if the skill should be (a) largely kept as is; (b) requires major
      changes (c) is not required
    - If major changes are required provide a sketch of what should be in the
      revised skill

@@ -147,10 +147,11 @@ min_gpu_experiment = "autoconf.min_gpu_recommender"
 Custom experiments **must** use the `@custom_experiment` decorator correctly:
 
 ```python
+from typing import Any
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
 from orchestrator.schema.property import ConstitutiveProperty
 
-# Define your properties
+# Define your properties explicitly (or let ado infer from type annotations)
 MyProperty = ConstitutiveProperty(...)
 
 @custom_experiment(
@@ -162,20 +163,25 @@ MyProperty = ConstitutiveProperty(...)
     },
     parameterization={},
 )
-def my_custom_experiment(entity, actuator, parameterization):
-    # Implementation
-    return results
+def my_custom_experiment(my_property: float, ...) -> dict[str, Any]:
+    # Function parameters must match required/optional property identifiers
+    return {"output1": ..., "output2": ...}
 ```
 
 **Key Points:**
 
-- Specify all `required_properties` that the experiment needs
-- Any positional arguments to the function must be required_properties,
-they may be keyword arguments
-- List any `optional_properties`
-- Any optional_property will be a keyword argument to the function. 
+- Function **parameter names must match the property identifiers** — ado maps
+  values to the function by name, not by position
+- Positional parameters become required properties; keyword parameters become
+  optional properties
+- Type annotations on positional parameters allow ado to infer domains:
+  `float` → continuous, `int` → discrete, `Literal` → categorical
+- Return a `dict` whose keys include the `output_property_identifiers`
 - Define `output_property_identifiers` for measurement results
 - Include descriptive metadata
+
+For the full decorator API and worked examples, see
+[creating-custom-experiments.md](../../../website/docs/actuators/creating-custom-experiments.md).
 
 ---
 
@@ -183,7 +189,7 @@ they may be keyword arguments
 
 ### Unit & Integration Test Location
 
-Keep unit and integration tests **within the plugin package**, 
+Keep unit and integration tests **within the plugin package**,
 not in the top-level `tests/` directory.
 
 ### Testing Checklist
@@ -197,7 +203,7 @@ from the repo root:
   uv pip install -e plugins/your_plugin_type/your_plugin
   ```
 
-- **Confirm actuator or operator registration**: 
+- **Confirm actuator or operator registration**:
 
 Run
 
@@ -205,7 +211,7 @@ Run
 uv run ado get actuators --details
 ```
 
-or 
+or
 
 ```
 uv run ado get operators
@@ -216,6 +222,7 @@ and confirm the plugin is installed
 - **Experiment execution**: Use the `run_experiment` tool to verify custom_experiment or actuator experiments can execute successfully
 
 For example:
+
 ```
 uv run run_experiment point.yaml
 ```

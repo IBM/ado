@@ -5,7 +5,7 @@
 - Review the committed changes in the current branch
 - Be picky
 - Write review to md file when finished
-- Link review comments to the specific file and line the comment pretains to
+- Link review comments to the specific file and line the comment pertains to
   - this includes references to website pages
   - for website pages create markdown links, not just plain section names
 
@@ -61,13 +61,13 @@ skill:
      - state where it should be moved to (another skill, AGENTS.md,
        plugin-development.mdc, etc.)
 5. **Medium Issues**
-   - In this section include issues like the following
-   - Inline code that should link to an existing example file instead
-   - Formatting problems, structural issues, or misleading text
-   - Mistakes in code examples
-   - Inconsistencies with other skill files or agent files
-   - File or directory paths referenced in the skill that do not exist in the
-     repo
+   - In this section include issues like the following:
+       - Inline code that should link to an existing example file instead
+       - Formatting problems, structural issues, or misleading text
+       - Mistakes in code examples
+       - Inconsistencies with other skill files or agent files
+       - File or directory paths referenced in the skill that do not exist in the
+         repo
 6. **Summary**
    - Summarize the review.
    - Be clear if the skill should be (a) largely kept as is; (b) requires major

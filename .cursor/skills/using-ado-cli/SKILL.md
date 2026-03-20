@@ -74,16 +74,6 @@ uv run ado operations get
 uv run ado space create -f space.yaml
 ```
 
-### Platform-Specific Issues
-
-When writing scripts that use grep or other shell commands:
-
-**Example with grep patterns:**
-
-- ❌ Don't use: `grep -P` (Perl regex, not available on macOS)
-- ✅ Use: `grep -E` (extended regex, cross-platform)
-- ✅ Or: basic grep patterns without flags
-
 ## Commands That do not exist
 
 These plausible-sounding commands do not exist in ado. Do not write them:

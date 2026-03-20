@@ -88,6 +88,11 @@ Use Test Driven Development
 - Run pytest: check tests
 - Iterate until tests pass
 
+### Shell Commands
+
+- Use `rg` (ripgrep) instead of `grep` for searching files
+- Avoid platform-specific flags (e.g., `grep -P` is not available on macOS)
+
 ### Writing Tests
 
 - Check for existing fixtures before creating new ones:

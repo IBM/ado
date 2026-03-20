@@ -284,37 +284,10 @@ uv run ado show related space SPACE_ID
 
 ## Advanced Filtering
 
-## Troubleshooting
-
-### Output Format Flag Confusion
-
-Different commands use different flags for output format:
-
-- `ado get`: Use `--output` or `-o`
-- `ado show entities`: Use `--output-format`
-- `ado show requests`: Use `--output-format` or `-o`
-- `ado show results`: Use `--output-format` or `-o`
-
-**Always verify with `--help` before using.**
-
-### Common Mistakes
-
-1. **Using wrong output flag:**
-
-   ```bash
-   # ❌ Wrong
-   uv run ado get operations --output-format csv
-   
-   # ✅ Correct
-   uv run ado get operations --output csv
-   ```
-
-2. **Forgetting to verify command syntax:**
-   - Always run `uv run ado [COMMAND] --help` before writing documentation
-   - Don't assume flags based on other commands
-
 The metastore class can provide more powerful querying via scripts.
 See orchestrator/metastore/sqlstore.py
+
+For output format flag reference, see [using-ado-cli](../using-ado-cli/).
 
 ## References
 

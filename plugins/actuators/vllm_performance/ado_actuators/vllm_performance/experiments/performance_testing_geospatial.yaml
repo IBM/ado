@@ -193,14 +193,14 @@ performance_testing-geospatial-full:
       metadata:
         description: "(deployment) skip tokenizer initialization"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE
-        values: [True, False]
+        variableType: DISCRETE_VARIABLE_TYPE
+        values: [1]
     - identifier: 'enforce_eager'
       metadata:
         description: "(deployment) enforce pytorch eager mode"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE
-        values: [True, False]
+        variableType: DISCRETE_VARIABLE_TYPE
+        values: [1]
     - identifier: 'io_processor_plugin'
       metadata:
         description: 'IO Processor plugin to load for the model'
@@ -249,10 +249,10 @@ performance_testing-geospatial-full:
       value: 'NVIDIA-A100-80GB-PCIe'
     - property:
         identifier: 'skip_tokenizer_init'
-      value: True
+      value: 1
     - property:
         identifier: 'enforce_eager'
-      value: True
+      value: 1
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
@@ -386,14 +386,14 @@ performance_testing-geospatial-full-custom-dataset:
       metadata:
         description: "(deployment) skip tokenizer initialization"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE
-        values: [True, False]
+        variableType: DISCRETE_VARIABLE_TYPE
+        values: [1]
     - identifier: 'enforce_eager'
       metadata:
         description: "(deployment) enforce PyTorch eager mode"
       propertyDomain:
-        variableType: BINARY_VARIABLE_TYPE
-        values: [True, False]
+        variableType: DISCRETE_VARIABLE_TYPE
+        values: [1]
     - identifier: 'io_processor_plugin'
       metadata:
         description: 'IO Processor plugin to load for the model'
@@ -442,10 +442,10 @@ performance_testing-geospatial-full-custom-dataset:
       value: 'NVIDIA-A100-80GB-PCIe'
     - property:
         identifier: 'skip_tokenizer_init'
-      value: True
+      value: 1
     - property:
         identifier: 'enforce_eager'
-      value: True
+      value: 1
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"

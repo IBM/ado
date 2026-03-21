@@ -157,8 +157,9 @@ nav:
       - Efficiently Exploring Parameter Spaces with TRIM: examples/trim.md
   - Core Concepts:
       - core-concepts/concepts.md
+      - Properties and Domains: core-concepts/properties-and-domains.md
+      - Experiments & Actuators: core-concepts/actuators.md
       - Entities and Entity Spaces: core-concepts/entity-spaces.md
-      - Actuators, Experiments & Measurement Spaces: core-concepts/actuators.md
       - Discovery Spaces: core-concepts/discovery-spaces.md
       - Shared Sample Stores: core-concepts/data-sharing.md
   - Resources:

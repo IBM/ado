@@ -199,8 +199,11 @@ class EntitySpaceRepresentation:
             )
 
         if binaryProperties:
-            data = [[cv.identifier] for cv in binaryProperties]
-            df = pd.DataFrame(data, columns=["name"])
+            data = [
+                {"name": cv.identifier, "values": cv.propertyDomain.values}
+                for cv in binaryProperties
+            ]
+            df = pd.DataFrame(data, columns=["name", "values"])
             content.extend(
                 [
                     Text("Binary properties:", style="bold"),

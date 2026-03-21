@@ -1,12 +1,18 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+<!-- prettier-ignore-start -->
+
 {%
    include-markdown "../../../examples/ml-multi-cloud/EXAMPLE_LHC.md"
 %}
 
+<!-- prettier-ignore-end -->
+
 ## What's next
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-start -->
+
 <div class="grid cards" markdown>
 
 - :octicons-rocket-24:{ .lg .middle } __Search using an optimizer__
@@ -26,4 +32,7 @@
     [Search a space based on a custom objective function :octicons-arrow-right-24:](search-custom-objective.md)
 
 </div>
+
 <!-- markdownlint-enable line-length -->
+<!-- markdownlint-enable no-inline-html -->
+<!-- prettier-ignore-end -->

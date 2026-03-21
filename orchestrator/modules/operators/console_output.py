@@ -245,7 +245,7 @@ def output_operation_results(
         df = df.drop(columns=["experiment_id"], errors="ignore")
     else:
         df["experiment_id"] = df["experiment_id"].apply(
-            lambda x: x.experimentIdentifier
+            lambda x: x.split(".", 1)[1] if "." in x else x
         )
 
     # AP 09/12/2025:

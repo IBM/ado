@@ -60,6 +60,36 @@ dependencies = [
     "ado-core",
     # ... other dependencies
 ]
+```
+
+### Installation
+
+Install the plugin into the top-level venv from the repo root:
+
+```bash
+uv pip install -e plugins/your_plugin_type/your_plugin
+```
+
+### Workspace Membership
+
+By default, plugins added in-tree are not workspace members and should
+not be added to `[tool.uv.workspace]` members in the root `pyproject.toml`.
+
+This means the plugins pyproject.toml should not include a `[tool.uv.sources]`
+section resolving `ado-core` via `{ workspace = true }`.
+
+Only add a plugin to the workspace when explicitly
+asked, for example when the plugin must be included in `uv sync` for CI or
+cross-plugin dependency resolution.
+
+If you mistakenly add `ado-core = { workspace = true }` to a plugin's
+`[tool.uv.sources]` without adding it to the workspace, `uv pip install`
+will fail with:
+
+```
+Failed to parse entry: `ado-core`
+`ado-core` references a workspace ... but is not a workspace member
+```
 
 ### Adding Dependencies with uv
 
@@ -160,10 +190,12 @@ not in the top-level `tests/` directory.
 
 Before considering a plugin complete, verify:
 
-- **Plugin Installation**: Install the plugin.
+- **Plugin Installation**: Install the plugin into the top-level uv venv
+from the repo root:
 
-If building the plugin in the ado repository install into the 
-top-level uv venv. 
+  ```bash
+  uv pip install -e plugins/your_plugin_type/your_plugin
+  ```
 
 - **Confirm actuator or operator registration**: 
 

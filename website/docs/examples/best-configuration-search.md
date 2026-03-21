@@ -1,12 +1,18 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+<!-- prettier-ignore-start -->
+
 {%
    include-markdown "../../../examples/optimization_test_functions/README.md"
 %}
 
+<!-- prettier-ignore-end -->
+
 ## What's next
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-start -->
+
 <div class="grid cards" markdown>
 
 - :octicons-rocket-24:{ .lg .middle } __Creating custom objective functions__
@@ -26,4 +32,7 @@
       [Identify the important dimensions of a space :octicons-arrow-right-24:](lhu.md)
 
 </div>
+
 <!-- markdownlint-enable line-length -->
+<!-- markdownlint-enable no-inline-html -->
+<!-- prettier-ignore-end -->

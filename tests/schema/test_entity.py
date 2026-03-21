@@ -605,7 +605,9 @@ def test_experiment_series(
                 s[cp.property.identifier] == cp.value
             ), f"Expected the experiment series to contain a key:value for {cp}"
 
-        for ov in test_entity.propertyValuesFromExperimentReference(s["experiment_id"]):
+        for ov in test_entity.propertyValuesFromExperimentReference(
+            ExperimentReference.referenceFromString(s["experiment_id"])
+        ):
             assert (
                 s[ov.property.targetProperty.identifier] == ov.value
             ), f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"
@@ -635,8 +637,8 @@ def test_experiment_series(
             ser[ov.property.targetProperty.identifier] == ov.value
         ), f"Expected the experiment series for {ref} to contain a key:value for {ov}"
 
-    assert (
-        ser.get("experiment_id") == ref
+    assert ser.get("experiment_id") == str(
+        ref
     ), f"Expected the value of the 'experiment_id' key to be to {ref}"
 
     # Test  experiment_series with virtual_properties
@@ -658,12 +660,17 @@ def test_experiment_series(
                 s[cp.property.identifier] == cp.value
             ), f"Expected the experiment series to contain a key:value for {cp}"
 
-        for ov in test_entity.propertyValuesFromExperimentReference(s["experiment_id"]):
+        for ov in test_entity.propertyValuesFromExperimentReference(
+            ExperimentReference.referenceFromString(s["experiment_id"])
+        ):
             assert (
                 s[ov.property.targetProperty.identifier] == ov.value
             ), f"Expected the experiment series for {s['experiment_id']} to contain a key:value for {ov}"
 
-        if s["experiment_id"] == test_entity.observedProperties[0].experimentReference:
+        if (
+            str(test_entity.observedProperties[0].experimentReference)
+            == s["experiment_id"]
+        ):
             assert s[
                 vp.virtualTargetPropertyIdentifier
             ], f"Expected the experiment series for {test_entity.observedProperties[0].experimentReference} to contain a key:value for {vp}"

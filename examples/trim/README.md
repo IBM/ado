@@ -31,8 +31,8 @@
 
 > [!CAUTION]
 >
-> All commands below assume you are running them from the
-> **top-level of the `ado` repository**.
+> All commands below assume you are running them from the **top-level of the
+> `ado` repository**.
 
 > [!TIP] TL;DR
 >
@@ -71,12 +71,14 @@ Finally, it trains one high-quality model on all the data it has collected and
 saves it for you to use.
 
 <!-- markdownlint-disable no-blanks-blockquote -->
+
 > [!CAUTION]
 >
-> The current version of TRIM assumes that all measurements produce
-> the observed target output property, here in the
-> `operation.parameters.targetOutput` field.
-> More details in [the relevant section](https://ibm.github.io/ado/operators/trim/#debugging-and-troubleshooting).
+> The current version of TRIM assumes that all measurements produce the observed
+> target output property, here in the `operation.parameters.targetOutput` field.
+> More details in
+> [the relevant section](https://ibm.github.io/ado/operators/trim/#debugging-and-troubleshooting).
+
 <!-- markdownlint-enable no-blanks-blockquote -->
 
 ## Creating a `discoveryspace`
@@ -104,11 +106,15 @@ Success! Created space with identifier: space-bfed2d-19b49a
 Next, we will run an `operation` that uses TRIM to explore the `discoveryspace`.
 The configuration for our operation is in `op_pressure.yaml`:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
-{% 
-  include-markdown "./example_yamls/op_pressure.yaml" 
+{%
+  include-markdown "./example_yamls/op_pressure.yaml"
 %}
 ```
+
+<!-- prettier-ignore-end -->
 
 To run the operation, execute:
 
@@ -233,8 +239,8 @@ iterative modeling). You can see the relationship with:
 ado show related space --use-latest
 ```
 
-This will show the `discoveryspace` and the sub-operations that were run.
-To see the entities of the space that have been measured, you can run:
+This will show the `discoveryspace` and the sub-operations that were run. To see
+the entities of the space that have been measured, you can run:
 
 <!-- markdownlint-disable line-length -->
 

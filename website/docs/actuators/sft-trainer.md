@@ -1,4 +1,6 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+<!-- markdownlint-disable code-block-style -->
+
 ## Overview
 
 The `SFTTrainer` actuator provides a flexible and scalable interface for running
@@ -35,6 +37,7 @@ must already include the appropriate version of `torch`:
 <!-- markdownlint-disable line-length -->
 
 - **`fms-hf-tuning <= 2.8.2`**
+
   - Install `torch==2.4.1`
   - For RayClusters on Kubernetes, use:
     `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
@@ -1540,7 +1543,7 @@ This section describes the fields you may optionally configure in your
 ### Example Actuator Configuration YAML
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 actuatorIdentifier: SFTTrainer
 parameters:
@@ -1602,7 +1605,6 @@ parameters:
   the defaults that ship with the Actuator.
 - **Example**:
 
-  <!-- markdownlint-disable-next-line code-block-style -->
   ```yaml
   model_map:
     granite-3.1-2b:
@@ -1749,7 +1751,6 @@ For text-to-text tasks, create a dataset file with the name
 
 Use the following command:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
 sfttrainer_generate_dataset_text -o /data/fms-hf-tuning/artificial-dataset/news-tokens-16384plus-entries-4096.jsonl
 ```
@@ -1770,7 +1771,6 @@ documentation on submitting remote Ray jobs that use the code of Actuators.
 For example, build the wheel file for SFTTrainer and create the following
 `ray_runtime_env.yaml`:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
 pip:
   - ${RAY_RUNTIME_ENV_CREATE_WORKING_DIR}/ado_sfttrainer-1.0.2.dev84+g1ab8f43d-py3-none-any.whl
@@ -1792,11 +1792,11 @@ file:
 
 !!! info end
 
-    If you are using a remote RayCluster on Kubernetes remember to start 
+    If you are using a remote RayCluster on Kubernetes remember to start
     a port-forward to the RayCluster head node.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
   sfttrainer_generate_dataset_text \
@@ -1816,7 +1816,7 @@ To create the dataset files use the same `ray_runtime_env.yaml` file as above
 but this time start 2 Ray Jobs:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
   sfttrainer_generate_dataset_vision --image-width 384  --image-height 384 \
@@ -1859,7 +1859,6 @@ Supported model weight types include:
 Here’s a simple example that caches the `HuggingFaceTB/SmolLM2-135M` model
 weights from HuggingFace:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```yaml
 smollm2-135m:
   Vanilla: HuggingFaceTB/SmolLM2-135M
@@ -1873,7 +1872,6 @@ overriding the location of dataset files.
 For example, to cache the model weights under `/my/hf_home/` use the following
 command:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
 sfttrainer_download_hf_weights -i models.yaml -o /my/hf_home
 ```
@@ -1887,7 +1885,7 @@ above section for generating datasets:
     a port-forward to the RayCluster head node.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```commandline
 ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yaml --working-dir $PWD -v -- \
   sfttrainer_download_hf_weights -i models.yaml -o /my/hf_home
@@ -1910,9 +1908,13 @@ following DiscoverySpace for 5 times:
 <!-- markdownlint-disable MD013 -->
 <!-- markdownlint-disable MD046 -->
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-space.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 <!-- markdownlint-enable MD046 -->
 <!-- markdownlint-enable MD013 -->
@@ -1921,9 +1923,13 @@ Remember to switch off memoization in your RandomWalk operation definition:
 
 <!-- markdownlint-disable MD013 -->
 <!-- markdownlint-disable MD046 -->
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include "../../../plugins/actuators/sfttrainer/examples/metrics-stability-operation.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 <!-- markdownlint-enable MD046 -->
 <!-- markdownlint-enable MD013 -->
@@ -2043,7 +2049,8 @@ building a custom image for the GPU worker nodes. We’ll use the
 both Ray and the necessary NVIDIA libraries.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```docker
 ARG base_image=mirror.gcr.io/rayproject/ray:latest-py310-cu121
 FROM $base_image
@@ -2095,7 +2102,6 @@ which indicates RoCE v2 support.
 
 For example, given the following output:
 
-<!-- markdownlint-disable-next-line code-block-style -->
 ```terminaloutput
 DEV    PORT INDEX GID                                   IPv4         VER DEV
 ---    ---- ----- ---                                   ------------ --- ---
@@ -2146,7 +2152,7 @@ GPU worker with support for RoCE.
    - Mount the `topology-roce` ConfigMap at `/var/run/nvidia-topologyd`.
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+
 ```yaml
 # ... trimmed ...
 workerGroupSpecs:
@@ -2302,7 +2308,9 @@ your log output will be similar to the snippet below.
 ## Next steps
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line no-inline-html -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-start -->
+
 <div class="grid cards" markdown>
 
 - ⚙️ **Customize Actuators using ActuatorConfiguration resources**
@@ -2330,4 +2338,7 @@ your log output will be similar to the snippet below.
     :link: [Run a fine-tuning experiment on a remote RayCluster](../examples/finetune-remotely.md)
 
 </div>
+
 <!-- markdownlint-enable line-length -->
+<!-- markdownlint-disable no-inline-html -->
+<!-- prettier-ignore-end -->

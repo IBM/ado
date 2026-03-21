@@ -1,4 +1,5 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 ## Using externally obtained data: the replay actuator
 
 The replay actuator allows you to leverage results that were obtained via
@@ -26,14 +27,20 @@ constitutive properties are defined. With this information `ado` can create
 entities for each row. The following example is from
 [taking a random walk](../examples/random-walk.md):
 
+<!-- prettier-ignore-start -->
+
 ```yaml
 {% include "../../../examples/ml-multi-cloud/ml_multicloud_sample_store.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 The `copyFrom` section is where the external sources data should be copied into
 the `samplestore` are defined. There can be multiple but here there is just one.
 
 The relevant fields are:
+
+<!-- prettier-ignore-start -->
 
 - `module`: These are the values you set to indicate the data is in a CSV file
 - `storageLocation`: This is the path the CSV file
@@ -43,11 +50,13 @@ The relevant fields are:
   file that define the constitutive properties of the entities
 - `experiments`: This section defines the experiments that were used to generate
   the data in the CSV file
-  - `experiments.experimentIdentifier`: This is the name for the experiment in
-    ado
-  - `experiments.observedPropertyMap`: This is a dictionary mapping the names of
-    the properties experiment as they will appear in `ado` to column names in
-    the CSV
+    - `experiments.experimentIdentifier`: This is the name for the experiment
+      in ado
+    - `experiments.observedPropertyMap`: This is a dictionary mapping the names
+      of the properties experiment as they will appear in `ado` to column names
+      in the CSV
+
+<!-- prettier-ignore-end -->
 
 The above YAML says to associate the data in the columns `wallClockRuntime` and
 `status` with an experiment 'benchmark_performance' that measures properties
@@ -87,6 +96,7 @@ Looking at the example in
 `benchmark_performance`!
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 What happens is that when a measurement of an experiment associated with the
 `replay` actuator is requested to be performed on an entity, if the data is
 present (because it was copied in) it is reused as normal by `ado`'s memoization
@@ -94,11 +104,11 @@ mechanism. If there is no data, it cannot be measured as no real experiment
 exists, and the `replay` actuator handles this case correctly - it creates the
 `No value to replay` messages seen
 [here](../examples/random-walk.md#looking-at-the-operation-output).
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 > [!IMPORTANT]
 >
-> To use external data via the replay actuator the relevant
-> operator must be configured to use memoization. With the randomwalk and
-> ray_tune operators this means singleMeasurement parameter is set to True (the
-> default).
+> To use external data via the replay actuator the relevant operator must be
+> configured to use memoization. With the randomwalk and ray_tune operators this
+> means singleMeasurement parameter is set to True (the default).

@@ -66,10 +66,20 @@ class SQLStore(ResourceStore):
                 f"Using cached table existence check result: tables_exist={tables_exist}"
             )
         else:
-            # Network query: check if tables exist
+            # Use a direct SQL query rather than sqlalchemy.inspect() to avoid
+            # the Inspector's internal connection overhead.
             log.debug("Checking if 'resources' table exists (network query)...")
-            inspector = sqlalchemy.inspect(engine)
-            tables_exist = inspector.has_table("resources")
+            if project_context.metadataStore.scheme == "sqlite":
+                existence_query = sqlalchemy.text(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='resources'"
+                )
+            else:
+                existence_query = sqlalchemy.text(
+                    "SELECT 1 FROM information_schema.tables"
+                    " WHERE table_schema = DATABASE() AND table_name = 'resources' LIMIT 1"
+                )
+            with engine.connect() as conn:
+                tables_exist = conn.execute(existence_query).fetchone() is not None
             log.debug(f"Table existence check complete: tables_exist={tables_exist}")
             # Cache the result
             _tables_exist_cache[cache_key] = tables_exist
@@ -555,7 +565,7 @@ class SQLResourceStore(ResourceStore):
         else:
             select_statement = f"{select_statement} {select_name} {select_age} "
 
-        # Add the status to the resources that have it
+        # Add the status and space to the resources that have it
         if kind == orchestrator.core.resources.CoreResourceKinds.OPERATION.value:
             select_status = (
                 orchestrator.metastore.sql.statements.resource_select_data_field(
@@ -564,7 +574,15 @@ class SQLResourceStore(ResourceStore):
                     dialect=self.engine.dialect.name,
                 )
             )
-            select_statement = f"{select_statement} {select_status} "
+            select_space = (
+                orchestrator.metastore.sql.statements.resource_select_data_field(
+                    field_name="config.spaces[0]",
+                    needs_select=False,
+                    dialect=self.engine.dialect.name,
+                    output_field_name="space",
+                )
+            )
+            select_statement = f"{select_statement} {select_status} {select_space}"
 
         # FROM
         from_statement = "FROM resources "
@@ -630,6 +648,8 @@ class SQLResourceStore(ResourceStore):
         if kind == orchestrator.core.resources.CoreResourceKinds.OPERATION.value:
             columns.insert(-1, "STATUS")
             output_df["STATUS"] = table["status"]
+            columns.insert(-1, "SPACE")
+            output_df["SPACE"] = table["space"]
 
         return output_df[columns]
 

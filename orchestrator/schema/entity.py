@@ -661,7 +661,7 @@ class Entity(pydantic.BaseModel):
             d = resultsDict[refString]
             d["identifier"] = self.identifier
             d["generatorid"] = self.generatorid
-            d["experiment_id"] = e
+            d["experiment_id"] = str(e)
 
             # There should be only one value for a constitutive property
             for v in self.constitutive_property_values:

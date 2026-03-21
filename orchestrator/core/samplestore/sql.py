@@ -40,6 +40,10 @@ from orchestrator.schema.result import (
     MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
+from orchestrator.schema.virtual_property import (
+    PropertyAggregationMethod,
+    PropertyAggregationMethodEnum,
+)
 from orchestrator.utilities.location import (
     SQLiteStoreConfiguration,
     SQLStoreConfiguration,
@@ -1680,6 +1684,7 @@ class SQLSampleStore(ActiveSampleStore):
         operation_id: str,
         output_format: typing.Literal["target", "observed"],
         limit_to_properties: list[str] | None = None,
+        aggregation_method: PropertyAggregationMethodEnum | None = None,
     ) -> "pd.DataFrame":
         import pandas as pd
 
@@ -1690,6 +1695,8 @@ class SQLSampleStore(ActiveSampleStore):
         - operation_id (str): The ID of the operation to retrieve measurement requests and results for.
         - output_format (typing.Literal["target", "observed"]): The format of the output data.
         - limit_to_properties (typing.Optional[list[str]]): A list of properties to limit the output to.
+        - aggregation_method (PropertyAggregationMethodEnum | None): If set, aggregate list-valued
+          property columns (e.g. mean of multiple runs) to a single scalar per cell.
 
         Returns:
         pd.DataFrame: The timeseries of measurement requests and results for the operation.
@@ -1770,4 +1777,27 @@ class SQLSampleStore(ActiveSampleStore):
             move_to_end=columns_at_the_end,
         )
         df = df.sort_values(by=["request_index", "result_index"])
+
+        if aggregation_method is not None:
+            property_columns = [
+                c
+                for c in df.columns
+                if c not in columns_at_the_start and c not in columns_at_the_end
+            ]
+            pam = PropertyAggregationMethod(identifier=aggregation_method)
+
+            def _aggregate_cell(value: object) -> object:
+                if value == "not_measured":
+                    return value
+                if not isinstance(value, list):
+                    return value
+                try:
+                    result, _ = pam.function(value)
+                    return result
+                except (ValueError, TypeError):
+                    return value
+
+            for col in property_columns:
+                df[col] = df[col].apply(_aggregate_cell)
+
         return df.set_index("request_index")

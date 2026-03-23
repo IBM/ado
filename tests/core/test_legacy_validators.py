@@ -227,9 +227,7 @@ class TestUpgradeHandlerIntegration:
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
                 return_value=mock_sql_store,
             ),
-            patch(
-                "orchestrator.cli.utils.resources.handlers._import_legacy_validators"
-            ),
+            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch("orchestrator.cli.utils.resources.handlers.Status"),
             patch("orchestrator.cli.utils.resources.handlers.console_print"),
         ):
@@ -276,9 +274,7 @@ class TestUpgradeHandlerIntegration:
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
                 return_value=mock_sql_store,
             ),
-            patch(
-                "orchestrator.cli.utils.resources.handlers._import_legacy_validators"
-            ),
+            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch(
                 "orchestrator.cli.utils.resources.handlers.console_print"
             ) as mock_print,
@@ -322,9 +318,7 @@ class TestUpgradeHandlerIntegration:
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
                 return_value=mock_sql_store,
             ),
-            patch(
-                "orchestrator.cli.utils.resources.handlers._import_legacy_validators"
-            ),
+            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch(
                 "orchestrator.cli.utils.resources.handlers.console_print"
             ) as mock_print,

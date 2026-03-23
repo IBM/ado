@@ -6,28 +6,9 @@
 from rich.console import Console
 from rich.panel import Panel
 
+from orchestrator.cli.utils.legacy.common import import_legacy_validators
 from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 from orchestrator.core.resources import CoreResourceKinds
-
-
-def _import_legacy_validators() -> None:
-    """Import all legacy validator modules to ensure they're registered"""
-    # Import validator modules to trigger decorator registration
-    try:
-        # Discovery Space validators
-        import orchestrator.core.legacy.validators.discoveryspace.entitysource_to_samplestore  # noqa: F401
-        import orchestrator.core.legacy.validators.discoveryspace.properties_field_removal  # noqa: F401
-
-        # Operation validators
-        import orchestrator.core.legacy.validators.operation.actuators_field_removal  # noqa: F401
-        import orchestrator.core.legacy.validators.operation.randomwalk_mode_to_sampler_config  # noqa: F401
-
-        # Sample Store validators
-        import orchestrator.core.legacy.validators.resource.entitysource_to_samplestore  # noqa: F401
-        import orchestrator.core.legacy.validators.samplestore.entitysource_migrations  # noqa: F401
-        import orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration  # noqa: F401
-    except ImportError:
-        pass  # Validators may not be available in all installations
 
 
 def list_legacy_validators(resource_type: CoreResourceKinds) -> None:
@@ -39,7 +20,7 @@ def list_legacy_validators(resource_type: CoreResourceKinds) -> None:
     console = Console()
 
     # Import all validator modules to ensure they're registered
-    _import_legacy_validators()
+    import_legacy_validators()
 
     # Get validators for this resource type
     validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
@@ -50,17 +31,9 @@ def list_legacy_validators(resource_type: CoreResourceKinds) -> None:
         )
         return
 
-    # Map resource types to their CLI names
-    resource_name_mapping = {
-        CoreResourceKinds.SAMPLESTORE: "sample_stores",
-        CoreResourceKinds.DISCOVERYSPACE: "spaces",
-        CoreResourceKinds.OPERATION: "operations",
-        CoreResourceKinds.ACTUATORCONFIGURATION: "actuator_configurations",
-        CoreResourceKinds.DATACONTAINER: "data_containers",
-    }
-    resource_cli_name = resource_name_mapping.get(
-        resource_type, resource_type.value + "s"
-    )
+    # Resources can be referenced by their CoreResourceKinds value or by shorthands
+    # from cli_shorthands_to_cli_names in orchestrator/cli/utils/resources/mappings.py
+    resource_cli_name = resource_type.value
 
     console.print(
         f"\n[bold cyan]Available legacy validators for {resource_cli_name}:[/bold cyan]\n"

@@ -201,6 +201,19 @@ uv run ado create operation -f operation.yaml --use-latest
 The `--use-latest` flag automatically fills in the space ID from the previous
 `ado create space` command.
 
+### --set
+
+Overrides individual fields in a resource YAML at creation time without editing
+the file. Takes `path=JSON_document` pairs; can be used multiple times.
+
+```bash
+# Override the sample store used by a space
+uv run ado create space -f space.yaml --set sampleStoreIdentifier=my_store
+
+# Override a nested operation parameter
+uv run ado create operation -f operation.yaml --set parameters.budget=100
+```
+
 ### --with
 
 Creates a resource from YAML inline and uses it in the current command.
@@ -298,6 +311,8 @@ uv run ado create operation -f operation.yaml --use-latest
 
 ## Related Resources
 
+- For creating and structuring resource YAML files, see
+  [resource-yaml-creation](../resource-yaml-creation/)
 - For creating discoveryspace and operation YAML files, see
   [formulate-discovery-problem](../formulate-discovery-problem/)
 - For general development guidelines, see [AGENTS.md](../../../AGENTS.md)

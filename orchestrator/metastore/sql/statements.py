@@ -236,23 +236,36 @@ def resource_select_data_field(
     field_name: str,
     needs_select: bool = False,
     dialect: Literal["mysql", "sqlite"] = "mysql",
+    output_field_name: str | None = None,
 ) -> str:
+    """Extract a field from the JSON ``data`` column.
 
-    #
+    Args:
+        field_name: Dot-notation path within the JSON ``data`` object
+            (e.g. ``"status"`` or ``"config.spaces[0]"``).
+        needs_select: If True, prefix with SELECT; otherwise prefix with a
+            comma (for appending to an existing SELECT clause).
+        dialect: The SQL dialect to use. Determines the JSON extraction syntax.
+        output_field_name: SQL alias for the extracted column. Defaults to
+            ``field_name`` when not provided.
+
+    Returns:
+        A SQL fragment that extracts ``$.{field_name}`` from the ``data``
+        column and aliases it as ``output_field_name`` (or ``field_name``).
+    """
     statement_preamble = "SELECT" if needs_select else ","
-
-    #
     data_path = f"$.{field_name}"
+    alias = output_field_name or field_name
     statement = (
-        "{statement_preamble} data ->> '{data_path}' as {field_name}"
+        "{statement_preamble} data ->> '{data_path}' as {alias}"
         if dialect == "sqlite"
-        else "{statement_preamble} data->>'{data_path}' as {field_name}"
+        else "{statement_preamble} data->>'{data_path}' as {alias}"
     )
 
     return statement.format(
         statement_preamble=statement_preamble,
         data_path=data_path,
-        field_name=field_name,
+        alias=alias,
     )
 
 

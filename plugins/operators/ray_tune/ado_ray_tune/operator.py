@@ -777,7 +777,9 @@ class RayTune(Search):
         )
 
     @classmethod
-    def validateOperationParameters(cls, parameters: dict) -> RayTuneConfiguration:
+    def validateOperationParameters(
+        cls, parameters: dict | pydantic.BaseModel
+    ) -> RayTuneConfiguration:
         return RayTuneConfiguration.model_validate(parameters)
 
     @classmethod

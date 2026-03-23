@@ -546,7 +546,6 @@ def update_dict(
         target[key] = existing
 
 
-@ray.remote
 class SFTTrainer(ActuatorBase):
     _dir = os.path.abspath(os.path.dirname(__file__))
     identifier = identifier

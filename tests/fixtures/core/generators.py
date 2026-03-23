@@ -17,7 +17,7 @@ from orchestrator.core.resources import CoreResourceKinds
             id=CoreResourceKinds.DISCOVERYSPACE.value,
         ),
         pytest.param(
-            (CoreResourceKinds.OPERATION, "random_operation_resource_from_file"),
+            (CoreResourceKinds.OPERATION, "ml_multi_cloud_operation_resource"),
             id=CoreResourceKinds.OPERATION.value,
         ),
     ]
@@ -39,7 +39,7 @@ def resource_generator_from_file(
             id=CoreResourceKinds.DISCOVERYSPACE.value,
         ),
         pytest.param(
-            (CoreResourceKinds.OPERATION, "random_operation_resource_from_db"),
+            (CoreResourceKinds.OPERATION, "ml_multi_cloud_operation_resource_from_db"),
             id=CoreResourceKinds.OPERATION.value,
         ),
     ]

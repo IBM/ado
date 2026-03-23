@@ -8,6 +8,7 @@ from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
+from typing_extensions import Self
 
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.discoveryspace.config import (
@@ -265,6 +266,79 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
             description="The parameters for the operation. Operation provider dependent",
         ),
     ]
+
+    @pydantic.field_validator("module", mode="after")
+    @classmethod
+    def ensure_module_is_installed(
+        cls, module: OperatorModuleConf | OperatorFunctionConf
+    ) -> OperatorModuleConf | OperatorFunctionConf:
+        """Validates that the operator module is installed and accessible.
+
+        Args:
+            module: The operator module or function configuration to validate.
+
+        Returns:
+            The validated module configuration.
+
+        Raises:
+            ValueError: If the operator module is not installed or cannot be imported.
+        """
+        if isinstance(module, OperatorFunctionConf):
+            return module
+
+        import importlib
+
+        try:
+            getattr(importlib.import_module(module.moduleName), module.moduleClass)
+        except ModuleNotFoundError as e:
+            raise ValueError(
+                f"Operator {module.moduleName}.{module.moduleClass} is not installed"
+            ) from e
+
+        return module
+
+    @pydantic.model_validator(mode="after")
+    def validate_and_downcast_parameters(self) -> Self:
+        """Validates and downcasts operation parameters based on the module type.
+
+        For OperatorModuleConf modules, validates parameters using the operation's
+        validateOperationParameters method. For OperatorFunctionConf modules,
+        validates parameters against the configuration model if available.
+
+        Returns:
+            Self: The validated instance with downcast parameters.
+
+        Raises:
+            ValidationError: If parameter validation fails.
+        """
+        if isinstance(self.module, OperatorModuleConf):
+            # This is guaranteed to not raise an error thanks to ensure_module_is_installed
+            operation = getattr(
+                importlib.import_module(self.module.moduleName), self.module.moduleClass
+            )
+            self.parameters = operation.validateOperationParameters(self.parameters)
+        else:
+            import logging
+
+            from orchestrator.modules.operators.collections import (
+                operationCollectionMap,
+            )
+
+            operation_type = self.module.operationType
+            operator_name = self.module.operatorName
+            configuration_model = operationCollectionMap[
+                operation_type
+            ].configuration_model_for_operation(operator_name)
+
+            if configuration_model:
+                self.parameters = configuration_model.model_validate(self.parameters)
+            else:
+                logger = logging.getLogger(__file__)
+                logger.warning(
+                    f"No configuration model was available for operation {operator_name} of type {operation_type}"
+                )
+
+        return self
 
 
 class DiscoveryOperationResourceConfiguration(pydantic.BaseModel):

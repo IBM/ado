@@ -1,5 +1,7 @@
 # Exploring vLLM deployment configurations
 
+<!-- markdownlint-disable no-blanks-blockquote -->
+
 > [!NOTE] The scenario
 >
 > **In this example, the
@@ -20,8 +22,6 @@
 > - Use the [`random_walk` operator](../operators/random-walk.md) to explore the
 >   space
 
-<!-- markdownlint-disable-next-line MD028 -->
-
 > [!IMPORTANT] Prerequisites
 >
 > - Be logged-in to your Kubernetes/OpenShift cluster
@@ -31,8 +31,6 @@
 > ```bash
 > pip install ado-vllm-performance
 > ```
-
-<!-- markdownlint-disable-next-line MD028 -->
 
 > [!TIP] TL;DR
 >
@@ -63,6 +61,8 @@
 > See
 > [configuring the `vllm_performance` actuator](../actuators/vllm_performance.md#configuring-the-vllm_performance-actuator)
 > for more configuration options.
+
+<!-- markdownlint-enable no-blanks-blockquote -->
 
 ## Verify the installation
 
@@ -126,9 +126,13 @@ deployment parameters, including `max_num_seq` and `max_batch_tokens`, for a
 scenario where requests arrive between 1 and 10 per second with sizes around
 2000 tokens.
 
+<!-- prettier-ignore-start -->
+
 ```yaml
-{ % include "./example_yamls/vllm_deployment_space.yaml" % }
+{% include "./example_yamls/vllm_deployment_space.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 Save the above as `vllm_deployment_space.yaml`. Then run:
 
@@ -145,9 +149,13 @@ minimizing the number of deployment creations.
 
 Save the following as `random_walk_operation_grouped.yaml`:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
-{ % include "./example_yamls/random_walk_operation_grouped.yaml" % }
+{% include "./example_yamls/random_walk_operation_grouped.yaml" %}
 ```
+
+<!-- prettier-ignore-end -->
 
 Then, start the operation with:
 

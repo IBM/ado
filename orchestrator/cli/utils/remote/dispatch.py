@@ -26,6 +26,7 @@ from orchestrator.cli.models.remote_submission import (
 from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_REMOTE_PORT_FORWARD,
     ADO_SPINNER_REMOTE_PREPARING_FILES,
+    console_print,
 )
 from orchestrator.cli.utils.remote.arg_parser import (
     rewrite_flag_values,
@@ -382,8 +383,13 @@ def _build_source_wheels(
                 f"fromSource plugin path does not exist: {plugin_path}"
             )
 
+        try:
+            display_path = str(plugin_path.relative_to(repo_root))
+        except ValueError:
+            display_path = plugin_path_str
+        console_print(f"Building wheel for source package: {display_path}")
+
         dist_dir = plugin_path / "dist"
-        log.info("Building wheel for plugin at %s", plugin_path)
         result = subprocess.run(  # noqa: S603
             ["uv", "build", "--wheel", "-o", str(dist_dir), "--clear"],  # noqa: S607
             cwd=str(plugin_path),
@@ -401,15 +407,61 @@ def _build_source_wheels(
             dest = working_dir / whl.name
             shutil.copy2(whl, dest)
             wheel_names.append(whl.name)
-            log.info("Copied wheel %s to %s", whl.name, working_dir)
+            console_print(f"Built wheel: {whl.name}")
+            log.debug("Copied wheel %s to %s", whl.name, working_dir)
 
     return wheel_names
+
+
+def identify_and_copy_local_wheels(
+    from_pypi: list[str],
+    cwd: Path,
+    working_dir: Path,
+    seen_basenames: set[str],
+) -> tuple[list[str], list[str]]:
+    """Identify local wheel paths in the fromPyPI YAML section and copy into the working directory.
+
+    Entries that resolve to existing .whl files are copied into the working dir
+    so they are distributed to all Ray nodes. Other entries are treated as
+    PyPI package names and left unchanged.
+
+    Args:
+        from_pypi: The fromPyPI package list.
+        cwd: Directory for resolving relative paths.
+        working_dir: Destination for copied wheels.
+        seen_basenames: Basenames already in working_dir; updated in-place.
+
+    Returns:
+        Tuple of (pypi_packages, local_wheel_basenames). pypi_packages has local
+        wheel paths replaced with RAY_RUNTIME_ENV_CREATE_WORKING_DIR refs;
+        local_wheel_basenames are the basenames of copied wheels.
+    """
+    pypi_packages: list[str] = []
+    local_wheel_basenames: list[str] = []
+
+    for entry in from_pypi:
+        path = Path(entry)
+        if not path.is_absolute():
+            path = (cwd / path).resolve()
+
+        if path.suffix.lower() == ".whl" and path.is_file():
+            _copy_file_checked(path, working_dir, seen_basenames)
+            local_wheel_basenames.append(path.name)
+            pypi_packages.append(f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{path.name}")
+            log.debug("Copied local wheel %s for runtime env", path.name)
+        else:
+            pypi_packages.append(entry)
+
+    return pypi_packages, local_wheel_basenames
 
 
 def _write_runtime_env(
     remote_context: RemoteExecutionContext,
     wheel_names: list[str],
     dest: Path,
+    cwd: Path,
+    working_dir: Path,
+    seen_basenames: set[str],
 ) -> None:
     """Write the Ray runtime environment YAML to *dest*.
 
@@ -417,12 +469,24 @@ def _write_runtime_env(
     *remote_context* into a ``runtime_env.yaml`` compatible with
     ``ray job submit --runtime-env``.
 
+    Local wheel paths in fromPyPI are copied to the working dir and rewritten
+    to use RAY_RUNTIME_ENV_CREATE_WORKING_DIR so they are available on all
+    nodes (worker nodes do not have access to cluster paths like /tmp/ray/).
+
     Args:
         remote_context: The remote execution context describing packages and env vars.
-        wheel_names: Basenames of wheel files present in the Ray working dir.
+        wheel_names: Basenames of wheel files from fromSource, present in working dir.
         dest: Path to write the generated ``runtime_env.yaml``.
+        cwd: Directory for resolving relative paths in fromPyPI.
+        working_dir: Ray working directory for copying local wheels.
+        seen_basenames: Basenames already in working_dir; updated when copying wheels.
     """
-    uv_packages: list[str] = list(remote_context.packages.fromPyPI)
+    uv_packages, _ = identify_and_copy_local_wheels(
+        remote_context.packages.fromPyPI,
+        cwd,
+        working_dir,
+        seen_basenames,
+    )
     uv_packages.extend(
         f"${{RAY_RUNTIME_ENV_CREATE_WORKING_DIR}}/{wheel_name}"
         for wheel_name in wheel_names
@@ -546,15 +610,25 @@ def _dispatch_to_cluster(
         )
 
         # 4. Build wheels for fromSource plugins
+        if remote_context.packages.fromSource:
+            status.stop()
         wheel_names = _build_source_wheels(
             remote_context.packages.fromSource,
             working_dir,
             repo_root,
         )
+        seen_basenames.update(wheel_names)
 
         # 5. Generate runtime_env.yaml
         runtime_env_path = working_dir / "runtime_env.yaml"
-        _write_runtime_env(remote_context, wheel_names, runtime_env_path)
+        _write_runtime_env(
+            remote_context,
+            wheel_names,
+            runtime_env_path,
+            cwd,
+            working_dir,
+            seen_basenames,
+        )
 
         # 6. Establish port-forward (blocks until tunnel is bound and ready)
         if pf is not None:

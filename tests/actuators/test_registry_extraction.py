@@ -1,11 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests for extracting base classes from Ray-decorated actuator classes."""
+"""Tests for extracting base classes from actuator classes."""
 
 import inspect
-
-import pytest
 
 from orchestrator.modules.actuators.base import ActuatorBase
 from orchestrator.schema.entity import Entity
@@ -43,61 +41,25 @@ def test_extract_base_class_from_undecorated_actuator() -> None:
     assert extracted_class.identifier == "test_undecorated"
 
 
-def test_extract_base_class_from_decorated_actuator() -> None:
-    """Test extraction from a real decorated actuator in the codebase.
+def test_extract_base_class_from_undecorated_actuator_in_codebase() -> None:
+    """Test extraction from a real undecorated actuator in the codebase.
 
-    This test verifies the extraction logic works with real ActorClass instances
-    from actuators decorated with @ray.remote.
+    Actuators are no longer decorated with @ray.remote; operators/setup.py
+    applies the decorator when instantiating them. Extraction returns the
+    class as-is for undecorated actuators.
     """
-    # Import a real decorated actuator from the codebase
-    # CustomExperiments is decorated with @ray.remote in the source
     from orchestrator.modules.actuators import custom_experiments
     from orchestrator.modules.actuators.registry import _extract_base_actuator_class
 
-    # Get the actuator which is decorated
-    decorated_actuator = custom_experiments.CustomExperiments
+    actuator_class = custom_experiments.CustomExperiments
 
-    # Check if it's an ActorClass instance
-    try:
-        import ray.actor
-
-        is_actor_class = isinstance(decorated_actuator, ray.actor.ActorClass)
-    except ImportError:
-        # Ray not available, skip this test
-        pytest.skip("Ray not available")
-
-    # If it's decorated, test extraction
-    if is_actor_class:
-        extracted = _extract_base_actuator_class(decorated_actuator)
-
-        # The extracted class should NOT be an ActorClass
-        assert not isinstance(
-            extracted, ray.actor.ActorClass
-        ), f"Extracted class should not be ActorClass, got {type(extracted)}"
-
-        # It should be a type (class)
-        assert isinstance(extracted, type), f"Expected a class, got {type(extracted)}"
-
-        # It should be a subclass of ActuatorBase
-        assert issubclass(
-            extracted, ActuatorBase
-        ), "Extracted class should be subclass of ActuatorBase"
-
-        # It should have the identifier attribute
-        assert hasattr(extracted, "identifier")
-        assert extracted.identifier == "custom_experiments"
-
-        # It should have the catalog classmethod
-        assert hasattr(extracted, "catalog")
-        assert inspect.ismethod(extracted.catalog) or callable(extracted.catalog)
-
-        # It should have default_parameters classmethod
-        assert hasattr(extracted, "default_parameters")
-
-        # Should be able to call default_parameters (it's a classmethod)
-        params = extracted.default_parameters()
-        assert params is not None
-    else:
-        # Not decorated in this environment, extraction should return it as-is
-        extracted = _extract_base_actuator_class(decorated_actuator)
-        assert extracted is decorated_actuator
+    # Extraction should return the same class for undecorated actuators
+    extracted = _extract_base_actuator_class(actuator_class)
+    assert extracted is actuator_class
+    assert issubclass(extracted, ActuatorBase)
+    assert extracted.identifier == "custom_experiments"
+    assert hasattr(extracted, "catalog")
+    assert inspect.ismethod(extracted.catalog) or callable(extracted.catalog)
+    assert hasattr(extracted, "default_parameters")
+    params = extracted.default_parameters()
+    assert params is not None

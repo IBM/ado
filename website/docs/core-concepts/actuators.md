@@ -163,7 +163,7 @@ For a full description of property types see
 
 ## Measurement Space
 
-A Measurement Space is simply a set of [Experiments](#experiments).
+A Measurement Space is a collection of [Experiments](#experiments).
 
 Since each Experiment has a set of observed properties, a Measurement Space also
 defines a set of observed properties.
@@ -178,7 +178,7 @@ A Measurement Space and an Entity Space together define a
 
 Experiments are grouped and provided by **Actuators**. An Actuator typically
 covers a particular domain - for example, foundation model fine-tuning,
-computational chemistry, or robotic biolog - and provides a collection of
+computational chemistry, or robotic biology - and provides a collection of
 related Experiments for that domain.
 
 A primary way to extend `ado` is by developing new Actuators to support

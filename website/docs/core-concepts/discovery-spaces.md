@@ -125,7 +125,7 @@ At any point in time a Discovery Space therefore has:
 - Entities that have not yet been sampled
 
 > [!NOTE]
-> Note, uou can still query compatible data across spaces when needed
+> You can still query compatible data across spaces when needed
 > — see [Shared Sample Stores](data-sharing.md).
 
 ## Discovery Space vs DataFrame

@@ -256,14 +256,14 @@ yield values.
 <!-- markdownlint-disable line-length -->
 
 ```text
-┌───────┬──────────────────────────────────────────────────────────┬─────────────┬──────────────────────────────────────────────────┬─────────────┬───────────────┬─────────────────┬──────────┐
-│ INDEX │ identifier                                               │ generatorid │ experiment_id                                    │ temperature │ concentration │ catalyst_amount │ yield    │
-├───────┼──────────────────────────────────────────────────────────┼─────────────┼──────────────────────────────────────────────────┼─────────────┼───────────────┼─────────────────┼──────────┤
-│ 0     │ temperature.300-concentration.1.0-catalyst_amount.2.0    │ no_priors_characterization │ custom_experiments.calculate_reaction_yield      │ 300         │ 1.0           │ 2.0             │ 45.23    │
-│ 1     │ temperature.350-concentration.2.5-catalyst_amount.5.0    │ no_priors_characterization │ custom_experiments.calculate_reaction_yield      │ 350         │ 2.5           │ 5.0             │ 78.91    │
-│ 2     │ temperature.400-concentration.0.5-catalyst_amount.1.0    │ no_priors_characterization │ custom_experiments.calculate_reaction_yield      │ 400         │ 0.5           │ 1.0             │ 92.15    │
-│ ...   │ ...                                                      │ ...         │ ...                                              │ ...         │ ...           │ ...             │ ...      │
-└───────┴──────────────────────────────────────────────────────────┴─────────────┴──────────────────────────────────────────────────┴─────────────┴───────────────┴─────────────────┴──────────┘
+┌───────┬──────────────────────────────────────────────────────────┬────────────────────────────┬─────────────────────────────────────────────┬─────────────┬───────────────┬─────────────────┬──────────┐
+│ INDEX │ identifier                                               │ generatorid                │ experiment_id                               │ temperature │ concentration │ catalyst_amount │ yield    │
+├───────┼──────────────────────────────────────────────────────────┼────────────────────────────┼─────────────────────────────────────────────┼─────────────┼───────────────┼─────────────────┼──────────┤
+│ 0     │ temperature.300-concentration.1.0-catalyst_amount.2.0    │ no_priors_characterization │ custom_experiments.calculate_reaction_yield │ 300         │ 1.0           │ 2.0             │ 45.23    │
+│ 1     │ temperature.350-concentration.2.5-catalyst_amount.5.0    │ no_priors_characterization │ custom_experiments.calculate_reaction_yield │ 350         │ 2.5           │ 5.0             │ 78.91    │
+│ 2     │ temperature.400-concentration.0.5-catalyst_amount.1.0    │ no_priors_characterization │ custom_experiments.calculate_reaction_yield │ 400         │ 0.5           │ 1.0             │ 92.15    │
+│ ...   │ ...                                                      │ ...                        │ ...                                         │ ...         │ ...           │ ...             │ ...      │
+└───────┴──────────────────────────────────────────────────────────┴────────────────────────────┴─────────────────────────────────────────────┴─────────────┴───────────────┴─────────────────┴──────────┘
 ```
 
 <!-- markdownlint-enable line-length -->

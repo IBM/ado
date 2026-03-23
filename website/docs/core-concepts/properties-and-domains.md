@@ -52,7 +52,7 @@ In `ado` there are three roles a Property can play:
 >
 > The different domain types are distinguished by a **Variable Type** field
 > (`variableType`). In many cases this can be omitted and `ado` will infer it
-> automatically — see [Auto-inference](#auto-inference).
+> automatically — see [Auto-inference](#auto-inference-of-property-domain-types).
 
 ### Categorical
 
@@ -136,7 +136,7 @@ domain:
   variableType: OPEN_CATEGORICAL_VARIABLE_TYPE
 ```
 
-## Auto-inference
+## Auto-inference of Property Domain Types
 
 When `variableType` is omitted, `ado` infers it from the other fields:
 
@@ -177,3 +177,74 @@ domain:
 ```
 
 When no `probabilityFunction` is specified, uniform sampling is used.
+
+## Property Subdomains
+
+Domain A is a **subdomain** of domain B if every value in A is also a valid
+value in B. A subdomain represents a narrowed or more specific version of a
+parent domain.
+
+The most common place this matters in `ado` is when defining an
+[Entity Space](entity-spaces.md): the domain you assign to each entity space
+dimension must be a subdomain of the corresponding experiment input domain.
+This ensures that all entities in the space are valid inputs to the experiment.
+
+### Compatible Subdomain Types
+
+Not every combination of domain types is valid — the subdomain type must be
+compatible with the parent type:
+
+<!-- markdownlint-disable line-length -->
+| Parent domain | Compatible sub-domain types | Notes |
+| --- | --- | --- |
+| `CONTINUOUS` | `CONTINUOUS`, `DISCRETE` (finite), `BINARY` | Sub-range must lie within the parent range; `BINARY` requires 0 and 1 to be within the range |
+| `DISCRETE` | `DISCRETE`, `BINARY` | Sub-values must be a subset of the parent values; `BINARY` only valid if both 0 and 1 appear in the parent |
+| `CATEGORICAL` | `CATEGORICAL`, `DISCRETE` (finite), `BINARY` | Sub-values must be a subset of the parent values |
+| `BINARY` | `BINARY`, `DISCRETE` (≤2 values) | Values must be a subset of `{0, 1}` / `{false, true}` |
+| `OPEN_CATEGORICAL` | `OPEN_CATEGORICAL`, `CATEGORICAL`, `DISCRETE` (finite), `BINARY` | The most permissive categorical parent |
+<!-- markdownlint-enable line-length -->
+
+### Example
+
+Suppose an experiment declares the following required input domains:
+
+```yaml
+# Experiment input domains (the maximum possible extent)
+model_name:
+  values: [granite-3-8b, llama3-8b, mistral-7b-v0.1, granite-34b-code-base]
+
+batch_size:
+  domainRange: [1, 4097]
+  interval: 1
+
+temperature:
+  domainRange: [0.0, 100.0]
+```
+
+A valid entity space could narrow each of these to a focused subdomain:
+
+```yaml
+# Entity space domains (subdomains of the experiment inputs above)
+model_name:
+  values: [granite-3-8b, llama3-8b]        # CATEGORICAL ⊆ CATEGORICAL ✓
+
+batch_size:
+  values: [1, 2, 4, 8, 16]                 # DISCRETE ⊆ DISCRETE ✓
+
+temperature:
+  domainRange: [20.0, 40.0]                # CONTINUOUS ⊆ CONTINUOUS ✓
+```
+
+The following entity space domains would be **invalid** because they are not
+subdomains of the corresponding experiment inputs:
+
+```yaml
+batch_size:
+  # Values above 4096 are not in the Experiment input domain for batch_size
+  domainRange: [4096, 8124]
+  interval: 1028
+
+model_name:
+  # granite-4-3b is not one of the allowed values
+  domainRange: [granite-4-3b]
+```

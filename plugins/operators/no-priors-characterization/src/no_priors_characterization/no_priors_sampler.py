@@ -7,15 +7,15 @@ import typing
 
 from pydantic import BaseModel
 
-from orchestrator.core.discoveryspace.samplers import BaseSampler
-from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
-from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from trim.no_priors_pydantic import NoPriorsParameters
-from trim.utils.order import order_df_for_sampling_with_no_priors
-from trim.utils.space_df_connector import (
+from no_priors_characterization.no_priors_pydantic import NoPriorsParameters
+from no_priors_characterization.utils.order import order_df_for_sampling_with_no_priors
+from no_priors_characterization.utils.space_df_connector import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
 )
+from orchestrator.core.discoveryspace.samplers import BaseSampler
+from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
+from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 
 logger_no_priors = logging.getLogger(__name__)
 
@@ -51,20 +51,27 @@ class NoPriorsSampleSelector(BaseSampler):
         ) -> typing.Callable[[], typing.AsyncGenerator[list[Entity], None]]:
 
             logger_no_priors.info("Characterization with no-priors starts.\n")
-            logger_no_priors.info(f"PARAMETERS ARE:\n{self.params}\n\n")
+            logger_no_priors.info(f"Parameters are:\n{self.params}\n\n")
 
             discoverySpace = await stateHandle.discoverySpace.remote()
             source_df, target_df = get_source_and_target(
                 discoverySpace, self.params.targetOutput
             )
             logger_no_priors.info(f"Target dataframe has length {len(target_df)}")
+
+            # The 'samples' parameter specifies the number of NEW entities to sample,
+            # regardless of how many entities have already been measured in the space
+            logger_no_priors.info(
+                f"Space has {len(source_df)} measured entities. "
+                f"Sampling {self.params.samples} new entities as requested."
+            )
             target_df = order_df_for_sampling_with_no_priors(
                 target_df,
                 [
                     cp.identifier
                     for cp in discoverySpace.entitySpace.constitutiveProperties
                 ],
-                self.params.samples - len(source_df),
+                self.params.samples,
                 strategy=self.params.sampling_strategy,
             )
             list_of_entities_for_no_prior_characterization = (

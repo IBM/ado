@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
-from trim.utils.one_dimensional_sampling import (
+from no_priors_characterization.utils.one_dimensional_sampling import (
     get_index_list_ordered_partitions,
     get_index_list_van_der_corput,
 )  # Replace with actual module name

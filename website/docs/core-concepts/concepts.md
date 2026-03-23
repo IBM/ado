@@ -2,7 +2,7 @@
 ## Discovery Space
 
 `ado` is a tool for systematically exploring, measuring, and analysing a space of
-things - for example, configurations, systems and substances.
+entities - for example, configurations, systems and substances.
 The core concept enabling this is a
 **Discovery Space**. It answers three questions:
 

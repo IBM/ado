@@ -120,7 +120,7 @@ def get_resource(
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
             show_default=False,
-            help="Output information in a different format. Not all formats may be supported by all resources.",
+            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. Not all formats may be supported by all resources.",
         ),
     ] = AdoGetSupportedOutputFormats.DEFAULT.value,
     exclude_default: Annotated[

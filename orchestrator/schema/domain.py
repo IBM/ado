@@ -500,6 +500,30 @@ class PropertyDomain(pydantic.BaseModel):
                     "The domainRange field of an OPEN_CATEGORICAL_VARIABLE_TYPE was not None"
                 )
 
+        elif value == VariableTypeEnum.BINARY_VARIABLE_TYPE:
+
+            # Binary variables should not have values, interval, or domainRange specified
+            # They always default to [False, True].
+            # To avoid breaking too many things, however, we accept [False, True]
+            binary_values = values.data.get("values")
+            if binary_values is not None and sorted(binary_values) != [False, True]:
+                raise ValueError(
+                    "BINARY_VARIABLE_TYPE should not have values specified. "
+                    "It always defaults to [False, True]. "
+                    "If you want to restrict the domain to specific boolean values, "
+                    "use DISCRETE_VARIABLE_TYPE with values [0] or [1] instead."
+                )
+
+            if values.data.get("interval") is not None:
+                raise ValueError(
+                    "The interval field for a BINARY_VARIABLE_TYPE must be None"
+                )
+
+            if values.data.get("domainRange") is not None:
+                raise ValueError(
+                    "The domainRange field for a BINARY_VARIABLE_TYPE must be None"
+                )
+
         return value
 
     @pydantic.model_serializer

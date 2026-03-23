@@ -87,6 +87,62 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
     ] = ConfigurationMetadata()
     model_config = ConfigDict(extra="forbid")
 
+    @pydantic.field_validator("entitySpace", mode="before")
+    @classmethod
+    def strip_binary_variable_types_data(
+        cls, values: dict | list[ConstitutiveProperty]
+    ) -> dict:
+        from pydantic import TypeAdapter
+
+        from orchestrator.core.resources import (
+            CoreResourceKinds,
+            warn_deprecated_resource_model_in_use,
+        )
+        from orchestrator.schema.domain import VariableTypeEnum
+
+        if isinstance(values, list):
+            values = TypeAdapter(list[ConstitutiveProperty]).dump_python(values)
+
+        property_domain_key = "propertyDomain"
+        variable_type_key = "variableType"
+        for property in values:
+
+            property_domain = property.get(property_domain_key)
+            if property_domain_key not in property or not property_domain:
+                continue
+
+            if (
+                variable_type_key not in property_domain
+                or property_domain.get(variable_type_key)
+                != VariableTypeEnum.BINARY_VARIABLE_TYPE.value
+            ):
+                continue
+
+            keys_to_remove = {
+                "values",
+                "interval",
+                "domainRange",
+                "probabilityFunction",
+            }
+            overlapping_keys = set(property[property_domain_key].keys()).difference(
+                keys_to_remove
+            )
+
+            # If the propertyDomain has any of the keys above, we rewrite it completely
+            # to just contain BINARY_VARIABLE_TYPE instead of popping each key.
+            if overlapping_keys:
+
+                property[property_domain_key] = {
+                    variable_type_key: VariableTypeEnum.BINARY_VARIABLE_TYPE.value
+                }
+                warn_deprecated_resource_model_in_use(
+                    affected_resource=CoreResourceKinds.DISCOVERYSPACE,
+                    deprecated_from_ado_version="1.6.0",
+                    removed_from_ado_version="2.0.0",
+                )
+
+        return values
+
     def convert_experiments_to_reference_list(self) -> "DiscoverySpaceConfiguration":
         """Returns a copy where the experiments field is a list of experiment references"""
 

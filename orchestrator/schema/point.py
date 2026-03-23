@@ -24,9 +24,18 @@ class SpacePoint(pydantic.BaseModel):
         pydantic.Field(description="A list of experiments"),
     ] = None
 
-    def to_entity(self) -> Entity:
+    def to_entity(self, generatorid: str = "unk") -> Entity:
+        """Convert SpacePoint to Entity.
 
+        Args:
+            generatorid: Identifier for the generator that created this entity.
+                        Defaults to "unk" if not specified.
+
+        Returns:
+            Entity with the specified generatorid and constitutive property values.
+        """
         return Entity(
+            generatorid=generatorid,
             constitutive_property_values=tuple(
                 [
                     ConstitutivePropertyValue(
@@ -34,5 +43,5 @@ class SpacePoint(pydantic.BaseModel):
                     )
                     for k, v in self.entity.items()
                 ]
-            )
+            ),
         )

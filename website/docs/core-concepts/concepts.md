@@ -6,13 +6,16 @@ things - for example, configurations, systems and substances.
 The core concept enabling this is a
 **Discovery Space**. It answers three questions:
 
-- **What can be measured?** A set of [Experiments](actuators.md), each of which
-  takes defined inputs and produces measured outputs. A collection of Experiments
+- **How are measurements performed?** A Discovery Space defines
+  a set of [Experiments](actuators.md). Each Experiment
+  takes defined inputs and produces measured outputs. The collection of Experiments
   is called a [Measurement Space](actuators.md#measurement-space).
-- **What do you want to measure?** An [Entity Space](entity-spaces.md) — the
-  specific set of things, called _Entities_, you want to explore and measure.
-- **What have you measured so far?** The results of measurements
-  are recorded in a **Sample Store**, a shared database, as they are taken.
+- **What do you want to measure?** A Discovery Space defines an
+  [Entity Space](entity-spaces.md) — the
+  specific set of things, called _Entities_, you want to measure.
+- **What have you measured so far?** A Discovery Space uses
+  a **Sample Store**, a shared database, to read and store measurement
+  results.
 
 For users familiar with `pandas`, a Discovery Space is like a DataFrame that
 knows its own schema, knows how to fill in missing values, and shares data

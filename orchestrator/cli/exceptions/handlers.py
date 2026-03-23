@@ -130,17 +130,9 @@ def handle_validation_error_with_legacy_suggestions(
     )
     console.print("\n[bold cyan]Available legacy validators:[/bold cyan]")
 
-    # Map resource types to their CLI names
-    resource_name_mapping = {
-        CoreResourceKinds.SAMPLESTORE: "sample_stores",
-        CoreResourceKinds.DISCOVERYSPACE: "spaces",
-        CoreResourceKinds.OPERATION: "operations",
-        CoreResourceKinds.ACTUATORCONFIGURATION: "actuator_configurations",
-        CoreResourceKinds.DATACONTAINER: "data_containers",
-    }
-    resource_cli_name = resource_name_mapping.get(
-        resource_type, resource_type.value + "s"
-    )
+    # Resources can be referenced by their CoreResourceKinds value or by shorthands
+    # from cli_shorthands_to_cli_names in orchestrator/cli/utils/resources/mappings.py
+    resource_cli_name = resource_type.value
 
     for validator in validators:
         console.print(f"  • [green]{validator.identifier}[/green]")

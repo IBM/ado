@@ -33,12 +33,14 @@ from orchestrator.core import (
     DiscoverySpaceResource,
     OperationResource,
 )
+from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
 from orchestrator.core.resources import ADOResourceEventEnum, ADOResourceStatus
+from orchestrator.schema.domain import VariableTypeEnum
 from orchestrator.utilities.output import (
     printable_pydantic_model,
 )
@@ -394,6 +396,16 @@ def _minimize_ado_resource_representation(
 
     if isinstance(to_print, DiscoverySpaceResource):
         to_print.config = to_print.config.convert_experiments_to_reference_list()
+    if isinstance(to_print, DiscoverySpaceConfiguration):
+        for property in to_print.entitySpace:
+            if (
+                property.propertyDomain.variableType
+                == VariableTypeEnum.BINARY_VARIABLE_TYPE
+            ):
+                property.propertyDomain.probabilityFunction = None
+                property.propertyDomain.domainRange = None
+                property.propertyDomain.interval = None
+                property.propertyDomain.values = None
 
     return to_print
 

@@ -120,15 +120,18 @@ def extract_deprecated_fields_from_validation_error(
 
 def extract_deprecated_fields_from_value_error(
     error: ValueError,
+    resource_type: "CoreResourceKinds",
 ) -> tuple[set[str], dict[str, list[str]], set[str]]:
     """Extract field names from ValueError containing pydantic validation errors
 
     This function attempts to extract the underlying pydantic ValidationError
     from a ValueError and extract field names from it. If that fails, it falls
-    back to regex pattern matching on the error message.
+    back to simple string matching on the error message using known deprecated
+    fields from the legacy validator registry.
 
     Args:
         error: The ValueError that may contain a pydantic ValidationError
+        resource_type: The resource type to get deprecated fields for
 
     Returns:
         Tuple of (full field paths, field error details mapping, leaf field names)
@@ -139,35 +142,25 @@ def extract_deprecated_fields_from_value_error(
     ):
         return extract_deprecated_fields_from_validation_error(error.__cause__)
 
-    # Fallback to regex pattern matching on error message
-    import re
+    # Fallback to simple string matching on error message
+    from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
     error_msg = str(error)
     full_field_paths: set[str] = set()
     field_errors: dict[str, list[str]] = {}
     leaf_field_names: set[str] = set()
 
-    # Pattern: field_name followed by validation error
-    field_patterns = [
-        r"kind\s*\n\s*Input should be",  # kind field
-        r"moduleType\s*\n\s*Input should be",  # moduleType field
-        r"moduleClass\s*\n\s*",  # moduleClass field
-        r"moduleName\s*\n\s*",  # moduleName field
-        r"constitutivePropertyColumns",  # constitutivePropertyColumns field
-        r"propertyMap",  # propertyMap field
-        r"entitySourceIdentifier",  # entitySourceIdentifier field
-        r"properties\s*\n",  # properties field
-        r"actuators\s*\n",  # actuators field
-        r"mode\s*\n",  # mode field (for randomwalk)
-    ]
+    # Get all deprecated field names from registered validators for this resource type
+    validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
+    deprecated_field_names = {
+        field for validator in validators for field in validator.deprecated_fields
+    }
 
-    for pattern in field_patterns:
-        if re.search(pattern, error_msg, re.IGNORECASE):
-            # Extract the field name from the pattern
-            field_name = pattern.split(r"\s")[0].split(r"\\")[0]
+    for field_name in deprecated_field_names:
+        if field_name in error_msg:
             full_field_paths.add(field_name)
             leaf_field_names.add(field_name)
-            # For regex fallback, we don't have detailed error messages
+            # For string matching fallback, we don't have detailed error messages
             field_errors[field_name] = [
                 "Field validation failed (details in error message)"
             ]

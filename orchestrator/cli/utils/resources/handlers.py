@@ -365,7 +365,7 @@ def _handle_upgrade_validation_error(
 
     # Extract field paths, error details, and leaf field names from the error
     full_field_paths, field_errors, leaf_field_names = (
-        extract_deprecated_fields_from_value_error(error)
+        extract_deprecated_fields_from_value_error(error, resource_type)
     )
 
     # Find applicable legacy validators using leaf field names for better matching

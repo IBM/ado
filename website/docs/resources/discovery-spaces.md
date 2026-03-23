@@ -802,7 +802,7 @@ explains how to use optional properties.
 ## Parameterizing Experiments
 
 If an experiment has
-[optional properties](../core-concepts/actuators.md#optional-properties) you can
+[optional input properties](../core-concepts/actuators.md#optional-inputs) you can
 define equivalent properties in the entity space. If you don't, the default
 value for the property will be used.
 

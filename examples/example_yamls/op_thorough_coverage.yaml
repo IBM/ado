@@ -1,0 +1,13 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+spaces:
+  - space-c8717f-3a68bf
+operation:
+  module:
+    operationType: characterize
+    operatorName: no_priors_characterization
+  parameters:
+    targetOutput: yield
+    samples: 100
+    batchSize: 1
+    sampling_strategy: sobol

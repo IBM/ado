@@ -942,7 +942,7 @@ def test_binary_variable_type_with_invalid_single_true_value() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects single True value"""
     with pytest.raises(
         ValueError,
-        match="BINARY_VARIABLE_TYPE must have exactly 2 values representing",
+        match="BINARY_VARIABLE_TYPE should not have values specified",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True]
@@ -953,7 +953,7 @@ def test_binary_variable_type_with_invalid_single_false_value() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects single False value"""
     with pytest.raises(
         ValueError,
-        match="BINARY_VARIABLE_TYPE must have exactly 2 values representing",
+        match="BINARY_VARIABLE_TYPE should not have values specified",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[False]
@@ -964,7 +964,7 @@ def test_binary_variable_type_with_invalid_single_numeric_one() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects single numeric value 1"""
     with pytest.raises(
         ValueError,
-        match="BINARY_VARIABLE_TYPE must have exactly 2 values representing",
+        match="BINARY_VARIABLE_TYPE should not have values specified",
     ):
         PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1])
 
@@ -973,7 +973,7 @@ def test_binary_variable_type_with_invalid_single_numeric_zero() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects single numeric value 0"""
     with pytest.raises(
         ValueError,
-        match="BINARY_VARIABLE_TYPE must have exactly 2 values representing",
+        match="BINARY_VARIABLE_TYPE should not have values specified",
     ):
         PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0])
 
@@ -982,7 +982,7 @@ def test_binary_variable_type_with_invalid_numeric_values() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects invalid numeric values like [2, 3]"""
     with pytest.raises(
         ValueError,
-        match="BINARY_VARIABLE_TYPE must have values equivalent to",
+        match="BINARY_VARIABLE_TYPE should not have values specified",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[2, 3]
@@ -993,7 +993,7 @@ def test_binary_variable_type_with_invalid_string_values() -> None:
     """Test that BINARY_VARIABLE_TYPE rejects string values"""
     with pytest.raises(
         ValueError,
-        match="BINARY_VARIABLE_TYPE must have values equivalent to",
+        match="BINARY_VARIABLE_TYPE should not have values specified",
     ):
         PropertyDomain(
             variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=["yes", "no"]
@@ -1001,7 +1001,7 @@ def test_binary_variable_type_with_invalid_string_values() -> None:
 
 
 def test_binary_variable_type_with_valid_boolean_values() -> None:
-    """Test that BINARY_VARIABLE_TYPE accepts [False, True]"""
+    """Test that BINARY_VARIABLE_TYPE accepts [False, True] for backwards compatibility"""
     domain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[False, True]
     )
@@ -1010,47 +1010,47 @@ def test_binary_variable_type_with_valid_boolean_values() -> None:
 
 
 def test_binary_variable_type_with_valid_reversed_boolean_values() -> None:
-    """Test that BINARY_VARIABLE_TYPE accepts [True, False] and normalizes it"""
+    """Test that BINARY_VARIABLE_TYPE accepts [True, False] for backwards compatibility"""
     domain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True, False]
     )
-    assert domain.values == [False, True]  # Should be normalized
+    assert domain.values == [True, False]
     assert domain.domain_values == [False, True]
 
 
-def test_binary_variable_type_with_valid_numeric_values() -> None:
-    """Test that BINARY_VARIABLE_TYPE accepts [0, 1] and converts to [False, True]"""
+def test_binary_variable_type_with_valid_numeric_values_zero_one() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [0, 1] for backwards compatibility (0==False, 1==True)"""
     domain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0, 1]
     )
-    assert domain.values == [False, True]  # Should be converted
+    assert domain.values == [0, 1]
     assert domain.domain_values == [False, True]
 
 
 def test_binary_variable_type_with_valid_reversed_numeric_values() -> None:
-    """Test that BINARY_VARIABLE_TYPE accepts [1, 0] and converts to [False, True]"""
+    """Test that BINARY_VARIABLE_TYPE accepts [1, 0] for backwards compatibility (0==False, 1==True)"""
     domain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1, 0]
     )
-    assert domain.values == [False, True]  # Should be converted
+    assert domain.values == [1, 0]
     assert domain.domain_values == [False, True]
 
 
 def test_binary_variable_type_with_valid_float_values() -> None:
-    """Test that BINARY_VARIABLE_TYPE accepts [0.0, 1.0] and converts to [False, True]"""
+    """Test that BINARY_VARIABLE_TYPE accepts [0.0, 1.0] for backwards compatibility (0.0==False, 1.0==True)"""
     domain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0.0, 1.0]
     )
-    assert domain.values == [False, True]  # Should be converted
+    assert domain.values == [0.0, 1.0]
     assert domain.domain_values == [False, True]
 
 
 def test_binary_variable_type_with_valid_reversed_float_values() -> None:
-    """Test that BINARY_VARIABLE_TYPE accepts [1.0, 0.0] and converts to [False, True]"""
+    """Test that BINARY_VARIABLE_TYPE accepts [1.0, 0.0] for backwards compatibility (0.0==False, 1.0==True)"""
     domain = PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1.0, 0.0]
     )
-    assert domain.values == [False, True]  # Should be converted
+    assert domain.values == [1.0, 0.0]
     assert domain.domain_values == [False, True]
 
 

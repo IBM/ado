@@ -26,7 +26,7 @@ Two principles underpin data reuse in `ado`:
 Each Entity has a unique identifier derived from its
 [constitutive property](properties-and-domains.md#property-types) values.
 For example, an Entity with properties `X=4` and `Y=10` gets the id
-`X:4-Y:10`. `ado` uses these identifiers to look up Entities in the Sample
+`X.4-Y.10`. `ado` uses these identifiers to look up Entities in the Sample
 Store, regardless of which Discovery Space originally recorded them.
 
 ### Measurements

@@ -257,19 +257,54 @@ def handle_ado_upgrade(
     if parameters.apply_legacy_validator:
         from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
-        legacy_validators = []
+        # Validate all validator IDs exist
+        invalid_validators = []
         for validator_id in parameters.apply_legacy_validator:
             validator = LegacyValidatorRegistry.get_validator(validator_id)
             if validator is None:
+                invalid_validators.append(validator_id)
+
+        if invalid_validators:
+            console_print(
+                f"{ERROR}Unknown legacy validator(s): {', '.join(invalid_validators)}",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        # Resolve dependencies and order validators
+        try:
+            ordered_ids, missing_deps = LegacyValidatorRegistry.resolve_dependencies(
+                parameters.apply_legacy_validator
+            )
+
+            if missing_deps:
                 console_print(
-                    f"{ERROR}Unknown legacy validator: {validator_id}", stderr=True
+                    f"{ERROR}Missing validator dependencies: {', '.join(missing_deps)}",
+                    stderr=True,
                 )
                 raise typer.Exit(1)
-            legacy_validators.append(validator)
 
-        logger.debug(
-            f"Selected legacy validators: {[v.identifier for v in legacy_validators]}"
-        )
+            # Get validators in correct order
+            legacy_validators = []
+            for validator_id in ordered_ids:
+                validator = LegacyValidatorRegistry.get_validator(validator_id)
+                if validator is not None:
+                    legacy_validators.append(validator)
+
+            # Log the ordering
+            if len(ordered_ids) > len(parameters.apply_legacy_validator):
+                logger.info(
+                    f"Auto-included dependencies: {[vid for vid in ordered_ids if vid not in parameters.apply_legacy_validator]}"
+                )
+
+            logger.debug(
+                f"Validators in execution order: {[v.identifier for v in legacy_validators]}"
+            )
+
+        except ValueError as e:
+            # Circular dependency detected
+            console_print(f"{ERROR}{e}", stderr=True)
+            raise typer.Exit(1) from e
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context

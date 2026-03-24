@@ -18,14 +18,22 @@ from orchestrator.core.resources import CoreResourceKinds
 def migrate_csv_v1_to_v2(data: dict) -> dict:
     """Migrate old CSVSampleStoreDescription format to new format
 
+    This validator operates on the config level, migrating CSV sample store
+    configurations from v1 to v2 format. It matches the original pydantic
+    validator behavior.
+
     Old format:
-        - constitutivePropertyColumns at top level (list)
-        - experiments list with propertyMap (not observedPropertyMap)
-        - No constitutivePropertyMap in experiment descriptions
+        config:
+            constitutivePropertyColumns: [...]  # at config level
+            experiments:
+              - propertyMap: {...}
 
     New format:
-        - No constitutivePropertyColumns at top level
-        - experiments with observedPropertyMap and constitutivePropertyMap
+        config:
+            # No constitutivePropertyColumns at config level
+            experiments:
+              - observedPropertyMap: {...}
+                constitutivePropertyMap: [...]
 
     Args:
         data: The resource data dictionary
@@ -37,21 +45,27 @@ def migrate_csv_v1_to_v2(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Check if this is old format (has constitutivePropertyColumns at top level)
-    if "constitutivePropertyColumns" not in data:
+    # Only operate within config
+    if "config" not in data or not isinstance(data["config"], dict):
         return data
 
-    # Extract and remove the top-level constitutivePropertyColumns
-    constitutive_columns = data.pop("constitutivePropertyColumns")
+    config = data["config"]
 
-    # Migrate experiments if present
-    if "experiments" in data and isinstance(data["experiments"], list):
-        for exp in data["experiments"]:
+    # Check if this is old format (has constitutivePropertyColumns in config)
+    if "constitutivePropertyColumns" not in config:
+        return data
+
+    # Extract and remove the constitutivePropertyColumns from config
+    constitutive_columns = config.pop("constitutivePropertyColumns")
+
+    # Migrate experiments if present in config
+    if "experiments" in config and isinstance(config["experiments"], list):
+        for exp in config["experiments"]:
             if isinstance(exp, dict):
                 # Rename propertyMap to observedPropertyMap
                 if "propertyMap" in exp:
                     exp["observedPropertyMap"] = exp.pop("propertyMap")
-                # Add constitutivePropertyMap from top-level constitutivePropertyColumns
+                # Add constitutivePropertyMap from config-level constitutivePropertyColumns
                 exp["constitutivePropertyMap"] = constitutive_columns
 
     return data

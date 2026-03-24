@@ -18,11 +18,17 @@ from orchestrator.core.resources import CoreResourceKinds
 def remove_properties_field(data: dict) -> dict:
     """Remove deprecated properties field from discovery space configuration
 
+    The 'properties' field was deprecated in config and should be removed.
+    This validator operates only on the config level, matching the original
+    pydantic validator behavior.
+
     Old format:
-        - Had 'properties' field at top level
+        config:
+            properties: [...]
 
     New format:
-        - No 'properties' field
+        config:
+            # No properties field
 
     Args:
         data: The resource data dictionary
@@ -34,16 +40,8 @@ def remove_properties_field(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Remove properties field if present
-    if "properties" in data:
-        data.pop("properties", None)
-
-    # Also check in config if present
-    if (
-        "config" in data
-        and isinstance(data["config"], dict)
-        and "properties" in data["config"]
-    ):
+    # Only check in config (where the field actually exists)
+    if "config" in data and isinstance(data["config"], dict):
         data["config"].pop("properties", None)
 
     return data

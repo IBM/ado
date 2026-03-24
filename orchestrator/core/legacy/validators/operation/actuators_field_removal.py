@@ -18,11 +18,17 @@ from orchestrator.core.resources import CoreResourceKinds
 def remove_actuators_field(data: dict) -> dict:
     """Remove deprecated actuators field from operation configuration
 
+    The 'actuators' field was deprecated in config and should be removed.
+    This validator operates only on the config level, matching the original
+    pydantic validator behavior.
+
     Old format:
-        - Had 'actuators' field in config
+        config:
+            actuators: [...]
 
     New format:
-        - No 'actuators' field (use actuator configurations instead)
+        config:
+            # No actuators field (use actuator configurations instead)
 
     Args:
         data: The resource data dictionary
@@ -34,11 +40,7 @@ def remove_actuators_field(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Remove actuators field if present at top level
-    if "actuators" in data:
-        data.pop("actuators", None)
-
-    # Also check in config if present
+    # Only check in config (where the field actually exists)
     if (
         "config" in data
         and isinstance(data["config"], dict)

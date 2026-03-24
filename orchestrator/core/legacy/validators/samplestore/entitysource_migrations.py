@@ -18,11 +18,17 @@ from orchestrator.core.resources import CoreResourceKinds
 def migrate_module_type(data: dict) -> dict:
     """Convert moduleType from entity_source to sample_store
 
+    This validator recursively searches for moduleType fields within the config
+    and converts them from 'entity_source' to 'sample_store'. It operates only
+    within the config level, matching the original pydantic validator behavior.
+
     Old format:
-        - moduleType: "entity_source"
+        config:
+            moduleType: "entity_source"
 
     New format:
-        - moduleType: "sample_store"
+        config:
+            moduleType: "sample_store"
 
     Args:
         data: The resource data dictionary
@@ -32,6 +38,10 @@ def migrate_module_type(data: dict) -> dict:
     """
 
     if not isinstance(data, dict):
+        return data
+
+    # Only operate within config
+    if "config" not in data or not isinstance(data["config"], dict):
         return data
 
     def convert_module_type_in_dict(d: dict) -> None:
@@ -48,7 +58,8 @@ def migrate_module_type(data: dict) -> dict:
                     if isinstance(item, dict):
                         convert_module_type_in_dict(item)
 
-    convert_module_type_in_dict(data)
+    # Start recursion from config level
+    convert_module_type_in_dict(data["config"])
     return data
 
 
@@ -63,11 +74,17 @@ def migrate_module_type(data: dict) -> dict:
 def migrate_module_class(data: dict) -> dict:
     """Convert moduleClass from EntitySource to SampleStore naming
 
+    This validator recursively searches for moduleClass fields within the config
+    and converts them from EntitySource to SampleStore naming. It operates only
+    within the config level, matching the original pydantic validator behavior.
+
     Old format:
-        - moduleClass: "CSVEntitySource" or "SQLEntitySource"
+        config:
+            moduleClass: "CSVEntitySource" or "SQLEntitySource"
 
     New format:
-        - moduleClass: "CSVSampleStore" or "SQLSampleStore"
+        config:
+            moduleClass: "CSVSampleStore" or "SQLSampleStore"
 
     Args:
         data: The resource data dictionary
@@ -77,6 +94,10 @@ def migrate_module_class(data: dict) -> dict:
     """
 
     if not isinstance(data, dict):
+        return data
+
+    # Only operate within config
+    if "config" not in data or not isinstance(data["config"], dict):
         return data
 
     value_mappings = {
@@ -98,7 +119,8 @@ def migrate_module_class(data: dict) -> dict:
                     if isinstance(item, dict):
                         convert_module_class_in_dict(item)
 
-    convert_module_class_in_dict(data)
+    # Start recursion from config level
+    convert_module_class_in_dict(data["config"])
     return data
 
 
@@ -113,13 +135,19 @@ def migrate_module_class(data: dict) -> dict:
 def migrate_module_name(data: dict) -> dict:
     """Convert moduleName paths from entitysource to samplestore
 
+    This validator recursively searches for moduleName fields within the config
+    and converts paths from entitysource to samplestore. It operates only
+    within the config level, matching the original pydantic validator behavior.
+
     Old format:
-        - moduleName: "orchestrator.core.entitysource.*"
-        - moduleName: "orchestrator.plugins.entitysources.*"
+        config:
+            moduleName: "orchestrator.core.entitysource.*"
+            moduleName: "orchestrator.plugins.entitysources.*"
 
     New format:
-        - moduleName: "orchestrator.core.samplestore.*"
-        - moduleName: "orchestrator.plugins.samplestores.*"
+        config:
+            moduleName: "orchestrator.core.samplestore.*"
+            moduleName: "orchestrator.plugins.samplestores.*"
 
     Args:
         data: The resource data dictionary
@@ -129,6 +157,10 @@ def migrate_module_name(data: dict) -> dict:
     """
 
     if not isinstance(data, dict):
+        return data
+
+    # Only operate within config
+    if "config" not in data or not isinstance(data["config"], dict):
         return data
 
     path_mappings = {
@@ -153,7 +185,8 @@ def migrate_module_name(data: dict) -> dict:
                     if isinstance(item, dict):
                         convert_module_name_in_dict(item)
 
-    convert_module_name_in_dict(data)
+    # Start recursion from config level
+    convert_module_name_in_dict(data["config"])
     return data
 
 

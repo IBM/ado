@@ -18,11 +18,17 @@ from orchestrator.core.resources import CoreResourceKinds
 def rename_entitysource_identifier(data: dict) -> dict:
     """Rename entitySourceIdentifier to sampleStoreIdentifier
 
+    The 'entitySourceIdentifier' field was renamed to 'sampleStoreIdentifier' in config.
+    This validator operates only on the config level, matching the original
+    pydantic validator behavior.
+
     Old format:
-        - Used 'entitySourceIdentifier' field
+        config:
+            entitySourceIdentifier: "store-id"
 
     New format:
-        - Uses 'sampleStoreIdentifier' field
+        config:
+            sampleStoreIdentifier: "store-id"
 
     Args:
         data: The resource data dictionary
@@ -37,11 +43,7 @@ def rename_entitysource_identifier(data: dict) -> dict:
     old_key = "entitySourceIdentifier"
     new_key = "sampleStoreIdentifier"
 
-    # Check at top level
-    if old_key in data:
-        data[new_key] = data.pop(old_key)
-
-    # Also check in config if present
+    # Only check in config (where the field actually exists)
     if (
         "config" in data
         and isinstance(data["config"], dict)

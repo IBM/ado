@@ -16,8 +16,9 @@ class TestLegacyValidatorWithPydantic:
     """Test legacy validators working with pydantic models"""
 
     def setup_method(self) -> None:
-        """Clear the registry before each test"""
-        LegacyValidatorRegistry._validators = {}
+        """Setup method - validators are auto-discovered on import"""
+        # Don't clear the registry - validators are registered globally on import
+        # and clearing would break auto-discovery
 
     def test_validator_applied_during_model_validation(self) -> None:
         """Test that a legacy validator can be manually applied before pydantic validation"""
@@ -69,29 +70,31 @@ class TestLegacyValidatorWithPydantic:
         assert validator is not None
         assert validator.resource_type == CoreResourceKinds.SAMPLESTORE
 
-        # Old format CSV sample store data
+        # Old format CSV sample store data (with config section)
         old_csv_data = {
             "kind": "samplestore",
             "type": "csv",
             "identifier": "test_store",
-            "identifierColumn": "id",
-            "constitutivePropertyColumns": ["prop1", "prop2"],
-            "experiments": [
-                {
-                    "experimentIdentifier": "exp1",
-                    "actuatorIdentifier": "act1",
-                    "propertyMap": ["obs1", "obs2"],
-                }
-            ],
+            "config": {
+                "identifierColumn": "id",
+                "constitutivePropertyColumns": ["prop1", "prop2"],
+                "experiments": [
+                    {
+                        "experimentIdentifier": "exp1",
+                        "actuatorIdentifier": "act1",
+                        "propertyMap": ["obs1", "obs2"],
+                    }
+                ],
+            },
         }
 
         # Apply the validator
         migrated_data = validator.validator_function(old_csv_data.copy())
 
-        # Verify migration
-        assert "constitutivePropertyColumns" not in migrated_data
-        assert len(migrated_data["experiments"]) == 1
-        exp = migrated_data["experiments"][0]
+        # Verify migration - config.constitutivePropertyColumns removed
+        assert "constitutivePropertyColumns" not in migrated_data["config"]
+        assert len(migrated_data["config"]["experiments"]) == 1
+        exp = migrated_data["config"]["experiments"][0]
         assert "propertyMap" not in exp
         assert "observedPropertyMap" in exp
         assert exp["observedPropertyMap"] == ["obs1", "obs2"]
@@ -227,7 +230,6 @@ class TestUpgradeHandlerIntegration:
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
                 return_value=mock_sql_store,
             ),
-            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch("orchestrator.cli.utils.resources.handlers.Status"),
             patch("orchestrator.cli.utils.resources.handlers.console_print"),
         ):
@@ -274,7 +276,6 @@ class TestUpgradeHandlerIntegration:
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
                 return_value=mock_sql_store,
             ),
-            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch(
                 "orchestrator.cli.utils.resources.handlers.console_print"
             ) as mock_print,
@@ -318,7 +319,6 @@ class TestUpgradeHandlerIntegration:
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
                 return_value=mock_sql_store,
             ),
-            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch(
                 "orchestrator.cli.utils.resources.handlers.console_print"
             ) as mock_print,

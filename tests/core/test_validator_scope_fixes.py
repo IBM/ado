@@ -12,10 +12,8 @@ class TestValidatorScopeFixes:
     @classmethod
     def setup_class(cls) -> None:
         """Import validators once for all tests in this class"""
-        # Import all validators to register them
-        from orchestrator.cli.utils.legacy.common import import_legacy_validators
-
-        import_legacy_validators()
+        # Import all validators to register them - they auto-register on import
+        import orchestrator.core.legacy.validators  # noqa: F401
 
     def test_discoveryspace_properties_removal_scope(self) -> None:
         """Verify properties_field_removal only modifies config, not resource level"""

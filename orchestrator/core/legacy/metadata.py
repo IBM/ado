@@ -64,6 +64,14 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         ),
     ]
 
+    dependencies: Annotated[
+        list[str],
+        pydantic.Field(
+            default_factory=list,
+            description="List of validator identifiers that must run before this validator",
+        ),
+    ]
+
     model_config = pydantic.ConfigDict(arbitrary_types_allowed=True)
 
 

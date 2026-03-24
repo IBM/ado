@@ -135,7 +135,10 @@ def execute_benchmark(
         command.extend(["--max-concurrency", f"{max_concurrency!s}"])
     if custom_args is not None:
         for key, value in custom_args.items():
-            command.extend([key, f"{value!s}"])
+            if key =="--skip-tokenizer-init":
+                command.extend([key])
+            else:
+                command.extend([key, f"{value!s}"])
 
     logger.debug(f"Command line: {command}")
 
@@ -273,7 +276,7 @@ def execute_geospatial_benchmark(
 
     return execute_benchmark(
         base_url=base_url,
-        backend="io-processor-plugin",
+        backend="vllm-pooling",
         model=model,
         dataset="custom",
         interpreter=interpreter,

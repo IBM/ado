@@ -21,7 +21,9 @@ requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["trim"]
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["*.tests", "*.tests.*"]
 
 [tool.setuptools_scm]
 root = "../../../"

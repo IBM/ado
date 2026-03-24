@@ -20,7 +20,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
-packages = ["no_priors_characterization"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools_scm]
 root = "../../../"

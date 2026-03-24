@@ -164,12 +164,13 @@ For a full description of property types see
 ## Measurement Space
 
 A Measurement Space is a collection of [Experiments](#experiments).
+As a result a Measurement Space also defines a set of observed properties and target
+properties as follows
 
-Since each Experiment defines a set of observed properties, a Measurement Space
-defines a set that is the union of those observed property sets. 
-
-Since each observed property is an observation of a target property, a
-Measurement Space also defines a set of target properties.
+Property Type | Measurement Space Definition
+--- | ---
+Observed | Union of the observed property sets of it Experiments
+Target | Union of the target property sets of it Experiments
 
 When combined with an Entity Space, a Measurement Space forms a
 [Discovery Space](discovery-spaces.md).

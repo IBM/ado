@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-import json
+import logging
 import pathlib
 import typing
 
@@ -34,6 +34,8 @@ from orchestrator.cli.utils.resources.formatters import (
 from orchestrator.core.metadata import ConfigurationMetadata
 from orchestrator.metastore.base import ResourceDoesNotExistError
 from orchestrator.utilities.rich import dataframe_to_rich_table
+
+logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.models.parameters import (
@@ -267,7 +269,9 @@ def handle_ado_upgrade(
                 raise typer.Exit(1)
             legacy_validators.append(validator)
 
-        print("selected legacy validators", legacy_validators)
+        logger.debug(
+            f"Selected legacy validators: {[v.identifier for v in legacy_validators]}"
+        )
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
@@ -278,16 +282,11 @@ def handle_ado_upgrade(
 
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         # When legacy validators are specified, work with raw data
-        # print("LEGACY are ", legacy_validators)
-        # for validator in legacy_validators:
-        #     print(validator.identifier)
-
         if legacy_validators:
 
             identifiers = sql_store.getResourceIdentifiersOfKind(
                 kind=resource_type.value
             )
-            # print("Identifiers are", identifiers)
 
             for idx, identifier in enumerate(identifiers["IDENTIFIER"]):
                 status.update(
@@ -301,18 +300,13 @@ def handle_ado_upgrade(
 
                 # Apply legacy validators
                 for validator in legacy_validators:
-                    # print("Applying ", validator.identifier, "\n\n")
-                    # if identifier == 'space-upgrade-test':
-                    #     print("From ", json.dumps(resource_dict))
+                    logger.debug(f"Applying validator: {validator.identifier}")
                     resource_dict = validator.validator_function(resource_dict)
-                    if identifier == "space-upgrade-test":
-                        print("To ", json.dumps(resource_dict))
-                        raise typer.Exit(1)
+                    logger.debug(f"Validator {validator.identifier} completed")
 
                 # Validate and save the migrated resource
                 resource_class = kindmap[resource_type.value]
                 resource = resource_class.model_validate(resource_dict)
-                # raise Exception
                 sql_store.updateResource(resource=resource)
         else:
             # Normal upgrade path without legacy validators

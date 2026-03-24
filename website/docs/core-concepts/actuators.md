@@ -171,7 +171,7 @@ defines a set of observed properties.
 Since each observed property is an observation of a target property, a
 Measurement Space also defines a set of target properties.
 
-A Measurement Space and an Entity Space together define a
+When combined with an Entity Space, a Measurement Space forms a
 [Discovery Space](discovery-spaces.md).
 
 ## Actuators

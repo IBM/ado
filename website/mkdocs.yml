@@ -4,15 +4,15 @@ site_url: "https://ibm.github.io/ado"
 site_description: "Documentation website for https://github.com/ibm/ado"
 site_author: "The ado authors"
 # Repository Information
-repo_name: 'ibm/ado'
-repo_url: 'https://github.com/ibm/ado'
-edit_uri: 'edit/main/website/docs'
-docs_dir: 'docs'
-site_dir: 'site'
-remote_branch: 'gh-pages'
-remote_name: 'origin'
+repo_name: "ibm/ado"
+repo_url: "https://github.com/ibm/ado"
+edit_uri: "edit/main/website/docs"
+docs_dir: "docs"
+site_dir: "site"
+remote_branch: "gh-pages"
+remote_name: "origin"
 # Server info
-dev_addr: '127.0.0.1:8000'
+dev_addr: "127.0.0.1:8000"
 # Copyright
 copyright: Copyright IBM Research.
 # Extra links as icons at the bottom of the page
@@ -31,8 +31,8 @@ theme:
   include_search_page: true
   search_index_only: true
   custom_dir: theme
-  favicon: 'favicon.ico'
-  logo: 'logo-ibm.png'
+  favicon: "favicon.ico"
+  logo: "logo-ibm.png"
   font: false
   palette:
     # Palette toggle for automatic mode
@@ -78,7 +78,7 @@ theme:
     - search.suggest
     - toc.integrate # Integrate page TOC in left sidebar - wider page
   icon:
-    edit: 'material/pencil-outline'
+    edit: "material/pencil-outline"
 markdown_extensions:
   admonition: {}
   #  def_list: {}
@@ -95,7 +95,6 @@ markdown_extensions:
   pymdownx.emoji:
     emoji_index: !!python/name:material.extensions.emoji.twemoji
     emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  # Better list support: https://facelessuser.github.io/pymdown-extensions/extensions/fancylists/
   pymdownx.fancylists: {}
   # Code syntax highlighting: https://facelessuser.github.io/pymdown-extensions/extensions/highlight/
   pymdownx.highlight: {}
@@ -110,7 +109,7 @@ markdown_extensions:
   # Strip HTML: https://facelessuser.github.io/pymdown-extensions/extensions/striphtml/
   pymdownx.striphtml: {}
   # Better fencing: https://facelessuser.github.io/pymdown-extensions/extensions/superfences/
-  pymdownx.superfences:
+  pymdownx.superfences: # Better list support: https://facelessuser.github.io/pymdown-extensions/extensions/fancylists/
     preserve_tabs: true
   # Tabs: https://facelessuser.github.io/pymdown-extensions/extensions/tabbed/
   pymdownx.tabbed:
@@ -144,6 +143,8 @@ nav:
       - Developing ado: getting-started/developing.md
       - Roadmap: getting-started/roadmap.md
       - Contributing: getting-started/contributing.md
+  - CLI Reference:
+      - Legacy Validators: cli/legacy-validators.md
   - Examples:
       - examples/examples.md
       - Taking a random walk: examples/random-walk.md

@@ -209,14 +209,13 @@ class TestUpgradeHandlerIntegration:
         mock_validated_resource = MagicMock()
         mock_resource_class.model_validate.return_value = mock_validated_resource
 
-        # Create mock resource instance
-        mock_resource = MagicMock()
-        mock_resource.model_dump.return_value = {"old_field": "test_value"}
-        # Configure type() to return our mock class
-        type(mock_resource).model_validate = mock_resource_class.model_validate
-
         mock_sql_store = MagicMock()
-        mock_sql_store.getResourcesOfKind.return_value = {"res1": mock_resource}
+        # Mock getResourceIdentifiersOfKind to return identifiers
+        mock_sql_store.getResourceIdentifiersOfKind.return_value = {
+            "IDENTIFIER": ["res1"]
+        }
+        # Mock getResourceRaw to return raw dict data
+        mock_sql_store.getResourceRaw.return_value = {"old_field": "test_value"}
 
         # Mock parameters
         mock_params = MagicMock()
@@ -224,7 +223,7 @@ class TestUpgradeHandlerIntegration:
         mock_params.list_legacy_validators = False
         mock_params.ado_configuration.project_context = "test_context"
 
-        # Patch dependencies
+        # Patch dependencies including kindmap
         with (
             patch(
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
@@ -232,6 +231,10 @@ class TestUpgradeHandlerIntegration:
             ),
             patch("orchestrator.cli.utils.resources.handlers.Status"),
             patch("orchestrator.cli.utils.resources.handlers.console_print"),
+            patch(
+                "orchestrator.core.kindmap",
+                {CoreResourceKinds.SAMPLESTORE.value: mock_resource_class},
+            ),
         ):
             from orchestrator.cli.utils.resources.handlers import (
                 handle_ado_upgrade,
@@ -244,7 +247,8 @@ class TestUpgradeHandlerIntegration:
             )
 
         # Verify the resource was processed
-        mock_resource.model_dump.assert_called_once()
+        mock_sql_store.getResourceRaw.assert_called_once_with("res1")
+        mock_resource_class.model_validate.assert_called_once()
         mock_sql_store.updateResource.assert_called_once()
 
     def test_upgrade_handler_validates_validator_resource_type(self) -> None:
@@ -295,12 +299,14 @@ class TestUpgradeHandlerIntegration:
 
             assert exc_info.value.exit_code == 1
 
-            # Verify error message was printed
+            # Verify error message was printed with correct resource type mismatch
             mock_print.assert_called()
             call_args = str(mock_print.call_args)
             assert "operation_validator" in call_args
             assert "operation" in call_args.lower()
             assert "samplestore" in call_args.lower()
+            # Check for the specific error message format
+            assert "is for" in call_args.lower() or "upgrading" in call_args.lower()
 
     def test_upgrade_handler_validates_validator_exists(self) -> None:
         """Test that upgrade handler validates validator exists"""
@@ -342,7 +348,8 @@ class TestUpgradeHandlerIntegration:
             mock_print.assert_called()
             call_args = str(mock_print.call_args)
             assert "nonexistent_validator" in call_args
-            assert "not found" in call_args.lower()
+            # Check for "unknown" instead of "not found" to match actual error message
+            assert "unknown" in call_args.lower()
 
 
 class TestValidatorDataIntegrity:

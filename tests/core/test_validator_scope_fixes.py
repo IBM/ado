@@ -3,17 +3,44 @@
 
 """Tests for Phase 1 validator scope fixes - verifying validators only operate on config level"""
 
+import importlib
+
 from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
 
 class TestValidatorScopeFixes:
     """Test that validators correctly operate only on config level after Phase 1 fixes"""
 
-    @classmethod
-    def setup_class(cls) -> None:
-        """Import validators once for all tests in this class"""
-        # Import all validators to register them - they auto-register on import
-        import orchestrator.core.legacy.validators  # noqa: F401
+    def setup_method(self) -> None:
+        """Clear registry and reload validators before each test for isolation"""
+        # Clear the registry to ensure clean state
+        LegacyValidatorRegistry._validators = {}
+        # Reload all validator module files to re-register them
+        import orchestrator.core.legacy.validators.discoveryspace.entitysource_to_samplestore
+        import orchestrator.core.legacy.validators.discoveryspace.properties_field_removal
+        import orchestrator.core.legacy.validators.operation.actuators_field_removal
+        import orchestrator.core.legacy.validators.resource.entitysource_to_samplestore
+        import orchestrator.core.legacy.validators.samplestore.entitysource_migrations
+        import orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration
+
+        importlib.reload(
+            orchestrator.core.legacy.validators.discoveryspace.properties_field_removal
+        )
+        importlib.reload(
+            orchestrator.core.legacy.validators.discoveryspace.entitysource_to_samplestore
+        )
+        importlib.reload(
+            orchestrator.core.legacy.validators.operation.actuators_field_removal
+        )
+        importlib.reload(
+            orchestrator.core.legacy.validators.resource.entitysource_to_samplestore
+        )
+        importlib.reload(
+            orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration
+        )
+        importlib.reload(
+            orchestrator.core.legacy.validators.samplestore.entitysource_migrations
+        )
 
     def test_discoveryspace_properties_removal_scope(self) -> None:
         """Verify properties_field_removal only modifies config, not resource level"""

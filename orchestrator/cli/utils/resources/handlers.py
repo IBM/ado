@@ -257,18 +257,32 @@ def handle_ado_upgrade(
     if parameters.apply_legacy_validator:
         from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
-        # Validate all validator IDs exist
+        # Validate all validator IDs exist and match resource type
         invalid_validators = []
+        mismatched_validators = []
         for validator_id in parameters.apply_legacy_validator:
             validator = LegacyValidatorRegistry.get_validator(validator_id)
             if validator is None:
                 invalid_validators.append(validator_id)
+            elif validator.resource_type != resource_type:
+                mismatched_validators.append(
+                    (validator_id, validator.resource_type, resource_type)
+                )
 
         if invalid_validators:
             console_print(
                 f"{ERROR}Unknown legacy validator(s): {', '.join(invalid_validators)}",
                 stderr=True,
             )
+            raise typer.Exit(1)
+
+        if mismatched_validators:
+            for validator_id, validator_type, expected_type in mismatched_validators:
+                console_print(
+                    f"{ERROR}Validator '{validator_id}' is for {validator_type.value} resources, "
+                    f"but you are upgrading {expected_type.value} resources",
+                    stderr=True,
+                )
             raise typer.Exit(1)
 
         # Resolve dependencies and order validators

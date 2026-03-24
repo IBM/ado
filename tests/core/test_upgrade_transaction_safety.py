@@ -99,7 +99,6 @@ class TestUpgradeTransactionSafety:
                 "orchestrator.core.kindmap",
                 {"samplestore": mock_resource_class},
             ),
-            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch("orchestrator.cli.utils.resources.handlers.Status"),
             patch("orchestrator.cli.utils.resources.handlers.console_print"),
         ):
@@ -198,7 +197,6 @@ class TestUpgradeTransactionSafety:
                 "orchestrator.core.kindmap",
                 {"samplestore": mock_resource_class},
             ),
-            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch("orchestrator.cli.utils.resources.handlers.Status"),
             patch(
                 "orchestrator.cli.utils.resources.handlers.console_print"
@@ -253,7 +251,6 @@ class TestUpgradeTransactionSafety:
                 "orchestrator.cli.utils.resources.handlers.get_sql_store",
                 return_value=mock_sql_store,
             ),
-            patch("orchestrator.cli.utils.legacy.common.import_legacy_validators"),
             patch("orchestrator.cli.utils.resources.handlers.Status"),
             patch(
                 "orchestrator.cli.utils.resources.handlers.console_print"

@@ -13,7 +13,7 @@ You can also add [your own custom experiments](creating-custom-experiments.md)
 using the special actuator
 [_custom_experiments_](creating-custom-experiments.md#using-your-custom-experiment).
 
-> [!INFO]  Actuators and Plugins
+> [!NOTE]  Actuators and Plugins
 >
 > Most actuators are plugins: pieces of code that can be installed
 > independently from `ado` and that `ado` can dynamically discover. Custom

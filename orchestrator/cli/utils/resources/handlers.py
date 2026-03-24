@@ -288,9 +288,15 @@ def handle_ado_upgrade(
                 kind=resource_type.value
             )
 
+            # Phase 1: Collect and validate all migrations (transaction safety)
+            # Validate all resources before saving any to ensure atomicity
+            migrations = []
+            resource_class = kindmap[resource_type.value]
+
             for idx, identifier in enumerate(identifiers["IDENTIFIER"]):
                 status.update(
-                    ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(identifiers)})"
+                    ADO_SPINNER_QUERYING_DB
+                    + f" - Validating ({idx + 1}/{len(identifiers)})"
                 )
 
                 # Get raw data
@@ -299,15 +305,55 @@ def handle_ado_upgrade(
                     continue
 
                 # Apply legacy validators
-                for validator in legacy_validators:
-                    logger.debug(f"Applying validator: {validator.identifier}")
-                    resource_dict = validator.validator_function(resource_dict)
-                    logger.debug(f"Validator {validator.identifier} completed")
+                try:
+                    for validator in legacy_validators:
+                        logger.debug(
+                            f"Applying validator: {validator.identifier} to {identifier}"
+                        )
+                        resource_dict = validator.validator_function(resource_dict)
+                        logger.debug(
+                            f"Validator {validator.identifier} completed for {identifier}"
+                        )
 
-                # Validate and save the migrated resource
-                resource_class = kindmap[resource_type.value]
-                resource = resource_class.model_validate(resource_dict)
-                sql_store.updateResource(resource=resource)
+                    # Validate the migrated resource (don't save yet)
+                    resource = resource_class.model_validate(resource_dict)
+                    migrations.append((identifier, resource))
+
+                except Exception as e:
+                    logger.error(f"Migration failed for {identifier}: {e}")
+                    console_print(
+                        f"{ERROR}Migration validation failed for {identifier}: {e}",
+                        stderr=True,
+                    )
+                    console_print(
+                        f"{ERROR}No resources were modified (all-or-nothing transaction safety)",
+                        stderr=True,
+                    )
+                    raise typer.Exit(1) from e
+
+            # Phase 2: All validations passed, now save all resources
+            logger.info(
+                f"All {len(migrations)} resources validated successfully, applying changes..."
+            )
+
+            for idx, (identifier, migrated_resource) in enumerate(migrations):
+                status.update(
+                    ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(migrations)})"
+                )
+
+                try:
+                    sql_store.updateResource(resource=migrated_resource)
+                except Exception as e:
+                    logger.error(f"Failed to save {identifier}: {e}")
+                    console_print(
+                        f"{ERROR}Failed to save {identifier}. Database may be in inconsistent state.",
+                        stderr=True,
+                    )
+                    console_print(
+                        f"{ERROR}Manual intervention may be required to restore consistency.",
+                        stderr=True,
+                    )
+                    raise typer.Exit(1) from e
         else:
             # Normal upgrade path without legacy validators
             try:

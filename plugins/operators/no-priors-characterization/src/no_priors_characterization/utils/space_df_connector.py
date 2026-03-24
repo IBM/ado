@@ -510,8 +510,8 @@ def get_list_of_entities_from_df_and_space(
     for p in valid_points:
         # p is a dict mapping constitutive property id -> value
         sp = SpacePoint(entity=p)
-        entity = (
-            sp.to_entity()
+        entity = sp.to_entity(
+            generatorid="no_priors_characterization"
         )  # builds an Entity from the dict without touching the sample store
         list_of_entities.append(entity)
 
@@ -522,6 +522,3 @@ def get_list_of_entities_from_df_and_space(
         """
         logging.warning(numberEntities_log)
     return list_of_entities
-
-
-# %%

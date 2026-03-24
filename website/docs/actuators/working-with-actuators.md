@@ -13,11 +13,11 @@ You can also add [your own custom experiments](creating-custom-experiments.md)
 using the special actuator
 [_custom_experiments_](creating-custom-experiments.md#using-your-custom-experiment).
 
-!!! info end
-
-    Most actuators are plugins: pieces of code that can be installed
-    independently from `ado` and that `ado` can dynamically discover. Custom
-    experiments are also plugins.
+> [!NOTE]  Actuators and Plugins
+>
+> Most actuators are plugins: pieces of code that can be installed
+> independently from `ado` and that `ado` can dynamically discover. Custom
+> experiments are also plugins.
 
 ## Listing available Actuators
 
@@ -28,12 +28,82 @@ To see a list of available actuators execute
 ado get actuators
 ```
 
-to see the experiments each provides
+You can also use `ado get actuators --details` which in addition
+outputs the description of the actuators, the number of
+experiments they provide and their version. Below is an example
+of the output:
+
+<!-- markdownlint-disable line-length -->
+
+```commandline
+┌────────────────────┬─────────────┬─────────────────────────────────────────────────────┬───────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENTS │ DESCRIPTION                                         │ VERSION                   │
+├────────────────────┼─────────────┼─────────────────────────────────────────────────────┼───────────────────────────┤
+│ SFTTrainer         │ 5           │ An actuator for benchmarking fine-tuning of         │ 1.5.1.dev13+ga1833142b    │
+│                    │             │ foundation models                                   │                           │
+│ custom_experiments │ 6           │ Actuator for applying user supplied custom          │ 1.5.1.dev8+531c6444.dirty │
+│                    │             │ experiments                                         │                           │
+│ mock               │ 2           │ A actuator class for testing                        │ 1.5.1.dev8+531c6444.dirty │
+│ replay             │ 0           │ Special actuator for handling externally defined    │ 1.5.1.dev8+531c6444.dirty │
+│                    │             │ experiments (experiments we don't have code for)    │                           │
+│ robotic_lab        │ 1           │ A template for creating an actuator                 │ 1.5.1.dev13+ga1833142b    │
+└────────────────────┴─────────────┴─────────────────────────────────────────────────────┴───────────────────────────┘
+```
+
+<!-- markdownlint-enable line-length -->
+
+## Listing available Experiments
+
+To see the experiments each actuator provides
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
 ado get experiments
 ```
+
+You can also get see the description of each experiment (if provided)
+with `ado get experiments --details`.
+The output will be similar to:
+
+<!-- markdownlint-disable line-length -->
+```terminaloutput
+┌────────────────────┬─────────────────────────────────────┬─────────────────────────────────────────────────────────┐
+│ ACTUATOR ID        │ EXPERIMENT ID                       │ DESCRIPTION                                             │
+├────────────────────┼─────────────────────────────────────┼─────────────────────────────────────────────────────────┤
+│ SFTTrainer         │ finetune_full_benchmark-v1.0.0      │ Measures the performance of full-finetuning a model for │
+│                    │                                     │ a given (GPU model, number GPUS, batch_size,            │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ SFTTrainer         │ finetune_full_stability-v1.0.0      │ Performs 5 full finetune runs of 5 steps each on a      │
+│                    │                                     │ model and reports the fraction of those that resulted   │
+│                    │                                     │ in GPU OOM, Other error, or No Error for a given (GPU   │
+│                    │                                     │ model, number GPUS, batch_size, model_max_length)       │
+│                    │                                     │ combination.                                            │
+│ SFTTrainer         │ finetune_gptq-lora_benchmark-v1.0.0 │ Measures the performance of GPTQ-LORA tuning a model    │
+│                    │                                     │ for a given (GPU model, number GPUS, batch_size,        │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ SFTTrainer         │ finetune_lora_benchmark-v1.0.0      │ Measures the performance of LORA tuning a model for a   │
+│                    │                                     │ given (GPU model, number GPUS, batch_size,              │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ SFTTrainer         │ finetune_pt_benchmark-v1.0.0        │ Measures the performance of prompt-tuning a model for a │
+│                    │                                     │ given (GPU model, number GPUS, batch_size,              │
+│                    │                                     │ model_max_length, number nodes) combination.            │
+│ custom_experiments │ acid_test                           │                                                         │
+│ custom_experiments │ avoid_oom_recommender               │ An AutoConf recommender that suggests the minimum       │
+│                    │                                     │ number of gpus per worker and number of workers         │
+│                    │                                     │ necessary to execute a Tuning job whilekeeping the per  │
+│                    │                                     │ GPU batch size constant                                 │
+│ custom_experiments │ calculate_density                   │                                                         │
+│ custom_experiments │ min_gpu_recommender                 │ An AutoConf plugin that suggests the minimum number of  │
+│                    │                                     │ gpus per worker and number of workers necessary to      │
+│                    │                                     │ execute a Tuning job                                    │
+│ custom_experiments │ ml-multicloud-cost-v1.0             │                                                         │
+│ custom_experiments │ nevergrad_opt_3d_test_func          │                                                         │
+│ mock               │ test-experiment                     │                                                         │
+│ mock               │ test-experiment-two                 │                                                         │
+│ robotic_lab        │ peptide_mineralization              │ Measures adsorption of peptide lanthanide combinations  │
+└────────────────────┴─────────────────────────────────────┴─────────────────────────────────────────────────────────┘
+```
+<!-- markdownlint-enable line-length -->
 
 ## Special actuators: replay and custom_experiments
 
@@ -90,7 +160,7 @@ Some additional notes about this process when you are developing an actuator:
 
 ## What's next
 
-<!-- markdownlint-disable line-length -->
+<!-- markdownlint-disable line-length MD046 -->
 <!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
 
@@ -111,4 +181,4 @@ Some additional notes about this process when you are developing an actuator:
     [Creating new Operators :octicons-arrow-right-24:](../operators/working-with-operators.md)
 
 </div>
-<!-- markdownlint-enable line-length -->
+<!-- markdownlint-enable line-length MD046 -->

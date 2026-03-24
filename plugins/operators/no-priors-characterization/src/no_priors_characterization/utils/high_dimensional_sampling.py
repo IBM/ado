@@ -7,10 +7,11 @@ import random
 from typing import Literal
 
 import numpy as np
-from matplotlib.axes import Axes
 from scipy.stats.qmc import Sobol
 
-from trim.utils.one_dimensional_sampling import get_index_list_van_der_corput
+from no_priors_characterization.utils.one_dimensional_sampling import (
+    get_index_list_van_der_corput,
+)
 
 logger_high_dimensional = logging.getLogger(__name__)
 
@@ -210,11 +211,22 @@ def random_high_dimensional_sampling(
 
     # This still creates all combinations in memory, which is a limitation
     # for extremely large dimensional spaces.
-    configs = itertools.product(*[range(d) for d in dimensions])
+    configs = list(itertools.product(*[range(d) for d in dimensions]))
+
+    # Ensure we don't try to sample more than available
+    actual_sample_size = min(final_sample_size, len(configs))
+    if actual_sample_size < final_sample_size:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"Requested {final_sample_size} samples but only {len(configs)} unique "
+            f"configurations available. Sampling {actual_sample_size} instead."
+        )
 
     # random.sample is highly optimized for this task.
     # It's much faster than manually choosing and removing.
-    samples = random.sample(list(configs), final_sample_size)
+    samples = random.sample(configs, actual_sample_size)
 
     return [list(s) for s in samples]
 
@@ -324,123 +336,3 @@ def get_sampling_indices_multi_dimensional(
             return sobol_sampling(dimensions=dimensions, final_sample_size=n, seed=seed)
         case _:
             raise NotImplementedError(f"Strategy {strategy} is unknown")
-
-
-def plot_grid(
-    ax: Axes,
-    dimensions: list[int] | tuple[int, int],
-    points: np.ndarray | list[list[int]],
-    title: str,
-) -> None:
-    """
-    Plot a 2D grid visualization of sampled points with overlap detection.
-
-    This allows a visualization of points in a 2D space. You may want to have a look at
-    the points that the algorithm is telling you to sample to understand the distribution
-    and coverage patterns of different sampling strategies.
-
-    Args:
-        ax: Matplotlib axes object to draw on
-        dimensions: Dimensions of the grid [width, height]
-        points: List of sampled points as [x, y] coordinates
-        title: Title for the plot
-    """
-    from collections import defaultdict
-
-    import matplotlib.patches as patches
-
-    nx, ny = dimensions[0], dimensions[1]
-
-    # Setup grid
-    ax.set_xlim(0, nx)
-    ax.set_ylim(0, ny)
-    ax.set_xticks(range(nx + 1))
-    ax.set_yticks(range(ny + 1))
-    ax.grid(True, color="black", linewidth=1)
-    ax.set_aspect("equal")
-    ax.set_title(title, fontsize=12, pad=10)
-
-    # Track points in each cell to handle overlaps
-    # Maps (x, y) -> list of time indices (1-based)
-    grid_content = defaultdict(list)
-
-    # points is a list of [x, y], enumerate gives us the time index (0-based)
-    for time, point in enumerate(points):
-        x, y = int(point[0]), int(point[1])  # Ensure integers
-        if 0 <= x < nx and 0 <= y < ny:
-            # Store t + 1 so the first sample is '1'
-            grid_content[(x, y)].append(time + 1)
-
-    # Draw squares and text
-    for (x, y), indices in grid_content.items():
-        count = len(indices)
-        # Darker alpha if multiple points hit the same square
-        alpha = min(0.4 + 0.2 * count, 1.0)
-        rect = patches.Rectangle(
-            (x, y), 1, 1, linewidth=0, facecolor="#ff0000", alpha=alpha
-        )
-        ax.add_patch(rect)
-
-        # Label is the comma-separated list of indices
-        label = ",".join(map(str, indices))
-
-        # Add text
-
-        ax.text(
-            x + 0.52,
-            y + 0.52,
-            label,
-            ha="center",
-            va="center",
-            color="#D4FF00",
-            fontweight="bold",
-        )
-        ax.text(
-            x + 0.5,
-            y + 0.5,
-            label,
-            ha="center",
-            va="center",
-            color="#000000",
-            fontweight="bold",
-        )
-
-
-if __name__ == "__main__":
-    """
-    Demonstration script comparing different sampling strategies in 2D space.
-
-    This allows a visualization of points in a 2D space. You may want to have a look at
-    the points that the algorithm is telling you to sample to compare how different
-    strategies (random, concatenated Latin hypercube, and Sobol) distribute samples
-    across the space.
-    """
-    import matplotlib.pyplot as plt
-
-    # --- Configuration ---
-    dimensions = [40, 6]  # 4 columns, 6 rows (Total 24 cells)
-    N = 50  # Number of samples to draw
-    SEED = 42
-
-    # --- Plotting ---
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
-    # 1. Random Sampling
-    pts_rnd = random_high_dimensional_sampling(dimensions, N, seed=SEED)
-    plot_grid(axes[0], dimensions, pts_rnd, f"Random Sampling (N={N})\n(Clumps & Gaps)")
-
-    # 2. Concatenated LHS
-    pts_lhs = concatenated_latin_hypercube_sampling(dimensions, N, seed=SEED)
-    plot_grid(
-        axes[1], dimensions, pts_lhs, f"Concatenated LHS (N={N})\n(Uniform Rows/Cols)"
-    )
-
-    # 3. Sobol Sequence
-    pts_sobol = sobol_sampling(dimensions, N, seed=SEED)
-    plot_grid(
-        axes[2], dimensions, pts_sobol, f"Sobol Sequence (N={N})\n(Maximal Spreading)"
-    )
-
-    plt.tight_layout()
-    plt.show()
-# %%

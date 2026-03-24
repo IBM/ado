@@ -1,3 +1,49 @@
+## [1.7.0](https://github.com/ibm/ado/compare/651ded3949752b14349acf1b8dc7455eb03de305..1.7.0) - 2026-03-24
+#### Features
+- (**cli**) add space id to default ado get operation output (#694) - ([f90f8d4](https://github.com/ibm/ado/commit/f90f8d43224e05f2e2182a8270f5b68826fd53b9)) - Michael Johnston
+- (**core**) add binary property domain to entity space rich representation (#714) - ([889c763](https://github.com/ibm/ado/commit/889c76332be4a99e50d80a7b65f84de7fbcfccf5)) - Alessandro Pomponio
+- (**core**) enable aggregation of multi-valued metrics in ado show entities operation (#681) - ([a83fb3f](https://github.com/ibm/ado/commit/a83fb3f80c4a5b6cc12d80e6a7857a0f5c266204)) - Michael Johnston
+- (**no-priors**) create standalone no-priors characterization operator (#686) - ([94c6b8f](https://github.com/ibm/ado/commit/94c6b8fb5987388640057b74eb924a3998dcbb8e)) - Daniele Lotito
+- (**remote**) Support local .whl files in fromPyPI and validate source wheels (#702) - ([acf2868](https://github.com/ibm/ado/commit/acf286825ade639ca1e45753c27758dba0f4a425)) - Michael Johnston
+- add generatorid parameter to SpacePoint.to_entity() (#724) - ([d753dee](https://github.com/ibm/ado/commit/d753deeaac1903464172ee329241a43e3fc08af5)) - Daniele Lotito
+#### Bug Fixes
+- (**core**) prevent invalid values in binary variable types (#718) - ([ec01c52](https://github.com/ibm/ado/commit/ec01c52162b9feb945491f9cac2e2d46e409d9a3)) - Alessandro Pomponio
+- (**core**) validate DiscoveryOperationConfiguration parameters on creation  (#639) - ([d37708c](https://github.com/ibm/ado/commit/d37708c0f2d07b91e1a8467b9c4734c356376010)) - Alessandro Pomponio
+- (**core**) check and restore db connections before executing statements (#661) - ([651ded3](https://github.com/ibm/ado/commit/651ded3949752b14349acf1b8dc7455eb03de305)) - Michael Johnston
+- (**ray_tune**) use measurementspace to get virtual properties (#668) - ([32168d4](https://github.com/ibm/ado/commit/32168d4bbb31d7bcecc2c7d68e856e8059c164b4)) - Michael Johnston
+- (**schema**) ensure experiment_id is string in series representation (#703) - ([443e8a5](https://github.com/ibm/ado/commit/443e8a586b59e5b7e3f1a576baa788a752f09276)) - Michael Johnston
+- (**schema**) handle none values in aggregation (#662) - ([3d2c8d8](https://github.com/ibm/ado/commit/3d2c8d8db99ff3586f568ff76d928b78d810cd88)) - Michael Johnston
+- (**vllm_performance**) Replace binary type with discrete type for properties in geospatial experiments (#720) - ([7d24eef](https://github.com/ibm/ado/commit/7d24eef9136b2130186d11de685634494ec16816)) - Christian Pinto
+#### Performance Improvements
+- (**core**) replace sqlalchemy.inspect with catalog checks for sql store table existence (#672) - ([8543c43](https://github.com/ibm/ado/commit/8543c4364db34ad590c1d3f344ef8cb523cbfcc4)) - Michael Johnston
+- (**core**) add method to fetch multiple related resources from the DB at the same time (#682) - ([0986521](https://github.com/ibm/ado/commit/09865217de4cb753d425c2eb2f6c209dde9bc424)) - Michael Johnston
+- (**core**) fetch missing entities in a batch when parsing measurement requests from db (#671) - ([03a65e7](https://github.com/ibm/ado/commit/03a65e7b3891159e571b26df85edb8a1d9e36a28)) - Michael Johnston
+- (**core**) cache operation IDs belonging to space to avoid preflight DB lookup (#673) - ([fb82c5d](https://github.com/ibm/ado/commit/fb82c5dff31238b5ec8185883296a3e0d857c435)) - Michael Johnston
+- (**core**) allow skipping loading experiment catalogs from DB when initializing DiscoverySpace (#675) - ([272fc81](https://github.com/ibm/ado/commit/272fc81079f20e4d137e249fc5a9c4d12c09d822)) - Michael Johnston
+- (**core**) cache SQLAlchemy engine per database URL to eliminate redundant TCP handshake (#669) - ([ae68bf0](https://github.com/ibm/ado/commit/ae68bf0ef918e7bb55438b1840449b204f11f277)) - Michael Johnston
+#### Documentation
+- (**agents**) improve skill guidance (#719) - ([cffb68a](https://github.com/ibm/ado/commit/cffb68a0f3189115b19e1156c3d09769838394b9)) - Michael Johnston
+- (**agents**) add instructions on using uv workspace packages when developing plugins (#708) - ([252c4ff](https://github.com/ibm/ado/commit/252c4fff155403c59523bef304d3592903cb4a35)) - Michael Johnston
+- (**agents**) add instructions for writing skills (#707) - ([86640f1](https://github.com/ibm/ado/commit/86640f180970fee939d60d93526001bf8862b8a9)) - Michael Johnston
+- (**agents**) improve rules for testing existing and new code (#705) - ([744bdda](https://github.com/ibm/ado/commit/744bdda5b6062721819e7f51612051b7b88aaa6c)) - Michael Johnston
+- (**agents**) add skill for creating resource YAML (#680) - ([c46f3dc](https://github.com/ibm/ado/commit/c46f3dc0bb78000e28a82b9c3fd13ddf3386ccf7)) - Michael Johnston
+- (**changelog**) add release notes for 1.6.0 (#660) - ([00c7de3](https://github.com/ibm/ado/commit/00c7de3e4ffe912badd942a61c6059182e7ee85e)) - DRL-NextGen
+- (**cli**) clarify --output flag behavior for json/raw/yaml formats (#731) - ([1706698](https://github.com/ibm/ado/commit/1706698daf55f24f3ae6801a6c6a1eec70371640)) - Daniele Lotito
+- (**sfttrainer**) fix typo in finetune-remotely.md (#667) - ([d8c9d98](https://github.com/ibm/ado/commit/d8c9d98f403ada8acb06b3123f7b92faea81625b)) - Vassilis Vassiliadis
+- add prettier-ignore tags and format (#697) - ([cc2bca5](https://github.com/ibm/ado/commit/cc2bca581990bb2ffe2e6d76dab28d32be37f6dc)) - Alessandro Pomponio
+#### Build system
+- (**deps**) update dependencies (#728) - ([19d3201](https://github.com/ibm/ado/commit/19d3201357fcda25b7333ef79b382df35be50db9)) - DRL-NextGen
+- (**deps**) update dependencies (#710) - ([77576ea](https://github.com/ibm/ado/commit/77576ea3b3cd6ddaf4cfadcabb2315d68ed2fdaa)) - DRL-NextGen
+- (**deps**) update dependencies (#693) - ([c28385d](https://github.com/ibm/ado/commit/c28385d15efff5f417b2edef0db3e721344cb37b)) - Alessandro Pomponio
+- (**deps**) update dependencies (#676) - ([9ad9d2a](https://github.com/ibm/ado/commit/9ad9d2a033c7f87794f8081c050ecc9c067bcb41)) - Alessandro Pomponio
+- (**hooks**) update pre-commit hooks (#729) - ([0f0a66c](https://github.com/ibm/ado/commit/0f0a66c91590119761fcc227b3c8fedd385819aa)) - DRL-NextGen
+- (**hooks**) update pre-commit hooks (#711) - ([c016992](https://github.com/ibm/ado/commit/c0169925699ee5d54387652760bf6e3e61121b2a)) - DRL-NextGen
+#### Refactoring
+- (**core**) remove ray.remote decorator from actuators (#698) - ([63bb898](https://github.com/ibm/ado/commit/63bb898ebacb2d353947f77929762d12f2c30693)) - Michael Johnston
+- (**core**) remove orchestrator/plugins module (#695) - ([6ca67ea](https://github.com/ibm/ado/commit/6ca67ea9bfa8d5c66be74d36b2036cba4bfb795e)) - Michael Johnston
+
+- - -
+
 ## [1.6.0](https://github.com/ibm/ado/compare/7061f8f399ea175fb3c2463d6813e0cb15f4d477..1.6.0) - 2026-03-05
 #### Features
 - (**agents**) add skill for remote execution (#633) - ([730cafb](https://github.com/ibm/ado/commit/730cafbe765987fef8ed6b4e1063003a1b48f9ce)) - Michael Johnston

@@ -1,40 +1,35 @@
 <!-- markdownlint-disable-next-line first-line-h1 -->
 ## Discovery Space
 
-The core concept in `ado` is called a _Discovery Space_. In `ado` you are often
-creating and performing operations on Discovery Spaces.
+`ado` is a tool for systematically exploring, measuring, and analysing a space of
+entities - for example, configurations, systems and substances.
+The core concept enabling this is a
+**Discovery Space**. It answers three questions:
 
-For users familiar with `pandas` and `dataframes`, a Discovery Space combines:
+- **How are measurements performed?** A Discovery Space defines
+  a set of [Experiments](actuators.md). Each Experiment
+  takes defined inputs and produces measured outputs. The collection of Experiments
+  is called a [Measurement Space](actuators.md#measurement-space).
+- **What do you want to measure?** A Discovery Space defines an
+  [Entity Space](entity-spaces.md) — the
+  specific set of things, called _Entities_, you want to measure.
+- **What have you measured so far?** A Discovery Space uses
+  a **Sample Store**, a shared database, to read and store measurement
+  results.
 
-- the schema of a `dataframe` i.e. the columns and what they mean
-- instructions on how to fill the `dataframe` rows
-- the current data in the `dataframe` (and what's missing!)
-
-A Discovery Space expresses the hidden metadata and contextual
-information necessary to understand and extend a dataframe. See
-[Discovery Space](discovery-spaces.md) for more details.
-
-A Discovery Space is built from:
-
-- [Entities and Entity Spaces](entity-spaces.md): The set of things in a
-  Discovery Space
-- [Measurement Spaces](actuators.md#measurement-space): The set of experiments
-  in a Discovery Space
-- [Experiments and Actuators](actuators.md): The available experiments and the
-  tools that execute them
+For users familiar with `pandas`, a Discovery Space is like a DataFrame that
+knows its own schema, knows how to fill in missing values, and shares data
+transparently with other DataFrames. See [Discovery Spaces](discovery-spaces.md)
+for more.
 
 ## Sample Store
 
-In `ado`, data on sampled entities, and the results of experiments on them, are
-kept in a **sample store**.
+In `ado`, Entities and the results of Experiments on them are kept in a
+**Sample Store** — a shared database that multiple Discovery Spaces can use.
 
-A single sample store can be used by multiple Discovery Spaces, allowing them to
-share data. This means, for example, if an experiment has already been run,
-`ado` can reuse the existing results instead of running the experiment again,
-saving time and computational resources.
-
-This ability to transparently share and reuse data is a core feature of `ado`.
-See [Shared Sample Stores](data-sharing.md) for more details.
+If an Experiment has already been run on an Entity, `ado` can reuse the result
+rather than running it again. This transparent data sharing is a core feature of
+`ado`. See [Shared Sample Stores](data-sharing.md) for more details.
 
 ## What's next
 
@@ -46,17 +41,19 @@ See [Shared Sample Stores](data-sharing.md) for more details.
 
     ---
 
-    Next go to [resources](../resources/resources.md) to learn more about working with these core-concepts in `ado`.
+    Go to [resources](../resources/resources.md) to learn more about working
+    with these core concepts in `ado`.
 
     [ado resources :octicons-arrow-right-24:](../resources/resources.md)
 
 - :octicons-workflow-24:{ .lg .middle } **Try our examples**
 
-      ---
+    ---
 
-      Try some of our [examples](../examples/examples.md) if you want to dive straight in.
+    Try some of our [examples](../examples/examples.md) if you want to dive
+    straight in.
 
-      [Our examples :octicons-arrow-right-24:](../examples/examples.md)
+    [Our examples :octicons-arrow-right-24:](../examples/examples.md)
 
 </div>
 <!-- markdownlint-enable line-length -->

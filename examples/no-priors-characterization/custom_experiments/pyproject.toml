@@ -1,0 +1,19 @@
+[project]
+name = "no_priors_custom_experiments"
+description = "A set of custom experiments used to test No-Priors Characterization Operation"
+dependencies = [
+  "ado-core",
+  "numpy",
+]
+dynamic = ["version"]
+
+[project.entry-points."ado.custom_experiments"]
+# This should be python file with your decorated function(s).
+no_priors_experiments = "no_priors_custom_experiments.experiments"
+
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+root = "../../../"

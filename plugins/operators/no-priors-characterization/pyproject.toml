@@ -1,31 +1,29 @@
 [project]
-name = "ado-trim"
-description = "TRIM (Transfer Refined Iterative Modeling) builds an accurate predictive model from a small dataset by iteratively sampling a Discovery Space."
+name = "ado-no-priors-characterization"
+description = "No-priors characterization operator for sampling discovery spaces using high-dimensional sampling strategies"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
   "ado-core",
-  "ado-no-priors-characterization",
-  "autogluon-tabular[catboost,xgboost]==1.5",
   "numpy",
   "pandas>=2.2.0",
-  "scikit-learn",
+  "scipy",
 ]
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
-trim = "trim.operator"
+no-priors-characterization = "no_priors_characterization.operator"
 
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["trim"]
+package-dir = { "" = "src" }
+packages = ["no_priors_characterization"]
 
 [tool.setuptools_scm]
 root = "../../../"
 
 [tool.uv.sources]
 ado-core = { workspace = true }
-ado-no-priors-characterization = { workspace = true }

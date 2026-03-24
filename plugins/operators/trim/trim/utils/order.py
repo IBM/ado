@@ -9,9 +9,9 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularPredictor
+from no_priors_characterization.utils import get_sampling_indices_multi_dimensional
 
 from trim.trim_pydantic import AutoGluonArgs
-from trim.utils.high_dimensional_sampling import get_sampling_indices_multi_dimensional
 from trim.utils.miscellaneous import delete_dir
 
 logger = logging.getLogger(__name__)

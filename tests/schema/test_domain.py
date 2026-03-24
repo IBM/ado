@@ -936,3 +936,152 @@ def test_open_categorical_variable_type_property_domain() -> None:
     dser = PropertyDomain.model_validate(dump)
     assert dser.variableType == VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE
     assert dser.values == ["a", "b", "c"]
+
+
+def test_binary_variable_type_with_invalid_single_true_value() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single True value"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True]
+        )
+
+
+def test_binary_variable_type_with_invalid_single_false_value() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single False value"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[False]
+        )
+
+
+def test_binary_variable_type_with_invalid_single_numeric_one() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single numeric value 1"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1])
+
+
+def test_binary_variable_type_with_invalid_single_numeric_zero() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects single numeric value 0"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0])
+
+
+def test_binary_variable_type_with_invalid_numeric_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects invalid numeric values like [2, 3]"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[2, 3]
+        )
+
+
+def test_binary_variable_type_with_invalid_string_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects string values"""
+    with pytest.raises(
+        ValueError,
+        match="BINARY_VARIABLE_TYPE should not have values specified",
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=["yes", "no"]
+        )
+
+
+def test_binary_variable_type_with_valid_boolean_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [False, True] for backwards compatibility"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[False, True]
+    )
+    assert domain.values == [False, True]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_reversed_boolean_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [True, False] for backwards compatibility"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True, False]
+    )
+    assert domain.values == [True, False]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_numeric_values_zero_one() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [0, 1] for backwards compatibility (0==False, 1==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0, 1]
+    )
+    assert domain.values == [0, 1]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_reversed_numeric_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [1, 0] for backwards compatibility (0==False, 1==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1, 0]
+    )
+    assert domain.values == [1, 0]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_float_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [0.0, 1.0] for backwards compatibility (0.0==False, 1.0==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[0.0, 1.0]
+    )
+    assert domain.values == [0.0, 1.0]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_valid_reversed_float_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE accepts [1.0, 0.0] for backwards compatibility (0.0==False, 1.0==True)"""
+    domain = PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[1.0, 0.0]
+    )
+    assert domain.values == [1.0, 0.0]
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_with_no_values() -> None:
+    """Test that BINARY_VARIABLE_TYPE with no values defaults to [False, True]"""
+    domain = PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE)
+    assert domain.values is None
+    assert domain.domain_values == [False, True]
+
+
+def test_binary_variable_type_rejects_interval() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects interval specification"""
+    with pytest.raises(
+        ValueError, match="interval field for a BINARY_VARIABLE_TYPE must be None"
+    ):
+        PropertyDomain(variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, interval=1)
+
+
+def test_binary_variable_type_rejects_domain_range() -> None:
+    """Test that BINARY_VARIABLE_TYPE rejects domainRange specification"""
+    with pytest.raises(
+        ValueError, match="domainRange field for a BINARY_VARIABLE_TYPE must be None"
+    ):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, domainRange=[0, 1]
+        )
+
+
+def test_binary_variable_type_error_message_suggests_discrete() -> None:
+    """Test that error message suggests using DISCRETE_VARIABLE_TYPE"""
+    with pytest.raises(ValueError, match="use DISCRETE_VARIABLE_TYPE"):
+        PropertyDomain(
+            variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE, values=[True]
+        )

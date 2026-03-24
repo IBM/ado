@@ -82,15 +82,13 @@ def handle_validation_error_with_legacy_suggestions(
     Raises:
         typer.Exit: Always exits with code 1
     """
+    # Import validators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.validators  # noqa: F401
     from orchestrator.cli.utils.legacy.common import (
         extract_deprecated_fields_from_validation_error,
-        import_legacy_validators,
         print_validator_suggestions,
     )
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
-
-    # Import validators to ensure they're registered
-    import_legacy_validators()
 
     # Extract field paths, error details, and leaf field names from validation error
     full_field_paths, field_errors, leaf_field_names = (

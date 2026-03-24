@@ -6,7 +6,6 @@
 from rich.console import Console
 from rich.panel import Panel
 
-from orchestrator.cli.utils.legacy.common import import_legacy_validators
 from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 from orchestrator.core.resources import CoreResourceKinds
 
@@ -19,8 +18,8 @@ def list_legacy_validators(resource_type: CoreResourceKinds) -> None:
     """
     console = Console()
 
-    # Import all validator modules to ensure they're registered
-    import_legacy_validators()
+    # Import validators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.validators  # noqa: F401
 
     # Get validators for this resource type
     validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)

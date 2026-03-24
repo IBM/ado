@@ -3,4 +3,11 @@
 
 """Legacy validators for sample store migrations"""
 
+from orchestrator.core.legacy.validators.samplestore import (
+    entitysource_migrations,
+    v1_to_v2_csv_migration,
+)
+
+__all__ = ["entitysource_migrations", "v1_to_v2_csv_migration"]
+
 # Made with Bob

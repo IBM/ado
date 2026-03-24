@@ -242,10 +242,8 @@ def handle_ado_upgrade(
         parameters: Command parameters including legacy validator options
         resource_type: The type of resource to upgrade
     """
-    from orchestrator.cli.utils.legacy.common import import_legacy_validators
-
-    # Import all validator modules to ensure they're registered
-    import_legacy_validators()
+    # Import validators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.validators  # noqa: F401
 
     # Handle --list-legacy-validators flag
     if parameters.list_legacy_validators:
@@ -393,15 +391,14 @@ def _handle_upgrade_validation_error(
 
     from orchestrator.cli.utils.legacy.common import (
         extract_deprecated_fields_from_value_error,
-        import_legacy_validators,
         print_validator_suggestions,
     )
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
     console = Console()
 
-    # Import all validator modules to ensure they're registered
-    import_legacy_validators()
+    # Import validators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.validators  # noqa: F401
 
     # Extract field paths, error details, and leaf field names from the error
     full_field_paths, field_errors, leaf_field_names = (

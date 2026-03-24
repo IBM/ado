@@ -86,7 +86,7 @@ def handle_validation_error_with_legacy_suggestions(
     import orchestrator.core.legacy.validators  # noqa: F401
     from orchestrator.cli.utils.legacy.common import (
         extract_deprecated_fields_from_validation_error,
-        print_validator_suggestions,
+        print_validator_suggestions_with_dependencies,
     )
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
@@ -126,11 +126,11 @@ def handle_validation_error_with_legacy_suggestions(
             console.print(f"    - {error_msg}")
     console.print()
 
-    print_validator_suggestions(
+    # Use enhanced suggestion printer with dependency information
+    print_validator_suggestions_with_dependencies(
         validators=validators,
         resource_type=resource_type,
         console=console,
-        show_all_validators=False,
     )
 
     raise typer.Exit(1) from error

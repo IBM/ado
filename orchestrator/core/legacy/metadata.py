@@ -56,6 +56,14 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         ),
     ]
 
+    field_paths: Annotated[
+        list[str],
+        pydantic.Field(
+            default_factory=list,
+            description="Explicit paths to fields (e.g., 'config.properties', 'config.specification.moduleType')",
+        ),
+    ]
+
     model_config = pydantic.ConfigDict(arbitrary_types_allowed=True)
 
 

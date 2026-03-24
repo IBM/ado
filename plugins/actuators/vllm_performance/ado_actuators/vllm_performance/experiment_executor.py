@@ -423,6 +423,7 @@ def run_resource_and_workload_experiment(
             if experiment.identifier in [
                 "test-geospatial-deployment-v1",
                 "test-geospatial-deployment-custom-dataset-v1",
+                "test-geospatial-endpoint-custom-dataset-v1",
             ]:
                 logger.info("Using geospatial benchmark for deployment")
                 result = execute_geospatial_benchmark(
@@ -571,7 +572,7 @@ def run_workload_experiment(
             # Will raise VLLMBenchmarkError if there is a problem
             logger.info(f"Executing experiment: {experiment.identifier}")
             result: BenchmarkResult
-            if experiment.identifier == "test-geospatial-endpoint-v1":
+            if experiment.identifier in ["test-geospatial-endpoint-v1", "test-geospatial-endpoint-custom-dataset-v1"]:
                 logger.info("Using geospatial benchmark for endpoint")
                 result = execute_geospatial_benchmark(
                     base_url=benchmark_parameters.endpoint,

@@ -274,7 +274,7 @@ performance_testing-geospatial-full:
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
 performance_testing-geospatial-full-custom-dataset:
-  identifier: test-geospatial-full-custom-dataset-v1
+  identifier: test-geospatial-deployment-custom-dataset-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -471,7 +471,7 @@ performance_testing-geospatial-endpoint-custom-dataset:
       metadata:
         description: 'model to use for testing. Assumed to be served by all endpoints tested. Required to obtain correct tokenizer for benchmarking metrics calculation'
       propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"]
     - identifier: 'endpoint'
       metadata:
@@ -514,12 +514,6 @@ performance_testing-geospatial-endpoint-custom-dataset:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [-1, 500] # -1 means no concurrency control
         interval: 1
-    - identifier: 'dataset'
-      metadata:
-        description: "The dataset to be used for the experiment"
-      propertyDomain:
-        variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: ['india_url_in_b64_out', 'valencia_url_in_b64_out']
   defaultParameterization:
     - value: 100
       property:
@@ -530,9 +524,6 @@ performance_testing-geospatial-endpoint-custom-dataset:
     - value: 1.0
       property:
         identifier: 'burstiness'
-    - property:
-        identifier: 'dataset'
-      value: 'india_url_in_b64_out'
   # measurements
   targetProperties:
     - identifier: "duration"

@@ -4,6 +4,7 @@
 """Legacy validator for migrating entitysource kind to samplestore kind"""
 
 from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.utils import has_nested_field, set_nested_value
 from orchestrator.core.resources import CoreResourceKinds
 
 
@@ -14,6 +15,7 @@ from orchestrator.core.resources import CoreResourceKinds
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Converts resource kind from 'entitysource' to 'samplestore'",
+    field_paths=["kind"],
 )
 def migrate_entitysource_kind_to_samplestore(data: dict) -> dict:
     """Migrate old entitysource kind to samplestore
@@ -35,8 +37,8 @@ def migrate_entitysource_kind_to_samplestore(data: dict) -> dict:
         return data
 
     # Check if this is an entitysource that needs migration
-    if data.get("kind") == "entitysource":
-        data["kind"] = "samplestore"
+    if has_nested_field(data, "kind") and data.get("kind") == "entitysource":
+        set_nested_value(data, "kind", "samplestore")
 
     return data
 

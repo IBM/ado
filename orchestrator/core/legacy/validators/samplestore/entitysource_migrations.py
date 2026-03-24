@@ -4,6 +4,11 @@
 """Legacy validators for migrating entitysource to samplestore naming"""
 
 from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.utils import (
+    get_nested_value,
+    has_nested_field,
+    set_nested_value,
+)
 from orchestrator.core.resources import CoreResourceKinds
 
 
@@ -14,13 +19,13 @@ from orchestrator.core.resources import CoreResourceKinds
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Converts moduleType value from 'entity_source' to 'sample_store'",
+    field_paths=["config.moduleType"],
 )
 def migrate_module_type(data: dict) -> dict:
     """Convert moduleType from entity_source to sample_store
 
-    This validator recursively searches for moduleType fields within the config
-    and converts them from 'entity_source' to 'sample_store'. It operates only
-    within the config level, matching the original pydantic validator behavior.
+    This validator checks for moduleType field within the config
+    and converts it from 'entity_source' to 'sample_store'.
 
     Old format:
         config:
@@ -40,26 +45,12 @@ def migrate_module_type(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Only operate within config
-    if "config" not in data or not isinstance(data["config"], dict):
-        return data
+    # Check and update config.moduleType
+    if has_nested_field(data, "config.moduleType"):
+        parent, field = get_nested_value(data, "config.moduleType")
+        if parent is not None and parent[field] == "entity_source":
+            set_nested_value(data, "config.moduleType", "sample_store")
 
-    def convert_module_type_in_dict(d: dict) -> None:
-        """Recursively convert moduleType in nested structures"""
-        if "moduleType" in d and d["moduleType"] == "entity_source":
-            d["moduleType"] = "sample_store"
-
-        # Check in nested structures
-        for value in d.values():
-            if isinstance(value, dict):
-                convert_module_type_in_dict(value)
-            elif isinstance(value, list):
-                for item in value:
-                    if isinstance(item, dict):
-                        convert_module_type_in_dict(item)
-
-    # Start recursion from config level
-    convert_module_type_in_dict(data["config"])
     return data
 
 
@@ -70,13 +61,13 @@ def migrate_module_type(data: dict) -> dict:
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Converts moduleClass values from EntitySource to SampleStore naming (CSVEntitySource -> CSVSampleStore, SQLEntitySource -> SQLSampleStore)",
+    field_paths=["config.moduleClass"],
 )
 def migrate_module_class(data: dict) -> dict:
     """Convert moduleClass from EntitySource to SampleStore naming
 
-    This validator recursively searches for moduleClass fields within the config
-    and converts them from EntitySource to SampleStore naming. It operates only
-    within the config level, matching the original pydantic validator behavior.
+    This validator checks for moduleClass field within the config
+    and converts it from EntitySource to SampleStore naming.
 
     Old format:
         config:
@@ -96,31 +87,17 @@ def migrate_module_class(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Only operate within config
-    if "config" not in data or not isinstance(data["config"], dict):
-        return data
-
     value_mappings = {
         "CSVEntitySource": "CSVSampleStore",
         "SQLEntitySource": "SQLSampleStore",
     }
 
-    def convert_module_class_in_dict(d: dict) -> None:
-        """Recursively convert moduleClass in nested structures"""
-        if "moduleClass" in d and d["moduleClass"] in value_mappings:
-            d["moduleClass"] = value_mappings[d["moduleClass"]]
+    # Check and update config.moduleClass
+    if has_nested_field(data, "config.moduleClass"):
+        parent, field = get_nested_value(data, "config.moduleClass")
+        if parent is not None and parent[field] in value_mappings:
+            set_nested_value(data, "config.moduleClass", value_mappings[parent[field]])
 
-        # Check in nested structures
-        for value in d.values():
-            if isinstance(value, dict):
-                convert_module_class_in_dict(value)
-            elif isinstance(value, list):
-                for item in value:
-                    if isinstance(item, dict):
-                        convert_module_class_in_dict(item)
-
-    # Start recursion from config level
-    convert_module_class_in_dict(data["config"])
     return data
 
 
@@ -131,13 +108,13 @@ def migrate_module_class(data: dict) -> dict:
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Updates module paths from entitysource to samplestore (orchestrator.core.entitysource -> orchestrator.core.samplestore)",
+    field_paths=["config.moduleName"],
 )
 def migrate_module_name(data: dict) -> dict:
     """Convert moduleName paths from entitysource to samplestore
 
-    This validator recursively searches for moduleName fields within the config
-    and converts paths from entitysource to samplestore. It operates only
-    within the config level, matching the original pydantic validator behavior.
+    This validator checks for moduleName field within the config
+    and converts paths from entitysource to samplestore.
 
     Old format:
         config:
@@ -159,34 +136,21 @@ def migrate_module_name(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Only operate within config
-    if "config" not in data or not isinstance(data["config"], dict):
-        return data
-
     path_mappings = {
         "orchestrator.core.entitysource": "orchestrator.core.samplestore",
         "orchestrator.plugins.entitysources": "orchestrator.plugins.samplestores",
     }
 
-    def convert_module_name_in_dict(d: dict) -> None:
-        """Recursively convert moduleName in nested structures"""
-        if "moduleName" in d and isinstance(d["moduleName"], str):
+    # Check and update config.moduleName
+    if has_nested_field(data, "config.moduleName"):
+        parent, field = get_nested_value(data, "config.moduleName")
+        if parent is not None and isinstance(parent[field], str):
+            module_name = parent[field]
             for old_path, new_path in path_mappings.items():
-                if old_path in d["moduleName"]:
-                    d["moduleName"] = d["moduleName"].replace(old_path, new_path)
-                    break
+                if old_path in module_name:
+                    module_name = module_name.replace(old_path, new_path)
+            set_nested_value(data, "config.moduleName", module_name)
 
-        # Check in nested structures
-        for value in d.values():
-            if isinstance(value, dict):
-                convert_module_name_in_dict(value)
-            elif isinstance(value, list):
-                for item in value:
-                    if isinstance(item, dict):
-                        convert_module_name_in_dict(item)
-
-    # Start recursion from config level
-    convert_module_name_in_dict(data["config"])
     return data
 
 

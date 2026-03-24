@@ -4,6 +4,7 @@
 """Legacy validator for removing deprecated actuators field from operations"""
 
 from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.utils import remove_nested_field
 from orchestrator.core.resources import CoreResourceKinds
 
 
@@ -11,6 +12,7 @@ from orchestrator.core.resources import CoreResourceKinds
     identifier="operation_actuators_field_removal",
     resource_type=CoreResourceKinds.OPERATION,
     deprecated_fields=["actuators"],
+    field_paths=["config.actuators"],
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Removes the deprecated 'actuators' field from operation configurations. See https://ibm.github.io/ado/resources/operation/#the-operation-configuration-yaml",
@@ -36,17 +38,8 @@ def remove_actuators_field(data: dict) -> dict:
     Returns:
         The migrated resource data dictionary
     """
-
-    if not isinstance(data, dict):
-        return data
-
-    # Only check in config (where the field actually exists)
-    if (
-        "config" in data
-        and isinstance(data["config"], dict)
-        and "actuators" in data["config"]
-    ):
-        data["config"].pop("actuators", None)
+    if isinstance(data, dict):
+        remove_nested_field(data, "config.actuators")
 
     return data
 

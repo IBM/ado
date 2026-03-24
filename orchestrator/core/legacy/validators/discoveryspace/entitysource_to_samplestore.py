@@ -4,6 +4,11 @@
 """Legacy validator for renaming entitySourceIdentifier to sampleStoreIdentifier"""
 
 from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.utils import (
+    get_nested_value,
+    remove_nested_field,
+    set_nested_value,
+)
 from orchestrator.core.resources import CoreResourceKinds
 
 
@@ -14,6 +19,7 @@ from orchestrator.core.resources import CoreResourceKinds
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Renames 'entitySourceIdentifier' to 'sampleStoreIdentifier' in discovery space configurations",
+    field_paths=["config.entitySourceIdentifier"],
 )
 def rename_entitysource_identifier(data: dict) -> dict:
     """Rename entitySourceIdentifier to sampleStoreIdentifier
@@ -40,16 +46,17 @@ def rename_entitysource_identifier(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    old_key = "entitySourceIdentifier"
-    new_key = "sampleStoreIdentifier"
+    old_path = "config.entitySourceIdentifier"
+    new_path = "config.sampleStoreIdentifier"
 
-    # Only check in config (where the field actually exists)
-    if (
-        "config" in data
-        and isinstance(data["config"], dict)
-        and old_key in data["config"]
-    ):
-        data["config"][new_key] = data["config"].pop(old_key)
+    # Get the old value if it exists
+    parent, field_name = get_nested_value(data, old_path)
+    if parent is not None and field_name in parent:
+        old_value = parent[field_name]
+        # Set the new value
+        set_nested_value(data, new_path, old_value)
+        # Remove the old field
+        remove_nested_field(data, old_path)
 
     return data
 

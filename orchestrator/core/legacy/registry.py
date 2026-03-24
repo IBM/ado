@@ -87,6 +87,7 @@ def legacy_validator(
     deprecated_from_version: str,
     removed_from_version: str,
     description: str,
+    field_paths: list[str] | None = None,
 ) -> Callable[[Callable[[dict], dict]], Callable[[dict], dict]]:
     """Decorator to register a legacy validator function
 
@@ -97,6 +98,7 @@ def legacy_validator(
         deprecated_from_version: ADO version when these fields were deprecated
         removed_from_version: ADO version when automatic upgrade was removed
         description: Human-readable description of what this validator does
+        field_paths: Optional explicit paths to fields (e.g., 'config.properties')
 
     Returns:
         Decorator function that registers the validator
@@ -106,6 +108,7 @@ def legacy_validator(
             identifier="csv_constitutive_columns_migration",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_fields=["constitutivePropertyColumns", "propertyMap"],
+            field_paths=["config.specification.constitutivePropertyColumns"],
             deprecated_from_version="1.3.5",
             removed_from_version="1.6.0",
             description="Migrates CSV sample stores from v1 to v2 format"
@@ -124,6 +127,7 @@ def legacy_validator(
             removed_from_version=removed_from_version,
             description=description,
             validator_function=func,
+            field_paths=field_paths or [],
         )
         LegacyValidatorRegistry.register(metadata)
 

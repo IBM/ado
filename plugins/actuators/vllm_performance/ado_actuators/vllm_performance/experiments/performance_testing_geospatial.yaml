@@ -274,7 +274,7 @@ performance_testing-geospatial-full:
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
 performance_testing-geospatial-full-custom-dataset:
-  identifier: test-geospatial-deployment-custom-dataset-v1
+  identifier: test-geospatial-full-custom-dataset-v1
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -463,3 +463,87 @@ performance_testing-geospatial-full-custom-dataset:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
+performance_testing-geospatial-endpoint-custom-dataset:
+  identifier: test-geospatial-endpoint-custom-dataset-v1
+  actuatorIdentifier: "vllm_performance"
+  requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
+    - identifier: 'model'
+      metadata:
+        description: 'model to use for testing. Assumed to be served by all endpoints tested. Required to obtain correct tokenizer for benchmarking metrics calculation'
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ["ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"]
+    - identifier: 'endpoint'
+      metadata:
+        description: 'The endpoint(s) to test'
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["http://localhost:8000"]
+    - identifier: 'request_rate'
+      metadata:
+        description: "The number of requests to send per second"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [-1, 1000]
+        interval: 1 # -1 means send all requests at time 0
+    - identifier: 'dataset'
+      metadata:
+        description: "(benchmark) The dataset to be used for the experiment"
+      propertyDomain:
+        variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
+        values: ["custom_dataset.jsonl"]
+  optionalProperties:
+    - identifier: 'num_prompts'
+      metadata:
+        description: "The number of prompts to send (total number of requests)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 10001]
+        interval: 1
+    - identifier: 'burstiness'
+      metadata:
+        description: "The burstiness of the requests - 1.0 is a Poisson distribution with rate = request_rate. Others are gamma distributions with lambda = request_rate and shape = burstiness."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [0, 10]
+        interval: 1
+    - identifier: 'max_concurrency'
+      metadata:
+        description: "The maximum number of concurrent requests to send"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [-1, 500] # -1 means no concurrency control
+        interval: 1
+    - identifier: 'dataset'
+      metadata:
+        description: "The dataset to be used for the experiment"
+      propertyDomain:
+        variableType: "CATEGORICAL_VARIABLE_TYPE"
+        values: ['india_url_in_b64_out', 'valencia_url_in_b64_out']
+  defaultParameterization:
+    - value: 100
+      property:
+        identifier: 'num_prompts'
+    - value: -1
+      property:
+        identifier: 'max_concurrency'
+    - value: 1.0
+      property:
+        identifier: 'burstiness'
+    - property:
+        identifier: 'dataset'
+      value: 'india_url_in_b64_out'
+  # measurements
+  targetProperties:
+    - identifier: "duration"
+    - identifier: "completed"
+    - identifier: "request_throughput"
+    - identifier: "mean_e2el_ms"
+    - identifier: "median_e2el_ms"
+    - identifier: "std_e2el_ms"
+    - identifier: "p25_e2el_ms"
+    - identifier: "p50_e2el_ms"
+    - identifier: "p75_e2el_ms"
+    - identifier: "p99_e2el_ms"
+  metadata:
+    description: 'Test inference performance of a geospatial model served by vLLM endpoint across inference workload configurations'

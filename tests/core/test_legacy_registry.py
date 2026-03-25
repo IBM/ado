@@ -301,9 +301,9 @@ class TestLegacyValidatorRegistry:
         validator_ids = {v.identifier for v in validators}
         assert "randomwalk_mode_to_sampler_config" in validator_ids
 
-        # Test 4: samplestore config.moduleType should match the module_type validator
+        # Test 4: samplestore config.specification.module.moduleType should match the module_type validator
         validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
-            CoreResourceKinds.SAMPLESTORE, {"config.moduleType"}
+            CoreResourceKinds.SAMPLESTORE, {"config.specification.module.moduleType"}
         )
         assert len(validators) >= 1
         validator_ids = {v.identifier for v in validators}
@@ -320,7 +320,11 @@ class TestLegacyValidatorRegistry:
         # Test 6: Multiple paths should return multiple validators
         validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE,
-            {"config.moduleType", "config.moduleClass", "config.moduleName"},
+            {
+                "config.specification.module.moduleType",
+                "config.specification.module.moduleClass",
+                "config.specification.module.moduleName",
+            },
         )
         assert len(validators) >= 3
         validator_ids = {v.identifier for v in validators}

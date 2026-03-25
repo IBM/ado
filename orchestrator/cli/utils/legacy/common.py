@@ -151,22 +151,12 @@ def print_validator_suggestions_with_dependencies(
         f"{INFO}The following validator(s) match the field(s) above:\n", stderr=True
     )
     for i, validator in enumerate(ordered_validators, 1):
-        # Show execution order
-        console_print(f"  {i}. [green]{validator.identifier}[/green]")
-        console_print(f"     {validator.description}")
-        console_print(f"     Handles: {', '.join(validator.deprecated_field_paths)}")
-
-        # Show dependencies if any
-        if validator.dependencies:
-            dep_names = []
-            for dep_id in validator.dependencies:
-                dep_validator = LegacyValidatorRegistry.get_validator(dep_id)
-                if dep_validator:
-                    dep_names.append(dep_validator.identifier)
-                else:
-                    dep_names.append(f"{dep_id} [red](missing)[/red]")
-            console_print(f"     Dependencies: {', '.join(dep_names)}")
-
+        # Format and print validator info using the method
+        console_print(
+            validator.format_info(
+                index=i, show_dependencies=True, show_version_info=False
+            )
+        )
         console_print()
 
     # Warn about missing dependencies

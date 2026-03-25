@@ -408,6 +408,7 @@ def handle_ado_upgrade(
                     kind=resource_type.value, ignore_validation_errors=False
                 )
             except ValueError as err:
+                status.stop()
                 # Validation error occurred - check if legacy validators can help
                 _handle_upgrade_validation_error(err, resource_type, parameters)
                 raise typer.Exit(1) from err

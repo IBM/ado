@@ -49,9 +49,8 @@ def rename_entitysource_identifier(data: dict) -> dict:
     new_path = "config.sampleStoreIdentifier"
 
     # Get the old value if it exists
-    parent, field_name = get_nested_value(data, old_path)
-    if parent is not None and field_name in parent:
-        old_value = parent[field_name]
+    old_value = get_nested_value(data, old_path)
+    if old_value is not None:
         set_nested_value(data, new_path, old_value)
         remove_nested_field(data, old_path)
 

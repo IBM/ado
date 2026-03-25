@@ -4,8 +4,11 @@
 """Utility functions for legacy validators"""
 
 
-def get_nested_value(data: dict, path: str) -> tuple[dict | None, str | None]:
+def get_parent_dict_and_key(data: dict, path: str) -> tuple[dict | None, str | None]:
     """Navigate to a nested field path and return parent dict and field name
+
+    This is a low-level helper used by set_nested_value, remove_nested_field,
+    and has_nested_field. For reading values, use get_nested_value instead.
 
     Args:
         data: The data dictionary
@@ -15,7 +18,7 @@ def get_nested_value(data: dict, path: str) -> tuple[dict | None, str | None]:
         Tuple of (parent_dict, field_name) or (None, None) if path doesn't exist
 
     Example:
-        parent, field = get_nested_value(data, "config.properties")
+        parent, field = get_parent_dict_and_key(data, "config.properties")
         if parent and field:
             parent.pop(field, None)
     """
@@ -35,6 +38,27 @@ def get_nested_value(data: dict, path: str) -> tuple[dict | None, str | None]:
     return None, None
 
 
+def get_nested_value(data: dict, path: str) -> object | None:
+    """Get the value at a nested field path
+
+    Args:
+        data: The data dictionary
+        path: Dot-separated path (e.g., "config.specification.module.moduleType")
+
+    Returns:
+        The value at the specified path, or None if path doesn't exist
+
+    Example:
+        value = get_nested_value(data, "config.moduleType")
+        if value == "sample_store":
+            # Do something
+    """
+    parent, field = get_parent_dict_and_key(data, path)
+    if parent is not None and field is not None and field in parent:
+        return parent[field]
+    return None
+
+
 def set_nested_value(data: dict, path: str, value: object) -> bool:
     """Set a value at a nested field path
 
@@ -51,7 +75,7 @@ def set_nested_value(data: dict, path: str, value: object) -> bool:
         set_nested_value(data, "config.specification.module.type", "sample_store")
         # data is now {"config": {"specification": {"module": {"type": "sample_store"}}}}
     """
-    parent, field = get_nested_value(data, path)
+    parent, field = get_parent_dict_and_key(data, path)
     if parent is not None and field is not None:
         parent[field] = value
         return True
@@ -73,7 +97,7 @@ def remove_nested_field(data: dict, path: str) -> bool:
         remove_nested_field(data, "config.properties")
         # data is now {"config": {"other": "value"}}
     """
-    parent, field = get_nested_value(data, path)
+    parent, field = get_parent_dict_and_key(data, path)
     if parent is not None and field is not None and field in parent:
         parent.pop(field)
         return True
@@ -95,7 +119,7 @@ def has_nested_field(data: dict, path: str) -> bool:
         has_nested_field(data, "config.specification.module.moduleType")  # Returns True
         has_nested_field(data, "config.nonexistent")  # Returns False
     """
-    parent, field = get_nested_value(data, path)
+    parent, field = get_parent_dict_and_key(data, path)
     return parent is not None and field is not None and field in parent
 
 

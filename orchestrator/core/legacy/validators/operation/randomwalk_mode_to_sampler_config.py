@@ -53,9 +53,9 @@ def migrate_randomwalk_to_sampler_config(data: dict) -> dict:
     for field_name in fields_to_migrate:
         field_path = f"config.parameters.{field_name}"
         if has_nested_field(data, field_path):
-            parent, field = get_nested_value(data, field_path)
-            if parent is not None:
-                sampler_config[field_name] = parent[field]
+            field_value = get_nested_value(data, field_path)
+            if field_value is not None:
+                sampler_config[field_name] = field_value
                 remove_nested_field(data, field_path)
 
     # Only set samplerConfig if we found any fields to migrate

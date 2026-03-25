@@ -46,8 +46,8 @@ def migrate_module_type(data: dict) -> dict:
 
     # Check and update config.moduleType
     if has_nested_field(data, "config.moduleType"):
-        parent, field = get_nested_value(data, "config.moduleType")
-        if parent is not None and parent[field] == "entity_source":
+        module_type = get_nested_value(data, "config.moduleType")
+        if module_type == "entity_source":
             set_nested_value(data, "config.moduleType", "sample_store")
 
     return data
@@ -92,9 +92,9 @@ def migrate_module_class(data: dict) -> dict:
 
     # Check and update config.moduleClass
     if has_nested_field(data, "config.moduleClass"):
-        parent, field = get_nested_value(data, "config.moduleClass")
-        if parent is not None and parent[field] in value_mappings:
-            set_nested_value(data, "config.moduleClass", value_mappings[parent[field]])
+        module_class = get_nested_value(data, "config.moduleClass")
+        if isinstance(module_class, str) and module_class in value_mappings:
+            set_nested_value(data, "config.moduleClass", value_mappings[module_class])
 
     return data
 
@@ -143,12 +143,9 @@ def migrate_module_name(data: dict) -> dict:
 
     # Check and update config.moduleName
     if has_nested_field(data, "config.moduleName"):
-        parent, field = get_nested_value(data, "config.moduleName")
-        if parent is not None and isinstance(parent[field], str):
-            module_name = parent[field]
-            if module_name in path_mappings:
-                module_name = path_mappings[module_name]
-                set_nested_value(data, "config.moduleName", module_name)
+        module_name = get_nested_value(data, "config.moduleName")
+        if isinstance(module_name, str) and module_name in path_mappings:
+            set_nested_value(data, "config.moduleName", path_mappings[module_name])
 
     return data
 

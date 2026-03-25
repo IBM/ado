@@ -52,14 +52,12 @@ def migrate_csv_v1_to_v2(data: dict) -> dict:
     if not has_nested_field(data, "config.constitutivePropertyColumns"):
         return data
 
-    # Get config parent (data dict) and field name to access config
-    parent, field = get_nested_value(data, "config")
-    if parent is None or field is None or field not in parent:
+    # Get config value
+    config = get_nested_value(data, "config")
+    if config is None or not isinstance(config, dict):
         return data
 
-    config = parent[field]
     constitutive_columns = config.pop("constitutivePropertyColumns")
-
     # Migrate experiments if present in config
     experiments = config.get("experiments")
     if isinstance(experiments, list):

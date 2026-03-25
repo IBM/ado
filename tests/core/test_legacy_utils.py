@@ -5,42 +5,85 @@
 
 from orchestrator.core.legacy.utils import (
     get_nested_value,
+    get_parent_dict_and_key,
     has_nested_field,
     remove_nested_field,
     set_nested_value,
 )
 
 
-class TestGetNestedValue:
-    """Tests for get_nested_value function"""
+class TestGetParentDictAndKey:
+    """Tests for get_parent_dict_and_key function"""
 
     def test_simple_path(self) -> None:
         """Test getting a simple top-level field"""
         data = {"config": {"properties": ["a", "b"]}}
-        parent, field = get_nested_value(data, "config")
+        parent, field = get_parent_dict_and_key(data, "config")
         assert parent == data
         assert field == "config"
 
     def test_nested_path(self) -> None:
         """Test getting a nested field"""
         data = {"config": {"specification": {"module": {"moduleType": "test"}}}}
-        parent, field = get_nested_value(data, "config.specification.module.moduleType")
+        parent, field = get_parent_dict_and_key(
+            data, "config.specification.module.moduleType"
+        )
         assert parent == {"moduleType": "test"}
         assert field == "moduleType"
 
     def test_nonexistent_path(self) -> None:
         """Test getting a path that doesn't exist"""
         data = {"config": {}}
-        parent, field = get_nested_value(data, "config.nonexistent.field")
+        parent, field = get_parent_dict_and_key(data, "config.nonexistent.field")
         assert parent is None
         assert field is None
 
     def test_path_through_non_dict(self) -> None:
         """Test path that goes through a non-dict value"""
         data = {"config": "string_value"}
-        parent, field = get_nested_value(data, "config.field")
+        parent, field = get_parent_dict_and_key(data, "config.field")
         assert parent is None
         assert field is None
+
+
+class TestGetNestedValue:
+    """Tests for get_nested_value function"""
+
+    def test_simple_path(self) -> None:
+        """Test getting a simple top-level value"""
+        data = {"config": {"properties": ["a", "b"]}}
+        value = get_nested_value(data, "config.properties")
+        assert value == ["a", "b"]
+
+    def test_nested_path(self) -> None:
+        """Test getting a nested value"""
+        data = {"config": {"specification": {"module": {"moduleType": "test"}}}}
+        value = get_nested_value(data, "config.specification.module.moduleType")
+        assert value == "test"
+
+    def test_nonexistent_path(self) -> None:
+        """Test getting a path that doesn't exist"""
+        data = {"config": {}}
+        value = get_nested_value(data, "config.nonexistent.field")
+        assert value is None
+
+    def test_path_through_non_dict(self) -> None:
+        """Test path that goes through a non-dict value"""
+        data = {"config": "string_value"}
+        value = get_nested_value(data, "config.field")
+        assert value is None
+
+    def test_get_dict_value(self) -> None:
+        """Test getting a dict value"""
+        data = {"config": {"nested": {"key": "value"}}}
+        value = get_nested_value(data, "config.nested")
+        assert value == {"key": "value"}
+
+    def test_get_none_value(self) -> None:
+        """Test getting a field that exists but has None value"""
+        data = {"config": {"test": None}}
+        value = get_nested_value(data, "config.test")
+        assert value is None
 
 
 class TestSetNestedValue:

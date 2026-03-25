@@ -272,10 +272,10 @@ class TestLegacyValidatorRegistry:
         all_validators = LegacyValidatorRegistry.list_all()
         assert len(all_validators) == 2
 
-    def test_field_path_matching_with_real_validators(self) -> None:
+    def test_field_path_matching_with_real_validators(
+        self, legacy_validators_loaded: None
+    ) -> None:
         """Integration test: verify field path matching works with real validators"""
-        # Import validators to trigger registration
-        import orchestrator.core.legacy.validators  # noqa: F401
 
         # Test 1: discoveryspace properties field should match the properties_field_removal validator
         validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(

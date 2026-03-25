@@ -1,15 +1,27 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests for Phase 1 transaction safety in upgrade handler"""
+"""Integration tests for Phase 1 transaction safety in upgrade handler"""
 
-from unittest.mock import MagicMock, patch
+import json
 
 import pytest
+import sqlalchemy
 import typer
 
+from orchestrator.cli.core.config import AdoConfiguration
+from orchestrator.cli.models.parameters import AdoUpgradeCommandParameters
+from orchestrator.cli.utils.generic.wrappers import get_sql_store
+from orchestrator.cli.utils.resources.handlers import handle_ado_upgrade
 from orchestrator.core.legacy.registry import LegacyValidatorRegistry, legacy_validator
 from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.core.samplestore.config import (
+    SampleStoreConfiguration,
+    SampleStoreModuleConf,
+    SampleStoreSpecification,
+)
+from orchestrator.core.samplestore.resource import SampleStoreResource
+from orchestrator.metastore.project import ProjectContext
 
 
 class TestUpgradeTransactionSafety:
@@ -19,214 +31,243 @@ class TestUpgradeTransactionSafety:
         """Clear the registry before each test"""
         LegacyValidatorRegistry._validators = {}
 
-    def test_all_resources_validated_before_any_saved(self) -> None:
+    @pytest.mark.parametrize("valid_ado_project_context", ["sqlite"], indirect=True)
+    def test_all_resources_validated_before_any_saved(
+        self,
+        valid_ado_project_context: ProjectContext,
+    ) -> None:
         """Test that all resources are validated before any are saved"""
 
-        # Register a test validator
+        # Register a test validator that transforms old_field -> new_field
         @legacy_validator(
             identifier="test_transaction_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.metadata.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test transaction validator",
         )
         def test_validator(data: dict) -> dict:
-            if "config" in data and "old_field" in data["config"]:
-                data["config"]["new_field"] = data["config"].pop("old_field")
+            if "config" in data and "metadata" in data["config"]:
+                metadata = data["config"]["metadata"]
+                if "old_field" in metadata:
+                    metadata["new_field"] = metadata.pop("old_field")
             return data
 
-        # Create mock resources
-        mock_resource1 = MagicMock()
-        mock_resource1.model_dump.return_value = {
-            "kind": "samplestore",
-            "identifier": "res1",
-            "config": {"old_field": "value1"},
-        }
-
-        mock_resource2 = MagicMock()
-        mock_resource2.model_dump.return_value = {
-            "kind": "samplestore",
-            "identifier": "res2",
-            "config": {"old_field": "value2"},
-        }
-
-        # Mock resource class
-        mock_resource_class = MagicMock()
-        validated_resources = []
-
-        def mock_validate(data: dict) -> MagicMock:
-            validated = MagicMock()
-            validated.model_dump.return_value = data
-            validated_resources.append(data["identifier"])
-            return validated
-
-        mock_resource_class.model_validate.side_effect = mock_validate
-
-        # Mock SQL store
-        mock_sql_store = MagicMock()
-        mock_sql_store.getResourcesOfKind.return_value = {
-            "res1": mock_resource1,
-            "res2": mock_resource2,
-        }
-        mock_sql_store.getResourceIdentifiersOfKind.return_value = {
-            "IDENTIFIER": ["res1", "res2"]
-        }
-        mock_sql_store.getResourceRaw.side_effect = lambda id: (
-            mock_resource1.model_dump() if id == "res1" else mock_resource2.model_dump()
+        # Create two sample store resources with old_field in metadata
+        resource1 = SampleStoreResource(
+            identifier="test_res1",
+            config=SampleStoreConfiguration(
+                specification=SampleStoreSpecification(
+                    module=SampleStoreModuleConf(
+                        moduleClass="SQLSampleStore",
+                        moduleName="orchestrator.core.samplestore.sql",
+                    ),
+                    storageLocation=valid_ado_project_context.metadataStore,
+                ),
+                metadata={"old_field": "value1"},
+            ),
         )
 
-        update_calls = []
-
-        def track_update(resource: MagicMock) -> None:
-            update_calls.append(resource.model_dump()["identifier"])
-
-        mock_sql_store.updateResource.side_effect = track_update
-
-        # Mock parameters
-        mock_params = MagicMock()
-        mock_params.apply_legacy_validator = ["test_transaction_validator"]
-        mock_params.list_legacy_validators = False
-        mock_params.ado_configuration.project_context = "test_context"
-
-        # Patch dependencies
-        with (
-            patch(
-                "orchestrator.cli.utils.resources.handlers.get_sql_store",
-                return_value=mock_sql_store,
+        resource2 = SampleStoreResource(
+            identifier="test_res2",
+            config=SampleStoreConfiguration(
+                specification=SampleStoreSpecification(
+                    module=SampleStoreModuleConf(
+                        moduleClass="SQLSampleStore",
+                        moduleName="orchestrator.core.samplestore.sql",
+                    ),
+                    storageLocation=valid_ado_project_context.metadataStore,
+                ),
+                metadata={"old_field": "value2"},
             ),
-            patch(
-                "orchestrator.core.kindmap",
-                {"samplestore": mock_resource_class},
-            ),
-            patch("orchestrator.cli.utils.resources.handlers.Status"),
-            patch("orchestrator.cli.utils.resources.handlers.console_print"),
-        ):
-            from orchestrator.cli.utils.resources.handlers import handle_ado_upgrade
+        )
 
-            # Call the upgrade handler
-            handle_ado_upgrade(
-                parameters=mock_params,
-                resource_type=CoreResourceKinds.SAMPLESTORE,
-            )
+        # Save resources to database
+        sql_store = get_sql_store(project_context=valid_ado_project_context)
+        sql_store.updateResource(resource=resource1)
+        sql_store.updateResource(resource=resource2)
 
-        # Verify: all resources validated before any saved
-        # Both resources should be validated
-        assert len(validated_resources) == 2
-        assert "res1" in validated_resources
-        assert "res2" in validated_resources
+        # Now manually add the deprecated field to the raw data in the database
+        # We need to update the JSON directly in the database
+        with sql_store.engine.begin() as conn:
+            # Get current data
+            raw1 = sql_store.getResourceRaw("test_res1")
+            raw1["config"]["metadata"]["old_field"] = "value1"
 
-        # Both resources should be saved
-        assert len(update_calls) == 2
-        assert "res1" in update_calls
-        assert "res2" in update_calls
+            # Update in database
+            update_stmt = sqlalchemy.text(
+                "UPDATE resources SET data = :data WHERE identifier = :identifier"
+            ).bindparams(data=json.dumps(raw1), identifier="test_res1")
+            conn.execute(update_stmt)
 
-    def test_validation_failure_prevents_all_saves(self) -> None:
+            # Same for resource2
+            raw2 = sql_store.getResourceRaw("test_res2")
+            raw2["config"]["metadata"]["old_field"] = "value2"
+
+            update_stmt = sqlalchemy.text(
+                "UPDATE resources SET data = :data WHERE identifier = :identifier"
+            ).bindparams(data=json.dumps(raw2), identifier="test_res2")
+            conn.execute(update_stmt)
+
+        # Create parameters for upgrade
+        ado_config = AdoConfiguration()
+        ado_config._project_context = valid_ado_project_context
+        params = AdoUpgradeCommandParameters(
+            ado_configuration=ado_config,
+            apply_legacy_validator=["test_transaction_validator"],
+            list_legacy_validators=False,
+        )
+
+        # Call the upgrade handler
+        handle_ado_upgrade(
+            parameters=params,
+            resource_type=CoreResourceKinds.SAMPLESTORE,
+        )
+
+        # Verify both resources were upgraded
+        upgraded_res1 = sql_store.getResourceRaw("test_res1")
+        upgraded_res2 = sql_store.getResourceRaw("test_res2")
+
+        assert upgraded_res1 is not None
+        assert upgraded_res2 is not None
+        assert "new_field" in upgraded_res1["config"]["metadata"]
+        assert "new_field" in upgraded_res2["config"]["metadata"]
+        assert upgraded_res1["config"]["metadata"]["new_field"] == "value1"
+        assert upgraded_res2["config"]["metadata"]["new_field"] == "value2"
+        assert "old_field" not in upgraded_res1["config"]["metadata"]
+        assert "old_field" not in upgraded_res2["config"]["metadata"]
+
+    @pytest.mark.parametrize("valid_ado_project_context", ["sqlite"], indirect=True)
+    def test_validation_failure_prevents_all_saves(
+        self,
+        valid_ado_project_context: ProjectContext,
+    ) -> None:
         """Test that if any validation fails, no resources are saved"""
 
-        # Register a test validator
+        # Register a validator that will cause validation failure
         @legacy_validator(
             identifier="test_failing_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.metadata.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test failing validator",
         )
         def test_validator(data: dict) -> dict:
-            if "config" in data and "old_field" in data["config"]:
-                data["config"]["new_field"] = data["config"].pop("old_field")
+            # Transform the field
+            if "config" in data and "metadata" in data["config"]:
+                metadata = data["config"]["metadata"]
+                if "old_field" in metadata:
+                    metadata["new_field"] = metadata.pop("old_field")
+
+            # Introduce an invalid field that will fail pydantic validation
+            # for the second resource only
+            if data.get("identifier") == "test_res2":
+                data["config"]["invalid_field_that_breaks_validation"] = "bad_value"
+
             return data
 
-        # Create mock resources - one valid, one will fail validation
-        mock_resource1 = MagicMock()
-        mock_resource1.model_dump.return_value = {
-            "kind": "samplestore",
-            "identifier": "res1",
-            "config": {"old_field": "value1"},
-        }
-
-        mock_resource2 = MagicMock()
-        mock_resource2.model_dump.return_value = {
-            "kind": "samplestore",
-            "identifier": "res2",
-            "config": {"old_field": "value2"},
-        }
-
-        # Mock resource class - second validation fails
-        mock_resource_class = MagicMock()
-        validation_count = [0]
-
-        def mock_validate(data: dict) -> MagicMock:
-            validation_count[0] += 1
-            if validation_count[0] == 2:
-                # Second validation fails - raise a simple ValueError
-                raise ValueError("Validation failed for resource res2")
-            validated = MagicMock()
-            validated.model_dump.return_value = data
-            return validated
-
-        mock_resource_class.model_validate.side_effect = mock_validate
-
-        # Mock SQL store
-        mock_sql_store = MagicMock()
-        mock_sql_store.getResourcesOfKind.return_value = {
-            "res1": mock_resource1,
-            "res2": mock_resource2,
-        }
-        mock_sql_store.getResourceIdentifiersOfKind.return_value = {
-            "IDENTIFIER": ["res1", "res2"]
-        }
-        mock_sql_store.getResourceRaw.side_effect = lambda id: (
-            mock_resource1.model_dump() if id == "res1" else mock_resource2.model_dump()
+        # Create two sample store resources
+        resource1 = SampleStoreResource(
+            identifier="test_res1",
+            config=SampleStoreConfiguration(
+                specification=SampleStoreSpecification(
+                    module=SampleStoreModuleConf(
+                        moduleClass="SQLSampleStore",
+                        moduleName="orchestrator.core.samplestore.sql",
+                    ),
+                    storageLocation=valid_ado_project_context.metadataStore,
+                ),
+                metadata={"old_field": "value1"},
+            ),
         )
 
-        # Mock parameters
-        mock_params = MagicMock()
-        mock_params.apply_legacy_validator = ["test_failing_validator"]
-        mock_params.list_legacy_validators = False
-        mock_params.ado_configuration.project_context = "test_context"
-
-        # Patch dependencies
-        with (
-            patch(
-                "orchestrator.cli.utils.resources.handlers.get_sql_store",
-                return_value=mock_sql_store,
+        resource2 = SampleStoreResource(
+            identifier="test_res2",
+            config=SampleStoreConfiguration(
+                specification=SampleStoreSpecification(
+                    module=SampleStoreModuleConf(
+                        moduleClass="SQLSampleStore",
+                        moduleName="orchestrator.core.samplestore.sql",
+                    ),
+                    storageLocation=valid_ado_project_context.metadataStore,
+                ),
+                metadata={"old_field": "value2"},
             ),
-            patch(
-                "orchestrator.core.kindmap",
-                {"samplestore": mock_resource_class},
-            ),
-            patch("orchestrator.cli.utils.resources.handlers.Status"),
-            patch(
-                "orchestrator.cli.utils.resources.handlers.console_print"
-            ) as mock_print,
-        ):
-            from orchestrator.cli.utils.resources.handlers import handle_ado_upgrade
+        )
 
-            # Should raise typer.Exit due to validation failure
-            with pytest.raises(typer.Exit) as exc_info:
-                handle_ado_upgrade(
-                    parameters=mock_params,
-                    resource_type=CoreResourceKinds.SAMPLESTORE,
-                )
+        # Save resources to database
+        sql_store = get_sql_store(project_context=valid_ado_project_context)
+        sql_store.updateResource(resource=resource1)
+        sql_store.updateResource(resource=resource2)
 
-            assert exc_info.value.exit_code == 1
+        # Now manually add the deprecated field to the raw data in the database
+        with sql_store.engine.begin() as conn:
+            # Get current data
+            raw1 = sql_store.getResourceRaw("test_res1")
+            raw1["config"]["metadata"]["old_field"] = "value1"
+
+            # Update in database
+            update_stmt = sqlalchemy.text(
+                "UPDATE resources SET data = :data WHERE identifier = :identifier"
+            ).bindparams(data=json.dumps(raw1), identifier="test_res1")
+            conn.execute(update_stmt)
+
+            # Same for resource2
+            raw2 = sql_store.getResourceRaw("test_res2")
+            raw2["config"]["metadata"]["old_field"] = "value2"
+
+            update_stmt = sqlalchemy.text(
+                "UPDATE resources SET data = :data WHERE identifier = :identifier"
+            ).bindparams(data=json.dumps(raw2), identifier="test_res2")
+            conn.execute(update_stmt)
+
+        # Store original data for comparison
+        original_res1 = sql_store.getResourceRaw("test_res1")
+        original_res2 = sql_store.getResourceRaw("test_res2")
+
+        # Create parameters for upgrade
+        ado_config = AdoConfiguration()
+        ado_config._project_context = valid_ado_project_context
+        params = AdoUpgradeCommandParameters(
+            ado_configuration=ado_config,
+            apply_legacy_validator=["test_failing_validator"],
+            list_legacy_validators=False,
+        )
+
+        # Should raise typer.Exit due to validation failure
+        with pytest.raises(typer.Exit) as exc_info:
+            handle_ado_upgrade(
+                parameters=params,
+                resource_type=CoreResourceKinds.SAMPLESTORE,
+            )
+
+        assert exc_info.value.exit_code == 1
 
         # Verify: NO resources were saved (transaction safety)
-        mock_sql_store.updateResource.assert_not_called()
+        # Both resources should still have their original data
+        current_res1 = sql_store.getResourceRaw("test_res1")
+        current_res2 = sql_store.getResourceRaw("test_res2")
 
-        # Verify error was printed
-        mock_print.assert_called()
+        assert current_res1 == original_res1
+        assert current_res2 == original_res2
+        assert "old_field" in current_res1["config"]["metadata"]
+        assert "old_field" in current_res2["config"]["metadata"]
+        assert "new_field" not in current_res1["config"]["metadata"]
+        assert "new_field" not in current_res2["config"]["metadata"]
 
-    def test_empty_resource_list_handled_gracefully(self) -> None:
+    def test_empty_resource_list_handled_gracefully(
+        self,
+        valid_ado_project_context: ProjectContext,
+    ) -> None:
         """Test that empty resource list is handled without errors"""
 
         # Register a test validator
         @legacy_validator(
             identifier="test_empty_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.metadata.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test empty validator",
@@ -234,41 +275,29 @@ class TestUpgradeTransactionSafety:
         def test_validator(data: dict) -> dict:
             return data
 
-        # Mock SQL store with no resources
-        mock_sql_store = MagicMock()
-        mock_sql_store.getResourcesOfKind.return_value = {}
-        mock_sql_store.getResourceIdentifiersOfKind.return_value = {"IDENTIFIER": []}
+        # Don't create any resources - database starts empty for this test
 
-        # Mock parameters
-        mock_params = MagicMock()
-        mock_params.apply_legacy_validator = ["test_empty_validator"]
-        mock_params.list_legacy_validators = False
-        mock_params.ado_configuration.project_context = "test_context"
+        # Create parameters for upgrade
+        ado_config = AdoConfiguration()
+        ado_config._project_context = valid_ado_project_context
+        params = AdoUpgradeCommandParameters(
+            ado_configuration=ado_config,
+            apply_legacy_validator=["test_empty_validator"],
+            list_legacy_validators=False,
+        )
 
-        # Patch dependencies
-        with (
-            patch(
-                "orchestrator.cli.utils.resources.handlers.get_sql_store",
-                return_value=mock_sql_store,
-            ),
-            patch("orchestrator.cli.utils.resources.handlers.Status"),
-            patch(
-                "orchestrator.cli.utils.resources.handlers.console_print"
-            ) as mock_print,
-        ):
-            from orchestrator.cli.utils.resources.handlers import handle_ado_upgrade
+        # Should complete without error
+        handle_ado_upgrade(
+            parameters=params,
+            resource_type=CoreResourceKinds.SAMPLESTORE,
+        )
 
-            # Should complete without error
-            handle_ado_upgrade(
-                parameters=mock_params,
-                resource_type=CoreResourceKinds.SAMPLESTORE,
-            )
-
-        # Verify: no updates attempted
-        mock_sql_store.updateResource.assert_not_called()
-
-        # Verify message printed
-        mock_print.assert_called()
+        # Verify no samplestore resources exist
+        sql_store = get_sql_store(project_context=valid_ado_project_context)
+        resources = sql_store.getResourcesOfKind(
+            kind=CoreResourceKinds.SAMPLESTORE.value
+        )
+        assert len(resources) == 0
 
 
 # Made with Bob

@@ -34,7 +34,7 @@ def test_resolve_dependencies_no_dependencies() -> None:
         LegacyValidatorMetadata(
             identifier="validator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_a"],
+            deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
@@ -47,7 +47,7 @@ def test_resolve_dependencies_no_dependencies() -> None:
         LegacyValidatorMetadata(
             identifier="validator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_b"],
+            deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
@@ -85,7 +85,7 @@ def test_resolve_dependencies_simple_chain() -> None:
         LegacyValidatorMetadata(
             identifier="validator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_a"],
+            deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
@@ -98,7 +98,7 @@ def test_resolve_dependencies_simple_chain() -> None:
         LegacyValidatorMetadata(
             identifier="validator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_b"],
+            deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
@@ -111,7 +111,7 @@ def test_resolve_dependencies_simple_chain() -> None:
         LegacyValidatorMetadata(
             identifier="validator_c",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_c"],
+            deprecated_field_paths=["config.field_c"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator C",
@@ -148,7 +148,7 @@ def test_resolve_dependencies_diamond() -> None:
         LegacyValidatorMetadata(
             identifier="validator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_a"],
+            deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
@@ -161,7 +161,7 @@ def test_resolve_dependencies_diamond() -> None:
         LegacyValidatorMetadata(
             identifier="validator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_b"],
+            deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
@@ -174,7 +174,7 @@ def test_resolve_dependencies_diamond() -> None:
         LegacyValidatorMetadata(
             identifier="validator_c",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_c"],
+            deprecated_field_paths=["config.field_c"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator C",
@@ -187,7 +187,7 @@ def test_resolve_dependencies_diamond() -> None:
         LegacyValidatorMetadata(
             identifier="validator_d",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_d"],
+            deprecated_field_paths=["config.field_d"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator D",
@@ -222,7 +222,7 @@ def test_resolve_dependencies_circular() -> None:
         LegacyValidatorMetadata(
             identifier="validator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_a"],
+            deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
@@ -235,7 +235,7 @@ def test_resolve_dependencies_circular() -> None:
         LegacyValidatorMetadata(
             identifier="validator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_b"],
+            deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
@@ -260,7 +260,7 @@ def test_resolve_dependencies_missing() -> None:
         LegacyValidatorMetadata(
             identifier="validator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_a"],
+            deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
@@ -297,7 +297,7 @@ def test_resolve_dependencies_multiple_roots() -> None:
         LegacyValidatorMetadata(
             identifier="validator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_a"],
+            deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
@@ -310,7 +310,7 @@ def test_resolve_dependencies_multiple_roots() -> None:
         LegacyValidatorMetadata(
             identifier="validator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_b"],
+            deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
@@ -323,7 +323,7 @@ def test_resolve_dependencies_multiple_roots() -> None:
         LegacyValidatorMetadata(
             identifier="validator_c",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_c"],
+            deprecated_field_paths=["config.field_c"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator C",
@@ -336,7 +336,7 @@ def test_resolve_dependencies_multiple_roots() -> None:
         LegacyValidatorMetadata(
             identifier="validator_d",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            fully_qualified_deprecated_field_paths=["config.field_d"],
+            deprecated_field_paths=["config.field_d"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator D",

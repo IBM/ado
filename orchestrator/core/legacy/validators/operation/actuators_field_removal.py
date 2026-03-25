@@ -11,7 +11,7 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="operation_actuators_field_removal",
     resource_type=CoreResourceKinds.OPERATION,
-    fully_qualified_deprecated_field_paths=["config.actuators"],
+    deprecated_field_paths=["config.actuators"],
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Removes the deprecated 'actuators' field from operation configurations. See https://ibm.github.io/ado/resources/operation/#the-operation-configuration-yaml",

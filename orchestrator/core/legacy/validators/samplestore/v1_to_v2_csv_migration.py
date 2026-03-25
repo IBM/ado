@@ -11,7 +11,7 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="csv_constitutive_columns_migration",
     resource_type=CoreResourceKinds.SAMPLESTORE,
-    fully_qualified_deprecated_field_paths=[
+    deprecated_field_paths=[
         "config.constitutivePropertyColumns",
         "config.experiments",
     ],

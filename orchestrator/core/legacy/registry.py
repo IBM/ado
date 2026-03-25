@@ -52,10 +52,10 @@ class LegacyValidatorRegistry:
         return [v for v in cls._validators.values() if v.resource_type == resource_type]
 
     @classmethod
-    def find_validators_for_fully_qualified_deprecated_field_paths(
+    def find_validators_for_deprecated_field_paths(
         cls,
         resource_type: CoreResourceKinds,
-        fully_qualified_deprecated_field_paths: set[str],
+        deprecated_field_paths: set[str],
     ) -> list[LegacyValidatorMetadata]:
         """Find validators that handle specific field paths
 
@@ -64,7 +64,7 @@ class LegacyValidatorRegistry:
 
         Args:
             resource_type: The resource type to filter by
-            fully_qualified_deprecated_field_paths: Set of full dotted paths (e.g., 'config.properties')
+            deprecated_field_paths: Set of full dotted paths (e.g., 'config.properties')
 
         Returns:
             List of validator metadata that handle any of the specified paths
@@ -72,10 +72,7 @@ class LegacyValidatorRegistry:
         return [
             v
             for v in cls.get_validators_for_resource(resource_type)
-            if any(
-                path in v.fully_qualified_deprecated_field_paths
-                for path in fully_qualified_deprecated_field_paths
-            )
+            if any(path in v.deprecated_field_paths for path in deprecated_field_paths)
         ]
 
     @classmethod
@@ -184,7 +181,7 @@ class LegacyValidatorRegistry:
 def legacy_validator(
     identifier: str,
     resource_type: CoreResourceKinds,
-    fully_qualified_deprecated_field_paths: list[str],
+    deprecated_field_paths: list[str],
     deprecated_from_version: str,
     removed_from_version: str,
     description: str,
@@ -195,7 +192,7 @@ def legacy_validator(
     Args:
         identifier: Unique identifier for this validator
         resource_type: Resource type this validator applies to
-        fully_qualified_deprecated_field_paths: Explicit paths to fields (e.g., 'config.properties', 'config.specification.moduleType')
+        deprecated_field_paths: Explicit paths to fields (e.g., 'config.properties', 'config.specification.moduleType')
         deprecated_from_version: ADO version when these fields were deprecated
         removed_from_version: ADO version when automatic upgrade was removed
         description: Human-readable description of what this validator does
@@ -208,7 +205,7 @@ def legacy_validator(
         @legacy_validator(
             identifier="csv_constitutive_columns_migration",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.constitutivePropertyColumns", "config.experiments"],
+            deprecated_field_paths=["config.constitutivePropertyColumns", "config.experiments"],
             deprecated_from_version="1.3.5",
             removed_from_version="1.6.0",
             description="Migrates CSV sample stores from v1 to v2 format",
@@ -227,7 +224,7 @@ def legacy_validator(
             removed_from_version=removed_from_version,
             description=description,
             validator_function=func,
-            fully_qualified_deprecated_field_paths=fully_qualified_deprecated_field_paths,
+            deprecated_field_paths=deprecated_field_paths,
             dependencies=dependencies or [],
         )
         LegacyValidatorRegistry.register(metadata)

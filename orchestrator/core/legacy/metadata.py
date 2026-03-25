@@ -51,7 +51,7 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         ),
     ]
 
-    fully_qualified_deprecated_field_paths: Annotated[
+    deprecated_field_paths: Annotated[
         list[str],
         pydantic.Field(
             description="Explicit paths to fields (e.g., 'config.properties', 'config.specification.moduleType')"

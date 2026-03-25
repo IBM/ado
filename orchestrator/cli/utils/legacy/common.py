@@ -36,9 +36,7 @@ def print_validator_suggestions(
     for validator in validators:
         console.print(f"  • [green]{validator.identifier}[/green]")
         console.print(f"    {validator.description}")
-        console.print(
-            f"    Handles: {', '.join(validator.fully_qualified_deprecated_field_paths)}"
-        )
+        console.print(f"    Handles: {', '.join(validator.deprecated_field_paths)}")
         console.print(f"    Deprecated: v{validator.deprecated_from_version}")
         console.print()
 
@@ -106,9 +104,7 @@ def print_validator_suggestions_with_dependencies(
         # Show execution order
         console.print(f"  {i}. [green]{validator.identifier}[/green]")
         console.print(f"     {validator.description}")
-        console.print(
-            f"     Handles: {', '.join(validator.fully_qualified_deprecated_field_paths)}"
-        )
+        console.print(f"     Handles: {', '.join(validator.deprecated_field_paths)}")
         console.print(f"     Deprecated: v{validator.deprecated_from_version}")
 
         # Show dependencies if any
@@ -152,7 +148,7 @@ def print_validator_suggestions_with_dependencies(
 # Made with Bob
 
 
-def extract_deprecated_fields_from_validation_error(
+def extract_deprecated_field_paths_from_validation_error(
     error: pydantic.ValidationError,
 ) -> tuple[set[str], dict[str, list[str]]]:
     """Extract field paths and error details from pydantic validation errors
@@ -165,14 +161,14 @@ def extract_deprecated_fields_from_validation_error(
         - full field paths: Set of full dotted paths like 'config.specification.module.moduleType'
         - field error details: Maps full field path to list of error messages
     """
-    fully_qualified_deprecated_field_paths: set[str] = set()
+    deprecated_field_paths: set[str] = set()
     field_errors: dict[str, list[str]] = {}
 
     for err in error.errors():
         if err.get("loc"):
             # Build the full dotted path from the location tuple
             full_path = ".".join(str(loc) for loc in err["loc"])
-            fully_qualified_deprecated_field_paths.add(full_path)
+            deprecated_field_paths.add(full_path)
 
             # Store the error message for this field path
             if full_path not in field_errors:
@@ -185,7 +181,7 @@ def extract_deprecated_fields_from_validation_error(
 
             field_errors[full_path].append(msg)
 
-    return fully_qualified_deprecated_field_paths, field_errors
+    return deprecated_field_paths, field_errors
 
 
 def extract_deprecated_fields_from_value_error(
@@ -210,29 +206,27 @@ def extract_deprecated_fields_from_value_error(
     if hasattr(error, "__cause__") and isinstance(
         error.__cause__, pydantic.ValidationError
     ):
-        return extract_deprecated_fields_from_validation_error(error.__cause__)
+        return extract_deprecated_field_paths_from_validation_error(error.__cause__)
 
     # Fallback to simple string matching on error message
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
     error_msg = str(error)
-    fully_qualified_deprecated_field_paths: set[str] = set()
+    deprecated_field_paths: set[str] = set()
     field_errors: dict[str, list[str]] = {}
 
     # Get all field paths from registered validators for this resource type
     validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
-    known_fully_qualified_deprecated_field_paths = {
-        path
-        for validator in validators
-        for path in validator.fully_qualified_deprecated_field_paths
+    known_deprecated_field_paths = {
+        path for validator in validators for path in validator.deprecated_field_paths
     }
 
-    for field_path in known_fully_qualified_deprecated_field_paths:
+    for field_path in known_deprecated_field_paths:
         if field_path in error_msg:
-            fully_qualified_deprecated_field_paths.add(field_path)
+            deprecated_field_paths.add(field_path)
             # For string matching fallback, we don't have detailed error messages
             field_errors[field_path] = [
                 "Field validation failed (details in error message)"
             ]
 
-    return fully_qualified_deprecated_field_paths, field_errors
+    return deprecated_field_paths, field_errors

@@ -50,7 +50,7 @@ def list_legacy_validators(resource_type: CoreResourceKinds) -> None:
         # Deprecated fields
         content_lines.append("[bold]Handles field paths:[/bold]")
         content_lines.extend(
-            f"  • {field}" for field in validator.fully_qualified_deprecated_field_paths
+            f"  • {field}" for field in validator.deprecated_field_paths
         )
         content_lines.append("")
 

@@ -26,7 +26,7 @@ class TestUpgradeTransactionSafety:
         @legacy_validator(
             identifier="test_transaction_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test transaction validator",
@@ -128,7 +128,7 @@ class TestUpgradeTransactionSafety:
         @legacy_validator(
             identifier="test_failing_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test failing validator",
@@ -226,7 +226,7 @@ class TestUpgradeTransactionSafety:
         @legacy_validator(
             identifier="test_empty_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test empty validator",

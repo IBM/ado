@@ -85,24 +85,24 @@ def handle_validation_error_with_legacy_suggestions(
     # Import validators package to trigger registration via __init__.py
     import orchestrator.core.legacy.validators  # noqa: F401
     from orchestrator.cli.utils.legacy.common import (
-        extract_deprecated_fields_from_validation_error,
+        extract_deprecated_field_paths_from_validation_error,
         print_validator_suggestions_with_dependencies,
     )
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
     # Extract field paths and error details from validation error
-    fully_qualified_deprecated_field_paths, field_errors = (
-        extract_deprecated_fields_from_validation_error(error)
+    deprecated_field_paths, field_errors = (
+        extract_deprecated_field_paths_from_validation_error(error)
     )
-    if not fully_qualified_deprecated_field_paths:
+    if not deprecated_field_paths:
         # No fields extracted, show standard error
         console_print(f"Validation error: {error}", stderr=True)
         raise typer.Exit(1) from error
 
     # Find applicable legacy validators using full field paths for precise matching
-    validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
+    validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
         resource_type=resource_type,
-        fully_qualified_deprecated_field_paths=fully_qualified_deprecated_field_paths,
+        deprecated_field_paths=deprecated_field_paths,
     )
 
     if not validators:
@@ -117,11 +117,11 @@ def handle_validation_error_with_legacy_suggestions(
         f"\n[bold red]Validation Error[/bold red] in {resource_type.value}{resource_id_str}"
     )
     console.print(
-        f"\n[bold]Fields with validation errors:[/bold] [yellow]{len(fully_qualified_deprecated_field_paths)} field(s)[/yellow]"
+        f"\n[bold]Fields with validation errors:[/bold] [yellow]{len(deprecated_field_paths)} field(s)[/yellow]"
     )
     # Show detailed error messages for each field path
     console.print("\n[bold]Error details:[/bold]")
-    for field_path in sorted(fully_qualified_deprecated_field_paths):
+    for field_path in sorted(deprecated_field_paths):
         console.print(f"  • [cyan]{field_path}[/cyan]:")
         for error_msg in field_errors.get(field_path, []):
             console.print(f"    - {error_msg}")

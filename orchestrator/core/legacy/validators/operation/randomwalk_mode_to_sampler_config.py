@@ -16,7 +16,7 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="randomwalk_mode_to_sampler_config",
     resource_type=CoreResourceKinds.OPERATION,
-    fully_qualified_deprecated_field_paths=[
+    deprecated_field_paths=[
         "config.parameters.mode",
         "config.parameters.grouping",
         "config.parameters.samplerType",

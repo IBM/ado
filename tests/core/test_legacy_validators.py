@@ -50,7 +50,7 @@ class TestLegacyValidatorWithPydantic:
         @legacy_validator(
             identifier="old_to_new_field",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Migrate old_field to new_field",
@@ -152,7 +152,7 @@ class TestLegacyValidatorWithPydantic:
         @legacy_validator(
             identifier="step1_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.old_field1"],
+            deprecated_field_paths=["config.old_field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Step 1 migration",
@@ -165,7 +165,7 @@ class TestLegacyValidatorWithPydantic:
         @legacy_validator(
             identifier="step2_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.intermediate_field"],
+            deprecated_field_paths=["config.intermediate_field"],
             deprecated_from_version="2.0.0",
             removed_from_version="3.0.0",
             description="Step 2 migration",
@@ -208,7 +208,7 @@ class TestUpgradeHandlerIntegration:
         @legacy_validator(
             identifier="test_upgrade_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test upgrade validator",
@@ -272,7 +272,7 @@ class TestUpgradeHandlerIntegration:
         @legacy_validator(
             identifier="operation_validator",
             resource_type=CoreResourceKinds.OPERATION,
-            fully_qualified_deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Operation validator",
@@ -379,7 +379,7 @@ class TestValidatorDataIntegrity:
         @legacy_validator(
             identifier="selective_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.old_field"],
+            deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Selective validator",
@@ -419,7 +419,7 @@ class TestValidatorDataIntegrity:
         @legacy_validator(
             identifier="graceful_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            fully_qualified_deprecated_field_paths=["config.optional_old_field"],
+            deprecated_field_paths=["config.optional_old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Graceful validator",

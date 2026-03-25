@@ -450,16 +450,16 @@ def _handle_upgrade_validation_error(
     import orchestrator.core.legacy.validators  # noqa: F401
 
     # Extract field paths and error details from the error
-    fully_qualified_deprecated_field_paths, field_errors = (
-        extract_deprecated_fields_from_value_error(error, resource_type)
+    deprecated_field_paths, field_errors = extract_deprecated_fields_from_value_error(
+        error, resource_type
     )
 
     # Find applicable legacy validators using full field paths for precise matching
     validators = []
-    if fully_qualified_deprecated_field_paths:
-        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
+    if deprecated_field_paths:
+        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
             resource_type=resource_type,
-            fully_qualified_deprecated_field_paths=fully_qualified_deprecated_field_paths,
+            deprecated_field_paths=deprecated_field_paths,
         )
 
     # If no validators found by field path matching, get all validators for this resource type
@@ -474,13 +474,13 @@ def _handle_upgrade_validation_error(
         "\n[yellow]Some resources could not be loaded due to validation errors.[/yellow]"
     )
 
-    if fully_qualified_deprecated_field_paths:
+    if deprecated_field_paths:
         console.print(
-            f"\n[bold]Fields with validation errors:[/bold] [yellow]{len(fully_qualified_deprecated_field_paths)} field(s)[/yellow]"
+            f"\n[bold]Fields with validation errors:[/bold] [yellow]{len(deprecated_field_paths)} field(s)[/yellow]"
         )
         # Show detailed error messages for each field path
         console.print("\n[bold]Error details:[/bold]")
-        for field_path in sorted(fully_qualified_deprecated_field_paths):
+        for field_path in sorted(deprecated_field_paths):
             console.print(f"  • [cyan]{field_path}[/cyan]:")
             for error_msg in field_errors.get(field_path, []):
                 console.print(f"    - {error_msg}")

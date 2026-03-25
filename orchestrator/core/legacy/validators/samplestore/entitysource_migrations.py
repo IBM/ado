@@ -15,7 +15,7 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="samplestore_module_type_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
-    fully_qualified_deprecated_field_paths=["config.moduleType"],
+    deprecated_field_paths=["config.moduleType"],
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Converts moduleType value from 'entity_source' to 'sample_store'",
@@ -56,7 +56,7 @@ def migrate_module_type(data: dict) -> dict:
 @legacy_validator(
     identifier="samplestore_module_class_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
-    fully_qualified_deprecated_field_paths=["config.moduleClass"],
+    deprecated_field_paths=["config.moduleClass"],
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Converts moduleClass values from EntitySource to SampleStore naming (CSVEntitySource -> CSVSampleStore, SQLEntitySource -> SQLSampleStore)",
@@ -102,7 +102,7 @@ def migrate_module_class(data: dict) -> dict:
 @legacy_validator(
     identifier="samplestore_module_name_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
-    fully_qualified_deprecated_field_paths=["config.moduleName"],
+    deprecated_field_paths=["config.moduleName"],
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Updates module paths from entitysource to samplestore (orchestrator.core.entitysource -> orchestrator.core.samplestore)",

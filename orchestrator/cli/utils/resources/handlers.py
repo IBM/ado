@@ -440,7 +440,7 @@ def _handle_upgrade_validation_error(
 
     from orchestrator.cli.utils.legacy.common import (
         extract_deprecated_fields_from_value_error,
-        print_validator_suggestions,
+        print_validator_suggestions_with_dependencies,
     )
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
@@ -486,11 +486,10 @@ def _handle_upgrade_validation_error(
                 console.print(f"    - {error_msg}")
 
     if validators:
-        print_validator_suggestions(
+        print_validator_suggestions_with_dependencies(
             validators=validators,
             resource_type=resource_type,
             console=console,
-            show_all_validators=True,
         )
     else:
         console.print(

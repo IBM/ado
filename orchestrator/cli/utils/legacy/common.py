@@ -13,46 +13,6 @@ if TYPE_CHECKING:
     from orchestrator.core.resources import CoreResourceKinds
 
 
-def print_validator_suggestions(
-    validators: list["LegacyValidatorMetadata"],
-    resource_type: "CoreResourceKinds",
-    console: Console,
-    show_all_validators: bool = False,
-) -> None:
-    """Print legacy validator suggestions to the console
-
-    Args:
-        validators: List of applicable validators
-        resource_type: The resource type
-        console: Rich console to print to
-        show_all_validators: If True, show all validators in the command example
-    """
-    # Resources can be referenced by their CoreResourceKinds value or by shorthands
-    # from cli_shorthands_to_cli_names in orchestrator/cli/utils/resources/mappings.py
-    resource_cli_name = resource_type.value
-
-    console.print("\n[bold cyan]Available legacy validators:[/bold cyan]\n")
-
-    for validator in validators:
-        console.print(f"  • [green]{validator.identifier}[/green]")
-        console.print(f"    {validator.description}")
-        console.print(f"    Handles: {', '.join(validator.deprecated_field_paths)}")
-        console.print(f"    Deprecated: v{validator.deprecated_from_version}")
-        console.print()
-
-    console.print("[bold magenta]To upgrade using legacy validators:[/bold magenta]")
-    if show_all_validators:
-        validator_args = " ".join(
-            f"--apply-legacy-validator {v.identifier}" for v in validators
-        )
-    else:
-        validator_args = f"--apply-legacy-validator {validators[0].identifier}"
-    console.print(f"  ado upgrade {resource_cli_name} {validator_args}")
-    console.print()
-    console.print("[bold magenta]To list all legacy validators:[/bold magenta]")
-    console.print(f"  ado upgrade {resource_cli_name} --list-legacy-validators")
-
-
 def print_validator_suggestions_with_dependencies(
     validators: list["LegacyValidatorMetadata"],
     resource_type: "CoreResourceKinds",

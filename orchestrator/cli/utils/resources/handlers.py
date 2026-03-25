@@ -488,9 +488,7 @@ def _handle_upgrade_validation_error(
 
     if validators:
         print_validator_suggestions_with_dependencies(
-            validators=validators,
-            resource_type=resource_type,
-            console=console,
+            validators=validators, resource_type=resource_type
         )
     else:
         console.print(

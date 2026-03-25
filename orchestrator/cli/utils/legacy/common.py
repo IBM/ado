@@ -6,7 +6,6 @@
 from typing import TYPE_CHECKING
 
 import pydantic
-from rich.console import Console
 
 from orchestrator.cli.utils.output.prints import (
     ERROR,
@@ -111,9 +110,7 @@ def extract_deprecated_field_paths(
 
 
 def print_validator_suggestions_with_dependencies(
-    validators: list["LegacyValidatorMetadata"],
-    resource_type: "CoreResourceKinds",
-    console: Console,
+    validators: list["LegacyValidatorMetadata"], resource_type: "CoreResourceKinds"
 ) -> None:
     """Print legacy validator suggestions with dependency information
 
@@ -123,7 +120,6 @@ def print_validator_suggestions_with_dependencies(
     Args:
         validators: List of applicable validators
         resource_type: The resource type
-        console: Rich console to print to
     """
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
@@ -147,9 +143,7 @@ def print_validator_suggestions_with_dependencies(
         if validator is not None:
             ordered_validators.append(validator)
 
-    console_print(
-        f"{INFO}The following validator(s) match the field(s) above:\n", stderr=True
-    )
+    console_print(f"{INFO}The following validator(s) are a match:\n", stderr=True)
     for i, validator in enumerate(ordered_validators, 1):
         # Format and print validator info using the method
         console_print(

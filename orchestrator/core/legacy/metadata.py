@@ -26,11 +26,6 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         pydantic.Field(description="Resource type this validator applies to"),
     ]
 
-    deprecated_fields: Annotated[
-        list[str],
-        pydantic.Field(description="Fields that this validator handles"),
-    ]
-
     deprecated_from_version: Annotated[
         str,
         pydantic.Field(description="ADO version when these fields were deprecated"),
@@ -56,11 +51,10 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         ),
     ]
 
-    field_paths: Annotated[
+    fully_qualified_deprecated_field_paths: Annotated[
         list[str],
         pydantic.Field(
-            default_factory=list,
-            description="Explicit paths to fields (e.g., 'config.properties', 'config.specification.moduleType')",
+            description="Explicit paths to fields (e.g., 'config.properties', 'config.specification.moduleType')"
         ),
     ]
 

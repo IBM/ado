@@ -11,11 +11,10 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="samplestore_kind_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
-    deprecated_fields=["kind"],
+    fully_qualified_deprecated_field_paths=["kind"],
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Converts resource kind from 'entitysource' to 'samplestore'",
-    field_paths=["kind"],
 )
 def migrate_entitysource_kind_to_samplestore(data: dict) -> dict:
     """Migrate old entitysource kind to samplestore

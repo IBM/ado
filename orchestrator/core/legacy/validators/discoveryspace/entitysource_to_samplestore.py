@@ -15,11 +15,10 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="discoveryspace_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.DISCOVERYSPACE,
-    deprecated_fields=["entitySourceIdentifier"],
+    fully_qualified_deprecated_field_paths=["config.entitySourceIdentifier"],
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Renames 'entitySourceIdentifier' to 'sampleStoreIdentifier' in discovery space configurations",
-    field_paths=["config.entitySourceIdentifier"],
 )
 def rename_entitysource_identifier(data: dict) -> dict:
     """Rename entitySourceIdentifier to sampleStoreIdentifier

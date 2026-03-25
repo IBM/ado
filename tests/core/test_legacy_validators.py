@@ -16,9 +16,28 @@ class TestLegacyValidatorWithPydantic:
     """Test legacy validators working with pydantic models"""
 
     def setup_method(self) -> None:
-        """Setup method - validators are auto-discovered on import"""
-        # Don't clear the registry - validators are registered globally on import
-        # and clearing would break auto-discovery
+        """Setup method - ensure validators are available before each test"""
+        # Always import validators to ensure they're registered
+        # This is safe because Python only executes module-level code once
+        import orchestrator.core.legacy.validators  # noqa: F401
+
+        # If validators have been cleared by previous tests, we need to restore them
+        # Since Python won't re-execute the @legacy_validator decorators on re-import,
+        # we need to save a copy on first access and restore it when needed
+        if not hasattr(self.__class__, "_initial_validators"):
+            # First time - save the validators
+            self.__class__._initial_validators = (
+                LegacyValidatorRegistry._validators.copy()
+            )
+        elif (
+            not LegacyValidatorRegistry._validators
+            or "csv_constitutive_columns_migration"
+            not in LegacyValidatorRegistry._validators
+        ):
+            # Validators were cleared - restore them
+            LegacyValidatorRegistry._validators = (
+                self.__class__._initial_validators.copy()
+            )
 
     def test_validator_applied_during_model_validation(self) -> None:
         """Test that a legacy validator can be manually applied before pydantic validation"""
@@ -31,7 +50,7 @@ class TestLegacyValidatorWithPydantic:
         @legacy_validator(
             identifier="old_to_new_field",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["old_field"],
+            fully_qualified_deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Migrate old_field to new_field",
@@ -58,12 +77,7 @@ class TestLegacyValidatorWithPydantic:
     def test_csv_sample_store_migration_validator(self) -> None:
         """Test the CSV sample store migration validator with realistic data"""
 
-        # Import the validator to register it
-        from orchestrator.core.legacy.validators.samplestore.v1_to_v2_csv_migration import (  # noqa: F401
-            migrate_csv_v1_to_v2,
-        )
-
-        # Get the validator
+        # Get the validator (should be registered from setup_method)
         validator = LegacyValidatorRegistry.get_validator(
             "csv_constitutive_columns_migration"
         )
@@ -138,7 +152,7 @@ class TestLegacyValidatorWithPydantic:
         @legacy_validator(
             identifier="step1_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["old_field1"],
+            fully_qualified_deprecated_field_paths=["config.old_field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Step 1 migration",
@@ -151,7 +165,7 @@ class TestLegacyValidatorWithPydantic:
         @legacy_validator(
             identifier="step2_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["intermediate_field"],
+            fully_qualified_deprecated_field_paths=["config.intermediate_field"],
             deprecated_from_version="2.0.0",
             removed_from_version="3.0.0",
             description="Step 2 migration",
@@ -194,7 +208,7 @@ class TestUpgradeHandlerIntegration:
         @legacy_validator(
             identifier="test_upgrade_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["old_field"],
+            fully_qualified_deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test upgrade validator",
@@ -258,7 +272,7 @@ class TestUpgradeHandlerIntegration:
         @legacy_validator(
             identifier="operation_validator",
             resource_type=CoreResourceKinds.OPERATION,
-            deprecated_fields=["old_field"],
+            fully_qualified_deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Operation validator",
@@ -365,7 +379,7 @@ class TestValidatorDataIntegrity:
         @legacy_validator(
             identifier="selective_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["old_field"],
+            fully_qualified_deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Selective validator",
@@ -405,7 +419,7 @@ class TestValidatorDataIntegrity:
         @legacy_validator(
             identifier="graceful_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["optional_old_field"],
+            fully_qualified_deprecated_field_paths=["config.optional_old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Graceful validator",

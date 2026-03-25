@@ -23,7 +23,7 @@ class TestLegacyValidatorMetadata:
         metadata = LegacyValidatorMetadata(
             identifier="test_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1", "field2"],
+            fully_qualified_deprecated_field_paths=["config.field1", "config.field2"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test validator",
@@ -32,7 +32,10 @@ class TestLegacyValidatorMetadata:
 
         assert metadata.identifier == "test_validator"
         assert metadata.resource_type == CoreResourceKinds.SAMPLESTORE
-        assert metadata.deprecated_fields == ["field1", "field2"]
+        assert metadata.fully_qualified_deprecated_field_paths == [
+            "config.field1",
+            "config.field2",
+        ]
         assert metadata.deprecated_from_version == "1.0.0"
         assert metadata.removed_from_version == "2.0.0"
         assert metadata.description == "Test validator"
@@ -47,7 +50,7 @@ class TestLegacyValidatorMetadata:
         metadata = LegacyValidatorMetadata(
             identifier="test_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1"],
+            fully_qualified_deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test validator",
@@ -79,7 +82,7 @@ class TestLegacyValidatorRegistry:
         metadata = LegacyValidatorMetadata(
             identifier="test_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1"],
+            fully_qualified_deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test validator",
@@ -100,7 +103,7 @@ class TestLegacyValidatorRegistry:
         metadata = LegacyValidatorMetadata(
             identifier="test_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1"],
+            fully_qualified_deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test validator",
@@ -128,7 +131,7 @@ class TestLegacyValidatorRegistry:
         metadata1 = LegacyValidatorMetadata(
             identifier="samplestore_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1"],
+            fully_qualified_deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Sample store validator",
@@ -138,7 +141,7 @@ class TestLegacyValidatorRegistry:
         metadata2 = LegacyValidatorMetadata(
             identifier="operation_validator",
             resource_type=CoreResourceKinds.OPERATION,
-            deprecated_fields=["field2"],
+            fully_qualified_deprecated_field_paths=["config.field2"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Operation validator",
@@ -162,63 +165,7 @@ class TestLegacyValidatorRegistry:
         assert len(operation_validators) == 1
         assert operation_validators[0].identifier == "operation_validator"
 
-    def test_find_validators_for_fields(self) -> None:
-        """Test finding validators that handle specific fields"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
-        # Register validators with different fields
-        metadata1 = LegacyValidatorMetadata(
-            identifier="validator1",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1", "field2"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
-            description="Validator 1",
-            validator_function=dummy_validator,
-        )
-
-        metadata2 = LegacyValidatorMetadata(
-            identifier="validator2",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field3", "field4"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
-            description="Validator 2",
-            validator_function=dummy_validator,
-        )
-
-        LegacyValidatorRegistry.register(metadata1)
-        LegacyValidatorRegistry.register(metadata2)
-
-        # Find validators for field1
-        validators = LegacyValidatorRegistry.find_validators_for_fields(
-            CoreResourceKinds.SAMPLESTORE, ["field1"]
-        )
-        assert len(validators) == 1
-        assert validators[0].identifier == "validator1"
-
-        # Find validators for field3
-        validators = LegacyValidatorRegistry.find_validators_for_fields(
-            CoreResourceKinds.SAMPLESTORE, ["field3"]
-        )
-        assert len(validators) == 1
-        assert validators[0].identifier == "validator2"
-
-        # Find validators for multiple fields
-        validators = LegacyValidatorRegistry.find_validators_for_fields(
-            CoreResourceKinds.SAMPLESTORE, ["field1", "field3"]
-        )
-        assert len(validators) == 2
-
-        # Find validators for nonexistent field
-        validators = LegacyValidatorRegistry.find_validators_for_fields(
-            CoreResourceKinds.SAMPLESTORE, ["nonexistent"]
-        )
-        assert len(validators) == 0
-
-    def test_find_validators_for_field_paths(self) -> None:
+    def test_find_validators_for_fully_qualified_deprecated_field_paths(self) -> None:
         """Test finding validators that handle specific field paths"""
 
         def dummy_validator(data: dict) -> dict:
@@ -228,8 +175,7 @@ class TestLegacyValidatorRegistry:
         metadata1 = LegacyValidatorMetadata(
             identifier="validator1",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1", "field2"],
-            field_paths=["config.field1", "config.field2"],
+            fully_qualified_deprecated_field_paths=["config.field1", "config.field2"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator 1",
@@ -239,8 +185,7 @@ class TestLegacyValidatorRegistry:
         metadata2 = LegacyValidatorMetadata(
             identifier="validator2",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field3"],
-            field_paths=["config.specification.field3"],
+            fully_qualified_deprecated_field_paths=["config.specification.field3"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator 2",
@@ -250,8 +195,7 @@ class TestLegacyValidatorRegistry:
         metadata3 = LegacyValidatorMetadata(
             identifier="validator3",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
-            deprecated_fields=["properties"],
-            field_paths=["config.properties"],
+            fully_qualified_deprecated_field_paths=["config.properties"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator 3",
@@ -263,21 +207,21 @@ class TestLegacyValidatorRegistry:
         LegacyValidatorRegistry.register(metadata3)
 
         # Find validators for single full path
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.field1"}
         )
         assert len(validators) == 1
         assert validators[0].identifier == "validator1"
 
         # Find validators for nested path
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.specification.field3"}
         )
         assert len(validators) == 1
         assert validators[0].identifier == "validator2"
 
         # Find validators for multiple paths
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE,
             {"config.field1", "config.specification.field3"},
         )
@@ -286,19 +230,19 @@ class TestLegacyValidatorRegistry:
         assert validator_ids == {"validator1", "validator2"}
 
         # Find validators for non-existent path
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.nonexistent"}
         )
         assert len(validators) == 0
 
         # Verify it doesn't match on leaf names alone (more specific than find_validators_for_fields)
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"field1"}  # Just leaf name, not full path
         )
         assert len(validators) == 0
 
         # Verify resource type filtering works
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.DISCOVERYSPACE, {"config.properties"}
         )
         assert len(validators) == 1
@@ -313,7 +257,7 @@ class TestLegacyValidatorRegistry:
         metadata1 = LegacyValidatorMetadata(
             identifier="validator1",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1"],
+            fully_qualified_deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator 1",
@@ -323,7 +267,7 @@ class TestLegacyValidatorRegistry:
         metadata2 = LegacyValidatorMetadata(
             identifier="validator2",
             resource_type=CoreResourceKinds.OPERATION,
-            deprecated_fields=["field2"],
+            fully_qualified_deprecated_field_paths=["config.field2"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator 2",
@@ -342,7 +286,7 @@ class TestLegacyValidatorRegistry:
         import orchestrator.core.legacy.validators  # noqa: F401
 
         # Test 1: discoveryspace properties field should match the properties_field_removal validator
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.DISCOVERYSPACE, {"config.properties"}
         )
         assert len(validators) >= 1
@@ -350,7 +294,7 @@ class TestLegacyValidatorRegistry:
         assert "discoveryspace_properties_field_removal" in validator_ids
 
         # Test 2: operation actuators field should match the actuators_field_removal validator
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.OPERATION, {"config.actuators"}
         )
         assert len(validators) >= 1
@@ -358,7 +302,7 @@ class TestLegacyValidatorRegistry:
         assert "operation_actuators_field_removal" in validator_ids
 
         # Test 3: operation parameters.mode should match randomwalk validator
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.OPERATION, {"config.parameters.mode"}
         )
         assert len(validators) >= 1
@@ -366,7 +310,7 @@ class TestLegacyValidatorRegistry:
         assert "randomwalk_mode_to_sampler_config" in validator_ids
 
         # Test 4: samplestore config.moduleType should match the module_type validator
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.moduleType"}
         )
         assert len(validators) >= 1
@@ -374,7 +318,7 @@ class TestLegacyValidatorRegistry:
         assert "samplestore_module_type_entitysource_to_samplestore" in validator_ids
 
         # Test 5: samplestore kind field should match the kind validator
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"kind"}
         )
         assert len(validators) >= 1
@@ -382,7 +326,7 @@ class TestLegacyValidatorRegistry:
         assert "samplestore_kind_entitysource_to_samplestore" in validator_ids
 
         # Test 6: Multiple paths should return multiple validators
-        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE,
             {"config.moduleType", "config.moduleClass", "config.moduleName"},
         )
@@ -406,7 +350,7 @@ class TestLegacyValidatorDecorator:
         @legacy_validator(
             identifier="test_decorator_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1"],
+            fully_qualified_deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test decorator validator",
@@ -429,7 +373,7 @@ class TestLegacyValidatorDecorator:
         @legacy_validator(
             identifier="test_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["field1"],
+            fully_qualified_deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Test validator",
@@ -448,7 +392,7 @@ class TestLegacyValidatorDecorator:
         @legacy_validator(
             identifier="transform_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_fields=["old_field"],
+            fully_qualified_deprecated_field_paths=["old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Transform validator",

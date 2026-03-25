@@ -90,25 +90,20 @@ def handle_validation_error_with_legacy_suggestions(
     )
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
-    # Extract field paths, error details, and leaf field names from validation error
-    full_field_paths, field_errors, leaf_field_names = (
+    # Extract field paths and error details from validation error
+    fully_qualified_deprecated_field_paths, field_errors = (
         extract_deprecated_fields_from_validation_error(error)
     )
-    if not full_field_paths:
+    if not fully_qualified_deprecated_field_paths:
         # No fields extracted, show standard error
         console_print(f"Validation error: {error}", stderr=True)
         raise typer.Exit(1) from error
 
     # Find applicable legacy validators using full field paths for precise matching
-    validators = LegacyValidatorRegistry.find_validators_for_field_paths(
-        resource_type=resource_type, field_paths=full_field_paths
+    validators = LegacyValidatorRegistry.find_validators_for_fully_qualified_deprecated_field_paths(
+        resource_type=resource_type,
+        fully_qualified_deprecated_field_paths=fully_qualified_deprecated_field_paths,
     )
-
-    # Fallback to leaf field name matching if no validators found with full paths
-    if not validators:
-        validators = LegacyValidatorRegistry.find_validators_for_fields(
-            resource_type=resource_type, field_names=leaf_field_names
-        )
 
     if not validators:
         # No legacy validators available, show standard error
@@ -122,11 +117,11 @@ def handle_validation_error_with_legacy_suggestions(
         f"\n[bold red]Validation Error[/bold red] in {resource_type.value}{resource_id_str}"
     )
     console.print(
-        f"\n[bold]Fields with validation errors:[/bold] [yellow]{len(full_field_paths)} field(s)[/yellow]"
+        f"\n[bold]Fields with validation errors:[/bold] [yellow]{len(fully_qualified_deprecated_field_paths)} field(s)[/yellow]"
     )
     # Show detailed error messages for each field path
     console.print("\n[bold]Error details:[/bold]")
-    for field_path in sorted(full_field_paths):
+    for field_path in sorted(fully_qualified_deprecated_field_paths):
         console.print(f"  • [cyan]{field_path}[/cyan]:")
         for error_msg in field_errors.get(field_path, []):
             console.print(f"    - {error_msg}")

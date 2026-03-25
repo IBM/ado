@@ -16,15 +16,14 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="randomwalk_mode_to_sampler_config",
     resource_type=CoreResourceKinds.OPERATION,
-    deprecated_fields=["mode", "grouping", "samplerType"],
-    deprecated_from_version="1.0.1",
-    removed_from_version="1.2",
-    description="Migrates random_walk parameters from flat structure to nested 'samplerConfig'. See https://ibm.github.io/ado/operators/random-walk/#configuring-a-randomwalk",
-    field_paths=[
+    fully_qualified_deprecated_field_paths=[
         "config.parameters.mode",
         "config.parameters.grouping",
         "config.parameters.samplerType",
     ],
+    deprecated_from_version="1.0.1",
+    removed_from_version="1.2",
+    description="Migrates random_walk parameters from flat structure to nested 'samplerConfig'. See https://ibm.github.io/ado/operators/random-walk/#configuring-a-randomwalk",
 )
 def migrate_randomwalk_to_sampler_config(data: dict) -> dict:
     """Migrate random_walk parameters to samplerConfig structure

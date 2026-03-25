@@ -11,8 +11,7 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="discoveryspace_properties_field_removal",
     resource_type=CoreResourceKinds.DISCOVERYSPACE,
-    deprecated_fields=["properties"],
-    field_paths=["config.properties"],
+    fully_qualified_deprecated_field_paths=["config.properties"],
     deprecated_from_version="0.10.1",
     removed_from_version="1.0.0",
     description="Removes the deprecated 'properties' field from discovery space configurations",

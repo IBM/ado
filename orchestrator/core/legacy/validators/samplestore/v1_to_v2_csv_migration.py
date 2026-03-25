@@ -11,11 +11,14 @@ from orchestrator.core.resources import CoreResourceKinds
 @legacy_validator(
     identifier="csv_constitutive_columns_migration",
     resource_type=CoreResourceKinds.SAMPLESTORE,
-    deprecated_fields=["constitutivePropertyColumns", "propertyMap"],
+    fully_qualified_deprecated_field_paths=[
+        "config.constitutivePropertyColumns",
+        "config.experiments",
+    ],
     deprecated_from_version="1.3.5",
     removed_from_version="1.6.0",
     description="Migrates CSV sample stores from v1 format (constitutivePropertyColumns in config) to v2 format (per-experiment constitutivePropertyMap)",
-    field_paths=["config.constitutivePropertyColumns", "config.experiments"],
+    dependencies=["samplestore_kind_entitysource_to_samplestore"],
 )
 def migrate_csv_v1_to_v2(data: dict) -> dict:
     """Migrate old CSVSampleStoreDescription format to new format

@@ -10,22 +10,23 @@ description: |
 
 # Creating ado Resource YAML Files
 
-For CLI command syntax, see [using-ado-cli](../using-ado-cli/SKILL.md).
-For full problem formulation workflow, see
+For CLI command syntax, see [using-ado-cli](../using-ado-cli/SKILL.md). For full
+problem formulation workflow, see
 [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md).
 
 ## Metadata Fields
 
 Every resource YAML should include a `metadata` block. The CLI uses these for
-display (`ado get --details`) and filtering (`ado get --label`, `ado get --query`).
+display (`ado get --details`) and filtering (`ado get --label`,
+`ado get --query`).
 
 ```yaml
 metadata:
-  name: my_space          # short human-readable identifier
-  description: |          # longer explanation of purpose
+  name: my_space # short human-readable identifier
+  description: | # longer explanation of purpose
     Optimize learning rate and batch size for ResNet training.
   labels:
-    project: my_project   # arbitrary key=value pairs for filtering
+    project: my_project # arbitrary key=value pairs for filtering
     team: ml_team
 ```
 
@@ -49,8 +50,8 @@ uv run ado create space -f space.yaml
 uv run ado create operation -f operation.yaml --use-latest space
 ```
 
-> **Context scoping**: `--use-latest` resolves relative to the *execution
-> context*, not the project. On a laptop, it finds the last resource created
+> **Context scoping**: `--use-latest` resolves relative to the _execution
+> context_, not the project. On a laptop, it finds the last resource created
 > locally. When launched with `--remote`, it finds the last resource created on
 > the remote cluster. Keep this in mind when reusing resources across
 > environments.
@@ -77,8 +78,8 @@ uv run ado create operation -f operation.yaml \
 
 ### --set
 
-Overrides individual fields in the YAML at creation time without editing
-the file. Useful for environment-specific values or quick one-off changes.
+Overrides individual fields in the YAML at creation time without editing the
+file. Useful for environment-specific values or quick one-off changes.
 
 ```bash
 # Override the sample store identifier
@@ -122,7 +123,8 @@ uv run ado template actuatorconfiguration --actuator-identifier my_actuator
 
 ### DiscoverySpace
 
-**Before creating** (ado create space), check if a matching space already exists:
+**Before creating** (ado create space), check if a matching space already
+exists:
 
 ```bash
 # Match by space config (entity space + experiments)
@@ -143,9 +145,8 @@ operation benefits from measurements already collected.
 - Declare a property as a constitutive property domain in the entity space when
   you want to **explore a range of values** for that property.
 - Use **experiment parameterization** when you want to change the default value
-  of an optional experiment property but keep it fixed across all entities.
-  Do not add a single-valued domain to the entity space just to override a
-  default.
+  of an optional experiment property but keep it fixed across all entities. Do
+  not add a single-valued domain to the entity space just to override a default.
 
 ```yaml
 # Correct: parameterization overrides experiment default, keeps it out of space
@@ -155,14 +156,14 @@ experiments:
     parameterization:
       - property:
           identifier: optimizer
-        value: adam  # overrides default "sgd"
+        value: adam # overrides default "sgd"
 
 # Incorrect: single-valued domain should be parameterization instead
 entitySpace:
   - identifier: optimizer
     propertyDomain:
       variableType: DISCRETE_VARIABLE_TYPE
-      values: [adam]  # single value — use parameterization instead
+      values: [adam] # single value — use parameterization instead
 ```
 
 **Creating a space with a fresh samplestore**:
@@ -180,8 +181,8 @@ uv run ado get actuatorconfigurations --details
 uv run ado get actuatorconfigurations --label actuator=my_actuator
 ```
 
-Reuse an existing actuator configuration when appropriate rather than
-creating duplicates.
+Reuse an existing actuator configuration when appropriate rather than creating
+duplicates.
 
 ### SampleStore
 
@@ -198,6 +199,6 @@ uv run ado create samplestore -f samplestore.yaml
 ## Related Resources
 
 - [using-ado-cli](../using-ado-cli/SKILL.md) — CLI command syntax and shortcuts
-- [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md) —
-  full problem formulation workflow
+- [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md) — full
+  problem formulation workflow
 - [AGENTS.md](../../../AGENTS.md) — YAML testing and linting guidance

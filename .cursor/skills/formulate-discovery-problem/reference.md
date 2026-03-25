@@ -31,13 +31,15 @@ Detailed reference information for formulating problems in ado.
 
 ### Experiment Reference Format
 
-See [reference-experiment-format.yaml](yaml-examples/reference-experiment-format.yaml).
+See
+[reference-experiment-format.yaml](yaml-examples/reference-experiment-format.yaml).
 
 ## Entity Space Property Schema
 
 ### ConstitutiveProperty Structure
 
-See [reference-property-domain.yaml](yaml-examples/reference-property-domain.yaml).
+See
+[reference-property-domain.yaml](yaml-examples/reference-property-domain.yaml).
 
 ### Variable Types
 
@@ -67,7 +69,8 @@ See [reference-property-domain.yaml](yaml-examples/reference-property-domain.yam
 
 ### Core Structure
 
-See [reference-operation-structure.yaml](yaml-examples/reference-operation-structure.yaml).
+See
+[reference-operation-structure.yaml](yaml-examples/reference-operation-structure.yaml).
 
 ### Operation Types
 
@@ -114,8 +117,7 @@ property domain:
 
 - For discrete: All entity space values must be in experiment's domain values
 - For continuous: Entity space range must be within experiment's range
-- For categorical: Entity space values must be subset of experiment's
-  values
+- For categorical: Entity space values must be subset of experiment's values
 
 ### Validation
 
@@ -123,27 +125,31 @@ ado validates:
 
 1. All required constitutive properties are in entity space
 2. Entity space domains are compatible (subdomain check)
-3. No redundant dimensions (all entity space properties required by at least
-   one experiment)
+3. No redundant dimensions (all entity space properties required by at least one
+   experiment)
 4. Optional properties in entity space don't conflict with parameterization
 
 ## Common Patterns
 
 ### Pattern 1: Single Experiment, Simple Space
 
-See [reference-pattern1-simple-space.yaml](yaml-examples/reference-pattern1-simple-space.yaml).
+See
+[reference-pattern1-simple-space.yaml](yaml-examples/reference-pattern1-simple-space.yaml).
 
 ### Pattern 2: Multiple Experiments with Dependencies
 
-See [reference-pattern2-multiple-experiments.yaml](yaml-examples/reference-pattern2-multiple-experiments.yaml).
+See
+[reference-pattern2-multiple-experiments.yaml](yaml-examples/reference-pattern2-multiple-experiments.yaml).
 
 ### Pattern 3: Parameterized Experiment
 
-See [reference-pattern3-parameterized.yaml](yaml-examples/reference-pattern3-parameterized.yaml).
+See
+[reference-pattern3-parameterized.yaml](yaml-examples/reference-pattern3-parameterized.yaml).
 
 ### Pattern 4: Optional Property in Entity Space
 
-See [reference-pattern4-optional-property.yaml](yaml-examples/reference-pattern4-optional-property.yaml).
+See
+[reference-pattern4-optional-property.yaml](yaml-examples/reference-pattern4-optional-property.yaml).
 
 ## Validation Commands Reference
 

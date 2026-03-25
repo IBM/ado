@@ -46,7 +46,7 @@ In the case of (b) (latest) get the actual operation identifier as follows
 uv run ado show related operation --use-latest
 ```
 
-This will output the id of the latest operation along
+This will output the id of the latest operation.
 
 ## General Workflow
 
@@ -90,7 +90,7 @@ previous step (operatorIdentifier)
 
 Execute
 
-```commandline
+```bash
 uv run ado get operator --details $OPERATOR_IDENTIFIER
 ```
 
@@ -98,8 +98,8 @@ uv run ado get operator --details $OPERATOR_IDENTIFIER
 
 To understand an operators parameters examine its schema:
 
-```commandline
-uv run ado template operation --operator-name $OPERATOR_IDENTIFER --include-schema
+```bash
+uv run ado template operation --operator-name $OPERATOR_IDENTIFIER --include-schema
 ```
 
 This will create a file called operation*template*$UID_schema.yaml containing
@@ -111,7 +111,7 @@ Using the space id from step 1
 
 ```bash
 uv run ado get space SPACE_ID -o yaml
-uv run ado describe space SPACE_ID [--use-latest]
+uv run ado describe space SPACE_ID
 ```
 
 Summarise the: **dimensions** (parameters), **experiments** (actuators,
@@ -138,13 +138,13 @@ output identifiers.
 
 An operation can create the following resources
 
-- discovery spaces: In this case examine the space as in step 2
+- discovery spaces: In this case examine the space as in step 3
 - operations: In this case recursively examine the operations using this skill
 - datacontainers: This contains non-ado resource outputs e.g. CSV data.
 
 To retrieve contents of data container
 
-```commandline
+```bash
 uv run ado get datacontainer -o yaml $DATACONTAINER_IDENTIFIER
 ```
 
@@ -182,10 +182,11 @@ were completed there are no issues ->
 [examine entities](#step-3-get-entities-and-measurements)
 
 If the state is not finished ->
-[Diagnose if sampling operation running](#diagnose-if-operation-running) For all
-other combination -> [Diagnose sampling issues](#diagnose-sampling-issues)
+[Use the diagnose if sampling operation running workflow](#diagnose-if-explore-or-search-operation-is-running-workflow).
+For all other combinations ->
+[Diagnose sampling issues](#step-2-optional-diagnose-sampling-issues)
 
-### Step 2 (Optional): Diagnose issues
+### Step 2 (Optional): Diagnose sampling issues
 
 First run these two commands to get the metadata on what was requested and
 measured
@@ -199,30 +200,12 @@ uv run ado show results operation OPERATION_ID \
 
 - **requests**: This is metadata on what the sampling operation asked an
   actuator to measure. It includes the timestamp of when the request was
-  created - at the moment the comp The requests contain the results of executing
-  the request
+  created - at the moment the completion time is not available. The requests
+  contain the results of executing the request
 - **results**: This is metadata on an actual measurement triggered by a request
   - ValidMeasurementResult: The experiment executed and return one or more
     observed property values
   - InvalidMeasurementResult: The experiment failed for some reason
-
-#### Diagnose if operation running
-
-- Check if the operation is submitting experiment in batches
-- Confirm if the operation uses continuous batching (new experiment requested
-  once one has finished) or static batch (full batch finishes then next starts)
-- For continuous batching
-  - Use the request time-series to determine the typical inter-request start
-    time after the first batch i.e. this tells you how often after the first
-    batch you should expect to see a new request
-- For static batch
-  - Use the request time-series to determine the typical inter-batch time i.e.
-    how long between batches/how long a batch takes to execute on average
-- Determine if the time since last recorded request is much greater than the
-  expected inter request time e.g. 5x more. This indicates there may have been
-  an issue.
-
-#### Diagnose sampling issues
 
 From the output of `show request` and `show results`
 
@@ -234,27 +217,38 @@ anomalies in **timing** or **ordering** if those columns are present.
 To get the data on measurements
 
 ```bash
-uv run ado show entities operation OPERATION_ID [--use-latest] \
+uv run ado show entities operation OPERATION_ID \
   --output-format csv
 ```
 
 Perform quick analysis: distributions, outliers, correlations.
+
+## Diagnose if Explore or Search Operation is Running Workflow
+
+- Check if the operation is submitting experiment in batches
+- Confirm if the operation uses continuous batching (new experiment requested
+  once one has finished) or static batch (full batch finishes then next starts)
+- Get the requests and results timeseries using ado show cli command
+- For continuous batching
+  - Use the request time-series to determine the typical inter-request start
+    time after the first batch i.e. this tells you how often after the first
+    batch you should expect to see a new request
+- For static batch
+  - Use the request time-series to determine the typical inter-batch time i.e.
+    how long between batches/how long a batch takes to execute on average
+- Determine if the time since last recorded request is much greater than the
+  expected inter request time e.g. 5x more. This indicates there may have been
+  an issue.
 
 ## Producing a report
 
 Structure the report as:
 
 1. **Overview**: What the operation purpose was. Can be inferred from space and
-   operation chosen. Short and narrative. 1a. **Operation summary** – ID,
-   operator, parameters, status 2b. **Space summary** – dimensions, experiments,
-   entity count
+   operation chosen. Short and narrative.
+   - **Operation summary** – ID, operator, parameters, status
+   - **Space summary** – dimensions, experiments, entity count
 2. **Measurement overview** – sampled vs requested, success vs failure counts
 3. **Findings** – notable patterns, best/worst performers, anomalies
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected
    distributions
-
-## Guidelines
-
-- Use **`uv run`** for every `ado` invocation from repo root.
-- Confirm any unfamiliar subcommand or flag with `uv run ado ... --help` per
-  [using-ado-cli](../using-ado-cli/SKILL.md).

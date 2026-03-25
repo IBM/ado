@@ -304,5 +304,64 @@ class TestValidatorScopeFixes:
         # Verify: data unchanged
         assert result == resource_data
 
+    def test_samplestore_module_name_exact_match(self) -> None:
+        """Verify module name migration uses exact matching only"""
+
+        # Get validator
+        validator = LegacyValidatorRegistry.get_validator(
+            "samplestore_module_name_entitysource_to_samplestore"
+        )
+        assert validator is not None
+
+        # Test data with module names that should NOT be migrated
+        # (not exact matches)
+        no_migration_cases = [
+            "my_orchestrator.core.entitysource_wrapper",  # Contains substring but not exact
+            "orchestrator.core.entitysource.csv",  # Submodule, not exact match
+            "orchestrator.plugins.entitysources.custom",  # Submodule, not exact match
+        ]
+
+        for module_name in no_migration_cases:
+            data = {
+                "kind": "samplestore",
+                "type": "csv",
+                "identifier": "test-store",
+                "config": {
+                    "moduleName": module_name,
+                },
+            }
+            result = validator.validator_function(data.copy())
+            assert result["config"]["moduleName"] == module_name, (
+                f"Expected {module_name} to NOT be migrated, "
+                f"but got {result['config']['moduleName']}"
+            )
+
+        # Test exact matches that SHOULD migrate
+        exact_match_cases = [
+            (
+                "orchestrator.core.entitysource",
+                "orchestrator.core.samplestore",
+            ),
+            (
+                "orchestrator.plugins.entitysources",
+                "orchestrator.plugins.samplestores",
+            ),
+        ]
+
+        for old_name, expected_new_name in exact_match_cases:
+            data = {
+                "kind": "samplestore",
+                "type": "csv",
+                "identifier": "test-store",
+                "config": {
+                    "moduleName": old_name,
+                },
+            }
+            result = validator.validator_function(data.copy())
+            assert result["config"]["moduleName"] == expected_new_name, (
+                f"Expected {old_name} to migrate to {expected_new_name}, "
+                f"but got {result['config']['moduleName']}"
+            )
+
 
 # Made with Bob

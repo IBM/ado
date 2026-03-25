@@ -52,9 +52,7 @@ def rename_entitysource_identifier(data: dict) -> dict:
     parent, field_name = get_nested_value(data, old_path)
     if parent is not None and field_name in parent:
         old_value = parent[field_name]
-        # Set the new value
         set_nested_value(data, new_path, old_value)
-        # Remove the old field
         remove_nested_field(data, old_path)
 
     return data

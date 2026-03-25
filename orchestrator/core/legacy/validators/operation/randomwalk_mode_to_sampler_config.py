@@ -44,43 +44,22 @@ def migrate_randomwalk_to_sampler_config(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Check if mode field exists (indicator of old format)
-    if not has_nested_field(data, "config.parameters.mode"):
-        return data
+    # Fields to migrate from top-level parameters to samplerConfig
+    fields_to_migrate = ["mode", "grouping", "samplerType"]
 
-    # Extract the old fields - has_nested_field already confirmed they exist
-    mode = None
-    grouping = None
-    sampler_type = None
+    sampler_config = {}
 
-    if has_nested_field(data, "config.parameters.mode"):
-        parent, field = get_nested_value(data, "config.parameters.mode")
-        if parent is not None:
-            mode = parent[field]
-            remove_nested_field(data, "config.parameters.mode")
+    # Extract and migrate each field
+    for field_name in fields_to_migrate:
+        field_path = f"config.parameters.{field_name}"
+        if has_nested_field(data, field_path):
+            parent, field = get_nested_value(data, field_path)
+            if parent is not None:
+                sampler_config[field_name] = parent[field]
+                remove_nested_field(data, field_path)
 
-    if has_nested_field(data, "config.parameters.grouping"):
-        parent, field = get_nested_value(data, "config.parameters.grouping")
-        if parent is not None:
-            grouping = parent[field]
-            remove_nested_field(data, "config.parameters.grouping")
-
-    if has_nested_field(data, "config.parameters.samplerType"):
-        parent, field = get_nested_value(data, "config.parameters.samplerType")
-        if parent is not None:
-            sampler_type = parent[field]
-            remove_nested_field(data, "config.parameters.samplerType")
-
-    # Create samplerConfig if any of the fields were present
-    if mode is not None or grouping is not None or sampler_type is not None:
-        sampler_config = {}
-        if mode is not None:
-            sampler_config["mode"] = mode
-        if grouping is not None:
-            sampler_config["grouping"] = grouping
-        if sampler_type is not None:
-            sampler_config["samplerType"] = sampler_type
-
+    # Only set samplerConfig if we found any fields to migrate
+    if sampler_config:
         set_nested_value(data, "config.parameters.samplerConfig", sampler_config)
 
     return data

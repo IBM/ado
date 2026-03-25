@@ -4,7 +4,7 @@
 """Legacy validator for migrating CSV sample stores from v1 to v2 format"""
 
 from orchestrator.core.legacy.registry import legacy_validator
-from orchestrator.core.legacy.utils import has_nested_field
+from orchestrator.core.legacy.utils import get_nested_value, has_nested_field
 from orchestrator.core.resources import CoreResourceKinds
 
 
@@ -48,22 +48,22 @@ def migrate_csv_v1_to_v2(data: dict) -> dict:
     if not isinstance(data, dict):
         return data
 
-    # Check if config exists
-    if "config" not in data or not isinstance(data["config"], dict):
-        return data
-
-    config = data["config"]
-
     # Check if this is old format (has constitutivePropertyColumns in config)
     if not has_nested_field(data, "config.constitutivePropertyColumns"):
         return data
 
-    # Extract and remove the constitutivePropertyColumns from config
+    # Get config parent (data dict) and field name to access config
+    parent, field = get_nested_value(data, "config")
+    if parent is None or field is None or field not in parent:
+        return data
+
+    config = parent[field]
     constitutive_columns = config.pop("constitutivePropertyColumns")
 
     # Migrate experiments if present in config
-    if "experiments" in config and isinstance(config["experiments"], list):
-        for exp in config["experiments"]:
+    experiments = config.get("experiments")
+    if isinstance(experiments, list):
+        for exp in experiments:
             if isinstance(exp, dict):
                 # Rename propertyMap to observedPropertyMap
                 if "propertyMap" in exp:

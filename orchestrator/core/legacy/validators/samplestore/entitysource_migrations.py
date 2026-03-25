@@ -111,17 +111,20 @@ def migrate_module_name(data: dict) -> dict:
     """Convert moduleName paths from entitysource to samplestore
 
     This validator checks for moduleName field within the config
-    and converts paths from entitysource to samplestore.
+    and converts paths from entitysource to samplestore using exact matching.
 
-    Old format:
+    Only exact matches are migrated:
         config:
-            moduleName: "orchestrator.core.entitysource.*"
-            moduleName: "orchestrator.plugins.entitysources.*"
+            moduleName: "orchestrator.core.entitysource"
+            -> "orchestrator.core.samplestore"
 
-    New format:
+            moduleName: "orchestrator.plugins.entitysources"
+            -> "orchestrator.plugins.samplestores"
+
+    Submodules or partial matches are NOT migrated:
         config:
-            moduleName: "orchestrator.core.samplestore.*"
-            moduleName: "orchestrator.plugins.samplestores.*"
+            moduleName: "orchestrator.core.entitysource.csv"
+            -> unchanged (not an exact match)
 
     Args:
         data: The resource data dictionary
@@ -143,10 +146,9 @@ def migrate_module_name(data: dict) -> dict:
         parent, field = get_nested_value(data, "config.moduleName")
         if parent is not None and isinstance(parent[field], str):
             module_name = parent[field]
-            for old_path, new_path in path_mappings.items():
-                if old_path in module_name:
-                    module_name = module_name.replace(old_path, new_path)
-            set_nested_value(data, "config.moduleName", module_name)
+            if module_name in path_mappings:
+                module_name = path_mappings[module_name]
+                set_nested_value(data, "config.moduleName", module_name)
 
     return data
 

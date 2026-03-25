@@ -242,9 +242,6 @@ def handle_ado_upgrade(
         parameters: Command parameters including legacy validator options
         resource_type: The type of resource to upgrade
     """
-    # Import validators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.validators  # noqa: F401
-
     # Handle --list-legacy-validators flag
     if parameters.list_legacy_validators:
         from orchestrator.cli.utils.legacy.list import list_legacy_validators
@@ -252,157 +249,14 @@ def handle_ado_upgrade(
         list_legacy_validators(resource_type)
         return
 
-    # Get legacy validators if specified
-    legacy_validators = None
-    if parameters.apply_legacy_validator:
-        from orchestrator.core.legacy.registry import LegacyValidatorRegistry
-
-        # Validate all validator IDs exist and match resource type
-        invalid_validators = []
-        mismatched_validators = []
-        for validator_id in parameters.apply_legacy_validator:
-            validator = LegacyValidatorRegistry.get_validator(validator_id)
-            if validator is None:
-                invalid_validators.append(validator_id)
-            elif validator.resource_type != resource_type:
-                mismatched_validators.append(
-                    (validator_id, validator.resource_type, resource_type)
-                )
-
-        if invalid_validators:
-            console_print(
-                f"{ERROR}Unknown legacy validator(s): {', '.join(invalid_validators)}",
-                stderr=True,
-            )
-            raise typer.Exit(1)
-
-        if mismatched_validators:
-            for validator_id, validator_type, expected_type in mismatched_validators:
-                console_print(
-                    f"{ERROR}Validator '{validator_id}' is for {validator_type.value} resources, "
-                    f"but you are upgrading {expected_type.value} resources",
-                    stderr=True,
-                )
-            raise typer.Exit(1)
-
-        # Resolve dependencies and order validators
-        try:
-            ordered_ids, missing_deps = LegacyValidatorRegistry.resolve_dependencies(
-                parameters.apply_legacy_validator
-            )
-
-            if missing_deps:
-                console_print(
-                    f"{ERROR}Missing validator dependencies: {', '.join(missing_deps)}",
-                    stderr=True,
-                )
-                raise typer.Exit(1)
-
-            # Get validators in correct order
-            legacy_validators = []
-            for validator_id in ordered_ids:
-                validator = LegacyValidatorRegistry.get_validator(validator_id)
-                if validator is not None:
-                    legacy_validators.append(validator)
-
-            # Log the ordering
-            if len(ordered_ids) > len(parameters.apply_legacy_validator):
-                logger.info(
-                    f"Auto-included dependencies: {[vid for vid in ordered_ids if vid not in parameters.apply_legacy_validator]}"
-                )
-
-            logger.debug(
-                f"Validators in execution order: {[v.identifier for v in legacy_validators]}"
-            )
-
-        except ValueError as e:
-            # Circular dependency detected
-            console_print(f"{ERROR}{e}", stderr=True)
-            raise typer.Exit(1) from e
-
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
 
-    # Import resource class mapping for validation
-    from orchestrator.core import kindmap
+    # Normal upgrade path without legacy validators
+    if not parameters.apply_legacy_validator:
 
-    with Status(ADO_SPINNER_QUERYING_DB) as status:
-        # When legacy validators are specified, work with raw data
-        if legacy_validators:
-
-            identifiers = sql_store.getResourceIdentifiersOfKind(
-                kind=resource_type.value
-            )
-
-            # Phase 1: Collect and validate all migrations (transaction safety)
-            # Validate all resources before saving any to ensure atomicity
-            migrations = []
-            resource_class = kindmap[resource_type.value]
-
-            for idx, identifier in enumerate(identifiers["IDENTIFIER"]):
-                status.update(
-                    ADO_SPINNER_QUERYING_DB
-                    + f" - Validating ({idx + 1}/{len(identifiers)})"
-                )
-
-                # Get raw data
-                resource_dict = sql_store.getResourceRaw(identifier)
-                if resource_dict is None:
-                    continue
-
-                # Apply legacy validators
-                try:
-                    for validator in legacy_validators:
-                        logger.debug(
-                            f"Applying validator: {validator.identifier} to {identifier}"
-                        )
-                        resource_dict = validator.validator_function(resource_dict)
-                        logger.debug(
-                            f"Validator {validator.identifier} completed for {identifier}"
-                        )
-
-                    # Validate the migrated resource (don't save yet)
-                    resource = resource_class.model_validate(resource_dict)
-                    migrations.append((identifier, resource))
-
-                except Exception as e:
-                    logger.error(f"Migration failed for {identifier}: {e}")
-                    console_print(
-                        f"{ERROR}Migration validation failed for {identifier}: {e}",
-                        stderr=True,
-                    )
-                    console_print(
-                        f"{ERROR}No resources were modified (all-or-nothing transaction safety)",
-                        stderr=True,
-                    )
-                    raise typer.Exit(1) from e
-
-            # Phase 2: All validations passed, now save all resources
-            logger.info(
-                f"All {len(migrations)} resources validated successfully, applying changes..."
-            )
-
-            for idx, (identifier, migrated_resource) in enumerate(migrations):
-                status.update(
-                    ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(migrations)})"
-                )
-
-                try:
-                    sql_store.updateResource(resource=migrated_resource)
-                except Exception as e:
-                    logger.error(f"Failed to save {identifier}: {e}")
-                    console_print(
-                        f"{ERROR}Failed to save {identifier}. Database may be in inconsistent state.",
-                        stderr=True,
-                    )
-                    console_print(
-                        f"{ERROR}Manual intervention may be required to restore consistency.",
-                        stderr=True,
-                    )
-                    raise typer.Exit(1) from e
-        else:
-            # Normal upgrade path without legacy validators
+        with Status(ADO_SPINNER_QUERYING_DB) as status:
             try:
                 resources = sql_store.getResourcesOfKind(
                     kind=resource_type.value, ignore_validation_errors=False
@@ -418,6 +272,157 @@ def handle_ado_upgrade(
                     ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(resources)})"
                 )
                 sql_store.updateResource(resource=resource)
+
+        console_print(SUCCESS)
+        return
+
+    # The user has requested legacy validators
+    legacy_validators = None
+    # Import validators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.validators  # noqa: F401
+    from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+
+    # Validate all validator IDs exist and match resource type
+    invalid_validators = []
+    mismatched_validators = []
+    for validator_id in parameters.apply_legacy_validator:
+        validator = LegacyValidatorRegistry.get_validator(validator_id)
+        if validator is None:
+            invalid_validators.append(validator_id)
+        elif validator.resource_type != resource_type:
+            mismatched_validators.append(
+                (validator_id, validator.resource_type, resource_type)
+            )
+
+    if invalid_validators:
+        console_print(
+            f"{ERROR}Unknown legacy validator(s): {', '.join(invalid_validators)}",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    if mismatched_validators:
+        for validator_id, validator_type, expected_type in mismatched_validators:
+            console_print(
+                f"{ERROR}Validator '{validator_id}' is for {validator_type.value} resources, "
+                f"but you are upgrading {expected_type.value} resources",
+                stderr=True,
+            )
+        raise typer.Exit(1)
+
+    # Resolve dependencies and order validators
+    try:
+        ordered_ids, missing_deps = LegacyValidatorRegistry.resolve_dependencies(
+            parameters.apply_legacy_validator
+        )
+
+        if missing_deps:
+            console_print(
+                f"{ERROR}Missing validator dependencies: {', '.join(missing_deps)}",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+
+        # Get validators in correct order
+        legacy_validators = []
+        for validator_id in ordered_ids:
+            validator = LegacyValidatorRegistry.get_validator(validator_id)
+            if validator is not None:
+                legacy_validators.append(validator)
+
+        # Log the ordering
+        if len(ordered_ids) > len(parameters.apply_legacy_validator):
+            logger.info(
+                f"Auto-included dependencies: {[vid for vid in ordered_ids if vid not in parameters.apply_legacy_validator]}"
+            )
+
+        if not legacy_validators:
+            console_print(
+                f"{ERROR}No validators were found using the provided identifiers"
+            )
+            raise typer.Exit(1)
+
+        logger.debug(
+            f"Validators in execution order: {[v.identifier for v in legacy_validators]}"
+        )
+
+    except ValueError as e:
+        # Circular dependency detected
+        console_print(f"{ERROR}{e}", stderr=True)
+        raise typer.Exit(1) from e
+
+    # Import resource class mapping for validation
+    from orchestrator.core import kindmap
+
+    # When legacy validators are specified, work with raw data
+    with Status(ADO_SPINNER_QUERYING_DB) as status:
+
+        identifiers = sql_store.getResourceIdentifiersOfKind(kind=resource_type.value)
+
+        # Phase 1: Collect and validate all migrations (transaction safety)
+        # Validate all resources before saving any to ensure atomicity
+        migrations = []
+        resource_class = kindmap[resource_type.value]
+
+        for idx, identifier in enumerate(identifiers["IDENTIFIER"]):
+            status.update(
+                ADO_SPINNER_QUERYING_DB
+                + f" - Validating ({idx + 1}/{len(identifiers)})"
+            )
+
+            # Get raw data
+            resource_dict = sql_store.getResourceRaw(identifier)
+            if resource_dict is None:
+                continue
+
+            # Apply legacy validators
+            try:
+                for validator in legacy_validators:
+                    logger.debug(
+                        f"Applying validator: {validator.identifier} to {identifier}"
+                    )
+                    resource_dict = validator.validator_function(resource_dict)
+                    logger.debug(
+                        f"Validator {validator.identifier} completed for {identifier}"
+                    )
+
+                # Validate the migrated resource (don't save yet)
+                resource = resource_class.model_validate(resource_dict)
+                migrations.append((identifier, resource))
+
+            except Exception as e:
+                logger.error(f"Migration failed for {identifier}: {e}")
+                console_print(
+                    f"{ERROR}Migration validation failed for {identifier}: {e}",
+                    stderr=True,
+                )
+                console_print(
+                    f"{ERROR}No resources were modified (all-or-nothing transaction safety)",
+                    stderr=True,
+                )
+                raise typer.Exit(1) from e
+
+        # Phase 2: All validations passed, now save all resources
+        logger.info(
+            f"All {len(migrations)} resources validated successfully, applying changes..."
+        )
+
+        for idx, (identifier, migrated_resource) in enumerate(migrations):
+            status.update(ADO_SPINNER_SAVING_TO_DB + f" ({idx + 1}/{len(migrations)})")
+
+            try:
+                sql_store.updateResource(resource=migrated_resource)
+            except Exception as e:
+                logger.error(f"Failed to save {identifier}: {e}")
+                console_print(
+                    f"{ERROR}Failed to save {identifier}. Database may be in inconsistent state.",
+                    stderr=True,
+                )
+                console_print(
+                    f"{ERROR}Manual intervention may be required to restore consistency.",
+                    stderr=True,
+                )
+                raise typer.Exit(1) from e
 
     console_print(SUCCESS)
 

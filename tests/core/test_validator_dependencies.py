@@ -3,8 +3,6 @@
 
 """Tests for validator dependency resolution and ordering"""
 
-from collections.abc import Generator
-
 import pytest
 
 from orchestrator.core.legacy.metadata import LegacyValidatorMetadata
@@ -12,15 +10,9 @@ from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 from orchestrator.core.resources import CoreResourceKinds
 
 
-@pytest.fixture(autouse=True)
-def clear_registry() -> Generator[None, None, None]:
-    """Clear the registry before and after each test"""
-    LegacyValidatorRegistry._validators.clear()
-    yield
-    LegacyValidatorRegistry._validators.clear()
-
-
-def test_resolve_dependencies_no_dependencies() -> None:
+def test_resolve_dependencies_no_dependencies(
+    isolated_legacy_validator_registry: None,
+) -> None:
     """Test resolving validators with no dependencies"""
 
     def validator_a(data: dict) -> dict:
@@ -128,7 +120,9 @@ def test_resolve_dependencies_simple_chain() -> None:
     assert len(missing) == 0
 
 
-def test_resolve_dependencies_diamond() -> None:
+def test_resolve_dependencies_diamond(
+    isolated_legacy_validator_registry: None,
+) -> None:
     """Test resolving validators with diamond dependency pattern"""
 
     def validator_a(data: dict) -> dict:
@@ -208,7 +202,9 @@ def test_resolve_dependencies_diamond() -> None:
     assert len(missing) == 0
 
 
-def test_resolve_dependencies_circular() -> None:
+def test_resolve_dependencies_circular(
+    isolated_legacy_validator_registry: None,
+) -> None:
     """Test that circular dependencies are detected"""
 
     def validator_a(data: dict) -> dict:
@@ -249,7 +245,9 @@ def test_resolve_dependencies_circular() -> None:
         LegacyValidatorRegistry.resolve_dependencies(["validator_a", "validator_b"])
 
 
-def test_resolve_dependencies_missing() -> None:
+def test_resolve_dependencies_missing(
+    isolated_legacy_validator_registry: None,
+) -> None:
     """Test handling of missing dependencies"""
 
     def validator_a(data: dict) -> dict:
@@ -277,7 +275,9 @@ def test_resolve_dependencies_missing() -> None:
     assert "nonexistent_validator" in missing
 
 
-def test_resolve_dependencies_multiple_roots() -> None:
+def test_resolve_dependencies_multiple_roots(
+    isolated_legacy_validator_registry: None,
+) -> None:
     """Test resolving validators with multiple independent roots"""
 
     def validator_a(data: dict) -> dict:

@@ -13,7 +13,7 @@ from orchestrator.cli.core.config import AdoConfiguration
 from orchestrator.cli.models.parameters import AdoUpgradeCommandParameters
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.resources.handlers import handle_ado_upgrade
-from orchestrator.core.legacy.registry import LegacyValidatorRegistry, legacy_validator
+from orchestrator.core.legacy.registry import legacy_validator
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
@@ -27,13 +27,10 @@ from orchestrator.metastore.project import ProjectContext
 class TestUpgradeTransactionSafety:
     """Test transaction safety in upgrade handler - validate-all-before-save pattern"""
 
-    def setup_method(self) -> None:
-        """Clear the registry before each test"""
-        LegacyValidatorRegistry._validators = {}
-
     @pytest.mark.parametrize("valid_ado_project_context", ["sqlite"], indirect=True)
     def test_all_resources_validated_before_any_saved(
         self,
+        isolated_legacy_validator_registry: None,
         valid_ado_project_context: ProjectContext,
     ) -> None:
         """Test that all resources are validated before any are saved"""

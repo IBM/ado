@@ -105,12 +105,10 @@ class TestLegacyValidatorMetadata:
 class TestLegacyValidatorRegistry:
     """Test the LegacyValidatorRegistry class"""
 
-    def setup_method(self) -> None:
-        """Clear the registry before each test"""
-        LegacyValidatorRegistry._validators = {}
-
     def test_register_validator(
-        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+        self,
+        isolated_legacy_validator_registry: None,
+        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
     ) -> None:
         """Test registering a validator"""
         metadata = create_validator_metadata()
@@ -121,7 +119,9 @@ class TestLegacyValidatorRegistry:
         assert "test_validator" in LegacyValidatorRegistry._validators
 
     def test_get_validator(
-        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+        self,
+        isolated_legacy_validator_registry: None,
+        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
     ) -> None:
         """Test retrieving a validator by identifier"""
         metadata = create_validator_metadata()
@@ -132,13 +132,17 @@ class TestLegacyValidatorRegistry:
         assert retrieved is not None
         assert retrieved.identifier == "test_validator"
 
-    def test_get_nonexistent_validator(self) -> None:
+    def test_get_nonexistent_validator(
+        self, isolated_legacy_validator_registry: None
+    ) -> None:
         """Test retrieving a validator that doesn't exist"""
         retrieved = LegacyValidatorRegistry.get_validator("nonexistent")
         assert retrieved is None
 
     def test_get_validators_for_resource(
-        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+        self,
+        isolated_legacy_validator_registry: None,
+        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
     ) -> None:
         """Test retrieving validators for a specific resource type"""
         # Register validators for different resource types
@@ -173,7 +177,9 @@ class TestLegacyValidatorRegistry:
         assert operation_validators[0].identifier == "operation_validator"
 
     def test_find_validators_for_deprecated_field_paths(
-        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+        self,
+        isolated_legacy_validator_registry: None,
+        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
     ) -> None:
         """Test finding validators that handle specific field paths"""
         # Register validators with different field paths
@@ -243,7 +249,9 @@ class TestLegacyValidatorRegistry:
         assert validators[0].identifier == "validator3"
 
     def test_list_all(
-        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+        self,
+        isolated_legacy_validator_registry: None,
+        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
     ) -> None:
         """Test listing all validators"""
         metadata1 = create_validator_metadata(
@@ -324,11 +332,9 @@ class TestLegacyValidatorRegistry:
 class TestLegacyValidatorDecorator:
     """Test the @legacy_validator decorator"""
 
-    def setup_method(self) -> None:
-        """Clear the registry before each test"""
-        LegacyValidatorRegistry._validators = {}
-
-    def test_decorator_registers_validator(self) -> None:
+    def test_decorator_registers_validator(
+        self, isolated_legacy_validator_registry: None
+    ) -> None:
         """Test that the decorator registers the validator"""
 
         @legacy_validator(
@@ -351,7 +357,9 @@ class TestLegacyValidatorDecorator:
         result = my_validator(test_data)
         assert result == test_data
 
-    def test_decorator_preserves_function_metadata(self) -> None:
+    def test_decorator_preserves_function_metadata(
+        self, isolated_legacy_validator_registry: None
+    ) -> None:
         """Test that the decorator preserves function metadata"""
 
         @legacy_validator(

@@ -16,31 +16,9 @@ from orchestrator.metastore.project import ProjectContext
 class TestLegacyValidatorWithPydantic:
     """Test legacy validators working with pydantic models"""
 
-    def setup_method(self) -> None:
-        """Setup method - ensure validators are available before each test"""
-        # Always import validators to ensure they're registered
-        # This is safe because Python only executes module-level code once
-        import orchestrator.core.legacy.validators  # noqa: F401
-
-        # If validators have been cleared by previous tests, we need to restore them
-        # Since Python won't re-execute the @legacy_validator decorators on re-import,
-        # we need to save a copy on first access and restore it when needed
-        if not hasattr(self.__class__, "_initial_validators"):
-            # First time - save the validators
-            self.__class__._initial_validators = (
-                LegacyValidatorRegistry._validators.copy()
-            )
-        elif (
-            not LegacyValidatorRegistry._validators
-            or "csv_constitutive_columns_migration"
-            not in LegacyValidatorRegistry._validators
-        ):
-            # Validators were cleared - restore them
-            LegacyValidatorRegistry._validators = (
-                self.__class__._initial_validators.copy()
-            )
-
-    def test_validator_applied_during_model_validation(self) -> None:
+    def test_validator_applied_during_model_validation(
+        self, isolated_legacy_validator_registry: None
+    ) -> None:
         """Test that a legacy validator can be manually applied before pydantic validation"""
 
         # Define a simple pydantic model
@@ -75,7 +53,9 @@ class TestLegacyValidatorWithPydantic:
         model = OldModel.model_validate(migrated_data)
         assert model.new_field == "test_value"
 
-    def test_csv_sample_store_migration_validator(self) -> None:
+    def test_csv_sample_store_migration_validator(
+        self, legacy_validators_loaded: None
+    ) -> None:
         """Test the CSV sample store migration validator with realistic data"""
 
         # Get the validator (should be registered from setup_method)
@@ -116,7 +96,9 @@ class TestLegacyValidatorWithPydantic:
         assert "constitutivePropertyMap" in exp
         assert exp["constitutivePropertyMap"] == ["prop1", "prop2"]
 
-    def test_entitysource_to_samplestore_migration(self) -> None:
+    def test_entitysource_to_samplestore_migration(
+        self, legacy_validators_loaded: None
+    ) -> None:
         """Test the entitysource to samplestore kind migration"""
 
         # Import the validator to register it
@@ -146,7 +128,7 @@ class TestLegacyValidatorWithPydantic:
         assert migrated_data["type"] == "csv"
         assert migrated_data["identifier"] == "test_store"
 
-    def test_chained_validators(self) -> None:
+    def test_chained_validators(self, isolated_legacy_validator_registry: None) -> None:
         """Test applying multiple validators in sequence"""
 
         # Register two validators
@@ -198,21 +180,9 @@ class TestLegacyValidatorWithPydantic:
 class TestUpgradeHandlerIntegration:
     """Integration tests for ado upgrade with legacy validators via CLI"""
 
-    def setup_method(self) -> None:
-        """Setup - ensure validators are registered"""
-        import orchestrator.core.legacy.validators  # noqa: F401
-
-        if not hasattr(self.__class__, "_initial_validators"):
-            self.__class__._initial_validators = (
-                LegacyValidatorRegistry._validators.copy()
-            )
-        elif not LegacyValidatorRegistry._validators:
-            LegacyValidatorRegistry._validators = (
-                self.__class__._initial_validators.copy()
-            )
-
     def test_upgrade_applies_legacy_validator_via_cli(
         self,
+        legacy_validators_loaded: None,
         tmp_path: Path,
         valid_ado_project_context: ProjectContext,
         create_active_ado_context: Callable,
@@ -291,6 +261,7 @@ class TestUpgradeHandlerIntegration:
 
     def test_upgrade_rejects_mismatched_validator_type(
         self,
+        legacy_validators_loaded: None,
         tmp_path: Path,
         valid_ado_project_context: ProjectContext,
         create_active_ado_context: Callable,
@@ -378,6 +349,7 @@ class TestUpgradeHandlerIntegration:
 
     def test_upgrade_auto_resolves_validator_dependencies(
         self,
+        legacy_validators_loaded: None,
         tmp_path: Path,
         valid_ado_project_context: ProjectContext,
         create_active_ado_context: Callable,
@@ -514,7 +486,9 @@ class TestValidatorDataIntegrity:
         assert result["keep_field3"] == ["list", "of", "items"]
         assert result["keep_field4"] == {"nested": "dict"}
 
-    def test_validator_handles_missing_fields_gracefully(self) -> None:
+    def test_validator_handles_missing_fields_gracefully(
+        self, isolated_legacy_validator_registry: None
+    ) -> None:
         """Test that validators handle missing deprecated fields gracefully"""
 
         @legacy_validator(

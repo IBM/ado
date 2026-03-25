@@ -7,6 +7,8 @@ from collections.abc import Callable, Generator
 import pytest
 import ray
 
+from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+
 from .fixtures.core.datacontainer import *
 from .fixtures.core.samplestore import *
 from .fixtures.core.generators import *
@@ -51,3 +53,65 @@ def initialize_ray() -> Generator[None, None, None]:
     )
     yield
     ray.shutdown()
+
+
+@pytest.fixture
+def isolated_legacy_validator_registry() -> Generator[None, None, None]:
+    """Isolate the LegacyValidatorRegistry for each test.
+
+    This fixture ensures that modifications to the registry in one test
+    do not affect other tests, even when running with pytest -n auto.
+
+    The fixture:
+    1. Saves the current registry state before the test
+    2. Clears the registry for the test
+    3. Restores the original state after the test
+
+    Usage:
+        def test_something(isolated_legacy_validator_registry):
+            # Registry starts empty
+            # Register validators as needed for this test
+            # Changes won't affect other tests
+    """
+    # Save the current state
+    original_validators = LegacyValidatorRegistry._validators.copy()
+
+    # Clear for this test
+    LegacyValidatorRegistry._validators.clear()
+
+    try:
+        yield
+    finally:
+        # Restore original state
+        LegacyValidatorRegistry._validators = original_validators
+
+
+@pytest.fixture
+def legacy_validators_loaded() -> Generator[None, None, None]:
+    """Ensure legacy validators are loaded and isolated for the test.
+
+    This fixture:
+    1. Imports the validators module to trigger registration
+    2. Saves a copy of the registered validators
+    3. Provides isolation so test modifications don't affect other tests
+    4. Restores the validators after the test
+
+    Use this when your test needs the actual validators to be registered
+    (e.g., for integration tests that use real validators).
+
+    Usage:
+        def test_with_real_validators(legacy_validators_loaded):
+            # All validators are registered and available
+            # Test can use them without affecting other tests
+    """
+    # Import to trigger registration (safe - only runs once per process)
+    import orchestrator.core.legacy.validators  # noqa: F401
+
+    # Save the current state (includes all registered validators)
+    original_validators = LegacyValidatorRegistry._validators.copy()
+
+    try:
+        yield
+    finally:
+        # Restore to ensure other tests see the same state
+        LegacyValidatorRegistry._validators = original_validators

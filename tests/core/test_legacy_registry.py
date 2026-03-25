@@ -3,6 +3,10 @@
 
 """Unit tests for the legacy validator registry"""
 
+from collections.abc import Callable
+
+import pytest
+
 from orchestrator.core.legacy.metadata import LegacyValidatorMetadata
 from orchestrator.core.legacy.registry import (
     LegacyValidatorRegistry,
@@ -11,23 +15,65 @@ from orchestrator.core.legacy.registry import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
+@pytest.fixture
+def dummy_validator() -> Callable[[dict], dict]:
+    """Fixture providing a simple dummy validator function"""
+
+    def validator(data: dict) -> dict:
+        return data
+
+    return validator
+
+
+@pytest.fixture
+def create_validator_metadata(
+    dummy_validator: Callable[[dict], dict],
+) -> Callable[..., LegacyValidatorMetadata]:
+    """Fixture factory for creating LegacyValidatorMetadata instances"""
+
+    def _create_metadata(
+        identifier: str = "test_validator",
+        resource_type: CoreResourceKinds = CoreResourceKinds.SAMPLESTORE,
+        deprecated_field_paths: list[str] | None = None,
+        deprecated_from_version: str = "1.0.0",
+        removed_from_version: str = "2.0.0",
+        description: str = "Test validator",
+        validator_function: Callable[[dict], dict] | None = None,
+        dependencies: list[str] | None = None,
+    ) -> LegacyValidatorMetadata:
+        if deprecated_field_paths is None:
+            deprecated_field_paths = ["config.field1"]
+        if validator_function is None:
+            validator_function = dummy_validator
+        if dependencies is None:
+            dependencies = []
+
+        return LegacyValidatorMetadata(
+            identifier=identifier,
+            resource_type=resource_type,
+            deprecated_field_paths=deprecated_field_paths,
+            deprecated_from_version=deprecated_from_version,
+            removed_from_version=removed_from_version,
+            description=description,
+            validator_function=validator_function,
+            dependencies=dependencies,
+        )
+
+    return _create_metadata
+
+
 class TestLegacyValidatorMetadata:
     """Test the LegacyValidatorMetadata model"""
 
-    def test_create_metadata(self) -> None:
+    def test_create_metadata(
+        self,
+        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
+        dummy_validator: Callable[[dict], dict],
+    ) -> None:
         """Test creating validator metadata"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
-        metadata = LegacyValidatorMetadata(
+        metadata = create_validator_metadata(
             identifier="test_validator",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.field1", "config.field2"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
-            description="Test validator",
-            validator_function=dummy_validator,
         )
 
         assert metadata.identifier == "test_validator"
@@ -41,21 +87,11 @@ class TestLegacyValidatorMetadata:
         assert metadata.description == "Test validator"
         assert metadata.validator_function == dummy_validator
 
-    def test_metadata_serialization(self) -> None:
+    def test_metadata_serialization(
+        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+    ) -> None:
         """Test that validator function is excluded from serialization"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
-        metadata = LegacyValidatorMetadata(
-            identifier="test_validator",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.field1"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
-            description="Test validator",
-            validator_function=dummy_validator,
-        )
+        metadata = create_validator_metadata()
 
         # Serialize to dict
         data = metadata.model_dump()
@@ -73,42 +109,22 @@ class TestLegacyValidatorRegistry:
         """Clear the registry before each test"""
         LegacyValidatorRegistry._validators = {}
 
-    def test_register_validator(self) -> None:
+    def test_register_validator(
+        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+    ) -> None:
         """Test registering a validator"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
-        metadata = LegacyValidatorMetadata(
-            identifier="test_validator",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.field1"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
-            description="Test validator",
-            validator_function=dummy_validator,
-        )
+        metadata = create_validator_metadata()
 
         LegacyValidatorRegistry.register(metadata)
 
         assert len(LegacyValidatorRegistry._validators) == 1
         assert "test_validator" in LegacyValidatorRegistry._validators
 
-    def test_get_validator(self) -> None:
+    def test_get_validator(
+        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+    ) -> None:
         """Test retrieving a validator by identifier"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
-        metadata = LegacyValidatorMetadata(
-            identifier="test_validator",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.field1"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
-            description="Test validator",
-            validator_function=dummy_validator,
-        )
+        metadata = create_validator_metadata()
 
         LegacyValidatorRegistry.register(metadata)
 
@@ -121,31 +137,22 @@ class TestLegacyValidatorRegistry:
         retrieved = LegacyValidatorRegistry.get_validator("nonexistent")
         assert retrieved is None
 
-    def test_get_validators_for_resource(self) -> None:
+    def test_get_validators_for_resource(
+        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+    ) -> None:
         """Test retrieving validators for a specific resource type"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
         # Register validators for different resource types
-        metadata1 = LegacyValidatorMetadata(
+        metadata1 = create_validator_metadata(
             identifier="samplestore_validator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.field1"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
             description="Sample store validator",
-            validator_function=dummy_validator,
         )
 
-        metadata2 = LegacyValidatorMetadata(
+        metadata2 = create_validator_metadata(
             identifier="operation_validator",
             resource_type=CoreResourceKinds.OPERATION,
             deprecated_field_paths=["config.field2"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
             description="Operation validator",
-            validator_function=dummy_validator,
         )
 
         LegacyValidatorRegistry.register(metadata1)
@@ -165,41 +172,28 @@ class TestLegacyValidatorRegistry:
         assert len(operation_validators) == 1
         assert operation_validators[0].identifier == "operation_validator"
 
-    def test_find_validators_for_deprecated_field_paths(self) -> None:
+    def test_find_validators_for_deprecated_field_paths(
+        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+    ) -> None:
         """Test finding validators that handle specific field paths"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
         # Register validators with different field paths
-        metadata1 = LegacyValidatorMetadata(
+        metadata1 = create_validator_metadata(
             identifier="validator1",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.field1", "config.field2"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
             description="Validator 1",
-            validator_function=dummy_validator,
         )
 
-        metadata2 = LegacyValidatorMetadata(
+        metadata2 = create_validator_metadata(
             identifier="validator2",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.specification.field3"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
             description="Validator 2",
-            validator_function=dummy_validator,
         )
 
-        metadata3 = LegacyValidatorMetadata(
+        metadata3 = create_validator_metadata(
             identifier="validator3",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.properties"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
             description="Validator 3",
-            validator_function=dummy_validator,
         )
 
         LegacyValidatorRegistry.register(metadata1)
@@ -248,30 +242,20 @@ class TestLegacyValidatorRegistry:
         assert len(validators) == 1
         assert validators[0].identifier == "validator3"
 
-    def test_list_all(self) -> None:
+    def test_list_all(
+        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+    ) -> None:
         """Test listing all validators"""
-
-        def dummy_validator(data: dict) -> dict:
-            return data
-
-        metadata1 = LegacyValidatorMetadata(
+        metadata1 = create_validator_metadata(
             identifier="validator1",
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-            deprecated_field_paths=["config.field1"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
             description="Validator 1",
-            validator_function=dummy_validator,
         )
 
-        metadata2 = LegacyValidatorMetadata(
+        metadata2 = create_validator_metadata(
             identifier="validator2",
             resource_type=CoreResourceKinds.OPERATION,
             deprecated_field_paths=["config.field2"],
-            deprecated_from_version="1.0.0",
-            removed_from_version="2.0.0",
             description="Validator 2",
-            validator_function=dummy_validator,
         )
 
         LegacyValidatorRegistry.register(metadata1)

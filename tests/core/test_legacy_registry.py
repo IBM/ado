@@ -218,6 +218,92 @@ class TestLegacyValidatorRegistry:
         )
         assert len(validators) == 0
 
+    def test_find_validators_for_field_paths(self) -> None:
+        """Test finding validators that handle specific field paths"""
+
+        def dummy_validator(data: dict) -> dict:
+            return data
+
+        # Register validators with different field paths
+        metadata1 = LegacyValidatorMetadata(
+            identifier="validator1",
+            resource_type=CoreResourceKinds.SAMPLESTORE,
+            deprecated_fields=["field1", "field2"],
+            field_paths=["config.field1", "config.field2"],
+            deprecated_from_version="1.0.0",
+            removed_from_version="2.0.0",
+            description="Validator 1",
+            validator_function=dummy_validator,
+        )
+
+        metadata2 = LegacyValidatorMetadata(
+            identifier="validator2",
+            resource_type=CoreResourceKinds.SAMPLESTORE,
+            deprecated_fields=["field3"],
+            field_paths=["config.specification.field3"],
+            deprecated_from_version="1.0.0",
+            removed_from_version="2.0.0",
+            description="Validator 2",
+            validator_function=dummy_validator,
+        )
+
+        metadata3 = LegacyValidatorMetadata(
+            identifier="validator3",
+            resource_type=CoreResourceKinds.DISCOVERYSPACE,
+            deprecated_fields=["properties"],
+            field_paths=["config.properties"],
+            deprecated_from_version="1.0.0",
+            removed_from_version="2.0.0",
+            description="Validator 3",
+            validator_function=dummy_validator,
+        )
+
+        LegacyValidatorRegistry.register(metadata1)
+        LegacyValidatorRegistry.register(metadata2)
+        LegacyValidatorRegistry.register(metadata3)
+
+        # Find validators for single full path
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE, {"config.field1"}
+        )
+        assert len(validators) == 1
+        assert validators[0].identifier == "validator1"
+
+        # Find validators for nested path
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE, {"config.specification.field3"}
+        )
+        assert len(validators) == 1
+        assert validators[0].identifier == "validator2"
+
+        # Find validators for multiple paths
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE,
+            {"config.field1", "config.specification.field3"},
+        )
+        assert len(validators) == 2
+        validator_ids = {v.identifier for v in validators}
+        assert validator_ids == {"validator1", "validator2"}
+
+        # Find validators for non-existent path
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE, {"config.nonexistent"}
+        )
+        assert len(validators) == 0
+
+        # Verify it doesn't match on leaf names alone (more specific than find_validators_for_fields)
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE, {"field1"}  # Just leaf name, not full path
+        )
+        assert len(validators) == 0
+
+        # Verify resource type filtering works
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.DISCOVERYSPACE, {"config.properties"}
+        )
+        assert len(validators) == 1
+        assert validators[0].identifier == "validator3"
+
     def test_list_all(self) -> None:
         """Test listing all validators"""
 
@@ -249,6 +335,62 @@ class TestLegacyValidatorRegistry:
 
         all_validators = LegacyValidatorRegistry.list_all()
         assert len(all_validators) == 2
+
+    def test_field_path_matching_with_real_validators(self) -> None:
+        """Integration test: verify field path matching works with real validators"""
+        # Import validators to trigger registration
+        import orchestrator.core.legacy.validators  # noqa: F401
+
+        # Test 1: discoveryspace properties field should match the properties_field_removal validator
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.DISCOVERYSPACE, {"config.properties"}
+        )
+        assert len(validators) >= 1
+        validator_ids = {v.identifier for v in validators}
+        assert "discoveryspace_properties_field_removal" in validator_ids
+
+        # Test 2: operation actuators field should match the actuators_field_removal validator
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.OPERATION, {"config.actuators"}
+        )
+        assert len(validators) >= 1
+        validator_ids = {v.identifier for v in validators}
+        assert "operation_actuators_field_removal" in validator_ids
+
+        # Test 3: operation parameters.mode should match randomwalk validator
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.OPERATION, {"config.parameters.mode"}
+        )
+        assert len(validators) >= 1
+        validator_ids = {v.identifier for v in validators}
+        assert "randomwalk_mode_to_sampler_config" in validator_ids
+
+        # Test 4: samplestore config.moduleType should match the module_type validator
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE, {"config.moduleType"}
+        )
+        assert len(validators) >= 1
+        validator_ids = {v.identifier for v in validators}
+        assert "samplestore_module_type_entitysource_to_samplestore" in validator_ids
+
+        # Test 5: samplestore kind field should match the kind validator
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE, {"kind"}
+        )
+        assert len(validators) >= 1
+        validator_ids = {v.identifier for v in validators}
+        assert "samplestore_kind_entitysource_to_samplestore" in validator_ids
+
+        # Test 6: Multiple paths should return multiple validators
+        validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+            CoreResourceKinds.SAMPLESTORE,
+            {"config.moduleType", "config.moduleClass", "config.moduleName"},
+        )
+        assert len(validators) >= 3
+        validator_ids = {v.identifier for v in validators}
+        assert "samplestore_module_type_entitysource_to_samplestore" in validator_ids
+        assert "samplestore_module_class_entitysource_to_samplestore" in validator_ids
+        assert "samplestore_module_name_entitysource_to_samplestore" in validator_ids
 
 
 class TestLegacyValidatorDecorator:
@@ -331,5 +473,4 @@ class TestLegacyValidatorDecorator:
         assert "old_field" not in result2
         assert result2["new_field"] == "another_value"
 
-
-# Made with Bob
+    # Made with Bob

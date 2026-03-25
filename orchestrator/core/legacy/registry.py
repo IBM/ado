@@ -71,6 +71,28 @@ class LegacyValidatorRegistry:
         ]
 
     @classmethod
+    def find_validators_for_field_paths(
+        cls, resource_type: CoreResourceKinds, field_paths: set[str]
+    ) -> list[LegacyValidatorMetadata]:
+        """Find validators that handle specific field paths
+
+        Matches validators based on their declared field_paths, providing
+        more precise matching than deprecated_fields (leaf names).
+
+        Args:
+            resource_type: The resource type to filter by
+            field_paths: Set of full dotted paths (e.g., 'config.properties')
+
+        Returns:
+            List of validator metadata that handle any of the specified paths
+        """
+        return [
+            v
+            for v in cls.get_validators_for_resource(resource_type)
+            if any(path in v.field_paths for path in field_paths)
+        ]
+
+    @classmethod
     def list_all(cls) -> list[LegacyValidatorMetadata]:
         """List all registered validators
 

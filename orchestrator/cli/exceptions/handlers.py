@@ -99,10 +99,16 @@ def handle_validation_error_with_legacy_suggestions(
         console_print(f"Validation error: {error}", stderr=True)
         raise typer.Exit(1) from error
 
-    # Find applicable legacy validators using leaf field names for better matching
-    validators = LegacyValidatorRegistry.find_validators_for_fields(
-        resource_type=resource_type, field_names=leaf_field_names
+    # Find applicable legacy validators using full field paths for precise matching
+    validators = LegacyValidatorRegistry.find_validators_for_field_paths(
+        resource_type=resource_type, field_paths=full_field_paths
     )
+
+    # Fallback to leaf field name matching if no validators found with full paths
+    if not validators:
+        validators = LegacyValidatorRegistry.find_validators_for_fields(
+            resource_type=resource_type, field_names=leaf_field_names
+        )
 
     if not validators:
         # No legacy validators available, show standard error

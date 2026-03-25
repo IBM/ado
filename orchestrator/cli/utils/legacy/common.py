@@ -108,85 +108,91 @@ def print_validator_suggestions_with_dependencies(
 # Made with Bob
 
 
-def extract_deprecated_field_paths_from_validation_error(
-    error: pydantic.ValidationError,
+def extract_deprecated_field_paths(
+    error: pydantic.ValidationError | ValueError,
+    resource_type: "CoreResourceKinds | None" = None,
 ) -> tuple[set[str], dict[str, list[str]]]:
-    """Extract field paths and error details from pydantic validation errors
+    """Extract field paths and error details from validation errors
+
+    This function handles both pydantic ValidationError and ValueError types.
+    For ValueError, it attempts to extract an underlying pydantic ValidationError
+    from the error's __cause__. If that fails, it falls back to simple string
+    matching on the error message using known field paths from the legacy
+    validator registry (requires resource_type parameter).
 
     Args:
-        error: The pydantic validation error
+        error: The validation error (pydantic.ValidationError or ValueError)
+        resource_type: The resource type to get field paths for (required for
+            ValueError fallback to string matching)
 
     Returns:
         Tuple of (full field paths, field error details mapping)
         - full field paths: Set of full dotted paths like 'config.specification.module.moduleType'
         - field error details: Maps full field path to list of error messages
+
+    Raises:
+        ValueError: If error is a ValueError without a ValidationError cause and
+            resource_type is not provided
     """
     deprecated_field_paths: set[str] = set()
     field_errors: dict[str, list[str]] = {}
 
-    for err in error.errors():
-        if err.get("loc"):
-            # Build the full dotted path from the location tuple
-            full_path = ".".join(str(loc) for loc in err["loc"])
-            deprecated_field_paths.add(full_path)
+    # Handle pydantic ValidationError directly
+    if isinstance(error, pydantic.ValidationError):
+        for err in error.errors():
+            if err.get("loc"):
+                # Build the full dotted path from the location tuple
+                full_path = ".".join(str(loc) for loc in err["loc"])
+                deprecated_field_paths.add(full_path)
 
-            # Store the error message for this field path
-            if full_path not in field_errors:
-                field_errors[full_path] = []
+                # Store the error message for this field path
+                if full_path not in field_errors:
+                    field_errors[full_path] = []
 
-            # Build a descriptive error message
-            msg = err.get("msg", "")
-            if err.get("input"):
-                msg = f"{msg} (got: {err['input']})"
+                # Build a descriptive error message
+                msg = err.get("msg", "")
+                if err.get("input"):
+                    msg = f"{msg} (got: {err['input']})"
 
-            field_errors[full_path].append(msg)
+                field_errors[full_path].append(msg)
 
-    return deprecated_field_paths, field_errors
+        return deprecated_field_paths, field_errors
 
+    # Handle ValueError - try to extract pydantic ValidationError from __cause__
+    if isinstance(error, ValueError):
+        if hasattr(error, "__cause__") and isinstance(
+            error.__cause__, pydantic.ValidationError
+        ):
+            # Recursively handle the underlying ValidationError
+            return extract_deprecated_field_paths(error.__cause__, resource_type)
 
-def extract_deprecated_fields_from_value_error(
-    error: ValueError,
-    resource_type: "CoreResourceKinds",
-) -> tuple[set[str], dict[str, list[str]]]:
-    """Extract field paths from ValueError containing pydantic validation errors
+        # Fallback to simple string matching on error message
+        if resource_type is None:
+            raise ValueError(
+                "resource_type is required for ValueError without ValidationError cause"
+            )
 
-    This function attempts to extract the underlying pydantic ValidationError
-    from a ValueError and extract field paths from it. If that fails, it falls
-    back to simple string matching on the error message using known field paths
-    from the legacy validator registry.
+        from orchestrator.core.legacy.registry import LegacyValidatorRegistry
 
-    Args:
-        error: The ValueError that may contain a pydantic ValidationError
-        resource_type: The resource type to get field paths for
+        error_msg = str(error)
 
-    Returns:
-        Tuple of (full field paths, field error details mapping)
-    """
-    # Try to extract pydantic ValidationError from the ValueError
-    if hasattr(error, "__cause__") and isinstance(
-        error.__cause__, pydantic.ValidationError
-    ):
-        return extract_deprecated_field_paths_from_validation_error(error.__cause__)
+        # Get all field paths from registered validators for this resource type
+        validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
+        known_deprecated_field_paths = {
+            path
+            for validator in validators
+            for path in validator.deprecated_field_paths
+        }
 
-    # Fallback to simple string matching on error message
-    from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+        for field_path in known_deprecated_field_paths:
+            if field_path in error_msg:
+                deprecated_field_paths.add(field_path)
+                # For string matching fallback, we don't have detailed error messages
+                field_errors[field_path] = [
+                    "Field validation failed (details in error message)"
+                ]
 
-    error_msg = str(error)
-    deprecated_field_paths: set[str] = set()
-    field_errors: dict[str, list[str]] = {}
+        return deprecated_field_paths, field_errors
 
-    # Get all field paths from registered validators for this resource type
-    validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
-    known_deprecated_field_paths = {
-        path for validator in validators for path in validator.deprecated_field_paths
-    }
-
-    for field_path in known_deprecated_field_paths:
-        if field_path in error_msg:
-            deprecated_field_paths.add(field_path)
-            # For string matching fallback, we don't have detailed error messages
-            field_errors[field_path] = [
-                "Field validation failed (details in error message)"
-            ]
-
-    return deprecated_field_paths, field_errors
+    # Should not reach here due to type hints, but handle gracefully
+    raise TypeError(f"Unsupported error type: {type(error)}")

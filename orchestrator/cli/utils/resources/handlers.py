@@ -439,7 +439,7 @@ def _handle_upgrade_validation_error(
     from rich.console import Console
 
     from orchestrator.cli.utils.legacy.common import (
-        extract_deprecated_fields_from_value_error,
+        extract_deprecated_field_paths,
         print_validator_suggestions_with_dependencies,
     )
     from orchestrator.core.legacy.registry import LegacyValidatorRegistry
@@ -450,7 +450,7 @@ def _handle_upgrade_validation_error(
     import orchestrator.core.legacy.validators  # noqa: F401
 
     # Extract field paths and error details from the error
-    deprecated_field_paths, field_errors = extract_deprecated_fields_from_value_error(
+    deprecated_field_paths, field_errors = extract_deprecated_field_paths(
         error, resource_type
     )
 

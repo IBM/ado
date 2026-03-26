@@ -19,23 +19,28 @@ The main skill is
 [examining-ado-operations](../skills/examining-ado-operations). This will
 provide the basis for the analysis.
 
-Also see using-ado-cli, query-ado-data, formulate-discovery-problem
+Also see
+
+- using-ado-cli
+- query-ado-data
+- resource-yaml-creation
 
 ## Workflow
 
-- Use [examining-ado-operations](../skills/examining-ado-operations) to get
-  overview of the operation(s) in question
-- Determine if further analysis is required
-- If yes, before coding any analysis scripts
-  - Check available ado operators (ado get operators --details) to see if any
-    should be applied
-  - Check available ado operators if any should be extended with necessary
-    analysis
-  - Plan with user if they want to develop the necessary analysis as an operator
-    or just go ahead with inpdendent scripts
-- Execute the analysis
-- Produce a plan for next research steps using ado.
-  - Interact with user if input is required to refine plan
+1. Use [examining-ado-operations](../skills/examining-ado-operations) to get
+  an overview of the operation(s) in question
+2. Determine if further analysis is required
+   - IMPORTANT: If **yes**, before coding any analysis scripts
+     - Check available ado operators (ado get operators --details) to see if any
+       should be applied
+     - Check if ado operators can be extended to perform the analysis to it
+3. Implement the analysis necessary - **preferring** operator extension if possible
+4. Execute the analysis (scripts or ado operations)
+   - IMPORTANT:
+     - Report the analyses run to the user
+     - Report scripts created if any and what they do
+     - Report operators extended if any and how
+5. Produce a plan for next research steps using ado.
 
 ## References
 

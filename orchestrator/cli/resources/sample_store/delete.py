@@ -28,16 +28,14 @@ def delete_sample_store(parameters: AdoDeleteCommandParameters) -> None:
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as spinner:
-
-        try:
-            sql.getResource(
-                identifier=parameters.resource_id,
-                kind=CoreResourceKinds.SAMPLESTORE,
-                raise_error_if_no_resource=True,
-            )
-        except ResourceDoesNotExistError:
+        if not sql.containsResourceWithIdentifier(
+            identifier=parameters.resource_id,
+            kind=CoreResourceKinds.SAMPLESTORE,
+        ):
             spinner.stop()
-            raise
+            raise ResourceDoesNotExistError(
+                resource_id=parameters.resource_id, kind=CoreResourceKinds.SAMPLESTORE
+            )
 
         children_resources = sql.getRelatedObjectResourceIdentifiers(
             identifier=parameters.resource_id

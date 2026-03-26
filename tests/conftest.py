@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import importlib
 import uuid
 from collections.abc import Callable, Generator
 
@@ -92,20 +93,27 @@ def legacy_validators_loaded() -> Generator[None, None, None]:
 
     This fixture:
     1. Imports the validators module to trigger registration
-    2. Saves a copy of the registered validators
-    3. Provides isolation so test modifications don't affect other tests
-    4. Restores the validators after the test
+    2. Uses importlib.reload() to force re-execution even if cached
+    3. Saves a copy of the registered validators
+    4. Provides isolation so test modifications don't affect other tests
+    5. Restores the validators after the test
 
     Use this when your test needs the actual validators to be registered
     (e.g., for integration tests that use real validators).
+
+    IMPORTANT: We use importlib.reload() to ensure the module is re-executed
+    even if it was previously imported and cached by Python or pytest-xdist workers.
 
     Usage:
         def test_with_real_validators(legacy_validators_loaded):
             # All validators are registered and available
             # Test can use them without affecting other tests
     """
-    # Import to trigger registration (safe - only runs once per process)
-    import orchestrator.core.legacy.validators  # noqa: F401
+    # Import to trigger registration
+    import orchestrator.core.legacy.validators
+
+    # Force reload to ensure decorators execute even if module was cached
+    importlib.reload(orchestrator.core.legacy.validators)
 
     # Save the current state (includes all registered validators)
     original_validators = LegacyValidatorRegistry._validators.copy()

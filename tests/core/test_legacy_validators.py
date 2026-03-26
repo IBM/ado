@@ -3,14 +3,18 @@
 
 """Integration tests for legacy validators with pydantic models and upgrade process"""
 
+import sqlite3
 from collections.abc import Callable
 from pathlib import Path
 
 import pydantic
+import pytest
 
 from orchestrator.core.legacy.registry import LegacyValidatorRegistry, legacy_validator
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
+
+sqlite3_version = sqlite3.sqlite_version_info
 
 
 class TestLegacyValidatorWithPydantic:
@@ -180,6 +184,7 @@ class TestLegacyValidatorWithPydantic:
 class TestUpgradeHandlerIntegration:
     """Integration tests for ado upgrade with legacy validators via CLI"""
 
+    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_upgrade_applies_legacy_validator_via_cli(
         self,
         legacy_validators_loaded: None,
@@ -347,6 +352,12 @@ class TestUpgradeHandlerIntegration:
             "unknown" in result.output.lower() or "not found" in result.output.lower()
         )
 
+    # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
+    # ref: https://sqlite.org/json1.html#jptr
+    @pytest.mark.skipif(
+        sqlite3_version < (3, 38, 0),
+        reason="SQLite version 3.38.0 or higher is required",
+    )
     def test_upgrade_auto_resolves_validator_dependencies(
         self,
         legacy_validators_loaded: None,

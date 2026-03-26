@@ -4,6 +4,7 @@
 """Integration tests for Phase 1 transaction safety in upgrade handler"""
 
 import json
+import sqlite3
 
 import pytest
 import sqlalchemy
@@ -23,11 +24,13 @@ from orchestrator.core.samplestore.config import (
 from orchestrator.core.samplestore.resource import SampleStoreResource
 from orchestrator.metastore.project import ProjectContext
 
+sqlite3_version = sqlite3.sqlite_version_info
+
 
 class TestUpgradeTransactionSafety:
     """Test transaction safety in upgrade handler - validate-all-before-save pattern"""
 
-    @pytest.mark.parametrize("valid_ado_project_context", ["sqlite"], indirect=True)
+    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_all_resources_validated_before_any_saved(
         self,
         isolated_legacy_validator_registry: None,
@@ -135,7 +138,7 @@ class TestUpgradeTransactionSafety:
         assert "old_field" not in upgraded_res1["config"]["metadata"]
         assert "old_field" not in upgraded_res2["config"]["metadata"]
 
-    @pytest.mark.parametrize("valid_ado_project_context", ["sqlite"], indirect=True)
+    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_validation_failure_prevents_all_saves(
         self,
         valid_ado_project_context: ProjectContext,
@@ -254,6 +257,7 @@ class TestUpgradeTransactionSafety:
         assert "new_field" not in current_res1["config"]["metadata"]
         assert "new_field" not in current_res2["config"]["metadata"]
 
+    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_empty_resource_list_handled_gracefully(
         self,
         valid_ado_project_context: ProjectContext,

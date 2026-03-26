@@ -306,21 +306,16 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
 ## Using the OrderedPip Ray Runtime Environment Plugin
 
 The `OrderedPipPlugin` is a Ray RuntimeEnvPlugin that enables you to control the
-installation order of Python packages. This is particularly useful for packages
-that require other packages to be installed during their **build phase**, not
-just at runtime.
+build order of Python packages. This is useful when installing packages packages
+with build-time dependencies. For example, `mamba-ssm` and `torch`.
 
-### Why OrderedPip is Needed
+### Configuration Details
 
-Some Python packages, such as `flash-attn`, `mamba-ssm`, and `causal-conv1d`,
-import packages during their wheel building process like `torch`. During
-standard pip installation, these packages may install a different version of
-`torch` than the desired one because `torch` is not yet available in the
-environment. The `OrderedPipPlugin` solves this by allowing you to install
-packages in multiple phases, ensuring that build-time dependencies are
-available when needed.
-
-#### Configuration Details
+> [!IMPORTANT]
+>
+> Each entry in `phases` uses the **identical schema** as Ray's standard `pip`
+> runtime environment field. If you know how to configure `pip`, you already
+> know how to configure each phase in `ordered_pip`.
 
 The `ordered_pip` runtime environment accepts a dictionary with a `phases` key:
 
@@ -330,17 +325,10 @@ The `ordered_pip` runtime environment accepts a dictionary with a `phases` key:
   - A dictionary with `packages` and optional `pip_install_options` fields
   - Any other valid `pip` specification format
 
-> [!IMPORTANT]
->
-> Each entry in `phases` uses the **identical schema** as Ray's standard `pip`
-> runtime environment field. If you know how to configure `pip`, you already
-> know how to configure each phase in `ordered_pip`.
-
 ### Availability
 
-The `OrderedPipPlugin` is pre-installed in ado Docker images (both CPU and GPU
-variants). It is also available in any local virtual environment that has
-`ado-core` installed. However, it is switched off by default.
+The `OrderedPipPlugin` is pre-installed in ado Docker images.
+However, it is switched off by default.
 
 ### Enabling the Plugin
 
@@ -350,12 +338,6 @@ variable before starting Ray:
 ```bash
 export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 ```
-
-> [!NOTE]
->
-> Even if you are using ado Docker images for your RayCluster, or if you have
-> `ado-core` installed in your local virtual environment, the plugin is not
-> switched on by default. You need to set the environment variable to enable it.
 
 ### Usage Examples
 

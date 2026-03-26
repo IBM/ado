@@ -22,6 +22,7 @@ from orchestrator.cli.utils.output.prints import (
     ADO_SPINNER_QUERYING_DB,
     ADO_SPINNER_SAVING_TO_DB,
     ERROR,
+    INFO,
     SUCCESS,
     console_print,
     cyan,
@@ -397,7 +398,7 @@ def handle_ado_upgrade(
                     stderr=True,
                 )
                 console_print(
-                    f"{ERROR}No resources were modified (all-or-nothing transaction safety)",
+                    f"{INFO}No resources were modified (all-or-nothing transaction safety)",
                     stderr=True,
                 )
                 raise typer.Exit(1) from e

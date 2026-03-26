@@ -125,9 +125,9 @@ def migrate_module_name(data: dict) -> dict:
     """Convert moduleName paths from entitysource to samplestore
 
     This validator checks for moduleName field within the config.specification.module
-    and converts paths from entitysource to samplestore using exact matching.
+    and converts paths from entitysource to samplestore using substring replacement.
 
-    Only exact matches are migrated:
+    Migrates any path containing the old module names:
         config:
             specification:
                 module:
@@ -137,12 +137,8 @@ def migrate_module_name(data: dict) -> dict:
                     moduleName: "orchestrator.plugins.entitysources"
                     -> "orchestrator.plugins.samplestores"
 
-    Submodules or partial matches are NOT migrated:
-        config:
-            specification:
-                module:
                     moduleName: "orchestrator.core.entitysource.csv"
-                    -> unchanged (not an exact match)
+                    -> "orchestrator.core.samplestore.csv"
 
     Args:
         data: The resource data dictionary
@@ -162,12 +158,15 @@ def migrate_module_name(data: dict) -> dict:
     # Check and update config.specification.module.moduleName
     if has_nested_field(data, "config.specification.module.moduleName"):
         module_name = get_nested_value(data, "config.specification.module.moduleName")
-        if isinstance(module_name, str) and module_name in path_mappings:
-            set_nested_value(
-                data,
-                "config.specification.module.moduleName",
-                path_mappings[module_name],
-            )
+        if isinstance(module_name, str):
+            for old_path, new_path in path_mappings.items():
+                if old_path in module_name:
+                    set_nested_value(
+                        data,
+                        "config.specification.module.moduleName",
+                        module_name.replace(old_path, new_path),
+                    )
+                    break
 
     return data
 

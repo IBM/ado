@@ -242,4 +242,49 @@ def migrate_module_name(data: dict) -> dict:
     return data
 
 
+@legacy_validator(
+    identifier="samplestore_remove_specification_storage_location",
+    resource_type=CoreResourceKinds.SAMPLESTORE,
+    deprecated_field_paths=[
+        "config.specification.storageLocation",
+        "config.copyFrom.0.storageLocation",
+    ],
+    deprecated_from_version="0.9.6",
+    removed_from_version="1.0.0",
+    description="Removes deprecated config.specification.storageLocation field",
+)
+def remove_specification_storage_location(data: dict) -> dict:
+    """Remove deprecated config.specification.storageLocation field
+
+    The storageLocation field was moved from config.specification to the top level
+    of the specification. This validator removes the old nested location.
+
+    Old format:
+        config:
+            specification:
+                storageLocation: {...}
+
+    New format:
+        config:
+            specification:
+                # storageLocation removed from here
+
+    Args:
+        data: The resource data dictionary
+
+    Returns:
+        The migrated resource data dictionary
+    """
+
+    if not isinstance(data, dict):
+        return data
+
+    # Remove config.specification.storageLocation if it exists
+    from orchestrator.core.legacy.utils import remove_nested_field
+
+    remove_nested_field(data, "config.specification.storageLocation")
+
+    return data
+
+
 # Made with Bob

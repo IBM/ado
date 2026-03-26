@@ -15,6 +15,11 @@ from orchestrator.core.resources import CoreResourceKinds
     deprecated_from_version="0.9.6",
     removed_from_version="1.0.0",
     description="Converts resource kind from 'entitysource' to 'samplestore'",
+    dependencies=[
+        "samplestore_module_type_entitysource_to_samplestore",
+        "samplestore_module_class_entitysource_to_samplestore",
+        "samplestore_module_name_entitysource_to_samplestore",
+    ],
 )
 def migrate_entitysource_kind_to_samplestore(data: dict) -> dict:
     """Migrate old entitysource kind to samplestore

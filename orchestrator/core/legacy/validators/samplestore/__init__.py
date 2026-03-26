@@ -5,9 +5,14 @@
 
 from orchestrator.core.legacy.validators.samplestore import (
     entitysource_migrations,
+    gt4sd_transformer_migration,
     v1_to_v2_csv_migration,
 )
 
-__all__ = ["entitysource_migrations", "v1_to_v2_csv_migration"]
+__all__ = [
+    "entitysource_migrations",
+    "gt4sd_transformer_migration",
+    "v1_to_v2_csv_migration",
+]
 
 # Made with Bob

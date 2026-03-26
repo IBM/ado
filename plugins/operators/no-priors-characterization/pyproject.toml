@@ -18,9 +18,9 @@ no-priors-characterization = "no_priors_characterization.operator"
 requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
-packages = ["no_priors_characterization"]
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["no_priors_characterization*"]
 
 [tool.setuptools_scm]
 root = "../../../"

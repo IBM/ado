@@ -107,7 +107,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # Ignore `S108` (Probable insecure usage of temporary file or directory)
 # Ignore `S311` (Standard pseudo-random generators are not suitable for cryptographic purposes)
 "tests/*" = ["S101", "S105", "S106", "S108", "S311"]
-"plugins/operators/trim/trim/test/*" = ["S101"]
+"plugins/operators/trim/tests/*" = ["S101"]
 "plugins/custom_experiments/autoconf/autoconf/test/*" = ["S101"]
 "plugins/actuators/sfttrainer/ado_actuators/sfttrainer/tests/*" = ["S101"]
 # Here we are also testing type inference, annotations may be missing

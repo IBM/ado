@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import importlib
 import uuid
 from collections.abc import Callable, Generator
 
@@ -56,6 +55,24 @@ def initialize_ray() -> Generator[None, None, None]:
     ray.shutdown()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def session_legacy_validators() -> dict:
+    """Load legacy validators once per session and return a copy.
+
+    This session-scoped fixture ensures validators are loaded once at the start
+    of the test session and the registered validators are saved. This copy can
+    then be used by test-scoped fixtures to reset the registry state.
+
+    Returns:
+        A dictionary copy of all registered validators
+    """
+    # Import to trigger registration - this happens once per test session
+    import orchestrator.core.legacy.validators  # noqa: F401
+
+    # Return a copy of the registered validators
+    return LegacyValidatorRegistry._validators.copy()
+
+
 @pytest.fixture
 def isolated_legacy_validator_registry() -> Generator[None, None, None]:
     """Isolate the LegacyValidatorRegistry for each test.
@@ -88,38 +105,34 @@ def isolated_legacy_validator_registry() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def legacy_validators_loaded() -> Generator[None, None, None]:
+def legacy_validators_loaded(
+    session_legacy_validators: dict,
+) -> Generator[None, None, None]:
     """Ensure legacy validators are loaded and isolated for the test.
 
     This fixture:
-    1. Imports the validators module to trigger registration
-    2. Uses importlib.reload() to force re-execution even if cached
-    3. Saves a copy of the registered validators
-    4. Provides isolation so test modifications don't affect other tests
-    5. Restores the validators after the test
+    1. Resets the registry to the session state (all validators loaded)
+    2. Allows the test to run (potentially modifying the registry)
+    3. Restores the registry to the session state after the test
 
-    Use this when your test needs the actual validators to be registered
-    (e.g., for integration tests that use real validators).
+    This ensures:
+    - All validators are available to the test
+    - Test modifications don't affect other tests
+    - Consistent behavior across pytest-xdist workers
 
-    IMPORTANT: We use importlib.reload() to ensure the module is re-executed
-    even if it was previously imported and cached by Python or pytest-xdist workers.
+    The session_legacy_validators fixture loads validators once per test session,
+    and this fixture resets to that known-good state before and after each test.
 
     Usage:
         def test_with_real_validators(legacy_validators_loaded):
             # All validators are registered and available
             # Test can use them without affecting other tests
     """
-    # Import to trigger registration
-    import orchestrator.core.legacy.validators
-
-    # Force reload to ensure decorators execute even if module was cached
-    importlib.reload(orchestrator.core.legacy.validators)
-
-    # Save the current state (includes all registered validators)
-    original_validators = LegacyValidatorRegistry._validators.copy()
+    # Reset registry to session state before test
+    LegacyValidatorRegistry._validators = session_legacy_validators.copy()
 
     try:
         yield
     finally:
-        # Restore to ensure other tests see the same state
-        LegacyValidatorRegistry._validators = original_validators
+        # Restore registry to session state after test
+        LegacyValidatorRegistry._validators = session_legacy_validators.copy()

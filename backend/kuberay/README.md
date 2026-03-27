@@ -134,6 +134,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '1'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 1}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -173,6 +175,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '2'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 2}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -212,6 +216,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '4'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 4}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -251,6 +257,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '8'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 8, \"full-worker\": 1}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -305,79 +313,31 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
 
 ## Using the OrderedPip Ray Runtime Environment Plugin
 
-The `OrderedPipPlugin` is a Ray RuntimeEnvPlugin that enables you to control the
-build order of Python packages. This is useful when installing packages packages
-with build-time dependencies. For example, `mamba-ssm` and `torch`.
-
-### Configuration Details
-
-> [!IMPORTANT]
->
-> Each entry in `phases` uses the **identical schema** as Ray's standard `pip`
-> runtime environment field. If you know how to configure `pip`, you already
-> know how to configure each phase in `ordered_pip`.
-
-The `ordered_pip` runtime environment accepts a dictionary with a `phases` key:
-
-- **`phases`**: A list where **each element follows the exact same schema as the
-  standard Ray `pip` field**. This means each phase can be:
-  - A list of package names (e.g., `["torch==2.6.0"]`)
-  - A dictionary with `packages` and optional `pip_install_options` fields
-  - Any other valid `pip` specification format
-
-### Availability
-
-The `OrderedPipPlugin` is pre-installed in ado Docker images.
-However, it is switched off by default.
+The `OrderedPipPlugin` is a Ray RuntimeEnvPlugin bundled with `ado-core` that
+enables you to control the build order of Python packages. This is useful when
+installing packages with build-time dependencies, such as `mamba-ssm` which
+requires `torch` to be installed before it can be built.
 
 ### Enabling the Plugin
 
 To enable the `OrderedPipPlugin`, set the `RAY_RUNTIME_ENV_PLUGINS` environment
-variable before starting Ray:
+variable before starting the Ray head node and workers:
 
 ```bash
 export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
 ```
 
-### Usage Examples
+When deploying a RayCluster via KubeRay, add this environment variable to both
+head and worker node configurations (see examples below).
 
-#### Using ordered_pip in Python Code
+### Documentation and Usage
 
-Here's a complete example showing how to use `ordered_pip` in a Ray task:
+For detailed documentation, configuration details, and usage examples, see the
+[OrderedPip Plugin README](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md).
 
-```python
-import ray
+### Example: Using ordered_pip with ray job submit
 
-@ray.remote(
-    runtime_env={
-        "ordered_pip": {
-            "phases": [
-                # Phase 1: Install PyTorch first
-                ["torch==2.6.0"],
-                # Phase 2: Install packages that depend on PyTorch during build
-                {
-                    "packages": ["mamba-ssm==2.2.5"],
-                    # IMPORTANT.
-                    # --no-build-isolation tells pip to build the wheel
-                    # in the same venv where torch is already installed
-                    "pip_install_options": ["--no-build-isolation"],
-                }
-            ]
-        }
-    }
-)
-def my_task():
-    import torch
-    import mamba_ssm
-    return torch.__version__
-
-result = ray.get(my_task.remote())
-print(f"PyTorch version: {result}")
-```
-
-#### Using ordered_pip with ray job submit
-
-You can also use `ordered_pip` with `ray job submit` by providing a runtime
+You can use `ordered_pip` with `ray job submit` by providing a runtime
 environment YAML file:
 
 ```yaml
@@ -403,14 +363,7 @@ Then submit your job with:
 ray job submit --runtime-env-json ray_runtime_env.yaml -- python my_script.py
 ```
 
-**Key points:**
-
-- Phases execute sequentially in the order specified
-- All phases reuse the same virtual environment
-- The `--no-build-isolation` flag is critical for packages that need build-time
-  dependencies. It instructs pip to build wheels in the existing virtual
-  environment rather than in an isolated one
-- Package order within a phase doesn't matter, but the order of phases does
-
-Actuators like `SFTTrainer` automatically use `OrderedPipPlugin` when available
-to ensure correct installation of their dependencies.
+> [!NOTE]
+>
+> Actuators like `SFTTrainer` automatically use `OrderedPipPlugin` when available
+> to ensure correct installation of their dependencies.

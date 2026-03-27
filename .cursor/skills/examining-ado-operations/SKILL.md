@@ -16,8 +16,11 @@ Structured workflow for understanding what an operation did, which space it ran
 on, and whether measurements and results look healthy.
 
 - Run all commands from the **repository root** with `uv run`.
-- Write the report to a md file in the following directory (create if it does
-  not exist) `reports/$CONTEXT_NAME/$OPERATIONID_$DATE_report.md`
+- Write the report to `reports/<ado_context_name>/` (create the
+directory if needed)
+  - where `ado_context_name` is the
+    **active ado metastore context** (`uv run ado context`)
+- Write the report as `<OPERATIONID>_<YYYY-MM-DD>_report.md`
 
 **Related skills**:
 
@@ -59,6 +62,7 @@ for same YAML.
 
 ## General Workflow
 
+- Run Steps 1 and 2 first
 - Steps 3, 4 and 5 can be run in parallel
 - Step 6 depends on Step 5
 
@@ -100,7 +104,7 @@ failure. In this case:
 If the operation is finished,
 
 - check if there is an existing report for this operation in
-  `reports/$CONTEXT_NAME`
+  `reports/<ado_context_name>/`
 - if yes, check if that report indicated the operation was finished
   - if yes, ask the user if they want to replace it with a new report
   - if no, continue with creating new report

@@ -15,8 +15,11 @@ Structured workflow for understanding what a discoveryspace contains, how
 covered its entity space is, and what data has been collected.
 
 - Run all commands from the **repository root** with `uv run`.
-- Write the report to a md file in the following directory (create if it does
-  not exist) `reports/$CONTEXT_NAME/$SPACEID_$DATE_report.md`
+- Write the report to `reports/<ado_context_name>/` (create the
+directory if needed)
+  - where `ado_context_name` is the
+    **active ado metastore context** (`uv run ado context`)
+- Write the report as `<SPACEID>_<YYYY-MM-DD>_report.md`
 
 **Related skills**:
 
@@ -84,7 +87,8 @@ for same YAML.
 
 ## Workflow
 
-Steps 4,5 and 6 can be run in parallel.
+Run Step 2 and 3 first.
+Then steps 4,5 and 6 can be run in parallel.
 
 ### Step 1: Get Space YAML
 
@@ -130,7 +134,8 @@ overlapping spaces exist.
 
 ### Step 3: Check for existing report
 
-- check if there is an existing report for this space in `reports/$CONTEXT_NAME`
+- check if there is an existing report for this space in
+  `reports/<ado_context_name>/`
 - if yes, check if either of the following are true
   - New operations have been run on space since report
   - The number of measured entities has increased

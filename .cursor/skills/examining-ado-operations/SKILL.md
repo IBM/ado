@@ -13,8 +13,11 @@ description: >-
 # Examining ADO operations
 
 Structured workflow for understanding what an operation did, which space it ran
-on, and whether measurements and results look healthy. Run all commands from the
-**repository root** with `uv run`.
+on, and whether measurements and results look healthy.
+
+- Run all commands from the **repository root** with `uv run`.
+- Write the report to a md file in the following directory (create if it does
+  not exist) `reports/$CONTEXTNAME/$OPERTATIONID_$DATE_report.md`
 
 **Related skills**:
 
@@ -56,8 +59,8 @@ for same YAML.
 
 ## General Workflow
 
-- Steps 2, 3 and 4 can be run in parallel
-- Step 5 depends on Step 4
+- Steps 3, 4 and 5 can be run in parallel
+- Step 6 depends on Step 5
 
 ### Step 1: Get the operation YAML
 
@@ -92,7 +95,17 @@ failure. In this case:
    specific techniques in Explore Operation Workflow to determine if its still
    running
 
-### Step 2: Review the operator
+### Step 2: Check for existing report
+
+If the operation is finished,
+
+- check if there is an existing report for this operation in
+  `reports/$CONTEXT_NAME`
+- if yes, check if that report indicated the operation was finished
+  - if yes, ask the user if they want to replace it with a new report
+  - if no, continue with creating new report
+
+### Step 3: Review the operator
 
 Each operation is run by an operator. The operators name is retrieved in
 previous step (operatorIdentifier)
@@ -114,7 +127,7 @@ uv run ado template operation --operator-name $OPERATOR_IDENTIFIER --include-sch
 This will create a file called operation*template*$UID_schema.yaml containing
 the schema.
 
-### Step 3: Describe the space
+### Step 4: Describe the space
 
 Using the space id from step 1
 
@@ -129,7 +142,7 @@ metadata. For deeper context, read operator and experiment documentation under
 `website/docs/operators/` and actuator/experiment docs as needed (match
 **operatorIdentifier** and experiment types from the space).
 
-### Step 4: Get the output resources of the operation
+### Step 5: Get the output resources of the operation
 
 Operations can create other resources. To identify these
 
@@ -143,7 +156,7 @@ the operation.
 From step 1 you know the input resource identifiers so you can work out the
 output identifiers.
 
-### Step 5: Examine the output resources of the operation (if any)
+### Step 6: Examine the output resources of the operation (if any)
 
 An operation can create the following resources
 

@@ -2,8 +2,8 @@
 name: operation-analyzer
 description:
   Analyzes the results of ado operations on discovery spaces and plans next
-  research steps. Use proactively when the user wants to analyze an operation,
-  understand measurement outcomes, and decide what to do next
+  research steps. Delegate to instances of this agent when the user want
+  to analyse a large number of operations in parallel. 
 ---
 
 # Operation Examiner
@@ -27,8 +27,7 @@ Also see
 
 ## Workflow
 
-1. Use [examining-ado-operations](../skills/examining-ado-operations) to get
-  an overview of the operation(s) in question
+1. Examine the operation
 2. Determine if further analysis is required
    - IMPORTANT: If **yes**, before coding any analysis scripts
      - Check available ado operators (ado get operators --details) to see if any
@@ -40,7 +39,7 @@ Also see
      - Report the analyses run to the user
      - Report scripts created if any and what they do
      - Report operators extended if any and how
-5. Produce a plan for next research steps using ado.
+5. Produce a report with next-steps as outlined in examining-ado-operations
 
 ## References
 

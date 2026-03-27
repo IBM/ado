@@ -12,8 +12,11 @@ description: >-
 # Examining ado Discovery Spaces
 
 Structured workflow for understanding what a discoveryspace contains, how
-covered its entity space is, and what data has been collected. Run all commands
-from the **repository root** with `uv run`.
+covered its entity space is, and what data has been collected.
+
+- Run all commands from the **repository root** with `uv run`.
+- Write the report to a md file in the following directory (create if it does
+  not exist) `reports/$CONTEXTNAME/$SPACEID_$DATE_report.md`
 
 **Related skills**:
 
@@ -80,7 +83,7 @@ for same YAML.
 
 ## Workflow
 
-Steps 2,3,4 can be run in parallel. Step 5 depends on step 2
+Steps 4,5 and 6 can be run in parallel.
 
 ### Step 1: Get Space YAML
 
@@ -96,6 +99,8 @@ Extract and summarise:
   continuous), and their domains/values
 - **experiments**: actuator and experiment identifiers that define what can be
   measured, and which target properties each experiment produces
+
+Check if there is a pre-existing report
 
 ### Step 2: Sampling coverage and related resources
 
@@ -124,7 +129,18 @@ overlapping spaces exist.
 > **Performance note**: `ado show details space` is slow as it fetches and
 > aggregates entity data. Use only when sampling coverage is needed.
 
-### Step 3: Find Similar spaces
+### Step 3: Check for existing report
+
+- check if there is an existing report for this space in `reports/$CONTEXT_NAME`
+- if yes, check if either of the following are true
+  - New operations have been run on space since report
+  - The number of measured entities has increased
+- If neither of above are true as the user if they want to write a new report or
+  use existing
+  - As nothing has changed, the only purpose of creating a new report is if a
+    different agent is being used
+
+### Step 4: Find Similar spaces
 
 `ado get space --matching-space-id SPACE_ID --details` finds spaces with the
 same entity structure. Use this to understand research progression and why this
@@ -134,7 +150,7 @@ space was created.
 uv run ado get space --matching-space-id SPACE_ID --details
 ```
 
-### Step 4: Export Measurement Data
+### Step 5: Export Measurement Data
 
 ```bash
 uv run ado show entities space SPACE_ID \
@@ -153,7 +169,7 @@ typically required unless you want to analyse the unsampled portion.
 Perform quick analysis: distributions, outliers, correlations between parameters
 and target properties.
 
-### Step 5: Examine Related Operations
+### Step 6: Examine Related Operations
 
 For each related operation (output in step 2), use the
 [examining-ado-operations](../examining-ado-operations/SKILL.md) skill to

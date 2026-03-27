@@ -16,10 +16,10 @@ Structured workflow for understanding what an operation did, which space it ran
 on, and whether measurements and results look healthy.
 
 - Run all commands from the **repository root** with `uv run`.
-- Write the report to `reports/<ado_context_name>/` (create the
-directory if needed)
-  - where `ado_context_name` is the
-    **active ado metastore context** (`uv run ado context`)
+- Write the report to `reports/<ado_context_name>/` (create the directory if
+  needed)
+  - where `ado_context_name` is the **active ado metastore context**
+    (`uv run ado context`)
 - Write the report as `<OPERATIONID>_<YYYY-MM-DD>_report.md`
 
 **Related skills**:
@@ -55,6 +55,8 @@ uv run ado show related operation --use-latest
 This will output the id of the latest operation.
 
 ## Tips
+
+### Avoiding refetching YAML
 
 `ado get -o yaml` flag outputs YAML to console. It's often useful to redirect
 this to a temporary file and work with that to avoid multiple `ado get` calls
@@ -281,5 +283,25 @@ Structure the report as:
 3. **Findings** – notable patterns, best/worst performers, anomalies
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected
    distributions
-5. 5 **Next Steps**: A plan for the next research steps to take
-   using ado.
+5. 5 **Next Steps**: A plan for the next research steps to take using ado.
+
+## Troubleshooting
+
+### Number points sampled is greater than the number of entities measured by operation
+
+Some samplers can sample the same entity twice. In this case you may see
+conflicting statistics about how many entities are measured. For example if an
+operation is configured to sample two points, and it samples same point twice,
+the additional number entities with measurements after the operation is 1, but
+the number of points sampled by operation is 2.
+
+Comparing the size of the set of entity identifiers to the timeseries length can
+confirm this.
+
+### Memoization on, but Entities measured twice
+
+The requests which use memoized results for Entities are called "replayed
+measurements". If the same entity is sampled twice in an operation the second
+should be replayed. If it is not it means the sampling algorithm selected the
+same point again before the first was stored to be reused. In this case it means
+the same entity will be measured twice.

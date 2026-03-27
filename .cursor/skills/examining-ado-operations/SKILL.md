@@ -48,7 +48,16 @@ uv run ado show related operation --use-latest
 
 This will output the id of the latest operation.
 
+## Tips
+
+`ado get-o yaml` flag outputs YAML to console. It's often useful to redirect
+this to a temporary file and work with that to avoid multiple `ado get` calls
+for same YAML.
+
 ## General Workflow
+
+- Steps 2, 3 and 4 can be run in parallel
+- Step 5 depends on Step 4
 
 ### Step 1: Get the operation YAML
 
@@ -60,7 +69,7 @@ Extract and summarise:
 
 - Resource **identifier**, **operationType**, **operatorIdentifier**
 - The identifiers of **input resources** to the operation:
-  - discovery spaces from the spaces field)
+  - discovery spaces from the spaces field
   - actuatorconfigurations from the actuatorConfigurationIdentifiers field
 - **config**: operator-specific parameters (what the run was asked to do)
 - **status**: latest **event** (e.g. started / finished) and **exit_state** when
@@ -73,7 +82,7 @@ objectives, stopping rules, etc.).
 
 An operation which does not report finished is usually still running.
 
-However it is possible it failed in a way that meant it could not record the
+However, it is possible it failed in a way that meant it could not record the
 failure. In this case:
 
 1. Determine how long it has been running.
@@ -182,7 +191,7 @@ were completed there are no issues ->
 [examine entities](#step-3-get-entities-and-measurements)
 
 If the state is not finished ->
-[Use the diagnose if sampling operation running workflow](#diagnose-if-explore-or-search-operation-is-running-workflow).
+[Use the diagnose if sampling operation running workflow](#diagnose-if-an-explore-or-search-operation-is-running-workflow).
 For all other combinations ->
 [Diagnose sampling issues](#step-2-optional-diagnose-sampling-issues)
 
@@ -207,10 +216,9 @@ uv run ado show results operation OPERATION_ID \
     observed property values
   - InvalidMeasurementResult: The experiment failed for some reason
 
-From the output of `show request` and `show results`
-
-Identify: **failed** or **invalid** rows, **reasons** for invalidity, and
-anomalies in **timing** or **ordering** if those columns are present.
+From the output of `show requests` and `show results` identify **failed** or
+**invalid** rows, **reasons** for invalidity, and anomalies in **timing** or
+**ordering** if those columns are present.
 
 ### Step 3: Get entities and measurements
 
@@ -221,14 +229,18 @@ uv run ado show entities operation OPERATION_ID \
   --output-format csv
 ```
 
-Perform quick analysis: distributions, outliers, correlations.
+### Step 4: Analyze the Measurement data
 
-## Diagnose if Explore or Search Operation is Running Workflow
+Perform quick analysis of the measurements, checking e.g. distributions of
+metrics, metric outliers, correlations.
+
+## Diagnose if an Explore or Search Operation is Running Workflow
 
 - Check if the operation is submitting experiment in batches
 - Confirm if the operation uses continuous batching (new experiment requested
   once one has finished) or static batch (full batch finishes then next starts)
-- Get the requests and results timeseries using ado show cli command
+- Get the requests and results timeseries using `ado show requests` and
+  `ado show results`
 - For continuous batching
   - Use the request time-series to determine the typical inter-request start
     time after the first batch i.e. this tells you how often after the first
@@ -251,4 +263,5 @@ Structure the report as:
 2. **Measurement overview** – sampled vs requested, success vs failure counts
 3. **Findings** – notable patterns, best/worst performers, anomalies
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected
-   distributions
+   distributions 5 **Next Steps**: A plan for the next research steps to take
+   using ado.

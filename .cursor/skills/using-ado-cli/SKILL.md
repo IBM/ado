@@ -75,7 +75,7 @@ needed beyond a local Ray instance (started automatically).
 
 ### ado get
 
-Lists resources of a given and gets resource YAML
+Lists resources of a given type and gets resource YAML
 
 ```bash
 #List all spaces

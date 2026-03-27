@@ -16,7 +16,7 @@ covered its entity space is, and what data has been collected.
 
 - Run all commands from the **repository root** with `uv run`.
 - Write the report to a md file in the following directory (create if it does
-  not exist) `reports/$CONTEXTNAME/$SPACEID_$DATE_report.md`
+  not exist) `reports/$CONTEXT_NAME/$SPACEID_$DATE_report.md`
 
 **Related skills**:
 
@@ -57,10 +57,11 @@ Why is it useful to work with matching data?
 
 1. Allows using the discoveryspace as a view to fetch particular data without
    having to perform operations on it
-   - Concrete example: You create a discvoeryspace that is a sub-space of
+   - Concrete example: You create a discoveryspace that is a subspace of
      another sampled spaced to analyze it. You can perform analysis on existing
      data even though no operation has been run on the new discoveryspace.
-2. Memoization: You can understand if their are memoization opportunities that
+2. Memoization: You can understand if there are
+   [memoization opportunities](website/docs/core-concepts/data-sharing.md) that
    would speed up a operation on the space.
 
 ## Pre-requisites: The Space Identifier
@@ -100,13 +101,11 @@ Extract and summarise:
 - **experiments**: actuator and experiment identifiers that define what can be
   measured, and which target properties each experiment produces
 
-Check if there is a pre-existing report
-
 ### Step 2: Sampling coverage and related resources
 
 Execute
 
-```commandline
+```bash
 uv run ado show details space SPACE_ID
 ```
 
@@ -135,8 +134,8 @@ overlapping spaces exist.
 - if yes, check if either of the following are true
   - New operations have been run on space since report
   - The number of measured entities has increased
-- If neither of above are true as the user if they want to write a new report or
-  use existing
+- If neither of above are true, ask the user if they want to write a
+  new report or use existing
   - As nothing has changed, the only purpose of creating a new report is if a
     different agent is being used
 

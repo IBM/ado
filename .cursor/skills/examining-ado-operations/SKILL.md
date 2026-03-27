@@ -17,7 +17,7 @@ on, and whether measurements and results look healthy.
 
 - Run all commands from the **repository root** with `uv run`.
 - Write the report to a md file in the following directory (create if it does
-  not exist) `reports/$CONTEXTNAME/$OPERTATIONID_$DATE_report.md`
+  not exist) `reports/$CONTEXT_NAME/$OPERATIONID_$DATE_report.md`
 
 **Related skills**:
 
@@ -53,7 +53,7 @@ This will output the id of the latest operation.
 
 ## Tips
 
-`ado get-o yaml` flag outputs YAML to console. It's often useful to redirect
+`ado get -o yaml` flag outputs YAML to console. It's often useful to redirect
 this to a temporary file and work with that to avoid multiple `ado get` calls
 for same YAML.
 
@@ -124,7 +124,7 @@ To understand an operators parameters examine its schema:
 uv run ado template operation --operator-name $OPERATOR_IDENTIFIER --include-schema
 ```
 
-This will create a file called operation*template*$UID_schema.yaml containing
+This will create a file called `operation_template_$UID_schema.yaml` containing
 the schema.
 
 ### Step 4: Describe the space
@@ -276,5 +276,6 @@ Structure the report as:
 2. **Measurement overview** – sampled vs requested, success vs failure counts
 3. **Findings** – notable patterns, best/worst performers, anomalies
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected
-   distributions 5 **Next Steps**: A plan for the next research steps to take
+   distributions
+5. 5 **Next Steps**: A plan for the next research steps to take
    using ado.

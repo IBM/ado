@@ -18,14 +18,17 @@ head:
       requests:
         cpu: "500m"
         memory: "512Mi"
+  containerEnv:
+    - name: RAY_RUNTIME_ENV_PLUGINS
+      value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
   lifecycle: #https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html#pod-and-container-lifecyle-prestophook
     preStop:
       exec:
         command: ["/bin/sh", "-c", "ray stop"]
   rayStartParams:
-    dashboard-host: '0.0.0.0'
+    dashboard-host: "0.0.0.0"
     num-cpus: "0"
-    block: 'true'
+    block: "true"
   resources:
     limits:
       cpu: 4
@@ -39,8 +42,10 @@ worker:
   minReplicas: 1
   maxReplicas: 4
   rayStartParams:
-    block: 'true'
+    block: "true"
   containerEnv:
+    - name: RAY_RUNTIME_ENV_PLUGINS
+      value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
     - name: OMP_NUM_THREADS
       value: "1"
     - name: OPENBLAS_NUM_THREADS

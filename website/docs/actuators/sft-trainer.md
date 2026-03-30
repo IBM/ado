@@ -40,7 +40,7 @@ must already include the appropriate version of `torch`:
 RayRuntimeEnv plugin** for all versions of `fms-hf-tuning`. It ensures the
 correct `torch` version is installed before packages that depend on it during
 their build phase. The plugin is included in ado-core and its images (e.g.,
-`quay.io/ado/ado:latest-sft-py312-cu121-ofed2410v1140`), enabled by default in
+`quay.io/ado/ado:latest-ofed-py312-cu121-ofed2410v1140`), enabled by default in
 our [KubeRay deployment example](../getting-started/kuberay.md), and
 automatically used by the SFTTrainer actuator when available.
 

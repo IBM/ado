@@ -113,8 +113,10 @@ If the operation is finished,
 
 ### Step 3: Review the operator
 
-Each operation is run by an operator. The operators name is retrieved in
-previous step (operatorIdentifier)
+Each operation is run by an operator. The operators name is retrieved in step
+one as the value of the field operatorIdentifier.
+
+Note: `operatorIdentifer` is not the same as `operationIdentifier`
 
 Execute
 

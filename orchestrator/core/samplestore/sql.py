@@ -57,10 +57,12 @@ if TYPE_CHECKING:
     import pandas as pd
     from rich.console import RenderableType
 
-# Process-level cache of tablename prefixes for which the four DDL tables have
-# already been verified to exist.  Skips the four `CREATE TABLE IF NOT EXISTS`
+# Process-level cache of (db_url, tablename) pairs for which the four DDL tables
+# have already been verified to exist.  Skips the four `CREATE TABLE IF NOT EXISTS`
 # round-trips on every subsequent SQLSampleStore construction for the same store.
-_source_tables_verified: set[str] = set()
+# The db_url is included so that two stores with the same identifier but pointing
+# to different databases are treated independently.
+_source_tables_verified: set[tuple[str, str]] = set()
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
@@ -391,7 +393,8 @@ class SQLSampleStore(ActiveSampleStore):
         # We use a direct information_schema / sqlite_master query rather than
         # sqlalchemy.inspect() to avoid the Inspector's internal connection
         # overhead (it opens its own connection on top of the borrowed one).
-        if self._tablename not in _source_tables_verified:
+        _cache_key = (str(self._engine.url), self._tablename)
+        if _cache_key not in _source_tables_verified:
             if self.engine.dialect.name == "sqlite":
                 existence_query = sqlalchemy.text(
                     "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
@@ -407,7 +410,7 @@ class SQLSampleStore(ActiveSampleStore):
 
             if not table_exists:
                 self._create_source_table()
-            _source_tables_verified.add(self._tablename)
+            _source_tables_verified.add(_cache_key)
 
         # Initialize entities cache as empty dict for lazy loading
         # Empty dict is falsy, so lazy loading check `if not self._entities:` still works

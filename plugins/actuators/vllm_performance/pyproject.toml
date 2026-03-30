@@ -1,16 +1,30 @@
 [project]
 name = "ado-vllm-performance"
-description = "VLLM performance testing actuator"
+description = "VLLM performance testing actuator for ado"
 readme = "README.md"
+requires-python = ">=3.10,<3.14"
+keywords = ["ado", "benchmarking", "llm", "performance", "testing", "vllm"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Testing",
+]
 dependencies = [
   "ado-core",
-  "datasets>=2.20.0",
-  "kubernetes >= 31.0.0",
+  "kubernetes>=31.0.0",
 ]
-# [tool.setuptools.dynamic]
-# dependencies = {file = ["requirements.txt"]}
-# Deps/Build-related section
 dynamic = ["version"]
+
+[project.urls]
+Changelog = "https://github.com/IBM/ado/blob/main/CHANGELOG.md"
+Homepage = "https://ibm.github.io/ado/"
+Issues = "https://github.com/IBM/ado/issues"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/IBM/ado"
 
 [project.optional-dependencies]
 guidellm = [
@@ -18,13 +32,6 @@ guidellm = [
 ]
 vllm = [
   "vllm>=0.12.0,!=0.15.*;sys_platform!='darwin'",
-]
-
-[dependency-groups]
-dev = [
-  "black>=25.1.0",
-  "pre-commit>=4.2.0",
-  "ruff>=0.12.1",
 ]
 
 [build-system]

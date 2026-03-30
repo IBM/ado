@@ -1,65 +1,65 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Registry for legacy validators that have been removed from active code"""
+"""Registry for legacy migrators that have been removed from active code"""
 
 from collections.abc import Callable
 from functools import wraps
 from typing import ClassVar
 
-from orchestrator.core.legacy.metadata import LegacyValidatorMetadata
+from orchestrator.core.legacy.metadata import LegacyMigratorMetadata
 from orchestrator.core.resources import CoreResourceKinds
 
 
-class LegacyValidatorRegistry:
-    """Registry for legacy validators that have been removed from active code"""
+class LegacyMigratorRegistry:
+    """Registry for legacy migrators that have been removed from active code"""
 
-    _validators: ClassVar[dict[str, LegacyValidatorMetadata]] = {}
+    _migrators: ClassVar[dict[str, LegacyMigratorMetadata]] = {}
 
     @classmethod
-    def register(cls, metadata: LegacyValidatorMetadata) -> None:
-        """Register a legacy validator
+    def register(cls, metadata: LegacyMigratorMetadata) -> None:
+        """Register a legacy migrator
 
         Args:
-            metadata: The validator metadata to register
+            metadata: The migrator metadata to register
         """
-        cls._validators[metadata.identifier] = metadata
+        cls._migrators[metadata.identifier] = metadata
 
     @classmethod
-    def get_validator(cls, identifier: str) -> LegacyValidatorMetadata | None:
-        """Get a specific validator by identifier
+    def get_migrator(cls, identifier: str) -> LegacyMigratorMetadata | None:
+        """Get a specific migrator by identifier
 
         Args:
-            identifier: The unique identifier of the validator
+            identifier: The unique identifier of the migrator
 
         Returns:
-            The validator metadata if found, None otherwise
+            The migrator metadata if found, None otherwise
         """
-        return cls._validators.get(identifier)
+        return cls._migrators.get(identifier)
 
     @classmethod
-    def get_validators_for_resource(
+    def get_migrators_for_resource(
         cls, resource_type: CoreResourceKinds
-    ) -> list[LegacyValidatorMetadata]:
-        """Get all validators for a specific resource type
+    ) -> list[LegacyMigratorMetadata]:
+        """Get all migrators for a specific resource type
 
         Args:
             resource_type: The resource type to filter by
 
         Returns:
-            List of validator metadata for the specified resource type
+            List of migrator metadata for the specified resource type
         """
-        return [v for v in cls._validators.values() if v.resource_type == resource_type]
+        return [v for v in cls._migrators.values() if v.resource_type == resource_type]
 
     @classmethod
-    def find_validators_for_deprecated_field_paths(
+    def find_migrators_for_deprecated_field_paths(
         cls,
         resource_type: CoreResourceKinds,
         deprecated_field_paths: set[str],
-    ) -> list[LegacyValidatorMetadata]:
-        """Find validators that handle specific field paths
+    ) -> list[LegacyMigratorMetadata]:
+        """Find migrators that handle specific field paths
 
-        Matches validators based on their declared field_paths, providing
+        Matches migrators based on their declared field_paths, providing
         more precise matching than deprecated_fields (leaf names).
 
         Args:
@@ -67,39 +67,39 @@ class LegacyValidatorRegistry:
             deprecated_field_paths: Set of full dotted paths (e.g., 'config.properties')
 
         Returns:
-            List of validator metadata that handle any of the specified paths
+            List of migrator metadata that handle any of the specified paths
         """
         return [
             v
-            for v in cls.get_validators_for_resource(resource_type)
+            for v in cls.get_migrators_for_resource(resource_type)
             if any(path in v.deprecated_field_paths for path in deprecated_field_paths)
         ]
 
     @classmethod
-    def list_all(cls) -> list[LegacyValidatorMetadata]:
-        """List all registered validators
+    def list_all(cls) -> list[LegacyMigratorMetadata]:
+        """List all registered migrators
 
         Returns:
-            List of all registered validator metadata
+            List of all registered migrator metadata
         """
-        return list(cls._validators.values())
+        return list(cls._migrators.values())
 
     @classmethod
     def resolve_dependencies(
-        cls, validator_ids: list[str]
+        cls, migrator_ids: list[str]
     ) -> tuple[list[str], list[str]]:
-        """Resolve validator dependencies and return ordered list
+        """Resolve migrator dependencies and return ordered list
 
-        Uses topological sort to order validators based on their dependencies.
+        Uses topological sort to order migrators based on their dependencies.
         Detects circular dependencies. Automatically includes all transitive
         dependencies.
 
         Args:
-            validator_ids: List of validator identifiers to order
+            migrator_ids: List of migrator identifiers to order
 
         Returns:
-            Tuple of (ordered_validator_ids, missing_dependencies)
-            - ordered_validator_ids: Validators in dependency order (includes all dependencies)
+            Tuple of (ordered_migrator_ids, missing_dependencies)
+            - ordered_migrator_ids: Migrators in dependency order (includes all dependencies)
             - missing_dependencies: List of dependency IDs that don't exist
 
         Raises:
@@ -109,7 +109,7 @@ class LegacyValidatorRegistry:
         graph: dict[str, list[str]] = {}
         in_degree: dict[str, int] = {}
         missing_deps: set[str] = set()
-        to_process = list(validator_ids)
+        to_process = list(migrator_ids)
         processed = set()
 
         while to_process:
@@ -118,18 +118,18 @@ class LegacyValidatorRegistry:
                 continue
             processed.add(vid)
 
-            validator = cls.get_validator(vid)
-            if validator is None:
+            migrator = cls.get_migrator(vid)
+            if migrator is None:
                 continue
 
-            # Initialize this validator in the graph
+            # Initialize this migrator in the graph
             if vid not in graph:
                 graph[vid] = []
                 in_degree[vid] = 0
 
             # Process dependencies
-            for dep_id in validator.dependencies:
-                if dep_id not in cls._validators:
+            for dep_id in migrator.dependencies:
+                if dep_id not in cls._migrators:
                     missing_deps.add(dep_id)
                     continue
 
@@ -146,9 +146,9 @@ class LegacyValidatorRegistry:
 
         # Calculate in-degrees
         for vid in graph:
-            validator = cls.get_validator(vid)
-            if validator:
-                for dep_id in validator.dependencies:
+            migrator = cls.get_migrator(vid)
+            if migrator:
+                for dep_id in migrator.dependencies:
                     if dep_id in graph:
                         in_degree[vid] += 1
 
@@ -172,13 +172,13 @@ class LegacyValidatorRegistry:
         if len(ordered) != len(graph):
             remaining = [vid for vid in graph if vid not in ordered]
             raise ValueError(
-                f"Circular dependency detected among validators: {', '.join(remaining)}"
+                f"Circular dependency detected among migrators: {', '.join(remaining)}"
             )
 
         return ordered, list(missing_deps)
 
 
-def legacy_validator(
+def legacy_migrator(
     identifier: str,
     resource_type: CoreResourceKinds,
     deprecated_field_paths: list[str],
@@ -187,22 +187,22 @@ def legacy_validator(
     description: str,
     dependencies: list[str] | None = None,
 ) -> Callable[[Callable[[dict], dict]], Callable[[dict], dict]]:
-    """Decorator to register a legacy validator function
+    """Decorator to register a legacy migrator function
 
     Args:
-        identifier: Unique identifier for this validator
-        resource_type: Resource type this validator applies to
+        identifier: Unique identifier for this migrator
+        resource_type: Resource type this migrator applies to
         deprecated_field_paths: Explicit paths to fields (e.g., 'config.properties', 'config.specification.moduleType')
         deprecated_from_version: ADO version when these fields were deprecated
         removed_from_version: ADO version when automatic upgrade was removed
-        description: Human-readable description of what this validator does
-        dependencies: Optional list of validator identifiers that must run before this one
+        description: Human-readable description of what this migrator does
+        dependencies: Optional list of migrator identifiers that must run before this one
 
     Returns:
-        Decorator function that registers the validator
+        Decorator function that registers the migrator
 
     Example:
-        @legacy_validator(
+        @legacy_migrator(
             identifier="csv_constitutive_columns_migration",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.constitutivePropertyColumns", "config.experiments"],
@@ -217,17 +217,17 @@ def legacy_validator(
     """
 
     def decorator(func: Callable[[dict], dict]) -> Callable[[dict], dict]:
-        metadata = LegacyValidatorMetadata(
+        metadata = LegacyMigratorMetadata(
             identifier=identifier,
             resource_type=resource_type,
             deprecated_from_version=deprecated_from_version,
             removed_from_version=removed_from_version,
             description=description,
-            validator_function=func,
+            migrator_function=func,
             deprecated_field_paths=deprecated_field_paths,
             dependencies=dependencies or [],
         )
-        LegacyValidatorRegistry.register(metadata)
+        LegacyMigratorRegistry.register(metadata)
 
         @wraps(func)
         def wrapper(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202

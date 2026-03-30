@@ -36,19 +36,19 @@ def upgrade_resource(
             click_type=HiddenPluralChoice(AdoUpgradeSupportedResourceTypes),
         ),
     ],
-    apply_legacy_validator: Annotated[
+    apply_legacy_migrator: Annotated[
         list[str] | None,
         typer.Option(
-            "--apply-legacy-validator",
-            help="Apply legacy validators by identifier (e.g., 'samplestore_kind_entitysource_to_samplestore'). "
+            "--apply-legacy-migrator",
+            help="Apply legacy migrators by identifier (e.g., 'samplestore_kind_entitysource_to_samplestore'). "
             "Can be specified multiple times.",
         ),
     ] = None,
-    list_legacy_validators: Annotated[
+    list_legacy_migrators: Annotated[
         bool,
         typer.Option(
-            "--list-legacy-validators",
-            help="List available legacy validators for this resource type",
+            "--list-legacy-migrators",
+            help="List available legacy migrators for this resource type",
         ),
     ] = False,
 ) -> None:
@@ -68,21 +68,21 @@ def upgrade_resource(
 
     ado upgrade operations
 
-    # List available legacy validators for sample stores
+    # List available legacy migrators for sample stores
 
-    ado upgrade samplestores --list-legacy-validators
+    ado upgrade samplestores --list-legacy-migrators
 
-    # Apply a legacy validator during upgrade
+    # Apply a legacy migrator during upgrade
 
-    ado upgrade samplestores --apply-legacy-validator samplestore_kind_entitysource_to_samplestore
+    ado upgrade samplestores --apply-legacy-migrator samplestore_kind_entitysource_to_samplestore
     """
 
     ado_configuration: AdoConfiguration = ctx.obj
 
     parameters = AdoUpgradeCommandParameters(
         ado_configuration=ado_configuration,
-        apply_legacy_validator=apply_legacy_validator,
-        list_legacy_validators=list_legacy_validators,
+        apply_legacy_migrator=apply_legacy_migrator,
+        list_legacy_migrators=list_legacy_migrators,
     )
 
     method_mapping = {

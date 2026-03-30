@@ -1,14 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Legacy validator for removing deprecated properties field from discovery spaces"""
+"""Legacy migrator for removing deprecated properties field from discovery spaces"""
 
-from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.registry import legacy_migrator
 from orchestrator.core.legacy.utils import remove_nested_field
 from orchestrator.core.resources import CoreResourceKinds
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="discoveryspace_properties_field_removal",
     resource_type=CoreResourceKinds.DISCOVERYSPACE,
     deprecated_field_paths=["config.properties"],

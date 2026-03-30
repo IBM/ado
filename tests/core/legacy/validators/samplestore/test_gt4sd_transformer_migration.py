@@ -1,22 +1,22 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests for GT4SDTransformer to CSVSampleStore migration validator"""
+"""Tests for GT4SDTransformer to CSVSampleStore migration migrator"""
 
-from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 
 
 class TestGT4SDTransformerMigration:
-    """Test migrate_gt4sd_transformer_to_csv validator"""
+    """Test migrate_gt4sd_transformer_to_csv migrator"""
 
     def test_migrates_gt4sd_transformer_to_csv_sample_store(
-        self, legacy_validators_loaded: None
+        self, legacy_migrators_loaded: None
     ) -> None:
         """Test that GT4SDTransformer is migrated to CSVSampleStore with explicit parameters"""
-        validator = LegacyValidatorRegistry.get_validator(
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         data = {
             "config": {
@@ -37,7 +37,7 @@ class TestGT4SDTransformerMigration:
             }
         }
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check module class and name were updated
         copy_from = result["config"]["copyFrom"][0]
@@ -77,13 +77,13 @@ class TestGT4SDTransformerMigration:
         )
 
     def test_preserves_existing_identifier_column(
-        self, legacy_validators_loaded: None
+        self, legacy_migrators_loaded: None
     ) -> None:
         """Test that existing identifierColumn is not overwritten"""
-        validator = LegacyValidatorRegistry.get_validator(
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         data = {
             "config": {
@@ -102,7 +102,7 @@ class TestGT4SDTransformerMigration:
             }
         }
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check that custom identifierColumn was preserved
         assert (
@@ -111,13 +111,13 @@ class TestGT4SDTransformerMigration:
         )
 
     def test_preserves_existing_experiments(
-        self, legacy_validators_loaded: None
+        self, legacy_migrators_loaded: None
     ) -> None:
         """Test that existing experiments configuration is not overwritten"""
-        validator = LegacyValidatorRegistry.get_validator(
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         custom_experiments = [
             {
@@ -144,7 +144,7 @@ class TestGT4SDTransformerMigration:
             }
         }
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check that custom experiments were preserved
         assert (
@@ -153,13 +153,13 @@ class TestGT4SDTransformerMigration:
         )
 
     def test_does_not_modify_other_module_classes(
-        self, legacy_validators_loaded: None
+        self, legacy_migrators_loaded: None
     ) -> None:
         """Test that other module classes are not modified"""
-        validator = LegacyValidatorRegistry.get_validator(
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         data = {
             "config": {
@@ -175,7 +175,7 @@ class TestGT4SDTransformerMigration:
             }
         }
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check that nothing was changed
         copy_from = result["config"]["copyFrom"][0]
@@ -184,13 +184,13 @@ class TestGT4SDTransformerMigration:
         assert copy_from["parameters"] == {"identifierColumn": "id"}
 
     def test_handles_multiple_copy_from_entries(
-        self, legacy_validators_loaded: None
+        self, legacy_migrators_loaded: None
     ) -> None:
-        """Test that validator handles multiple copyFrom entries correctly"""
-        validator = LegacyValidatorRegistry.get_validator(
+        """Test that migrator handles multiple copyFrom entries correctly"""
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         data = {
             "config": {
@@ -213,7 +213,7 @@ class TestGT4SDTransformerMigration:
             }
         }
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check first entry was migrated
         first_entry = result["config"]["copyFrom"][0]
@@ -229,40 +229,40 @@ class TestGT4SDTransformerMigration:
         assert second_entry["module"]["moduleClass"] == "CSVSampleStore"
         assert second_entry["parameters"] == {"identifierColumn": "id"}
 
-    def test_handles_missing_copy_from(self, legacy_validators_loaded: None) -> None:
-        """Test that validator handles missing copyFrom field gracefully"""
-        validator = LegacyValidatorRegistry.get_validator(
+    def test_handles_missing_copy_from(self, legacy_migrators_loaded: None) -> None:
+        """Test that migrator handles missing copyFrom field gracefully"""
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         data = {"config": {"specification": {"module": {}}}}
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check that data was not modified
         assert result == data
 
-    def test_handles_empty_copy_from(self, legacy_validators_loaded: None) -> None:
-        """Test that validator handles empty copyFrom array gracefully"""
-        validator = LegacyValidatorRegistry.get_validator(
+    def test_handles_empty_copy_from(self, legacy_migrators_loaded: None) -> None:
+        """Test that migrator handles empty copyFrom array gracefully"""
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         data = {"config": {"copyFrom": []}}
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check that data was not modified
         assert result == data
 
-    def test_handles_missing_parameters(self, legacy_validators_loaded: None) -> None:
-        """Test that validator adds parameters if missing"""
-        validator = LegacyValidatorRegistry.get_validator(
+    def test_handles_missing_parameters(self, legacy_migrators_loaded: None) -> None:
+        """Test that migrator adds parameters if missing"""
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_gt4sd_transformer_to_csv"
         )
-        assert validator is not None
+        assert migrator is not None
 
         data = {
             "config": {
@@ -277,7 +277,7 @@ class TestGT4SDTransformerMigration:
             }
         }
 
-        result = validator.validator_function(data)
+        result = migrator.migrator_function(data)
 
         # Check that parameters were added
         copy_from = result["config"]["copyFrom"][0]

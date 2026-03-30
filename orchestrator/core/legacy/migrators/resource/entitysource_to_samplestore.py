@@ -1,14 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Legacy validator for migrating entitysource kind to samplestore kind"""
+"""Legacy migrator for migrating entitysource kind to samplestore kind"""
 
-from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.registry import legacy_migrator
 from orchestrator.core.legacy.utils import has_nested_field, set_nested_value
 from orchestrator.core.resources import CoreResourceKinds
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="samplestore_kind_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
     deprecated_field_paths=["kind"],

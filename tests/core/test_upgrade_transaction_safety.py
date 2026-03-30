@@ -14,7 +14,7 @@ from orchestrator.cli.core.config import AdoConfiguration
 from orchestrator.cli.models.parameters import AdoUpgradeCommandParameters
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.resources.handlers import handle_ado_upgrade
-from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.registry import legacy_migrator
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
@@ -33,21 +33,21 @@ class TestUpgradeTransactionSafety:
     @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_all_resources_validated_before_any_saved(
         self,
-        isolated_legacy_validator_registry: None,
+        isolated_legacy_migrator_registry: None,
         valid_ado_project_context: ProjectContext,
     ) -> None:
         """Test that all resources are validated before any are saved"""
 
-        # Register a test validator that transforms old_field -> new_field
-        @legacy_validator(
-            identifier="test_transaction_validator",
+        # Register a test migrator that transforms old_field -> new_field
+        @legacy_migrator(
+            identifier="test_transaction_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.metadata.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Test transaction validator",
+            description="Test transaction migrator",
         )
-        def test_validator(data: dict) -> dict:
+        def test_migrator(data: dict) -> dict:
             if "config" in data and "metadata" in data["config"]:
                 metadata = data["config"]["metadata"]
                 if "old_field" in metadata:
@@ -115,8 +115,8 @@ class TestUpgradeTransactionSafety:
         ado_config._project_context = valid_ado_project_context
         params = AdoUpgradeCommandParameters(
             ado_configuration=ado_config,
-            apply_legacy_validator=["test_transaction_validator"],
-            list_legacy_validators=False,
+            apply_legacy_migrator=["test_transaction_migrator"],
+            list_legacy_migrators=False,
         )
 
         # Call the upgrade handler
@@ -145,16 +145,16 @@ class TestUpgradeTransactionSafety:
     ) -> None:
         """Test that if any validation fails, no resources are saved"""
 
-        # Register a validator that will cause validation failure
-        @legacy_validator(
-            identifier="test_failing_validator",
+        # Register a migrator that will cause validation failure
+        @legacy_migrator(
+            identifier="test_failing_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.metadata.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Test failing validator",
+            description="Test failing migrator",
         )
-        def test_validator(data: dict) -> dict:
+        def test_migrator(data: dict) -> dict:
             # Transform the field
             if "config" in data and "metadata" in data["config"]:
                 metadata = data["config"]["metadata"]
@@ -232,8 +232,8 @@ class TestUpgradeTransactionSafety:
         ado_config._project_context = valid_ado_project_context
         params = AdoUpgradeCommandParameters(
             ado_configuration=ado_config,
-            apply_legacy_validator=["test_failing_validator"],
-            list_legacy_validators=False,
+            apply_legacy_migrator=["test_failing_migrator"],
+            list_legacy_migrators=False,
         )
 
         # Should raise typer.Exit due to validation failure
@@ -265,15 +265,15 @@ class TestUpgradeTransactionSafety:
         """Test that empty resource list is handled without errors"""
 
         # Register a test validator
-        @legacy_validator(
-            identifier="test_empty_validator",
+        @legacy_migrator(
+            identifier="test_empty_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.metadata.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Test empty validator",
+            description="Test empty migrator",
         )
-        def test_validator(data: dict) -> dict:
+        def test_migrator(data: dict) -> dict:
             return data
 
         # Don't create any resources - database starts empty for this test
@@ -283,8 +283,8 @@ class TestUpgradeTransactionSafety:
         ado_config._project_context = valid_ado_project_context
         params = AdoUpgradeCommandParameters(
             ado_configuration=ado_config,
-            apply_legacy_validator=["test_empty_validator"],
-            list_legacy_validators=False,
+            apply_legacy_migrator=["test_empty_migrator"],
+            list_legacy_migrators=False,
         )
 
         # Should complete without error

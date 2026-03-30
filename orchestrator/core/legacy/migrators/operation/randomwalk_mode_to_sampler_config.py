@@ -1,9 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Legacy validator for migrating random_walk parameters to samplerConfig"""
+"""Legacy migrator for migrating random_walk parameters to samplerConfig"""
 
-from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.registry import legacy_migrator
 from orchestrator.core.legacy.utils import (
     get_nested_value,
     has_nested_field,
@@ -13,7 +13,7 @@ from orchestrator.core.legacy.utils import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="randomwalk_mode_to_sampler_config",
     resource_type=CoreResourceKinds.OPERATION,
     deprecated_field_paths=[

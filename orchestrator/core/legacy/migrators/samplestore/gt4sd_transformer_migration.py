@@ -1,9 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Legacy validator for migrating GT4SDTransformer to CSVSampleStore"""
+"""Legacy migrator for migrating GT4SDTransformer to CSVSampleStore"""
 
-from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.registry import legacy_migrator
 from orchestrator.core.legacy.utils import (
     get_nested_value,
     has_nested_field,
@@ -12,7 +12,7 @@ from orchestrator.core.legacy.utils import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="samplestore_gt4sd_transformer_to_csv",
     resource_type=CoreResourceKinds.SAMPLESTORE,
     deprecated_field_paths=[

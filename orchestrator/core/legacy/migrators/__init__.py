@@ -1,10 +1,10 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Legacy validators for deprecated resource formats"""
+"""Legacy migrators for deprecated resource formats"""
 
-# Import all validator subpackages to trigger registration
-from orchestrator.core.legacy.validators import (
+# Import all migrator subpackages to trigger registration
+from orchestrator.core.legacy.migrators import (
     discoveryspace,
     operation,
     resource,

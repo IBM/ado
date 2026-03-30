@@ -3,7 +3,7 @@
 
 """Legacy validators for migrating entitysource to samplestore naming"""
 
-from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.registry import legacy_migrator
 from orchestrator.core.legacy.utils import (
     get_nested_value,
     has_nested_field,
@@ -12,7 +12,7 @@ from orchestrator.core.legacy.utils import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="samplestore_module_type_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
     deprecated_field_paths=[
@@ -80,7 +80,7 @@ def migrate_module_type(data: dict) -> dict:
     return data
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="samplestore_module_class_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
     deprecated_field_paths=[
@@ -157,7 +157,7 @@ def migrate_module_class(data: dict) -> dict:
     return data
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="samplestore_module_name_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.SAMPLESTORE,
     deprecated_field_paths=[
@@ -242,7 +242,7 @@ def migrate_module_name(data: dict) -> dict:
     return data
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="samplestore_remove_specification_storage_location",
     resource_type=CoreResourceKinds.SAMPLESTORE,
     deprecated_field_paths=[

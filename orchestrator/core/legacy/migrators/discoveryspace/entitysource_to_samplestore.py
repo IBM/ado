@@ -1,9 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Legacy validator for renaming entitySourceIdentifier to sampleStoreIdentifier"""
+"""Legacy migrator for renaming entitySourceIdentifier to sampleStoreIdentifier"""
 
-from orchestrator.core.legacy.registry import legacy_validator
+from orchestrator.core.legacy.registry import legacy_migrator
 from orchestrator.core.legacy.utils import (
     get_nested_value,
     remove_nested_field,
@@ -12,7 +12,7 @@ from orchestrator.core.legacy.utils import (
 from orchestrator.core.resources import CoreResourceKinds
 
 
-@legacy_validator(
+@legacy_migrator(
     identifier="discoveryspace_entitysource_to_samplestore",
     resource_type=CoreResourceKinds.DISCOVERYSPACE,
     deprecated_field_paths=["config.entitySourceIdentifier"],

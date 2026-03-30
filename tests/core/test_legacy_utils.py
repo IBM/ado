@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests for legacy validator utility functions"""
+"""Tests for legacy migrator utility functions"""
 
 from orchestrator.core.legacy.utils import (
     get_nested_value,

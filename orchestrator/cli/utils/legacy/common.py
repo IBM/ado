@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Common utilities for legacy validator handling"""
+"""Common utilities for legacy migrator handling"""
 
 from typing import TYPE_CHECKING
 
@@ -17,7 +17,7 @@ from orchestrator.cli.utils.output.prints import (
 )
 
 if TYPE_CHECKING:
-    from orchestrator.core.legacy.metadata import LegacyValidatorMetadata
+    from orchestrator.core.legacy.metadata import LegacyMigratorMetadata
     from orchestrator.core.resources import CoreResourceKinds
 
 
@@ -31,7 +31,7 @@ def extract_deprecated_field_paths(
     For ValueError, it attempts to extract an underlying pydantic ValidationError
     from the error's __cause__. If that fails, it falls back to simple string
     matching on the error message using known field paths from the legacy
-    validator registry (requires resource_type parameter).
+    migrator registry (requires resource_type parameter).
 
     Args:
         error: The validation error (pydantic.ValidationError or ValueError)
@@ -83,16 +83,14 @@ def extract_deprecated_field_paths(
         if resource_type is None:
             raise error
 
-        from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+        from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 
         error_msg = str(error)
 
-        # Get all field paths from registered validators for this resource type
-        validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
+        # Get all field paths from registered migrators for this resource type
+        migrators = LegacyMigratorRegistry.get_migrators_for_resource(resource_type)
         known_deprecated_field_paths = {
-            path
-            for validator in validators
-            for path in validator.deprecated_field_paths
+            path for migrator in migrators for path in migrator.deprecated_field_paths
         }
 
         for field_path in known_deprecated_field_paths:
@@ -109,45 +107,45 @@ def extract_deprecated_field_paths(
     raise TypeError(f"Unsupported error type: {type(error)}")
 
 
-def print_validator_suggestions_with_dependencies(
-    validators: list["LegacyValidatorMetadata"], resource_type: "CoreResourceKinds"
+def print_migrator_suggestions_with_dependencies(
+    migrators: list["LegacyMigratorMetadata"], resource_type: "CoreResourceKinds"
 ) -> None:
-    """Print legacy validator suggestions with dependency information
+    """Print legacy migrator suggestions with dependency information
 
-    This enhanced version resolves dependencies and shows validators in the
+    This enhanced version resolves dependencies and shows migrators in the
     correct execution order, along with dependency information.
 
     Args:
-        validators: List of applicable validators
+        migrators: List of applicable migrators
         resource_type: The resource type
     """
-    from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+    from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 
-    # Get validator identifiers
-    validator_ids = [v.identifier for v in validators]
+    # Get migrator identifiers
+    migrator_ids = [v.identifier for v in migrators]
     missing_deps = []
 
     # Resolve dependencies to get correct order
     try:
-        validator_ids, missing_deps = LegacyValidatorRegistry.resolve_dependencies(
-            validator_ids
+        migrator_ids, missing_deps = LegacyMigratorRegistry.resolve_dependencies(
+            migrator_ids
         )
     except ValueError as e:
         # Circular dependency detected
         console_print(f"{ERROR}:{e}", stderr=True)
 
-    # Get ordered validators (filter out None values)
-    ordered_validators: list[LegacyValidatorMetadata] = []
-    for vid in validator_ids:
-        validator = LegacyValidatorRegistry.get_validator(vid)
-        if validator is not None:
-            ordered_validators.append(validator)
+    # Get ordered migrators (filter out None values)
+    ordered_migrators: list[LegacyMigratorMetadata] = []
+    for vid in migrator_ids:
+        migrator = LegacyMigratorRegistry.get_migrator(vid)
+        if migrator is not None:
+            ordered_migrators.append(migrator)
 
-    console_print(f"{INFO}The following validator(s) are a match:\n", stderr=True)
-    for i, validator in enumerate(ordered_validators, 1):
-        # Format and print validator info using the method
+    console_print(f"{INFO}The following migrator(s) are a match:\n", stderr=True)
+    for i, migrator in enumerate(ordered_migrators, 1):
+        # Format and print migrator info using the method
         console_print(
-            validator.format_info(
+            migrator.format_info(
                 index=i, show_dependencies=True, show_version_info=False
             )
         )
@@ -159,22 +157,22 @@ def print_validator_suggestions_with_dependencies(
             f"{WARN}Some dependencies are missing: {', '.join(missing_deps)}\n"
         )
 
-    # Build command with all validators in correct order
-    validator_args = " ".join(
-        f"--apply-legacy-validator {v.identifier}" for v in ordered_validators
+    # Build command with all migrators in correct order
+    migrator_args = " ".join(
+        f"--apply-legacy-migrator {v.identifier}" for v in ordered_migrators
     )
     console_print(
-        f"{HINT}To attempt the upgrade using the suggested legacy validator(s) run:\n"
-        f"\t{cyan(f'ado upgrade {resource_type.value} {validator_args}')}\n"
+        f"{HINT}To attempt the upgrade using the suggested legacy migrator(s) run:\n"
+        f"\t{cyan(f'ado upgrade {resource_type.value} {migrator_args}')}\n"
     )
 
     # Show note about automatic dependency resolution
-    if len(ordered_validators) > len(validators):
+    if len(ordered_migrators) > len(migrators):
         console_print(
-            "[dim]Note: Additional validators were included to satisfy dependencies[/dim]\n"
+            "[dim]Note: Additional migrators were included to satisfy dependencies[/dim]\n"
         )
 
     console_print(
-        f"{HINT}To list all legacy validators run:\n"
-        f"\t{cyan(f'ado upgrade {resource_type.value} --list-legacy-validators')}"
+        f"{HINT}To list all legacy migrators run:\n"
+        f"\t{cyan(f'ado upgrade {resource_type.value} --list-legacy-migrators')}"
     )

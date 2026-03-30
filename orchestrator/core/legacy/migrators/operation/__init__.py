@@ -1,9 +1,9 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Legacy validators for operation migrations"""
+"""Legacy migrators for operation migrations"""
 
-from orchestrator.core.legacy.validators.operation import (
+from orchestrator.core.legacy.migrators.operation import (
     actuators_field_removal,
     randomwalk_mode_to_sampler_config,
 )

@@ -7,7 +7,7 @@ from collections.abc import Callable, Generator
 import pytest
 import ray
 
-from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 
 from .fixtures.core.datacontainer import *
 from .fixtures.core.samplestore import *
@@ -56,26 +56,26 @@ def initialize_ray() -> Generator[None, None, None]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def session_legacy_validators() -> dict:
-    """Load legacy validators once per session and return a copy.
+def session_legacy_migrators() -> dict:
+    """Load legacy migrators once per session and return a copy.
 
-    This session-scoped fixture ensures validators are loaded once at the start
-    of the test session and the registered validators are saved. This copy can
+    This session-scoped fixture ensures migrators are loaded once at the start
+    of the test session and the registered migrators are saved. This copy can
     then be used by test-scoped fixtures to reset the registry state.
 
     Returns:
-        A dictionary copy of all registered validators
+        A dictionary copy of all registered migrators
     """
     # Import to trigger registration - this happens once per test session
-    import orchestrator.core.legacy.validators  # noqa: F401
+    import orchestrator.core.legacy.migrators  # noqa: F401
 
-    # Return a copy of the registered validators
-    return LegacyValidatorRegistry._validators.copy()
+    # Return a copy of the registered migrators
+    return LegacyMigratorRegistry._migrators.copy()
 
 
 @pytest.fixture
-def isolated_legacy_validator_registry() -> Generator[None, None, None]:
-    """Isolate the LegacyValidatorRegistry for each test.
+def isolated_legacy_migrator_registry() -> Generator[None, None, None]:
+    """Isolate the LegacyMigratorRegistry for each test.
 
     This fixture ensures that modifications to the registry in one test
     do not affect other tests, even when running with pytest -n auto.
@@ -86,29 +86,29 @@ def isolated_legacy_validator_registry() -> Generator[None, None, None]:
     3. Restores the original state after the test
 
     Usage:
-        def test_something(isolated_legacy_validator_registry):
+        def test_something(isolated_legacy_migrator_registry):
             # Registry starts empty
             # Register validators as needed for this test
             # Changes won't affect other tests
     """
     # Save the current state
-    original_validators = LegacyValidatorRegistry._validators.copy()
+    original_migrators = LegacyMigratorRegistry._migrators.copy()
 
     # Clear for this test
-    LegacyValidatorRegistry._validators.clear()
+    LegacyMigratorRegistry._migrators.clear()
 
     try:
         yield
     finally:
         # Restore original state
-        LegacyValidatorRegistry._validators = original_validators
+        LegacyMigratorRegistry._migrators = original_migrators
 
 
 @pytest.fixture
-def legacy_validators_loaded(
-    session_legacy_validators: dict,
+def legacy_migrators_loaded(
+    session_legacy_migrators: dict,
 ) -> Generator[None, None, None]:
-    """Ensure legacy validators are loaded and isolated for the test.
+    """Ensure legacy migrators are loaded and isolated for the test.
 
     This fixture:
     1. Resets the registry to the session state (all validators loaded)
@@ -120,19 +120,19 @@ def legacy_validators_loaded(
     - Test modifications don't affect other tests
     - Consistent behavior across pytest-xdist workers
 
-    The session_legacy_validators fixture loads validators once per test session,
+    The session_legacy_migrators fixture loads validators once per test session,
     and this fixture resets to that known-good state before and after each test.
 
     Usage:
-        def test_with_real_validators(legacy_validators_loaded):
+        def test_with_real_migrators(legacy_migrators_loaded):
             # All validators are registered and available
             # Test can use them without affecting other tests
     """
     # Reset registry to session state before test
-    LegacyValidatorRegistry._validators = session_legacy_validators.copy()
+    LegacyMigratorRegistry._migrators = session_legacy_migrators.copy()
 
     try:
         yield
     finally:
         # Restore registry to session state after test
-        LegacyValidatorRegistry._validators = session_legacy_validators.copy()
+        LegacyMigratorRegistry._migrators = session_legacy_migrators.copy()

@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Metadata models for legacy validators"""
+"""Metadata models for legacy migrators"""
 
 from collections.abc import Callable
 from typing import Annotated
@@ -11,19 +11,19 @@ import pydantic
 from orchestrator.core.resources import CoreResourceKinds
 
 
-class LegacyValidatorMetadata(pydantic.BaseModel):
-    """Metadata for a legacy validator function"""
+class LegacyMigratorMetadata(pydantic.BaseModel):
+    """Metadata for a legacy migrator function"""
 
     identifier: Annotated[
         str,
         pydantic.Field(
-            description="Unique identifier for this validator (e.g., 'csv_constitutive_columns_migration')"
+            description="Unique identifier for this migrator (e.g., 'csv_constitutive_columns_migration')"
         ),
     ]
 
     resource_type: Annotated[
         CoreResourceKinds,
-        pydantic.Field(description="Resource type this validator applies to"),
+        pydantic.Field(description="Resource type this migrator applies to"),
     ]
 
     deprecated_from_version: Annotated[
@@ -39,11 +39,11 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
     description: Annotated[
         str,
         pydantic.Field(
-            description="Human-readable description of what this validator does"
+            description="Human-readable description of what this migrator does"
         ),
     ]
 
-    validator_function: Annotated[
+    migrator_function: Annotated[
         Callable[[dict], dict],
         pydantic.Field(
             description="The actual migration function",
@@ -62,7 +62,7 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         list[str],
         pydantic.Field(
             default_factory=list,
-            description="List of validator identifiers that must run before this validator",
+            description="List of migrator identifiers that must run before this migrator",
         ),
     ]
 
@@ -74,7 +74,7 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         show_dependencies: bool = True,
         show_version_info: bool = False,
     ) -> str:
-        """Format validator information as a string
+        """Format migrator information as a string
 
         Args:
             index: Optional index number to display (e.g., "1." for execution order)
@@ -82,13 +82,13 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
             show_version_info: Whether to show version information
 
         Returns:
-            Formatted string with validator information
+            Formatted string with migrator information
         """
-        from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+        from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 
         lines = []
 
-        # Validator identifier with optional index
+        # Migrator identifier with optional index
         if index is not None:
             lines.append(f"  {index}. [green]{self.identifier}[/green]")
         else:
@@ -104,9 +104,9 @@ class LegacyValidatorMetadata(pydantic.BaseModel):
         if show_dependencies and self.dependencies:
             dep_names = []
             for dep_id in self.dependencies:
-                dep_validator = LegacyValidatorRegistry.get_validator(dep_id)
-                if dep_validator:
-                    dep_names.append(dep_validator.identifier)
+                dep_migrator = LegacyMigratorRegistry.get_migrator(dep_id)
+                if dep_migrator:
+                    dep_names.append(dep_migrator.identifier)
                 else:
                     dep_names.append(f"{dep_id} [red](missing)[/red]")
             lines.append(f"     Depends on: {', '.join(dep_names)}")

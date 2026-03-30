@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Integration tests for legacy validators with pydantic models and upgrade process"""
+"""Integration tests for legacy migrators with pydantic models and upgrade process"""
 
 import sqlite3
 from collections.abc import Callable
@@ -10,27 +10,27 @@ from pathlib import Path
 import pydantic
 import pytest
 
-from orchestrator.core.legacy.registry import LegacyValidatorRegistry, legacy_validator
+from orchestrator.core.legacy.registry import LegacyMigratorRegistry, legacy_migrator
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 
 sqlite3_version = sqlite3.sqlite_version_info
 
 
-class TestLegacyValidatorWithPydantic:
-    """Test legacy validators working with pydantic models"""
+class TestLegacyMigratorWithPydantic:
+    """Test legacy migrators working with pydantic models"""
 
-    def test_validator_applied_during_model_validation(
-        self, isolated_legacy_validator_registry: None
+    def test_migrator_applied_during_model_validation(
+        self, isolated_legacy_migrator_registry: None
     ) -> None:
-        """Test that a legacy validator can be manually applied before pydantic validation"""
+        """Test that a legacy migrator can be manually applied before pydantic validation"""
 
         # Define a simple pydantic model
         class OldModel(pydantic.BaseModel):
             new_field: str
 
-        # Register a legacy validator
-        @legacy_validator(
+        # Register a legacy migrator
+        @legacy_migrator(
             identifier="old_to_new_field",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.old_field"],
@@ -44,30 +44,30 @@ class TestLegacyValidatorWithPydantic:
             return data
 
         # Get the validator
-        validator = LegacyValidatorRegistry.get_validator("old_to_new_field")
-        assert validator is not None
+        migrator = LegacyMigratorRegistry.get_migrator("old_to_new_field")
+        assert migrator is not None
 
         # Old format data
         old_data = {"old_field": "test_value"}
 
-        # Apply legacy validator
-        migrated_data = validator.validator_function(old_data)
+        # Apply legacy migrator
+        migrated_data = migrator.migrator_function(old_data)
 
         # Now validate with pydantic
         model = OldModel.model_validate(migrated_data)
         assert model.new_field == "test_value"
 
-    def test_csv_sample_store_migration_validator(
-        self, legacy_validators_loaded: None
+    def test_csv_sample_store_migration_migrator(
+        self, legacy_migrators_loaded: None
     ) -> None:
-        """Test the CSV sample store migration validator with realistic data"""
+        """Test the CSV sample store migration migrator with realistic data"""
 
-        # Get the validator (should be registered from setup_method)
-        validator = LegacyValidatorRegistry.get_validator(
+        # Get the migrator (should be registered from setup_method)
+        migrator = LegacyMigratorRegistry.get_migrator(
             "csv_constitutive_columns_migration"
         )
-        assert validator is not None
-        assert validator.resource_type == CoreResourceKinds.SAMPLESTORE
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.SAMPLESTORE
 
         # Old format CSV sample store data (with config section)
         old_csv_data = {
@@ -88,7 +88,7 @@ class TestLegacyValidatorWithPydantic:
         }
 
         # Apply the validator
-        migrated_data = validator.validator_function(old_csv_data.copy())
+        migrated_data = migrator.migrator_function(old_csv_data.copy())
 
         # Verify migration - config.constitutivePropertyColumns removed
         assert "constitutivePropertyColumns" not in migrated_data["config"]
@@ -101,21 +101,21 @@ class TestLegacyValidatorWithPydantic:
         assert exp["constitutivePropertyMap"] == ["prop1", "prop2"]
 
     def test_entitysource_to_samplestore_migration(
-        self, legacy_validators_loaded: None
+        self, legacy_migrators_loaded: None
     ) -> None:
         """Test the entitysource to samplestore kind migration"""
 
-        # Import the validator to register it
-        from orchestrator.core.legacy.validators.resource.entitysource_to_samplestore import (  # noqa: F401
+        # Import the migrator to register it
+        from orchestrator.core.legacy.migrators.resource.entitysource_to_samplestore import (  # noqa: F401
             migrate_entitysource_kind_to_samplestore,
         )
 
-        # Get the validator
-        validator = LegacyValidatorRegistry.get_validator(
+        # Get the migrator
+        migrator = LegacyMigratorRegistry.get_migrator(
             "samplestore_kind_entitysource_to_samplestore"
         )
-        assert validator is not None
-        assert validator.resource_type == CoreResourceKinds.SAMPLESTORE
+        assert migrator is not None
+        assert migrator.resource_type == CoreResourceKinds.SAMPLESTORE
 
         # Old format with entitysource kind
         old_data = {
@@ -124,20 +124,20 @@ class TestLegacyValidatorWithPydantic:
             "identifier": "test_store",
         }
 
-        # Apply the validator
-        migrated_data = validator.validator_function(old_data.copy())
+        # Apply the migrator
+        migrated_data = migrator.migrator_function(old_data.copy())
 
         # Verify migration
         assert migrated_data["kind"] == "samplestore"
         assert migrated_data["type"] == "csv"
         assert migrated_data["identifier"] == "test_store"
 
-    def test_chained_validators(self, isolated_legacy_validator_registry: None) -> None:
-        """Test applying multiple validators in sequence"""
+    def test_chained_migrators(self, isolated_legacy_migrator_registry: None) -> None:
+        """Test applying multiple migrators in sequence"""
 
-        # Register two validators
-        @legacy_validator(
-            identifier="step1_validator",
+        # Register two migrators
+        @legacy_migrator(
+            identifier="step1_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.old_field1"],
             deprecated_from_version="1.0.0",
@@ -149,8 +149,8 @@ class TestLegacyValidatorWithPydantic:
                 data["intermediate_field"] = data.pop("old_field1")
             return data
 
-        @legacy_validator(
-            identifier="step2_validator",
+        @legacy_migrator(
+            identifier="step2_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.intermediate_field"],
             deprecated_from_version="2.0.0",
@@ -163,17 +163,17 @@ class TestLegacyValidatorWithPydantic:
             return data
 
         # Get validators
-        validator1 = LegacyValidatorRegistry.get_validator("step1_validator")
-        validator2 = LegacyValidatorRegistry.get_validator("step2_validator")
-        assert validator1 is not None
-        assert validator2 is not None
+        migrator1 = LegacyMigratorRegistry.get_migrator("step1_migrator")
+        migrator2 = LegacyMigratorRegistry.get_migrator("step2_migrator")
+        assert migrator1 is not None
+        assert migrator2 is not None
 
         # Old data
         old_data = {"old_field1": "value"}
 
-        # Apply validators in sequence
-        data = validator1.validator_function(old_data)
-        data = validator2.validator_function(data)
+        # Apply migrators in sequence
+        data = migrator1.migrator_function(old_data)
+        data = migrator2.migrator_function(data)
 
         # Verify final state
         assert "old_field1" not in data
@@ -182,17 +182,17 @@ class TestLegacyValidatorWithPydantic:
 
 
 class TestUpgradeHandlerIntegration:
-    """Integration tests for ado upgrade with legacy validators via CLI"""
+    """Integration tests for ado upgrade with legacy migrators via CLI"""
 
     @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
-    def test_upgrade_applies_legacy_validator_via_cli(
+    def test_upgrade_applies_legacy_migrator_via_cli(
         self,
-        legacy_validators_loaded: None,
+        legacy_migrators_loaded: None,
         tmp_path: Path,
         valid_ado_project_context: ProjectContext,
         create_active_ado_context: Callable,
     ) -> None:
-        """Test that ado upgrade applies legacy validators correctly via CLI"""
+        """Test that ado upgrade applies legacy migrators correctly via CLI"""
 
         from typer.testing import CliRunner
 
@@ -211,15 +211,15 @@ class TestUpgradeHandlerIntegration:
         create_active_ado_context(runner, tmp_path, valid_ado_project_context)
 
         # Step 2: Register a test validator
-        @legacy_validator(
-            identifier="test_upgrade_validator",
+        @legacy_migrator(
+            identifier="test_upgrade_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Test upgrade validator",
+            description="Test upgrade migrator",
         )
-        def test_validator(data: dict) -> dict:
+        def test_migrator(data: dict) -> dict:
             """Migrate old_field to new_field"""
             if "config" in data and "old_field" in data["config"]:
                 data["config"]["new_field"] = data["config"].pop("old_field")
@@ -251,8 +251,8 @@ class TestUpgradeHandlerIntegration:
                 str(tmp_path),
                 "upgrade",
                 "samplestore",
-                "--apply-legacy-validator",
-                "test_upgrade_validator",
+                "--apply-legacy-migrator",
+                "test_upgrade_migrator",
             ],
         )
 
@@ -261,12 +261,12 @@ class TestUpgradeHandlerIntegration:
         assert "Success" in result.output or "✓" in result.output
 
         # Step 7: Verify the upgrade process completed successfully
-        # The CLI output "Success!" confirms the validator was applied
+        # The CLI output "Success!" confirms the migrator was applied
         # and the resource was upgraded in the database
 
-    def test_upgrade_rejects_mismatched_validator_type(
+    def test_upgrade_rejects_mismatched_migrator_type(
         self,
-        legacy_validators_loaded: None,
+        legacy_migrators_loaded: None,
         tmp_path: Path,
         valid_ado_project_context: ProjectContext,
         create_active_ado_context: Callable,
@@ -282,19 +282,19 @@ class TestUpgradeHandlerIntegration:
         # Step 1: Setup active context
         create_active_ado_context(runner, tmp_path, valid_ado_project_context)
 
-        # Step 2: Register a validator for OPERATION
-        @legacy_validator(
-            identifier="operation_only_validator",
+        # Step 2: Register a migrator for OPERATION
+        @legacy_migrator(
+            identifier="operation_only_migrator",
             resource_type=CoreResourceKinds.OPERATION,
             deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Operation-only validator",
+            description="Operation-only migrator",
         )
-        def operation_validator(data: dict) -> dict:
+        def operation_migrator(data: dict) -> dict:
             return data
 
-        # Step 3: Try to use operation validator on samplestore
+        # Step 3: Try to use operation migrator on samplestore
         result = runner.invoke(
             ado,
             [
@@ -302,25 +302,25 @@ class TestUpgradeHandlerIntegration:
                 str(tmp_path),
                 "upgrade",
                 "samplestore",
-                "--apply-legacy-validator",
-                "operation_only_validator",
+                "--apply-legacy-migrator",
+                "operation_only_migrator",
             ],
         )
 
         # Step 4: Verify failure with appropriate error message
         assert result.exit_code == 1
         assert "ERROR" in result.output
-        assert "operation_only_validator" in result.output
+        assert "operation_only_migrator" in result.output
         assert "operation" in result.output.lower()
         assert "samplestore" in result.output.lower()
 
-    def test_upgrade_rejects_unknown_validator(
+    def test_upgrade_rejects_unknown_migrator(
         self,
         tmp_path: Path,
         valid_ado_project_context: ProjectContext,
         create_active_ado_context: Callable,
     ) -> None:
-        """Test that upgrade rejects unknown validator identifiers"""
+        """Test that upgrade rejects unknown migrator identifiers"""
 
         from typer.testing import CliRunner
 
@@ -339,15 +339,15 @@ class TestUpgradeHandlerIntegration:
                 str(tmp_path),
                 "upgrade",
                 "samplestore",
-                "--apply-legacy-validator",
-                "nonexistent_validator_xyz",
+                "--apply-legacy-migrator",
+                "nonexistent_migrator_xyz",
             ],
         )
 
         # Step 3: Verify failure with appropriate error message
         assert result.exit_code == 1
         assert "ERROR" in result.output
-        assert "nonexistent_validator_xyz" in result.output
+        assert "nonexistent_migrator_xyz" in result.output
         assert (
             "unknown" in result.output.lower() or "not found" in result.output.lower()
         )
@@ -358,14 +358,14 @@ class TestUpgradeHandlerIntegration:
         sqlite3_version < (3, 38, 0),
         reason="SQLite version 3.38.0 or higher is required",
     )
-    def test_upgrade_auto_resolves_validator_dependencies(
+    def test_upgrade_auto_resolves_migrator_dependencies(
         self,
-        legacy_validators_loaded: None,
+        legacy_migrators_loaded: None,
         tmp_path: Path,
         valid_ado_project_context: ProjectContext,
         create_active_ado_context: Callable,
     ) -> None:
-        """Test that upgrade automatically includes validator dependencies"""
+        """Test that upgrade automatically includes migrator dependencies"""
 
         from typer.testing import CliRunner
 
@@ -384,29 +384,29 @@ class TestUpgradeHandlerIntegration:
         create_active_ado_context(runner, tmp_path, valid_ado_project_context)
 
         # Step 2: Register validators with dependencies
-        @legacy_validator(
-            identifier="base_validator",
+        @legacy_migrator(
+            identifier="base_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Base validator",
+            description="Base migrator",
         )
-        def base_validator(data: dict) -> dict:
+        def base_migrator(data: dict) -> dict:
             if "config" in data and "field1" in data["config"]:
                 data["config"]["field1_migrated"] = True
             return data
 
-        @legacy_validator(
-            identifier="dependent_validator",
+        @legacy_migrator(
+            identifier="dependent_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.field2"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Dependent validator",
-            dependencies=["base_validator"],  # Depends on base_validator
+            description="Dependent migrator",
+            dependencies=["base_migrator"],  # Depends on base_validator
         )
-        def dependent_validator(data: dict) -> dict:
+        def dependent_migrator(data: dict) -> dict:
             if "config" in data and "field2" in data["config"]:
                 data["config"]["field2_migrated"] = True
             return data
@@ -437,8 +437,8 @@ class TestUpgradeHandlerIntegration:
                 str(tmp_path),
                 "upgrade",
                 "samplestore",
-                "--apply-legacy-validator",
-                "dependent_validator",
+                "--apply-legacy-migrator",
+                "dependent_migrator",
             ],
         )
 
@@ -455,26 +455,26 @@ class TestValidatorDataIntegrity:
 
     def setup_method(self) -> None:
         """Clear the registry before each test"""
-        LegacyValidatorRegistry._validators = {}
+        LegacyMigratorRegistry._migrators = {}
 
-    def test_validator_preserves_unrelated_fields(self) -> None:
+    def test_migrator_preserves_unrelated_fields(self) -> None:
         """Test that validators don't modify unrelated fields"""
 
-        @legacy_validator(
-            identifier="selective_validator",
+        @legacy_migrator(
+            identifier="selective_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Selective validator",
+            description="Selective migrator",
         )
         def selective(data: dict) -> dict:
             if "old_field" in data:
                 data["new_field"] = data.pop("old_field")
             return data
 
-        validator = LegacyValidatorRegistry.get_validator("selective_validator")
-        assert validator is not None
+        migrator = LegacyMigratorRegistry.get_migrator("selective_migrator")
+        assert migrator is not None
 
         # Data with many fields
         data = {
@@ -485,7 +485,7 @@ class TestValidatorDataIntegrity:
             "keep_field4": {"nested": "dict"},
         }
 
-        result = validator.validator_function(data.copy())
+        result = migrator.migrator_function(data.copy())
 
         # Verify migration happened
         assert "old_field" not in result
@@ -497,31 +497,31 @@ class TestValidatorDataIntegrity:
         assert result["keep_field3"] == ["list", "of", "items"]
         assert result["keep_field4"] == {"nested": "dict"}
 
-    def test_validator_handles_missing_fields_gracefully(
-        self, isolated_legacy_validator_registry: None
+    def test_migrator_handles_missing_fields_gracefully(
+        self, isolated_legacy_migrator_registry: None
     ) -> None:
         """Test that validators handle missing deprecated fields gracefully"""
 
-        @legacy_validator(
-            identifier="graceful_validator",
+        @legacy_migrator(
+            identifier="graceful_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.optional_old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Graceful validator",
+            description="Graceful migrator",
         )
         def graceful(data: dict) -> dict:
             if "optional_old_field" in data:
                 data["new_field"] = data.pop("optional_old_field")
             return data
 
-        validator = LegacyValidatorRegistry.get_validator("graceful_validator")
-        assert validator is not None
+        migrator = LegacyMigratorRegistry.get_migrator("graceful_migrator")
+        assert migrator is not None
 
         # Data without the deprecated field
         data = {"other_field": "value"}
 
-        result = validator.validator_function(data.copy())
+        result = migrator.migrator_function(data.copy())
 
         # Should not crash and should preserve data
         assert result == data

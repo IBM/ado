@@ -1,361 +1,361 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Tests for validator dependency resolution and ordering"""
+"""Tests for migrator dependency resolution and ordering"""
 
 import pytest
 
-from orchestrator.core.legacy.metadata import LegacyValidatorMetadata
-from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+from orchestrator.core.legacy.metadata import LegacyMigratorMetadata
+from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 from orchestrator.core.resources import CoreResourceKinds
 
 
 def test_resolve_dependencies_no_dependencies(
-    isolated_legacy_validator_registry: None,
+    isolated_legacy_migrator_registry: None,
 ) -> None:
     """Test resolving validators with no dependencies"""
 
-    def validator_a(data: dict) -> dict:
+    def migrator_a(data: dict) -> dict:
         return data
 
-    def validator_b(data: dict) -> dict:
+    def migrator_b(data: dict) -> dict:
         return data
 
     # Register validators without dependencies
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_a",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
-            validator_function=validator_a,
+            migrator_function=migrator_a,
             dependencies=[],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_b",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
-            validator_function=validator_b,
+            migrator_function=migrator_b,
             dependencies=[],
         )
     )
 
     # Resolve dependencies
-    ordered, missing = LegacyValidatorRegistry.resolve_dependencies(
-        ["validator_a", "validator_b"]
+    ordered, missing = LegacyMigratorRegistry.resolve_dependencies(
+        ["migrator_a", "migrator_b"]
     )
 
     # Should return both validators in alphabetical order (no dependencies)
     assert len(ordered) == 2
-    assert "validator_a" in ordered
-    assert "validator_b" in ordered
+    assert "migrator_a" in ordered
+    assert "migrator_b" in ordered
     assert len(missing) == 0
 
 
 def test_resolve_dependencies_simple_chain() -> None:
     """Test resolving validators with simple dependency chain"""
 
-    def validator_a(data: dict) -> dict:
+    def migrator_a(data: dict) -> dict:
         return data
 
-    def validator_b(data: dict) -> dict:
+    def migrator_b(data: dict) -> dict:
         return data
 
-    def validator_c(data: dict) -> dict:
+    def migrator_c(data: dict) -> dict:
         return data
 
     # Register validators: C depends on B, B depends on A
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_a",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
-            validator_function=validator_a,
+            migrator_function=migrator_a,
             dependencies=[],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_b",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
-            validator_function=validator_b,
-            dependencies=["validator_a"],
+            migrator_function=migrator_b,
+            dependencies=["migrator_a"],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_c",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_c",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_c"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator C",
-            validator_function=validator_c,
-            dependencies=["validator_b"],
+            migrator_function=migrator_c,
+            dependencies=["migrator_b"],
         )
     )
 
     # Resolve dependencies - only request C
-    ordered, missing = LegacyValidatorRegistry.resolve_dependencies(["validator_c"])
+    ordered, missing = LegacyMigratorRegistry.resolve_dependencies(["migrator_c"])
 
     # Should return all three in correct order: A, B, C
-    assert ordered == ["validator_a", "validator_b", "validator_c"]
+    assert ordered == ["migrator_a", "migrator_b", "migrator_c"]
     assert len(missing) == 0
 
 
 def test_resolve_dependencies_diamond(
-    isolated_legacy_validator_registry: None,
+    isolated_legacy_migrator_registry: None,
 ) -> None:
     """Test resolving validators with diamond dependency pattern"""
 
-    def validator_a(data: dict) -> dict:
+    def migrator_a(data: dict) -> dict:
         return data
 
-    def validator_b(data: dict) -> dict:
+    def migrator_b(data: dict) -> dict:
         return data
 
-    def validator_c(data: dict) -> dict:
+    def migrator_c(data: dict) -> dict:
         return data
 
-    def validator_d(data: dict) -> dict:
+    def migrator_d(data: dict) -> dict:
         return data
 
     # Register validators: D depends on B and C, both B and C depend on A
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_a",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
-            validator_function=validator_a,
+            migrator_function=migrator_a,
             dependencies=[],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_b",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
-            validator_function=validator_b,
-            dependencies=["validator_a"],
+            migrator_function=migrator_b,
+            dependencies=["migrator_a"],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_c",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_c",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_c"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator C",
-            validator_function=validator_c,
-            dependencies=["validator_a"],
+            migrator_function=migrator_c,
+            dependencies=["migrator_a"],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_d",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_d",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_d"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator D",
-            validator_function=validator_d,
-            dependencies=["validator_b", "validator_c"],
+            migrator_function=migrator_d,
+            dependencies=["migrator_b", "migrator_c"],
         )
     )
 
     # Resolve dependencies
-    ordered, missing = LegacyValidatorRegistry.resolve_dependencies(["validator_d"])
+    ordered, missing = LegacyMigratorRegistry.resolve_dependencies(["migrator_d"])
 
     # Should return all four: A first, then B and C (in some order), then D
     assert len(ordered) == 4
-    assert ordered[0] == "validator_a"  # A must be first
-    assert ordered[3] == "validator_d"  # D must be last
-    assert "validator_b" in ordered[1:3]  # B and C in middle
-    assert "validator_c" in ordered[1:3]
+    assert ordered[0] == "migrator_a"  # A must be first
+    assert ordered[3] == "migrator_d"  # D must be last
+    assert "migrator_b" in ordered[1:3]  # B and C in middle
+    assert "migrator_c" in ordered[1:3]
     assert len(missing) == 0
 
 
 def test_resolve_dependencies_circular(
-    isolated_legacy_validator_registry: None,
+    isolated_legacy_migrator_registry: None,
 ) -> None:
     """Test that circular dependencies are detected"""
 
-    def validator_a(data: dict) -> dict:
+    def migrator_a(data: dict) -> dict:
         return data
 
-    def validator_b(data: dict) -> dict:
+    def migrator_b(data: dict) -> dict:
         return data
 
     # Register validators with circular dependency: A depends on B, B depends on A
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_a",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
-            validator_function=validator_a,
-            dependencies=["validator_b"],
+            migrator_function=migrator_a,
+            dependencies=["migrator_b"],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_b",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
-            validator_function=validator_b,
-            dependencies=["validator_a"],
+            migrator_function=migrator_b,
+            dependencies=["migrator_a"],
         )
     )
 
     # Should raise ValueError for circular dependency
     with pytest.raises(ValueError, match="Circular dependency detected"):
-        LegacyValidatorRegistry.resolve_dependencies(["validator_a", "validator_b"])
+        LegacyMigratorRegistry.resolve_dependencies(["migrator_a", "migrator_b"])
 
 
 def test_resolve_dependencies_missing(
-    isolated_legacy_validator_registry: None,
+    isolated_legacy_migrator_registry: None,
 ) -> None:
     """Test handling of missing dependencies"""
 
-    def validator_a(data: dict) -> dict:
+    def migrator_a(data: dict) -> dict:
         return data
 
-    # Register validator with non-existent dependency
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_a",
+    # Register migrator with non-existent dependency
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
-            validator_function=validator_a,
-            dependencies=["nonexistent_validator"],
+            migrator_function=migrator_a,
+            dependencies=["nonexistent_migrator"],
         )
     )
 
     # Resolve dependencies
-    ordered, missing = LegacyValidatorRegistry.resolve_dependencies(["validator_a"])
+    ordered, missing = LegacyMigratorRegistry.resolve_dependencies(["migrator_a"])
 
-    # Should return validator_a and report missing dependency
-    assert ordered == ["validator_a"]
-    assert "nonexistent_validator" in missing
+    # Should return migrator_a and report missing dependency
+    assert ordered == ["migrator_a"]
+    assert "nonexistent_migrator" in missing
 
 
 def test_resolve_dependencies_multiple_roots(
-    isolated_legacy_validator_registry: None,
+    isolated_legacy_migrator_registry: None,
 ) -> None:
     """Test resolving validators with multiple independent roots"""
 
-    def validator_a(data: dict) -> dict:
+    def migrator_a(data: dict) -> dict:
         return data
 
-    def validator_b(data: dict) -> dict:
+    def migrator_b(data: dict) -> dict:
         return data
 
-    def validator_c(data: dict) -> dict:
+    def migrator_c(data: dict) -> dict:
         return data
 
-    def validator_d(data: dict) -> dict:
+    def migrator_d(data: dict) -> dict:
         return data
 
     # Register validators: C depends on A, D depends on B
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_a",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_a",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_a"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator A",
-            validator_function=validator_a,
+            migrator_function=migrator_a,
             dependencies=[],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_b",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_b",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_b"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator B",
-            validator_function=validator_b,
+            migrator_function=migrator_b,
             dependencies=[],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_c",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_c",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_c"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator C",
-            validator_function=validator_c,
-            dependencies=["validator_a"],
+            migrator_function=migrator_c,
+            dependencies=["migrator_a"],
         )
     )
 
-    LegacyValidatorRegistry.register(
-        LegacyValidatorMetadata(
-            identifier="validator_d",
+    LegacyMigratorRegistry.register(
+        LegacyMigratorMetadata(
+            identifier="migrator_d",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.field_d"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
             description="Validator D",
-            validator_function=validator_d,
-            dependencies=["validator_b"],
+            migrator_function=migrator_d,
+            dependencies=["migrator_b"],
         )
     )
 
     # Resolve dependencies
-    ordered, missing = LegacyValidatorRegistry.resolve_dependencies(
-        ["validator_c", "validator_d"]
+    ordered, missing = LegacyMigratorRegistry.resolve_dependencies(
+        ["migrator_c", "migrator_d"]
     )
 
     # Should return all four validators with correct ordering
     assert len(ordered) == 4
     # A must come before C
-    assert ordered.index("validator_a") < ordered.index("validator_c")
+    assert ordered.index("migrator_a") < ordered.index("migrator_c")
     # B must come before D
-    assert ordered.index("validator_b") < ordered.index("validator_d")
+    assert ordered.index("migrator_b") < ordered.index("migrator_d")
     assert len(missing) == 0
 
 

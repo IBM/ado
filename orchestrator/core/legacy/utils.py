@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Utility functions for legacy validators"""
+"""Utility functions for legacy migrators"""
 
 
 def get_parent_dict_and_key(data: dict, path: str) -> tuple[dict | None, str | None]:

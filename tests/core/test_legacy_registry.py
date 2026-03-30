@@ -1,82 +1,82 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Unit tests for the legacy validator registry"""
+"""Unit tests for the legacy migrator registry"""
 
 from collections.abc import Callable
 
 import pytest
 
-from orchestrator.core.legacy.metadata import LegacyValidatorMetadata
+from orchestrator.core.legacy.metadata import LegacyMigratorMetadata
 from orchestrator.core.legacy.registry import (
-    LegacyValidatorRegistry,
-    legacy_validator,
+    LegacyMigratorRegistry,
+    legacy_migrator,
 )
 from orchestrator.core.resources import CoreResourceKinds
 
 
 @pytest.fixture
-def dummy_validator() -> Callable[[dict], dict]:
-    """Fixture providing a simple dummy validator function"""
+def dummy_migrator() -> Callable[[dict], dict]:
+    """Fixture providing a simple dummy migrator function"""
 
-    def validator(data: dict) -> dict:
+    def migrator(data: dict) -> dict:
         return data
 
-    return validator
+    return migrator
 
 
 @pytest.fixture
-def create_validator_metadata(
-    dummy_validator: Callable[[dict], dict],
-) -> Callable[..., LegacyValidatorMetadata]:
-    """Fixture factory for creating LegacyValidatorMetadata instances"""
+def create_migrator_metadata(
+    dummy_migrator: Callable[[dict], dict],
+) -> Callable[..., LegacyMigratorMetadata]:
+    """Fixture factory for creating LegacyMigratorMetadata instances"""
 
     def _create_metadata(
-        identifier: str = "test_validator",
+        identifier: str = "test_migrator",
         resource_type: CoreResourceKinds = CoreResourceKinds.SAMPLESTORE,
         deprecated_field_paths: list[str] | None = None,
         deprecated_from_version: str = "1.0.0",
         removed_from_version: str = "2.0.0",
-        description: str = "Test validator",
-        validator_function: Callable[[dict], dict] | None = None,
+        description: str = "Test migrator",
+        migrator_function: Callable[[dict], dict] | None = None,
         dependencies: list[str] | None = None,
-    ) -> LegacyValidatorMetadata:
+    ) -> LegacyMigratorMetadata:
         if deprecated_field_paths is None:
             deprecated_field_paths = ["config.field1"]
-        if validator_function is None:
-            validator_function = dummy_validator
+        if migrator_function is None:
+            migrator_function = dummy_migrator
         if dependencies is None:
             dependencies = []
 
-        return LegacyValidatorMetadata(
+        return LegacyMigratorMetadata(
             identifier=identifier,
             resource_type=resource_type,
             deprecated_field_paths=deprecated_field_paths,
             deprecated_from_version=deprecated_from_version,
             removed_from_version=removed_from_version,
             description=description,
-            validator_function=validator_function,
+            migrator_function=migrator_function,
             dependencies=dependencies,
         )
 
     return _create_metadata
 
 
-class TestLegacyValidatorMetadata:
-    """Test the LegacyValidatorMetadata model"""
+class TestLegacyMigratorMetadata:
+    """Test the LegacyMigratorMetadata model"""
 
     def test_create_metadata(
         self,
-        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
-        dummy_validator: Callable[[dict], dict],
+        create_migrator_metadata: Callable[..., LegacyMigratorMetadata],
+        dummy_migrator: Callable[[dict], dict],
     ) -> None:
-        """Test creating validator metadata"""
-        metadata = create_validator_metadata(
-            identifier="test_validator",
+        """Test creating migrator metadata"""
+        metadata = create_migrator_metadata(
+            identifier="test_migrator",
             deprecated_field_paths=["config.field1", "config.field2"],
         )
 
-        assert metadata.identifier == "test_validator"
+        assert metadata.identifier == "test_migrator"
         assert metadata.resource_type == CoreResourceKinds.SAMPLESTORE
         assert metadata.deprecated_field_paths == [
             "config.field1",
@@ -84,241 +84,241 @@ class TestLegacyValidatorMetadata:
         ]
         assert metadata.deprecated_from_version == "1.0.0"
         assert metadata.removed_from_version == "2.0.0"
-        assert metadata.description == "Test validator"
-        assert metadata.validator_function == dummy_validator
+        assert metadata.description == "Test migrator"
+        assert metadata.migrator_function == dummy_migrator
 
     def test_metadata_serialization(
-        self, create_validator_metadata: Callable[..., LegacyValidatorMetadata]
+        self, create_migrator_metadata: Callable[..., LegacyMigratorMetadata]
     ) -> None:
-        """Test that validator function is excluded from serialization"""
-        metadata = create_validator_metadata()
+        """Test that migrator function is excluded from serialization"""
+        metadata = create_migrator_metadata()
 
         # Serialize to dict
         data = metadata.model_dump()
 
-        # validator_function should be excluded
-        assert "validator_function" not in data
+        # migrator_function should be excluded
+        assert "migrator_function" not in data
         assert "identifier" in data
         assert "resource_type" in data
 
 
-class TestLegacyValidatorRegistry:
-    """Test the LegacyValidatorRegistry class"""
+class TestLegacyMigratorRegistry:
+    """Test the LegacyMigratorRegistry class"""
 
-    def test_register_validator(
+    def test_register_migrator(
         self,
-        isolated_legacy_validator_registry: None,
-        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
+        isolated_legacy_migrator_registry: None,
+        create_migrator_metadata: Callable[..., LegacyMigratorMetadata],
     ) -> None:
-        """Test registering a validator"""
-        metadata = create_validator_metadata()
+        """Test registering a migrator"""
+        metadata = create_migrator_metadata()
 
-        LegacyValidatorRegistry.register(metadata)
+        LegacyMigratorRegistry.register(metadata)
 
-        assert len(LegacyValidatorRegistry._validators) == 1
-        assert "test_validator" in LegacyValidatorRegistry._validators
+        assert len(LegacyMigratorRegistry._migrators) == 1
+        assert "test_migrator" in LegacyMigratorRegistry._migrators
 
-    def test_get_validator(
+    def test_get_migrator(
         self,
-        isolated_legacy_validator_registry: None,
-        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
+        isolated_legacy_migrator_registry: None,
+        create_migrator_metadata: Callable[..., LegacyMigratorMetadata],
     ) -> None:
-        """Test retrieving a validator by identifier"""
-        metadata = create_validator_metadata()
+        """Test retrieving a migrator by identifier"""
+        metadata = create_migrator_metadata()
 
-        LegacyValidatorRegistry.register(metadata)
+        LegacyMigratorRegistry.register(metadata)
 
-        retrieved = LegacyValidatorRegistry.get_validator("test_validator")
+        retrieved = LegacyMigratorRegistry.get_migrator("test_migrator")
         assert retrieved is not None
-        assert retrieved.identifier == "test_validator"
+        assert retrieved.identifier == "test_migrator"
 
-    def test_get_nonexistent_validator(
-        self, isolated_legacy_validator_registry: None
+    def test_get_nonexistent_migrator(
+        self, isolated_legacy_migrator_registry: None
     ) -> None:
-        """Test retrieving a validator that doesn't exist"""
-        retrieved = LegacyValidatorRegistry.get_validator("nonexistent")
+        """Test retrieving a migrator that doesn't exist"""
+        retrieved = LegacyMigratorRegistry.get_migrator("nonexistent")
         assert retrieved is None
 
-    def test_get_validators_for_resource(
+    def test_get_migrators_for_resource(
         self,
-        isolated_legacy_validator_registry: None,
-        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
+        isolated_legacy_migrator_registry: None,
+        create_migrator_metadata: Callable[..., LegacyMigratorMetadata],
     ) -> None:
         """Test retrieving validators for a specific resource type"""
         # Register validators for different resource types
-        metadata1 = create_validator_metadata(
-            identifier="samplestore_validator",
+        metadata1 = create_migrator_metadata(
+            identifier="samplestore_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
-            description="Sample store validator",
+            description="Sample store migrator",
         )
 
-        metadata2 = create_validator_metadata(
-            identifier="operation_validator",
+        metadata2 = create_migrator_metadata(
+            identifier="operation_migrator",
             resource_type=CoreResourceKinds.OPERATION,
             deprecated_field_paths=["config.field2"],
-            description="Operation validator",
+            description="Operation migrator",
         )
 
-        LegacyValidatorRegistry.register(metadata1)
-        LegacyValidatorRegistry.register(metadata2)
+        LegacyMigratorRegistry.register(metadata1)
+        LegacyMigratorRegistry.register(metadata2)
 
         # Get validators for SAMPLESTORE
-        samplestore_validators = LegacyValidatorRegistry.get_validators_for_resource(
+        samplestore_migrators = LegacyMigratorRegistry.get_migrators_for_resource(
             CoreResourceKinds.SAMPLESTORE
         )
-        assert len(samplestore_validators) == 1
-        assert samplestore_validators[0].identifier == "samplestore_validator"
+        assert len(samplestore_migrators) == 1
+        assert samplestore_migrators[0].identifier == "samplestore_migrator"
 
         # Get validators for OPERATION
-        operation_validators = LegacyValidatorRegistry.get_validators_for_resource(
+        operation_migrators = LegacyMigratorRegistry.get_migrators_for_resource(
             CoreResourceKinds.OPERATION
         )
-        assert len(operation_validators) == 1
-        assert operation_validators[0].identifier == "operation_validator"
+        assert len(operation_migrators) == 1
+        assert operation_migrators[0].identifier == "operation_migrator"
 
-    def test_find_validators_for_deprecated_field_paths(
+    def test_find_migrators_for_deprecated_field_paths(
         self,
-        isolated_legacy_validator_registry: None,
-        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
+        isolated_legacy_migrator_registry: None,
+        create_migrator_metadata: Callable[..., LegacyMigratorMetadata],
     ) -> None:
         """Test finding validators that handle specific field paths"""
         # Register validators with different field paths
-        metadata1 = create_validator_metadata(
-            identifier="validator1",
+        metadata1 = create_migrator_metadata(
+            identifier="migrator1",
             deprecated_field_paths=["config.field1", "config.field2"],
             description="Validator 1",
         )
 
-        metadata2 = create_validator_metadata(
-            identifier="validator2",
+        metadata2 = create_migrator_metadata(
+            identifier="migrator2",
             deprecated_field_paths=["config.specification.field3"],
             description="Validator 2",
         )
 
-        metadata3 = create_validator_metadata(
-            identifier="validator3",
+        metadata3 = create_migrator_metadata(
+            identifier="migrator3",
             resource_type=CoreResourceKinds.DISCOVERYSPACE,
             deprecated_field_paths=["config.properties"],
             description="Validator 3",
         )
 
-        LegacyValidatorRegistry.register(metadata1)
-        LegacyValidatorRegistry.register(metadata2)
-        LegacyValidatorRegistry.register(metadata3)
+        LegacyMigratorRegistry.register(metadata1)
+        LegacyMigratorRegistry.register(metadata2)
+        LegacyMigratorRegistry.register(metadata3)
 
         # Find validators for single full path
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.field1"}
         )
         assert len(validators) == 1
-        assert validators[0].identifier == "validator1"
+        assert validators[0].identifier == "migrator1"
 
         # Find validators for nested path
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.specification.field3"}
         )
         assert len(validators) == 1
-        assert validators[0].identifier == "validator2"
+        assert validators[0].identifier == "migrator2"
 
         # Find validators for multiple paths
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE,
             {"config.field1", "config.specification.field3"},
         )
         assert len(validators) == 2
-        validator_ids = {v.identifier for v in validators}
-        assert validator_ids == {"validator1", "validator2"}
+        migrator_ids = {v.identifier for v in validators}
+        assert migrator_ids == {"migrator1", "migrator2"}
 
         # Find validators for non-existent path
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.nonexistent"}
         )
         assert len(validators) == 0
 
-        # Verify it doesn't match on leaf names alone (more specific than find_validators_for_fields)
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        # Verify it doesn't match on leaf names alone (more specific than find_migrators_for_fields)
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"field1"}  # Just leaf name, not full path
         )
         assert len(validators) == 0
 
         # Verify resource type filtering works
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.DISCOVERYSPACE, {"config.properties"}
         )
         assert len(validators) == 1
-        assert validators[0].identifier == "validator3"
+        assert validators[0].identifier == "migrator3"
 
     def test_list_all(
         self,
-        isolated_legacy_validator_registry: None,
-        create_validator_metadata: Callable[..., LegacyValidatorMetadata],
+        isolated_legacy_migrator_registry: None,
+        create_migrator_metadata: Callable[..., LegacyMigratorMetadata],
     ) -> None:
         """Test listing all validators"""
-        metadata1 = create_validator_metadata(
-            identifier="validator1",
+        metadata1 = create_migrator_metadata(
+            identifier="migrator1",
             description="Validator 1",
         )
 
-        metadata2 = create_validator_metadata(
-            identifier="validator2",
+        metadata2 = create_migrator_metadata(
+            identifier="migrator2",
             resource_type=CoreResourceKinds.OPERATION,
             deprecated_field_paths=["config.field2"],
             description="Validator 2",
         )
 
-        LegacyValidatorRegistry.register(metadata1)
-        LegacyValidatorRegistry.register(metadata2)
+        LegacyMigratorRegistry.register(metadata1)
+        LegacyMigratorRegistry.register(metadata2)
 
-        all_validators = LegacyValidatorRegistry.list_all()
-        assert len(all_validators) == 2
+        all_migrators = LegacyMigratorRegistry.list_all()
+        assert len(all_migrators) == 2
 
-    def test_field_path_matching_with_real_validators(
-        self, legacy_validators_loaded: None
+    def test_field_path_matching_with_real_migrators(
+        self, legacy_migrators_loaded: None
     ) -> None:
         """Integration test: verify field path matching works with real validators"""
 
         # Test 1: discoveryspace properties field should match the properties_field_removal validator
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.DISCOVERYSPACE, {"config.properties"}
         )
         assert len(validators) >= 1
-        validator_ids = {v.identifier for v in validators}
-        assert "discoveryspace_properties_field_removal" in validator_ids
+        migrator_ids = {v.identifier for v in validators}
+        assert "discoveryspace_properties_field_removal" in migrator_ids
 
         # Test 2: operation actuators field should match the actuators_field_removal validator
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.OPERATION, {"config.actuators"}
         )
         assert len(validators) >= 1
-        validator_ids = {v.identifier for v in validators}
-        assert "operation_actuators_field_removal" in validator_ids
+        migrator_ids = {v.identifier for v in validators}
+        assert "operation_actuators_field_removal" in migrator_ids
 
         # Test 3: operation parameters.mode should match randomwalk validator
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.OPERATION, {"config.parameters.mode"}
         )
         assert len(validators) >= 1
-        validator_ids = {v.identifier for v in validators}
-        assert "randomwalk_mode_to_sampler_config" in validator_ids
+        migrator_ids = {v.identifier for v in validators}
+        assert "randomwalk_mode_to_sampler_config" in migrator_ids
 
         # Test 4: samplestore config.specification.module.moduleType should match the module_type validator
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"config.specification.module.moduleType"}
         )
         assert len(validators) >= 1
-        validator_ids = {v.identifier for v in validators}
-        assert "samplestore_module_type_entitysource_to_samplestore" in validator_ids
+        migrator_ids = {v.identifier for v in validators}
+        assert "samplestore_module_type_entitysource_to_samplestore" in migrator_ids
 
         # Test 5: samplestore kind field should match the kind validator
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE, {"kind"}
         )
         assert len(validators) >= 1
-        validator_ids = {v.identifier for v in validators}
-        assert "samplestore_kind_entitysource_to_samplestore" in validator_ids
+        migrator_ids = {v.identifier for v in validators}
+        assert "samplestore_kind_entitysource_to_samplestore" in migrator_ids
 
         # Test 6: Multiple paths should return multiple validators
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        validators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             CoreResourceKinds.SAMPLESTORE,
             {
                 "config.specification.module.moduleType",
@@ -327,89 +327,89 @@ class TestLegacyValidatorRegistry:
             },
         )
         assert len(validators) >= 3
-        validator_ids = {v.identifier for v in validators}
-        assert "samplestore_module_type_entitysource_to_samplestore" in validator_ids
-        assert "samplestore_module_class_entitysource_to_samplestore" in validator_ids
-        assert "samplestore_module_name_entitysource_to_samplestore" in validator_ids
+        migrator_ids = {v.identifier for v in validators}
+        assert "samplestore_module_type_entitysource_to_samplestore" in migrator_ids
+        assert "samplestore_module_class_entitysource_to_samplestore" in migrator_ids
+        assert "samplestore_module_name_entitysource_to_samplestore" in migrator_ids
 
 
-class TestLegacyValidatorDecorator:
-    """Test the @legacy_validator decorator"""
+class TestLegacyMigratorDecorator:
+    """Test the @legacy_migrator decorator"""
 
-    def test_decorator_registers_validator(
-        self, isolated_legacy_validator_registry: None
+    def test_decorator_registers_migrator(
+        self, isolated_legacy_migrator_registry: None
     ) -> None:
-        """Test that the decorator registers the validator"""
+        """Test that the decorator registers the migrator"""
 
-        @legacy_validator(
-            identifier="test_decorator_validator",
+        @legacy_migrator(
+            identifier="test_decorator_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Test decorator validator",
+            description="Test decorator migrator",
         )
-        def my_validator(data: dict) -> dict:
+        def my_migrator(data: dict) -> dict:
             return data
 
-        # Check that validator was registered
-        assert len(LegacyValidatorRegistry._validators) == 1
-        assert "test_decorator_validator" in LegacyValidatorRegistry._validators
+        # Check that migrator was registered
+        assert len(LegacyMigratorRegistry._migrators) == 1
+        assert "test_decorator_migrator" in LegacyMigratorRegistry._migrators
 
         # Check that the function still works
         test_data = {"key": "value"}
-        result = my_validator(test_data)
+        result = my_migrator(test_data)
         assert result == test_data
 
     def test_decorator_preserves_function_metadata(
-        self, isolated_legacy_validator_registry: None
+        self, isolated_legacy_migrator_registry: None
     ) -> None:
         """Test that the decorator preserves function metadata"""
 
-        @legacy_validator(
-            identifier="test_validator",
+        @legacy_migrator(
+            identifier="test_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["config.field1"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Test validator",
+            description="Test migrator",
         )
-        def my_validator(data: dict) -> dict:
-            """My validator docstring"""
+        def my_migrator(data: dict) -> dict:
+            """My migrator docstring"""
             return data
 
         # Check that function name and docstring are preserved
-        assert my_validator.__name__ == "my_validator"
-        assert my_validator.__doc__ == "My validator docstring"
+        assert my_migrator.__name__ == "my_migrator"
+        assert my_migrator.__doc__ == "My migrator docstring"
 
-    def test_validator_function_execution(self) -> None:
-        """Test that the validator function executes correctly"""
+    def test_migrator_function_execution(self) -> None:
+        """Test that the migrator function executes correctly"""
 
-        @legacy_validator(
-            identifier="transform_validator",
+        @legacy_migrator(
+            identifier="transform_migrator",
             resource_type=CoreResourceKinds.SAMPLESTORE,
             deprecated_field_paths=["old_field"],
             deprecated_from_version="1.0.0",
             removed_from_version="2.0.0",
-            description="Transform validator",
+            description="Transform migrator",
         )
-        def transform_validator(data: dict) -> dict:
+        def transform_migrator(data: dict) -> dict:
             if "old_field" in data:
                 data["new_field"] = data.pop("old_field")
             return data
 
-        # Test the validator function
+        # Test the migrator function
         test_data = {"old_field": "value"}
-        result = transform_validator(test_data)
+        result = transform_migrator(test_data)
         assert "old_field" not in result
         assert result["new_field"] == "value"
 
         # Verify it was registered correctly
-        metadata = LegacyValidatorRegistry.get_validator("transform_validator")
+        metadata = LegacyMigratorRegistry.get_migrator("transform_migrator")
         assert metadata is not None
-        # The validator function should be callable and work correctly
+        # The migrator function should be callable and work correctly
         test_data2 = {"old_field": "another_value"}
-        result2 = metadata.validator_function(test_data2)
+        result2 = metadata.migrator_function(test_data2)
         assert "old_field" not in result2
         assert result2["new_field"] == "another_value"
 

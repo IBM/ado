@@ -237,25 +237,25 @@ def handle_ado_upgrade(
     parameters: "AdoUpgradeCommandParameters",
     resource_type: "CoreResourceKinds",
 ) -> None:
-    """Upgrade resources, optionally applying legacy validators
+    """Upgrade resources, optionally applying legacy migrators
 
     Args:
-        parameters: Command parameters including legacy validator options
+        parameters: Command parameters including legacy migrator options
         resource_type: The type of resource to upgrade
     """
-    # Handle --list-legacy-validators flag
-    if parameters.list_legacy_validators:
-        from orchestrator.cli.utils.legacy.list import list_legacy_validators
+    # Handle --list-legacy-migrators flag
+    if parameters.list_legacy_migrators:
+        from orchestrator.cli.utils.legacy.list import list_legacy_migrators
 
-        list_legacy_validators(resource_type)
+        list_legacy_migrators(resource_type)
         return
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
 
-    # Normal upgrade path without legacy validators
-    if not parameters.apply_legacy_validator:
+    # Normal upgrade path without legacy migrators
+    if not parameters.apply_legacy_migrator:
 
         with Status(ADO_SPINNER_QUERYING_DB) as status:
             try:
@@ -264,7 +264,7 @@ def handle_ado_upgrade(
                 )
             except ValueError as err:
                 status.stop()
-                # Validation error occurred - check if legacy validators can help
+                # Validation error occurred - check if legacy migrators can help
                 _handle_upgrade_validation_error(err, resource_type, parameters)
                 raise typer.Exit(1) from err
 
@@ -277,74 +277,74 @@ def handle_ado_upgrade(
         console_print(SUCCESS)
         return
 
-    # The user has requested legacy validators
-    legacy_validators = None
-    # Import validators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.validators  # noqa: F401
-    from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+    # The user has requested legacy migrators
+    legacy_migrators = None
+    # Import migrators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.migrators  # noqa: F401
+    from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 
-    # Validate all validator IDs exist and match resource type
-    invalid_validators = []
-    mismatched_validators = []
-    for validator_id in parameters.apply_legacy_validator:
-        validator = LegacyValidatorRegistry.get_validator(validator_id)
-        if validator is None:
-            invalid_validators.append(validator_id)
-        elif validator.resource_type != resource_type:
-            mismatched_validators.append(
-                (validator_id, validator.resource_type, resource_type)
+    # Validate all migrator IDs exist and match resource type
+    invalid_migrators = []
+    mismatched_migrators = []
+    for migrator_id in parameters.apply_legacy_migrator:
+        migrator = LegacyMigratorRegistry.get_migrator(migrator_id)
+        if migrator is None:
+            invalid_migrators.append(migrator_id)
+        elif migrator.resource_type != resource_type:
+            mismatched_migrators.append(
+                (migrator_id, migrator.resource_type, resource_type)
             )
 
-    if invalid_validators:
+    if invalid_migrators:
         console_print(
-            f"{ERROR}Unknown legacy validator(s): {', '.join(invalid_validators)}",
+            f"{ERROR}Unknown legacy migrator(s): {', '.join(invalid_migrators)}",
             stderr=True,
         )
         raise typer.Exit(1)
 
-    if mismatched_validators:
-        for validator_id, validator_type, expected_type in mismatched_validators:
+    if mismatched_migrators:
+        for migrator_id, migrator_type, expected_type in mismatched_migrators:
             console_print(
-                f"{ERROR}Validator '{validator_id}' is for {validator_type.value} resources, "
+                f"{ERROR}Validator '{migrator_id}' is for {migrator_type.value} resources, "
                 f"but you are upgrading {expected_type.value} resources",
                 stderr=True,
             )
         raise typer.Exit(1)
 
-    # Resolve dependencies and order validators
+    # Resolve dependencies and order migrators
     try:
-        ordered_ids, missing_deps = LegacyValidatorRegistry.resolve_dependencies(
-            parameters.apply_legacy_validator
+        ordered_ids, missing_deps = LegacyMigratorRegistry.resolve_dependencies(
+            parameters.apply_legacy_migrator
         )
 
         if missing_deps:
             console_print(
-                f"{ERROR}Missing validator dependencies: {', '.join(missing_deps)}",
+                f"{ERROR}Missing migrator dependencies: {', '.join(missing_deps)}",
                 stderr=True,
             )
             raise typer.Exit(1)
 
-        # Get validators in correct order
-        legacy_validators = []
-        for validator_id in ordered_ids:
-            validator = LegacyValidatorRegistry.get_validator(validator_id)
-            if validator is not None:
-                legacy_validators.append(validator)
+        # Get migrators in correct order
+        legacy_migrators = []
+        for migrator_id in ordered_ids:
+            migrator = LegacyMigratorRegistry.get_migrator(migrator_id)
+            if migrator is not None:
+                legacy_migrators.append(migrator)
 
         # Log the ordering
-        if len(ordered_ids) > len(parameters.apply_legacy_validator):
+        if len(ordered_ids) > len(parameters.apply_legacy_migrator):
             logger.info(
-                f"Auto-included dependencies: {[vid for vid in ordered_ids if vid not in parameters.apply_legacy_validator]}"
+                f"Auto-included dependencies: {[vid for vid in ordered_ids if vid not in parameters.apply_legacy_migrator]}"
             )
 
-        if not legacy_validators:
+        if not legacy_migrators:
             console_print(
-                f"{ERROR}No validators were found using the provided identifiers"
+                f"{ERROR}No migrators were found using the provided identifiers"
             )
             raise typer.Exit(1)
 
         logger.debug(
-            f"Validators in execution order: {[v.identifier for v in legacy_validators]}"
+            f"Validators in execution order: {[v.identifier for v in legacy_migrators]}"
         )
 
     except ValueError as e:
@@ -355,7 +355,7 @@ def handle_ado_upgrade(
     # Import resource class mapping for validation
     from orchestrator.core import kindmap
 
-    # When legacy validators are specified, work with raw data
+    # When legacy migrators are specified, work with raw data
     with Status(ADO_SPINNER_QUERYING_DB) as status:
 
         identifiers = sql_store.getResourceIdentifiersOfKind(kind=resource_type.value)
@@ -376,15 +376,15 @@ def handle_ado_upgrade(
             if resource_dict is None:
                 continue
 
-            # Apply legacy validators
+            # Apply legacy migrators
             try:
-                for validator in legacy_validators:
+                for migrator in legacy_migrators:
                     logger.debug(
-                        f"Applying validator: {validator.identifier} to {identifier}"
+                        f"Applying migrator: {migrator.identifier} to {identifier}"
                     )
-                    resource_dict = validator.validator_function(resource_dict)
+                    resource_dict = migrator.migrator_function(resource_dict)
                     logger.debug(
-                        f"Validator {validator.identifier} completed for {identifier}"
+                        f"Validator {migrator.identifier} completed for {identifier}"
                     )
 
                 # Validate the migrated resource (don't save yet)
@@ -433,10 +433,10 @@ def _handle_upgrade_validation_error(
     resource_type: "CoreResourceKinds",
     parameters: "AdoUpgradeCommandParameters",
 ) -> None:
-    """Handle validation errors during upgrade by suggesting legacy validators
+    """Handle validation errors during upgrade by suggesting legacy migrators
 
     Analyzes the validation error to extract deprecated field names, finds
-    applicable legacy validators, and displays helpful suggestions to the user.
+    applicable legacy migrators, and displays helpful suggestions to the user.
 
     Args:
         error: The ValueError containing validation error details
@@ -447,31 +447,31 @@ def _handle_upgrade_validation_error(
 
     from orchestrator.cli.utils.legacy.common import (
         extract_deprecated_field_paths,
-        print_validator_suggestions_with_dependencies,
+        print_migrator_suggestions_with_dependencies,
     )
-    from orchestrator.core.legacy.registry import LegacyValidatorRegistry
+    from orchestrator.core.legacy.registry import LegacyMigratorRegistry
 
     console = Console()
 
-    # Import validators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.validators  # noqa: F401
+    # Import migrators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.migrators  # noqa: F401
 
     # Extract field paths and error details from the error
     deprecated_field_paths, field_errors = extract_deprecated_field_paths(
         error, resource_type
     )
 
-    # Find applicable legacy validators using full field paths for precise matching
-    validators = []
+    # Find applicable legacy migrators using full field paths for precise matching
+    migrators = []
     if deprecated_field_paths:
-        validators = LegacyValidatorRegistry.find_validators_for_deprecated_field_paths(
+        migrators = LegacyMigratorRegistry.find_migrators_for_deprecated_field_paths(
             resource_type=resource_type,
             deprecated_field_paths=deprecated_field_paths,
         )
 
-    # If no validators found by field path matching, get all validators for this resource type
-    if not validators:
-        validators = LegacyValidatorRegistry.get_validators_for_resource(resource_type)
+    # If no migrators found by field path matching, get all migrators for this resource type
+    if not migrators:
+        migrators = LegacyMigratorRegistry.get_migrators_for_resource(resource_type)
 
     # Display error message
     console.print(
@@ -492,13 +492,13 @@ def _handle_upgrade_validation_error(
             for error_msg in field_errors.get(field_path, []):
                 console.print(f"    - {error_msg}")
 
-    if validators:
-        print_validator_suggestions_with_dependencies(
-            validators=validators, resource_type=resource_type
+    if migrators:
+        print_migrator_suggestions_with_dependencies(
+            migrators=migrators, resource_type=resource_type
         )
     else:
         console.print(
-            "\n[yellow]No legacy validators are available for this resource type.[/yellow]"
+            "\n[yellow]No legacy migrators are available for this resource type.[/yellow]"
         )
         console.print("The resources may be too old or require manual intervention.")
 

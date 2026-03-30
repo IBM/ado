@@ -1086,8 +1086,8 @@ When required, you can run this command to update all resources of a given kind
 in the database.
 
 ```shell
-ado upgrade RESOURCE_TYPE [--apply-legacy-validator <VALIDATOR_ID>] \
-                          [--list-legacy-validators]
+ado upgrade RESOURCE_TYPE [--apply-legacy-migrator <VALIDATOR_ID>] \
+                          [--list-legacy-migrators]
 ```
 
 Where:
@@ -1104,12 +1104,12 @@ Where:
 
 <!-- prettier-ignore-end -->
 
-- `--apply-legacy-validator` applies a specific legacy validator by identifier
+- `--apply-legacy-migrator` applies a specific legacy migrator by identifier
   during the upgrade process. This option can be specified multiple times to
   apply multiple validators. Legacy validators handle deprecated field
   migrations and schema transformations.
 
-- `--list-legacy-validators` lists all available legacy validators for the
+- `--list-legacy-migrators` lists all available legacy migrators for the
   specified resource type, showing their identifiers, descriptions, and
   deprecated field paths.
 
@@ -1121,16 +1121,16 @@ Where:
 ado upgrade operations
 ```
 
-##### List available legacy validators for sample stores
+##### List available legacy migrators for sample stores
 
 ```shell
-ado upgrade samplestores --list-legacy-validators
+ado upgrade samplestores --list-legacy-migrators
 ```
 
-##### Apply a legacy validator during upgrade
+##### Apply a legacy migrator during upgrade
 
 ```shell
-ado upgrade samplestores --apply-legacy-validator samplestore_kind_entitysource_to_samplestore
+ado upgrade samplestores --apply-legacy-migrator samplestore_kind_entitysource_to_samplestore
 ```
 
 ### ado version

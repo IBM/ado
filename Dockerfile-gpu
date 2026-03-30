@@ -7,6 +7,9 @@ FROM $BASE_IMAGE
 # CUDA_HOME is not set in the image and is required
 ENV CUDA_HOME=/usr/local/cuda
 
+# Set LD_LIBRARY_PATH to avoid runtime errors (so far only experienced when running vLLM with the vllm_performance actuator)
+ENV LD_LIBRARY_PATH=/home/ray/anaconda3/lib:${LD_LIBRARY_PATH}
+
 USER 0
 RUN chgrp -R 0 /home/ray && \
     chmod -R g=u /home/ray

@@ -46,7 +46,9 @@
 
 ### Available experiments
 
-The `vllm_performance` actuator implements four experiments:
+The `vllm_performance` actuator implements twelve experiments:
+
+**Standard LLM Benchmarking:**
 
 - `test-deployment-v1`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
@@ -61,6 +63,27 @@ The `vllm_performance` actuator implements four experiments:
 - `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses GuideLLM
   (`guidellm benchmark run`) for benchmarking instead of vLLM's built-in
   benchmarking tool.
+
+**Geospatial Model Benchmarking:**
+
+- `test-geospatial-deployment-v1`: Deploy and benchmark geospatial models
+  (IBM-NASA Prithvi) using pre-packaged datasets for flood detection tasks with
+  vLLM's built-in benchmarking tool.
+- `test-geospatial-endpoint-v1`: Benchmark existing geospatial model endpoints
+  using pre-packaged datasets with vLLM's built-in benchmarking tool.
+- `test-geospatial-deployment-guidellm-v1`: Deploy and benchmark geospatial
+  models using pre-packaged datasets with GuideLLM.
+- `test-geospatial-endpoint-guidellm-v1`: Benchmark existing geospatial model
+  endpoints using pre-packaged datasets with GuideLLM.
+- `test-geospatial-deployment-custom-dataset-v1`: Deploy and benchmark
+  geospatial models with custom datasets using vLLM's built-in benchmarking
+  tool.
+- `test-geospatial-endpoint-custom-dataset-v1`: Benchmark existing geospatial
+  model endpoints with custom datasets using vLLM's built-in benchmarking tool.
+- `test-geospatial-deployment-guidellm-custom-dataset-v1`: Deploy and benchmark
+  geospatial models with custom datasets using GuideLLM.
+- `test-geospatial-endpoint-guidellm-custom-dataset-v1`: Benchmark existing
+  geospatial model endpoints with custom datasets using GuideLLM.
 
 ---
 

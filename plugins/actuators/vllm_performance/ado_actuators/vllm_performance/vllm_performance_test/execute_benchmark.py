@@ -22,6 +22,7 @@ logger = logging.getLogger("vllm-bench")
 default_geospatial_datasets_filenames = {
     "india_url_in_b64_out": "india_url_in_b64_out.jsonl",
     "valencia_url_in_b64_out": "valencia_url_in_b64_out.jsonl",
+    "terramind_flood_url_in_b64_out": "terramind_flood_url_in_b64_out.jsonl",
 }
 
 

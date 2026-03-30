@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 This repository contains the vLLM `ado` actuator for benchmarking LLM inference
 performance with vLLM. (For more about Actuators, what they represent, how to
 create them etc., see the `ado`
@@ -32,6 +33,7 @@ This guide has two parts:
     - [Exploring the vLLM workload configuration space](#exploring-the-vllm-workload-configuration-space)
 - [Exploring Further](#exploring-further)
   - [vLLM testing approach](#vllm-testing-approach)
+  - [Geospatial Model Experiments](#geospatial-model-experiments)
   - [The Actuator Package: Key Files](#the-actuator-package-key-files)
     - [Customising Actuator Configurations](#customising-actuator-configurations)
     - [Customising Experiment Protocol](#customising-experiment-protocol)
@@ -46,11 +48,11 @@ After running the exercise, please feel free to
 >
 > These prerequisites must be fulfilled before you start with this actuator
 >
-> 1. Access to an OpenShift cluster with at least 1 node with 1 available
->     NVIDIA GPU. You will need access to a namespace with permissions for
->     GPU-based deployments
+> 1. Access to an OpenShift cluster with at least 1 node with 1 available NVIDIA
+>    GPU. You will need access to a namespace with permissions for GPU-based
+>    deployments
 > 2. You will need to have downloaded and installed `ado` according to
->     [this guide](https://ibm.github.io/ado/getting-started/install/).
+>    [this guide](https://ibm.github.io/ado/getting-started/install/).
 
 ## Installing and configuring the vLLM actuator
 
@@ -62,12 +64,23 @@ Ensure the virtual environment you installed `ado` into is active. Then, run:
 pip install ado-vllm-performance
 ```
 
-This will automatically install both vLLM and GuideLLM benchmarking
-tools, enabling all experiments:
+This will automatically install both vLLM and GuideLLM benchmarking tools,
+enabling all experiments:
 
 - `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
-- `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1`
-  (GuideLLM benchmarks)
+- `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1` (GuideLLM
+  benchmarks)
+- `test-geospatial-deployment-v1` and `test-geospatial-endpoint-v1` (Geospatial
+  model benchmarks with vLLM)
+- `test-geospatial-deployment-guidellm-v1` and
+  `test-geospatial-endpoint-guidellm-v1` (Geospatial model benchmarks with
+  GuideLLM)
+- `test-geospatial-deployment-custom-dataset-v1` and
+  `test-geospatial-endpoint-custom-dataset-v1` (Geospatial with custom datasets
+  using vLLM)
+- `test-geospatial-deployment-guidellm-custom-dataset-v1` and
+  `test-geospatial-endpoint-guidellm-custom-dataset-v1` (Geospatial with custom
+  datasets using GuideLLM)
 
 **For development from source:**
 
@@ -90,6 +103,7 @@ ado get experiments --details
 You should see an output like below:
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
 ┌──────────────────┬─────────────────────────────┬───────────────────────────────────────────────────────────────────┐
 │ ACTUATOR ID      │ EXPERIMENT ID               │ DESCRIPTION                                                       │
@@ -107,6 +121,7 @@ You should see an output like below:
 │                  │                             │ across inference workload configurations                          │
 └──────────────────┴─────────────────────────────┴───────────────────────────────────────────────────────────────────┘
 ```
+
 <!-- markdownlint-enable line-length -->
 
 On the last two lines you can see the new actuator and the experiments. You can
@@ -127,8 +142,8 @@ accepted as valid for the input properties.
 
 ### Configuring the actuator
 
-Before using the vLLM actuator to execute experiments, you must
-configure its parameters. First, get the template for the configuration:
+Before using the vLLM actuator to execute experiments, you must configure its
+parameters. First, get the template for the configuration:
 
 ```commandline
 ado template actuatorconfiguration --actuator-identifier vllm_performance \
@@ -147,8 +162,8 @@ metadata:
 parameters:
   benchmark_retries: 3
   deployment_template: null
-  hf_token: ''
-  image_pull_secret_name: ''
+  hf_token: ""
+  image_pull_secret_name: ""
   in_cluster: false
   interpreter: python3
   max_environments: 1
@@ -170,9 +185,9 @@ The three key parameters we have to set here are `hf_token`, `namespace`, and
 - `node_selector`: JSON dictionary representing a Kubernetes selector for a node
   with available GPUs. Make sure it is formatted correctly, for example:
 
-    ```text
-    node_selector: {"kubernetes.io/hostname":"cpu16"}
-    ```
+  ```text
+  node_selector: {"kubernetes.io/hostname":"cpu16"}
+  ```
 
 We will discuss the other parameters later. Once you have put in the parameters,
 create the actuator configuration with:
@@ -255,9 +270,11 @@ ado show entities space --use-latest
 Will output:
 
 <!-- markdownlint-disable line-length -->
+
 ```text
 Nothing was returned for entity type matching and property format observed in space space-c81773-default.
 ```
+
 <!-- markdownlint-enable line-length -->
 
 To see all the entities (parameter combinations) that are waiting to be
@@ -270,6 +287,7 @@ ado show entities space --include missing --use-latest
 The output will look like:
 
 <!-- markdownlint-disable line-length -->
+
 ```terminaloutput
 ┌───────┬────────────────┬────────────────┬────────┬────────┬───────┬─────────────┬──────────────┬────────────────┬────────────────┬─────────────┬─────────────────┬─────────────┬────────┬────────────────┐
 │ INDEX │ model          │ image          │ n_cpus │ memory │ dtype │ num_prompts │ request_rate │ max_concurren… │ gpu_memory_ut… │ cpu_offload │ max_batch_toke… │ max_num_seq │ n_gpus │ gpu_type       │
@@ -280,6 +298,7 @@ The output will look like:
 │ 3     │ meta-llama/Ll… │ quay.io/datap… │ 8      │ 128Gi  │ auto  │ 250         │ 100          │ 100            │ 0.9            │ 0           │ 32768           │ 256         │ 1      │ NVIDIA-A100-8… │
 └───────┴────────────────┴────────────────┴────────┴────────┴───────┴─────────────┴──────────────┴────────────────┴────────────────┴─────────────┴─────────────────┴─────────────┴────────┴────────────────┘
 ```
+
 <!-- markdownlint-enable line-length -->
 
 Which is the entity we want to measure.
@@ -304,16 +323,19 @@ You can run the operation using the actuator configuration and space that we
 have created earlier with:
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
 ado create operation -f yamls/random_walk_operation.yaml \
                      --use-latest space --use-latest actuatorconfiguration
 ```
+
 <!-- markdownlint-enable line-length -->
 
 `ado` will initialise a local Ray cluster and starts the measurement at the
 point where these lines appear:
 
 <!-- markdownlint-disable line-length -->
+
 ```terminaloutput
 ...
 =========== Starting Discovery Operation ===========
@@ -321,6 +343,7 @@ point where these lines appear:
 (RandomWalk pid=79429) 'all' specified for number of entities to sample. This is 4 entities - the size of the entity space
 ...
 ```
+
 <!-- markdownlint-enable line-length -->
 
 The actuator uses the entity to create a vLLM deployment, followed by execution
@@ -337,10 +360,12 @@ The experiment is successfully completed if the `ado` output is similar to the
 following:
 
 <!-- markdownlint-disable line-length -->
+
 ```text
 (RandomWalk pid=46852) Continuous Batching: EXPERIMENT COMPLETION. Received finished notification for experiment in measurement request in group 0: request-4332aa-experiment-performance-testing-entities-model.ibm-granite/granite-3.3-8b-instruct-image.quay.io/dataprep1/data-prep-kit/vllm_image:0.1-n_cpus.8-memory.128Gi-dtype.auto-num_prompts.500-request_rate.-1-max_concurrency.-1-gpu_memory_utilization.0.9-cpu_offload.0-max_batch_tokens.16384-max_num_seq.256-n_gpus.1-gpu_type.NVIDIA-A100-80GB-PCIe (explicit_grid_sample_generator)-requester-randomwalk-0.9.7.dev10+b7a010dd.dirty-42ad60-time-2025-08-11 15:53:54.137571+01:00
 (RandomWalk pid=46852) Continuous batching: GET EXPERIMENT. No new experiments in queue. Requests made: 1. Experiments Completed: 1
 ```
+
 <!-- markdownlint-enable line-length -->
 
 If the output contains `EXPERIMENT FAILURE`, then something has gone wrong.
@@ -370,20 +395,22 @@ to implement the actual benchmarking. The benchmarking is done using HTTP
 requests using `vLLM OpenAI API server`.
 
 To use this approach it is necessary to:
+
 <!-- markdownlint-disable descriptive-link-text -->
+
 - Create a docker image: Existing docker images for VLLM project are not
   directly suitable for this purpose, as they are hard to use on Openshift
   clusters and not directly extensible. We have provided a Docker image to get
   started but if you want to customize it for your installation, then you will
-  need to rebuild it. We provide a slightly different
-  [build](docker_image), described [here](docker_image/README.md)
+  need to rebuild it. We provide a slightly different [build](docker_image),
+  described [here](docker_image/README.md)
 - Create automation for vLLM deployment for running experiments. A simple
   implementation of such an automation is presented
   [here](ado_actuators/vllm_performance/k8)
 - Create a vLLM performance test. Here we are directly reusing
-  [performance test](https://github.com/vllm-project/vllm/blob/main/benchmarks/benchmark_serving.py)
-  provided by the vLLM project. The required code is
-  [here](ado_actuators/vllm_performance/vllm_performance_test)
+[performance test](https://github.com/vllm-project/vllm/blob/main/benchmarks/benchmark_serving.py)
+provided by the vLLM project. The required code is
+[here](ado_actuators/vllm_performance/vllm_performance_test)
 <!-- markdownlint-enable descriptive-link-text -->
 
 This figure shows the outline of the components and the parameters available for
@@ -395,6 +422,17 @@ The test results in the figure are the measurements recorded for the entity. The
 deployment parameters form the configuration space. Test parameters are
 partially inferred from the configuration space and partially from the context
 (Kubernetes endpoints, etc.)
+
+## Geospatial Model Experiments
+
+The vLLM actuator includes support for benchmarking geospatial models,
+specifically IBM-NASA Prithvi models for Earth observation tasks.
+
+Geospatial experiments are available for both endpoint and deployment testing,
+with support for pre-packaged datasets (india_url_in_b64_out,
+valencia_url_in_b64_out) and custom datasets. For detailed information on
+geospatial experiments, dataset formats, and usage examples, see the
+[vLLM Performance Geospatial documentation](https://ibm.github.io/ado/examples/vllm-performance-geospatial/).
 
 ## The Actuator Package: Key Files
 
@@ -493,8 +531,10 @@ grouping:
 ```
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 For the complete example of configuring random walk operation for the group
 samplers, look [here](yamls/random_walk_operation_grouped.yaml)
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 ## A few ideas for further exploration

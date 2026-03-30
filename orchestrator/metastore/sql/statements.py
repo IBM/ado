@@ -216,6 +216,34 @@ def check_field_in_sqlite_json_document(
     return fragments
 
 
+def table_exists_query(
+    tablename: str,
+    dialect: Literal["mysql", "sqlite"] = "mysql",
+) -> sqlalchemy.TextClause:
+    """Return a bound SQL query that checks whether a table exists in the database.
+
+    Uses dialect-specific system catalogue tables: ``sqlite_master`` for SQLite
+    and ``information_schema.tables`` for MySQL.  The tablename is passed as a
+    bind parameter to prevent SQL injection.
+
+    Args:
+        tablename: The name of the table to check for.
+        dialect: The SQL dialect — ``"sqlite"`` or ``"mysql"`` (default).
+
+    Returns:
+        A bound :class:`sqlalchemy.TextClause` that returns one row when the
+        table exists and no rows when it does not.
+    """
+    if dialect == "sqlite":
+        return sqlalchemy.text(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
+        ).bindparams(name=tablename)
+    return sqlalchemy.text(
+        "SELECT 1 FROM information_schema.tables"
+        " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
+    ).bindparams(name=tablename)
+
+
 def resource_filter_by_arbitrary_selection(
     path: str,
     candidate: str,

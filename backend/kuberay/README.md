@@ -134,6 +134,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '1'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 1}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -173,6 +175,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '2'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 2}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -212,6 +216,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '4'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 4}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -251,6 +257,8 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
         num-gpus: '8'
         resources: '"{\"NVIDIA-A100-SXM4-80GB\": 8, \"full-worker\": 1}"'
       containerEnv:
+        - name: RAY_RUNTIME_ENV_PLUGINS
+          value: '[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
         - name: OMP_NUM_THREADS
           value: "1"
         - name: OPENBLAS_NUM_THREADS
@@ -302,3 +310,60 @@ with 4 Nodes each with 8 NVIDIA-A100-SXM4-80GB GPUs, 64 CPU cores, and 1TB memor
 > your HuggingFace home directory. On Kubernetes with RayClusters, avoid S3-like
 > filesystems as that is known to cause failures in **transformers**. Use a NFS
 > or GPFS-backed PersistentVolumeClaim instead.
+
+## Using the OrderedPip Ray Runtime Environment Plugin
+
+The `OrderedPipPlugin` is a Ray RuntimeEnvPlugin bundled with `ado-core` that
+enables you to control the build order of Python packages. This is useful when
+installing packages with build-time dependencies, such as `mamba-ssm` which
+requires `torch` to be installed before it can be built.
+
+### Enabling the Plugin
+
+To enable the `OrderedPipPlugin`, set the `RAY_RUNTIME_ENV_PLUGINS` environment
+variable before starting the Ray head node and workers:
+
+```bash
+export RAY_RUNTIME_ENV_PLUGINS='[{"class":"orchestrator.utilities.ray_env.ordered_pip.OrderedPipPlugin"}]'
+```
+
+When deploying a RayCluster via KubeRay, add this environment variable to both
+head and worker node configurations (see examples below).
+
+### Documentation and Usage
+
+For detailed documentation, configuration details, and usage examples, see the
+[OrderedPip Plugin README](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md).
+
+### Example: Using ordered_pip with ray job submit
+
+You can use `ordered_pip` with `ray job submit` by providing a runtime
+environment YAML file:
+
+```yaml
+# ray_runtime_env.yaml
+ordered_pip:
+  phases:
+    # Phase 1: Install PyTorch first
+    - packages:
+        - torch==2.6.0
+    # Phase 2: Install packages that depend on PyTorch during build
+    - packages:
+        - mamba-ssm==2.2.5
+      pip_install_options:
+        # IMPORTANT.
+        # --no-build-isolation tells pip to build the wheel
+        # in the same venv where torch is already installed
+        - --no-build-isolation
+```
+
+Then submit your job with:
+
+```bash
+ray job submit --runtime-env-json ray_runtime_env.yaml -- python my_script.py
+```
+
+> [!NOTE]
+>
+> Actuators like `SFTTrainer` automatically use `OrderedPipPlugin` when available
+> to ensure correct installation of their dependencies.

@@ -100,7 +100,12 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
         )
         from orchestrator.schema.domain import VariableTypeEnum
 
-        if isinstance(values, list):
+        if values is None:
+            return values
+
+        if isinstance(values, list) and all(
+            isinstance(item, ConstitutiveProperty) for item in values
+        ):
             values = TypeAdapter(list[ConstitutiveProperty]).dump_python(values)
 
         property_domain_key = "propertyDomain"

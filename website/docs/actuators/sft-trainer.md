@@ -30,11 +30,24 @@ features.
 ## Requirements
 
 [fms-hf-tuning](https://github.com/foundation-model-stack/fms-hf-tuning) imports
-packages like `flash-attn` and `mamba-ssm`, which import `torch` during their  
+packages like `flash-attn` and `mamba-ssm`, which import `torch` during their
 build phase. This means that the base virtual environment of your Ray workers
 must already include the appropriate version of `torch`:
 
 <!-- markdownlint-disable line-length -->
+
+**We recommend using the [`ordered_pip`](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md)
+RayRuntimeEnv plugin** for all versions of `fms-hf-tuning`. It ensures the
+correct `torch` version is installed before packages that depend on it during
+their build phase. The plugin is included in ado-core and its images (e.g.,
+`quay.io/ado/ado:latest-sft-py312-cu121-ofed2410v1140`), enabled by default in
+our [KubeRay deployment example](../getting-started/kuberay.md), and
+automatically used by the SFTTrainer actuator when available.
+
+**If you cannot use `ordered_pip`**, you must either build your own image with
+the appropriate `torch` version (see the
+[SFTTrainer packages directory](https://github.com/IBM/ado/tree/main/plugins/actuators/sfttrainer/ado_actuators/sfttrainer/packages))
+or use one of the following tested images:
 
 - **`fms-hf-tuning <= 2.8.2`**
 
@@ -43,10 +56,10 @@ must already include the appropriate version of `torch`:
     `quay.io/ado/ado:1.0.1-py310-cu121-ofed2410v1140`
 
 - **`fms-hf-tuning > 2.8.2`**
-  - Install `torch==2.6.0`
-    - Requires Python 3.11
-  - For RayClusters on Kubernetes, use:
-  `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+
+  - Use the tested image `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+    (tested with `fms-hf-tuning==3.0.0`, not guaranteed for future versions)
+
   <!-- markdownlint-enable line-length -->
 
 ## Available experiments

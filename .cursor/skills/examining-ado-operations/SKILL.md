@@ -62,6 +62,23 @@ This will output the id of the latest operation.
 this to a temporary file and work with that to avoid multiple `ado get` calls
 for same YAML.
 
+In particular "get datacontainer -o yaml|json" can be large and should be
+redirected to a file and loaded with python.
+
+### Large output files
+
+The files created by '-o/--output-format' can be very large e.g. from "show
+entities", "show requests" or "show results".
+
+When inspecting these files:
+
+- Use wc to count the file size first before using head/tail/cat etc. on it.
+- Use head -n1 to get column headers, this will not be large
+- Avoid head -n > 1 unless you have a specific need e.g. checking if file is
+  corrupted
+- Avoid tail unless you have a specific need
+- Prefer python e.g. pandas.read_csv for any detailed analysis on the file.
+
 ## General Workflow
 
 - Run Steps 1 and 2 first
@@ -175,7 +192,7 @@ An operation can create the following resources
 To retrieve contents of data container
 
 ```bash
-uv run ado get datacontainer -o yaml $DATACONTAINER_IDENTIFIER
+uv run ado get datacontainer -o yaml $DATACONTAINER_IDENTIFIER > datacontainer.yaml
 ```
 
 For each output resource summarize what it is/contains.
@@ -219,7 +236,7 @@ For all other combinations ->
 ### Step 2 (Optional): Diagnose sampling issues
 
 First run these two commands to get the metadata on what was requested and
-measured
+measured, noting the [guidelines on large files](#large-output-files):
 
 ```bash
 uv run ado show requests operation OPERATION_ID \
@@ -243,7 +260,8 @@ From the output of `show requests` and `show results` identify **failed** or
 
 ### Step 3: Get entities and measurements
 
-To get the data on measurements
+To get the data on measurements execute (noting the
+[guidelines on large files](#large-output-files)):
 
 ```bash
 uv run ado show entities operation OPERATION_ID \

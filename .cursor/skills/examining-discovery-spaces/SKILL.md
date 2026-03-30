@@ -81,9 +81,25 @@ uv run ado show related space --use-latest
 
 ## Tips
 
+### Avoiding refetching YAML
+
 `ado get-o yaml` flag outputs YAML to console. It's often useful to redirect
 this to a temporary file and work with that to avoid multiple `ado get` calls
 for same YAML.
+
+### Large output files
+
+The files created by '-o/--output-format' can be very large e.g. from "show
+entities".
+
+When inspecting these files:
+
+- Use wc to count the file size first before using head/tail/cat etc. on it.
+- Use head -n1 to get column headers, this will not be large
+- Avoid head -n > 1 unless you have a specific need e.g. checking if file is
+  corrputed
+- Avoid tail unless you have a specific need
+- Prefer python e.g. pandas.read_csv for any detailed analysis on the file.
 
 ## Workflow
 
@@ -155,6 +171,9 @@ uv run ado get space --matching-space-id SPACE_ID --details
 ```
 
 ### Step 5: Export Measurement Data
+
+Note: Keep in mind the [guidelines on large output files](#large-output-files)
+for the following.
 
 ```bash
 uv run ado show entities space SPACE_ID \

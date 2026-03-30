@@ -42,16 +42,11 @@ To explore this space, you will:
    [shared contexts](../../resources/metastore/) for more information). Here we
    call it `finetuning` but it can have any name.
 
-2. A [remote RayCluster](../../actuators/sft-trainer/#configure-your-raycluster)
-   with a GPU worker with at least one `NVIDIA-A100-SXM4-80GB` GPU. The `RayCluster`
-   should also include the NVIDIA development and runtime packages. We recommend
-   deploying the RayCluster following our
-   [documentation](../../actuators/sft-trainer/#configure-your-raycluster).
-   Ensure that the base virtual environment on your Ray GPU workers meets the
-   requirements of `fms-hf-tuning==3.0.0`: a) Python 3.11 and b) `torch==2.6.0`
-   pre-installed.
-   If you are using a RayCluster on Kubernetes, we recommend using the image:
-   `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`.
+2. A [remote RayCluster](../../getting-started/kuberay/) with a GPU worker with
+   at least one `NVIDIA-A100-SXM4-80GB` GPU and NVIDIA development/runtime
+   packages. Follow our [KubeRay deployment guide](../../getting-started/kuberay/)
+   and see [SFTTrainer requirements](../../actuators/sft-trainer/#requirements)
+   for environment setup details.
 
 3. If you host your RayCluster on Kubernetes or OpenShift, make sure you're
    logged in to the Kubernetes or Openshift cluster.

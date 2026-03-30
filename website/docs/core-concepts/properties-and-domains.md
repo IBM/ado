@@ -210,41 +210,49 @@ Suppose an experiment declares the following required input domains:
 
 ```yaml
 # Experiment input domains (the maximum possible extent)
-model_name:
-  values: [granite-3-8b, llama3-8b, mistral-7b-v0.1, granite-34b-code-base]
+- identifier: model_name
+  domain:
+   values: [granite-3-8b, llama3-8b, mistral-7b-v0.1, granite-34b-code-base]
 
-batch_size:
-  domainRange: [1, 4097]
-  interval: 1
-
-temperature:
-  domainRange: [0.0, 100.0]
+- identifier: batch_size 
+  domain:
+    domainRange: [1, 4097]
+    interval: 1
+    
+- identifier: temperature
+  domain:
+    domainRange: [0.0, 100.0]
 ```
 
 A valid entity space could narrow each of these to a focused subdomain:
 
 ```yaml
 # Entity space domains (subdomains of the experiment inputs above)
-model_name:
-  values: [granite-3-8b, llama3-8b]        # CATEGORICAL ⊆ CATEGORICAL ✓
+- identifier: model_name
+  domain:
+    values: [granite-3-8b, llama3-8b]        # CATEGORICAL ⊆ CATEGORICAL ✓
 
-batch_size:
-  values: [1, 2, 4, 8, 16]                 # DISCRETE ⊆ DISCRETE ✓
+- identifier: batch_size
+  domain:
+    values: [1, 2, 4, 8, 16]                 # DISCRETE ⊆ DISCRETE ✓
 
-temperature:
-  domainRange: [20.0, 40.0]                # CONTINUOUS ⊆ CONTINUOUS ✓
+- identifier: temperature
+  domain:
+    domainRange: [20.0, 40.0]                # CONTINUOUS ⊆ CONTINUOUS ✓
 ```
 
 The following entity space domains would be **invalid** because they are not
 subdomains of the corresponding experiment inputs:
 
 ```yaml
-batch_size:
-  # Values above 4096 are not in the Experiment input domain for batch_size
-  domainRange: [4096, 8124]
-  interval: 1028
+- identifier: batch_size
+  domain:
+    # Values above 4096 are not in the Experiment input domain for batch_size
+    domainRange: [4096, 8124]
+    interval: 1028
 
-model_name:
-  # granite-4-3b is not one of the allowed values
-  domainRange: [granite-4-3b]
+- identifier: model_name
+  domain:
+    # granite-4-3b is not one of the allowed values
+    domainRange: [granite-4-3b]
 ```

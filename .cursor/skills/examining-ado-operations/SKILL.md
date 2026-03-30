@@ -122,16 +122,16 @@ failure. In this case:
 
 If the operation is finished,
 
-- check if there is an existing report for this operation in
+- Check if there is an existing report for this operation in
   `reports/<ado_context_name>/`
-- if yes, check if that report indicated the operation was finished
-  - if yes, ask the user if they want to replace it with a new report
-  - if no, continue with creating new report
+- If yes, check if that report indicated the operation was finished
+  - If yes, ask the user if they want to replace it with a new report
+  - If no, continue with creating new report
 
 ### Step 3: Review the operator
 
-Each operation is run by an operator. The operators name is retrieved in step
-one as the value of the field operatorIdentifier.
+Each operation is run by an operator. The operator's name is retrieved in step
+one, as the value of the field operatorIdentifier.
 
 Note: `operatorIdentifer` is not the same as `operationIdentifier`
 
@@ -143,7 +143,7 @@ uv run ado get operator --details $OPERATOR_IDENTIFIER
 
 #### Understanding operator parameters
 
-To understand an operators parameters examine its schema:
+To understand an operator's parameters, examine its schema:
 
 ```bash
 uv run ado template operation --operator-name $OPERATOR_IDENTIFIER --include-schema
@@ -275,7 +275,7 @@ metrics, metric outliers, correlations.
 
 ## Diagnose if an Explore or Search Operation is Running Workflow
 
-- Check if the operation is submitting experiment in batches
+- Check if the operation is submitting experiments in batches
 - Confirm if the operation uses continuous batching (new experiment requested
   once one has finished) or static batch (full batch finishes then next starts)
 - Get the requests and results timeseries using `ado show requests` and
@@ -303,7 +303,7 @@ Structure the report as:
 3. **Findings** – notable patterns, best/worst performers, anomalies
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected
    distributions
-5. 5 **Next Steps**: A plan for the next research steps to take using ado.
+5. **Next Steps**: A plan for the next research steps to take using ado.
 
 ## Troubleshooting
 
@@ -321,7 +321,7 @@ confirm this.
 ### Memoization on, but Entities measured twice
 
 The requests which use memoized results for Entities are called "replayed
-measurements". If the same entity is sampled twice in an operation the second
-should be replayed. If it is not it means the sampling algorithm selected the
+measurements". If the same entity is sampled twice in an operation, the second
+should be replayed. If it is not, it means the sampling algorithm selected the
 same point again before the first was stored to be reused. In this case it means
 the same entity will be measured twice.

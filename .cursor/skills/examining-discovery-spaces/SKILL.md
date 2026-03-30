@@ -150,9 +150,9 @@ overlapping spaces exist.
 
 ### Step 3: Check for existing report
 
-- check if there is an existing report for this space in
+- Check if there is an existing report for this space in
   `reports/<ado_context_name>/`
-- if yes, check if either of the following are true
+- If yes, check if either of the following are true:
   - New operations have been run on space since report
   - The number of measured entities has increased
 - If neither of above are true, ask the user if they want to write a
@@ -184,7 +184,7 @@ uv run ado show entities space SPACE_ID \
 
 This writes the data to `SPACE_ID_description_measured_target.csv`
 automatically. If you find `SPACE_ID_description_measured_target.csv` already
-exists do not use it as data may be stale
+exists do not use it, as data may be stale
 
 You can also get lists of all unmeasured or missing entities, though this is not
 typically required unless you want to analyse the unsampled portion.

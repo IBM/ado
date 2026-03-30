@@ -43,20 +43,27 @@ class Environment(pydantic.BaseModel):
     to be RFC 1123 compliant.
     """
 
-    k8s_name: Annotated[str, AfterValidator(validate_rfc_1123)] = pydantic.Field(
-        default="",
-        description="Kubernetes-compliant name for the deployment, automatically generated from the model name and validated to be RFC 1123 compliant",
-    )
-    state: EnvironmentState = pydantic.Field(
-        default=EnvironmentState.NONE,
-        description="Current state of the environment (NONE or READY)",
-    )
-    configuration: str = pydantic.Field(
-        description="Full deployment configuration as a JSON string containing model, image, GPU/CPU settings, and VLLM parameters"
-    )
-    model: str = pydantic.Field(
-        description="model name (e.g., 'meta-llama/Llama-2-7b-hf')"
-    )
+    k8s_name: Annotated[
+        str,
+        AfterValidator(validate_rfc_1123),
+        pydantic.Field(
+            description="Kubernetes-compliant name for the deployment, automatically generated from the model name and validated to be RFC 1123 compliant"
+        ),
+    ] = ""
+    state: Annotated[
+        EnvironmentState,
+        pydantic.Field(description="Current state of the environment (NONE or READY)"),
+    ] = EnvironmentState.NONE
+    configuration: Annotated[
+        str,
+        pydantic.Field(
+            description="Full deployment configuration as a JSON string containing model, image, GPU/CPU settings, and VLLM parameters"
+        ),
+    ]
+    model: Annotated[
+        str,
+        pydantic.Field(description="LLM model name (e.g., 'meta-llama/Llama-2-7b-hf')"),
+    ]
 
     @pydantic.model_validator(mode="before")
     @classmethod

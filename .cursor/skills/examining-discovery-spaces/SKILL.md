@@ -189,8 +189,10 @@ exists do not use it, as data may be stale
 You can also get lists of all unmeasured or missing entities, though this is not
 typically required unless you want to analyse the unsampled portion.
 
-Perform quick analysis: distributions, outliers, correlations between parameters
-and target properties.
+Perform an analysis of the measurements, checking e.g. distributions of
+metrics, metric outliers, correlations between metrics.
+Take into account the domain of the experiment and meaning of metrics
+when looking for patterns.
 
 ### Step 6: Examine Related Operations
 

@@ -270,8 +270,10 @@ uv run ado show entities operation OPERATION_ID \
 
 ### Step 4: Analyze the Measurement data
 
-Perform quick analysis of the measurements, checking e.g. distributions of
-metrics, metric outliers, correlations.
+Perform an analysis of the measurements, checking e.g. distributions of
+metrics, metric outliers, correlations between metrics.
+Take into account the domain of the experiment and meaning of metrics
+when looking for patterns.
 
 ## Diagnose if an Explore or Search Operation is Running Workflow
 

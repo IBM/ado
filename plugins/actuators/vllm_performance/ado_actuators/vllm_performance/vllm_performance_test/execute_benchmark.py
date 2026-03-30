@@ -135,10 +135,9 @@ def execute_benchmark(
         command.extend(["--max-concurrency", f"{max_concurrency!s}"])
     if custom_args is not None:
         for key, value in custom_args.items():
-            if key =="--skip-tokenizer-init":
-                command.extend([key])
-            else:
-                command.extend([key, f"{value!s}"])
+            command.append(key)
+            if value:
+                command.append(f"{value!s}")
 
     logger.debug(f"Command line: {command}")
 
@@ -290,7 +289,7 @@ def execute_geospatial_benchmark(
         custom_args={
             "--dataset-path": f"{dataset_path.resolve()}",
             "--endpoint": "/pooling",
-            "--skip-tokenizer-init": True,
+            "--skip-tokenizer-init": None,
         },
     )
 

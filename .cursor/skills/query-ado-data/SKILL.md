@@ -1,6 +1,11 @@
 ---
 name: query-ado-data
-description: Query ado metadata and measurement data using CLI commands. Use when the user needs to find resources, filter by metadata, retrieve entities and measurements, or get resource schemas. Covers metastore queries (operations, discoveryspaces, samplestores, datacontainers, actuatorconfigurations) and samplestore queries (entities and measurements).
+description:
+  Query ado metadata and measurement data using CLI commands. Use when the user
+  needs to find resources, filter by metadata, retrieve entities and
+  measurements, or get resource schemas. Covers metastore queries (operations,
+  discoveryspaces, samplestores, datacontainers, actuatorconfigurations) and
+  samplestore queries (entities and measurements).
 ---
 
 # Query ado Data
@@ -8,7 +13,7 @@ description: Query ado metadata and measurement data using CLI commands. Use whe
 ado stores data in two places:
 
 1. **Metastore**: Metadata about all resources (operations, discoveryspaces,
-samplestores, datacontainers, actuatorconfigurations)
+   samplestores, datacontainers, actuatorconfigurations)
 2. **Samplestores**: Entities and measurements made on them
 
 ## Guidelines
@@ -23,28 +28,29 @@ samplestores, datacontainers, actuatorconfigurations)
 DOs:
 
 - IMPORTANT Before deciding on what to query check the resource schema to
-      confirm what is available in metadata
-      - ado template RESOURCETYPE --include-schema
+  confirm what is available in metadata - ado template RESOURCETYPE
+  --include-schema
 - Use Server side filtering
-     - prefer --query or --matching to fetching metadata and filtering on
-       client side
+  - prefer --query or --matching to fetching metadata and filtering on client
+    side
 - Fetch metadata over fetching data
-     - if a query can be answered via metadata it is much faster
-     - filter via metadata first if possible, before obtaining data
-     - IMPORTANT: ado show details space can be slow as it internally fetches
-       spaces data to calculate - prefer using metadata
-- Consider writing a script directly using SQLResourceStore API if the CLI
-  is not expressive enough BEFORE fetching data
-     - you can make batch requests e.g. getResources - much faster than
-       one-by-one requests
+  - if a query can be answered via metadata it is much faster
+  - filter via metadata first if possible, before obtaining data
+  - IMPORTANT: ado show details space can be slow as it internally fetches
+    spaces data to calculate - prefer using metadata
+- Consider writing a script directly using SQLResourceStore API if the CLI is
+  not expressive enough BEFORE fetching data
+  - you can make batch requests e.g. getResources - much faster than one-by-one
+    requests
 
 DONTs
 
 - Do not fetch discoveryspace or operation data for summary queries
-  - Do not use: ado show entities, ado show requests, ado show results,
-    ado show details)
+  - Do not use: ado show entities, ado show requests, ado show results, ado show
+    details)
   - Do not instantiating DiscoverySpace instances or SQLStore instance
-- Only use these commands or classes when drilling down on a narrow set of resources
+- Only use these commands or classes when drilling down on a narrow set of
+  resources
 
 ### Using Resource models
 
@@ -52,13 +58,11 @@ Each resource has a pydantic model. If working in code you can use these models
 
 - discoveryspace, orchestrator/core/discoveryspace/resource.py:
   DiscoverySpaceResource
-- samplestore, orchestrator/core/samplestore/resource.py:
-  SampleStoreResource
+- samplestore, orchestrator/core/samplestore/resource.py: SampleStoreResource
 - datacontainer, orchestrator/core/datacontainer/resource.py:
   DataContainerResource
 - operation, orchestrator/core/operation/resource.py: OperationResource
-- actuatorconfiguration,
-  orchestrator/core/actuatorconfiguration/resource.py:
+- actuatorconfiguration, orchestrator/core/actuatorconfiguration/resource.py:
   ActuatorConfigurationResource
 
 ## Querying Metadata
@@ -71,10 +75,12 @@ Get a general overview of what's present:
 uv run ado get $RESOURCETYPE --details
 ```
 
-Returns an age-sorted list (most recent last) of resources of the specified type.
+Returns an age-sorted list (most recent last) of resources of the specified
+type.
 
 **Resource types**: `operations` (`op`), `discoveryspaces` (`space`),
-`samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations` (`ac`)
+`samplestores` (`store`), `datacontainers` (`dcr`), `actuatorconfigurations`
+(`ac`)
 
 ### Filtering Resources
 
@@ -84,7 +90,8 @@ Filter resources based on metadata fields using MySQL JSON Path queries:
 uv run ado get $RESOURCETYPE --query 'path=candidate'
 ```
 
-- Use single quotes around the candidate (required for strings, dictionaries, arrays)
+- Use single quotes around the candidate (required for strings, dictionaries,
+  arrays)
 - Path is dot-separated (e.g., `config.metadata.labels`)
 - Candidate is a valid JSON value
 - Can specify `--query` multiple times (all filters must match)
@@ -99,7 +106,7 @@ uv run ado get operations -q 'config.operation.module.moduleClass=RayTune'
 uv run ado get spaces -q 'config.experiments={"experiments":{"identifier":"finetune-lora-fsdp-r-4-a-16-tm-default-v2.0.0"}}'
 
 # Combine multiple filters
-uv run ado get operations -q 'config.operation.parameters.batchSize=1' 
+uv run ado get operations -q 'config.operation.parameters.batchSize=1'
 -q 'status=[{"event": "finished", "exit_state": "success"}]'
 ```
 
@@ -134,8 +141,8 @@ uv run ado get space --matching-space-id space-abc123-456def
 uv run ado get space --matching-space space.yaml
 ```
 
-**Note**: `--matching-point`, `--matching-space`, and `--matching-space-id`
-are exclusive to spaces and override `--query` and `--label`.
+**Note**: `--matching-point`, `--matching-space`, and `--matching-space-id` are
+exclusive to spaces and override `--query` and `--label`.
 
 ### Related Resources
 
@@ -182,8 +189,8 @@ uv run ado show entities $RESOURCETYPE [RESOURCE_ID] [--use-latest] \
 **Key options:**
 
 - `--include` (spaces only): `sampled`, `unsampled`, `matching`, `missing`
-- `--property-format`: `observed` (one row per entity) or `target`
-(one row per entity-experiment pair)
+- `--property-format`: `observed` (one row per entity) or `target` (one row per
+  entity-experiment pair)
 - `--output-format`: `console`, `csv`, or `json`
 - `--property`: Filter specific properties (can specify multiple times)
 - `--aggregate`: Aggregate multiple values
@@ -273,7 +280,7 @@ uv run ado get spaces -q 'config.entitySpace={"propertyDomain":{"values":["mistr
 ### Export operation entities to CSV
 
 ```bash
-uv run ado show entities operation OPERATION_ID --output-format csv 
+uv run ado show entities operation OPERATION_ID --output-format csv
 ```
 
 ### Get all resources related to a space
@@ -284,13 +291,13 @@ uv run ado show related space SPACE_ID
 
 ## Advanced Filtering
 
-The metastore class can provide more powerful querying via scripts.
-See orchestrator/metastore/sqlstore.py
+The metastore class can provide more powerful querying via scripts. See
+orchestrator/metastore/sqlstore.py
 
 ## References
 
 When modifying or creating code while using this skill, follow:
 
 - [AGENTS.md](../../../AGENTS.md)
-- [plugin-development.mdc](../../rules/plugin-development.mdc) (if working
-  with plugins)
+- [plugin-development.mdc](../../rules/plugin-development.mdc) (if working with
+  plugins)

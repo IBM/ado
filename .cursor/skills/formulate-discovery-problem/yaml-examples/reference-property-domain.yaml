@@ -4,5 +4,5 @@ identifier: property_name # Required - unique identifier
 propertyDomain: # Required - domain definition
   variableType: DISCRETE_VARIABLE_TYPE | CONTINUOUS_VARIABLE_TYPE | CATEGORICAL_VARIABLE_TYPE | BINARY_VARIABLE_TYPE
   domainRange: [min, max] # For discrete/continuous numeric
-  values: [val1, val2, '...'] # For discrete/categorical
+  values: [val1, val2, "..."] # For discrete/categorical
   interval: step_size # Optional - for discrete numeric

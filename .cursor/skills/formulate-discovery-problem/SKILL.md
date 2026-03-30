@@ -15,11 +15,11 @@ to formulate problems for execution with ado.
 
 ## Plan Mode
 
-If in planning mode consider the following three phases.
-In each phase consider getting the users input on the following
-while building the plan.
+If in planning mode consider the following three phases. In each phase consider
+getting the users input on the following while building the plan.
 
-1. Coding Phase: If custom experiments, actuators or operators need to be created
+1. Coding Phase: If custom experiments, actuators or operators need to be
+   created
 
 - Should experiments be implemented as actuators or custom experiments
 - If certain parameters should be required or optional in a custom experiment
@@ -31,7 +31,7 @@ See [plugin-development.mdc](../../rules/plugin-development.mdc) coding skills.
 
 - If an optional property of experiment should be added to the entity space
 - What exploration technique they want to use e.g. random search, space filling,
-multi-objective optimization
+  multi-objective optimization
 - Values for actuator configuration
 
 1. Execution Phase: If the user wants to execute an operation
@@ -46,11 +46,11 @@ See [remote execution](../remote-execution/SKILL.md) for remote execution skills
 
 - Unless directed otherwise place all YAML and .md files created in a
   subdirectory of examples/ dedicated to the given problem.
-- If you want to change the default value of an optional property use
-  experiment parameterization, rather than setting a single valued property in
-  the entity space
-- Before creating a space or actuator configuration, check if one already
-  exists — see [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
+- If you want to change the default value of an optional property use experiment
+  parameterization, rather than setting a single valued property in the entity
+  space
+- Before creating a space or actuator configuration, check if one already exists
+  — see [resource-yaml-creation](../resource-yaml-creation/SKILL.md)
 - Learn [ado CLI command-line construction and testing](../using-ado-cli/)
 - For metadata conventions, dynamic references (--use-latest, --with, --set),
   and resource-specific guidance, see

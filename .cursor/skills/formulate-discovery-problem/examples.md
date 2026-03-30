@@ -4,7 +4,8 @@ Concrete examples of formulating problems for ado execution.
 
 ## Example 1: Simple Hyperparameter Optimization
 
-**User Query:** "I want to optimize learning rate and batch size for model training"
+**User Query:** "I want to optimize learning rate and batch size for model
+training"
 
 ### Step 1: Choose Experiments
 
@@ -174,7 +175,8 @@ uv run ado create space -f space.yaml --dry-run
 
 ### Step 2: Create Actuator Configuration
 
-See [example6-actuator-config.yaml](yaml-examples/example6-actuator-config.yaml).
+See
+[example6-actuator-config.yaml](yaml-examples/example6-actuator-config.yaml).
 
 ```bash
 uv run ado create actuatorconfiguration -f gpu_config.yaml

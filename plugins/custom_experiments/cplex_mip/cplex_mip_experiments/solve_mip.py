@@ -49,7 +49,7 @@ NodeSelection = ConstitutiveProperty(
     metadata={
         "description": (
             "CPLEX node selection strategy (CPX_PARAM_NODESEL): "
-            "0=depth-first, 1=breadth-first (default), "
+            "0=depth-first, 1=best-bound (default), "
             "2=best-estimate, 3=best-estimate-alternative."
         )
     },

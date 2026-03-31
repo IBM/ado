@@ -118,21 +118,22 @@ class ValidMeasurementResult(MeasurementResult):
         This significantly reduces serialized size, with greater compression
         as the number of measurements increases.
         """
+        # Dump ObservedPropertyValue excluding the 'property' field, then add targetProperty and metadata
+        measurements_dump = [
+            {
+                **m.model_dump(exclude={"property"}),
+                "targetProperty": m.property.targetProperty.model_dump(),
+                "metadata": m.property.metadata,
+            }
+            for m in self.measurements
+        ]
+
         return {
             "uid": self.uid,
             "entityIdentifier": self.entityIdentifier,
             "metadata": self.metadata,
             "experimentReference": self.experimentReference.model_dump(),
-            "measurements": [
-                {
-                    "targetProperty": m.property.targetProperty.model_dump(),
-                    "value": m.value,
-                    "valueType": m.valueType,
-                    "uncertainty": m.uncertainty,
-                    "metadata": m.property.metadata,
-                }
-                for m in self.measurements
-            ],
+            "measurements": measurements_dump,
         }
 
     @pydantic.model_validator(mode="before")

@@ -2,10 +2,10 @@
 name: conduct-empirical-study
 description: End-to-end workflow for conducting empirical studies with ado — systematic
   exploration and analysis of entity spaces. Covers problem formulation, optional
-  implementation of custom experiments/operators, and execution (local or remote).
-  Use when the user wants to run experiments, answer research questions empirically,
-  benchmark systems, or perform any study involving systematic data collection across
-  a parameter space.
+  implementation of custom experiments/operators, execution (local or remote), and
+  analysing results. Use when the user wants to run experiments, answer research
+  questions empirically, benchmark systems, or perform any study involving systematic
+  data collection across a parameter space.
 ---
 
 # Conducting an Empirical Study with ado
@@ -16,11 +16,12 @@ any task where data must be collected across a parameter space.
 
 ## Workflow Overview
 
-Four sequential steps. Steps 2 and 3 are optional, but if step 2 is performed,
+Five sequential steps. Steps 2 and 3 are optional, but if step 2 is performed,
 step 3 must follow.
 
 ```text
-1. Formulate  →  2. (Optional) Implement  →  3. (Optional) Complete  →  4. Execute
+1. Formulate  →  2. (Optional) Implement  →  3. (Optional) Complete
+  →  4. Execute  →  5. Analyse
 ```
 
 ---
@@ -30,19 +31,17 @@ step 3 must follow.
 Follow the [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md)
 skill to frame the problem with ado.
 
+Gather user input on formulation details before deciding the next step:
+
+- Preferred exploration technique (random search, space-filling, multi-objective
+  optimization, etc.)
+- Values for actuator configuration
+
 **Outcome A** — All required experiments and analysis tools exist:
 skip to Step 4.
 
 **Outcome B** — Required experiments or analysis tools are missing: proceed to
 Step 2.
-
-Gather user input on formulation details before proceeding:
-
-- Preferred exploration technique (random search, space-filling, multi-objective
-  optimization, etc.)
-- Whether optional experiment properties should be added to the entity
-  space
-- Values for actuator configuration
 
 ---
 
@@ -73,7 +72,16 @@ complete the formulation, now incorporating the new components created in Step 2
 
 Execute the plan from Step 1 or Step 3.
 
-**Local execution**: follow [using-ado-cli](../using-ado-cli/SKILL.md).
+**Local execution**: create and start the operation from the repo root (verify
+flags with `uv run ado create operation --help`):
+
+```bash
+uv run ado create space -f space.yaml
+uv run ado create operation -f operation.yaml --use-latest space
+```
+
+For CLI conventions, shortcuts, and debugging, see
+[using-ado-cli](../using-ado-cli/SKILL.md).
 
 **Remote execution**: follow [remote-execution](../remote-execution/SKILL.md).
 
@@ -91,6 +99,20 @@ Gather user input on execution details:
 
 ---
 
+## Step 5: Analyse Results
+
+After the operation has produced data, use:
+
+- [examining-ado-operations](../examining-ado-operations/SKILL.md), to
+examine the data produced
+- [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md),
+to inspect the space operated on, especially when the space
+has been explored by multiple operations e.g.
+  - between phases of a multi-step study
+  - when there was pre-existing data in the space
+
+---
+
 ## Guidelines
 
 ### Complex multi-step studies
@@ -100,7 +122,7 @@ next steps can be determined (e.g. an exploratory phase followed by focused
 analysis). In these cases:
 
 - Formulate only the first set of independent steps
-- Execute and analyse those results
+- Execute, then apply Step 5 to analyse those results
 - Report the potential follow-on steps and revisit the workflow once initial
   results are available
 

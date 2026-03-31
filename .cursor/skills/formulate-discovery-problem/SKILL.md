@@ -10,16 +10,12 @@ description: |
 
 # Formulating Problems for ado Execution
 
-This skill guides you through formulating problems for execution
-with ado by creating discoveryspace and operation YAML files.
-
-Any problem that involves systematically:
-
-- collecting data across a space of entities
-- searching a space of entities to find those meeting some objective
-
-and then analyzing the results can be formulated for execution with ado.
-This includes empirical research questions and benchmarking efforts.
+Create validated **discoveryspace** and **operation** YAML for systematic work
+over an entity space: sampling and measuring entities, searching for entities
+that meet objectives, or benchmarking configurations (including research and
+benchmarking studies). Execution and analysis of results happen after resources
+are created — see [conduct-empirical-study](../conduct-empirical-study/SKILL.md)
+for the full workflow.
 
 ## Tips
 

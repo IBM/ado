@@ -19,6 +19,5 @@ resource_kinds_to_human: dict[CoreResourceKinds, str] = {
     CoreResourceKinds.DATACONTAINER: "data container",
     CoreResourceKinds.DISCOVERYSPACE: "space",
     CoreResourceKinds.OPERATION: "operation",
-    CoreResourceKinds.OPERATOR: "operator",
     CoreResourceKinds.SAMPLESTORE: "sample store",
 }

@@ -1,0 +1,21 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+sampleStoreIdentifier: 3a68bf
+metadata:
+  name: reaction_yield_space
+entitySpace:
+  - identifier: temperature
+    propertyDomain:
+      domainRange: [273, 473]
+      interval: 10
+  - identifier: concentration
+    propertyDomain:
+      domainRange: [0.1, 5.0]
+      interval: 0.2
+  - identifier: catalyst_amount
+    propertyDomain:
+      domainRange: [0.0, 10.0]
+      interval: 0.5
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: calculate_reaction_yield

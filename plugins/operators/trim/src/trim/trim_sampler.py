@@ -29,6 +29,13 @@ if TYPE_CHECKING:
     from orchestrator.modules.operators.discovery_space_manager import (
         DiscoverySpaceManager,
     )
+from no_priors_characterization.utils import (
+    get_index_list_van_der_corput,
+    get_list_of_entities_from_df_and_space,
+    get_source_and_target,
+)
+
+from orchestrator.utilities.pandas import sort_rows_by_column_names
 from trim.utils.exceptions import InsufficientDataError
 from trim.utils.logging_utils import (
     log_after_first_holdout_creation,
@@ -39,13 +46,8 @@ from trim.utils.logging_utils import (
     training_guardrail,
 )
 from trim.utils.miscellaneous import delete_dir
-from trim.utils.one_dimensional_sampling import get_index_list_van_der_corput
-from trim.utils.order import get_feature_importance_order, reorder_df_by_importance
+from trim.utils.order import get_feature_importance_order
 from trim.utils.rowsring import RowsRing
-from trim.utils.space_df_connector import (
-    get_list_of_entities_from_df_and_space,
-    get_source_and_target,
-)
 from trim.utils.split_common_and_diff import (
     split_common_and_diff,
 )
@@ -710,7 +712,7 @@ class TrimSampleSelector(BaseSampler):
             raise ValueError(msg)
 
         # Order merged dataframe by source space feature importance
-        merged_df_ordered_by_source_importance = reorder_df_by_importance(
+        merged_df_ordered_by_source_importance = sort_rows_by_column_names(
             merged_df, ordered_features
         )
 

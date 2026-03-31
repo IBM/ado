@@ -24,15 +24,15 @@ def delete_actuator_configuration(parameters: AdoDeleteCommandParameters) -> Non
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as spinner:
-        try:
-            sql.getResource(
-                identifier=parameters.resource_id,
-                kind=CoreResourceKinds.ACTUATORCONFIGURATION,
-                raise_error_if_no_resource=True,
-            )
-        except ResourceDoesNotExistError:
+        if not sql.containsResourceWithIdentifier(
+            identifier=parameters.resource_id,
+            kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+        ):
             spinner.stop()
-            raise
+            raise ResourceDoesNotExistError(
+                resource_id=parameters.resource_id,
+                kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+            )
 
         children_resources = sql.getRelatedObjectResourceIdentifiers(
             identifier=parameters.resource_id

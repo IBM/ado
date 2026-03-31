@@ -4,6 +4,8 @@
 
 import logging
 
+from no_priors_characterization.utils import get_source_and_target
+
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import FunctionOperationInfo
 from orchestrator.core.operation.operation import OperationOutput
@@ -15,7 +17,6 @@ from trim.utils.logging_utils import (
     log_and_save_characterization,
     log_unable_to_proceed_with_iterative_modeling_and_raise_error,
 )
-from trim.utils.space_df_connector import get_source_and_target
 
 logger_trim = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ def trim(
         OperationOutput containing the operation resources and metadata
     """
     # Lazy import to avoid circular import issues during plugin loading
+    from orchestrator.modules.operators.collections import characterize
     from orchestrator.modules.operators.randomwalk import (
         CustomSamplerConfiguration,
         RandomWalkParameters,
@@ -65,10 +67,6 @@ def trim(
         f"Target variable = {params.targetOutput}"
     )
     logger_trim.info(f"Parameters are {params}")
-
-    nopriors_module = SamplerModuleConf(
-        moduleClass="NoPriorsSampleSelector", moduleName="trim.no_priors_sampler"
-    )
 
     # Checks if the source space has been already characterized appropriately
     source_df, target_df = get_source_and_target(
@@ -95,31 +93,24 @@ def trim(
             f"Note: Trim sampler has been called with a minimum budget of {params.samplingBudget.minPoints} points."
         )
 
-        no_priors_params = params.noPriorParameters
-        no_priors_sampler_config = CustomSamplerConfiguration(
-            module=nopriors_module, parameters=no_priors_params
-        )
-
-        no_priors_rwparams = RandomWalkParameters(
-            samplerConfig=no_priors_sampler_config,
-            # here you set up the rw params
-            batchSize=no_priors_params.batchSize,
-            numberEntities=no_priors_params.samples,
-            singleMeasurement=True,
-        )
-
-        op_output_characterization_no_prior = random_walk(
+        # Call the no-priors-characterization operator directly
+        no_priors_operator = characterize.no_priors_characterization
+        op_output_characterization_no_prior = no_priors_operator(
             discoverySpace=discoverySpace,
             operationInfo=FunctionOperationInfo.model_validate(
                 {
                     "metadata": {
                         "completed operation": "Characterization with no priors",
-                        "summary of collected data": f"No-priors characterization produced {len(source_df)} samples with the required property {params.targetOutput}. Minimal sample size: {params.samplingBudget.minPoints }",
+                        "summary of collected data": f"No-priors characterization will sample {params.samplingBudget.minPoints - len(source_df)} points with the required property {params.targetOutput}. Minimal sample size: {params.samplingBudget.minPoints}",
                     },
-                    "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
+                    "actuatorConfigurationIdentifiers": (
+                        operationInfo.actuatorConfigurationIdentifiers
+                        if operationInfo
+                        else []
+                    ),
                 }
             ),
-            **no_priors_rwparams.model_dump(),
+            **params.noPriorParameters.model_dump(),
         )
 
         source_df, target_df = get_source_and_target(

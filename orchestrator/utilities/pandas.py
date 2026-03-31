@@ -47,3 +47,46 @@ def filter_dataframe_columns(
 
     columns_to_drop = [col for col in df.columns if col not in columns_to_keep]
     return df.drop(columns=columns_to_drop)
+
+
+def sort_rows_by_column_names(
+    df: "pd.DataFrame",
+    column_names: tuple[str, ...] | list[str],
+) -> "pd.DataFrame":
+    """
+    Sort DataFrame rows by specified columns in descending priority order.
+
+    Args:
+        df: The DataFrame to sort.
+        column_names: Column names to sort by, in priority order.
+
+    Returns:
+        DataFrame sorted by the specified columns with reset index.
+
+    Raises:
+        ValueError: If column_names is empty or none of the columns exist in df.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if not column_names:
+        raise ValueError("column_names is empty.")
+
+    # Convert to sets for efficient operations
+    column_names_set = set(column_names)
+    df_columns_set = set(df.columns)
+
+    # Check for missing columns
+    missing = column_names_set.difference(df_columns_set)
+    if missing:
+        logger.warning("Columns not present in target df: %s", missing)
+
+    # Check if any columns exist
+    if column_names_set.isdisjoint(df_columns_set):
+        raise ValueError("None of the specified columns are present in df.")
+
+    # Get columns that exist in df, preserving order from column_names
+    sort_cols = [c for c in column_names if c in df.columns]
+
+    return df.sort_values(by=sort_cols).reset_index(drop=True)

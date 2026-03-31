@@ -35,10 +35,19 @@ from orchestrator.core.operation.resource import (
 )
 
 
+def _save_operation_identifier(
+    parameters: AdoCreateCommandParameters, operation_identifier: str
+) -> None:
+    """Save operation identifier to configuration for reuse with --use-latest."""
+    parameters.ado_configuration.latest_resource_ids[CoreResourceKinds.OPERATION] = (
+        operation_identifier
+    )
+    parameters.ado_configuration.store()
+
+
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
 
     import orchestrator.modules.operators.orchestrate
-    from orchestrator.modules.actuators.base import MeasurementError
     from orchestrator.modules.operators.base import InterruptedOperationError
 
     try:
@@ -152,17 +161,11 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             project_context=parameters.ado_configuration.project_context,
             discovery_space_identifier=op_resource_configuration.spaces[0],
         )
-
-    except MeasurementError as e:
-        console_print(
-            f"{ERROR}A measurement error was encountered while running the operation:\n\t{e}",
-            stderr=True,
-        )
-        raise typer.Exit(1) from e
     except ValueError as e:
         console_print(f"{ERROR}Failed to create operation:\n\t{e}", stderr=True)
         raise typer.Exit(1) from e
     except InterruptedOperationError as e:
+        _save_operation_identifier(parameters, e.operation_identifier)
         console_print(
             f"{ERROR}Created operation with identifier {magenta(e.operation_identifier)} "
             "but it was interrupted.",
@@ -176,6 +179,7 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         )
         raise typer.Exit(3) from e
     except OperationException as e:
+        _save_operation_identifier(parameters, e.operation.identifier)
         console_print(
             f"{ERROR}An unexpected error occurred. "
             f"Operation {magenta(e.operation.identifier)} did not run successfully:\n\n"
@@ -190,11 +194,8 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         )
         raise
 
-    # Save the identifier of the resource we created
-    # for reuse
-    parameters.ado_configuration.latest_resource_ids[CoreResourceKinds.OPERATION] = (
-        operation_output.operation.identifier
-    )
+    # Save the identifier of the resource we created for reuse
+    _save_operation_identifier(parameters, operation_output.operation.identifier)
 
     return output_operation_result(result=operation_output)
 

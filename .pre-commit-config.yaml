@@ -8,7 +8,7 @@ repos:
       - id: detect-secrets # pragma: whitelist secret
         args: [--baseline, .secrets.baseline, --use-all-plugins, --fail-on-unaudited]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.7
+    rev: v0.15.8
     hooks:
       - id: ruff
         args:
@@ -34,13 +34,13 @@ repos:
         additional_dependencies: ['tomli']
         args: ['--toml', 'pyproject.toml']
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.12
+    rev: 0.11.2
     hooks:
       - id: uv-lock
       - id: uv-export
         args: ["--frozen", "--no-emit-project", "--no-default-groups", "--output-file=requirements.txt"]
   - repo: https://github.com/hashicorp/copywrite
-    rev: v0.25.1
+    rev: v0.25.2
     hooks:
       - id: add-headers
   - repo: https://github.com/DavidAnson/markdownlint-cli2
@@ -52,7 +52,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/tombi-toml/tombi-pre-commit
-    rev: v0.9.9
+    rev: v0.9.11
     hooks:
       - id: tombi-format
         args: ["--offline"]

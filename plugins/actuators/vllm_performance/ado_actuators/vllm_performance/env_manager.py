@@ -4,7 +4,9 @@
 import asyncio
 import logging
 from enum import Enum
+from typing import Annotated
 
+import pydantic
 import ray
 from ado_actuators.vllm_performance.deployment_management import (
     DeploymentConflictManager,
@@ -17,6 +19,9 @@ from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
 )
 from kubernetes.client import ApiException
+from pydantic import AfterValidator
+
+from orchestrator.utilities.pydantic import validate_rfc_1123
 
 logger = logging.getLogger(__name__)
 
@@ -30,21 +35,52 @@ class EnvironmentState(Enum):
     READY = "ready"
 
 
-class Environment:
+class Environment(pydantic.BaseModel):
     """
-    environment class
+    Environment class representing a deployment environment for a model.
+
+    The k8s_name is automatically generated from the model name and validated
+    to be RFC 1123 compliant.
     """
 
-    def __init__(self, model: str, configuration: str) -> None:
+    k8s_name: Annotated[
+        str,
+        AfterValidator(validate_rfc_1123),
+        pydantic.Field(
+            description="Kubernetes-compliant name for the deployment, automatically generated from the model name and validated to be RFC 1123 compliant"
+        ),
+    ] = ""
+    state: Annotated[
+        EnvironmentState,
+        pydantic.Field(description="Current state of the environment (NONE or READY)"),
+    ] = EnvironmentState.NONE
+    configuration: Annotated[
+        str,
+        pydantic.Field(
+            description="Full deployment configuration as a JSON string containing model, image, GPU/CPU settings, and VLLM parameters"
+        ),
+    ]
+    model: Annotated[
+        str,
+        pydantic.Field(description="LLM model name (e.g., 'meta-llama/Llama-2-7b-hf')"),
+    ]
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def compute_k8s_name(cls, data: dict) -> dict:
         """
-        Defines an environment for a model
-        :param model: LLM model name
-        :param configuration: The full deployment configuration
+        Compute k8s_name from model if not provided.
+
+        :param data: Input data dictionary
+        :return: Data dictionary with k8s_name computed
         """
-        self.k8s_name = ComponentsYaml.get_k8s_name(model=model)
-        self.state = EnvironmentState.NONE
-        self.configuration = configuration
-        self.model = model
+        if (
+            isinstance(data, dict)
+            and ("k8s_name" not in data or not data["k8s_name"])
+            and "model" in data
+        ):
+            data["k8s_name"] = ComponentsYaml.get_k8s_name(model=data["model"])
+        return data
 
 
 class EnvironmentsQueue:
@@ -122,7 +158,6 @@ class EnvironmentManager:
                 raise e
 
     def environment_usage(self) -> dict:
-
         return {"max": self.max_concurrent, "in_use": self.active_environments}
 
     async def wait_for_env(self) -> None:

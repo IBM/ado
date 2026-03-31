@@ -34,7 +34,7 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 These plausible-sounding commands do not exist in ado. Do not write them:
 
 | ❌ Does not exist | ✅ Correct equivalent |
-| --- | --- |
+| --------- | -------------------- |
 | `ado run` | `ado create operation -f op.yaml` |
 | `ado start` | `ado create operation -f op.yaml` |
 | `ado execute` | `ado create operation -f op.yaml` |
@@ -42,14 +42,15 @@ These plausible-sounding commands do not exist in ado. Do not write them:
 | `ado list` | `ado get spaces` / `ado get operations` |
 | `ado status` | `ado show details space SPACE_ID` |
 
-**Key principle**: `ado create operation` both *defines* and *starts* the operation
-in a single command. There is no separate "run" step.
+**Key principle**: `ado create operation` both _defines_ and _starts_ the
+operation in a single command. There is no separate "run" step.
 
 ## Point Testing with run_experiment
 
 `run_experiment` is a **separate CLI entry point** (not an `ado` subcommand) for
 running a single entity through an experiment locally, without creating a space
-or operation. It is the correct tool for functional validation of custom experiments.
+or operation. It is the correct tool for functional validation of custom
+experiments.
 
 ```bash
 uv run run_experiment PATH_TO_POINT_YAML
@@ -74,7 +75,7 @@ needed beyond a local Ray instance (started automatically).
 
 ### ado get
 
-Lists resources of a given and gets resource YAML
+Lists resources of a given type and gets resource YAML
 
 ```bash
 #List all spaces
@@ -120,18 +121,18 @@ Outputs a human readable description
 
 ```bash
 # Output a description of a space
-# Dimensions, values, experiments 
+# Dimensions, values, experiments
 uv run ado describe space SPACE_ID
 
-#Output a description of an experiment 
+#Output a description of an experiment
 # (input params, output params etc.)
 uv run ado describe experiment EXPERIMENT_ID
 ```
 
 ## Debugging
 
-If commands are not given expected output use
-the -l flag to activate different log levels
+If commands are not given expected output use the -l flag to activate different
+log levels
 
 e.g. for debug level logs
 

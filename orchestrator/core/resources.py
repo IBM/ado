@@ -16,13 +16,10 @@ from orchestrator.utilities.pydantic import Defaultable
 
 
 class CoreResourceKinds(enum.Enum):
-    RESOURCE = "resource"
     OPERATION = "operation"
-    RESULT = "result"
     DISCOVERYSPACE = "discoveryspace"
     # ACTUATOR = "actuator" AP - REMOVING IT AS REPLACED BY ACTUATORCONFIGURATION
     ACTUATORCONFIGURATION = "actuatorconfiguration"
-    OPERATOR = "operator"
     SAMPLESTORE = "samplestore"
     DATACONTAINER = "datacontainer"
 
@@ -71,7 +68,7 @@ class ADOResourceStatus(pydantic.BaseModel):
 class ADOResource(pydantic.BaseModel):
 
     version: Annotated[str, pydantic.Field()] = "v1"
-    kind: Annotated[CoreResourceKinds, pydantic.Field()] = CoreResourceKinds.RESOURCE
+    kind: Annotated[CoreResourceKinds, pydantic.Field()]
     created: Annotated[
         datetime.datetime,
         pydantic.Field(

@@ -2,6 +2,9 @@ ARG PYTHON_VERSION=310
 ARG BASE_IMAGE=mirror.gcr.io/rayproject/ray:latest-py${PYTHON_VERSION}-cpu
 FROM $BASE_IMAGE
 
+# Set LD_LIBRARY_PATH to avoid runtime errors (so far only experienced when running vLLM with the vllm_performance actuator)
+ENV LD_LIBRARY_PATH=/home/ray/anaconda3/lib:${LD_LIBRARY_PATH}
+
 USER 0
 RUN chgrp -R 0 /home/ray && \
     chmod -R g=u /home/ray

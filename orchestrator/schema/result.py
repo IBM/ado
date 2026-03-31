@@ -65,9 +65,36 @@ class MeasurementResult(pydantic.BaseModel):
 class ValidMeasurementResult(MeasurementResult):
     """Used to record a valid measurement
 
-    Note the experiment that made the measurements can be retrieved via the PropertyValues
+    The serialized format uses a compressed representation to eliminate redundancy.
+    Instead of repeating the ExperimentReference in each ObservedPropertyValue,
+    it is stored once at the top level:
 
-    ValidMeasurementResult.measurements[0].property.experimentReference
+    Compressed format:
+        {
+            "uid": "...",
+            "entityIdentifier": "...",
+            "experimentReference": {...},  # Stored once
+            "measurements": [
+                {
+                    "targetProperty": {...},
+                    "value": [...],
+                    "valueType": "..."
+                },
+                ...
+            ]
+        }
+
+    This significantly reduces serialized size compared to the old format where
+    experimentReference was repeated in each measurement. The compression ratio
+    increases with the number of measurements.
+
+    The deserialization process handles both old (redundant) and new (compressed)
+    formats transparently for backward compatibility.
+
+    Note: The experiment that made the measurements can be retrieved via:
+        ValidMeasurementResult.experimentReference
+    or from any measurement:
+        ValidMeasurementResult.measurements[0].property.experimentReference
     """
 
     measurements: Annotated[
@@ -78,6 +105,83 @@ class ValidMeasurementResult(MeasurementResult):
     ]
 
     model_config = pydantic.ConfigDict(extra="forbid")
+
+    @pydantic.model_serializer
+    def serialize_model_with_deduplicated_experiment_reference(self) -> dict:
+        """Serialize with compressed format to eliminate redundant ExperimentReference.
+
+        The compressed format extracts the common ExperimentReference (which is
+        guaranteed to be the same for all measurements by the validator) and
+        stores it once at the top level, rather than repeating it in each
+        ObservedPropertyValue.
+
+        This significantly reduces serialized size, with greater compression
+        as the number of measurements increases.
+        """
+        return {
+            "uid": self.uid,
+            "entityIdentifier": self.entityIdentifier,
+            "metadata": self.metadata,
+            "experimentReference": self.experimentReference.model_dump(),
+            "measurements": [
+                {
+                    "targetProperty": m.property.targetProperty.model_dump(),
+                    "value": m.value,
+                    "valueType": m.valueType,
+                    "uncertainty": m.uncertainty,
+                    "metadata": m.property.metadata,
+                }
+                for m in self.measurements
+            ],
+        }
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def deserialize_with_backward_compatibility_for_experiment_reference(
+        cls, data: dict
+    ) -> dict:
+        """Handle both old (redundant) and new (compressed) serialization formats.
+
+        Old format: measurements is a list of ObservedPropertyValue with full property
+        New format: experimentReference at top level, measurements simplified
+
+        This validator ensures backward compatibility - old serialized data can
+        still be deserialized correctly.
+        """
+        if not isinstance(data, dict):
+            return data
+
+        # Check if this is the new compressed format
+        if "experimentReference" in data and "measurements" in data:
+            measurements_list = data.get("measurements", [])
+
+            # New format detection: measurements don't have 'property' field
+            if (
+                measurements_list
+                and isinstance(measurements_list[0], dict)
+                and "property" not in measurements_list[0]
+            ):
+                # New compressed format - reconstruct ObservedPropertyValue structure
+                exp_ref = data["experimentReference"]
+                reconstructed_measurements = [
+                    {
+                        "property": {
+                            "experimentReference": exp_ref,
+                            "targetProperty": m["targetProperty"],
+                            "metadata": m.get("metadata", {}),
+                        },
+                        "value": m["value"],
+                        "valueType": m["valueType"],
+                        "uncertainty": m.get("uncertainty"),
+                    }
+                    for m in measurements_list
+                ]
+
+                data["measurements"] = reconstructed_measurements
+                # Remove top-level experimentReference as it's now in each measurement
+                data.pop("experimentReference", None)
+
+        return data
 
     @pydantic.field_validator("measurements")
     def validate_measurements(

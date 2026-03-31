@@ -41,6 +41,15 @@ See
 See
 [reference-property-domain.yaml](yaml-examples/reference-property-domain.yaml).
 
+### Domain range bounds (numeric)
+
+`domainRange: [lower, upper]` is **half-open**:
+**lower inclusive, upper exclusive** — valid values satisfy
+`lower <= value < upper`. The upper endpoint itself is **not** in the domain.
+
+See [properties and domains](../../../website/docs/core-concepts/properties-and-domains.md)
+for the full discussion.
+
 ### Variable Types
 
 **DISCRETE_VARIABLE_TYPE:**
@@ -48,11 +57,13 @@ See
 - Numeric values from a finite set
 - Use `values` for explicit list: `[1, 2, 4, 8]`
 - Use `domainRange` + `interval` for ranges: `domainRange: [1, 10], interval: 1`
+  (upper bound exclusive — see [above](#domain-range-bounds-numeric))
 
 **CONTINUOUS_VARIABLE_TYPE:**
 
 - Real-valued range
-- Requires `domainRange: [min, max]`
+- Requires `domainRange: [min, max]` (upper bound exclusive — see
+  [above](#domain-range-bounds-numeric))
 - Cannot enumerate all values
 
 **CATEGORICAL_VARIABLE_TYPE:**

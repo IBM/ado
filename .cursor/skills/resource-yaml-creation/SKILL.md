@@ -123,6 +123,9 @@ uv run ado template actuatorconfiguration --actuator-identifier my_actuator
 
 ### DiscoverySpace
 
+See [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md)
+for further details on creating discovery spaces.
+
 **Before creating** (ado create space), check if a matching space already
 exists:
 

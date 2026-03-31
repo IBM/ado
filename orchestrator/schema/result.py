@@ -162,19 +162,21 @@ class ValidMeasurementResult(MeasurementResult):
                 and isinstance(measurements_list[0], dict)
                 and "property" not in measurements_list[0]
             ):
-                # New compressed format - reconstruct ObservedPropertyValue structure
+                # New compressed format - modify each measurement dict to add 'property' field
+                # so it can be validated as ObservedPropertyValue
                 exp_ref = data["experimentReference"]
+
                 reconstructed_measurements = [
-                    {
-                        "property": {
-                            "experimentReference": exp_ref,
-                            "targetProperty": m["targetProperty"],
-                            "metadata": m.get("metadata", {}),
-                        },
-                        "value": m["value"],
-                        "valueType": m["valueType"],
-                        "uncertainty": m.get("uncertainty"),
-                    }
+                    ObservedPropertyValue.model_validate(
+                        {
+                            **m,  # The PropertyValue part of the dictionary
+                            "property": {
+                                "targetProperty": m.pop("targetProperty"),
+                                "experimentReference": exp_ref,
+                                "metadata": m.pop("metadata", {}),
+                            },
+                        }
+                    ).model_dump()
                     for m in measurements_list
                 ]
 

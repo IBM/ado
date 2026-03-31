@@ -25,8 +25,8 @@ from orchestrator.metastore.base import (
     kind_custom_model_load,
 )
 from orchestrator.metastore.project import ProjectContext
-from orchestrator.metastore.sql.statements import table_exists_query
 from orchestrator.metastore.sql.utils import (
+    check_table_exists,
     create_sql_resource_store,
     engine_for_sql_store,
 )
@@ -67,14 +67,9 @@ class SQLStore(ResourceStore):
                 f"Using cached table existence check result: tables_exist={tables_exist}"
             )
         else:
-            # Use a direct SQL query rather than sqlalchemy.inspect() to avoid
-            # the Inspector's internal connection overhead.
+            # Prefer raw SQL via check_table_exists; falls back to inspect on error.
             log.debug("Checking if 'resources' table exists (network query)...")
-            existence_query = table_exists_query(
-                "resources", dialect=project_context.metadataStore.scheme
-            )
-            with engine.connect() as conn:
-                tables_exist = conn.execute(existence_query).fetchone() is not None
+            tables_exist = check_table_exists(engine, "resources")
             log.debug(f"Table existence check complete: tables_exist={tables_exist}")
             # Cache the result
             _tables_exist_cache[cache_key] = tables_exist

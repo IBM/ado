@@ -20,7 +20,7 @@ from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
 )
-from orchestrator.metastore.sql.utils import engine_for_sql_store
+from orchestrator.metastore.sql.utils import check_table_exists, engine_for_sql_store
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
@@ -387,26 +387,13 @@ class SQLSampleStore(ActiveSampleStore):
         # Use a single raw SQL probe (1 round-trip) as a fast path to avoid
         # the ~4 SQL queries that create_all(checkfirst=True) issues when
         # the tables are already present (4 table-existence checks)
-        # The module level _source_table_verified enables skipping
+        # The module level _source_tables_verified enables skipping
         # even the probe for subsequent constructions within the same process.
         #
-        # We use a direct information_schema / sqlite_master query rather than
-        # sqlalchemy.inspect() to avoid the Inspector's internal connection
-        # overhead (it opens its own connection on top of the borrowed one).
+        # Same probe as SQLResourceStore: check_table_exists (raw SQL, inspect fallback).
         _cache_key = (str(self._engine.url), self._tablename)
         if _cache_key not in _source_tables_verified:
-            if self.engine.dialect.name == "sqlite":
-                existence_query = sqlalchemy.text(
-                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
-                ).bindparams(name=self._tablename)
-            else:
-                existence_query = sqlalchemy.text(
-                    "SELECT 1 FROM information_schema.tables"
-                    " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
-                ).bindparams(name=self._tablename)
-
-            with self.engine.connect() as conn:
-                table_exists = conn.execute(existence_query).fetchone() is not None
+            table_exists = check_table_exists(self.engine, self._tablename)
 
             if not table_exists:
                 self._create_source_table()

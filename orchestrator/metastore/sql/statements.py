@@ -218,30 +218,44 @@ def check_field_in_sqlite_json_document(
 
 def table_exists_query(
     tablename: str,
-    dialect: Literal["mysql", "sqlite"] = "mysql",
+    dialect: str,
 ) -> sqlalchemy.TextClause:
     """Return a bound SQL query that checks whether a table exists in the database.
 
-    Uses dialect-specific system catalogue tables: ``sqlite_master`` for SQLite
-    and ``information_schema.tables`` for MySQL.  The tablename is passed as a
-    bind parameter to prevent SQL injection.
+    ``dialect`` is usually a connection scheme (e.g. ``mysql+pymysql``) or
+    :attr:`sqlalchemy.engine.Dialect.name` (e.g. ``mysql``, ``sqlite``).
+
+    * ``sqlite`` — uses ``sqlite_master``.
+    * Any dialect whose string contains ``mysql`` (case-insensitive) — uses
+      MySQL ``information_schema`` and ``DATABASE()``.
+    * Anything else — raises :class:`ValueError`.
+
+    The tablename is passed as a bind parameter to prevent SQL injection.
 
     Args:
         tablename: The name of the table to check for.
-        dialect: The SQL dialect — ``"sqlite"`` or ``"mysql"`` (default).
+        dialect: Dialect or scheme string for the target database.
 
     Returns:
         A bound :class:`sqlalchemy.TextClause` that returns one row when the
         table exists and no rows when it does not.
+
+    Raises:
+        ValueError: If ``dialect`` is neither sqlite nor MySQL-compatible.
     """
     if dialect == "sqlite":
         return sqlalchemy.text(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
         ).bindparams(name=tablename)
-    return sqlalchemy.text(
-        "SELECT 1 FROM information_schema.tables"
-        " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
-    ).bindparams(name=tablename)
+    if "mysql" in dialect.lower():
+        return sqlalchemy.text(
+            "SELECT 1 FROM information_schema.tables"
+            " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
+        ).bindparams(name=tablename)
+    raise ValueError(
+        f"Unsupported dialect for table_exists_query: {dialect!r} "
+        "(expected 'sqlite' or a dialect containing 'mysql')"
+    )
 
 
 def resource_filter_by_arbitrary_selection(

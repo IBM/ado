@@ -83,18 +83,6 @@ class ValidMeasurementResult(MeasurementResult):
                 ...
             ]
         }
-
-    This significantly reduces serialized size compared to the old format where
-    experimentReference was repeated in each measurement. The compression ratio
-    increases with the number of measurements.
-
-    The deserialization process handles both old (redundant) and new (compressed)
-    formats transparently for backward compatibility.
-
-    Note: The experiment that made the measurements can be retrieved via:
-        ValidMeasurementResult.experimentReference
-    or from any measurement:
-        ValidMeasurementResult.measurements[0].property.experimentReference
     """
 
     measurements: Annotated[

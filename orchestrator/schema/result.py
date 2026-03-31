@@ -63,27 +63,7 @@ class MeasurementResult(pydantic.BaseModel):
 
 
 class ValidMeasurementResult(MeasurementResult):
-    """Used to record a valid measurement
-
-    The serialized format uses a compressed representation to eliminate redundancy.
-    Instead of repeating the ExperimentReference in each ObservedPropertyValue,
-    it is stored once at the top level:
-
-    Compressed format:
-        {
-            "uid": "...",
-            "entityIdentifier": "...",
-            "experimentReference": {...},  # Stored once
-            "measurements": [
-                {
-                    "targetProperty": {...},
-                    "value": [...],
-                    "valueType": "..."
-                },
-                ...
-            ]
-        }
-    """
+    """Used to record a valid measurement"""
 
     measurements: Annotated[
         list[ObservedPropertyValue],
@@ -95,7 +75,7 @@ class ValidMeasurementResult(MeasurementResult):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.model_serializer
-    def serialize_model_with_deduplicated_experiment_reference(self) -> dict:
+    def serialize_to_custom_format(self) -> dict:
         """Serialize with compressed format to eliminate redundant ExperimentReference.
 
         The compressed format extracts the common ExperimentReference (which is
@@ -126,9 +106,7 @@ class ValidMeasurementResult(MeasurementResult):
 
     @pydantic.model_validator(mode="before")
     @classmethod
-    def deserialize_with_backward_compatibility_for_experiment_reference(
-        cls, data: dict
-    ) -> dict:
+    def deserialize_from_custom_format(cls, data: dict) -> dict:
         """Handle both old (redundant) and new (compressed) serialization formats.
 
         Old format: measurements is a list of ObservedPropertyValue with full property

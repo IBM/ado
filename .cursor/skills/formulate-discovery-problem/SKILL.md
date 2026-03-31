@@ -5,42 +5,21 @@ description: |
   operation YAML files. Guides through experiment selection, space creation,
   validation, operation configuration, and parameterization. Use when the user
   wants to create discoveryspace or operation YAML files, configure experiments,
-  set up entity spaces, or formulate problems for ado execution.
+  set up entity spaces, or formulate research, benchmarking or search problems.
 ---
 
 # Formulating Problems for ado Execution
 
-This skill guides you through creating discoveryspace and operation YAML files
-to formulate problems for execution with ado.
+This skill guides you through formulating problems for execution
+with ado by creating discoveryspace and operation YAML files.
 
-## Plan Mode
+Any problem that involves systematically:
 
-If in planning mode consider the following three phases. In each phase consider
-getting the users input on the following while building the plan.
+- collecting data across a space of entities
+- searching a space of entities to find those meeting some objective
 
-1. Coding Phase: If custom experiments, actuators or operators need to be
-   created
-
-- Should experiments be implemented as actuators or custom experiments
-- If certain parameters should be required or optional in a custom experiment
-- What fields should be in an actuator configuration or operator parameters
-
-See [plugin-development.mdc](../../rules/plugin-development.mdc) coding skills.
-
-1. Problem Formulation Phase: Main Phase
-
-- If an optional property of experiment should be added to the entity space
-- What exploration technique they want to use e.g. random search, space filling,
-  multi-objective optimization
-- Values for actuator configuration
-
-1. Execution Phase: If the user wants to execute an operation
-
-- If they want to execute the operation locally or remote
-- The project context to use
-- Details on the remote execution context to use
-
-See [remote execution](../remote-execution/SKILL.md) for remote execution skills
+and then analyzing the results can be formulated for execution with ado.
+This includes empirical research questions and benchmarking efforts.
 
 ## Tips
 

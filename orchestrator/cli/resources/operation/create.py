@@ -48,7 +48,6 @@ def _save_operation_identifier(
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
 
     import orchestrator.modules.operators.orchestrate
-    from orchestrator.modules.actuators.base import MeasurementError
     from orchestrator.modules.operators.base import InterruptedOperationError
 
     try:
@@ -162,13 +161,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
             project_context=parameters.ado_configuration.project_context,
             discovery_space_identifier=op_resource_configuration.spaces[0],
         )
-
-    except MeasurementError as e:
-        console_print(
-            f"{ERROR}A measurement error was encountered while running the operation:\n\t{e}",
-            stderr=True,
-        )
-        raise typer.Exit(1) from e
     except ValueError as e:
         console_print(f"{ERROR}Failed to create operation:\n\t{e}", stderr=True)
         raise typer.Exit(1) from e

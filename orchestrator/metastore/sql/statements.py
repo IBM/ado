@@ -218,7 +218,7 @@ def check_field_in_sqlite_json_document(
 
 def table_exists_query(
     tablename: str,
-    dialect: str,
+    dialect: Literal["mysql", "sqlite"],
 ) -> sqlalchemy.TextClause:
     """Return a bound SQL query that checks whether a table exists in the database.
 
@@ -230,11 +230,10 @@ def table_exists_query(
       MySQL ``information_schema`` and ``DATABASE()``.
     * Anything else — raises :class:`ValueError`.
 
-    The tablename is passed as a bind parameter to prevent SQL injection.
 
     Args:
         tablename: The name of the table to check for.
-        dialect: Dialect or scheme string for the target database.
+        dialect: "mysql" or "sqlite"
 
     Returns:
         A bound :class:`sqlalchemy.TextClause` that returns one row when the

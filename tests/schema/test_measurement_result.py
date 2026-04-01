@@ -298,11 +298,13 @@ def test_compressed_serialization_format(
     assert "uid" in serialized
     assert "entityIdentifier" in serialized
 
-    # Verify measurements don't have 'property' field (new format)
-    assert "property" not in serialized["measurements"][0]
+    # Verify measurements have 'property' field but without experimentReference
+    assert "property" in serialized["measurements"][0]
+    assert "experimentReference" not in serialized["measurements"][0]["property"]
 
-    # Verify measurements have simplified structure
-    assert "targetProperty" in serialized["measurements"][0]
+    # Verify property contains targetProperty and metadata
+    assert "targetProperty" in serialized["measurements"][0]["property"]
+    assert "metadata" in serialized["measurements"][0]["property"]
     assert "value" in serialized["measurements"][0]
     assert "valueType" in serialized["measurements"][0]
 
@@ -365,18 +367,20 @@ def test_new_format_deserialization(entity: Entity) -> None:
         },
         "measurements": [
             {
-                "targetProperty": {
-                    "identifier": "test_property",
-                    "propertyType": "MEASURED_PROPERTY_TYPE",
-                    "propertyDomain": PropertyDomain(
-                        values=["a", "b"],
-                        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
-                    ).model_dump(),
+                "property": {
+                    "targetProperty": {
+                        "identifier": "test_property",
+                        "propertyType": "MEASURED_PROPERTY_TYPE",
+                        "propertyDomain": PropertyDomain(
+                            values=["a", "b"],
+                            variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+                        ).model_dump(),
+                    },
+                    "metadata": {},
                 },
                 "value": 42.0,
                 "valueType": "NUMERIC_VALUE_TYPE",
                 "uncertainty": None,
-                "metadata": {},
             }
         ],
     }
@@ -490,7 +494,8 @@ def test_json_serialization_roundtrip(
     # Verify it's in new format
     assert "experimentReference" in json_data
     assert "measurements" in json_data
-    assert "property" not in json_data["measurements"][0]
+    assert "property" in json_data["measurements"][0]
+    assert "experimentReference" not in json_data["measurements"][0]["property"]
 
     # Deserialize from JSON string
     deserialized = ValidMeasurementResult.model_validate_json(json_str)

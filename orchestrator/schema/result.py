@@ -86,13 +86,10 @@ class ValidMeasurementResult(MeasurementResult):
         This significantly reduces serialized size, with greater compression
         as the number of measurements increases.
         """
-        # Dump ObservedPropertyValue excluding the 'property' field, then add targetProperty and metadata
+        # Dump ObservedPropertyValue excluding only property.experimentReference
+        # This keeps the property structure but removes the redundant experimentReference
         measurements_dump = [
-            {
-                **m.model_dump(exclude={"property"}),
-                "targetProperty": m.property.targetProperty.model_dump(),
-                "metadata": m.property.metadata,
-            }
+            m.model_dump(exclude={"property": {"experimentReference"}})
             for m in self.measurements
         ]
 
@@ -122,24 +119,23 @@ class ValidMeasurementResult(MeasurementResult):
         if "experimentReference" in data and "measurements" in data:
             measurements_list = data.get("measurements", [])
 
-            # New format detection: measurements don't have 'property' field
+            # New format detection: measurements have 'property' but without experimentReference
             if (
                 measurements_list
                 and isinstance(measurements_list[0], dict)
-                and "property" not in measurements_list[0]
+                and "property" in measurements_list[0]
+                and "experimentReference" not in measurements_list[0]["property"]
             ):
-                # New compressed format - modify each measurement dict to add 'property' field
-                # so it can be validated as ObservedPropertyValue
+                # New compressed format - add experimentReference to each measurement's property
                 exp_ref = data["experimentReference"]
 
                 reconstructed_measurements = [
                     ObservedPropertyValue.model_validate(
                         {
-                            **m,  # The PropertyValue part of the dictionary
+                            **m,  # The PropertyValue part including property
                             "property": {
-                                "targetProperty": m.pop("targetProperty"),
+                                **m["property"],
                                 "experimentReference": exp_ref,
-                                "metadata": m.pop("metadata", {}),
                             },
                         }
                     ).model_dump()

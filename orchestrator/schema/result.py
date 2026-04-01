@@ -158,19 +158,9 @@ class ValidMeasurementResult(MeasurementResult):
             ):
                 # New compressed format - add experimentReference to each measurement's property
                 exp_ref = data["experimentReference"]
+                for m in measurements_list:
+                    m["property"]["experimentReference"] = exp_ref
 
-                reconstructed_measurements = [
-                    ObservedPropertyValue(
-                        **{k: v for k, v in m.items() if k != "property"},
-                        property=ObservedProperty(
-                            **m["property"],
-                            experimentReference=exp_ref,
-                        ),
-                    ).model_dump()
-                    for m in measurements_list
-                ]
-
-                data["measurements"] = reconstructed_measurements
                 # Remove top-level experimentReference as it's now in each measurement
                 data.pop("experimentReference", None)
 

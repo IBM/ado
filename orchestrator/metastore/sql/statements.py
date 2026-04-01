@@ -222,14 +222,7 @@ def table_exists_query(
 ) -> sqlalchemy.TextClause:
     """Return a bound SQL query that checks whether a table exists in the database.
 
-    ``dialect`` is usually a connection scheme (e.g. ``mysql+pymysql``) or
-    :attr:`sqlalchemy.engine.Dialect.name` (e.g. ``mysql``, ``sqlite``).
-
-    * ``sqlite`` — uses ``sqlite_master``.
-    * Any dialect whose string contains ``mysql`` (case-insensitive) — uses
-      MySQL ``information_schema`` and ``DATABASE()``.
-    * Anything else — raises :class:`ValueError`.
-
+    ``dialect`` is a `sqlalchemy.engine.Dialect.name` (e.g. ``mysql``, ``sqlite``).
 
     Args:
         tablename: The name of the table to check for.
@@ -240,20 +233,20 @@ def table_exists_query(
         table exists and no rows when it does not.
 
     Raises:
-        ValueError: If ``dialect`` is neither sqlite nor MySQL-compatible.
+        ValueError: If ``dialect`` is neither sqlite nor mysql.
     """
     if dialect == "sqlite":
         return sqlalchemy.text(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
         ).bindparams(name=tablename)
-    if "mysql" in dialect.lower():
+    elif dialect == "mysql":
         return sqlalchemy.text(
             "SELECT 1 FROM information_schema.tables"
             " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
         ).bindparams(name=tablename)
     raise ValueError(
         f"Unsupported dialect for table_exists_query: {dialect!r} "
-        "(expected 'sqlite' or a dialect containing 'mysql')"
+        "(expected 'sqlite' or 'mysql')"
     )
 
 

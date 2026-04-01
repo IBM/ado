@@ -15,6 +15,7 @@ from typing import Any
 
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
+from sklearn.metrics import confusion_matrix
 
 from autoconf.utils.rule_based_classifier import is_row_valid
 
@@ -139,6 +140,12 @@ def log_metrics(
         test_data = TabularDataset(df_test)
         metrics_dict = predictor.evaluate(test_data, silent=True)
         logger.info(f"The model performance on the test data is: {metrics_dict}")
+        # Print confusion matrix on test data
+        y_true = df_test[TARGET]
+        y_pred = predictor.predict(test_data)
+        cm = confusion_matrix(y_true, y_pred)
+        logger.info(f"Confusion Matrix on test data:\n{cm}")
+        logger.info("Confusion Matrix format:\n [[TN, FP],\n [FN, TP]]")
     else:
         train_data = TabularDataset(df_train)
         metrics_dict = predictor.evaluate(train_data, silent=True)

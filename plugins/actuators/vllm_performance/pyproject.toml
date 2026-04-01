@@ -15,6 +15,7 @@ classifiers = [
 ]
 dependencies = [
   "ado-core",
+  "datasets>=2.20.0",  # Required to avoid uv/pip to resolve to a version of datasets that is not compatible with vllm
   "kubernetes>=31.0.0",
 ]
 dynamic = ["version"]

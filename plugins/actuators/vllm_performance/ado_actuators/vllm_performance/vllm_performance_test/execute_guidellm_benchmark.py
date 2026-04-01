@@ -17,7 +17,7 @@ import subprocess
 import time
 import uuid
 from pathlib import Path
-from typing import Dict, Literal, Optional, Union
+from typing import Literal
 
 from pydantic import HttpUrl, TypeAdapter
 
@@ -325,7 +325,7 @@ def execute_guidellm_geospatial_benchmark(
     logger.debug(f"Dataset path: {dataset_path}")
 
     # Build custom arguments for geospatial models
-    custom_args: Dict[str, Optional[str]] = {
+    custom_args: dict[str, str | None] = {
         "--backend": "openai_http",
         "--data": str(dataset_path),
         "--request-format": "/pooling",

@@ -16,7 +16,7 @@ COPY --chown=1000:0 ./ ado
 ## Install ado
 RUN cd ado && \
     uv pip install --system -r requirements.txt && \
-    uv pip install --system \
+    uv pip install --system --no-deps --strict \
     '.'
 
 ## Install ray-tune operator

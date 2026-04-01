@@ -156,7 +156,6 @@ Parallel = ConstitutiveProperty(
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
-        values=[False, True],
     ),
 )
 

@@ -75,7 +75,7 @@ class ValidMeasurementResult(MeasurementResult):
     model_config = pydantic.ConfigDict(extra="forbid")
 
     @pydantic.model_serializer
-    def serialize_to_custom_format(self) -> dict:
+    def serialize_to_custom_format(self, _info: pydantic.SerializationInfo) -> dict:
         """Serialize with compressed format to eliminate redundant ExperimentReference.
 
         The compressed format extracts the common ExperimentReference (which is
@@ -86,20 +86,50 @@ class ValidMeasurementResult(MeasurementResult):
         This significantly reduces serialized size, with greater compression
         as the number of measurements increases.
         """
+        # Get serialization settings from info
+        mode = _info.mode
+        exclude_none = _info.exclude_none
+        exclude_unset = _info.exclude_unset
+        exclude_defaults = _info.exclude_defaults
+        by_alias = _info.by_alias
+
         # Dump ObservedPropertyValue excluding only property.experimentReference
-        # This keeps the property structure but removes the redundant experimentReference
+        # Pass through the exclude settings to nested model_dump calls
         measurements_dump = [
-            m.model_dump(exclude={"property": {"experimentReference"}})
+            m.model_dump(
+                mode=mode,
+                exclude={"property": {"experimentReference"}},
+                by_alias=by_alias,
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            )
             for m in self.measurements
         ]
 
-        return {
+        result = {
             "uid": self.uid,
             "entityIdentifier": self.entityIdentifier,
             "metadata": self.metadata,
-            "experimentReference": self.experimentReference.model_dump(),
+            "experimentReference": self.experimentReference.model_dump(
+                mode=mode,
+                by_alias=by_alias,
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            ),
             "measurements": measurements_dump,
         }
+
+        # Apply exclude_none to top-level fields if requested
+        if exclude_none:
+            result = {k: v for k, v in result.items() if v is not None}
+
+        # Apply exclude_defaults: remove empty metadata dicts (default is empty dict)
+        if exclude_defaults and result.get("metadata") == {}:
+            result.pop("metadata", None)
+
+        return result
 
     @pydantic.model_validator(mode="before")
     @classmethod

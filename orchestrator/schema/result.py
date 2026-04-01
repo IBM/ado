@@ -160,14 +160,12 @@ class ValidMeasurementResult(MeasurementResult):
                 exp_ref = data["experimentReference"]
 
                 reconstructed_measurements = [
-                    ObservedPropertyValue.model_validate(
-                        {
-                            **m,  # The PropertyValue part including property
-                            "property": {
-                                **m["property"],
-                                "experimentReference": exp_ref,
-                            },
-                        }
+                    ObservedPropertyValue(
+                        **{k: v for k, v in m.items() if k != "property"},
+                        property=ObservedProperty(
+                            **m["property"],
+                            experimentReference=exp_ref,
+                        ),
                     ).model_dump()
                     for m in measurements_list
                 ]

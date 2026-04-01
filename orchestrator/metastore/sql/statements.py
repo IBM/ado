@@ -239,7 +239,7 @@ def table_exists_query(
         return sqlalchemy.text(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
         ).bindparams(name=tablename)
-    elif dialect == "mysql":
+    if dialect == "mysql":
         return sqlalchemy.text(
             "SELECT 1 FROM information_schema.tables"
             " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"

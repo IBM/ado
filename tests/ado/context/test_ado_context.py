@@ -103,7 +103,7 @@ def test_ado_context_cannot_set_nonexisting_context(
 
 
 def test_ado_context_set_context(
-    tmp_path: Path,
+    tmp_path: Path, valid_ado_mysql_context_yaml: str
 ) -> None:
     """
     We expect ado to allow activating contexts
@@ -118,8 +118,12 @@ def test_ado_context_set_context(
 
     # We create empty contexts where ado expects them, so they appear
     # in the list of available contexts
-    ado_configuration.project_context_path_for_context("first-context").touch()
-    ado_configuration.project_context_path_for_context("second-context").touch()
+    ado_configuration.project_context_path_for_context("first-context").write_text(
+        valid_ado_mysql_context_yaml
+    )
+    ado_configuration.project_context_path_for_context("second-context").write_text(
+        valid_ado_mysql_context_yaml
+    )
 
     runner = CliRunner()
     activate_context_result = runner.invoke(

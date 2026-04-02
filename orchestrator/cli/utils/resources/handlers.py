@@ -443,18 +443,14 @@ def _handle_upgrade_validation_error(
         resource_type: The type of resource being upgraded
         parameters: The upgrade command parameters
     """
-    from rich.console import Console
 
+    # Import migrators package to trigger registration via __init__.py
+    import orchestrator.core.legacy.migrators  # noqa: F401
     from orchestrator.cli.utils.legacy.common import (
         extract_deprecated_field_paths,
         print_migrator_suggestions_with_dependencies,
     )
     from orchestrator.core.legacy.registry import LegacyMigratorRegistry
-
-    console = Console()
-
-    # Import migrators package to trigger registration via __init__.py
-    import orchestrator.core.legacy.migrators  # noqa: F401
 
     # Extract field paths and error details from the error
     deprecated_field_paths, field_errors = extract_deprecated_field_paths(
@@ -474,32 +470,32 @@ def _handle_upgrade_validation_error(
         migrators = LegacyMigratorRegistry.get_migrators_for_resource(resource_type)
 
     # Display error message
-    console.print(
+    console_print(
         f"\n[bold red]Validation Error[/bold red] while upgrading {resource_type.value} resources"
     )
-    console.print(
-        "\n[yellow]Some resources could not be loaded due to validation errors.[/yellow]"
+    console_print(
+        "\n[yellow]Some resources could not be loaded as they are using an unsupported legacy format.[/yellow]"
     )
 
     if deprecated_field_paths:
-        console.print(
-            f"\n[bold]Fields with validation errors:[/bold] [yellow]{len(deprecated_field_paths)} field(s)[/yellow]"
+        console_print(
+            f"\n[bold black]{len(deprecated_field_paths)} field(s) with validation errors:[/bold black]"
         )
         # Show detailed error messages for each field path
-        console.print("\n[bold]Error details:[/bold]")
         for field_path in sorted(deprecated_field_paths):
-            console.print(f"  • [cyan]{field_path}[/cyan]:")
+            console_print(f"  • [cyan]{field_path}[/cyan]:")
             for error_msg in field_errors.get(field_path, []):
-                console.print(f"    - {error_msg}")
+                console_print(f"    - {error_msg}")
 
+    console_print()
     if migrators:
         print_migrator_suggestions_with_dependencies(
             migrators=migrators, resource_type=resource_type
         )
     else:
-        console.print(
+        console_print(
             "\n[yellow]No legacy migrators are available for this resource type.[/yellow]"
         )
-        console.print("The resources may be too old or require manual intervention.")
+        console_print("The resources may be too old or require manual intervention.")
 
-    console.print()
+    console_print()

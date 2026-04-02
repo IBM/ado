@@ -141,7 +141,10 @@ def print_migrator_suggestions_with_dependencies(
         if migrator is not None:
             ordered_migrators.append(migrator)
 
-    console_print(f"{INFO}The following migrator(s) are a match:\n", stderr=True)
+    console_print(
+        f"{INFO}The following migrator(s) provide upgrade paths for the fields above:\n",
+        stderr=True,
+    )
     for i, migrator in enumerate(ordered_migrators, 1):
         # Format and print migrator info using the method
         console_print(

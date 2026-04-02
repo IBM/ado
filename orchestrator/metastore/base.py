@@ -342,6 +342,26 @@ def sample_store_load(
     storage_location: SQLiteStoreConfiguration | SQLStoreConfiguration,
 ) -> SampleStoreResource:
     """Adds storage location information to SQL sample stores"""
+    # Check for required keys in the nested structure
+    key_chain = ["config", "specification", "module", "moduleClass"]
+    current_dict = sample_store_resource_dict
+
+    for i, key in enumerate(key_chain):
+        if not isinstance(current_dict, dict):
+            missing_path = ".".join(key_chain[:i])
+            raise ValueError(
+                f"Invalid sample store resource structure: expected dictionary at '{missing_path}', "
+                f"but got {type(current_dict).__name__}"
+            )
+
+        if key not in current_dict:
+            missing_path = ".".join(key_chain[: i + 1])
+            raise ValueError(
+                f"Invalid sample store resource structure: missing required key '{missing_path}'"
+            )
+
+        current_dict = current_dict[key]
+
     if (
         sample_store_resource_dict["config"]["specification"]["module"]["moduleClass"]
         == "SQLSampleStore"

@@ -386,7 +386,7 @@ def resource_upsert(
         r"ON DUPLICATE KEY UPDATE data = values(data)"
     ).bindparams(
         identifier=resource.identifier,
-        kind=resource.kind,
+        kind=resource.kind.value,
         version=resource.version,
         data=json_representation,
     )

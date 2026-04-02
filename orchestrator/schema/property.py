@@ -95,7 +95,7 @@ class AbstractPropertyDescriptor(PropertyDescriptor):
         return value
 
     def __str__(self) -> str:
-        return f"ap-{self.identifier}"
+        return self.identifier
 
 
 class ConstitutivePropertyDescriptor(PropertyDescriptor):
@@ -104,7 +104,7 @@ class ConstitutivePropertyDescriptor(PropertyDescriptor):
     )
 
     def __str__(self) -> str:
-        return f"cp-{self.identifier}"
+        return self.identifier
 
     model_config = ConfigDict(frozen=True)
 
@@ -118,7 +118,7 @@ class ConcretePropertyDescriptor(PropertyDescriptor):
     model_config = ConfigDict(frozen=True)
 
     def __str__(self) -> str:
-        return f"cp-{self.identifier}"
+        return self.identifier
 
 
 class Property(pydantic.BaseModel):
@@ -221,7 +221,7 @@ class AbstractProperty(Property):
         )
 
     def __str__(self) -> str:
-        return f"ap-{self.identifier}"
+        return self.identifier
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
 
@@ -252,7 +252,7 @@ class ConstitutiveProperty(Property):
         )
 
     def __str__(self) -> str:
-        return f"cp-{self.identifier}"
+        return self.identifier
 
     model_config = ConfigDict(frozen=True)
 
@@ -283,7 +283,7 @@ class ConcreteProperty(Property):
         )
 
     def __str__(self) -> str:
-        return f"cp-{self.identifier}"
+        return self.identifier
 
     def descriptor(self) -> ConcretePropertyDescriptor:
         return ConcretePropertyDescriptor(

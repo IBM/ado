@@ -103,7 +103,7 @@ def test_ado_context_cannot_set_nonexisting_context(
 
 
 def test_ado_context_set_context(
-    tmp_path: Path,
+    tmp_path: Path, valid_ado_mysql_context_yaml: str
 ) -> None:
     """
     We expect ado to allow activating contexts
@@ -118,8 +118,12 @@ def test_ado_context_set_context(
 
     # We create empty contexts where ado expects them, so they appear
     # in the list of available contexts
-    ado_configuration.project_context_path_for_context("first-context").touch()
-    ado_configuration.project_context_path_for_context("second-context").touch()
+    ado_configuration.project_context_path_for_context("first-context").write_text(
+        valid_ado_mysql_context_yaml
+    )
+    ado_configuration.project_context_path_for_context("second-context").write_text(
+        valid_ado_mysql_context_yaml
+    )
 
     runner = CliRunner()
     activate_context_result = runner.invoke(
@@ -129,6 +133,94 @@ def test_ado_context_set_context(
     assert activate_context_result.exit_code == 0
     activate_context_expected_output = "Success! Now using context second-context\n"
     assert activate_context_result.output == activate_context_expected_output
+
+
+def test_ado_context_cannot_set_invalid_context(tmp_path: Path) -> None:
+    """
+    We expect ado to disallow setting a context that is invalid (exists but has invalid content).
+    """
+
+    # By initializing AdoConfiguration in the tmp_path, the "local"
+    # context will be automatically created, along with the folder
+    # structure.
+    ado_configuration = AdoConfiguration.load(
+        do_not_fail_on_available_contexts=True, _override_config_dir=tmp_path
+    )
+
+    # We create an invalid context (just touch the file, making it empty/invalid)
+    ado_configuration.project_context_path_for_context("invalid-context").touch()
+
+    runner = CliRunner()
+    # Try to activate the invalid context
+    activate_invalid_context_result = runner.invoke(
+        ado,
+        ["--override-ado-app-dir", str(tmp_path), "context", "invalid-context"],
+    )
+    assert activate_invalid_context_result.exit_code == 1
+    # Check that the error message indicates the context is not valid
+    assert "ERROR" in activate_invalid_context_result.output
+    assert (
+        "Context invalid-context is not valid:"
+        in activate_invalid_context_result.output
+    )
+    assert "WARN" in activate_invalid_context_result.output
+    assert (
+        "You must fix the context manually:" in activate_invalid_context_result.output
+    )
+
+
+def test_ado_switches_to_local_when_active_context_becomes_invalid(
+    tmp_path: Path, valid_ado_mysql_context_yaml: str
+) -> None:
+    """
+    We expect ado to switch back to local context when the active context becomes invalid.
+    """
+
+    # By initializing AdoConfiguration in the tmp_path, the "local"
+    # context will be automatically created, along with the folder
+    # structure.
+    ado_configuration = AdoConfiguration.load(
+        do_not_fail_on_available_contexts=True, _override_config_dir=tmp_path
+    )
+
+    # We create a valid context and activate it
+    ado_configuration.project_context_path_for_context("valid-context").write_text(
+        valid_ado_mysql_context_yaml
+    )
+
+    runner = CliRunner()
+    activate_context_result = runner.invoke(
+        ado,
+        ["--override-ado-app-dir", str(tmp_path), "context", "valid-context"],
+    )
+    assert activate_context_result.exit_code == 0
+
+    # Now we corrupt the active context by overwriting it with invalid content
+    ado_configuration.project_context_path_for_context("valid-context").write_text(
+        "invalid yaml content"
+    )
+
+    # Try to run any ado command (e.g., ado get spaces)
+    get_spaces_result = runner.invoke(
+        ado,
+        ["--override-ado-app-dir", str(tmp_path), "get", "spaces"],
+    )
+    assert get_spaces_result.exit_code == 1
+    # Check that the error message indicates the context is not valid
+    assert "ERROR" in get_spaces_result.output
+    assert "The provided project context was not valid:" in get_spaces_result.output
+    assert "WARN" in get_spaces_result.output
+    assert "You must fix the context manually:" in get_spaces_result.output
+    assert "INFO" in get_spaces_result.output
+    assert "Your default context will be switched to local" in get_spaces_result.output
+
+    # Verify that the active context has been switched back to local
+    check_context_result = runner.invoke(
+        ado,
+        ["--override-ado-app-dir", str(tmp_path), "context"],
+    )
+    assert check_context_result.exit_code == 0
+    assert check_context_result.output.strip() == "local"
 
 
 # ado contexts

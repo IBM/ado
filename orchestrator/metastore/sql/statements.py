@@ -216,6 +216,40 @@ def check_field_in_sqlite_json_document(
     return fragments
 
 
+def table_exists_query(
+    tablename: str,
+    dialect: Literal["mysql", "sqlite"],
+) -> sqlalchemy.TextClause:
+    """Return a bound SQL query that checks whether a table exists in the database.
+
+    ``dialect`` is a `sqlalchemy.engine.Dialect.name` (e.g. ``mysql``, ``sqlite``).
+
+    Args:
+        tablename: The name of the table to check for.
+        dialect: "mysql" or "sqlite"
+
+    Returns:
+        A bound :class:`sqlalchemy.TextClause` that returns one row when the
+        table exists and no rows when it does not.
+
+    Raises:
+        ValueError: If ``dialect`` is neither sqlite nor mysql.
+    """
+    if dialect == "sqlite":
+        return sqlalchemy.text(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
+        ).bindparams(name=tablename)
+    if dialect == "mysql":
+        return sqlalchemy.text(
+            "SELECT 1 FROM information_schema.tables"
+            " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"
+        ).bindparams(name=tablename)
+    raise ValueError(
+        f"Unsupported dialect for table_exists_query: {dialect!r} "
+        "(expected 'sqlite' or 'mysql')"
+    )
+
+
 def resource_filter_by_arbitrary_selection(
     path: str,
     candidate: str,

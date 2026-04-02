@@ -20,7 +20,7 @@ from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
 )
-from orchestrator.metastore.sql.utils import engine_for_sql_store
+from orchestrator.metastore.sql.utils import check_table_exists, engine_for_sql_store
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
@@ -56,6 +56,13 @@ from orchestrator.utilities.pandas import (
 if TYPE_CHECKING:
     import pandas as pd
     from rich.console import RenderableType
+
+# Process-level cache of (db_url, tablename) pairs for which the four DDL tables
+# have already been verified to exist.  Skips the four `CREATE TABLE IF NOT EXISTS`
+# round-trips on every subsequent SQLSampleStore construction for the same store.
+# The db_url is included so that two stores with the same identifier but pointing
+# to different databases are treated independently.
+_source_tables_verified: set[tuple[str, str]] = set()
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
@@ -376,8 +383,21 @@ class SQLSampleStore(ActiveSampleStore):
         self._tablename = f"sqlsource_{self._identifier}"
         self._engine = engine_for_sql_store(storageLocation)
 
-        # Create a table for this sample store
-        self._create_source_table()
+        # Create the four backing tables only when they do not yet exist.
+        # Use a single raw SQL probe (1 round-trip) as a fast path to avoid
+        # the ~4 SQL queries that create_all(checkfirst=True) issues when
+        # the tables are already present (4 table-existence checks)
+        # The module level _source_tables_verified enables skipping
+        # even the probe for subsequent constructions within the same process.
+        #
+        # Same probe as SQLResourceStore: check_table_exists (raw SQL, inspect fallback).
+        _cache_key = (str(self._engine.url), self._tablename)
+        if _cache_key not in _source_tables_verified:
+            table_exists = check_table_exists(self.engine, self._tablename)
+
+            if not table_exists:
+                self._create_source_table()
+            _source_tables_verified.add(_cache_key)
 
         # Initialize entities cache as empty dict for lazy loading
         # Empty dict is falsy, so lazy loading check `if not self._entities:` still works

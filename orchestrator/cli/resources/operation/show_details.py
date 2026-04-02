@@ -68,6 +68,7 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters) -> None:
                 operation_id=parameters.resource_id
             )
 
+            total_unique_entities = entity_stats["total_entities"]
             entities_with_all_successful_measurements = entity_stats[
                 "entities_with_all_successful_measurements"
             ]
@@ -78,7 +79,7 @@ def show_operation_details(parameters: AdoShowDetailsCommandParameters) -> None:
             table.add_row(
                 "Total entities with no successful measurements",
                 str(
-                    total_entities_sampled
+                    total_unique_entities
                     - entities_with_at_least_one_successful_measurement
                 ),
             )

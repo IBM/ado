@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
+from importlib.metadata import version
 
 import pandas as pd
 
@@ -17,6 +17,7 @@ from orchestrator.modules.operators.collections import characterize_operation
     configuration_model=None,  # You can use this field to define the option of your operator if any - see https://ibm.github.io/ado/operators/creating-operators/#describing-your-operation-input-parameters
     configuration_model_default=None,  # Use this field to provide default/example values for your operator
     description="Returns a ydata_profiling ProfileReport for the space",
+    version=version("ado-core"),
 )
 # operator function can have any name but have similar parameters - see https://ibm.github.io/ado/operators/creating-operators/#operator-function-parameters
 def profile(

@@ -164,7 +164,7 @@ This will print a similar text to:
 ```bash
 Found 1 mismatches between original and current metadata:
  WARNING: AutoGluon Python version mismatch (original=3.12, current=3.10)
-[value-op-min_gpu_recommender-can_recommend:1, value-op-min_gpu_recommender-gpus:2, value-op-min_gpu_recommender-workers:1]
+ {'can_recommend': True, 'gpus': 4, 'workers': 1}
 ```
 
 Note: This warning can be safely ignored for now.

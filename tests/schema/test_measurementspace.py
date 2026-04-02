@@ -493,7 +493,7 @@ def test_check_entity_space_compatibility_optional_in_entity_space(
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "Identified an entity space dimension, cp-test_opt1, "
+            "Identified an entity space dimension, test_opt1, "
             "that also has a custom parameterization in the measurement space. "
             "It is inconsistent for a property to have a custom parameterization in the measurement space "
             "and also be a dimension of the entityspace."

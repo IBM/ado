@@ -91,15 +91,17 @@ To set up your development environment, follow the instructions in our
 ## Testing
 
 We use [Tox](https://github.com/tox-dev/tox) to run unit tests for our code. To
-run tests for Python 3.10, you can run the following command:
+run tests for Python 3.10 on MacOS using locked dependencies, you can run the
+following command:
 
 ```commandline
-export TOX_ENV=py310-test-pipenv-optimizers
+export TOX_ENV=py310-locked-macos
 tox --colored yes --stderr-color RESET -r -e "$TOX_ENV" -vvv
 ```
 
 Similarly, you can test different Python versions by changing `py310` to `py311`
-or `py312`.
+or `py312`. You can also use standard pip resolution instead of locked
+dependencies by using `nonlocked`.
 
 ## Commit and PR title guidelines
 

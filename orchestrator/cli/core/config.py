@@ -13,8 +13,11 @@ from orchestrator.cli.utils.output.prints import (
     ERROR,
     HINT,
     INFO,
+    WARN,
     console_print,
     cyan,
+    green,
+    magenta,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
@@ -89,9 +92,13 @@ class AdoConfiguration(pydantic.BaseModel):
                 )
             except pydantic.ValidationError as e:
                 console_print(
-                    f"{ERROR}The provided project context was not valid:\n\t{e}",
+                    f"{ERROR}The provided project context was not valid:\n\n{e}\n\n"
+                    f"{WARN}You must fix the context manually: {green(context_path)}\n"
+                    f"{INFO}Your default context will be switched to {magenta('local')}",
                     stderr=True,
                 )
+                ado_config.active_context = "local"
+                ado_config.store()
                 raise typer.Exit(1) from e
 
             ado_config._project_context = project_context

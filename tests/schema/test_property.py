@@ -183,11 +183,9 @@ def test_descriptor_string_representation(
     """Test __str__ of descriptors is as expected"""
     # NOTE PropertyDescriptor does not have custom __str__ method
 
-    prefix = "ap" if isinstance(descriptor, AbstractPropertyDescriptor) else "cp"
-
     assert (
-        f"{descriptor}" == f"{prefix}-{descriptor.identifier}"
-    ), f"Expected str rep of descriptor to be {prefix}-{descriptor.identifier}, was {descriptor}"
+        f"{descriptor}" == descriptor.identifier
+    ), f"Expected str rep of descriptor to be {descriptor.identifier}, was {descriptor}"
 
 
 def test_observed_property_hashable(experiment_reference: ExperimentReference) -> None:
@@ -217,13 +215,13 @@ def test_abstract_property_identifier_and_string_representation(
 
     for t, p in zip(target_property_list, abstract_properties, strict=True):
         assert p.identifier == t
-        assert str(p) == f"ap-{t}"
+        assert str(p) == t
 
         concrete = ConcreteProperty(
             identifier="test", abstractProperty=AbstractProperty.from_descriptor(p)
         )
         assert concrete.identifier == "test"
-        assert str(concrete) == "cp-test"
+        assert str(concrete) == "test"
 
 
 def test_constitutive_property_identifier_and_string_representation(
@@ -232,4 +230,4 @@ def test_constitutive_property_identifier_and_string_representation(
 ) -> None:
     for t, p in zip(constitutive_property_list, constitutive_properties, strict=True):
         assert p.identifier == t
-        assert str(p) == f"cp-{t}"
+        assert str(p) == t

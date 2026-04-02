@@ -36,6 +36,21 @@ def upgrade_resource(
             click_type=HiddenPluralChoice(AdoUpgradeSupportedResourceTypes),
         ),
     ],
+    apply_legacy_migrator: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--apply-legacy-migrator",
+            help="Apply legacy migrators by identifier (e.g., 'samplestore_kind_entitysource_to_samplestore'). "
+            "Can be specified multiple times.",
+        ),
+    ] = None,
+    list_legacy_migrators: Annotated[
+        bool,
+        typer.Option(
+            "--list-legacy-migrators",
+            help="List available legacy migrators for this resource type",
+        ),
+    ] = False,
 ) -> None:
     """
     Upgrade resources and contexts.
@@ -52,12 +67,22 @@ def upgrade_resource(
     # Upgrade all operations
 
     ado upgrade operations
+
+    # List available legacy migrators for sample stores
+
+    ado upgrade samplestores --list-legacy-migrators
+
+    # Apply a legacy migrator during upgrade
+
+    ado upgrade samplestores --apply-legacy-migrator samplestore_kind_entitysource_to_samplestore
     """
 
     ado_configuration: AdoConfiguration = ctx.obj
 
     parameters = AdoUpgradeCommandParameters(
         ado_configuration=ado_configuration,
+        apply_legacy_migrator=apply_legacy_migrator,
+        list_legacy_migrators=list_legacy_migrators,
     )
 
     method_mapping = {

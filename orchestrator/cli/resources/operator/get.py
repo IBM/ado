@@ -44,6 +44,9 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
             entry = {
                 "OPERATOR": function_name,
                 "TYPE": collection.type.value,
+                "VERSION": collection.function_operation_versions.get(
+                    function_name, ""
+                ),
             }
             if parameters.show_details:
                 entry["DESCRIPTION"] = normalize_and_truncate_at_period(

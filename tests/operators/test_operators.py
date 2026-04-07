@@ -110,13 +110,13 @@ def test_operator_module_conf_random_walk() -> None:
 def test_characterize(expected_characterize_operators: list[str]) -> None:
 
     assert len(
-        orchestrator.modules.operators.collections.characterize.list_operations()
+        orchestrator.modules.operators.collections.characterize.list_operators()
     ) == len(expected_characterize_operators)
 
     for operation in expected_characterize_operators:
         assert (
             operation
-            in orchestrator.modules.operators.collections.characterize.list_operations()
+            in orchestrator.modules.operators.collections.characterize.list_operators()
         )
         assert orchestrator.modules.operators.collections.characterize.__getattr__(
             operation
@@ -126,13 +126,13 @@ def test_characterize(expected_characterize_operators: list[str]) -> None:
 def test_explore(expected_explore_operators: list[str]) -> None:
 
     assert len(
-        orchestrator.modules.operators.collections.explore.list_operations()
+        orchestrator.modules.operators.collections.explore.list_operators()
     ) == len(expected_explore_operators)
 
     for operation in expected_explore_operators:
         assert (
             operation
-            in orchestrator.modules.operators.collections.explore.list_operations()
+            in orchestrator.modules.operators.collections.explore.list_operators()
         )
         assert orchestrator.modules.operators.collections.explore.__getattr__(operation)
 
@@ -170,9 +170,8 @@ def test_explore_operator_class_registration(
 ) -> None:
     """Each explore operator must have its actor class registered in the collection."""
     for name in expected_explore_operators:
-        cls = orchestrator.modules.operators.collections.explore.operator_class_for_operation(
-            name
-        )
+        operator = orchestrator.modules.operators.collections.explore.operators[name]
+        cls = operator.cls
         # Ray-decorated classes become ActorClass objects so issubclass is not
         # usable; verify the registered object is non-None and exposes the
         # operatorIdentifier classmethod expected of explore operators.
@@ -267,15 +266,15 @@ def test_random_walk_operation_configuration() -> None:
 
     assert random_walk
     assert (
-        orchestrator.modules.operators.collections.explore.configuration_model_for_operation(
+        orchestrator.modules.operators.collections.explore.operators[
             "random_walk"
-        )
+        ].configuration_model
         == RandomWalkParameters
     )
     assert (
-        orchestrator.modules.operators.collections.explore.default_configuration_model_for_operation(
+        orchestrator.modules.operators.collections.explore.operators[
             "random_walk"
-        )
+        ].example_configuration
         == RandomWalk.defaultOperationParameters()
     )
 
@@ -292,15 +291,15 @@ def test_raytune_operation_configuration(
 
     assert ado_ray_tune.operator_function.ray_tune
     assert (
-        orchestrator.modules.operators.collections.explore.configuration_model_for_operation(
+        orchestrator.modules.operators.collections.explore.operators[
             "ray_tune"
-        )
+        ].configuration_model
         == RayTuneConfiguration
     )
     assert (
-        orchestrator.modules.operators.collections.explore.default_configuration_model_for_operation(
+        orchestrator.modules.operators.collections.explore.operators[
             "ray_tune"
-        )
+        ].example_configuration
         == RayTune.defaultOperationParameters()
     )
 

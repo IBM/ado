@@ -103,9 +103,10 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
 
     # We are now sure that the operator_type is supported and
     # has a value
-    default_operation_parameters = operators[
-        parameters.operator_type
-    ].default_configuration_model_for_operation(parameters.operator_name)
+    operator = operators[parameters.operator_type].operators.get(
+        parameters.operator_name
+    )
+    default_operation_parameters = operator.example_configuration if operator else None
 
     # Certain operators may not have a default configuration model
     # Use an OperatorFunctionConf and set the values we have
@@ -181,5 +182,5 @@ def operator_type_has_operator(
         operator_name
         in orchestrator.modules.operators.collections.operationCollectionMap[
             operator_type
-        ].function_operations
+        ].operators
     )

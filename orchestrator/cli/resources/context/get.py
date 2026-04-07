@@ -82,7 +82,11 @@ def get_context(
 
         console_print(
             dataframe_to_rich_table(
-                contexts_df, show_edge=True, show_index=True, box=rich.box.SQUARE
+                contexts_df,
+                show_edge=True,
+                show_index=True,
+                box=rich.box.SQUARE,
+                do_not_truncate_column_content=parameters.no_trunc,
             )
         )
         return

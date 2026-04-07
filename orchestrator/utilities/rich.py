@@ -10,7 +10,7 @@ from rich.table import Table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
-    from rich.console import RenderableType
+    from rich.console import OverflowMethod, RenderableType
 
 
 def get_rich_repr(obj: typing.Any) -> "RenderableType":  # noqa: ANN401
@@ -38,6 +38,9 @@ def dataframe_to_rich_table(
     show_edge: bool = False,
     box: rich.box.Box = rich.box.HEAVY,
     show_index: bool = False,
+    overflow: "OverflowMethod" = "ellipsis",
+    no_wrap: bool = False,
+    do_not_truncate_column_content: bool = False,
 ) -> Table:
     """Convert a pandas DataFrame to a rich Table.
 
@@ -50,28 +53,81 @@ def dataframe_to_rich_table(
         box: Box style for the table
         show_index: Whether to include the DataFrame's index as the first column.
             If True, the index will be displayed with a header label using the
-            DataFrame's index name if available, or "Index" as a default.
+            DataFrame's index name if available, or "INDEX" as a default.
             Default is False for backward compatibility.
+        overflow: How to handle content that exceeds column width. Options include
+            "ellipsis" (default), "ignore", "fold", "crop". When do_not_truncate_column_content
+            is True, this is automatically set to "ignore".
+        no_wrap: Whether to disable text wrapping in cells. When do_not_truncate_column_content
+            is True, this is automatically set to True.
+        do_not_truncate_column_content: If True, automatically calculates column widths
+            to fit all content without truncation. This sets overflow="ignore" and no_wrap=True,
+            and calculates the minimum table width needed to display all content.
 
     Returns:
         A rich Table object ready for rendering
     """
+    index_name = str(df.index.name) if df.index.name is not None else "INDEX"
+
+    # Initialize variables for column width control
+    table_width = None
+    column_width = {}
+
+    if do_not_truncate_column_content:
+        # Override overflow and no_wrap settings to prevent truncation
+        overflow = "ignore"
+        no_wrap = True
+
+        # Calculate column name lengths
+        column_names_length = {col: len(col) for col in df.columns}
+        column_names_length[index_name] = len(index_name)
+
+        # Calculate longest string in each column
+        longest_string_in_column = df.apply(
+            lambda col: col.astype(str).str.len().max()
+        ).to_dict()
+        longest_string_in_column[index_name] = len(str(df.index.max()))
+
+        # Determine column widths (max of column name length and longest content)
+        column_width = {
+            col: max(column_names_length[col], longest_string_in_column[col])
+            for col in column_names_length
+        }
+
+        # Calculate total table width:
+        #   sum of column widths
+        # + padding (2 per column)
+        # + separators (1 per column + 1 for borders)
+        table_width = sum(column_width.values()) + len(column_width) * 3 + 1
+
     table = Table(
         title=title,
         show_header=show_header,
         show_lines=show_lines,
         show_edge=show_edge,
         box=box,
+        width=table_width,
     )
 
     # Add index column if requested
     if show_index:
-        index_name = df.index.name or "INDEX"
-        table.add_column(str(index_name))
+        table.add_column(
+            index_name,
+            overflow=overflow,
+            no_wrap=no_wrap,
+            min_width=column_width.get(index_name),
+            width=column_width.get(index_name),
+        )
 
     # Add columns
     for column in df.columns:
-        table.add_column(str(column))
+        table.add_column(
+            column,
+            overflow=overflow,
+            no_wrap=no_wrap,
+            min_width=column_width.get(column),
+            width=column_width.get(column),
+        )
 
     # Add rows
     for idx, row in df.iterrows():

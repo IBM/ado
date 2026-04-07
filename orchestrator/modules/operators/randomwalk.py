@@ -32,6 +32,7 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
+    OperatorFunctionConf,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.module import (
@@ -986,31 +987,20 @@ class RandomWalk(Characterize):
     description=RandomWalk.description(),
     configuration_model=RandomWalkParameters,
     configuration_model_default=RandomWalkParameters(),
+    operator_class=RandomWalk,
 )
 def random_walk(
     discoverySpace: DiscoverySpace,
     operationInfo: FunctionOperationInfo | None = None,
     **kwargs: dict,
 ) -> OperationOutput:
-    """
-    Performs a random_walk operation on a given discoverySpace
-
-    """
-
-    import orchestrator.modules.module
-
-    if operationInfo is None:
-        operationInfo = FunctionOperationInfo()
-
-    module = orchestrator.core.operation.config.OperatorModuleConf(
-        moduleName="orchestrator.modules.operators.randomwalk",
-        moduleClass="RandomWalk",
-        moduleType=orchestrator.modules.module.ModuleTypeEnum.OPERATION,
-    )
-
+    """Performs a random_walk operation on a given discoverySpace."""
     return orchestrate_explore_operation(
         discovery_space=discoverySpace,
-        operator_module=module,
+        operator_module=OperatorFunctionConf(
+            operationType=DiscoveryOperationEnum.SEARCH,
+            operatorName="random_walk",
+        ),
         parameters=kwargs,
-        operation_info=operationInfo,
+        operation_info=operationInfo or FunctionOperationInfo(),
     )

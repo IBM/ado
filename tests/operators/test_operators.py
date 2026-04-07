@@ -159,6 +159,40 @@ def test_explore_operator_function_configurations(
             operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
         )
         assert operationConf is not None
+        assert operationConf.validateOperatorExists()
+        assert operationConf.operatorName == operationName
+        # operatorIdentifier must be <registeredName>-<version>, matching ado get operators
+        assert operationConf.operatorIdentifier.startswith(f"{operationName}-")
+
+
+def test_explore_operator_class_registration(
+    expected_explore_operators: list[str],
+) -> None:
+    """Each explore operator must have its actor class registered in the collection."""
+    for name in expected_explore_operators:
+        cls = orchestrator.modules.operators.collections.explore.operator_class_for_operation(
+            name
+        )
+        # Ray-decorated classes become ActorClass objects so issubclass is not
+        # usable; verify the registered object is non-None and exposes the
+        # operatorIdentifier classmethod expected of explore operators.
+        assert cls is not None
+        assert hasattr(cls, "operatorIdentifier")
+
+
+def test_explore_operator_function_conf_identifier_matches_registered_name() -> None:
+    """operatorIdentifier via OperatorFunctionConf must use the registered name."""
+    for name in ["random_walk", "ray_tune"]:
+        conf = orchestrator.core.operation.config.OperatorFunctionConf(
+            operatorName=name,
+            operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
+        )
+        # The identifier must start with the registered function name, not the
+        # class name (e.g. "random_walk-v0.1", not "randomwalk-1.7.1.dev...")
+        identifier = conf.operatorIdentifier
+        assert identifier.startswith(
+            f"{name}-"
+        ), f"Expected identifier to start with '{name}-', got '{identifier}'"
 
 
 def test_operator_function_configuration_incorrect_type(

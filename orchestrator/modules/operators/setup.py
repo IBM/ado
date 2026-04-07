@@ -10,6 +10,7 @@ import pydantic
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
+    OperatorFunctionConf,
     OperatorModuleConf,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
@@ -134,21 +135,24 @@ def setup_actuators(
 
 
 def setup_operator(
-    operator_module: OperatorModuleConf,
+    operator_module: OperatorFunctionConf | OperatorModuleConf,
     parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
     state: "DiscoverySpaceManagerActor",
     actuators: dict,
 ) -> "OperatorActor":
-    """Sets up and creates an operator actor for class-based operations
+    """Sets up and creates an operator actor for class-based explore operations.
 
-    This function loads the operator class, creates a Ray actor instance with the
-    specified namespace, and initializes it with the provided parameters, state,
-    and actuators.
+    Resolves the operator class from either an ``OperatorFunctionConf`` (looks
+    up the registered class by name) or an ``OperatorModuleConf`` (loads the
+    class dynamically from the module path), then creates a Ray actor with the
+    appropriate namespace and initialises it.
 
     Params:
-        operator_module: Configuration for the operator module to load
+        operator_module: Configuration identifying the operator — either a
+            function-conf referencing a registered name or a module-conf
+            referencing a class directly.
         parameters: Dictionary of parameters to pass to the operator
         discovery_space: The discovery space the operator will operate on
         namespace: Ray namespace to create the operator actor in
@@ -163,11 +167,22 @@ def setup_operator(
 
     moduleLog.info("Creating operation")
 
-    operatorClass = load_module_class_or_function(operator_module)
-    operator = operatorClass.options(
-        name=operator_module.moduleClass, namespace=namespace
-    ).remote(
-        operationActorName=operator_module.moduleClass,
+    if isinstance(operator_module, OperatorFunctionConf):
+        from orchestrator.core.operation.config import DiscoveryOperationEnum
+        from orchestrator.modules.operators.collections import (
+            operationCollectionMap,
+        )
+
+        operatorClass = operationCollectionMap[
+            DiscoveryOperationEnum.SEARCH
+        ].operator_class_for_operation(operator_module.operatorName)
+        actor_name = operator_module.operatorName
+    else:
+        operatorClass = load_module_class_or_function(operator_module)
+        actor_name = operator_module.moduleClass
+
+    operator = operatorClass.options(name=actor_name, namespace=namespace).remote(
+        operationActorName=actor_name,
         namespace=namespace,
         state=state,
         params=parameters,

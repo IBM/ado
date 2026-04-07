@@ -43,37 +43,89 @@ class OperationCollections(pydantic.BaseModel):
     function_operation_descriptions: Annotated[
         dict[typing.AnyStr, str], pydantic.Field(default_factory=dict)
     ]
+    operator_classes: Annotated[
+        dict[typing.AnyStr, type],
+        pydantic.Field(default_factory=dict),
+    ]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def add_operation_function(self, name: str, fn: typing.Callable) -> None:
+        """Registers a callable under the given name."""
         self.function_operations[name] = fn
 
     def add_operation_version(self, name: str, version: str) -> None:
+        """Stores the version string for the named operation."""
         self.function_operation_versions[name] = version
 
     def add_operation_description(self, name: str, version: str) -> None:
+        """Stores the description string for the named operation."""
         self.function_operation_descriptions[name] = version
 
     def add_operation_configuration_model(
         self, name: str, model: type[pydantic.BaseModel]
     ) -> None:
+        """Associates a configuration model with the named operation."""
         self.function_operation_models[name] = model
 
     def add_operation_configuration_model_default(
         self, name: str, default: pydantic.BaseModel
     ) -> None:
+        """Stores the default configuration model instance for the named operation."""
         self.function_operation_model_defaults[name] = default
 
     def add_operation_object(self, name: str, object: DiscoveryOperationBase) -> None:
+        """Registers an object-based operation under the given name."""
         self.object_operations[name] = object
 
+    def add_operator_class(self, name: str, cls: type[DiscoveryOperationBase]) -> None:
+        """Associates a Ray actor class with the named explore operation.
+
+        Used by explore operators so that the registered name is the single
+        source of truth and the class is an implementation detail looked up
+        at runtime rather than stored in the operation YAML.
+
+        Args:
+            name: The registered operator name (matches the decorator name=).
+            cls: The DiscoveryOperationBase subclass backing this operation.
+        """
+        self.operator_classes[name] = cls
+
+    def operator_class_for_operation(self, name: str) -> type[DiscoveryOperationBase]:
+        """Returns the actor class registered for the named explore operation.
+
+        Args:
+            name: The registered operator name.
+
+        Returns:
+            The DiscoveryOperationBase subclass for this operation.
+
+        Raises:
+            ValueError: If no class has been registered for the given name.
+        """
+        if name not in self.operator_classes:
+            raise ValueError(f"No operator class registered for {name}")
+        return self.operator_classes[name]
+
     def list_operations(self) -> list:
+        """Returns all registered operation names (function and object based)."""
         return list(self.function_operations.keys()) + list(
             self.object_operations.keys()
         )
 
     def configuration_model_for_operation(self, name: str) -> type[pydantic.BaseModel]:
+        """Returns the configuration model for the named operation.
+
+        Args:
+            name: The registered operator name.
+
+        Returns:
+            The pydantic model class used to validate parameters, or None if
+            no model was registered.
+
+        Raises:
+            ValueError: If the operator name is not registered.
+        """
         if name not in self.function_operation_models:
             raise ValueError(f"Unknown operator {name}")
 
@@ -82,12 +134,34 @@ class OperationCollections(pydantic.BaseModel):
     def default_configuration_model_for_operation(
         self, name: str
     ) -> pydantic.BaseModel:
+        """Returns the default configuration model instance for the named operation.
+
+        Args:
+            name: The registered operator name.
+
+        Returns:
+            The default pydantic model instance, or None if none was registered.
+
+        Raises:
+            ValueError: If the operator name is not registered.
+        """
         if name not in self.function_operation_models:
             raise ValueError(f"Unknown operator {name}")
 
         return self.function_operation_model_defaults.get(name)
 
     def description_for_operation(self, name: str) -> str:
+        """Returns the description for the named operation.
+
+        Args:
+            name: The registered operator name.
+
+        Returns:
+            The description string, or None if none was registered.
+
+        Raises:
+            ValueError: If the operator name is not registered.
+        """
         if name not in self.function_operation_models:
             raise ValueError(f"Unknown operator {name}")
 
@@ -196,32 +270,48 @@ def characterize_operation(
     return register_characterize_operation
 
 
-def register_explore_operation(
-    func: typing.Callable[..., object],
-) -> typing.Callable[..., object]:
-    """Registers a function that performs an explore operation on a DiscoverySpace"""
-
-    # All explore operation function must call explore_operation_function_wrapper
-    # This function will validate params, create OperationResource,
-    # set up the necessary ray actors, run the operation etc.
-    explore.add_operation_function(func.__name__, func)
-
-    return func
-
-
 def explore_operation(
     name: str,
     description: str | None = None,
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
+    operator_class: type[DiscoveryOperationBase] | None = None,
 ) -> typing.Callable[[typing.Callable[..., object]], typing.Callable[..., object]]:
+    """Decorator that registers a function as an explore (search) operation.
+
+    The decorator is the single source of truth for the operator name and
+    version. When ``operator_class`` is supplied the actor class is stored
+    in the collection keyed by ``name``, so the class is an implementation
+    detail and does not need to appear in the operation YAML.
+
+    Args:
+        name: Canonical operator name used in the registry, ``ado get operators``,
+            and the stored ``operatorIdentifier``.
+        description: Human-readable description shown in the registry.
+        configuration_model: Pydantic model used to validate operation parameters.
+        version: Version string included in the ``operatorIdentifier``.
+        configuration_model_default: Default parameter model instance.
+        operator_class: The Ray-actor class that implements this operation.
+            Must be provided for explore operators that use the function-conf
+            path (``OperatorFunctionConf``).
+
+    Returns:
+        A decorator that registers the decorated function under ``name``.
+    """
     explore.add_operation_configuration_model(name, configuration_model)
     explore.add_operation_configuration_model_default(name, configuration_model_default)
     explore.add_operation_version(name, version)
     explore.add_operation_description(name, description)
+    if operator_class is not None:
+        explore.add_operator_class(name, operator_class)
 
-    return register_explore_operation
+    def _register(func: typing.Callable[..., object]) -> typing.Callable[..., object]:
+        """Registers func under the outer decorator's ``name``."""
+        explore.add_operation_function(name, func)
+        return func
+
+    return _register
 
 
 def register_modify_operation(

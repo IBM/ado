@@ -12,6 +12,7 @@ from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
+    OperatorFunctionConf,
     OperatorModuleConf,
 )
 from orchestrator.core.operation.operation import OperationOutput
@@ -162,13 +163,46 @@ def run_explore_operation_core_closure(
     return _run_explore_operation_core
 
 
+def _resolve_operator_class(
+    operator_module: OperatorFunctionConf | OperatorModuleConf,
+) -> type:
+    """Resolves the Ray actor class for an explore operator.
+
+    For ``OperatorFunctionConf`` the class is looked up from the explore
+    collection using the registered operator name.  For ``OperatorModuleConf``
+    the class is loaded dynamically from the module path (backward-compatible
+    path for existing stored operations).
+
+    Args:
+        operator_module: Either a function-based or module-based operator conf.
+
+    Returns:
+        The DiscoveryOperationBase subclass for this operator.
+
+    Raises:
+        ValueError: If no class has been registered for the operator name
+            (OperatorFunctionConf path) or the module cannot be loaded
+            (OperatorModuleConf path).
+    """
+    if isinstance(operator_module, OperatorFunctionConf):
+        from orchestrator.core.operation.config import DiscoveryOperationEnum
+        from orchestrator.modules.operators.collections import (
+            operationCollectionMap,
+        )
+
+        return operationCollectionMap[
+            DiscoveryOperationEnum.SEARCH
+        ].operator_class_for_operation(operator_module.operatorName)
+    return load_module_class_or_function(operator_module)
+
+
 def orchestrate_explore_operation(
-    operator_module: OperatorModuleConf,
+    operator_module: OperatorFunctionConf | OperatorModuleConf,
     discovery_space: DiscoverySpace,
     parameters: dict,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
-    """Orchestrates an explore operation
+    """Orchestrates an explore operation.
 
     This function sets up and executes an explore (search) operation. It handles:
     - Initializing the resource cleaner
@@ -181,8 +215,14 @@ def orchestrate_explore_operation(
     It calls run_operation_harness to create, store, and update the operation resource,
     execute the operation, handle exceptions, and store the operation results.
 
+    Both ``OperatorFunctionConf`` (the preferred path for newly registered
+    operators) and ``OperatorModuleConf`` (backward-compatible path for
+    operations stored before this change) are accepted.
+
     Params:
-        operator_module: Configuration for the operator module (class-based operation)
+        operator_module: Configuration identifying the operator — either a
+            function-conf referencing a registered name or a module-conf
+            referencing a class directly.
         discovery_space: The discovery space to operate on
         parameters: Dictionary of parameters for the operation
         operation_info: Information about the operation including metadata, actuator
@@ -205,8 +245,13 @@ def orchestrate_explore_operation(
     import orchestrator.modules.operators.setup
 
     if not operation_info.ray_namespace:
+        namespace_prefix = (
+            operator_module.operatorName
+            if isinstance(operator_module, OperatorFunctionConf)
+            else operator_module.moduleClass
+        )
         operation_info.ray_namespace = (
-            f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
+            f"{namespace_prefix}-namespace-{str(uuid.uuid4())[:8]}"
         )
 
     # Check the space
@@ -262,8 +307,8 @@ def orchestrate_explore_operation(
     # OPERATOR
     #
 
-    # Validate the parameters for the operation
-    operator_class = load_module_class_or_function(
+    # Resolve the actor class and validate parameters
+    operator_class = _resolve_operator_class(
         operator_module
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
     operator_class.validateOperationParameters(parameters)

@@ -7,6 +7,7 @@ import abc
 import contextlib
 import logging
 import typing
+from typing import Protocol
 
 import pydantic
 import ray
@@ -44,6 +45,15 @@ if typing.TYPE_CHECKING:
     from orchestrator.modules.actuators.base import ActuatorBase
 
 moduleLog = logging.getLogger("operation_base")
+
+
+class OperatorFunction(Protocol):
+    def __call__(
+        self,
+        discoverySpace: DiscoverySpace,
+        operationInfo: FunctionOperationInfo | None = None,
+        **kwargs: object,
+    ) -> OperationOutput: ...
 
 
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray

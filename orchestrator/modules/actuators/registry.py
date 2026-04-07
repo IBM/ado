@@ -22,6 +22,7 @@ from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.utilities.distribution import distribution_from_module
 from orchestrator.utilities.logging import configure_logging
+from orchestrator.utilities.ray import extract_base_class
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -33,66 +34,6 @@ configure_logging()
 ACTUATOR_CONFIGURATION_FILE_NAME = "actuator_definitions.yaml"
 CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
-
-
-def _extract_base_actuator_class(
-    actuator: typing.Any,  # noqa: ANN401
-) -> "type[ActuatorBase]":
-    """Extract the base actuator class from a potentially Ray-decorated class.
-
-    Args:
-        actuator: Either a Ray-decorated ActorClass instance or an undecorated
-            ActuatorBase subclass.
-
-    Returns:
-        The undecorated base ActuatorBase subclass.
-
-    Raises:
-        ValueError: If the actuator is a Ray ActorClass but the base class
-            cannot be extracted.
-    """
-    from orchestrator.modules.actuators.base import ActuatorBase
-
-    # First, check if this is already a regular class (not decorated)
-    try:
-        issubclass(actuator, ActuatorBase)
-    except TypeError:  # actuator is an instance -> decorated
-        pass
-    else:
-        return actuator
-
-    # Try to import Ray and check if it's an ActorClass
-    try:
-        import ray.actor
-
-        if issubclass(actuator.__class__, ray.actor.ActorClass):
-            # It's a Ray-decorated class, extract the original class
-            # Ray stores the original class in __ray_actor_class__
-            if hasattr(actuator, "__ray_actor_class__"):
-                original_class = actuator.__ray_actor_class__
-                if isinstance(original_class, type) and issubclass(
-                    original_class, ActuatorBase
-                ):
-                    return original_class
-
-            # Could not extract base class
-            raise ValueError(
-                f"Could not extract base ActuatorBase class from Ray ActorClass {actuator}. "
-                "The ActorClass does not expose the original class through expected attributes."
-            )
-    except ImportError:
-        # Ray not available, fall through
-        pass
-
-    # If we get here, it's neither a regular class nor a Ray ActorClass we can handle
-    # Check if it's an instance and raise a helpful error
-    if not isinstance(actuator, type):
-        raise TypeError(
-            f"Expected a class or Ray ActorClass, got instance of {type(actuator)}"
-        )
-
-    # It's a class but not an ActuatorBase subclass
-    raise TypeError(f"Expected ActuatorBase subclass, got {actuator}")
 
 
 class UnknownExperimentError(Exception):
@@ -258,7 +199,7 @@ class ActuatorRegistry:
                     # registered the actuator
                     self.log.debug(f"Add actuator plugin {actuator}")
                     # Extract base class in case actuator_class is Ray-decorated
-                    actuator_class = _extract_base_actuator_class(actuator_class)
+                    actuator_class = extract_base_class(actuator_class, ActuatorBase)
                     self.registerActuator(
                         actuatorid=actuator_class.identifier,
                         actuatorClass=actuator_class,

@@ -121,6 +121,16 @@ def show_entities_for_resources(
             rich_help_panel=SPACE_PANEL_NAME,
         ),
     ] = None,
+    no_trunc: Annotated[
+        bool,
+        typer.Option(
+            "--no-trunc",
+            help="""
+            Prevent truncation of table content. When enabled, columns will be sized to fit all content
+            without truncation. Only applies to console output format.
+            """,
+        ),
+    ] = False,
 ) -> None:
     """
     Show entities related to a space or an operation and their measurements.
@@ -184,6 +194,7 @@ def show_entities_for_resources(
         entities_output_format=output_format,
         entities_property_format=property_format,
         entities_type=entity_type,
+        no_trunc=no_trunc,
         properties=properties,
         resource_configuration=resource_configuration,
         resource_id=resource_id,

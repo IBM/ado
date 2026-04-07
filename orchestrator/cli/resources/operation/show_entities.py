@@ -48,4 +48,5 @@ def show_operation_entities(parameters: AdoShowEntitiesCommandParameters) -> Non
         df=output_df,
         output_format=parameters.entities_output_format.value,
         file_name=file_name,
+        no_trunc=parameters.no_trunc,
     )

@@ -122,5 +122,8 @@ def show_operation_results(parameters: AdoShowResultsCommandParameters) -> None:
         df = df.drop(parameters.hide_fields, axis="columns")
 
     df_to_output(
-        df=df, output_format=parameters.output_format.value, file_name=file_name
+        df=df,
+        output_format=parameters.output_format.value,
+        file_name=file_name,
+        no_trunc=parameters.no_trunc,
     )

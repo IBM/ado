@@ -61,7 +61,10 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
             else:
                 console_print(
                     dataframe_to_rich_table(
-                        output_df, show_edge=True, box=rich.box.SQUARE
+                        output_df,
+                        show_edge=True,
+                        box=rich.box.SQUARE,
+                        do_not_truncate_column_content=parameters.no_trunc,
                     )
                 )
 
@@ -88,7 +91,10 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
             else:
                 console_print(
                     dataframe_to_rich_table(
-                        output_df, show_edge=True, box=rich.box.SQUARE
+                        output_df,
+                        show_edge=True,
+                        box=rich.box.SQUARE,
+                        do_not_truncate_column_content=parameters.no_trunc,
                     )
                 )
 

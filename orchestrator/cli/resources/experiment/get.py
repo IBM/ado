@@ -125,6 +125,6 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
             output_df,
             box=rich.box.SQUARE,
             show_edge=True,
-            do_not_truncate_column_content=parameters.no_trunc,
+            do_not_truncate_columns=parameters.no_trunc,
         )
     )

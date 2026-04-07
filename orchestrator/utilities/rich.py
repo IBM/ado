@@ -40,7 +40,7 @@ def dataframe_to_rich_table(
     show_index: bool = False,
     overflow: "OverflowMethod" = "ellipsis",
     no_wrap: bool = False,
-    do_not_truncate_column_content: bool = False,
+    do_not_truncate_columns: bool | list[str] = False,
 ) -> Table:
     """Convert a pandas DataFrame to a rich Table.
 
@@ -56,13 +56,16 @@ def dataframe_to_rich_table(
             DataFrame's index name if available, or "INDEX" as a default.
             Default is False for backward compatibility.
         overflow: How to handle content that exceeds column width. Options include
-            "ellipsis" (default), "ignore", "fold", "crop". When do_not_truncate_column_content
-            is True, this is automatically set to "ignore".
-        no_wrap: Whether to disable text wrapping in cells. When do_not_truncate_column_content
-            is True, this is automatically set to True.
-        do_not_truncate_column_content: If True, automatically calculates column widths
-            to fit all content without truncation. This sets overflow="ignore" and no_wrap=True,
-            and calculates the minimum table width needed to display all content.
+            "ellipsis" (default), "ignore", "fold", "crop". When do_not_truncate_columns
+            is active, this is automatically set to "ignore" for affected columns.
+        no_wrap: Whether to disable text wrapping in cells. When do_not_truncate_columns
+            is active, this is automatically set to True for affected columns.
+        do_not_truncate_columns: Controls which columns should not be truncated:
+            - False (default): All columns use default truncation behavior
+            - True: No columns are truncated (all widths calculated, table width set)
+            - list[str]: Only specified column names are not truncated (table width NOT set)
+            When active, automatically sets overflow="ignore" and no_wrap=True
+            for affected columns.
 
     Returns:
         A rich Table object ready for rendering
@@ -73,32 +76,48 @@ def dataframe_to_rich_table(
     table_width = None
     column_width = {}
 
-    if do_not_truncate_column_content:
-        # Override overflow and no_wrap settings to prevent truncation
-        overflow = "ignore"
-        no_wrap = True
+    # Determine which columns need width calculation based on input type
+    columns_with_no_truncation = []
+    disable_truncation_for_all_columns = (
+        False  # Track if truncation is disabled for ALL columns
+    )
 
-        # Calculate column name lengths
-        column_names_length = {col: len(col) for col in df.columns}
-        column_names_length[index_name] = len(index_name)
+    if do_not_truncate_columns is True:
+        # Disable truncation for ALL columns - we'll set table width
+        disable_truncation_for_all_columns = True
+        columns_with_no_truncation = list(df.columns)
+        if show_index:
+            columns_with_no_truncation.insert(0, index_name)
 
-        # Calculate longest string in each column
-        longest_string_in_column = df.apply(
-            lambda col: col.astype(str).str.len().max()
-        ).to_dict()
-        longest_string_in_column[index_name] = len(str(df.index.max()))
+    elif isinstance(do_not_truncate_columns, list):
+        # Disable truncation for ONLY specified columns - do NOT set table width
+        disable_truncation_for_all_columns = False
+        columns_with_no_truncation = [
+            col for col in do_not_truncate_columns if col in df.columns
+        ]
+        if show_index and index_name in do_not_truncate_columns:
+            columns_with_no_truncation.insert(0, index_name)
 
-        # Determine column widths (max of column name length and longest content)
-        column_width = {
-            col: max(column_names_length[col], longest_string_in_column[col])
-            for col in column_names_length
-        }
+    # Calculate widths for columns that should not be truncated
+    if columns_with_no_truncation:
+        for col in columns_with_no_truncation:
+            if col == index_name:
+                # Handle index column
+                name_len = len(index_name)
+                content_len = len(str(df.index.max()))
+            else:
+                # Handle data columns
+                name_len = len(col)
+                content_len = df[col].astype(str).str.len().max()
 
-        # Calculate total table width:
-        #   sum of column widths
-        # + padding (2 per column)
-        # + separators (1 per column + 1 for borders)
-        table_width = sum(column_width.values()) + len(column_width) * 3 + 1
+            column_width[col] = max(name_len, content_len)
+
+        # ONLY set table width if truncation is disabled for ALL columns
+        if disable_truncation_for_all_columns:
+            # Calculate total table width for ALL non-truncated columns
+            # Formula: sum of widths + padding (2 per col) + separators (1 per col + 1)
+            table_width = sum(column_width.values()) + len(column_width) * 3 + 1
+        # else: table_width remains None, let rich handle it
 
     table = Table(
         title=title,
@@ -111,20 +130,22 @@ def dataframe_to_rich_table(
 
     # Add index column if requested
     if show_index:
+        truncation_is_disabled = index_name in column_width
         table.add_column(
             index_name,
-            overflow=overflow,
-            no_wrap=no_wrap,
+            overflow="ignore" if truncation_is_disabled else overflow,
+            no_wrap=True if truncation_is_disabled else no_wrap,
             min_width=column_width.get(index_name),
             width=column_width.get(index_name),
         )
 
-    # Add columns
+    # Add data columns with selective truncation disabling
     for column in df.columns:
+        truncation_is_disabled = column in column_width
         table.add_column(
             column,
-            overflow=overflow,
-            no_wrap=no_wrap,
+            overflow="ignore" if truncation_is_disabled else overflow,
+            no_wrap=True if truncation_is_disabled else no_wrap,
             min_width=column_width.get(column),
             width=column_width.get(column),
         )

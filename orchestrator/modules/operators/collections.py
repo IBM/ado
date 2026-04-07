@@ -57,6 +57,105 @@ class Operator(pydantic.BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @pydantic.field_validator("function", mode="after")
+    @classmethod
+    def _validate_function_signature(cls, fn: typing.Callable) -> typing.Callable:
+        """Validate that ``function`` conforms to :class:`~orchestrator.modules.operators.base.OperatorFunction`.
+
+        :class:`~orchestrator.modules.operators.base.OperatorFunction` is the
+        Protocol that defines the required call signature and is the single
+        source of truth.  Its ``__call__`` method is introspected at validation
+        time so that any future change to the Protocol is automatically
+        reflected here without updating this validator.
+
+        For each positional parameter defined in the Protocol (paired by
+        position with the actual function's positional parameters) and for the
+        return type, the check is skipped when the annotation is absent on
+        either side — unannotated or partially-annotated callables are
+        accepted.
+
+        ``typing.get_type_hints`` is used rather than ``__annotations__``
+        directly so that ``functools.wraps``-propagated annotations and any
+        forward-reference strings are resolved correctly.
+
+        Args:
+            fn: The callable to validate.
+
+        Returns:
+            The callable unchanged if validation passes.
+
+        Raises:
+            ValueError: If any present annotation does not match the
+                corresponding annotation in the Protocol.
+        """
+        import inspect
+
+        # Derive expected types from the Protocol — it is the source of truth.
+        try:
+            proto_hints = typing.get_type_hints(OperatorFunction.__call__)
+            proto_sig = inspect.signature(OperatorFunction.__call__)
+        except Exception:  # noqa: BLE001
+            return fn
+
+        # Resolve the actual function's annotations; bail gracefully for
+        # built-ins, C extensions, and similar non-introspectable callables.
+        try:
+            hints = typing.get_type_hints(fn)
+            sig = inspect.signature(fn)
+        except Exception:  # noqa: BLE001
+            return fn
+
+        # --- return type ---
+        expected_return = proto_hints.get("return")
+        actual_return = hints.get("return")
+        if (
+            expected_return is not None
+            and actual_return is not None
+            and actual_return != expected_return
+        ):
+            raise ValueError(
+                f"Operator function return type must be {expected_return!r}, "
+                f"got {actual_return!r}."
+            )
+
+        # --- positional parameters (matched by position, not name) ---
+        proto_positional = [
+            p
+            for p in proto_sig.parameters.values()
+            if p.name != "self"
+            and p.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.POSITIONAL_ONLY,
+            )
+        ]
+        actual_positional = [
+            p
+            for p in sig.parameters.values()
+            if p.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.POSITIONAL_ONLY,
+            )
+        ]
+        for idx, (proto_param, actual_param) in enumerate(
+            zip(proto_positional, actual_positional, strict=False), start=1
+        ):
+            expected_type = proto_hints.get(proto_param.name)
+            actual_type = hints.get(actual_param.name)
+            if (
+                expected_type is not None
+                and actual_type is not None
+                and actual_type != expected_type
+            ):
+                raise ValueError(
+                    f"Operator function parameter {actual_param.name!r} "
+                    f"(position {idx}) must be {expected_type!r}, "
+                    f"got {actual_type!r}."
+                )
+
+        return fn
+
 
 class OperatorCollection(pydantic.BaseModel):
     """A registry of operators of a single discovery operation type.

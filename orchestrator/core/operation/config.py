@@ -216,7 +216,7 @@ class OperatorFunctionConf(pydantic.BaseModel):
 
         if (
             self.operatorName
-            not in operationCollectionMap[self.operationType].function_operations
+            not in operationCollectionMap[self.operationType].operators
         ):
             raise ValueError(
                 f"Operator {self.operatorName} had no functions of type {self.operationType}"
@@ -234,7 +234,8 @@ class OperatorFunctionConf(pydantic.BaseModel):
             self.operationType
         ]
 
-        return collection.function_operations.get(self.operatorName)
+        operator = collection.operators.get(self.operatorName)
+        return operator.function if operator else None
 
     @property
     def operatorIdentifier(self) -> str:
@@ -245,7 +246,8 @@ class OperatorFunctionConf(pydantic.BaseModel):
             self.operationType
         ]
 
-        return f"{self.operatorName}-{collection.function_operation_versions.get(self.operatorName)}"
+        operator = collection.operators.get(self.operatorName)
+        return f"{self.operatorName}-{operator.version if operator else None}"
 
 
 class DiscoveryOperationConfiguration(pydantic.BaseModel):
@@ -326,9 +328,10 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
             operation_type = self.module.operationType
             operator_name = self.module.operatorName
-            configuration_model = operationCollectionMap[
-                operation_type
-            ].configuration_model_for_operation(operator_name)
+            operator = operationCollectionMap[operation_type].operators.get(
+                operator_name
+            )
+            configuration_model = operator.configuration_model if operator else None
 
             if configuration_model:
                 self.parameters = configuration_model.model_validate(self.parameters)

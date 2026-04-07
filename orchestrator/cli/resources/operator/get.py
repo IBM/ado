@@ -40,14 +40,14 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     for (
         collection
     ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
-        for function_name in collection.function_operations:
+        for operator_name, operator in collection.operators.items():
             entry = {
-                "OPERATOR": function_name,
+                "OPERATOR": operator_name,
                 "TYPE": collection.type.value,
             }
             if parameters.show_details:
                 entry["DESCRIPTION"] = normalize_and_truncate_at_period(
-                    collection.function_operation_descriptions.get(function_name, "")
+                    operator.description or ""
                 )
             entries.append(entry)
 

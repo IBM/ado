@@ -173,9 +173,14 @@ def setup_operator(
             operationCollectionMap,
         )
 
-        operatorClass = operationCollectionMap[
+        registered_operator = operationCollectionMap[
             DiscoveryOperationEnum.SEARCH
-        ].operator_class_for_operation(operator_module.operatorName)
+        ].operators.get(operator_module.operatorName)
+        if registered_operator is None or registered_operator.cls is None:
+            raise ValueError(
+                f"No operator class registered for {operator_module.operatorName}"
+            )
+        operatorClass = registered_operator.cls
         actor_name = operator_module.operatorName
     else:
         operatorClass = load_module_class_or_function(operator_module)

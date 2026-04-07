@@ -190,9 +190,14 @@ def _resolve_operator_class(
             operationCollectionMap,
         )
 
-        return operationCollectionMap[
-            DiscoveryOperationEnum.SEARCH
-        ].operator_class_for_operation(operator_module.operatorName)
+        operator = operationCollectionMap[DiscoveryOperationEnum.SEARCH].operators.get(
+            operator_module.operatorName
+        )
+        if operator is None or operator.cls is None:
+            raise ValueError(
+                f"No operator class registered for {operator_module.operatorName}"
+            )
+        return operator.cls
     return load_module_class_or_function(operator_module)
 
 

@@ -4,6 +4,7 @@
 import functools
 import logging
 import typing
+import warnings
 from typing import Annotated
 
 import pydantic
@@ -15,169 +16,200 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
 )
-from orchestrator.modules.operators.base import DiscoveryOperationBase, OperationOutput
+from orchestrator.modules.operators.base import (
+    DiscoveryOperationBase,
+    OperationOutput,
+    OperatorFunction,
+)
 from orchestrator.modules.operators.orchestrate import orchestrate_general_operation
 
 moduleLog = logging.getLogger("operation_collections")
 
 
-class OperatorCollection(pydantic.BaseModel):
+class Operator(pydantic.BaseModel):
+    """Metadata and implementation for a registered operator.
+
+    Attributes:
+        name: Canonical name the operator is registered under.
+        function: The callable implementing the operator.
+        version: Version string for the operator (e.g. "v0.1").
+        description: Human-readable description of the operator.
+        configuration_model: Pydantic model class used to validate parameters.
+        example_configuration: Default instance of the configuration model.
+        cls: Ray actor class backing the operator (explore operators only).
+        type: The discovery operation type this operator belongs to.
+    """
+
+    name: str
+    function: OperatorFunction
+    version: Annotated[str, pydantic.Field(default="v0.1")]
+    description: Annotated[str | None, pydantic.Field(default=None)]
+    configuration_model: Annotated[
+        type[pydantic.BaseModel] | None, pydantic.Field(default=None)
+    ]
+    example_configuration: Annotated[
+        pydantic.BaseModel | None, pydantic.Field(default=None)
+    ]
+    cls: Annotated[typing.Any, pydantic.Field(default=None)]
     type: DiscoveryOperationEnum
-    function_operations: Annotated[
-        dict[typing.AnyStr, typing.Callable], pydantic.Field(default_factory=dict)
-    ]
-    object_operations: Annotated[
-        dict[typing.AnyStr, DiscoveryOperationBase],
-        pydantic.Field(default_factory=dict),
-    ]
-    function_operation_models: Annotated[
-        dict[typing.AnyStr, type[pydantic.BaseModel]],
-        pydantic.Field(default_factory=dict),
-    ]
-    function_operation_model_defaults: Annotated[
-        dict[typing.AnyStr, pydantic.BaseModel], pydantic.Field(default_factory=dict)
-    ]
-    function_operation_versions: Annotated[
-        dict[typing.AnyStr, str], pydantic.Field(default_factory=dict)
-    ]
-    function_operation_descriptions: Annotated[
-        dict[typing.AnyStr, str], pydantic.Field(default_factory=dict)
-    ]
-    operator_classes: Annotated[
-        dict[typing.AnyStr, type],
-        pydantic.Field(default_factory=dict),
-    ]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def add_operation_function(self, name: str, fn: typing.Callable) -> None:
-        """Registers a callable under the given name."""
-        self.function_operations[name] = fn
 
-    def add_operation_version(self, name: str, version: str) -> None:
-        """Stores the version string for the named operation."""
-        self.function_operation_versions[name] = version
+class OperatorCollection(pydantic.BaseModel):
+    """A registry of operators of a single discovery operation type.
 
-    def add_operation_description(self, name: str, version: str) -> None:
-        """Stores the description string for the named operation."""
-        self.function_operation_descriptions[name] = version
+    Operators are added via the decorator functions (e.g. ``characterize_operation``,
+    ``explore_operation``).  Each registered name maps to an :class:`Operator`
+    instance that carries the function, version, description, configuration model,
+    example configuration, and optional actor class.
 
-    def add_operation_configuration_model(
-        self, name: str, model: type[pydantic.BaseModel]
-    ) -> None:
-        """Associates a configuration model with the named operation."""
-        self.function_operation_models[name] = model
+    Attributes:
+        type: The discovery operation type all operators in this collection belong to.
+        operators: Mapping of operator name to :class:`Operator` instance.
+    """
 
-    def add_operation_configuration_model_default(
-        self, name: str, default: pydantic.BaseModel
-    ) -> None:
-        """Stores the default configuration model instance for the named operation."""
-        self.function_operation_model_defaults[name] = default
+    type: DiscoveryOperationEnum
+    operators: Annotated[dict[str, Operator], pydantic.Field(default_factory=dict)]
 
-    def add_operation_object(self, name: str, object: DiscoveryOperationBase) -> None:
-        """Registers an object-based operation under the given name."""
-        self.object_operations[name] = object
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def add_operator_class(self, name: str, cls: type[DiscoveryOperationBase]) -> None:
-        """Associates a Ray actor class with the named explore operation.
+    def list_operators(self) -> list[str]:
+        """Returns all registered operator names."""
+        return list(self.operators.keys())
 
-        Used by explore operators so that the registered name is the single
-        source of truth and the class is an implementation detail looked up
-        at runtime rather than stored in the operation YAML.
+    def list_operations(self) -> list[str]:
+        """Returns all registered operator names.
 
-        Args:
-            name: The registered operator name (matches the decorator name=).
-            cls: The DiscoveryOperationBase subclass backing this operation.
+        Deprecated:
+            Use :meth:`list_operators` instead.
         """
-        self.operator_classes[name] = cls
+        warnings.warn(
+            "list_operations() is deprecated; use list_operators() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.list_operators()
 
-    def operator_class_for_operation(self, name: str) -> type[DiscoveryOperationBase]:
-        """Returns the actor class registered for the named explore operation.
+    def configuration_model_for_operation(
+        self, name: str
+    ) -> type[pydantic.BaseModel] | None:
+        """Returns the configuration model for the named operator.
+
+        Deprecated:
+            Access ``collection.operators[name].configuration_model`` directly.
 
         Args:
             name: The registered operator name.
 
         Returns:
-            The DiscoveryOperationBase subclass for this operation.
+            The pydantic model class used to validate parameters, or None.
+
+        Raises:
+            ValueError: If the operator name is not registered.
+        """
+        warnings.warn(
+            "configuration_model_for_operation() is deprecated; "
+            "access collection.operators[name].configuration_model directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name not in self.operators:
+            raise ValueError(f"Unknown operator {name}")
+        return self.operators[name].configuration_model
+
+    def default_configuration_model_for_operation(
+        self, name: str
+    ) -> pydantic.BaseModel | None:
+        """Returns the example configuration instance for the named operator.
+
+        Deprecated:
+            Access ``collection.operators[name].example_configuration`` directly.
+
+        Args:
+            name: The registered operator name.
+
+        Returns:
+            The default pydantic model instance, or None.
+
+        Raises:
+            ValueError: If the operator name is not registered.
+        """
+        warnings.warn(
+            "default_configuration_model_for_operation() is deprecated; "
+            "access collection.operators[name].example_configuration directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name not in self.operators:
+            raise ValueError(f"Unknown operator {name}")
+        return self.operators[name].example_configuration
+
+    def description_for_operation(self, name: str) -> str | None:
+        """Returns the description for the named operator.
+
+        Deprecated:
+            Access ``collection.operators[name].description`` directly.
+
+        Args:
+            name: The registered operator name.
+
+        Returns:
+            The description string, or None.
+
+        Raises:
+            ValueError: If the operator name is not registered.
+        """
+        warnings.warn(
+            "description_for_operation() is deprecated; "
+            "access collection.operators[name].description directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if name not in self.operators:
+            raise ValueError(f"Unknown operator {name}")
+        return self.operators[name].description
+
+    def operator_class_for_operation(self, name: str) -> type[DiscoveryOperationBase]:
+        """Returns the actor class registered for the named explore operator.
+
+        Deprecated:
+            Access ``collection.operators[name].cls`` directly.
+
+        Args:
+            name: The registered operator name.
+
+        Returns:
+            The DiscoveryOperationBase subclass for this operator.
 
         Raises:
             ValueError: If no class has been registered for the given name.
         """
-        if name not in self.operator_classes:
-            raise ValueError(f"No operator class registered for {name}")
-        return self.operator_classes[name]
-
-    def list_operations(self) -> list:
-        """Returns all registered operation names (function and object based)."""
-        return list(self.function_operations.keys()) + list(
-            self.object_operations.keys()
+        warnings.warn(
+            "operator_class_for_operation() is deprecated; "
+            "access collection.operators[name].cls directly.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        if name not in self.operators or self.operators[name].cls is None:
+            raise ValueError(f"No operator class registered for {name}")
+        return self.operators[name].cls
 
-    def configuration_model_for_operation(self, name: str) -> type[pydantic.BaseModel]:
-        """Returns the configuration model for the named operation.
-
-        Args:
-            name: The registered operator name.
-
-        Returns:
-            The pydantic model class used to validate parameters, or None if
-            no model was registered.
-
-        Raises:
-            ValueError: If the operator name is not registered.
-        """
-        if name not in self.function_operation_models:
-            raise ValueError(f"Unknown operator {name}")
-
-        return self.function_operation_models.get(name)
-
-    def default_configuration_model_for_operation(
-        self, name: str
-    ) -> pydantic.BaseModel:
-        """Returns the default configuration model instance for the named operation.
+    def __getattr__(self, item: str) -> OperatorFunction:
+        """Returns the operator function for the given registered name.
 
         Args:
-            name: The registered operator name.
+            item: Registered operator name.
 
         Returns:
-            The default pydantic model instance, or None if none was registered.
+            The callable registered under that name.
 
         Raises:
-            ValueError: If the operator name is not registered.
+            AttributeError: If no operator is registered with that name.
         """
-        if name not in self.function_operation_models:
-            raise ValueError(f"Unknown operator {name}")
-
-        return self.function_operation_model_defaults.get(name)
-
-    def description_for_operation(self, name: str) -> str:
-        """Returns the description for the named operation.
-
-        Args:
-            name: The registered operator name.
-
-        Returns:
-            The description string, or None if none was registered.
-
-        Raises:
-            ValueError: If the operator name is not registered.
-        """
-        if name not in self.function_operation_models:
-            raise ValueError(f"Unknown operator {name}")
-
-        return self.function_operation_descriptions.get(name)
-
-    def __getattr__(
-        self, item: str
-    ) -> typing.Callable[..., object] | DiscoveryOperationBase:
-        if item in self.function_operations:
-            retval = self.function_operations[item]
-        elif item in self.object_operations:
-            retval = self.object_operations[item]
-        else:
-            raise AttributeError(f"Unknown attribute {item}")
-
-        return retval
+        if item in self.operators:
+            return self.operators[item].function
+        raise AttributeError(f"Unknown attribute {item}")
 
 
 characterize = OperatorCollection(
@@ -216,36 +248,8 @@ operationCollectionMap = {
 }
 
 #
-# Decorators for registering operation functions
+# Decorators for registering operator functions
 #
-
-
-def register_characterize_operation(
-    func: typing.Callable[..., object],
-) -> typing.Callable[
-    [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
-]:
-    @functools.wraps(func)
-    def characterize_operation_wrapper(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: dict,
-    ) -> OperationOutput:
-
-        return orchestrate_general_operation(
-            operator_function=func,
-            operation_parameters=kwargs,
-            parameters_model=operationCollectionMap[
-                DiscoveryOperationEnum.CHARACTERIZE
-            ].configuration_model_for_operation(func.__name__),
-            discovery_space=discoverySpace,
-            operation_info=operationInfo or FunctionOperationInfo(),
-            operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
-        )
-
-    characterize.add_operation_function(func.__name__, characterize_operation_wrapper)
-
-    return characterize_operation_wrapper
 
 
 def characterize_operation(
@@ -254,20 +258,48 @@ def characterize_operation(
     version: str | None = "v0.1",
     configuration_model: type[pydantic.BaseModel] | None = None,
     configuration_model_default: pydantic.BaseModel | None = None,
-) -> typing.Callable[
-    [typing.Callable[..., object]],
-    typing.Callable[
-        [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
-    ],
-]:
-    characterize.add_operation_configuration_model(name, configuration_model)
-    characterize.add_operation_configuration_model_default(
-        name, configuration_model_default
-    )
-    characterize.add_operation_version(name, version)
-    characterize.add_operation_description(name, description)
+) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+    """Decorator that registers a function as a characterize operation.
 
-    return register_characterize_operation
+    Args:
+        name: Canonical operator name used in the registry.
+        description: Human-readable description shown in the registry.
+        version: Version string included in the operator identifier.
+        configuration_model: Pydantic model used to validate operation parameters.
+        configuration_model_default: Default parameter model instance.
+
+    Returns:
+        A decorator that wraps and registers the decorated function under ``name``.
+    """
+
+    def _register(func: OperatorFunction) -> OperatorFunction:
+        @functools.wraps(func)
+        def wrapper(
+            discoverySpace: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            **kwargs: object,
+        ) -> OperationOutput:
+            return orchestrate_general_operation(
+                operator_function=func,
+                operation_parameters=kwargs,
+                parameters_model=characterize.operators[name].configuration_model,
+                discovery_space=discoverySpace,
+                operation_info=operationInfo or FunctionOperationInfo(),
+                operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
+            )
+
+        characterize.operators[name] = Operator(
+            name=name,
+            function=typing.cast("OperatorFunction", wrapper),
+            version=version or "v0.1",
+            description=description,
+            configuration_model=configuration_model,
+            example_configuration=configuration_model_default,
+            type=DiscoveryOperationEnum.CHARACTERIZE,
+        )
+        return typing.cast("OperatorFunction", wrapper)
+
+    return _register
 
 
 def explore_operation(
@@ -277,7 +309,7 @@ def explore_operation(
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
     operator_class: type[DiscoveryOperationBase] | None = None,
-) -> typing.Callable[[typing.Callable[..., object]], typing.Callable[..., object]]:
+) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as an explore (search) operation.
 
     The decorator is the single source of truth for the operator name and
@@ -299,47 +331,22 @@ def explore_operation(
     Returns:
         A decorator that registers the decorated function under ``name``.
     """
-    explore.add_operation_configuration_model(name, configuration_model)
-    explore.add_operation_configuration_model_default(name, configuration_model_default)
-    explore.add_operation_version(name, version)
-    explore.add_operation_description(name, description)
-    if operator_class is not None:
-        explore.add_operator_class(name, operator_class)
 
-    def _register(func: typing.Callable[..., object]) -> typing.Callable[..., object]:
+    def _register(func: OperatorFunction) -> OperatorFunction:
         """Registers func under the outer decorator's ``name``."""
-        explore.add_operation_function(name, func)
+        explore.operators[name] = Operator(
+            name=name,
+            function=func,
+            version=version or "v0.1",
+            description=description,
+            configuration_model=configuration_model,
+            example_configuration=configuration_model_default,
+            cls=operator_class,
+            type=DiscoveryOperationEnum.SEARCH,
+        )
         return func
 
     return _register
-
-
-def register_modify_operation(
-    func: typing.Callable[..., object],
-) -> typing.Callable[[typing.Callable[..., object]], OperatorCollection]:
-    """Registers a function that modifies a discovery space to return a new discovery space"""
-
-    @functools.wraps(func)
-    def modify_operation_wrapper(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: dict,
-    ) -> OperationOutput:
-
-        return orchestrate_general_operation(
-            operator_function=func,
-            operation_parameters=kwargs,
-            parameters_model=operationCollectionMap[
-                DiscoveryOperationEnum.MODIFY
-            ].configuration_model_for_operation(func.__name__),
-            discovery_space=discoverySpace,
-            operation_info=operationInfo or FunctionOperationInfo(),
-            operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
-        )
-
-    modify.add_operation_function(func.__name__, modify_operation_wrapper)
-
-    return modify
 
 
 def modify_operation(
@@ -348,42 +355,48 @@ def modify_operation(
     version: str | None = "v0.1",
     configuration_model: type[pydantic.BaseModel] | None = None,
     configuration_model_default: pydantic.BaseModel | None = None,
-) -> typing.Callable[[typing.Callable[..., object]], OperatorCollection]:
-    modify.add_operation_configuration_model(name, configuration_model)
-    modify.add_operation_configuration_model_default(name, configuration_model_default)
-    modify.add_operation_version(name, version)
-    modify.add_operation_description(name, description)
+) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+    """Decorator that registers a function as a modify operation.
 
-    return register_modify_operation
+    Args:
+        name: Canonical operator name used in the registry.
+        description: Human-readable description shown in the registry.
+        version: Version string included in the operator identifier.
+        configuration_model: Pydantic model used to validate operation parameters.
+        configuration_model_default: Default parameter model instance.
 
+    Returns:
+        A decorator that wraps and registers the decorated function under ``name``.
+    """
 
-def register_export_operation(
-    func: typing.Callable[..., object],
-) -> typing.Callable[
-    [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
-]:
-    """Registers a function that performs a lakehouse operation on a DiscoverySpace"""
+    def _register(func: OperatorFunction) -> OperatorFunction:
+        @functools.wraps(func)
+        def wrapper(
+            discoverySpace: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            **kwargs: object,
+        ) -> OperationOutput:
+            return orchestrate_general_operation(
+                operator_function=func,
+                operation_parameters=kwargs,
+                parameters_model=modify.operators[name].configuration_model,
+                discovery_space=discoverySpace,
+                operation_info=operationInfo or FunctionOperationInfo(),
+                operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
+            )
 
-    @functools.wraps(func)
-    def export_operation_wrapper(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo | None = None,
-        **kwargs: dict,
-    ) -> OperationOutput:
-        return orchestrate_general_operation(
-            operator_function=func,
-            operation_parameters=kwargs,
-            parameters_model=operationCollectionMap[
-                DiscoveryOperationEnum.EXPORT
-            ].configuration_model_for_operation(func.__name__),
-            discovery_space=discoverySpace,
-            operation_info=operationInfo or FunctionOperationInfo(),
-            operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT,
+        modify.operators[name] = Operator(
+            name=name,
+            function=typing.cast("OperatorFunction", wrapper),
+            version=version or "v0.1",
+            description=description,
+            configuration_model=configuration_model,
+            example_configuration=configuration_model_default,
+            type=DiscoveryOperationEnum.MODIFY,
         )
+        return typing.cast("OperatorFunction", wrapper)
 
-    export.add_operation_function(func.__name__, export_operation_wrapper)
-
-    return export_operation_wrapper
+    return _register
 
 
 def export_operation(
@@ -392,18 +405,48 @@ def export_operation(
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
-) -> typing.Callable[
-    [typing.Callable[..., object]],
-    typing.Callable[
-        [DiscoverySpace, FunctionOperationInfo | None, dict[str, dict]], OperationOutput
-    ],
-]:
-    export.add_operation_configuration_model(name, configuration_model)
-    export.add_operation_configuration_model_default(name, configuration_model_default)
-    export.add_operation_version(name, version)
-    export.add_operation_description(name, description)
+) -> typing.Callable[[OperatorFunction], OperatorFunction]:
+    """Decorator that registers a function as an export operation.
 
-    return register_export_operation
+    Args:
+        name: Canonical operator name used in the registry.
+        description: Human-readable description shown in the registry.
+        configuration_model: Pydantic model used to validate operation parameters.
+        version: Version string included in the operator identifier.
+        configuration_model_default: Default parameter model instance.
+
+    Returns:
+        A decorator that wraps and registers the decorated function under ``name``.
+    """
+
+    def _register(func: OperatorFunction) -> OperatorFunction:
+        @functools.wraps(func)
+        def wrapper(
+            discoverySpace: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            **kwargs: object,
+        ) -> OperationOutput:
+            return orchestrate_general_operation(
+                operator_function=func,
+                operation_parameters=kwargs,
+                parameters_model=export.operators[name].configuration_model,
+                discovery_space=discoverySpace,
+                operation_info=operationInfo or FunctionOperationInfo(),
+                operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT,
+            )
+
+        export.operators[name] = Operator(
+            name=name,
+            function=typing.cast("OperatorFunction", wrapper),
+            version=version or "v0.1",
+            description=description,
+            configuration_model=configuration_model,
+            example_configuration=configuration_model_default,
+            type=DiscoveryOperationEnum.EXPORT,
+        )
+        return typing.cast("OperatorFunction", wrapper)
+
+    return _register
 
 
 def load_operators() -> None:

@@ -144,10 +144,10 @@ def setup_operator(
 ) -> "OperatorActor":
     """Sets up and creates an operator actor for class-based explore operations.
 
-    Resolves the operator class from either an ``OperatorFunctionConf`` (looks
-    up the registered class by name) or an ``OperatorModuleConf`` (loads the
-    class dynamically from the module path), then creates a Ray actor with the
-    appropriate namespace and initialises it.
+    Resolves the operator class from either an OperatorFunctionConf
+    pr an ``OperatorModuleConf
+
+    ray.remote is applied dynamically in both cases
 
     Params:
         operator_module: Configuration identifying the operator — either a
@@ -163,15 +163,15 @@ def setup_operator(
         OperatorActor handle for the created operator actor
     """
 
+    import ray
+
     import orchestrator.utilities.output
 
     moduleLog.info("Creating operation")
 
     if isinstance(operator_module, OperatorFunctionConf):
         from orchestrator.core.operation.config import DiscoveryOperationEnum
-        from orchestrator.modules.operators.collections import (
-            operationCollectionMap,
-        )
+        from orchestrator.modules.operators.collections import operationCollectionMap
 
         registered_operator = operationCollectionMap[
             DiscoveryOperationEnum.SEARCH
@@ -180,18 +180,22 @@ def setup_operator(
             raise ValueError(
                 f"No operator class registered for {operator_module.operatorName}"
             )
-        operatorClass = registered_operator.cls
+        base_class = registered_operator.cls
         actor_name = operator_module.operatorName
     else:
-        operatorClass = load_module_class_or_function(operator_module)
+        base_class = load_module_class_or_function(operator_module)
         actor_name = operator_module.moduleClass
 
-    operator = operatorClass.options(name=actor_name, namespace=namespace).remote(
-        operationActorName=actor_name,
-        namespace=namespace,
-        state=state,
-        params=parameters,
-        actuators=actuators,
+    operator = (
+        ray.remote(base_class)
+        .options(name=actor_name, namespace=namespace)
+        .remote(
+            operationActorName=actor_name,
+            namespace=namespace,
+            state=state,
+            params=parameters,
+            actuators=actuators,
+        )
     )
 
     print("=========== Operation Details ============\n")

@@ -36,12 +36,14 @@ class Operator(pydantic.BaseModel):
         description: Human-readable description of the operator.
         configuration_model: Pydantic model class used to validate parameters.
         example_configuration: Default instance of the configuration model.
-        cls: Ray actor class backing the operator (explore operators only).
+        cls: Undecorated base class backing the operator (explore operators only).
+            Always the unwrapped Python class, never a Ray ``ActorClass``.
         type: The discovery operation type this operator belongs to.
     """
 
     name: str
-    function: OperatorFunction
+    # bare Callable; parameterised generics break pydantic's isinstance validator
+    function: typing.Callable
     version: Annotated[str, pydantic.Field(default="v0.1")]
     description: Annotated[str | None, pydantic.Field(default=None)]
     configuration_model: Annotated[
@@ -50,7 +52,7 @@ class Operator(pydantic.BaseModel):
     example_configuration: Annotated[
         pydantic.BaseModel | None, pydantic.Field(default=None)
     ]
-    cls: Annotated[typing.Any, pydantic.Field(default=None)]
+    cls: Annotated[type[DiscoveryOperationBase] | None, pydantic.Field(default=None)]
     type: DiscoveryOperationEnum
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -304,29 +306,27 @@ def characterize_operation(
 
 def explore_operation(
     name: str,
+    operator_class: DiscoveryOperationBase,
     description: str | None = None,
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
-    operator_class: type[DiscoveryOperationBase] | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as an explore (search) operation.
 
     The decorator is the single source of truth for the operator name and
-    version. When ``operator_class`` is supplied the actor class is stored
-    in the collection keyed by ``name``, so the class is an implementation
-    detail and does not need to appear in the operation YAML.
+    version.
+
+    When operator_class is supplied, it is unwrapped from any ``@ray.remote``
 
     Args:
-        name: Canonical operator name used in the registry, ``ado get operators``,
-            and the stored ``operatorIdentifier``.
+        name: Canonical operator name used to refer to it
+        operator_class: The class that implements this operation.
+        Must be provided for explore operators
         description: Human-readable description shown in the registry.
         configuration_model: Pydantic model used to validate operation parameters.
         version: Version string included in the ``operatorIdentifier``.
         configuration_model_default: Default parameter model instance.
-        operator_class: The Ray-actor class that implements this operation.
-            Must be provided for explore operators that use the function-conf
-            path (``OperatorFunctionConf``).
 
     Returns:
         A decorator that registers the decorated function under ``name``.
@@ -334,14 +334,21 @@ def explore_operation(
 
     def _register(func: OperatorFunction) -> OperatorFunction:
         """Registers func under the outer decorator's ``name``."""
+        from orchestrator.utilities.ray import extract_base_class
+
+        resolved_cls = (
+            extract_base_class(operator_class, DiscoveryOperationBase)
+            if operator_class is not None
+            else None
+        )
         explore.operators[name] = Operator(
             name=name,
+            cls=resolved_cls,
             function=func,
             version=version or "v0.1",
             description=description,
             configuration_model=configuration_model,
             example_configuration=configuration_model_default,
-            cls=operator_class,
             type=DiscoveryOperationEnum.SEARCH,
         )
         return func

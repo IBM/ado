@@ -111,6 +111,10 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     operators = operators.sort_values(by=["TYPE", "OPERATOR"]).reset_index(drop=True)
     console_print(
         dataframe_to_rich_table(
-            operators, show_edge=True, show_index=True, box=rich.box.SQUARE
+            operators,
+            show_edge=True,
+            show_index=True,
+            box=rich.box.SQUARE,
+            do_not_truncate_column_content=parameters.no_trunc,
         )
     )

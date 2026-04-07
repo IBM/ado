@@ -112,5 +112,10 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
             return
 
     console_print(
-        dataframe_to_rich_table(output_df, box=rich.box.SQUARE, show_edge=True)
+        dataframe_to_rich_table(
+            output_df,
+            box=rich.box.SQUARE,
+            show_edge=True,
+            do_not_truncate_column_content=parameters.no_trunc,
+        )
     )

@@ -173,6 +173,17 @@ def get_resource(
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
         ),
     ] = False,
+    no_trunc: Annotated[
+        bool,
+        typer.Option(
+            "--no-trunc",
+            help="""
+            Prevent truncation of table content. When enabled, columns will be sized to fit all content
+            without truncation. Only applies to default (table) output format.
+            """,
+            rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
+        ),
+    ] = False,
     show_deprecated: Annotated[
         bool,
         typer.Option(
@@ -361,6 +372,7 @@ def get_resource(
         matching_space_id=matching_space_id,
         matching_space=matching_space,
         minimize_output=minimize_output,
+        no_trunc=no_trunc,
         output_format=output_format,
         resource_id=resource_id,
         resource_type=resource_type,

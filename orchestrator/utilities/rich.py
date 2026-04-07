@@ -94,7 +94,10 @@ def dataframe_to_rich_table(
             for col in column_names_length
         }
 
-        # Calculate total table width: sum of column widths + padding (2 per column) + separators (1 per column + 1 for borders)
+        # Calculate total table width:
+        #   sum of column widths
+        # + padding (2 per column)
+        # + separators (1 per column + 1 for borders)
         table_width = sum(column_width.values()) + len(column_width) * 3 + 1
 
     table = Table(

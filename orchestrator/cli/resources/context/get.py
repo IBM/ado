@@ -61,6 +61,12 @@ def get_context(
     # AP: we always want to dump default values for contexts
     parameters.exclude_default = False
 
+    if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
+        # NAME format: output only context identifiers, one per line
+        for context in sorted(available_contexts):
+            console_print(context)
+        return
+
     if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
         if simplify_output:
             _simple_contexts_formatting(contexts=available_contexts)

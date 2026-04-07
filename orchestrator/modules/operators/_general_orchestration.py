@@ -21,19 +21,13 @@ from orchestrator.modules.operators._orchestrate_core import (
     _run_operation_harness,
     log_space_details,
 )
+from orchestrator.modules.operators.base import OperatorFunction
 
 moduleLog = logging.getLogger("general_orchestration")
 
 
 def run_general_operation_core_closure(
-    operation_function: typing.Callable[
-        [
-            DiscoverySpace,
-            FunctionOperationInfo,
-            ...,
-        ],
-        OperationOutput | None,
-    ],
+    operation_function: OperatorFunction,
     discovery_space: DiscoverySpace,
     operationInfo: FunctionOperationInfo,
     operation_parameters: dict,
@@ -48,14 +42,7 @@ def run_general_operation_core_closure(
 
 
 def orchestrate_general_operation(
-    operator_function: typing.Callable[
-        [
-            DiscoverySpace,
-            FunctionOperationInfo,
-            ...,
-        ],
-        OperationOutput,
-    ],
+    operator_function: OperatorFunction,
     operation_parameters: dict,
     parameters_model: type[pydantic.BaseModel] | None,
     discovery_space: DiscoverySpace,

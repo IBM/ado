@@ -347,8 +347,8 @@ Where:
 
 <!-- prettier-ignore-end -->
 
-  Alternatively, you can also set the value for this flag by using the
-  environment variable `ADO_EDITOR`.
+Alternatively, you can also set the value for this flag by using the environment
+variable `ADO_EDITOR`.
 
 #### Examples
 
@@ -424,6 +424,8 @@ Where:
 
     - The `default` format shows the _identifier_, the _name_, and the _age_ of
       the matching resources.
+    - The `name` format outputs only the resource identifiers, one per line
+      (similar to `kubectl get -o name`).
     - The `yaml` format displays the full YAML document of the matching resources.
     - The `json` format displays the full JSON document of the matching resources.
     - The `config` format displays the `config` field of the matching resources.
@@ -570,6 +572,12 @@ ado get operation randomwalk-0.5.0-123abc
 
 ```shell
 ado get operation randomwalk-0.5.0-123abc -o yaml
+```
+
+##### Getting only the identifiers of all Operations
+
+```shell
+ado get operations -o name
 ```
 
 ##### Displaying all current experiments
@@ -736,7 +744,9 @@ Where:
 ```
 
 <!-- markdownlint-disable line-length -->
+
 ###### Show a subset of the properties of entities that are part of an operation and output them as JSON
+
 <!-- markdownlint-enable line-length -->
 
 ```shell
@@ -1053,7 +1063,9 @@ ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v
 ```
 
 <!-- markdownlint-disable line-length -->
+
 ##### Creating a template for a space that uses a specific experiment from a specific actuator
+
 <!-- markdownlint-enable line-length -->
 
 ```shell

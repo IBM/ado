@@ -21,7 +21,7 @@ from orchestrator.modules.operators.orchestrate import orchestrate_general_opera
 moduleLog = logging.getLogger("operation_collections")
 
 
-class OperationCollections(pydantic.BaseModel):
+class OperatorCollection(pydantic.BaseModel):
     type: DiscoveryOperationEnum
     function_operations: Annotated[
         dict[typing.AnyStr, typing.Callable], pydantic.Field(default_factory=dict)
@@ -180,28 +180,28 @@ class OperationCollections(pydantic.BaseModel):
         return retval
 
 
-characterize = OperationCollections(
+characterize = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
 )
-explore = OperationCollections(
+explore = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
 )
-modify = OperationCollections(
+modify = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY
 )
-export = OperationCollections(
+export = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT
 )
-compare = OperationCollections(
+compare = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.COMPARE
 )
-fuse = OperationCollections(
+fuse = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.FUSE
 )
-study = OperationCollections(
+study = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY
 )
-learn = OperationCollections(
+learn = OperatorCollection(
     type=orchestrator.core.operation.config.DiscoveryOperationEnum.LEARN
 )
 operationCollectionMap = {
@@ -316,7 +316,7 @@ def explore_operation(
 
 def register_modify_operation(
     func: typing.Callable[..., object],
-) -> typing.Callable[[typing.Callable[..., object]], OperationCollections]:
+) -> typing.Callable[[typing.Callable[..., object]], OperatorCollection]:
     """Registers a function that modifies a discovery space to return a new discovery space"""
 
     @functools.wraps(func)
@@ -348,7 +348,7 @@ def modify_operation(
     version: str | None = "v0.1",
     configuration_model: type[pydantic.BaseModel] | None = None,
     configuration_model_default: pydantic.BaseModel | None = None,
-) -> typing.Callable[[typing.Callable[..., object]], OperationCollections]:
+) -> typing.Callable[[typing.Callable[..., object]], OperatorCollection]:
     modify.add_operation_configuration_model(name, configuration_model)
     modify.add_operation_configuration_model_default(name, configuration_model_default)
     modify.add_operation_version(name, version)

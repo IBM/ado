@@ -25,6 +25,7 @@ _CSV = "csv"
 _DEFAULT = "default"
 _JSON = "json"
 _MARKDOWN_SHORT = "md"
+_NAME = "name"
 _RAW = "raw"
 _TABLE = "table"
 _YAML = "yaml"
@@ -94,6 +95,7 @@ class AdoGetSupportedOutputFormats(Enum):
     CONFIG = _CONFIG
     DEFAULT = _DEFAULT
     JSON = _JSON
+    NAME = _NAME
     RAW = _RAW
     YAML = _YAML
 

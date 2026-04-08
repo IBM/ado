@@ -62,7 +62,7 @@ def test_raytune_class_methods() -> None:
 
 def test_operator_function_conf() -> None:
 
-    function = orchestrator.core.operation.config.OperatorFunctionConf(
+    function = orchestrator.core.operation.config.OperatorReference(
         operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
         operatorName="rifferla",
     )
@@ -142,7 +142,7 @@ def test_characterize_operator_function_configurations(
 ) -> None:
 
     for operationName in expected_characterize_operators:
-        operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
+        operationConf = orchestrator.core.operation.config.OperatorReference(
             operatorName=operationName,
             operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
         )
@@ -154,7 +154,7 @@ def test_explore_operator_function_configurations(
 ) -> None:
 
     for operationName in expected_explore_operators:
-        operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
+        operationConf = orchestrator.core.operation.config.OperatorReference(
             operatorName=operationName,
             operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
         )
@@ -180,9 +180,9 @@ def test_explore_operator_class_registration(
 
 
 def test_explore_operator_function_conf_identifier_matches_registered_name() -> None:
-    """operatorIdentifier via OperatorFunctionConf must use the registered name."""
+    """operatorIdentifier via OperatorReference must use the registered name."""
     for name in ["random_walk", "ray_tune"]:
-        conf = orchestrator.core.operation.config.OperatorFunctionConf(
+        conf = orchestrator.core.operation.config.OperatorReference(
             operatorName=name,
             operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH,
         )
@@ -203,7 +203,7 @@ def test_operator_function_configuration_incorrect_type(
     )
 
     for operator_name in expected_explore_operators:
-        operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
+        operationConf = orchestrator.core.operation.config.OperatorReference(
             operatorName=operator_name,
             operationType=operation_type,
         )
@@ -224,7 +224,7 @@ def test_operator_function_configuration_unknown_function() -> None:
         orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE
     )
 
-    operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
+    operationConf = orchestrator.core.operation.config.OperatorReference(
         operatorName="UnknownOperationName",
         operationType=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
     )
@@ -243,7 +243,7 @@ def test_operator_function_configuration_unknown_type() -> None:
     operator_name = "raytune"
     operation_type = orchestrator.core.operation.config.DiscoveryOperationEnum.STUDY
 
-    operationConf = orchestrator.core.operation.config.OperatorFunctionConf(
+    operationConf = orchestrator.core.operation.config.OperatorReference(
         operatorName=operator_name,
         operationType=operation_type,
     )
@@ -627,3 +627,293 @@ def test_operator_default_and_validate(
     parameters = default.model_dump() if not isinstance(default, dict) else default
 
     assert optimizer_operator.validateOperationParameters(parameters=parameters)
+
+
+# ---------------------------------------------------------------------------
+# OperatorMetadata and explore_operation class-decorator tests
+# ---------------------------------------------------------------------------
+
+
+def test_operator_metadata_identifier_property() -> None:
+    """OperatorMetadata.operatorIdentifier returns '{name}-{version}'."""
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+
+    meta = OperatorMetadata(
+        name="my_op",
+        version="v2.0",
+        type=DiscoveryOperationEnum.SEARCH,
+    )
+    assert meta.operatorIdentifier == "my_op-v2.0"
+
+
+def test_operator_metadata_identifier_default_version() -> None:
+    """OperatorMetadata.operatorIdentifier uses 'v0.1' when version is not supplied."""
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+
+    meta = OperatorMetadata(name="op", type=DiscoveryOperationEnum.SEARCH)
+    assert meta.operatorIdentifier == "op-v0.1"
+
+
+def test_operator_function_conf_identifier_delegates_to_operator_metadata() -> None:
+    """OperatorReference.operatorIdentifier equals explore.operators[name].operatorIdentifier."""
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorReference,
+    )
+    from orchestrator.modules.operators.collections import explore
+
+    for name in ["random_walk", "ray_tune"]:
+        conf = OperatorReference(
+            operatorName=name,
+            operationType=DiscoveryOperationEnum.SEARCH,
+        )
+        assert conf.operatorIdentifier == explore.operators[name].operatorIdentifier
+
+
+def test_explore_operation_class_decorator_registers_function() -> None:
+    """@explore_operation on a Search subclass with operator_metadata() registers a callable."""
+    import inspect
+
+    import pydantic
+
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.collections import explore, explore_operation
+
+    class _Params(pydantic.BaseModel):
+        pass
+
+    @explore_operation
+    class _TestOp(Search):
+        @classmethod
+        def operator_metadata(cls) -> OperatorMetadata:
+            return OperatorMetadata(
+                name="_test_class_op",
+                version="v0.1",
+                description="A test operator.",
+                configuration_model=_Params,
+                example_configuration=_Params(),
+                type=DiscoveryOperationEnum.SEARCH,
+            )
+
+        @classmethod
+        def operatorIdentifier(cls) -> str:
+            return "_test_class_op-v0.1"
+
+        @classmethod
+        def operationType(cls) -> DiscoveryOperationEnum:
+            return DiscoveryOperationEnum.SEARCH
+
+        @classmethod
+        def defaultOperationParameters(cls) -> _Params:
+            return _Params()
+
+        @classmethod
+        def validateOperationParameters(
+            cls, parameters: dict | pydantic.BaseModel
+        ) -> _Params:
+            return _Params.model_validate(parameters)
+
+        def operationIdentifier(self) -> str:
+            return "_test_class_op-run"
+
+        async def run(self) -> None:
+            pass
+
+    assert "_test_class_op" in explore.operators
+    assert callable(_TestOp)
+
+    # The returned callable must match the OperatorFunction signature
+    sig = inspect.signature(_TestOp)
+    params = list(sig.parameters.keys())
+    assert "discoverySpace" in params
+    assert "operationInfo" in params
+
+
+def test_explore_operation_class_decorator_cls_stored() -> None:
+    """explore.operators[name].cls is the unwrapped class after class decoration."""
+    import pydantic
+
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.collections import explore, explore_operation
+
+    class _ParamsCls(pydantic.BaseModel):
+        pass
+
+    @explore_operation
+    class _TestOpCls(Search):
+        @classmethod
+        def operator_metadata(cls) -> OperatorMetadata:
+            return OperatorMetadata(
+                name="_test_cls_stored",
+                version="v0.1",
+                type=DiscoveryOperationEnum.SEARCH,
+            )
+
+        @classmethod
+        def operatorIdentifier(cls) -> str:
+            return "_test_cls_stored-v0.1"
+
+        @classmethod
+        def operationType(cls) -> DiscoveryOperationEnum:
+            return DiscoveryOperationEnum.SEARCH
+
+        @classmethod
+        def defaultOperationParameters(cls) -> _ParamsCls:
+            return _ParamsCls()
+
+        @classmethod
+        def validateOperationParameters(
+            cls, parameters: dict | pydantic.BaseModel
+        ) -> _ParamsCls:
+            return _ParamsCls.model_validate(parameters)
+
+        def operationIdentifier(self) -> str:
+            return "_test_cls_stored-run"
+
+        async def run(self) -> None:
+            pass
+
+    op = explore.operators.get("_test_cls_stored")
+    assert op is not None
+    assert op.cls is not None
+    assert hasattr(op.cls, "operatorIdentifier")
+
+
+def test_explore_operation_class_decorator_metadata_from_class() -> None:
+    """All OperatorMetadata fields come from the class's operator_metadata()."""
+    import pydantic
+
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.collections import explore, explore_operation
+
+    class _Params2(pydantic.BaseModel):
+        x: int = 42
+
+    @explore_operation
+    class _TestOp2(Search):
+        @classmethod
+        def operator_metadata(cls) -> OperatorMetadata:
+            return OperatorMetadata(
+                name="_test_class_op2",
+                version="v3.0",
+                description="Another test operator.",
+                configuration_model=_Params2,
+                example_configuration=_Params2(),
+                type=DiscoveryOperationEnum.SEARCH,
+            )
+
+        @classmethod
+        def operatorIdentifier(cls) -> str:
+            return "_test_class_op2-v3.0"
+
+        @classmethod
+        def operationType(cls) -> DiscoveryOperationEnum:
+            return DiscoveryOperationEnum.SEARCH
+
+        @classmethod
+        def defaultOperationParameters(cls) -> _Params2:
+            return _Params2()
+
+        @classmethod
+        def validateOperationParameters(
+            cls, parameters: dict | pydantic.BaseModel
+        ) -> _Params2:
+            return _Params2.model_validate(parameters)
+
+        def operationIdentifier(self) -> str:
+            return "_test_class_op2-run"
+
+        async def run(self) -> None:
+            pass
+
+    registered = explore.operators["_test_class_op2"]
+    assert registered.name == "_test_class_op2"
+    assert registered.version == "v3.0"
+    assert registered.description == "Another test operator."
+    assert registered.configuration_model is _Params2
+    assert isinstance(registered.example_configuration, _Params2)
+    assert registered.type == DiscoveryOperationEnum.SEARCH
+
+
+def test_explore_operation_class_decorator_missing_operator_metadata_raises() -> None:
+    """Decorating a Search subclass without operator_metadata() raises NotImplementedError."""
+    import pydantic
+
+    from orchestrator.core.operation.config import DiscoveryOperationEnum
+    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.collections import explore_operation
+
+    with pytest.raises(NotImplementedError):
+
+        @explore_operation
+        class _BadOp(Search):
+            @classmethod
+            def operatorIdentifier(cls) -> str:
+                return "bad_op-v0.1"
+
+            @classmethod
+            def operationType(cls) -> DiscoveryOperationEnum:
+                return DiscoveryOperationEnum.SEARCH
+
+            @classmethod
+            def defaultOperationParameters(cls) -> pydantic.BaseModel:
+                return pydantic.BaseModel()
+
+            @classmethod
+            def validateOperationParameters(
+                cls, parameters: dict | pydantic.BaseModel
+            ) -> pydantic.BaseModel:
+                return pydantic.BaseModel.model_validate(parameters)
+
+            def operationIdentifier(self) -> str:
+                return "bad_op-run"
+
+            async def run(self) -> None:
+                pass
+
+
+def test_explore_operation_function_decorator_unchanged() -> None:
+    """Existing function-decoration path still registers correctly (regression guard)."""
+    from orchestrator.modules.operators.collections import explore
+
+    # random_walk is registered via the function decorator path
+    assert "random_walk" in explore.operators
+    rw = explore.operators["random_walk"]
+    assert rw.name == "random_walk"
+    assert rw.cls is not None
+    assert callable(rw.function)
+
+
+def test_explore_operation_function_decorator_missing_name_raises() -> None:
+    """Decorating a plain function without name raises TypeError."""
+    from orchestrator.core.discoveryspace.space import DiscoverySpace
+    from orchestrator.core.operation.config import FunctionOperationInfo
+    from orchestrator.core.operation.operation import OperationOutput
+    from orchestrator.modules.operators.collections import explore_operation
+
+    with pytest.raises(TypeError, match="name"):
+
+        @explore_operation()
+        def _nameless(
+            discoverySpace: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            **kwargs: object,
+        ) -> OperationOutput: ...

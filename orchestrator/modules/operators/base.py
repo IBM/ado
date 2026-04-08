@@ -25,8 +25,8 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
-    OperatorFunctionConf,
     OperatorModuleConf,
+    OperatorReference,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.operation.resource import OperationResource
@@ -96,6 +96,24 @@ class DiscoveryOperationBase(metaclass=abc.ABCMeta):
         """If the parameters are valid returns a model for them.
 
         Otherwise, will raise ValidationErrors"""
+
+    @classmethod
+    def operator_metadata(
+        cls,
+    ) -> "orchestrator.core.operation.config.OperatorMetadata":
+        """Returns the :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
+
+        Subclasses that use the ``@explore_operation`` class decorator must
+        override this method.  ``function`` and ``cls`` should be left as
+        ``None`` — the decorator fills them in before registering.
+
+        Raises:
+            NotImplementedError: If the subclass has not implemented this method.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__} must implement operator_metadata() to use "
+            "the @explore_operation class decorator."
+        )
 
 
 class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):
@@ -342,7 +360,7 @@ def add_operation_and_output_to_metastore(
 
 def create_operation_and_add_to_metastore(
     discovery_space: DiscoverySpace,
-    operator_module: OperatorModuleConf | OperatorFunctionConf,
+    operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,

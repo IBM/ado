@@ -33,7 +33,7 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
-    OperatorFunctionConf,
+    OperatorReference,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.module import (
@@ -998,7 +998,7 @@ def random_walk(
     """Performs a random_walk operation on a given discoverySpace."""
     return orchestrate_explore_operation(
         discovery_space=discoverySpace,
-        operator_module=OperatorFunctionConf(
+        operator_module=OperatorReference(
             operationType=DiscoveryOperationEnum.SEARCH,
             operatorName="random_walk",
         ),

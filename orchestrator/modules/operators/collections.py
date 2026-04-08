@@ -10,168 +10,66 @@ from typing import Annotated
 import pydantic
 from pydantic import ConfigDict
 
-import orchestrator.core.metadata
+import orchestrator.core.operation.config
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
+    OperatorMetadata,
+    OperatorReference,
 )
 from orchestrator.modules.operators.base import (
     DiscoveryOperationBase,
     OperationOutput,
     OperatorFunction,
 )
-from orchestrator.modules.operators.orchestrate import orchestrate_general_operation
+from orchestrator.modules.operators.orchestrate import (
+    orchestrate_explore_operation,
+    orchestrate_general_operation,
+)
 
 moduleLog = logging.getLogger("operation_collections")
 
 
-class Operator(pydantic.BaseModel):
-    """Metadata and implementation for a registered operator.
+def _validate_operator_cls(cls: type, context: str) -> None:
+    """Assert that ``cls`` is a subclass of :class:`DiscoveryOperationBase`.
 
-    Attributes:
-        name: Canonical name the operator is registered under.
-        function: The callable implementing the operator.
-        version: Version string for the operator (e.g. "v0.1").
-        description: Human-readable description of the operator.
-        configuration_model: Pydantic model class used to validate parameters.
-        example_configuration: Default instance of the configuration model.
-        cls: Undecorated base class backing the operator (explore operators only).
-            Always the unwrapped Python class, never a Ray ``ActorClass``.
-        type: The discovery operation type this operator belongs to.
+    ``OperatorMetadata.cls`` is typed as ``type | None`` in the core layer to
+    keep ``config.py`` decoupled from ``base.py``.  This function is the single
+    place in ``modules/operators`` where the concrete constraint is enforced.
+
+    Args:
+        cls: The class to validate.
+        context: A short description of the call site, included in the error
+            message.
+
+    Raises:
+        TypeError: If ``cls`` is not a subclass of ``DiscoveryOperationBase``.
     """
-
-    name: str
-    # bare Callable; parameterised generics break pydantic's isinstance validator
-    function: typing.Callable
-    version: Annotated[str, pydantic.Field(default="v0.1")]
-    description: Annotated[str | None, pydantic.Field(default=None)]
-    configuration_model: Annotated[
-        type[pydantic.BaseModel] | None, pydantic.Field(default=None)
-    ]
-    example_configuration: Annotated[
-        pydantic.BaseModel | None, pydantic.Field(default=None)
-    ]
-    cls: Annotated[type[DiscoveryOperationBase] | None, pydantic.Field(default=None)]
-    type: DiscoveryOperationEnum
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    @pydantic.field_validator("function", mode="after")
-    @classmethod
-    def _validate_function_signature(cls, fn: typing.Callable) -> typing.Callable:
-        """Validate that ``function`` conforms to :class:`~orchestrator.modules.operators.base.OperatorFunction`.
-
-        :class:`~orchestrator.modules.operators.base.OperatorFunction` is the
-        Protocol that defines the required call signature and is the single
-        source of truth.  Its ``__call__`` method is introspected at validation
-        time so that any future change to the Protocol is automatically
-        reflected here without updating this validator.
-
-        For each positional parameter defined in the Protocol (paired by
-        position with the actual function's positional parameters) and for the
-        return type, the check is skipped when the annotation is absent on
-        either side — unannotated or partially-annotated callables are
-        accepted.
-
-        ``typing.get_type_hints`` is used rather than ``__annotations__``
-        directly so that ``functools.wraps``-propagated annotations and any
-        forward-reference strings are resolved correctly.
-
-        Args:
-            fn: The callable to validate.
-
-        Returns:
-            The callable unchanged if validation passes.
-
-        Raises:
-            ValueError: If any present annotation does not match the
-                corresponding annotation in the Protocol.
-        """
-        import inspect
-
-        # Derive expected types from the Protocol — it is the source of truth.
-        try:
-            proto_hints = typing.get_type_hints(OperatorFunction.__call__)
-            proto_sig = inspect.signature(OperatorFunction.__call__)
-        except Exception:  # noqa: BLE001
-            return fn
-
-        # Resolve the actual function's annotations; bail gracefully for
-        # built-ins, C extensions, and similar non-introspectable callables.
-        try:
-            hints = typing.get_type_hints(fn)
-            sig = inspect.signature(fn)
-        except Exception:  # noqa: BLE001
-            return fn
-
-        # --- return type ---
-        expected_return = proto_hints.get("return")
-        actual_return = hints.get("return")
-        if (
-            expected_return is not None
-            and actual_return is not None
-            and actual_return != expected_return
-        ):
-            raise ValueError(
-                f"Operator function return type must be {expected_return!r}, "
-                f"got {actual_return!r}."
-            )
-
-        # --- positional parameters (matched by position, not name) ---
-        proto_positional = [
-            p
-            for p in proto_sig.parameters.values()
-            if p.name != "self"
-            and p.kind
-            in (
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                inspect.Parameter.POSITIONAL_ONLY,
-            )
-        ]
-        actual_positional = [
-            p
-            for p in sig.parameters.values()
-            if p.kind
-            in (
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                inspect.Parameter.POSITIONAL_ONLY,
-            )
-        ]
-        for idx, (proto_param, actual_param) in enumerate(
-            zip(proto_positional, actual_positional, strict=False), start=1
-        ):
-            expected_type = proto_hints.get(proto_param.name)
-            actual_type = hints.get(actual_param.name)
-            if (
-                expected_type is not None
-                and actual_type is not None
-                and actual_type != expected_type
-            ):
-                raise ValueError(
-                    f"Operator function parameter {actual_param.name!r} "
-                    f"(position {idx}) must be {expected_type!r}, "
-                    f"got {actual_type!r}."
-                )
-
-        return fn
+    if not (isinstance(cls, type) and issubclass(cls, DiscoveryOperationBase)):
+        raise TypeError(
+            f"{context}: expected a DiscoveryOperationBase subclass, got {cls!r}."
+        )
 
 
 class OperatorCollection(pydantic.BaseModel):
     """A registry of operators of a single discovery operation type.
 
     Operators are added via the decorator functions (e.g. ``characterize_operation``,
-    ``explore_operation``).  Each registered name maps to an :class:`Operator`
-    instance that carries the function, version, description, configuration model,
+    ``explore_operation``).  Each registered name maps to an
+    :class:`~orchestrator.core.operation.config.OperatorMetadata` instance that
+    carries the function, version, description, configuration model,
     example configuration, and optional actor class.
 
     Attributes:
         type: The discovery operation type all operators in this collection belong to.
-        operators: Mapping of operator name to :class:`Operator` instance.
+        operators: Mapping of operator name to :class:`~orchestrator.core.operation.config.OperatorMetadata` instance.
     """
 
     type: DiscoveryOperationEnum
-    operators: Annotated[dict[str, Operator], pydantic.Field(default_factory=dict)]
+    operators: Annotated[
+        dict[str, OperatorMetadata], pydantic.Field(default_factory=dict)
+    ]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -389,7 +287,7 @@ def characterize_operation(
                 operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
             )
 
-        characterize.operators[name] = Operator(
+        characterize.operators[name] = OperatorMetadata(
             name=name,
             function=typing.cast("OperatorFunction", wrapper),
             version=version or "v0.1",
@@ -404,43 +302,138 @@ def characterize_operation(
 
 
 def explore_operation(
-    name: str,
-    operator_class: DiscoveryOperationBase,
+    target: "type[DiscoveryOperationBase] | None" = None,
+    *,
+    name: str | None = None,
+    operator_class: "type[DiscoveryOperationBase] | None" = None,
     description: str | None = None,
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
-    """Decorator that registers a function as an explore (search) operation.
+) -> typing.Callable:
+    """Decorator that registers an explore (search) operator.
 
-    The decorator is the single source of truth for the operator name and
-    version.
+    Supports two usage patterns:
 
-    When operator_class is supplied, it is unwrapped from any ``@ray.remote``
+    **Class decoration** (no arguments) — all metadata is taken from the
+    class's :meth:`~orchestrator.modules.operators.base.DiscoveryOperationBase.operator_metadata`
+    classmethod.  The decorator generates the :data:`~orchestrator.modules.operators.base.OperatorFunction`
+    body, fills in ``function`` and ``cls`` on the returned
+    :class:`~orchestrator.core.operation.config.OperatorMetadata`, and
+    registers it.  The name bound in the decorated module's scope becomes the
+    generated function::
+
+        @explore_operation
+        class MyOp(Search):
+            @classmethod
+            def operator_metadata(cls) -> OperatorMetadata:
+                return OperatorMetadata(
+                    name="my_op",
+                    version="v0.1",
+                    description="...",
+                    configuration_model=MyOpParameters,
+                    example_configuration=MyOpParameters(),
+                    type=DiscoveryOperationEnum.SEARCH,
+                )
+            ...
+
+    **Function decoration** (with keyword arguments) — all metadata is
+    supplied via decorator arguments, matching the classic pattern::
+
+        @explore_operation(name="my_op", operator_class=MyOp, ...)
+        def my_op(
+            discoverySpace: DiscoverySpace,
+            operationInfo: FunctionOperationInfo | None = None,
+            **kwargs: object,
+        ) -> OperationOutput:
+            return orchestrate_explore_operation(...)
 
     Args:
-        name: Canonical operator name used to refer to it
-        operator_class: The class that implements this operation.
-        Must be provided for explore operators
+        target: Set automatically when the decorator is used without parentheses
+            (class path).  Do not pass this argument explicitly.
+        name: Canonical operator name (function path only; required).
+        operator_class: The class implementing the operation (function path
+            only; optional).  Unwrapped from ``@ray.remote`` if necessary.
         description: Human-readable description shown in the registry.
-        configuration_model: Pydantic model used to validate operation parameters.
-        version: Version string included in the ``operatorIdentifier``.
-        configuration_model_default: Default parameter model instance.
+        configuration_model: Pydantic model used to validate operation
+            parameters (function path only).
+        version: Semantic version string included in the
+            :attr:`~orchestrator.core.operation.config.OperatorMetadata.operatorIdentifier`
+            (e.g. ``"v0.1"``).
+        configuration_model_default: Default parameter model instance
+            (function path only).
 
     Returns:
-        A decorator that registers the decorated function under ``name``.
+        The generated :data:`~orchestrator.modules.operators.base.OperatorFunction`
+        (class path) or a decorator that registers and returns the decorated
+        function (function path).
+
+    Raises:
+        NotImplementedError: (class path) If the decorated class has not
+            implemented ``operator_metadata()``.
+        TypeError: (function path) If ``name`` is not provided.
     """
 
-    def _register(func: OperatorFunction) -> OperatorFunction:
-        """Registers func under the outer decorator's ``name``."""
+    def _register(
+        t: "OperatorFunction | type[DiscoveryOperationBase]",
+    ) -> OperatorFunction:
+        import inspect
+
         from orchestrator.utilities.ray import extract_base_class
 
-        resolved_cls = (
-            extract_base_class(operator_class, DiscoveryOperationBase)
-            if operator_class is not None
-            else None
-        )
-        explore.operators[name] = Operator(
+        if inspect.isclass(t) and issubclass(t, DiscoveryOperationBase):
+            # ------------------------------------------------------------------
+            # Class decoration path — metadata from cls.operator_metadata()
+            # Class-decorated operators are never also @ray.remote, so t is
+            # always the plain Python class — no Ray unwrapping needed.
+            # ------------------------------------------------------------------
+            metadata = (
+                t.operator_metadata()
+            )  # raises NotImplementedError if not overridden
+            op_name = metadata.name
+
+            def _generated(
+                discoverySpace: DiscoverySpace,
+                operationInfo: FunctionOperationInfo | None = None,
+                **kwargs: object,
+            ) -> OperationOutput:
+                return orchestrate_explore_operation(
+                    discovery_space=discoverySpace,
+                    operator_module=OperatorReference(
+                        operationType=DiscoveryOperationEnum.SEARCH,
+                        operatorName=op_name,
+                    ),
+                    parameters=kwargs,
+                    operation_info=operationInfo or FunctionOperationInfo(),
+                )
+
+            _generated.__name__ = op_name
+            _generated.__qualname__ = op_name
+
+            explore.operators[op_name] = metadata.model_copy(
+                update={
+                    "function": typing.cast("OperatorFunction", _generated),
+                    "cls": t,
+                }
+            )
+            return typing.cast("OperatorFunction", _generated)
+
+        # ------------------------------------------------------------------
+        # Function decoration path — metadata from decorator arguments
+        # ------------------------------------------------------------------
+        if name is None:
+            raise TypeError(
+                "explore_operation: 'name' must be provided when decorating a function."
+            )
+        func = typing.cast("OperatorFunction", t)
+        resolved_cls = None
+        if operator_class is not None:
+            resolved_cls = extract_base_class(operator_class, DiscoveryOperationBase)
+            _validate_operator_cls(
+                resolved_cls,
+                f"@explore_operation(name={name!r}, operator_class=...)",
+            )
+        explore.operators[name] = OperatorMetadata(
             name=name,
             cls=resolved_cls,
             function=func,
@@ -452,6 +445,9 @@ def explore_operation(
         )
         return func
 
+    if target is not None:
+        # @explore_operation without parentheses — must be a class
+        return _register(target)
     return _register
 
 
@@ -491,7 +487,7 @@ def modify_operation(
                 operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
             )
 
-        modify.operators[name] = Operator(
+        modify.operators[name] = OperatorMetadata(
             name=name,
             function=typing.cast("OperatorFunction", wrapper),
             version=version or "v0.1",
@@ -541,7 +537,7 @@ def export_operation(
                 operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT,
             )
 
-        export.operators[name] = Operator(
+        export.operators[name] = OperatorMetadata(
             name=name,
             function=typing.cast("OperatorFunction", wrapper),
             version=version or "v0.1",

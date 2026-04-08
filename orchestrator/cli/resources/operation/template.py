@@ -21,7 +21,7 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
-    OperatorFunctionConf,
+    OperatorReference,
 )
 
 
@@ -109,7 +109,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
     default_operation_parameters = operator.example_configuration if operator else None
 
     # Certain operators may not have a default configuration model
-    # Use an OperatorFunctionConf and set the values we have
+    # Use an OperatorReference and set the values we have
     if not default_operation_parameters:
 
         console_print(
@@ -120,7 +120,7 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
         default_operation_parameters = {}
 
     default_operation_configuration = DiscoveryOperationConfiguration(
-        module=OperatorFunctionConf(
+        module=OperatorReference(
             operatorName=parameters.operator_name,
             operationType=parameters.operator_type,
         ),

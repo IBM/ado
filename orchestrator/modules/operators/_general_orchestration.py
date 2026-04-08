@@ -12,7 +12,7 @@ import orchestrator.modules.operators._cleanup
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
-    OperatorFunctionConf,
+    OperatorReference,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
@@ -95,7 +95,7 @@ def orchestrate_general_operation(
             f"{operator_function.__name__}-namespace-{str(uuid.uuid4())[:8]}"
         )
 
-    operator_module = OperatorFunctionConf(
+    operator_module = OperatorReference(
         operatorName=operator_function.__name__,
         operationType=operation_type,
     )

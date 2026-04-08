@@ -12,8 +12,8 @@ from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
-    OperatorFunctionConf,
     OperatorModuleConf,
+    OperatorReference,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
@@ -164,11 +164,11 @@ def run_explore_operation_core_closure(
 
 
 def _resolve_operator_class(
-    operator_module: OperatorFunctionConf | OperatorModuleConf,
+    operator_module: OperatorReference | OperatorModuleConf,
 ) -> type:
     """Resolves the Ray actor class for an explore operator.
 
-    For ``OperatorFunctionConf`` the class is looked up from the explore
+    For ``OperatorReference`` the class is looked up from the explore
     collection using the registered operator name.  For ``OperatorModuleConf``
     the class is loaded dynamically from the module path (backward-compatible
     path for existing stored operations).
@@ -181,10 +181,10 @@ def _resolve_operator_class(
 
     Raises:
         ValueError: If no class has been registered for the operator name
-            (OperatorFunctionConf path) or the module cannot be loaded
+            (OperatorReference path) or the module cannot be loaded
             (OperatorModuleConf path).
     """
-    if isinstance(operator_module, OperatorFunctionConf):
+    if isinstance(operator_module, OperatorReference):
         from orchestrator.core.operation.config import DiscoveryOperationEnum
         from orchestrator.modules.operators.collections import (
             operationCollectionMap,
@@ -202,7 +202,7 @@ def _resolve_operator_class(
 
 
 def orchestrate_explore_operation(
-    operator_module: OperatorFunctionConf | OperatorModuleConf,
+    operator_module: OperatorReference | OperatorModuleConf,
     discovery_space: DiscoverySpace,
     parameters: dict,
     operation_info: FunctionOperationInfo,
@@ -220,7 +220,7 @@ def orchestrate_explore_operation(
     It calls run_operation_harness to create, store, and update the operation resource,
     execute the operation, handle exceptions, and store the operation results.
 
-    Both ``OperatorFunctionConf`` (the preferred path for newly registered
+    Both ``OperatorReference`` (the preferred path for newly registered
     operators) and ``OperatorModuleConf`` (backward-compatible path for
     operations stored before this change) are accepted.
 
@@ -252,7 +252,7 @@ def orchestrate_explore_operation(
     if not operation_info.ray_namespace:
         namespace_prefix = (
             operator_module.operatorName
-            if isinstance(operator_module, OperatorFunctionConf)
+            if isinstance(operator_module, OperatorReference)
             else operator_module.moduleClass
         )
         operation_info.ray_namespace = (
@@ -316,7 +316,21 @@ def orchestrate_explore_operation(
     operator_class = _resolve_operator_class(
         operator_module
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
-    operator_class.validateOperationParameters(parameters)
+    if isinstance(operator_module, OperatorReference):
+        # For function-conf operators validation uses the registered
+        # OperatorMetadata.configuration_model, so new classes that only
+        # implement operator_metadata() do not need validateOperationParameters().
+        from orchestrator.modules.operators.collections import operationCollectionMap
+
+        registered = operationCollectionMap[
+            operator_module.operationType
+        ].operators.get(operator_module.operatorName)
+        if registered and registered.configuration_model:
+            registered.configuration_model.model_validate(parameters)
+        else:
+            operator_class.validateOperationParameters(parameters)
+    else:
+        operator_class.validateOperationParameters(parameters)
 
     # Create operator actor
     operator = orchestrator.modules.operators.setup.setup_operator(

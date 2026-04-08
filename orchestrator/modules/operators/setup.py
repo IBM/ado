@@ -10,8 +10,8 @@ import pydantic
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
-    OperatorFunctionConf,
     OperatorModuleConf,
+    OperatorReference,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
@@ -135,7 +135,7 @@ def setup_actuators(
 
 
 def setup_operator(
-    operator_module: OperatorFunctionConf | OperatorModuleConf,
+    operator_module: OperatorReference | OperatorModuleConf,
     parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
@@ -144,7 +144,7 @@ def setup_operator(
 ) -> "OperatorActor":
     """Sets up and creates an operator actor for class-based explore operations.
 
-    Resolves the operator class from either an OperatorFunctionConf
+    Resolves the operator class from either an OperatorReference
     pr an ``OperatorModuleConf
 
     ray.remote is applied dynamically in both cases
@@ -169,7 +169,7 @@ def setup_operator(
 
     moduleLog.info("Creating operation")
 
-    if isinstance(operator_module, OperatorFunctionConf):
+    if isinstance(operator_module, OperatorReference):
         from orchestrator.core.operation.config import DiscoveryOperationEnum
         from orchestrator.modules.operators.collections import operationCollectionMap
 

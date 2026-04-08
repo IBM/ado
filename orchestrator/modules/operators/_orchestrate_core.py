@@ -13,8 +13,8 @@ from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
-    OperatorFunctionConf,
     OperatorModuleConf,
+    OperatorReference,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.core.operation.resource import (
@@ -46,7 +46,7 @@ def log_space_details(discovery_space: "DiscoverySpace") -> None:
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
     discovery_space: DiscoverySpace,
-    operator_module: OperatorModuleConf | OperatorFunctionConf,
+    operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     operation_identifier: str | None = None,

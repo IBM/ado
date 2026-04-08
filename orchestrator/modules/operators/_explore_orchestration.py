@@ -202,7 +202,7 @@ def _resolve_operator_class(
 
 
 def orchestrate_explore_operation(
-    operator_module: OperatorReference | OperatorModuleConf,
+    operator_reference: OperatorReference | OperatorModuleConf,
     discovery_space: DiscoverySpace,
     parameters: dict,
     operation_info: FunctionOperationInfo,
@@ -225,8 +225,8 @@ def orchestrate_explore_operation(
     operations stored before this change) are accepted.
 
     Params:
-        operator_module: Configuration identifying the operator — either a
-            function-conf referencing a registered name or a module-conf
+        operator_reference: Configuration identifying the operator — either a
+            an OperatorReference referencing a registered operator or a module-conf
             referencing a class directly.
         discovery_space: The discovery space to operate on
         parameters: Dictionary of parameters for the operation
@@ -251,9 +251,9 @@ def orchestrate_explore_operation(
 
     if not operation_info.ray_namespace:
         namespace_prefix = (
-            operator_module.operatorName
-            if isinstance(operator_module, OperatorReference)
-            else operator_module.moduleClass
+            operator_reference.operatorName
+            if isinstance(operator_reference, OperatorReference)
+            else operator_reference.moduleClass
         )
         operation_info.ray_namespace = (
             f"{namespace_prefix}-namespace-{str(uuid.uuid4())[:8]}"
@@ -314,27 +314,35 @@ def orchestrate_explore_operation(
 
     # Resolve the actor class and validate parameters
     operator_class = _resolve_operator_class(
-        operator_module
+        operator_reference
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
-    if isinstance(operator_module, OperatorReference):
+    if isinstance(operator_reference, OperatorReference):
         # For function-conf operators validation uses the registered
         # OperatorMetadata.configuration_model, so new classes that only
         # implement operator_metadata() do not need validateOperationParameters().
         from orchestrator.modules.operators.collections import operationCollectionMap
 
         registered = operationCollectionMap[
-            operator_module.operationType
-        ].operators.get(operator_module.operatorName)
+            operator_reference.operationType
+        ].operators.get(operator_reference.operatorName)
         if registered and registered.configuration_model:
             registered.configuration_model.model_validate(parameters)
         else:
-            operator_class.validateOperationParameters(parameters)
+            try:
+                operator_class.validateOperationParameters(parameters)
+            except NotImplementedError:
+                moduleLog.debug(
+                    "Skipping parameter validation for %s: no configuration_model "
+                    "registered and validateOperationParameters() not implemented. "
+                    "Set configuration_model in operator_metadata() to enable validation.",
+                    operator_class.__name__,
+                )
     else:
         operator_class.validateOperationParameters(parameters)
 
     # Create operator actor
     operator = orchestrator.modules.operators.setup.setup_operator(
-        operator_module=operator_module,
+        operator_module=operator_reference,
         parameters=parameters,
         discovery_space=discovery_space,
         actuators=actuators,
@@ -395,7 +403,7 @@ def orchestrate_explore_operation(
         operation_output = _run_operation_harness(
             run_closure=explore_run_closure,
             discovery_space=discovery_space,
-            operator_module=operator_module,
+            operator_module=operator_reference,
             operation_parameters=parameters,
             operation_info=operation_info,
             operation_identifier=identifier,

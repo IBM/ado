@@ -29,13 +29,10 @@ from orchestrator.core.discoveryspace.samplers import (
     SequentialSampleSelector,
     WalkModeEnum,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
-    FunctionOperationInfo,
-    OperatorReference,
+    OperatorMetadata,
 )
-from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
@@ -44,7 +41,6 @@ from orchestrator.modules.module import (
 from orchestrator.modules.operators.base import Characterize, measure_or_replay
 from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.modules.operators.orchestrate import orchestrate_explore_operation
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
@@ -981,27 +977,17 @@ class RandomWalk(Characterize):
 
         return DiscoveryOperationEnum.SEARCH
 
+    @classmethod
+    def operator_metadata(cls) -> OperatorMetadata:
+        """Returns operator metadata for the random_walk explore operator."""
+        return OperatorMetadata(
+            name="random_walk",
+            version=version("ado-core"),
+            description=cls.description(),
+            configuration_model=RandomWalkParameters,
+            example_configuration=RandomWalkParameters(),
+            type=DiscoveryOperationEnum.SEARCH,
+        )
 
-@explore_operation(
-    name="random_walk",
-    description=RandomWalk.description(),
-    configuration_model=RandomWalkParameters,
-    configuration_model_default=RandomWalkParameters(),
-    version=version("ado-core"),
-    operator_class=RandomWalk,
-)
-def random_walk(
-    discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: dict,
-) -> OperationOutput:
-    """Performs a random_walk operation on a given discoverySpace."""
-    return orchestrate_explore_operation(
-        discovery_space=discoverySpace,
-        operator_reference=OperatorReference(
-            operationType=DiscoveryOperationEnum.SEARCH,
-            operatorName="random_walk",
-        ),
-        parameters=kwargs,
-        operation_info=operationInfo or FunctionOperationInfo(),
-    )
+
+_ = explore_operation(RandomWalk)

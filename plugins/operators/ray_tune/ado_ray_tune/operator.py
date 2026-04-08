@@ -25,6 +25,7 @@ from orchestrator.core.discoveryspace.space import (
 )
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
+    OperatorMetadata,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.operation.resource import (
@@ -37,6 +38,7 @@ from orchestrator.modules.operators.base import (
     Search,
     measure_or_replay,
 )
+from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from orchestrator.schema.domain import PropertyDomain
 from orchestrator.schema.entity import (
@@ -1008,3 +1010,20 @@ class RayTune(Search):
     @classmethod
     def operationType(cls) -> DiscoveryOperationEnum:
         return DiscoveryOperationEnum.SEARCH
+
+    @classmethod
+    def operator_metadata(cls) -> OperatorMetadata:
+        """Returns operator metadata for the ray_tune explore operator."""
+        from importlib.metadata import version
+
+        return OperatorMetadata(
+            name="ray_tune",
+            version=version("ado-ray-tune"),
+            description=cls.description(),
+            configuration_model=RayTuneConfiguration,
+            example_configuration=cls.defaultOperationParameters(),
+            type=DiscoveryOperationEnum.SEARCH,
+        )
+
+
+_ = explore_operation(RayTune)

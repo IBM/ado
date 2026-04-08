@@ -20,6 +20,7 @@ from orchestrator.core.operation.config import (
 )
 from orchestrator.modules.operators.base import (
     DiscoveryOperationBase,
+    DiscoverySpaceSubscribingDiscoveryOperation,
     OperationOutput,
     OperatorFunction,
 )
@@ -29,27 +30,6 @@ from orchestrator.modules.operators.orchestrate import (
 )
 
 moduleLog = logging.getLogger("operation_collections")
-
-
-def _validate_operator_cls(cls: type, context: str) -> None:
-    """Assert that ``cls`` is a subclass of :class:`DiscoveryOperationBase`.
-
-    ``OperatorMetadata.cls`` is typed as ``type | None`` in the core layer to
-    keep ``config.py`` decoupled from ``base.py``.  This function is the single
-    place in ``modules/operators`` where the concrete constraint is enforced.
-
-    Args:
-        cls: The class to validate.
-        context: A short description of the call site, included in the error
-            message.
-
-    Raises:
-        TypeError: If ``cls`` is not a subclass of ``DiscoveryOperationBase``.
-    """
-    if not (isinstance(cls, type) and issubclass(cls, DiscoveryOperationBase)):
-        raise TypeError(
-            f"{context}: expected a DiscoveryOperationBase subclass, got {cls!r}."
-        )
 
 
 class OperatorCollection(pydantic.BaseModel):
@@ -301,11 +281,43 @@ def characterize_operation(
     return _register
 
 
+def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
+    """Validate a class-decorated explore operator and its metadata.
+
+    Args:
+        t: The decorated class.
+        metadata: The :class:`~orchestrator.core.operation.config.OperatorMetadata`
+            returned by ``t.operator_metadata()``.
+
+    Raises:
+        TypeError: If ``t`` is not a
+            :class:`~orchestrator.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
+            subclass, if ``metadata.configuration_model`` is not set, or if
+            ``metadata.cls`` is set to a class other than ``t``.
+    """
+    if not issubclass(t, DiscoverySpaceSubscribingDiscoveryOperation):
+        raise TypeError(
+            f"@explore_operation: {t.__name__} must be a subclass of "
+            "DiscoverySpaceSubscribingDiscoveryOperation (i.e. inherit from "
+            "Search or Characterize)."
+        )
+    if metadata.configuration_model is None:
+        raise TypeError(
+            f"@explore_operation on {t.__name__}: operator_metadata() must set "
+            "configuration_model."
+        )
+    if metadata.cls is not None and metadata.cls is not t:
+        raise TypeError(
+            f"@explore_operation on {t.__name__}: operator_metadata().cls is "
+            f"{metadata.cls!r} but the decorated class is {t!r}. "
+            "Leave cls as None in operator_metadata() — the decorator sets it."
+        )
+
+
 def explore_operation(
     target: "type[DiscoveryOperationBase] | None" = None,
     *,
     name: str | None = None,
-    operator_class: "type[DiscoveryOperationBase] | None" = None,
     description: str | None = None,
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
@@ -315,13 +327,11 @@ def explore_operation(
 
     Supports two usage patterns:
 
-    **Class decoration** (no arguments) — all metadata is taken from the
-    class's :meth:`~orchestrator.modules.operators.base.DiscoveryOperationBase.operator_metadata`
-    classmethod.  The decorator generates the :data:`~orchestrator.modules.operators.base.OperatorFunction`
-    body, fills in ``function`` and ``cls`` on the returned
-    :class:`~orchestrator.core.operation.config.OperatorMetadata`, and
-    registers it.  The name bound in the decorated module's scope becomes the
-    generated function::
+    **Class decoration** (preferred, no arguments) — all metadata comes from
+    the class's ``operator_metadata()`` classmethod.  The decorator validates
+    the class, generates the
+    :data:`~orchestrator.modules.operators.base.OperatorFunction` body, fills
+    in ``function`` and ``cls``, and registers the operator::
 
         @explore_operation
         class MyOp(Search):
@@ -337,29 +347,29 @@ def explore_operation(
                 )
             ...
 
-    **Function decoration** (with keyword arguments) — all metadata is
-    supplied via decorator arguments, matching the classic pattern::
+    **Function decoration** (legacy, with keyword arguments) — for existing
+    operators that call ``orchestrate_explore_operation`` directly.  The
+    function must pass an ``OperatorModuleConf`` to ``orchestrate_explore_operation``::
 
-        @explore_operation(name="my_op", operator_class=MyOp, ...)
+        @explore_operation(name="my_op", ...)
         def my_op(
             discoverySpace: DiscoverySpace,
             operationInfo: FunctionOperationInfo | None = None,
             **kwargs: object,
         ) -> OperationOutput:
-            return orchestrate_explore_operation(...)
+            return orchestrate_explore_operation(
+                operator_reference=OperatorModuleConf(...), ...
+            )
 
     Args:
         target: Set automatically when the decorator is used without parentheses
             (class path).  Do not pass this argument explicitly.
         name: Canonical operator name (function path only; required).
-        operator_class: The class implementing the operation (function path
-            only; optional).  Unwrapped from ``@ray.remote`` if necessary.
         description: Human-readable description shown in the registry.
-        configuration_model: Pydantic model used to validate operation
-            parameters (function path only).
-        version: Semantic version string included in the
-            :attr:`~orchestrator.core.operation.config.OperatorMetadata.operatorIdentifier`
-            (e.g. ``"v0.1"``).
+        configuration_model: Pydantic model for display in the registry
+            (function path only; validation uses the class's
+            ``operator_metadata()`` at runtime).
+        version: Semantic version string (e.g. ``"v0.1"``).
         configuration_model_default: Default parameter model instance
             (function path only).
 
@@ -370,7 +380,9 @@ def explore_operation(
 
     Raises:
         NotImplementedError: (class path) If the decorated class has not
-            implemented ``operator_metadata()``.
+            implemented ``operator_metadata()`` or the legacy classmethods.
+        TypeError: (class path) If the class fails validation (see
+            :func:`_validate_explore_cls`).
         TypeError: (function path) If ``name`` is not provided.
     """
 
@@ -379,24 +391,13 @@ def explore_operation(
     ) -> OperatorFunction:
         import inspect
 
-        from orchestrator.utilities.ray import extract_base_class
-
         if inspect.isclass(t) and issubclass(t, DiscoveryOperationBase):
             # ------------------------------------------------------------------
-            # Class decoration path — metadata from cls.operator_metadata()
-            # Class-decorated operators are never also @ray.remote, so t is
-            # always the plain Python class — no Ray unwrapping needed.
+            # Class decoration path
             # ------------------------------------------------------------------
-            metadata = (
-                t.operator_metadata()
-            )  # raises NotImplementedError if not overridden
+            metadata = t.operator_metadata()  # raises NotImplementedError if absent
+            _validate_explore_cls(t, metadata)
             op_name = metadata.name
-            if metadata.configuration_model is None:
-                raise TypeError(
-                    f"@explore_operation on {t.__name__}: configuration_model must be "
-                    "set in operator_metadata(). Provide it via the "
-                    "configuration_model field."
-                )
 
             def _generated(
                 discoverySpace: DiscoverySpace,
@@ -425,94 +426,20 @@ def explore_operation(
             return typing.cast("OperatorFunction", _generated)
 
         # ------------------------------------------------------------------
-        # Function decoration path — metadata from decorator arguments,
-        # supplemented by operator_class.operator_metadata() when available.
+        # Function decoration path (legacy)
         # ------------------------------------------------------------------
         if name is None:
             raise TypeError(
                 "explore_operation: 'name' must be provided when decorating a function."
             )
         func = typing.cast("OperatorFunction", t)
-        resolved_cls = None
-        base_meta: OperatorMetadata | None = None
-        if operator_class is not None:
-            resolved_cls = extract_base_class(operator_class, DiscoveryOperationBase)
-            _validate_operator_cls(
-                resolved_cls,
-                f"@explore_operation(name={name!r}, operator_class=...)",
-            )
-            import contextlib
-
-            with contextlib.suppress(NotImplementedError):
-                base_meta = resolved_cls.operator_metadata()
-
-        def _log_override(field: str, base_val: object, new_val: object) -> None:
-            if base_val is not None and new_val != base_val:
-                moduleLog.info(
-                    "explore_operation %r: decorator arg '%s' overrides "
-                    "class operator_metadata() value %r with %r",
-                    name,
-                    field,
-                    base_val,
-                    new_val,
-                )
-
-        if configuration_model is not None:
-            _log_override(
-                "configuration_model",
-                base_meta.configuration_model if base_meta else None,
-                configuration_model,
-            )
-            final_config_model = configuration_model
-        else:
-            final_config_model = base_meta.configuration_model if base_meta else None
-
-        if configuration_model_default is not None:
-            _log_override(
-                "example_configuration",
-                base_meta.example_configuration if base_meta else None,
-                configuration_model_default,
-            )
-            final_example = configuration_model_default
-        else:
-            final_example = base_meta.example_configuration if base_meta else None
-
-        if description is not None:
-            _log_override(
-                "description",
-                base_meta.description if base_meta else None,
-                description,
-            )
-            final_description = description
-        else:
-            final_description = base_meta.description if base_meta else None
-
-        # version defaults to "v0.1" in the signature; prefer the class value
-        # when the decorator relies on the sentinel default.
-        if version != "v0.1":
-            _log_override(
-                "version",
-                base_meta.version if base_meta else None,
-                version,
-            )
-            final_version = version
-        else:
-            final_version = (base_meta.version if base_meta else None) or "v0.1"
-
-        if final_config_model is None:
-            raise TypeError(
-                f"explore_operation {name!r}: configuration_model must be set. "
-                "Supply it via the decorator arg or operator_class.operator_metadata()."
-            )
-
         explore.operators[name] = OperatorMetadata(
             name=name,
-            cls=resolved_cls,
             function=func,
-            version=final_version or "v0.1",
-            description=final_description,
-            configuration_model=final_config_model,
-            example_configuration=final_example,
+            version=version or "v0.1",
+            description=description,
+            configuration_model=configuration_model,
+            example_configuration=configuration_model_default,
             type=DiscoveryOperationEnum.SEARCH,
         )
         return func

@@ -49,7 +49,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
         for (
             collection
         ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
-            operator_names.extend(collection.function_operations)
+            operator_names.extend(collection.operators.keys())
 
         if parameters.resource_id:
             # Single operator: verify it exists and output its name

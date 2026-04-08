@@ -144,10 +144,8 @@ def setup_operator(
 ) -> "OperatorActor":
     """Sets up and creates an operator actor for class-based explore operations.
 
-    Resolves the operator class from either an OperatorReference
-    pr an ``OperatorModuleConf
-
-    ray.remote is applied dynamically in both cases
+    Instantiates an operator class as a ray Actor from either an OperatorReference
+    or an OperatorModuleConf
 
     Params:
         operator_module: Configuration identifying the operator — either a
@@ -170,11 +168,10 @@ def setup_operator(
     moduleLog.info("Creating operation")
 
     if isinstance(operator_module, OperatorReference):
-        from orchestrator.core.operation.config import DiscoveryOperationEnum
         from orchestrator.modules.operators.collections import operationCollectionMap
 
         registered_operator = operationCollectionMap[
-            DiscoveryOperationEnum.SEARCH
+            operator_module.operationType
         ].operators.get(operator_module.operatorName)
         if registered_operator is None or registered_operator.cls is None:
             raise ValueError(

@@ -15,6 +15,7 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
+    OperatorModuleConf,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.metastore.base import ResourceDoesNotExistError
@@ -55,6 +56,24 @@ def graceful_orchestrate_shutdown() -> None:
         moduleLog.info("Waiting for logs to flush ...")
         time.sleep(10)
         moduleLog.info("Graceful shutdown complete")
+
+
+def _check_if_using_unsupported_operator_module_conf(
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
+    if isinstance(
+        operation_resource_configuration.operation.module, OperatorModuleConf
+    ):
+        moduleLog.warning(
+            "The supplied operation configuration uses the unsupported OperatorModuleConf format "
+            "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
+            "instead. See the documentation for migration guidance."
+        )
+        raise ValueError(
+            "The supplied operation configuration uses the unsupported OperatorModuleConf format "
+            "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
+            "instead. See the documentation for migration guidance."
+        ) from None
 
 
 def orchestrate(
@@ -152,22 +171,13 @@ def orchestrate(
         operation_parameters = operation_parameters.model_dump()
 
     try:
-        try:
-            operator_fn = (
-                operation_resource_configuration.operation.module.operationFunction()
-            )
-        except AttributeError as error:
-            moduleLog.warning(
-                "The supplied operation configuration uses the unsupported OperatorModuleConf format "
-                "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
-                "instead. See the documentation for migration guidance."
-            )
-            raise ValueError(
-                "The supplied operation configuration uses the unsupported OperatorModuleConf format "
-                "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
-                "instead. See the documentation for migration guidance."
-            ) from error
+        _check_if_using_unsupported_operator_module_conf(
+            operation_resource_configuration
+        )
 
+        operator_fn = (
+            operation_resource_configuration.operation.module.operationFunction()
+        )
         output = operator_fn(
             discovery_space,
             operationInfo=operation_info,

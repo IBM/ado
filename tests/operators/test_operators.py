@@ -870,16 +870,24 @@ def test_explore_operation_class_decorator_missing_operator_metadata_raises() ->
                 pass
 
 
-def test_explore_operation_function_decorator_unchanged() -> None:
-    """Existing function-decoration path still registers correctly (regression guard)."""
+def test_random_walk_registration() -> None:
     from orchestrator.modules.operators.collections import explore
 
-    # random_walk is registered via the function decorator path
     assert "random_walk" in explore.operators
     rw = explore.operators["random_walk"]
     assert rw.name == "random_walk"
     assert rw.cls is not None
     assert callable(rw.function)
+
+
+def test_ray_tune_registration() -> None:
+    from orchestrator.modules.operators.collections import explore
+
+    assert "ray_tune" in explore.operators
+    rt = explore.operators["ray_tune"]
+    assert rt.name == "ray_tune"
+    assert rt.cls is not None
+    assert callable(rt.function)
 
 
 def test_explore_operation_function_decorator_missing_name_raises() -> None:

@@ -103,7 +103,7 @@ def _run_operation_harness(
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,
         exit_state=OperationExitStateEnum.ERROR,
-        message="Operation exited due to    uncaught exception)",
+        message="Operation exited due to uncaught exception)",
     )
     try:
         operation_resource.status.append(

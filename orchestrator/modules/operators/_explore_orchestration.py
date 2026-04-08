@@ -164,17 +164,16 @@ def run_explore_operation_core_closure(
 
 
 def _resolve_operator_class(
-    operator_module: OperatorReference | OperatorModuleConf,
+    operator_reference: OperatorReference | OperatorModuleConf,
 ) -> type:
-    """Resolves the Ray actor class for an explore operator.
+    """Resolves the class for an explore operator.
 
     For ``OperatorReference`` the class is looked up from the explore
     collection using the registered operator name.  For ``OperatorModuleConf``
-    the class is loaded dynamically from the module path (backward-compatible
-    path for existing stored operations).
+    the class is loaded dynamically from the module path
 
     Args:
-        operator_module: Either a function-based or module-based operator conf.
+        operator_reference: Either an OperatorReference of OperatorModuleConf
 
     Returns:
         The DiscoveryOperationBase subclass for this operator.
@@ -184,21 +183,20 @@ def _resolve_operator_class(
             (OperatorReference path) or the module cannot be loaded
             (OperatorModuleConf path).
     """
-    if isinstance(operator_module, OperatorReference):
-        from orchestrator.core.operation.config import DiscoveryOperationEnum
+    if isinstance(operator_reference, OperatorReference):
         from orchestrator.modules.operators.collections import (
             operationCollectionMap,
         )
 
-        operator = operationCollectionMap[DiscoveryOperationEnum.SEARCH].operators.get(
-            operator_module.operatorName
-        )
+        operator = operationCollectionMap[
+            operator_reference.operationType
+        ].operators.get(operator_reference.operatorName)
         if operator is None or operator.cls is None:
             raise ValueError(
-                f"No operator class registered for {operator_module.operatorName}"
+                f"No operator class registered for {operator_reference.operatorName}"
             )
         return operator.cls
-    return load_module_class_or_function(operator_module)
+    return load_module_class_or_function(operator_reference)
 
 
 def orchestrate_explore_operation(
@@ -220,12 +218,8 @@ def orchestrate_explore_operation(
     It calls run_operation_harness to create, store, and update the operation resource,
     execute the operation, handle exceptions, and store the operation results.
 
-    Both ``OperatorReference`` (the preferred path for newly registered
-    operators) and ``OperatorModuleConf`` (backward-compatible path for
-    operations stored before this change) are accepted.
-
     Params:
-        operator_reference: Configuration identifying the operator — either a
+        operator_reference: Configuration identifying the operator — either
             an OperatorReference referencing a registered operator or a module-conf
             referencing a class directly.
         discovery_space: The discovery space to operate on
@@ -316,22 +310,9 @@ def orchestrate_explore_operation(
     operator_class = _resolve_operator_class(
         operator_reference
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
-    if isinstance(operator_reference, OperatorReference):
-        from orchestrator.modules.operators.collections import operationCollectionMap
 
-        registered = operationCollectionMap[
-            operator_reference.operationType
-        ].operators.get(operator_reference.operatorName)
-        if registered is None:
-            raise ValueError(
-                f"Operator {operator_reference.operatorName!r} is not registered in "
-                f"the {operator_reference.operationType} collection."
-            )
-        registered.configuration_model.model_validate(parameters)
-    else:
-        # OperatorModuleConf (deprecated): obtain OperatorMetadata from the class.
-        op_metadata = operator_class.operator_metadata()
-        op_metadata.configuration_model.model_validate(parameters)
+    op_metadata = operator_class.operator_metadata()
+    op_metadata.configuration_model.model_validate(parameters)
 
     # Create operator actor
     operator = orchestrator.modules.operators.setup.setup_operator(

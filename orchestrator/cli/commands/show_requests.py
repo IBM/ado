@@ -66,6 +66,16 @@ def show_requests_for_resources(
             """,
         ),
     ] = None,
+    no_trunc: Annotated[
+        bool,
+        typer.Option(
+            "--no-trunc",
+            help="""
+            Prevent truncation of table content. When enabled, columns will be sized to fit all content
+            without truncation. Only applies to console output format.
+            """,
+        ),
+    ] = False,
 ) -> None:
     """
     Show the timeseries of requests for an operation.
@@ -114,6 +124,7 @@ def show_requests_for_resources(
     parameters = AdoShowRequestsCommandParameters(
         ado_configuration=ado_configuration,
         hide_fields=hide_fields,
+        no_trunc=no_trunc,
         output_format=output_format,
         resource_id=resource_id,
     )

@@ -8,6 +8,7 @@ import typing
 import uuid
 from builtins import anext
 from collections.abc import AsyncGenerator
+from importlib.metadata import version
 from queue import Empty, Queue
 from typing import Annotated, Literal
 
@@ -986,6 +987,7 @@ class RandomWalk(Characterize):
     description=RandomWalk.description(),
     configuration_model=RandomWalkParameters,
     configuration_model_default=RandomWalkParameters(),
+    version=version("ado-core"),
     operator_class=RandomWalk,
 )
 def random_walk(

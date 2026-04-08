@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import typing
+from importlib.metadata import version
 from typing import Annotated
 
 import pydantic
@@ -93,6 +94,7 @@ class RifferlaParameters(pydantic.BaseModel):
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
     configuration_model_default=RifferlaParameters.defaultOperationParameters(),
+    version=version("ado-ray-tune"),
 )
 def rifferla(
     discoverySpace: DiscoverySpace,

@@ -192,6 +192,7 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
         df=output_df,
         output_format=parameters.entities_output_format.value,
         file_name=file_name,
+        no_trunc=parameters.no_trunc,
     )
 
 

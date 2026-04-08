@@ -26,6 +26,19 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
         stderr=True,
     )
 
+    # Validate output format early
+    if parameters.output_format not in {
+        AdoGetSupportedOutputFormats.DEFAULT,
+        AdoGetSupportedOutputFormats.NAME,
+    }:
+        console_print(
+            f"{ERROR}Only the {AdoGetSupportedOutputFormats.DEFAULT.value} and "
+            f"{AdoGetSupportedOutputFormats.NAME.value} output formats "
+            "are supported by this command.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     import pandas as pd
 
     from orchestrator.modules.actuators.registry import ActuatorRegistry
@@ -47,15 +60,17 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
             )
             raise typer.Exit(1)
 
-        # Validate output format
-        if parameters.output_format != AdoGetSupportedOutputFormats.DEFAULT:
+        # Handle NAME output format
+        if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
             spinner.stop()
-            console_print(
-                f"{ERROR}Only the {AdoGetSupportedOutputFormats.DEFAULT.value} output format "
-                "is supported by this command.",
-                stderr=True,
-            )
-            raise typer.Exit(1)
+            if parameters.resource_id:
+                # Single actuator: output its identifier (existence already validated above)
+                console_print(parameters.resource_id)
+            else:
+                # Multiple actuators: output all identifiers
+                for actuator_id in available_actuators:
+                    console_print(actuator_id)
+            return
 
         spinner.update(ADO_SPINNER_GETTING_OUTPUT_READY)
 
@@ -97,5 +112,10 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
             return
 
     console_print(
-        dataframe_to_rich_table(output_df, box=rich.box.SQUARE, show_edge=True)
+        dataframe_to_rich_table(
+            output_df,
+            box=rich.box.SQUARE,
+            show_edge=True,
+            do_not_truncate_column_content=parameters.no_trunc,
+        )
     )

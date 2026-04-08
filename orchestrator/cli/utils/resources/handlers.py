@@ -65,6 +65,35 @@ def handle_ado_get_special_formats(
     )
     with Status(ADO_SPINNER_QUERYING_DB) as status:
 
+        if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
+            # NAME format: output only resource identifiers
+            if parameters.resource_id:
+                # Single resource: verify it exists and output its identifier
+                if not sql_store.containsResourceWithIdentifier(
+                    identifier=parameters.resource_id, kind=resource_type
+                ):
+                    status.stop()
+                    raise ResourceDoesNotExistError(
+                        resource_id=parameters.resource_id, kind=resource_type
+                    )
+                status.stop()
+                console_print(parameters.resource_id)
+            else:
+                # Multiple resources: use efficient getResourceIdentifiersOfKind
+                identifiers_df = sql_store.getResourceIdentifiersOfKind(
+                    kind=resource_type.value,
+                    field_selectors=parameters.field_selectors,
+                    details=False,
+                )
+                status.stop()
+                if identifiers_df.empty:
+                    console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+                    return
+                # Output one identifier per line
+                for identifier in identifiers_df["IDENTIFIER"]:
+                    console_print(identifier)
+            return
+
         if parameters.output_format == AdoGetSupportedOutputFormats.RAW:
 
             if not parameters.resource_id:
@@ -134,7 +163,11 @@ def handle_ado_get_default_format(
 
             console_print(
                 dataframe_to_rich_table(
-                    output_df, box=rich.box.SQUARE, show_index=True, show_edge=True
+                    output_df,
+                    box=rich.box.SQUARE,
+                    show_index=True,
+                    show_edge=True,
+                    do_not_truncate_column_content=parameters.no_trunc,
                 )
             )
             return
@@ -154,7 +187,12 @@ def handle_ado_get_default_format(
         )
 
         console_print(
-            dataframe_to_rich_table(output_df, box=rich.box.SQUARE, show_edge=True)
+            dataframe_to_rich_table(
+                output_df,
+                box=rich.box.SQUARE,
+                show_edge=True,
+                do_not_truncate_column_content=parameters.no_trunc,
+            )
         )
 
 

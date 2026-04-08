@@ -28,14 +28,46 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
 
         import orchestrator.modules.operators.collections
 
-    if parameters.output_format != AdoGetSupportedOutputFormats.DEFAULT:
+    # Validate output format
+    if parameters.output_format not in {
+        AdoGetSupportedOutputFormats.DEFAULT,
+        AdoGetSupportedOutputFormats.NAME,
+    }:
         console_print(
             f"{WARN}{cyan('ado get operators')} only supports the "
-            f"{AdoGetSupportedOutputFormats.DEFAULT.value} output format",
+            f"{AdoGetSupportedOutputFormats.DEFAULT.value} and "
+            f"{AdoGetSupportedOutputFormats.NAME.value} output formats",
             stderr=True,
         )
         parameters.output_format = AdoGetSupportedOutputFormats.DEFAULT
 
+    # Handle NAME output format
+    if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
+
+        # Collect all operator names
+        operator_names = []
+        for (
+            collection
+        ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
+            operator_names.extend(collection.function_operations)
+
+        if parameters.resource_id:
+            # Single operator: verify it exists and output its name
+            if parameters.resource_id not in operator_names:
+                console_print(
+                    f"{ERROR}{parameters.resource_id} is not among the available operators.\n"
+                    f"{HINT}Run {cyan('ado get operators')} to list them.",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
+            console_print(parameters.resource_id)
+        else:
+            # Multiple operators: output all names
+            for operator_name in sorted(operator_names):
+                console_print(operator_name)
+        return
+
+    # Build entries for DEFAULT format
     entries = []
     for (
         collection
@@ -43,6 +75,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
         for operator_name, operator in collection.operators.items():
             entry = {
                 "OPERATOR": operator_name,
+                "VERSION": operator.version,
                 "TYPE": collection.type.value,
             }
             if parameters.show_details:
@@ -79,6 +112,10 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     operators = operators.sort_values(by=["TYPE", "OPERATOR"]).reset_index(drop=True)
     console_print(
         dataframe_to_rich_table(
-            operators, show_edge=True, show_index=True, box=rich.box.SQUARE
+            operators,
+            show_edge=True,
+            show_index=True,
+            box=rich.box.SQUARE,
+            do_not_truncate_column_content=parameters.no_trunc,
         )
     )

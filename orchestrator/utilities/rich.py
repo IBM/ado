@@ -75,6 +75,7 @@ def dataframe_to_rich_table(
     # Initialize variables for column width control
     table_width = None
     column_width = {}
+    console_width = Console().width
 
     # Determine which columns need width calculation based on input type
     columns_with_no_truncation = []
@@ -112,11 +113,33 @@ def dataframe_to_rich_table(
 
             column_width[col] = max(name_len, content_len)
 
-        # ONLY set table width if truncation is disabled for ALL columns
-        if disable_truncation_for_all_columns:
-            # Calculate total table width for ALL non-truncated columns
-            # Formula: sum of widths + padding (2 per col) + separators (1 per col + 1)
-            table_width = sum(column_width.values()) + len(column_width) * 3 + 1
+        # The minimum required table width for us is given by:
+        # the width of the non truncated columns
+        # + 1 character per truncated column (ellipsis …)
+        # + 3 characters per column (2 padding whitespaces and one separator)
+        # + 1 additional separator
+        # If it's less than that, the table will be rendered with empty columns
+        # or might not have all columns.
+        total_column_count = len(df.columns) + (1 if show_index else 0)
+        non_truncated_width = sum(column_width.values())
+        truncated_column_count = total_column_count - len(column_width)
+        minimum_truncated_width = truncated_column_count
+        minimum_required_table_width = (
+            non_truncated_width + minimum_truncated_width + total_column_count * 3 + 1
+        )
+
+        # Set table width when truncation is disabled for all columns, or when
+        # the console is too narrow to show even the minimum content for the
+        # current non-truncated/truncated column mix.
+        if (
+            disable_truncation_for_all_columns
+            or minimum_required_table_width > console_width
+        ):
+            if disable_truncation_for_all_columns:
+                # Formula: sum of widths + padding (2 per col) + separators (1 per col + 1)
+                table_width = non_truncated_width + total_column_count * 3 + 1
+            else:
+                table_width = minimum_required_table_width
         # else: table_width remains None, let rich handle it
 
     table = Table(

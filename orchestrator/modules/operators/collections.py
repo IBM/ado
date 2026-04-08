@@ -391,6 +391,12 @@ def explore_operation(
                 t.operator_metadata()
             )  # raises NotImplementedError if not overridden
             op_name = metadata.name
+            if metadata.configuration_model is None:
+                raise TypeError(
+                    f"@explore_operation on {t.__name__}: configuration_model must be "
+                    "set in operator_metadata(). Provide it via the "
+                    "configuration_model field."
+                )
 
             def _generated(
                 discoverySpace: DiscoverySpace,
@@ -419,7 +425,8 @@ def explore_operation(
             return typing.cast("OperatorFunction", _generated)
 
         # ------------------------------------------------------------------
-        # Function decoration path — metadata from decorator arguments
+        # Function decoration path — metadata from decorator arguments,
+        # supplemented by operator_class.operator_metadata() when available.
         # ------------------------------------------------------------------
         if name is None:
             raise TypeError(
@@ -427,20 +434,85 @@ def explore_operation(
             )
         func = typing.cast("OperatorFunction", t)
         resolved_cls = None
+        base_meta: OperatorMetadata | None = None
         if operator_class is not None:
             resolved_cls = extract_base_class(operator_class, DiscoveryOperationBase)
             _validate_operator_cls(
                 resolved_cls,
                 f"@explore_operation(name={name!r}, operator_class=...)",
             )
+            import contextlib
+
+            with contextlib.suppress(NotImplementedError):
+                base_meta = resolved_cls.operator_metadata()
+
+        def _log_override(field: str, base_val: object, new_val: object) -> None:
+            if base_val is not None and new_val != base_val:
+                moduleLog.info(
+                    "explore_operation %r: decorator arg '%s' overrides "
+                    "class operator_metadata() value %r with %r",
+                    name,
+                    field,
+                    base_val,
+                    new_val,
+                )
+
+        if configuration_model is not None:
+            _log_override(
+                "configuration_model",
+                base_meta.configuration_model if base_meta else None,
+                configuration_model,
+            )
+            final_config_model = configuration_model
+        else:
+            final_config_model = base_meta.configuration_model if base_meta else None
+
+        if configuration_model_default is not None:
+            _log_override(
+                "example_configuration",
+                base_meta.example_configuration if base_meta else None,
+                configuration_model_default,
+            )
+            final_example = configuration_model_default
+        else:
+            final_example = base_meta.example_configuration if base_meta else None
+
+        if description is not None:
+            _log_override(
+                "description",
+                base_meta.description if base_meta else None,
+                description,
+            )
+            final_description = description
+        else:
+            final_description = base_meta.description if base_meta else None
+
+        # version defaults to "v0.1" in the signature; prefer the class value
+        # when the decorator relies on the sentinel default.
+        if version != "v0.1":
+            _log_override(
+                "version",
+                base_meta.version if base_meta else None,
+                version,
+            )
+            final_version = version
+        else:
+            final_version = (base_meta.version if base_meta else None) or "v0.1"
+
+        if final_config_model is None:
+            raise TypeError(
+                f"explore_operation {name!r}: configuration_model must be set. "
+                "Supply it via the decorator arg or operator_class.operator_metadata()."
+            )
+
         explore.operators[name] = OperatorMetadata(
             name=name,
             cls=resolved_cls,
             function=func,
-            version=version or "v0.1",
-            description=description,
-            configuration_model=configuration_model,
-            example_configuration=configuration_model_default,
+            version=final_version or "v0.1",
+            description=final_description,
+            configuration_model=final_config_model,
+            example_configuration=final_example,
             type=DiscoveryOperationEnum.SEARCH,
         )
         return func

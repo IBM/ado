@@ -508,7 +508,7 @@ measurements:
 
 <!-- markdownlint-disable-next-line code-block-style -->
 ```commandline
-ado show entities --output-format csv --property-format=target space --use-latest
+ado show entities --output csv --property-format=target space --use-latest > entities.csv
 ```
 
 > [!NOTE]

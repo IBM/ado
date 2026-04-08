@@ -998,7 +998,7 @@ def random_walk(
     """Performs a random_walk operation on a given discoverySpace."""
     return orchestrate_explore_operation(
         discovery_space=discoverySpace,
-        operator_module=OperatorReference(
+        operator_reference=OperatorReference(
             operationType=DiscoveryOperationEnum.SEARCH,
             operatorName="random_walk",
         ),

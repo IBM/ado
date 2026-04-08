@@ -34,7 +34,7 @@ def ray_tune(
     """Performs a ray_tune operation on a given discoverySpace."""
     return orchestrate_explore_operation(
         discovery_space=discoverySpace,
-        operator_module=OperatorFunctionConf(
+        operator_reference=OperatorFunctionConf(
             operationType=DiscoveryOperationEnum.SEARCH,
             operatorName="ray_tune",
         ),

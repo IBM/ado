@@ -399,7 +399,7 @@ def explore_operation(
             ) -> OperationOutput:
                 return orchestrate_explore_operation(
                     discovery_space=discoverySpace,
-                    operator_module=OperatorReference(
+                    operator_reference=OperatorReference(
                         operationType=DiscoveryOperationEnum.SEARCH,
                         operatorName=op_name,
                     ),

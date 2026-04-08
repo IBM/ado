@@ -23,6 +23,9 @@ from orchestrator.utilities.strings import (
 
 def get_operator(parameters: AdoGetCommandParameters) -> None:
 
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["OPERATOR"]
+
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
         import pandas as pd
 

@@ -25,11 +25,12 @@ from orchestrator.modules.operators._cleanup import (
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
 )
-from orchestrator.modules.operators._explore_orchestration import (
-    orchestrate_explore_operation,
-)
 
-# Want this function to be accessed via this module not the private module
+# These functions are re-exported via this module — keep the imports even if
+# not referenced locally.
+from orchestrator.modules.operators._explore_orchestration import (
+    orchestrate_explore_operation,  # noqa: F401
+)
 from orchestrator.modules.operators._general_orchestration import (
     orchestrate_general_operation,  # noqa: F401
 )
@@ -151,32 +152,27 @@ def orchestrate(
         operation_parameters = operation_parameters.model_dump()
 
     try:
-        if isinstance(
-            operation_resource_configuration.operation.module,
-            orchestrator.core.operation.config.OperatorModuleConf,
-        ):
-            if (
-                operation_resource_configuration.operation.module.operationType
-                == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
-            ):
-                output = orchestrate_explore_operation(
-                    operator_module=operation_resource_configuration.operation.module,
-                    discovery_space=discovery_space,
-                    parameters=operation_parameters,
-                    operation_info=operation_info,
-                )
-            else:
-                raise ValueError(
-                    "Implementing operations as classes is only supported for explore operations"
-                )
-        else:
-            output = (
-                operation_resource_configuration.operation.module.operationFunction()(
-                    discovery_space,
-                    operationInfo=operation_info,
-                    **operation_parameters,
-                )
-            )  # type: OperationOutput
+        try:
+            operator_fn = (
+                operation_resource_configuration.operation.module.operationFunction()
+            )
+        except AttributeError:
+            moduleLog.warning(
+                "The operation configuration uses the deprecated OperatorModuleConf format "
+                "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
+                "instead. See the documentation for migration guidance."
+            )
+            raise AttributeError(
+                "Operation module does not support operationFunction(). "
+                "The moduleName/moduleClass (OperatorModuleConf) format is deprecated — "
+                "update the operation configuration to use operatorName/operationType instead."
+            ) from None
+
+        output = operator_fn(
+            discovery_space,
+            operationInfo=operation_info,
+            **operation_parameters,
+        )  # type: OperationOutput
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
         raise

@@ -89,8 +89,9 @@ for same YAML.
 
 ### Large output files
 
-The files created by '-o/--output-format' can be very large e.g. from "show
-entities".
+The output produced by '-o/--output' can be very large e.g. from "show entities".
+Use the `--output-file` flag with the name of the file where to save the output
+and, when inspecting these files:
 
 When inspecting these files:
 
@@ -179,12 +180,11 @@ for the following.
 uv run ado show entities space SPACE_ID \
   --include measured \
   --property-format target \
-  --output-format csv
+  -o csv --output-file SPACE_ID_entities.csv
 ```
 
-This writes the data to `SPACE_ID_description_measured_target.csv`
-automatically. If you find `SPACE_ID_description_measured_target.csv` already
-exists do not use it, as data may be stale
+This writes the data to `SPACE_ID_entities.csv`. If you find `SPACE_ID_entities.csv`
+already exists do not use it, as data may be stale
 
 You can also get lists of all unmeasured or missing entities, though this is not
 typically required unless you want to analyse the unsampled portion.

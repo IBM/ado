@@ -348,7 +348,7 @@ If the output contains `EXPERIMENT FAILURE`, then something has gone wrong.
 Verify that the entity has been measured by running:
 
 ```commandline
-ado show entities space --use-latest --output-format csv
+ado show entities space --use-latest -o csv --output-file entities.csv
 ```
 
 The csv file will have one line representing the entity featuring values for all

@@ -75,6 +75,9 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
         for function_name in collection.function_operations:
             entry = {
                 "OPERATOR": function_name,
+                "VERSION": collection.function_operation_versions.get(
+                    function_name, ""
+                ),
                 "TYPE": collection.type.value,
             }
             if parameters.show_details:

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+from importlib.metadata import version
 
 from no_priors_characterization.no_priors_pydantic import NoPriorsParameters
 from orchestrator.core.discoveryspace.space import DiscoverySpace
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
                 model knowledge or feature importance. This operator is useful for initial
                 exploration of discovery spaces when no training data exists yet.
                 """,
+    version=version("ado-no-priors-characterization"),
 )
 def no_priors_characterization(
     discoverySpace: DiscoverySpace = None,  # type: ignore[name-defined]

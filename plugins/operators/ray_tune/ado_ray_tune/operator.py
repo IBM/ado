@@ -761,7 +761,6 @@ def search_space_from_explicit_entity_space(
     return space
 
 
-@ray.remote
 class RayTune(Search):
     """Uses raytune optimization algorithm to search through entities in a space"""
 

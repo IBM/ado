@@ -421,7 +421,6 @@ class RequestRetry(pydantic.BaseModel):
         )
 
 
-@ray.remote
 class RandomWalk(Characterize):
     """Performs a random walk through a set of known entities in a space"""
 

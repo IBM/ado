@@ -760,29 +760,10 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
             return OperatorMetadata(
                 name="_test_cls_stored",
                 version="v0.1",
+                configuration_model=_ParamsCls,
+                example_configuration=_ParamsCls(),
                 type=DiscoveryOperationEnum.SEARCH,
             )
-
-        @classmethod
-        def operatorIdentifier(cls) -> str:
-            return "_test_cls_stored-v0.1"
-
-        @classmethod
-        def operationType(cls) -> DiscoveryOperationEnum:
-            return DiscoveryOperationEnum.SEARCH
-
-        @classmethod
-        def defaultOperationParameters(cls) -> _ParamsCls:
-            return _ParamsCls()
-
-        @classmethod
-        def validateOperationParameters(
-            cls, parameters: dict | pydantic.BaseModel
-        ) -> _ParamsCls:
-            return _ParamsCls.model_validate(parameters)
-
-        def operationIdentifier(self) -> str:
-            return "_test_cls_stored-run"
 
         async def run(self) -> None:
             pass
@@ -855,9 +836,7 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
 
 def test_explore_operation_class_decorator_missing_operator_metadata_raises() -> None:
     """Decorating a Search subclass without operator_metadata() raises NotImplementedError."""
-    import pydantic
 
-    from orchestrator.core.operation.config import DiscoveryOperationEnum
     from orchestrator.modules.operators.base import Search
     from orchestrator.modules.operators.collections import explore_operation
 
@@ -865,27 +844,7 @@ def test_explore_operation_class_decorator_missing_operator_metadata_raises() ->
 
         @explore_operation
         class _BadOp(Search):
-            @classmethod
-            def operatorIdentifier(cls) -> str:
-                return "bad_op-v0.1"
-
-            @classmethod
-            def operationType(cls) -> DiscoveryOperationEnum:
-                return DiscoveryOperationEnum.SEARCH
-
-            @classmethod
-            def defaultOperationParameters(cls) -> pydantic.BaseModel:
-                return pydantic.BaseModel()
-
-            @classmethod
-            def validateOperationParameters(
-                cls, parameters: dict | pydantic.BaseModel
-            ) -> pydantic.BaseModel:
-                return pydantic.BaseModel.model_validate(parameters)
-
-            def operationIdentifier(self) -> str:
-                return "bad_op-run"
-
+            # No operator_metadata() and no legacy classmethods — must raise.
             async def run(self) -> None:
                 pass
 

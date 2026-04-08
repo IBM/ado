@@ -60,60 +60,170 @@ class OperatorFunction(Protocol):
 # Some operations are not RayActors: They don't have to use Actuators and StateUpdateQueue or Ray. They can use ray-workers
 
 
-class DiscoveryOperationBase(metaclass=abc.ABCMeta):
+class DiscoveryOperationBase:
 
-    @abc.abstractmethod
     def operationIdentifier(self) -> str:
-        """A unique id for the operation instance being run by the operator
+        """A unique id for the operation instance being run by the operator.
 
-        should have form $operatorIdentifier-$version-$uid"""
+        Returns ``"<classname>-<8-hex-uuid>"``, stable for the lifetime of
+        the instance.  Override when a deterministic or richer identifier is
+        needed (e.g. embedding the operator version or a caller-supplied run
+        id).
+        """
+        import uuid
+
+        attr = "_ado_operation_id"
+        if not hasattr(self, attr):
+            object.__setattr__(
+                self,
+                attr,
+                f"{type(self).__name__.lower()}-{uuid.uuid4().hex[:8]}",
+            )
+        return getattr(self, attr)
 
     @classmethod
-    @abc.abstractmethod
     def operatorIdentifier(cls) -> str:
-        """The identifier of this operator
+        """The identifier of this operator (``<name>-<version>``).
 
-        should have form method-version"""
+        Only required for operators loaded via the deprecated
+        ``OperatorModuleConf`` (``moduleName``/``moduleClass``) path.
+        Operators registered via ``@explore_operation`` or
+        ``operator_metadata()`` do not need to implement this.
+
+        Raises:
+            NotImplementedError: If not overridden.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__}.operatorIdentifier() is not implemented. "
+            "New operators should implement operator_metadata() instead."
+        )
 
     @classmethod
-    @abc.abstractmethod
     def operationType(cls) -> DiscoveryOperationEnum:
-        """The type of operation this operator applies"""
+        """The type of operation this operator applies.
+
+        Only required for operators loaded via the deprecated
+        ``OperatorModuleConf`` path.  New operators declare the type inside
+        ``operator_metadata()``.
+
+        Raises:
+            NotImplementedError: If not overridden.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__}.operationType() is not implemented. "
+            "New operators should implement operator_metadata() instead."
+        )
 
     @classmethod
-    @abc.abstractmethod
     def defaultOperationParameters(
         cls,
     ) -> pydantic.BaseModel:
-        """A default pytdantic model for this operations parameters with this operator"""
+        """A default pydantic model for this operator's parameters.
+
+        Not called by the framework.  New operators declare defaults via
+        ``OperatorMetadata.example_configuration`` inside
+        ``operator_metadata()``.
+
+        Raises:
+            NotImplementedError: If not overridden.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__}.defaultOperationParameters() is not implemented. "
+            "New operators should implement operator_metadata() instead."
+        )
 
     @classmethod
-    @abc.abstractmethod
     def validateOperationParameters(
         cls,
         parameters: dict | pydantic.BaseModel,
     ) -> pydantic.BaseModel:
-        """If the parameters are valid returns a model for them.
+        """Validate and coerce ``parameters`` into the operator's model type.
 
-        Otherwise, will raise ValidationErrors"""
+        Used as a fallback by ``orchestrate_explore_operation`` when no
+        ``configuration_model`` is registered in ``OperatorMetadata``.  New
+        operators should declare ``configuration_model`` inside
+        ``operator_metadata()`` instead of overriding this method.
+
+        Raises:
+            NotImplementedError: If not overridden and no ``configuration_model``
+                is registered.
+        """
+        raise NotImplementedError(
+            f"{cls.__name__}.validateOperationParameters() is not implemented. "
+            "Set configuration_model in operator_metadata() for parameter validation."
+        )
 
     @classmethod
     def operator_metadata(
         cls,
     ) -> "orchestrator.core.operation.config.OperatorMetadata":
-        """Returns the :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
+        """Returns :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
 
-        Subclasses that use the ``@explore_operation`` class decorator must
-        override this method.  ``function`` and ``cls`` should be left as
-        ``None`` — the decorator fills them in before registering.
+        Two paths are supported:
+
+        **New-style (class decorator)** — subclass overrides this method and
+        returns an :class:`~orchestrator.core.operation.config.OperatorMetadata`
+        instance directly.  Leave ``function`` and ``cls`` as ``None``; the
+        ``@explore_operation`` decorator fills them in before registering::
+
+            @classmethod
+            def operator_metadata(cls) -> OperatorMetadata:
+                return OperatorMetadata(
+                    name="my_op",
+                    configuration_model=MyOpParameters,
+                    example_configuration=MyOpParameters(),
+                    type=DiscoveryOperationEnum.SEARCH,
+                )
+
+        **Legacy-style (function decorator)** — if the subclass implements the
+        legacy classmethods ``defaultOperationParameters()`` and
+        ``operationType()``, this base implementation auto-builds an
+        :class:`~orchestrator.core.operation.config.OperatorMetadata` from
+        them.  ``name`` is set to ``cls.__name__.lower()`` as a placeholder;
+        the ``@explore_operation`` function decorator replaces it with the
+        registered name.  The result is cached on the concrete class.
 
         Raises:
-            NotImplementedError: If the subclass has not implemented this method.
+            NotImplementedError: If neither this method is overridden nor the
+                legacy classmethods ``defaultOperationParameters()`` and
+                ``operationType()`` are implemented.
         """
-        raise NotImplementedError(
-            f"{cls.__name__} must implement operator_metadata() to use "
-            "the @explore_operation class decorator."
+        cache_attr = "_ado_operator_metadata"
+        if cache_attr in cls.__dict__:
+            return cls.__dict__[cache_attr]  # type: ignore[return-value]
+
+        # Try to build from legacy classmethods.
+        try:
+            default_params = cls.defaultOperationParameters()
+        except NotImplementedError:
+            raise NotImplementedError(
+                f"{cls.__name__} must implement operator_metadata() (new-style class "
+                "decorator) or defaultOperationParameters() + operationType() "
+                "(legacy function decorator)."
+            ) from None
+
+        try:
+            op_type = cls.operationType()
+        except NotImplementedError:
+            raise NotImplementedError(
+                f"{cls.__name__}: operationType() must be implemented alongside "
+                "defaultOperationParameters()."
+            ) from None
+
+        import orchestrator.core.operation.config as _cfg
+
+        metadata = _cfg.OperatorMetadata(
+            name=cls.__name__.lower(),
+            configuration_model=type(default_params),
+            example_configuration=default_params,
+            cls=cls,
+            type=op_type,
         )
+        import contextlib
+
+        with contextlib.suppress(AttributeError, TypeError):
+            setattr(cls, cache_attr, metadata)
+        return metadata
 
 
 class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):

@@ -317,28 +317,21 @@ def orchestrate_explore_operation(
         operator_reference
     )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
     if isinstance(operator_reference, OperatorReference):
-        # For function-conf operators validation uses the registered
-        # OperatorMetadata.configuration_model, so new classes that only
-        # implement operator_metadata() do not need validateOperationParameters().
         from orchestrator.modules.operators.collections import operationCollectionMap
 
         registered = operationCollectionMap[
             operator_reference.operationType
         ].operators.get(operator_reference.operatorName)
-        if registered and registered.configuration_model:
-            registered.configuration_model.model_validate(parameters)
-        else:
-            try:
-                operator_class.validateOperationParameters(parameters)
-            except NotImplementedError:
-                moduleLog.debug(
-                    "Skipping parameter validation for %s: no configuration_model "
-                    "registered and validateOperationParameters() not implemented. "
-                    "Set configuration_model in operator_metadata() to enable validation.",
-                    operator_class.__name__,
-                )
+        if registered is None:
+            raise ValueError(
+                f"Operator {operator_reference.operatorName!r} is not registered in "
+                f"the {operator_reference.operationType} collection."
+            )
+        registered.configuration_model.model_validate(parameters)
     else:
-        operator_class.validateOperationParameters(parameters)
+        # OperatorModuleConf (deprecated): obtain OperatorMetadata from the class.
+        op_metadata = operator_class.operator_metadata()
+        op_metadata.configuration_model.model_validate(parameters)
 
     # Create operator actor
     operator = orchestrator.modules.operators.setup.setup_operator(

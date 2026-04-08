@@ -30,6 +30,9 @@ def get_context(
 ) -> None:
     import rich.box
 
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["CONTEXT"]
+
     available_contexts = parameters.ado_configuration.available_contexts
 
     # AP 11/06/2025:
@@ -86,7 +89,7 @@ def get_context(
                 show_edge=True,
                 show_index=True,
                 box=rich.box.SQUARE,
-                do_not_truncate_column_content=parameters.no_trunc,
+                do_not_truncate_columns=parameters.no_trunc,
             )
         )
         return

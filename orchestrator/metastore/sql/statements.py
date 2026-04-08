@@ -218,28 +218,31 @@ def check_field_in_sqlite_json_document(
 
 def table_exists_query(
     tablename: str,
-    dialect: Literal["mysql", "sqlite"],
+    dialect: str,
 ) -> sqlalchemy.TextClause:
     """Return a bound SQL query that checks whether a table exists in the database.
 
-    ``dialect`` is a `sqlalchemy.engine.Dialect.name` (e.g. ``mysql``, ``sqlite``).
+    ``dialect`` is either a :attr:`sqlalchemy.engine.Dialect.name` (e.g.
+    ``"mysql"``, ``"sqlite"``) or a full SQLAlchemy scheme string (e.g.
+    ``"mysql+pymysql"``).  Any value that starts with ``"mysql"`` is treated
+    as MySQL; any value that starts with ``"sqlite"`` is treated as SQLite.
 
     Args:
         tablename: The name of the table to check for.
-        dialect: "mysql" or "sqlite"
+        dialect: SQLAlchemy dialect name or scheme string.
 
     Returns:
         A bound :class:`sqlalchemy.TextClause` that returns one row when the
         table exists and no rows when it does not.
 
     Raises:
-        ValueError: If ``dialect`` is neither sqlite nor mysql.
+        ValueError: If ``dialect`` does not start with ``"sqlite"`` or ``"mysql"``.
     """
-    if dialect == "sqlite":
+    if dialect.startswith("sqlite"):
         return sqlalchemy.text(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=:name"
         ).bindparams(name=tablename)
-    if dialect == "mysql":
+    if dialect.startswith("mysql"):
         return sqlalchemy.text(
             "SELECT 1 FROM information_schema.tables"
             " WHERE table_schema = DATABASE() AND table_name = :name LIMIT 1"

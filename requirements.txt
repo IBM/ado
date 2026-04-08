@@ -946,10 +946,6 @@ protobuf==6.33.6 \
     #   opentelemetry-proto
     #   proto-plus
     #   ray
-py-markdown-table==1.3.0 \
-    --hash=sha256:b8740b57e466f343dbb1e9c7ca4e2d1b4281d96fb922bf1ed60b6c496c8725c4 \
-    --hash=sha256:be63f6bcbe32e10a9a68575eb48a648949df067b54b48ad6d993b0e5748f57d6
-    # via ado-core
 py-spy==0.4.1 \
     --hash=sha256:1fb8bf71ab8df95a95cc387deed6552934c50feef2cf6456bc06692a5508fd0c \
     --hash=sha256:4972c21890b6814017e39ac233c22572c4a61fd874524ebc5ccab0f2237aee0a \

@@ -187,11 +187,10 @@ def show_discovery_space_entities(parameters: AdoShowEntitiesCommandParameters) 
         parameters.properties.insert(0, "identifier")
         output_df = output_df[parameters.properties]
 
-    file_name = f"{parameters.resource_id}_description_{parameters.entities_type.value}_{parameters.entities_property_format.value}.{parameters.entities_output_format.value}"
     df_to_output(
         df=output_df,
         output_format=parameters.entities_output_format.value,
-        file_name=file_name,
+        output_file=parameters.output_file,
         no_trunc=parameters.no_trunc,
     )
 

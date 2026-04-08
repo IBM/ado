@@ -1002,7 +1002,7 @@ class RayTune(Search):
     def operatorIdentifier(cls) -> str:
         from importlib.metadata import version
 
-        version = version("ado-core")
+        version = version("ado-ray-tune")
 
         return f"raytune-{version}"
 

@@ -103,7 +103,7 @@ def _run_operation_harness(
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,
         exit_state=OperationExitStateEnum.ERROR,
-        message="Operation exited due uncaught exception)",
+        message="Operation exited due to    uncaught exception)",
     )
     try:
         operation_resource.status.append(
@@ -178,18 +178,16 @@ def _run_operation_harness(
         sys.stdout.flush()
         if shutdown_signal_received:
             moduleLog.warning(
-                f"Operation {operation_identifier} exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
+                f"Operation {operation_resource.identifier} exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
             )
             if operation_output:
                 moduleLog.info("Operation returned output - will save")
 
-            operationStatus = (
-                OperationResourceStatus(
-                    event=OperationResourceEventEnum.FINISHED,
-                    exit_state=OperationExitStateEnum.ERROR,
-                    message="An external event e.g. SIGTERM, initiated shutdown. "
-                    "This may have caused the operation to exit early",
-                ),
+            operationStatus = OperationResourceStatus(
+                event=OperationResourceEventEnum.FINISHED,
+                exit_state=OperationExitStateEnum.ERROR,
+                message="An external event e.g. SIGTERM, initiated shutdown. "
+                "This may have caused the operation to exit early",
             )
         else:
             if not operation_output:
@@ -202,7 +200,7 @@ def _run_operation_harness(
                 )
             else:
                 moduleLog.debug(
-                    f"Operation {operation_identifier} exited normally with status {operation_output.exitStatus}"
+                    f"Operation {operation_resource.identifier} exited normally with status {operation_output.exitStatus}"
                 )
     finally:
         if operation_output:
@@ -212,7 +210,7 @@ def _run_operation_harness(
 
             # Add it to metastore
             moduleLog.info(
-                f"Adding output for operation {operation_identifier} to metastore"
+                f"Adding output for operation {operation_resource.identifier} to metastore"
             )
             add_operation_output_to_metastore(
                 operation=operation_resource,

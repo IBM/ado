@@ -29,6 +29,7 @@ def graceful_operation_shutdown_signal_handler() -> (
 
         if shutdown_signal_received:
             moduleLog.info("Graceful shutdown already completed")
+            return
 
         shutdown_signal_received = True
         moduleLog.info("Calling cleanup callbacks")

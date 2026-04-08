@@ -156,17 +156,17 @@ def orchestrate(
             operator_fn = (
                 operation_resource_configuration.operation.module.operationFunction()
             )
-        except AttributeError:
+        except AttributeError as error:
             moduleLog.warning(
-                "The operation configuration uses the deprecated OperatorModuleConf format "
+                "The supplied operation configuration uses the unsupported OperatorModuleConf format "
                 "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
                 "instead. See the documentation for migration guidance."
             )
-            raise AttributeError(
-                "Operation module does not support operationFunction(). "
-                "The moduleName/moduleClass (OperatorModuleConf) format is deprecated — "
-                "update the operation configuration to use operatorName/operationType instead."
-            ) from None
+            raise ValueError(
+                "The supplied operation configuration uses the unsupported OperatorModuleConf format "
+                "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
+                "instead. See the documentation for migration guidance."
+            ) from error
 
         output = operator_fn(
             discovery_space,

@@ -301,7 +301,7 @@ def orchestrate_explore_operation(
         queue=measurement_queue,
         space=discovery_space,
         namespace=operation_info.ray_namespace,
-    )  # type: "InternalStateActor"
+    )  # type: DiscoverySpaceManagerActor
     moduleLog.debug(
         f"Waiting for discovery space manager to be ready: {discovery_space_manager}"
     )
@@ -376,17 +376,17 @@ def orchestrate_explore_operation(
 
         def finalize_callback(operation_resource: OperationResource) -> None:
             # Even on exception we can still get entities submitted
-            logging.debug("Finalize callback - Getting entities submitted")
+            moduleLog.debug("Finalize callback - Getting entities submitted")
             try:
                 operation_resource.metadata["entities_submitted"] = ray.get(
                     operator_actor.numberEntitiesSampled.remote(), timeout=10
                 )
-                logging.debug("Finalize callback - Getting experiments requested")
+                moduleLog.debug("Finalize callback - Getting experiments requested")
                 operation_resource.metadata["experiments_requested"] = ray.get(
                     operator_actor.numberMeasurementsRequested.remote()
                 )
             except GetTimeoutError:
-                logging.warning(
+                moduleLog.warning(
                     "Unable to retrieve entity/experiment submission data from operator"
                 )
 

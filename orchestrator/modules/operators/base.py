@@ -56,6 +56,84 @@ class OperatorFunction(Protocol):
     ) -> OperationOutput: ...
 
 
+def validate_operator_function_signature(fn: typing.Callable) -> None:
+    """Validate that *fn* conforms to the :class:`OperatorFunction` Protocol.
+
+    Checks the return type and each positional parameter type against the
+    Protocol's annotations, skipping any annotation that is absent on either
+    side.  Introspection errors (e.g. built-ins, ``functools.partial``) are
+    silently ignored so that registration always succeeds when type information
+    is unavailable.
+
+    Args:
+        fn: The callable to validate.
+
+    Raises:
+        ValueError: If a present annotation does not match the corresponding
+            annotation in the Protocol.
+    """
+    import inspect
+
+    try:
+        proto_hints = typing.get_type_hints(OperatorFunction.__call__)
+        proto_sig = inspect.signature(OperatorFunction.__call__)
+    except Exception:  # noqa: BLE001
+        return
+
+    try:
+        hints = typing.get_type_hints(fn)
+        sig = inspect.signature(fn)
+    except Exception:  # noqa: BLE001
+        return
+
+    expected_return = proto_hints.get("return")
+    actual_return = hints.get("return")
+    if (
+        expected_return is not None
+        and actual_return is not None
+        and actual_return != expected_return
+    ):
+        raise ValueError(
+            f"Operator function return type must be {expected_return!r}, "
+            f"got {actual_return!r}."
+        )
+
+    proto_positional = [
+        p
+        for p in proto_sig.parameters.values()
+        if p.name != "self"
+        and p.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.POSITIONAL_ONLY,
+        )
+    ]
+    actual_positional = [
+        p
+        for p in sig.parameters.values()
+        if p.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.POSITIONAL_ONLY,
+        )
+    ]
+    for idx, (proto_param, actual_param) in enumerate(
+        zip(proto_positional, actual_positional, strict=False), start=1
+    ):
+        expected_type = proto_hints.get(proto_param.name)
+        actual_type = hints.get(actual_param.name)
+        if (
+            expected_type is not None
+            and actual_type is not None
+            and actual_type != expected_type
+        ):
+            raise ValueError(
+                f"Operator function parameter {actual_param.name!r} "
+                f"(position {idx}) must be {expected_type!r}, "
+                f"got {actual_type!r}."
+            )
+
+
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray
 # Some operations are not RayActors: They don't have to use Actuators and StateUpdateQueue or Ray. They can use ray-workers
 
@@ -72,23 +150,13 @@ class DiscoveryOperationBase:
         """
         import uuid
 
-        attr = "_ado_operation_id"
-        if not hasattr(self, attr):
-            object.__setattr__(
-                self,
-                attr,
-                f"{type(self).__name__.lower()}-{uuid.uuid4().hex[:8]}",
-            )
-        return getattr(self, attr)
+        return f"{type(self).__name__.lower()}-{uuid.uuid4().hex[:8]}"
 
     @classmethod
     def operatorIdentifier(cls) -> str:
         """The identifier of this operator (``<name>-<version>``).
 
-        Only required for operators loaded via the deprecated
-        ``OperatorModuleConf`` (``moduleName``/``moduleClass``) path.
-        Operators registered via ``@explore_operation`` or
-        ``operator_metadata()`` do not need to implement this.
+        Deprecated: Implement operator_metadata instead
 
         Raises:
             NotImplementedError: If not overridden.
@@ -102,9 +170,7 @@ class DiscoveryOperationBase:
     def operationType(cls) -> DiscoveryOperationEnum:
         """The type of operation this operator applies.
 
-        Only required for operators loaded via the deprecated
-        ``OperatorModuleConf`` path.  New operators declare the type inside
-        ``operator_metadata()``.
+        Deprecated: Implement operator_metadata instead
 
         Raises:
             NotImplementedError: If not overridden.
@@ -120,9 +186,7 @@ class DiscoveryOperationBase:
     ) -> pydantic.BaseModel:
         """A default pydantic model for this operator's parameters.
 
-        Not called by the framework.  New operators declare defaults via
-        ``OperatorMetadata.example_configuration`` inside
-        ``operator_metadata()``.
+        Deprecated: Implement operator_metadata instead
 
         Raises:
             NotImplementedError: If not overridden.
@@ -139,10 +203,7 @@ class DiscoveryOperationBase:
     ) -> pydantic.BaseModel:
         """Validate and coerce ``parameters`` into the operator's model type.
 
-        Used as a fallback by ``orchestrate_explore_operation`` when no
-        ``configuration_model`` is registered in ``OperatorMetadata``.  New
-        operators should declare ``configuration_model`` inside
-        ``operator_metadata()`` instead of overriding this method.
+        Deprecated: Implement operator_metadata instead
 
         Raises:
             NotImplementedError: If not overridden and no ``configuration_model``
@@ -159,47 +220,23 @@ class DiscoveryOperationBase:
     ) -> "orchestrator.core.operation.config.OperatorMetadata":
         """Returns :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
 
-        Two paths are supported:
+        This method should be overridden by subclasses.
 
-        **New-style (class decorator)** — subclass overrides this method and
-        returns an :class:`~orchestrator.core.operation.config.OperatorMetadata`
-        instance directly.  Leave ``function`` and ``cls`` as ``None``; the
-        ``@explore_operation`` decorator fills them in before registering::
-
-            @classmethod
-            def operator_metadata(cls) -> OperatorMetadata:
-                return OperatorMetadata(
-                    name="my_op",
-                    configuration_model=MyOpParameters,
-                    example_configuration=MyOpParameters(),
-                    type=DiscoveryOperationEnum.SEARCH,
-                )
-
-        **Legacy-style (function decorator)** — if the subclass implements the
-        legacy classmethods ``defaultOperationParameters()`` and
-        ``operationType()``, this base implementation auto-builds an
-        :class:`~orchestrator.core.operation.config.OperatorMetadata` from
-        them.  ``name`` is set to ``cls.__name__.lower()`` as a placeholder;
-        the ``@explore_operation`` function decorator replaces it with the
-        registered name.  The result is cached on the concrete class.
+        For backwards compatibility this method contains an implementation
+        that works with older DiscoveryOperationBase classes.
 
         Raises:
             NotImplementedError: If neither this method is overridden nor the
                 legacy classmethods ``defaultOperationParameters()`` and
                 ``operationType()`` are implemented.
         """
-        cache_attr = "_ado_operator_metadata"
-        if cache_attr in cls.__dict__:
-            return cls.__dict__[cache_attr]  # type: ignore[return-value]
 
         # Try to build from legacy classmethods.
         try:
             default_params = cls.defaultOperationParameters()
         except NotImplementedError:
             raise NotImplementedError(
-                f"{cls.__name__} must implement operator_metadata() (new-style class "
-                "decorator) or defaultOperationParameters() + operationType() "
-                "(legacy function decorator)."
+                f"{cls.__name__} must implement operator_metadata()."
             ) from None
 
         try:
@@ -207,23 +244,18 @@ class DiscoveryOperationBase:
         except NotImplementedError:
             raise NotImplementedError(
                 f"{cls.__name__}: operationType() must be implemented alongside "
-                "defaultOperationParameters()."
+                "defaultOperationParameters() for legacy classes."
             ) from None
 
-        import orchestrator.core.operation.config as _cfg
+        from orchestrator.core.operation.config import OperatorMetadata
 
-        metadata = _cfg.OperatorMetadata(
+        return OperatorMetadata(
             name=cls.__name__.lower(),
             configuration_model=type(default_params),
             example_configuration=default_params,
             cls=cls,
             type=op_type,
         )
-        import contextlib
-
-        with contextlib.suppress(AttributeError, TypeError):
-            setattr(cls, cache_attr, metadata)
-        return metadata
 
 
 class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):

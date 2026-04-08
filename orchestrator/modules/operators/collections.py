@@ -4,7 +4,6 @@
 import functools
 import logging
 import typing
-import warnings
 from typing import Annotated
 
 import pydantic
@@ -23,6 +22,7 @@ from orchestrator.modules.operators.base import (
     DiscoverySpaceSubscribingDiscoveryOperation,
     OperationOutput,
     OperatorFunction,
+    validate_operator_function_signature,
 )
 from orchestrator.modules.operators.orchestrate import (
     orchestrate_explore_operation,
@@ -57,131 +57,15 @@ class OperatorCollection(pydantic.BaseModel):
         """Returns all registered operator names."""
         return list(self.operators.keys())
 
-    def list_operations(self) -> list[str]:
-        """Returns all registered operator names.
-
-        Deprecated:
-            Use :meth:`list_operators` instead.
-        """
-        warnings.warn(
-            "list_operations() is deprecated; use list_operators() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.list_operators()
-
-    def configuration_model_for_operation(
-        self, name: str
-    ) -> type[pydantic.BaseModel] | None:
-        """Returns the configuration model for the named operator.
-
-        Deprecated:
-            Access ``collection.operators[name].configuration_model`` directly.
-
-        Args:
-            name: The registered operator name.
-
-        Returns:
-            The pydantic model class used to validate parameters, or None.
-
-        Raises:
-            ValueError: If the operator name is not registered.
-        """
-        warnings.warn(
-            "configuration_model_for_operation() is deprecated; "
-            "access collection.operators[name].configuration_model directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if name not in self.operators:
-            raise ValueError(f"Unknown operator {name}")
-        return self.operators[name].configuration_model
-
-    def default_configuration_model_for_operation(
-        self, name: str
-    ) -> pydantic.BaseModel | None:
-        """Returns the example configuration instance for the named operator.
-
-        Deprecated:
-            Access ``collection.operators[name].example_configuration`` directly.
-
-        Args:
-            name: The registered operator name.
-
-        Returns:
-            The default pydantic model instance, or None.
-
-        Raises:
-            ValueError: If the operator name is not registered.
-        """
-        warnings.warn(
-            "default_configuration_model_for_operation() is deprecated; "
-            "access collection.operators[name].example_configuration directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if name not in self.operators:
-            raise ValueError(f"Unknown operator {name}")
-        return self.operators[name].example_configuration
-
-    def description_for_operation(self, name: str) -> str | None:
-        """Returns the description for the named operator.
-
-        Deprecated:
-            Access ``collection.operators[name].description`` directly.
-
-        Args:
-            name: The registered operator name.
-
-        Returns:
-            The description string, or None.
-
-        Raises:
-            ValueError: If the operator name is not registered.
-        """
-        warnings.warn(
-            "description_for_operation() is deprecated; "
-            "access collection.operators[name].description directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if name not in self.operators:
-            raise ValueError(f"Unknown operator {name}")
-        return self.operators[name].description
-
-    def operator_class_for_operation(self, name: str) -> type[DiscoveryOperationBase]:
-        """Returns the actor class registered for the named explore operator.
-
-        Deprecated:
-            Access ``collection.operators[name].cls`` directly.
-
-        Args:
-            name: The registered operator name.
-
-        Returns:
-            The DiscoveryOperationBase subclass for this operator.
-
-        Raises:
-            ValueError: If no class has been registered for the given name.
-        """
-        warnings.warn(
-            "operator_class_for_operation() is deprecated; "
-            "access collection.operators[name].cls directly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if name not in self.operators or self.operators[name].cls is None:
-            raise ValueError(f"No operator class registered for {name}")
-        return self.operators[name].cls
-
-    def __getattr__(self, item: str) -> OperatorFunction:
+    def __getattr__(self, item: str) -> OperatorFunction | None:
         """Returns the operator function for the given registered name.
 
         Args:
             item: Registered operator name.
 
         Returns:
-            The callable registered under that name.
+            The callable registered under that name
+            Or None if no callable registered.
 
         Raises:
             AttributeError: If no operator is registered with that name.
@@ -267,6 +151,7 @@ def characterize_operation(
                 operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
             )
 
+        validate_operator_function_signature(wrapper)
         characterize.operators[name] = OperatorMetadata(
             name=name,
             function=typing.cast("OperatorFunction", wrapper),
@@ -322,68 +207,39 @@ def explore_operation(
     configuration_model: type[pydantic.BaseModel] | None = None,
     version: str | None = "v0.1",
     configuration_model_default: pydantic.BaseModel | None = None,
-) -> typing.Callable:
+) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers an explore (search) operator.
 
     Supports two usage patterns:
 
     **Class decoration** (preferred, no arguments) — all metadata comes from
     the class's ``operator_metadata()`` classmethod.  The decorator validates
-    the class, generates the
-    :data:`~orchestrator.modules.operators.base.OperatorFunction` body, fills
-    in ``function`` and ``cls``, and registers the operator::
-
-        @explore_operation
-        class MyOp(Search):
-            @classmethod
-            def operator_metadata(cls) -> OperatorMetadata:
-                return OperatorMetadata(
-                    name="my_op",
-                    version="v0.1",
-                    description="...",
-                    configuration_model=MyOpParameters,
-                    example_configuration=MyOpParameters(),
-                    type=DiscoveryOperationEnum.SEARCH,
-                )
-            ...
+    generates dynamically the OperatorFunction body,
 
     **Function decoration** (legacy, with keyword arguments) — for existing
-    operators that call ``orchestrate_explore_operation`` directly.  The
+    explore operator function that call ``orchestrate_explore_operation`` directly.  The
     function must pass an ``OperatorModuleConf`` to ``orchestrate_explore_operation``::
 
-        @explore_operation(name="my_op", ...)
-        def my_op(
-            discoverySpace: DiscoverySpace,
-            operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
-        ) -> OperationOutput:
-            return orchestrate_explore_operation(
-                operator_reference=OperatorModuleConf(...), ...
-            )
 
     Args:
         target: Set automatically when the decorator is used without parentheses
             (class path).  Do not pass this argument explicitly.
-        name: Canonical operator name (function path only; required).
+        name: Canonical operator name
         description: Human-readable description shown in the registry.
         configuration_model: Pydantic model for display in the registry
-            (function path only; validation uses the class's
-            ``operator_metadata()`` at runtime).
         version: Semantic version string (e.g. ``"v0.1"``).
         configuration_model_default: Default parameter model instance
-            (function path only).
 
     Returns:
-        The generated :data:`~orchestrator.modules.operators.base.OperatorFunction`
-        (class path) or a decorator that registers and returns the decorated
-        function (function path).
+        An `~orchestrator.modules.operators.base.OperatorFunction`
+        This is either the decorated function, or dynamically generated function
+        (class decoration)
 
     Raises:
-        NotImplementedError: (class path) If the decorated class has not
-            implemented ``operator_metadata()`` or the legacy classmethods.
-        TypeError: (class path) If the class fails validation (see
-            :func:`_validate_explore_cls`).
-        TypeError: (function path) If ``name`` is not provided.
+        NotImplementedError: If the decorated class has not
+            implemented ``operator_metadata()``
+        TypeError:  If the decorated class fails validation
+        TypeError:  If ``name`` is not provided to the function decorator
     """
 
     def _register(
@@ -416,6 +272,7 @@ def explore_operation(
 
             _generated.__name__ = op_name
             _generated.__qualname__ = op_name
+            validate_operator_function_signature(_generated)
 
             explore.operators[op_name] = metadata.model_copy(
                 update={
@@ -433,6 +290,7 @@ def explore_operation(
                 "explore_operation: 'name' must be provided when decorating a function."
             )
         func = typing.cast("OperatorFunction", t)
+        validate_operator_function_signature(func)
         explore.operators[name] = OperatorMetadata(
             name=name,
             function=func,
@@ -486,6 +344,7 @@ def modify_operation(
                 operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
             )
 
+        validate_operator_function_signature(wrapper)
         modify.operators[name] = OperatorMetadata(
             name=name,
             function=typing.cast("OperatorFunction", wrapper),
@@ -536,6 +395,7 @@ def export_operation(
                 operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT,
             )
 
+        validate_operator_function_signature(wrapper)
         export.operators[name] = OperatorMetadata(
             name=name,
             function=typing.cast("OperatorFunction", wrapper),

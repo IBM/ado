@@ -21,6 +21,9 @@ from orchestrator.utilities.rich import dataframe_to_rich_table
 
 def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["ACTUATOR ID"]
+
     console_print(
         f"{INFO}This is a local command. It will not reflect the actuators on a remote cluster.",
         stderr=True,
@@ -116,6 +119,6 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
             output_df,
             box=rich.box.SQUARE,
             show_edge=True,
-            do_not_truncate_column_content=parameters.no_trunc,
+            do_not_truncate_columns=parameters.no_trunc,
         )
     )

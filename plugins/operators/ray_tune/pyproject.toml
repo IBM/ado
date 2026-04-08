@@ -17,7 +17,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]
-ado-ray-tune = "ado_ray_tune.operator_function"
+ado-ray-tune = "ado_ray_tune.operator"
 rifferla = "ado_ray_tune.rifferla"
 
 [build-system]

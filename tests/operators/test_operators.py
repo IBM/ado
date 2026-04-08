@@ -35,7 +35,6 @@ from orchestrator.modules.operators.randomwalk import (
     RandomWalk,
     RandomWalkParameters,
     SamplerModuleConf,
-    random_walk,
 )
 
 
@@ -264,7 +263,12 @@ def test_random_walk_operation_configuration() -> None:
         RandomWalkParameters,
     )
 
-    assert random_walk
+    assert (
+        orchestrator.modules.operators.collections.explore.operators[
+            "random_walk"
+        ].function
+        is not None
+    )
     assert (
         orchestrator.modules.operators.collections.explore.operators[
             "random_walk"
@@ -283,13 +287,17 @@ def test_raytune_operation_configuration(
     raytuneConf: DiscoveryOperationResourceConfiguration,
 ) -> None:
 
-    import ado_ray_tune.operator_function
     from ado_ray_tune.operator import (
         RayTune,
         RayTuneConfiguration,
     )
 
-    assert ado_ray_tune.operator_function.ray_tune
+    assert (
+        orchestrator.modules.operators.collections.explore.operators[
+            "ray_tune"
+        ].function
+        is not None
+    )
     assert (
         orchestrator.modules.operators.collections.explore.operators[
             "ray_tune"
@@ -457,7 +465,12 @@ def test_run_random_walk_operation(
         parameters=randomWalkConf.operation.parameters
     )
 
-    operationOutput = random_walk(
+    random_walk_fn = orchestrator.modules.operators.collections.explore.operators[
+        "random_walk"
+    ].function
+    assert random_walk_fn is not None
+
+    operationOutput = random_walk_fn(
         discoverySpace, **randomWalkConf.operation.parameters.model_dump()
     )
 
@@ -524,10 +537,15 @@ def test_random_walk_fail_invalid_config(
     # Note: Number of entities being greater than space size (valueGreaterThanSize) raises a ValueError
     # as it is detected at RandomWalk.run() not during configuration validation (which can't check this as it has no access to the space)
     # This is captured and raise as a OperationException
+    random_walk_fn = orchestrator.modules.operators.collections.explore.operators[
+        "random_walk"
+    ].function
+    assert random_walk_fn is not None
+
     try:
-        random_walk(
+        random_walk_fn(
             discoverySpace, **invalidRandomWalkConf.operation.parameters.model_dump()
-        )  # type: orchestrator.modules.operators.base.OperationOutput
+        )
     except orchestrator.core.operation.operation.OperationException as error:
         operation = error.operation
         assert operation
@@ -574,9 +592,12 @@ def test_run_ray_tune_operation(
         parameters=raytuneConf.operation.parameters
     )
 
-    import ado_ray_tune.operator_function
+    ray_tune_fn = orchestrator.modules.operators.collections.explore.operators[
+        "ray_tune"
+    ].function
+    assert ray_tune_fn is not None
 
-    operationOutput = ado_ray_tune.operator_function.ray_tune(
+    operationOutput = ray_tune_fn(
         discoverySpace, **raytuneConf.operation.parameters.model_dump()
     )
 

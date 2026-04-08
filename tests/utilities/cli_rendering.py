@@ -14,6 +14,7 @@ from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_strin
 def render_ado_resources_to_cli_output(
     resources: ADOResource | list[ADOResource],
     show_index: bool = True,
+    do_not_truncate_columns: bool | list[str] = False,
 ) -> str:
     """Render ADO resource(s) to CLI output format as a string.
 
@@ -26,6 +27,10 @@ def render_ado_resources_to_cli_output(
             This includes OperationResource, SampleStoreResource, DiscoverySpaceResource,
             DataContainerResource, and ActuatorConfigurationResource.
         show_index: Whether to show the row index in the output table. Default is True.
+        do_not_truncate_columns: Controls which columns should not be truncated:
+            - False (default): All columns use default truncation behavior
+            - True: No columns are truncated (all widths calculated, table width set)
+            - list[str]: Only specified column names are not truncated
 
     Returns:
         A string containing the rendered table output that can be compared against
@@ -58,8 +63,13 @@ def render_ado_resources_to_cli_output(
     combined_df = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
     # Render to rich table and convert to string
-    return render_to_string(
-        dataframe_to_rich_table(
-            combined_df, show_edge=True, box=rich.box.SQUARE, show_index=show_index
-        )
+    table = dataframe_to_rich_table(
+        combined_df,
+        show_edge=True,
+        box=rich.box.SQUARE,
+        show_index=show_index,
+        do_not_truncate_columns=do_not_truncate_columns,
     )
+
+    # table_width = table.width if do_not_truncate_columns else None
+    return render_to_string(table, width=table.width)

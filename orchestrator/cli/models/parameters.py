@@ -38,7 +38,7 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     matching_space_id: str | None
     matching_space: pathlib.Path | None
     minimize_output: bool
-    no_trunc: bool
+    no_trunc: bool | list[str]
     output_format: AdoGetSupportedOutputFormats
     resource_id: str | None
     resource_type: AdoGetSupportedResourceTypes

@@ -73,7 +73,7 @@ def _check_if_using_unsupported_operator_module_conf(
             "The supplied operation configuration uses the unsupported OperatorModuleConf format "
             "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
             "instead. See the documentation for migration guidance."
-        ) from None
+        )
 
 
 def orchestrate(

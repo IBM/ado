@@ -61,6 +61,16 @@ def show_results_for_resources(
             "Different resource types might support different fields.",
         ),
     ] = None,
+    no_trunc: Annotated[
+        bool,
+        typer.Option(
+            "--no-trunc",
+            help="""
+            Prevent truncation of table content. When enabled, columns will be sized to fit all content
+            without truncation. Only applies to console output format.
+            """,
+        ),
+    ] = False,
 ) -> None:
     """
     Show the timeseries of results for an operation.
@@ -109,6 +119,7 @@ def show_results_for_resources(
     parameters = AdoShowResultsCommandParameters(
         ado_configuration=ado_configuration,
         hide_fields=hide_fields,
+        no_trunc=no_trunc,
         output_format=output_format,
         resource_id=resource_id,
     )

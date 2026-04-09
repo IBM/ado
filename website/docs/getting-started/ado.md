@@ -1,7 +1,8 @@
 <!-- markdownlint-disable code-block-style -->
 <!-- markdownlint-disable no-duplicate-heading -->
 <!-- markdownlint-disable ul-indent -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 !!! note
 
     This page provides documentation for the `ado` CLI tool, which needs to be
@@ -97,12 +98,16 @@ Where:
 - `RESOURCE_TYPE` is one of the supported resource types for `ado create`,
   currently:
 
+<!-- prettier-ignore-start -->
+
     - _actuator_
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
+
+<!-- prettier-ignore-end -->
 
 - `--file` or `-f` is a path to the resource configuration file in YAML format.
   It is mandatory in all scenarios, except when running
@@ -217,6 +222,8 @@ Where:
 - `RESOURCE_TYPE` is the type of resource you want to delete. Currently, the
   only supported types are:
 
+<!-- prettier-ignore-start -->
+
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _datacontainer_ (_dcr_)
@@ -224,10 +231,18 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
+<!-- prettier-ignore-end -->
+
 - `RESOURCE_ID` is the unique identifier of the resource to delete.
 - `--force` enables forced deletion of resources in the following cases:
+
+<!-- prettier-ignore-start -->
+
     - When attempting to delete operations while other operations are executing.
     - When attempting to delete sample stores that still contain data.
+
+<!-- prettier-ignore-end -->
+
 - When deleting a local context, users can specify the flags `--delete-local-db`
   or `--no-delete-local-db` to explicitly delete or preserve a local DB when
   deleting its related context. If neither of these flags are specified, the
@@ -270,9 +285,13 @@ Where:
 - `RESOURCE_TYPE` is the type of resource you want to describe. Currently, the
   supported resource types are:
 
+<!-- prettier-ignore-start -->
+
     - _experiment_
     - _datacontainer_ (_dcr_)
     - _discoveryspace_ (_space_)
+
+<!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to describe.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
@@ -306,22 +325,30 @@ Where:
 
 - `RESOURCE_TYPE` is the type of resource you want to edit. Supported types are:
 
+<!-- prettier-ignore-start -->
+
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
+<!-- prettier-ignore-end -->
+
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
 - `--editor` is the name of the editor you want to use for editing metadata. It
   must be one of the supported ones, which currently are:
+
+<!-- prettier-ignore-start -->
 
     - `vim` (_default_)
     - `vi`
     - `nano`
 
-  Alternatively, you can also set the value for this flag by using the
-  environment variable `ADO_EDITOR`.
+<!-- prettier-ignore-end -->
+
+Alternatively, you can also set the value for this flag by using the environment
+variable `ADO_EDITOR`.
 
 #### Examples
 
@@ -376,6 +403,8 @@ Where:
 - `RESOURCE_TYPE` is the type of resource you want to get. Currently, the only
   supported types are:
 
+<!-- prettier-ignore-start -->
+
     - _actuatorconfiguration_ (_ac_)
     - _actuator_
     - _context_ (_ctx_)
@@ -386,16 +415,24 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
+<!-- prettier-ignore-end -->
+
 - `RESOURCE_ID` is the optional unique identifier of the resource to get.
 - `--output` or `-o` determine the type of output that will be displayed:
 
+<!-- prettier-ignore-start -->
+
     - The `default` format shows the _identifier_, the _name_, and the _age_ of
       the matching resources.
+    - The `name` format outputs only the resource identifiers, one per line
+      (similar to `kubectl get -o name`).
     - The `yaml` format displays the full YAML document of the matching resources.
     - The `json` format displays the full JSON document of the matching resources.
     - The `config` format displays the `config` field of the matching resources.
     - The `raw` format displays the raw resource as stored in the database,
       performing no validation.
+
+<!-- prettier-ignore-end -->
 
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
@@ -422,9 +459,9 @@ Where:
 - When using the `--details` flag with the `default` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
-- The `--show-deprecated` flag is available **only for
-  `ado get experiments`** and allows displaying experiments that have
-  been deprecated. They are otherwise hidden by default.
+- The `--show-deprecated` flag is available **only for `ado get experiments`**
+  and allows displaying experiments that have been deprecated. They are
+  otherwise hidden by default.
 
 #### Searching and Filtering
 
@@ -464,7 +501,9 @@ ado get spaces --details
 ```
 
 <!-- markdownlint-disable line-length -->
+
 ##### Getting all Discovery Spaces that include granite-7b-base in the property domain
+
 <!-- markdownlint-enable line-length -->
 
 !!! info
@@ -513,7 +552,9 @@ ado get space space-df8077-7535f9 -o yaml \
 ```
 
 <!-- markdownlint-disable line-length -->
+
 ##### Getting an actuator configuration and hiding the status for the "created" event
+
 <!-- markdownlint-enable line-length -->
 
 ```shell
@@ -531,6 +572,12 @@ ado get operation randomwalk-0.5.0-123abc
 
 ```shell
 ado get operation randomwalk-0.5.0-123abc -o yaml
+```
+
+##### Getting only the identifiers of all Operations
+
+```shell
+ado get operations -o name
 ```
 
 ##### Displaying all current experiments
@@ -570,8 +617,12 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
+<!-- prettier-ignore-start -->
+
     - _operation_ (_op_)
     - _discoveryspace_ (_space_)
+
+<!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
@@ -613,8 +664,12 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
+<!-- prettier-ignore-start -->
+
     - _operation_ (_op_)
     - _discoveryspace_ (_space_)
+
+<!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
@@ -627,21 +682,31 @@ Where:
 - `--property-format` defines the naming format used for measured properties in
   the output, one of:
 
+<!-- prettier-ignore-start -->
+
     - `observed`: properties are named `$experimentid.$property_id`.
       There will be one row per entity.
     - `target`: properties are named `$property_id`.
       There will be one row per (entity, experiment) pair.
 
+<!-- prettier-ignore-end -->
+
 - `--output-format` is the format in which to display the entity data. One of:
+
+<!-- prettier-ignore-start -->
 
     - `console` (print to stdout)
     - `csv` (output as CSV file)
     - `json` (output as JSON file)
 
+<!-- prettier-ignore-end -->
+
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
 - `--include` (**exclusive to spaces**) determines what type of entities to
   include. One of:
+
+<!-- prettier-ignore-start -->
 
     - `sampled`: Entities that have been measured by explore operations on the
       `discoveryspace`
@@ -652,14 +717,21 @@ Where:
     - `missing`: Entities in the `discoveryspace` that are not in the
       `samplestore` the `discoveryspace` uses
 
+<!-- prettier-ignore-end -->
+
 - `--aggregate` allows applying an aggregation to the result values in case
   multiple are present. One of:
+
+<!-- prettier-ignore-start -->
+
     - `mean`
     - `median`
     - `variance`
     - `std`
     - `min`
     - `max`
+
+<!-- prettier-ignore-end -->
 
 ##### Examples
 
@@ -671,8 +743,11 @@ Where:
                                              --output-format csv
 ```
 
-<!-- markdownlint-disable-next-line line-length -->
+<!-- markdownlint-disable line-length -->
+
 ###### Show a subset of the properties of entities that are part of an operation and output them as JSON
+
+<!-- markdownlint-enable line-length -->
 
 ```shell
 ado show entities operation randomwalk-0.5.0-123abc --output-format json \
@@ -775,9 +850,13 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
+<!-- prettier-ignore-start -->
+
     - _operation_ (_op_)
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
+
+<!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
@@ -832,9 +911,14 @@ Where:
   properties. Cannot be used when the output format is `md`.
 - `--format | -o` allows choosing the output format in which the information
   should be displayed. Can be one of either:
+
+<!-- prettier-ignore-start -->
+
     - `md` - for Markdown text.
     - `table` (**default**) - for Markdown tables.
     - `csv` - for a comma separated file.
+
+<!-- prettier-ignore-end -->
 
 ##### Examples
 
@@ -845,7 +929,9 @@ ado show summary space space-abc123-456def
 ```
 
 <!-- markdownlint-disable line-length -->
+
 ###### Get the summary of a space as a Markdown table and include the constitutive property MY_PROPERTY
+
 <!-- markdownlint-enable line-length -->
 
 ```shell
@@ -915,11 +1001,15 @@ Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
 
+<!-- prettier-ignore-start -->
+
     - _actuator_
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _operation_ (_op_)
     - _discoveryspace_ (_space_)
+
+<!-- prettier-ignore-end -->
 
 - `--output` or `-o` can be used to point to a location where to save the
   template. By default, the template will be saved in the current directory with
@@ -932,6 +1022,8 @@ Where:
 - `--operator-type` (**exclusive for operations**) is the type of operator to
   generate a template for. Must be one of the supported operator types:
 
+<!-- prettier-ignore-start -->
+
     - `characterize`
     - `search`
     - `compare`
@@ -939,6 +1031,8 @@ Where:
     - `study`
     - `fuse`
     - `learn`
+
+<!-- prettier-ignore-end -->
 
 - `--actuator-configuration` (**exclusive for actuatorconfigurations**) is the
   identifier of the actuator to output. If unset, a generic actuator
@@ -968,8 +1062,11 @@ ado template context
 ado template space --from-experiment finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
 ```
 
-<!-- markdownlint-disable-next-line line-length -->
+<!-- markdownlint-disable line-length -->
+
 ##### Creating a template for a space that uses a specific experiment from a specific actuator
+
+<!-- markdownlint-enable line-length -->
 
 ```shell
 ado template space --from-experiment SFTTrainer:finetune-gptq-lora-dp-r-4-a-16-tm-default-v1.1.0
@@ -1001,12 +1098,15 @@ When required, you can run this command to update all resources of a given kind
 in the database.
 
 ```shell
-ado upgrade RESOURCE_TYPE
+ado upgrade RESOURCE_TYPE [--apply-legacy-migrator <VALIDATOR_ID>] \
+                          [--list-legacy-migrators]
 ```
 
 Where:
 
 - `RESOURCE_TYPE` is one of the supported resource types:
+
+<!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
@@ -1014,12 +1114,35 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
+<!-- prettier-ignore-end -->
+
+- `--apply-legacy-migrator` applies a specific legacy migrator by identifier
+  during the upgrade process. This option can be specified multiple times to
+  apply multiple validators. Legacy validators handle deprecated field
+  migrations and schema transformations.
+
+- `--list-legacy-migrators` lists all available legacy migrators for the
+  specified resource type, showing their identifiers, descriptions, and
+  deprecated field paths.
+
 #### Examples
 
 ##### Upgrade all operation resources
 
 ```shell
 ado upgrade operations
+```
+
+##### List available legacy migrators for sample stores
+
+```shell
+ado upgrade samplestores --list-legacy-migrators
+```
+
+##### Apply a legacy migrator during upgrade
+
+```shell
+ado upgrade samplestores --apply-legacy-migrator samplestore_kind_entitysource_to_samplestore
 ```
 
 ### ado version
@@ -1033,6 +1156,7 @@ ado version
 
 ## What's next
 
+<!-- prettier-ignore-start -->
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line no-inline-html -->
 <div class="grid cards" markdown>
@@ -1055,3 +1179,5 @@ ado version
 
 </div>
 <!-- markdownlint-enable line-length -->
+
+<!-- prettier-ignore-end -->

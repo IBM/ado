@@ -63,12 +63,7 @@ class MeasurementResult(pydantic.BaseModel):
 
 
 class ValidMeasurementResult(MeasurementResult):
-    """Used to record a valid measurement
-
-    Note the experiment that made the measurements can be retrieved via the PropertyValues
-
-    ValidMeasurementResult.measurements[0].property.experimentReference
-    """
+    """Used to record a valid measurement"""
 
     measurements: Annotated[
         list[ObservedPropertyValue],
@@ -78,6 +73,98 @@ class ValidMeasurementResult(MeasurementResult):
     ]
 
     model_config = pydantic.ConfigDict(extra="forbid")
+
+    @pydantic.model_serializer
+    def serialize_to_custom_format(self, _info: pydantic.SerializationInfo) -> dict:
+        """Serialize with compressed format to eliminate redundant ExperimentReference.
+
+        The compressed format extracts the common ExperimentReference (which is
+        guaranteed to be the same for all measurements by the validator) and
+        stores it once at the top level, rather than repeating it in each
+        ObservedPropertyValue.
+
+        This significantly reduces serialized size, with greater compression
+        as the number of measurements increases.
+        """
+        # Get serialization settings from info
+        mode = _info.mode
+        exclude_none = _info.exclude_none
+        exclude_unset = _info.exclude_unset
+        exclude_defaults = _info.exclude_defaults
+        by_alias = _info.by_alias
+
+        # Dump ObservedPropertyValue excluding only property.experimentReference
+        # Pass through the exclude settings to nested model_dump calls
+        measurements_dump = [
+            m.model_dump(
+                mode=mode,
+                exclude={"property": {"experimentReference"}},
+                by_alias=by_alias,
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            )
+            for m in self.measurements
+        ]
+
+        result = {
+            "uid": self.uid,
+            "entityIdentifier": self.entityIdentifier,
+            "metadata": self.metadata,
+            "experimentReference": self.experimentReference.model_dump(
+                mode=mode,
+                by_alias=by_alias,
+                exclude_unset=exclude_unset,
+                exclude_defaults=exclude_defaults,
+                exclude_none=exclude_none,
+            ),
+            "measurements": measurements_dump,
+        }
+
+        # Apply exclude_none to top-level fields if requested
+        if exclude_none:
+            result = {k: v for k, v in result.items() if v is not None}
+
+        # Apply exclude_defaults: remove empty metadata dicts (default is empty dict)
+        if exclude_defaults and result.get("metadata") == {}:
+            result.pop("metadata", None)
+
+        return result
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def deserialize_from_custom_format(cls, data: dict) -> dict:
+        """Handle both old (redundant) and new (compressed) serialization formats.
+
+        Old format: measurements is a list of ObservedPropertyValue with full property
+        New format: experimentReference at top level, measurements simplified
+
+        This validator ensures backward compatibility - old serialized data can
+        still be deserialized correctly.
+        """
+        if not isinstance(data, dict):
+            return data
+
+        # Check if this is the new compressed format
+        if "experimentReference" in data and "measurements" in data:
+            measurements_list = data.get("measurements", [])
+
+            # New format detection: measurements have 'property' but without experimentReference
+            if (
+                measurements_list
+                and isinstance(measurements_list[0], dict)
+                and "property" in measurements_list[0]
+                and "experimentReference" not in measurements_list[0]["property"]
+            ):
+                # New compressed format - add experimentReference to each measurement's property
+                exp_ref = data["experimentReference"]
+                for m in measurements_list:
+                    m["property"]["experimentReference"] = exp_ref
+
+                # Remove top-level experimentReference as it's now in each measurement
+                data.pop("experimentReference", None)
+
+        return data
 
     @pydantic.field_validator("measurements")
     def validate_measurements(

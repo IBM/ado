@@ -1,15 +1,12 @@
-website
-toxenv
-tests
-schemas
-notebooks
-installation
-deploy
-build
-.venv
-.vscode
-*.egg*
-adorchestrator.egg-info
-__pycache__
-temp
-*IBM_CLOUD*
+# Ignore everything
+*
+
+# Only allow what we need
+!.git
+!examples
+!LICENSE
+!orchestrator
+!plugins
+!pyproject.toml
+!README.md
+!requirements.txt

@@ -1,6 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-
+from importlib.metadata import version
 
 import orchestrator.core
 import orchestrator.modules.module
@@ -21,6 +21,7 @@ from .operator import RayTune
     description=RayTune.description(),
     configuration_model=RayTuneConfiguration,
     configuration_model_default=RayTune.defaultOperationParameters(),
+    version=version("ado-ray-tune"),
 )
 def ray_tune(
     discoverySpace: DiscoverySpace,

@@ -38,6 +38,7 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     matching_space_id: str | None
     matching_space: pathlib.Path | None
     minimize_output: bool
+    no_trunc: bool | list[str]
     output_format: AdoGetSupportedOutputFormats
     resource_id: str | None
     resource_type: AdoGetSupportedResourceTypes
@@ -88,6 +89,7 @@ class AdoShowEntitiesCommandParameters(pydantic.BaseModel):
     entities_output_format: AdoShowEntitiesSupportedOutputFormats
     entities_property_format: AdoShowEntitiesSupportedPropertyFormats
     entities_type: AdoShowEntitiesSupportedEntityTypes
+    no_trunc: bool
     properties: list[str] | None
     resource_configuration: Path | None
     resource_id: str | None
@@ -101,6 +103,7 @@ class AdoShowRelatedCommandParameters(pydantic.BaseModel):
 class AdoShowRequestsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     hide_fields: list[str] | None
+    no_trunc: bool
     output_format: AdoShowRequestsSupportedOutputFormats
     resource_id: str
 
@@ -108,6 +111,7 @@ class AdoShowRequestsCommandParameters(pydantic.BaseModel):
 class AdoShowResultsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     hide_fields: list[str] | None
+    no_trunc: bool
     output_format: AdoShowResultsSupportedOutputFormats
     resource_id: str
 
@@ -136,3 +140,5 @@ class AdoTemplateCommandParameters(pydantic.BaseModel):
 
 class AdoUpgradeCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
+    apply_legacy_migrator: list[str] | None = None
+    list_legacy_migrators: bool = False

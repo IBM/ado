@@ -149,7 +149,10 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_ado_resources_to_cli_output(operation_d5c036) == result.output
+            render_ado_resources_to_cli_output(
+                operation_d5c036, do_not_truncate_columns=["IDENTIFIER"]
+            )
+            == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -169,7 +172,10 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_ado_resources_to_cli_output(operation_d5c036) == result.output
+            render_ado_resources_to_cli_output(
+                operation_d5c036, do_not_truncate_columns=["IDENTIFIER"]
+            )
+            == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -243,7 +249,10 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_ado_resources_to_cli_output(operation_d5c036) == result.output
+            render_ado_resources_to_cli_output(
+                operation_d5c036, do_not_truncate_columns=["IDENTIFIER"]
+            )
+            == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -281,7 +290,10 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_ado_resources_to_cli_output([operation_d5c036, operation_43dfdf])
+            render_ado_resources_to_cli_output(
+                [operation_d5c036, operation_43dfdf],
+                do_not_truncate_columns=["IDENTIFIER"],
+            )
             == result.output
         ), result.output
 
@@ -302,7 +314,10 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
+            render_ado_resources_to_cli_output(
+                operation_43dfdf, do_not_truncate_columns=["IDENTIFIER"]
+            )
+            == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -322,7 +337,10 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
+            render_ado_resources_to_cli_output(
+                operation_43dfdf, do_not_truncate_columns=["IDENTIFIER"]
+            )
+            == result.output
         ), result.output
 
     # ---------------------------------------------------------
@@ -342,5 +360,8 @@ def test_field_querying(
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert (
-            render_ado_resources_to_cli_output(operation_43dfdf) == result.output
+            render_ado_resources_to_cli_output(
+                operation_43dfdf, do_not_truncate_columns=["IDENTIFIER"]
+            )
+            == result.output
         ), result.output

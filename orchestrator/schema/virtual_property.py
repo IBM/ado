@@ -185,7 +185,7 @@ class VirtualObservedProperty(pydantic.BaseModel):
 
     def __str__(self) -> str:
 
-        return f"vp-{self.identifier}"
+        return self.identifier
 
     @property
     def identifier(self) -> str:

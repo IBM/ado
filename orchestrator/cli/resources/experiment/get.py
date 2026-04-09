@@ -25,6 +25,9 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
     Details mode: Adds DESCRIPTION and DEPRECATED columns
     """
 
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["EXPERIMENT ID"]
+
     console_print(
         f"{WARN}This is a local command. It will not reflect the experiments on a remote cluster.",
         stderr=True,
@@ -121,5 +124,10 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
         )
 
     console_print(
-        dataframe_to_rich_table(output_df, box=rich.box.SQUARE, show_edge=True)
+        dataframe_to_rich_table(
+            output_df,
+            box=rich.box.SQUARE,
+            show_edge=True,
+            do_not_truncate_columns=parameters.no_trunc,
+        )
     )

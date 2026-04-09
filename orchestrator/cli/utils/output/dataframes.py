@@ -28,6 +28,7 @@ def df_to_output(
     df: "pd.DataFrame",
     output_format: Literal["console", "json", "csv"],
     file_name: str | None = None,
+    no_trunc: bool = False,
 ) -> None:
     if output_format != "console" and not file_name:
         console_print(
@@ -43,7 +44,11 @@ def df_to_output(
     if output_format == "console":
         console_print(
             dataframe_to_rich_table(
-                df, show_edge=True, show_index=True, box=rich.box.SQUARE
+                df,
+                show_edge=True,
+                show_index=True,
+                box=rich.box.SQUARE,
+                do_not_truncate_columns=no_trunc,
             )
         )
         if (

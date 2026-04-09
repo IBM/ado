@@ -3,6 +3,7 @@
 
 import sqlalchemy
 
+from orchestrator.metastore.sql.statements import table_exists_query
 from orchestrator.utilities.location import SQLStoreConfiguration
 
 # Process-level cache: reuse the same SQLAlchemy Engine (and its connection pool)
@@ -66,6 +67,30 @@ def engine_for_sql_store(
     engine = sqlalchemy.create_engine(db_location, **engine_args)
     _engine_cache[db_location] = engine
     return engine
+
+
+def check_table_exists(engine: sqlalchemy.Engine, tablename: str) -> bool:
+    """Return whether ``tablename`` exists in the database behind ``engine``.
+
+    First tries a single round-trip using :func:`table_exists_query` with
+    ``engine.dialect.name``. On any exception (unsupported dialect, execution
+    error, etc.), falls back to :func:`sqlalchemy.inspect` and
+    :meth:`~sqlalchemy.engine.reflection.Inspector.has_table`.
+
+    Args:
+        engine: SQLAlchemy engine for the target database.
+        tablename: Unqualified table name to check.
+
+    Returns:
+        ``True`` if the table exists, ``False`` otherwise.
+    """
+    try:
+        query = table_exists_query(tablename, dialect=engine.dialect.name)
+        with engine.connect() as conn:
+            return conn.execute(query).fetchone() is not None
+    except Exception:
+        inspector = sqlalchemy.inspect(engine)
+        return inspector.has_table(tablename)
 
 
 def create_sql_resource_store(engine: sqlalchemy.Engine) -> sqlalchemy.Engine:

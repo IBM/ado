@@ -120,7 +120,7 @@ def get_resource(
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
             show_default=False,
-            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. Not all formats may be supported by all resources.",
+            help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). Not all formats may be supported by all resources.",
         ),
     ] = AdoGetSupportedOutputFormats.DEFAULT.value,
     exclude_default: Annotated[
@@ -169,6 +169,17 @@ def get_resource(
 
             Ignored when the output type is default or raw.
             If set, implies --exclude-default --exclude-unset --exclude-none.
+            """,
+            rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
+        ),
+    ] = False,
+    no_trunc: Annotated[
+        bool,
+        typer.Option(
+            "--no-trunc",
+            help="""
+            Prevent truncation of table content. When enabled, columns will be sized to fit all content
+            without truncation. Only applies to default (table) output format.
             """,
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
         ),
@@ -361,6 +372,7 @@ def get_resource(
         matching_space_id=matching_space_id,
         matching_space=matching_space,
         minimize_output=minimize_output,
+        no_trunc=no_trunc,
         output_format=output_format,
         resource_id=resource_id,
         resource_type=resource_type,

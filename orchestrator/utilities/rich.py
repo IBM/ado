@@ -10,7 +10,7 @@ from rich.table import Table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
-    from rich.console import RenderableType
+    from rich.console import OverflowMethod, RenderableType
 
 
 def get_rich_repr(obj: typing.Any) -> "RenderableType":  # noqa: ANN401
@@ -38,6 +38,9 @@ def dataframe_to_rich_table(
     show_edge: bool = False,
     box: rich.box.Box = rich.box.HEAVY,
     show_index: bool = False,
+    overflow: "OverflowMethod" = "ellipsis",
+    no_wrap: bool = False,
+    do_not_truncate_columns: bool | list[str] = False,
 ) -> Table:
     """Convert a pandas DataFrame to a rich Table.
 
@@ -50,28 +53,125 @@ def dataframe_to_rich_table(
         box: Box style for the table
         show_index: Whether to include the DataFrame's index as the first column.
             If True, the index will be displayed with a header label using the
-            DataFrame's index name if available, or "Index" as a default.
+            DataFrame's index name if available, or "INDEX" as a default.
             Default is False for backward compatibility.
+        overflow: How to handle content that exceeds column width. Options include
+            "ellipsis" (default), "ignore", "fold", "crop". When do_not_truncate_columns
+            is active, this is automatically set to "ignore" for affected columns.
+        no_wrap: Whether to disable text wrapping in cells. When do_not_truncate_columns
+            is active, this is automatically set to True for affected columns.
+        do_not_truncate_columns: Controls which columns should not be truncated:
+            - False (default): All columns use default truncation behavior
+            - True: No columns are truncated (all widths calculated, table width set)
+            - list[str]: Only specified column names are not truncated (table width NOT set)
+            When active, automatically sets overflow="ignore" and no_wrap=True
+            for affected columns.
 
     Returns:
         A rich Table object ready for rendering
     """
+    index_name = str(df.index.name) if df.index.name is not None else "INDEX"
+
+    # Initialize variables for column width control
+    table_width = None
+    column_width = {}
+    console_width = Console().width
+
+    # Determine which columns need width calculation based on input type
+    columns_with_no_truncation = []
+    disable_truncation_for_all_columns = (
+        False  # Track if truncation is disabled for ALL columns
+    )
+
+    if do_not_truncate_columns is True:
+        # Disable truncation for ALL columns - we'll set table width
+        disable_truncation_for_all_columns = True
+        columns_with_no_truncation = list(df.columns)
+        if show_index:
+            columns_with_no_truncation.insert(0, index_name)
+
+    elif isinstance(do_not_truncate_columns, list):
+        # Disable truncation for ONLY specified columns - do NOT set table width
+        disable_truncation_for_all_columns = False
+        columns_with_no_truncation = [
+            col for col in do_not_truncate_columns if col in df.columns
+        ]
+        if show_index and index_name in do_not_truncate_columns:
+            columns_with_no_truncation.insert(0, index_name)
+
+    # Calculate widths for columns that should not be truncated
+    if columns_with_no_truncation:
+        for col in columns_with_no_truncation:
+            if col == index_name:
+                # Handle index column
+                name_len = len(index_name)
+                content_len = len(str(df.index.max()))
+            else:
+                # Handle data columns
+                name_len = len(col)
+                content_len = df[col].astype(str).str.len().max()
+
+            column_width[col] = max(name_len, content_len)
+
+        # The minimum required table width for us is given by:
+        # the width of the non truncated columns
+        # + 1 character per truncated column (ellipsis …)
+        # + 3 characters per column (2 padding whitespaces and one separator)
+        # + 1 additional separator
+        # If it's less than that, the table will be rendered with empty columns
+        # or might not have all columns.
+        total_column_count = len(df.columns) + (1 if show_index else 0)
+        non_truncated_width = sum(column_width.values())
+        truncated_column_count = total_column_count - len(column_width)
+        minimum_truncated_width = truncated_column_count
+        minimum_required_table_width = (
+            non_truncated_width + minimum_truncated_width + total_column_count * 3 + 1
+        )
+
+        # Set table width when truncation is disabled for all columns, or when
+        # the console is too narrow to show even the minimum content for the
+        # current non-truncated/truncated column mix.
+        if (
+            disable_truncation_for_all_columns
+            or minimum_required_table_width > console_width
+        ):
+            if disable_truncation_for_all_columns:
+                # Formula: sum of widths + padding (2 per col) + separators (1 per col + 1)
+                table_width = non_truncated_width + total_column_count * 3 + 1
+            else:
+                table_width = minimum_required_table_width
+        # else: table_width remains None, let rich handle it
+
     table = Table(
         title=title,
         show_header=show_header,
         show_lines=show_lines,
         show_edge=show_edge,
         box=box,
+        width=table_width,
     )
 
     # Add index column if requested
     if show_index:
-        index_name = df.index.name or "INDEX"
-        table.add_column(str(index_name))
+        truncation_is_disabled = index_name in column_width
+        table.add_column(
+            index_name,
+            overflow="ignore" if truncation_is_disabled else overflow,
+            no_wrap=True if truncation_is_disabled else no_wrap,
+            min_width=column_width.get(index_name),
+            width=column_width.get(index_name),
+        )
 
-    # Add columns
+    # Add data columns with selective truncation disabling
     for column in df.columns:
-        table.add_column(str(column))
+        truncation_is_disabled = column in column_width
+        table.add_column(
+            column,
+            overflow="ignore" if truncation_is_disabled else overflow,
+            no_wrap=True if truncation_is_disabled else no_wrap,
+            min_width=column_width.get(column),
+            width=column_width.get(column),
+        )
 
     # Add rows
     for idx, row in df.iterrows():

@@ -115,6 +115,7 @@ def list_contexts(
         matching_space_id=None,
         matching_space=None,
         minimize_output=True,
+        no_trunc=False,
         output_format=AdoGetSupportedOutputFormats.DEFAULT,
         resource_id=None,
         resource_type=AdoGetSupportedResourceTypes.CONTEXT,

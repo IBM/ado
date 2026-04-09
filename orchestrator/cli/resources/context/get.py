@@ -30,6 +30,9 @@ def get_context(
 ) -> None:
     import rich.box
 
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["CONTEXT"]
+
     available_contexts = parameters.ado_configuration.available_contexts
 
     # AP 11/06/2025:
@@ -61,6 +64,12 @@ def get_context(
     # AP: we always want to dump default values for contexts
     parameters.exclude_default = False
 
+    if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
+        # NAME format: output only context identifiers, one per line
+        for context in sorted(available_contexts):
+            console_print(context)
+        return
+
     if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
         if simplify_output:
             _simple_contexts_formatting(contexts=available_contexts)
@@ -76,7 +85,11 @@ def get_context(
 
         console_print(
             dataframe_to_rich_table(
-                contexts_df, show_edge=True, show_index=True, box=rich.box.SQUARE
+                contexts_df,
+                show_edge=True,
+                show_index=True,
+                box=rich.box.SQUARE,
+                do_not_truncate_columns=parameters.no_trunc,
             )
         )
         return

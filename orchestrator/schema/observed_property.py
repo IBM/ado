@@ -69,10 +69,10 @@ class ObservedProperty(pydantic.BaseModel):
         return f"{self.experimentReference.parameterizedExperimentIdentifier}-{self.targetProperty.identifier}"
 
     def __str__(self) -> str:
-        return f"op-{self.identifier}"
+        return self.identifier
 
     def __repr__(self) -> str:
-        return f"op-{self.identifier}"
+        return self.identifier
 
     @property
     def propertyType(self) -> "MeasuredPropertyTypeEnum":

@@ -116,7 +116,7 @@ def test_virtual_property_identifiers(
         == f"{virtual_property.baseObservedProperty.targetProperty.identifier}-{virtual_property.aggregationMethod.identifier.value}"
     )
 
-    assert str(virtual_property) == f"vp-{virtual_property.identifier}"
+    assert str(virtual_property) == virtual_property.identifier
 
 
 class TestAggregationWithNoneValues:

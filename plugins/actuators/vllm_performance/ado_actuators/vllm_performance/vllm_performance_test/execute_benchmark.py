@@ -6,6 +6,7 @@ import os
 import subprocess
 import time
 import uuid
+from pathlib import Path
 from typing import Any
 
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
@@ -28,6 +29,32 @@ default_geospatial_datasets_filenames = {
 
 class VLLMBenchmarkError(Exception):
     """Raised if there was an issue when running the benchmark"""
+
+
+def resolve_geospatial_dataset_path(dataset: str) -> Path:
+    """Resolve a built-in or custom geospatial dataset path."""
+
+    if dataset in default_geospatial_datasets_filenames:
+        dataset_filename = default_geospatial_datasets_filenames[dataset]
+        parent_path = Path(__file__).parents[1]
+        dataset_path = parent_path / "datasets" / dataset_filename
+    else:
+        # This can only happen with the geostaptial experiments using a custom dataaset file,
+        # otherwise the dataset name is always one of the allowed ones.
+        # Here the assumption is that the dataset file is placed in the process working directory.
+        ray_working_dir = Path.cwd()
+        dataset_path = ray_working_dir / dataset
+
+    if not dataset_path.is_file():
+        error_string = (
+            "The dataset filename provided does not exist or "
+            f"does not point to a valid file: {dataset_path}"
+        )
+        logger.warning(error_string)
+        raise ValueError(error_string)
+
+    logger.debug(f"Dataset path {dataset_path}")
+    return dataset_path
 
 
 def execute_benchmark(
@@ -251,28 +278,7 @@ def execute_geospatial_benchmark(
 
     :return: BenchmarkResult instance
     """
-    from pathlib import Path
-
-    if dataset in default_geospatial_datasets_filenames:
-        dataset_filename = default_geospatial_datasets_filenames[dataset]
-        parent_path = Path(__file__).parents[1]
-        dataset_path = parent_path / "datasets" / dataset_filename
-    else:
-        # This can only happen with the performance-testing-geospatial-full-custom-dataset
-        # experiment, otherwise the dataset name is always one of the allowed ones.
-        # Here the assumption is that the dataset file is placed in the  process working directory.
-        ray_working_dir = Path.cwd()
-        dataset_path = ray_working_dir / dataset
-
-    if not dataset_path.is_file():
-        error_string = (
-            "The dataset filename provided does not exist or "
-            f"does not point to a valid file: {dataset_path}"
-        )
-        logger.warning(error_string)
-        raise ValueError(error_string)
-
-    logger.debug(f"Dataset path {dataset_path}")
+    dataset_path = resolve_geospatial_dataset_path(dataset)
 
     return execute_benchmark(
         base_url=base_url,

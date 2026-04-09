@@ -65,8 +65,9 @@ experiments:
 ado get experiments --details
 ```
 
-You should see experiments including `test-geospatial-deployment-v1` and
-`test-geospatial-endpoint-v1`.
+You should see experiments including `test-geospatial-deployment-v1`,
+`test-geospatial-endpoint-v1`, `test-geospatial-deployment-custom-dataset-v1`,
+and `test-geospatial-endpoint-custom-dataset-v1`.
 
 ## Create an actuator configuration
 
@@ -116,35 +117,28 @@ metadata:
 entitySpace:
   - identifier: model
     propertyDomain:
-      variableType: CATEGORICAL_VARIABLE_TYPE
       values:
         - "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"
   - identifier: n_gpus
     propertyDomain:
-      variableType: DISCRETE_VARIABLE_TYPE
       values: [1]
   - identifier: gpu_type
     propertyDomain:
-      variableType: CATEGORICAL_VARIABLE_TYPE
       values:
         - "NVIDIA-A100-80GB-PCIe"
   - identifier: memory
     propertyDomain:
-      variableType: CATEGORICAL_VARIABLE_TYPE
       values:
         - "64Gi"
         - "128Gi"
   - identifier: max_num_seq
     propertyDomain:
-      variableType: DISCRETE_VARIABLE_TYPE
       values: [32, 64, 128]
   - identifier: request_rate
     propertyDomain:
-      variableType: DISCRETE_VARIABLE_TYPE
       values: [10, 50, 100]
   - identifier: dataset
     propertyDomain:
-      variableType: CATEGORICAL_VARIABLE_TYPE
       values:
         - "india_url_in_b64_out"
         - "valencia_url_in_b64_out"
@@ -300,7 +294,6 @@ And add the dataset path to your entity space:
 entitySpace:
   - identifier: dataset
     propertyDomain:
-      variableType: CATEGORICAL_VARIABLE_TYPE
       values:
         - "/path/to/your/dataset.jsonl"
 ```

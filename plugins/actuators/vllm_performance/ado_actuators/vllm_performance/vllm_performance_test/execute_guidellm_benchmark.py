@@ -299,30 +299,9 @@ def execute_guidellm_geospatial_benchmark(
     :raises ValueError: If any numeric parameter is invalid or burstiness != 1.0
     :raises GuideLLMBenchmarkError: If the benchmark failed to execute after retries
     """
-    from pathlib import Path
+    from .execute_benchmark import resolve_geospatial_dataset_path
 
-    # Import the dataset mapping from execute_benchmark module
-    from .execute_benchmark import default_geospatial_datasets_filenames
-
-    # Resolve dataset path
-    if dataset in default_geospatial_datasets_filenames:
-        dataset_filename = default_geospatial_datasets_filenames[dataset]
-        parent_path = Path(__file__).parents[1]
-        dataset_path = parent_path / "datasets" / dataset_filename
-    else:
-        # Custom dataset - assume it's in the Ray working directory
-        ray_working_dir = Path.cwd()
-        dataset_path = ray_working_dir / dataset
-
-    if not dataset_path.is_file():
-        error_string = (
-            f"The dataset filename provided does not exist or "
-            f"does not point to a valid file: {dataset_path}"
-        )
-        logger.warning(error_string)
-        raise ValueError(error_string)
-
-    logger.debug(f"Dataset path: {dataset_path}")
+    dataset_path = resolve_geospatial_dataset_path(dataset)
 
     # Build custom arguments for geospatial models
     custom_args: dict[str, str | None] = {

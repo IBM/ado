@@ -203,13 +203,12 @@ class OperatorMetadata(pydantic.BaseModel):
     function: Annotated[
         typing.Callable | None,
         pydantic.Field(
-            default=None,
             description=(
                 "The callable implementing the operator. None when returned by "
                 "operator_metadata() before the decorator injects it."
             ),
         ),
-    ]
+    ] = None
     version: Annotated[
         str,
         pydantic.Field(
@@ -231,14 +230,12 @@ class OperatorMetadata(pydantic.BaseModel):
     example_configuration: Annotated[
         pydantic.BaseModel | None,
         pydantic.Field(
-            default=None,
             description="Default instance of the configuration model.",
         ),
-    ]
+    ] = None
     cls: Annotated[
         type | None,
         pydantic.Field(
-            default=None,
             description=(
                 "For explore operators: the unwrapped Python class implementing the "
                 "operator. None for function-only operators. The concrete "
@@ -246,7 +243,7 @@ class OperatorMetadata(pydantic.BaseModel):
                 "subclass; config.py treats it as an opaque type to stay decoupled."
             ),
         ),
-    ]
+    ] = None
     type: Annotated[
         DiscoveryOperationEnum,
         pydantic.Field(

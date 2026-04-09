@@ -177,7 +177,7 @@ When the output indicates that the experiment has finished, you can inspect the
 results of all operations run so far on the space with:
 
 ```commandline
-ado show entities space --output-format csv --use-latest
+ado show entities space --output csv --use-latest > entities.csv
 ```
 
 > [!NOTE]

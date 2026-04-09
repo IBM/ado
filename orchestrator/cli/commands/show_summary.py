@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
 import typing
 from typing import Annotated
 
@@ -126,11 +127,23 @@ def show_summary_for_resources(
     output_format: Annotated[
         AdoShowSummarySupportedOutputFormats,
         typer.Option(
-            "--format",
+            "--output",
             "-o",
             help="The format in which to output the summary.",
         ),
     ] = AdoShowSummarySupportedOutputFormats.TABLE.value,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ] = None,
     render_output: Annotated[
         bool,
         typer.Option(
@@ -175,6 +188,18 @@ def show_summary_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
+    # Validate that output_file is only used with file-based formats
+    if output_file and output_format in (
+        AdoShowSummarySupportedOutputFormats.MARKDOWN,
+        AdoShowSummarySupportedOutputFormats.TABLE,
+    ):
+        console_print(
+            f"{ERROR} --output-file cannot be used with --output {output_format.value}. "
+            f"Use --output csv instead.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     resource_kind = CoreResourceKinds(resource_type.value)
     resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
     if not resource_id:
@@ -213,6 +238,7 @@ def show_summary_for_resources(
         ado_configuration=ado_configuration,
         columns_to_hide=columns_to_hide,
         include_properties=include_properties,
+        output_file=output_file,
         output_format=output_format,
         query=query,
         render_output=render_output,

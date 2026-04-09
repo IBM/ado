@@ -191,7 +191,7 @@ ado show entities operation --use-latest
 When the experiment finishes, inspect all results with:
 
 ```commandline
-ado show entities space --output-format csv --use-latest
+ado show entities space --output csv --use-latest > entities.csv
 ```
 
 ## Pre-packaged Datasets

@@ -101,8 +101,24 @@ def show_entities_for_resources(
     ] = AdoShowEntitiesSupportedPropertyFormats.TARGET.value,
     output_format: Annotated[
         AdoShowEntitiesSupportedOutputFormats,
-        typer.Option(help="The format in which to output the entities."),
+        typer.Option(
+            "--output",
+            "-o",
+            help="The format in which to output the entities.",
+        ),
     ] = AdoShowEntitiesSupportedOutputFormats.CONSOLE.value,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ] = None,
     properties: Annotated[
         list[str] | None,
         typer.Option(
@@ -162,6 +178,15 @@ def show_entities_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
+    # Validate that output_file is only used with file-based formats
+    if output_file and output_format == AdoShowEntitiesSupportedOutputFormats.CONSOLE:
+        console_print(
+            f"{ERROR} --output-file cannot be used with --output console. "
+            f"Use --output csv or --output json instead.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     if use_latest:
         resource_id = get_effective_resource_id(
             explicit_resource_id=resource_id,
@@ -195,6 +220,7 @@ def show_entities_for_resources(
         entities_property_format=property_format,
         entities_type=entity_type,
         no_trunc=no_trunc,
+        output_file=output_file,
         properties=properties,
         resource_configuration=resource_configuration,
         resource_id=resource_id,

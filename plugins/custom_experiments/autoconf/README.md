@@ -283,8 +283,8 @@ ado create space -f examples/sweep/space.yaml
 ado create operation -f examples/sweep/operation.yaml --use-latest space
 : The above step will take a few minutes to sweep over the points
 : This command will generate a CSV file with the results
-ado show entities --use-latest space --output-format csv
-open space-*.csv
+ado show entities --use-latest space -o csv --output-file space-entities.csv
+open space-entities.csv
 ```
 
 <!-- markdownlint-enable line-length -->

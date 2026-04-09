@@ -280,7 +280,57 @@ class MultivariateDiscoveryOperation(metaclass=abc.ABCMeta):
         pass
 
 
-# Note: We need async and sync versions because depending on agent
+class DiscoverySpaceSubscribingDiscoveryOperation(
+    DiscoveryOperationBase,
+    DiscoverySpaceUpdateSubscriber,
+    metaclass=abc.ABCMeta,
+):
+    """Instances of this class can cause updates the state and receives details of updates via the StateUpdateSubscriber interface
+
+    Instances of this class are RayActors and must run in Ray.
+    They work on a Ray wrapped instance of the DiscoveryState (models.actors.InternalState)
+    """
+
+    def __init__(
+        self,
+        operationActorName: str,
+        namespace: str | None,
+        state: DiscoverySpaceManager,
+        # Will actually be ray.actor.ActorHandle accessing InternalState
+        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+        params: dict | None = None,
+        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
+    ) -> None:
+        # Common code for StateSubscribingDiscoveryOperations
+        self.state = state
+        self.actorName = operationActorName
+        self.namespace = namespace
+        # noinspection PyUnresolvedReferences
+        self.state.subscribeToUpdates.remote(subscriberName=self.actorName)
+
+        super().__init__()
+
+    # async def run(self, discoveryState: orchestrator.model.actors.InternalState):
+    #
+    #     pass
+
+
+class Characterize(
+    DiscoverySpaceSubscribingDiscoveryOperation,
+    UnaryDiscoveryOperation,
+    metaclass=abc.ABCMeta,
+):
+    pass
+
+
+class Search(
+    DiscoverySpaceSubscribingDiscoveryOperation,
+    UnaryDiscoveryOperation,
+    metaclass=abc.ABCMeta,
+):
+    pass
+
+
 def measure_or_replay(
     requestIndex: int,
     requesterid: str,
@@ -378,77 +428,6 @@ def measure_or_replay(
         request_ids.extend(measurement_request_ids)
 
     return request_ids
-
-
-class DiscoverySpaceSubscribingDiscoveryOperation(
-    DiscoveryOperationBase,
-    DiscoverySpaceUpdateSubscriber,
-    metaclass=abc.ABCMeta,
-):
-    """Instances of this class can cause updates the state and receives details of updates via the StateUpdateSubscriber interface
-
-    Instances of this class are RayActors and must run in Ray.
-    They work on a Ray wrapped instance of the DiscoveryState (models.actors.InternalState)
-    """
-
-    def __init__(
-        self,
-        operationActorName: str,
-        namespace: str | None,
-        state: DiscoverySpaceManager,
-        # Will actually be ray.actor.ActorHandle accessing InternalState
-        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
-        params: dict | None = None,
-        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
-    ) -> None:
-        # Common code for StateSubscribingDiscoveryOperations
-        self.state = state
-        self.actorName = operationActorName
-        self.namespace = namespace
-        # noinspection PyUnresolvedReferences
-        self.state.subscribeToUpdates.remote(subscriberName=self.actorName)
-
-        super().__init__()
-
-    # async def run(self, discoveryState: orchestrator.model.actors.InternalState):
-    #
-    #     pass
-
-
-class Characterize(
-    DiscoverySpaceSubscribingDiscoveryOperation,
-    UnaryDiscoveryOperation,
-    metaclass=abc.ABCMeta,
-):
-    pass
-
-
-class Search(
-    DiscoverySpaceSubscribingDiscoveryOperation,
-    UnaryDiscoveryOperation,
-    metaclass=abc.ABCMeta,
-):
-    pass
-
-
-class Compare(
-    DiscoveryOperationBase, MultivariateDiscoveryOperation, metaclass=abc.ABCMeta
-):
-    pass
-
-
-class Modify(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMeta):
-    pass
-
-
-class Fuse(
-    DiscoveryOperationBase, MultivariateDiscoveryOperation, metaclass=abc.ABCMeta
-):
-    pass
-
-
-class Learn(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMeta):
-    pass
 
 
 def add_operation_output_to_metastore(

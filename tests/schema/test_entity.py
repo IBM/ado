@@ -10,6 +10,7 @@ from orchestrator.modules.actuators.registry import ActuatorRegistry
 from orchestrator.schema.entity import (
     CheckRequiredConstitutivePropertyValuesPresent,
     Entity,
+    entity_identifier_from_properties_and_values,
 )
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.observed_property import (
@@ -300,20 +301,21 @@ def test_identifier_from_property_values(
     entity_for_parameterized_experiment: tuple[Entity, Experiment],
 ) -> None:
 
-    from rich.console import Console
-
     test_entity, _test_experiment = entity_for_parameterized_experiment
-
     constitutive_property_values = test_entity.constitutive_property_values
-
-    Console().print(test_entity)
 
     assert (
         ident := Entity.identifier_from_property_values(constitutive_property_values)
     ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
+
+    # The identifier should be sorted alphabetically by property identifier
+    sorted_parts = sorted(
+        [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values],
+        key=lambda x: x.split(".")[0],
+    )
     assert ident == "-".join(
-        [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values]
-    ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ..."
+        sorted_parts
+    ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ... (sorted alphabetically by property ID)"
 
     constitutive_property_values = [
         *list(constitutive_property_values),
@@ -346,9 +348,14 @@ def test_value_error_duplicate_constitutive_properties(
     assert (
         ident := Entity.identifier_from_property_values(constitutive_property_values)
     ), "Expected identifier_from_property_values to return an identifier given a set of constitutive property values"
+    # The identifier should be sorted alphabetically by property identifier
+    sorted_parts = sorted(
+        [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values],
+        key=lambda x: x.split(".")[0],
+    )
     assert ident == "-".join(
-        [f"{pv.property.identifier}.{pv.value}" for pv in constitutive_property_values]
-    ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ..."
+        sorted_parts
+    ), "Expected the ident to have a certain format: $PROP1_ID.$PROP1_VALUE-$PROP2_ID.$PROP2_VALUE ... (sorted alphabetically by property ID)"
 
     with pytest.raises(ValueError, match="Constitutive properties must be unique"):
         Entity(
@@ -825,3 +832,33 @@ def test_required_constitutive_properties_present(
         "Expected that after removing a constitutive property the entity would not have all properties required "
         "by the test experiment"
     )
+
+
+def test_entity_identifier_from_properties_and_values_sorted() -> None:
+    """Test that entity_identifier_from_properties_and_values produces consistent identifiers regardless of dict key order."""
+
+    # Create three dictionaries with the same keys and values but in different order
+    point1 = {"prop_a": "value1", "prop_b": "value2", "prop_c": "value3"}
+    point2 = {"prop_c": "value3", "prop_a": "value1", "prop_b": "value2"}
+    point3 = {"prop_b": "value2", "prop_c": "value3", "prop_a": "value1"}
+
+    # All should produce the same identifier
+    id1 = entity_identifier_from_properties_and_values(point1)
+    id2 = entity_identifier_from_properties_and_values(point2)
+    id3 = entity_identifier_from_properties_and_values(point3)
+
+    assert (
+        id1 == id2 == id3
+    ), f"Expected all identifiers to be equal, but got: {id1}, {id2}, {id3}"
+
+    # Verify the identifier is sorted alphabetically by key
+    expected = "prop_a.value1-prop_b.value2-prop_c.value3"
+    assert id1 == expected, f"Expected identifier to be {expected}, but got {id1}"
+
+    # Test with numeric values
+    point_numeric = {"z": 1, "a": 2, "m": 3}
+    id_numeric = entity_identifier_from_properties_and_values(point_numeric)
+    expected_numeric = "a.2-m.3-z.1"
+    assert (
+        id_numeric == expected_numeric
+    ), f"Expected identifier to be {expected_numeric}, but got {id_numeric}"

@@ -654,7 +654,8 @@ The complete syntax of the `ado show entities` command is as follows:
 ```shell
 ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
-                  [--output-format {console | csv | json}] \
+                  [--output | -o {console | csv | json}] \
+                  [--output-file <path>] \
                   [--property <property-name>] \
                   [--include {sampled | matching | missing | unsampled}] \
                   [--aggregate {mean | median | variance | std | min | max}]
@@ -691,15 +692,20 @@ Where:
 
 <!-- prettier-ignore-end -->
 
-- `--output-format` is the format in which to display the entity data. One of:
+- `--output` (or `-o`) is the format in which to display the entity data. One
+  of:
 
 <!-- prettier-ignore-start -->
 
     - `console` (print to stdout)
-    - `csv` (output as CSV file)
-    - `json` (output as JSON file)
+    - `csv` (write CSV to stdout, or to file if `--output-file` is specified)
+    - `json` (write JSON to stdout, or to file if `--output-file` is specified)
 
 <!-- prettier-ignore-end -->
+
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout (except for console format which always prints to
+  stdout).
 
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
@@ -740,7 +746,15 @@ Where:
 ```shell
  ado show entities space space-abc123-456def --include matching \
                                              --property-format target \
-                                             --output-format csv
+                                             -o csv --output-file entities.csv
+```
+
+Or to write CSV to stdout for piping:
+
+```shell
+ ado show entities space space-abc123-456def --include matching \
+                                             --property-format target \
+                                             -o csv > entities.csv
 ```
 
 <!-- markdownlint-disable line-length -->
@@ -750,7 +764,7 @@ Where:
 <!-- markdownlint-enable line-length -->
 
 ```shell
-ado show entities operation randomwalk-0.5.0-123abc --output-format json \
+ado show entities operation randomwalk-0.5.0-123abc -o json \
                                                     --property my-property-1 \
                                                     --property my-property-2
 ```
@@ -766,7 +780,8 @@ The complete syntax of the `ado show requests` command is as follows:
 
 ```shell
 ado show requests operation [RESOURCE_ID] [--use-latest] \
-                            [--output-format | -o <console | csv | json>] \
+                            [--output | -o <console | csv | json>] \
+                            [--output-file <path>] \
                             [--hide <field>]
 ```
 
@@ -775,8 +790,10 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
   operation created locally. It is not context aware. It is ignored if a
   RESOURCE_ID is provided.
-- `--output-format` determines whether the output will be printed to console or
-  saved to a file.
+- `--output` (or `-o`) determines the output format. Output is written to stdout
+  by default, or to a file if `--output-file` is specified.
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 - `--hide` can be specified multiple times and allows hiding fields from the
   output.
 
@@ -785,7 +802,13 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 ###### Show measurement requests for an operation and save them as csv
 
 ```shell
-ado show requests operation randomwalk-0.5.0-123abc -o csv
+ado show requests operation randomwalk-0.5.0-123abc -o csv > requests.csv
+```
+
+Or to write to a file directly:
+
+```shell
+ado show requests operation randomwalk-0.5.0-123abc -o csv --output-file requests.csv
 ```
 
 ###### Show measurement requests for an operation and hide certain fields
@@ -809,7 +832,8 @@ The complete syntax of the `ado show results` command is as follows:
 
 ```shell
 ado show results operation [RESOURCE_ID] [--use-latest] \
-                           [--output-format | -o <console | csv | json>] \
+                           [--output | -o <console | csv | json>] \
+                           [--output-file <path>] \
                            [--hide <field>]
 ```
 
@@ -818,8 +842,10 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
   operation created locally. It is not context aware. It is ignored if a
   RESOURCE_ID is provided.
-- `--output-format` determines whether the output will be printed to console or
-  saved to a file.
+- `--output` (or `-o`) determines the output format. Output is written to stdout
+  by default, or to a file if `--output-file` is specified.
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 - `--hide` can be specified multiple times and allows hiding fields from the
   output.
 
@@ -828,7 +854,13 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 ###### Show measurement results for an operation
 
 ```shell
-ado show results operation randomwalk-0.5.0-123abc -o csv
+ado show results operation randomwalk-0.5.0-123abc -o csv > results.csv
+```
+
+Or to write to a file directly:
+
+```shell
+ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.csv
 ```
 
 ###### Show measurement results for an operation and hide certain fields
@@ -888,7 +920,8 @@ ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
                  [--query | -q <path=candidate>] \
                  [--label | -l <LABEL> ] \
                  [--with-property | -p <PROPERTY> ] \
-                 [--format | -o <md | table | csv>]
+                 [--output | -o <md | table | csv>] \
+                 [--output-file <path>]
 ```
 
 Where:
@@ -909,16 +942,19 @@ Where:
   results).
 - `--with-property | -p` displays values for a subset of the constitutive
   properties. Cannot be used when the output format is `md`.
-- `--format | -o` allows choosing the output format in which the information
-  should be displayed. Can be one of either:
+- `--output` (or `-o`) allows choosing the output format in which the
+  information should be displayed. Can be one of either:
 
 <!-- prettier-ignore-start -->
 
-    - `md` - for Markdown text.
-    - `table` (**default**) - for Markdown tables.
-    - `csv` - for a comma separated file.
+    - `md` - for Markdown text (written to stdout or file).
+    - `table` (**default**) - for Markdown tables (written to stdout or file).
+    - `csv` - for CSV format (written to stdout or file).
 
 <!-- prettier-ignore-end -->
+
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 
 ##### Examples
 
@@ -959,7 +995,13 @@ ado show summary space space-abc123-456def -o md
 ###### Get the summary of a multiple spaces as a CSV file via key-value labels
 
 ```shell
-ado show summary space -l issue=123 -o csv
+ado show summary space -l issue=123 -o csv > summary.csv
+```
+
+Or to write to a file directly:
+
+```shell
+ado show summary space -l issue=123 -o csv --output-file summary.csv
 ```
 
 ###### Get the summary of spaces that include granite-7b-base in the property domain

@@ -17,9 +17,6 @@ from orchestrator.metastore.base import (
 
 
 def show_operation_entities(parameters: AdoShowEntitiesCommandParameters) -> None:
-
-    entities_type = "timeseries"
-
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
@@ -43,10 +40,9 @@ def show_operation_entities(parameters: AdoShowEntitiesCommandParameters) -> Non
             aggregation_method=parameters.aggregation_method,
         )
 
-    file_name = f"{parameters.resource_id}_description_{entities_type}_{parameters.entities_property_format.value}.{parameters.entities_output_format.value}"
     df_to_output(
         df=output_df,
         output_format=parameters.entities_output_format.value,
-        file_name=file_name,
+        output_file=parameters.output_file,
         no_trunc=parameters.no_trunc,
     )

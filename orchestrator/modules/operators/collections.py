@@ -152,16 +152,17 @@ def characterize_operation(
             )
 
         validate_operator_function_signature(wrapper)
+        wrapper = typing.cast("OperatorFunction", wrapper)
         characterize.operators[name] = OperatorMetadata(
             name=name,
-            function=typing.cast("OperatorFunction", wrapper),
+            function=wrapper,
             version=version or "v0.1",
             description=description,
             configuration_model=configuration_model,
             example_configuration=configuration_model_default,
             type=DiscoveryOperationEnum.CHARACTERIZE,
         )
-        return typing.cast("OperatorFunction", wrapper)
+        return wrapper
 
     return _register
 
@@ -227,7 +228,7 @@ def explore_operation(
         name: Canonical operator name
         description: Human-readable description shown in the registry.
         configuration_model: Pydantic model for display in the registry
-        version: Semantic version string (e.g. ``"v0.1"``).
+        version: Semantic version string (e.g. ``"0.1.0"``).
         configuration_model_default: Default parameter model instance
 
     Returns:
@@ -273,14 +274,14 @@ def explore_operation(
             _generated.__name__ = op_name
             _generated.__qualname__ = op_name
             validate_operator_function_signature(_generated)
-
+            _generated = typing.cast("OperatorFunction", _generated)
             explore.operators[op_name] = metadata.model_copy(
                 update={
-                    "function": typing.cast("OperatorFunction", _generated),
+                    "function": _generated,
                     "cls": t,
                 }
             )
-            return typing.cast("OperatorFunction", _generated)
+            return _generated
 
         # ------------------------------------------------------------------
         # Function decoration path (legacy)
@@ -345,16 +346,17 @@ def modify_operation(
             )
 
         validate_operator_function_signature(wrapper)
+        wrapper = typing.cast("OperatorFunction", wrapper)
         modify.operators[name] = OperatorMetadata(
             name=name,
-            function=typing.cast("OperatorFunction", wrapper),
+            function=wrapper,
             version=version or "v0.1",
             description=description,
             configuration_model=configuration_model,
             example_configuration=configuration_model_default,
             type=DiscoveryOperationEnum.MODIFY,
         )
-        return typing.cast("OperatorFunction", wrapper)
+        return wrapper
 
     return _register
 
@@ -396,16 +398,17 @@ def export_operation(
             )
 
         validate_operator_function_signature(wrapper)
+        wrapper = typing.cast("OperatorFunction", wrapper)
         export.operators[name] = OperatorMetadata(
             name=name,
-            function=typing.cast("OperatorFunction", wrapper),
+            function=wrapper,
             version=version or "v0.1",
             description=description,
             configuration_model=configuration_model,
             example_configuration=configuration_model_default,
             type=DiscoveryOperationEnum.EXPORT,
         )
-        return typing.cast("OperatorFunction", wrapper)
+        return wrapper
 
     return _register
 

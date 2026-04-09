@@ -64,7 +64,7 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
                         output_df,
                         show_edge=True,
                         box=rich.box.SQUARE,
-                        do_not_truncate_column_content=parameters.no_trunc,
+                        do_not_truncate_columns=parameters.no_trunc,
                     )
                 )
 
@@ -94,7 +94,7 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
                         output_df,
                         show_edge=True,
                         box=rich.box.SQUARE,
-                        do_not_truncate_column_content=parameters.no_trunc,
+                        do_not_truncate_columns=parameters.no_trunc,
                     )
                 )
 

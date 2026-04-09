@@ -6,6 +6,7 @@ import os
 import subprocess
 import time
 import uuid
+from pathlib import Path
 from typing import Any
 
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
@@ -22,6 +23,7 @@ logger = logging.getLogger("vllm-bench")
 default_geospatial_datasets_filenames = {
     "india_url_in_b64_out": "india_url_in_b64_out.jsonl",
     "valencia_url_in_b64_out": "valencia_url_in_b64_out.jsonl",
+    "terramind_flood_url_in_b64_out": "terramind_flood_url_in_b64_out.jsonl",
 }
 
 
@@ -29,12 +31,37 @@ class VLLMBenchmarkError(Exception):
     """Raised if there was an issue when running the benchmark"""
 
 
+def resolve_custom_dataset_path(dataset: str) -> Path:
+    """Resolve a built-in or custom geospatial dataset path."""
+
+    if dataset in default_geospatial_datasets_filenames:
+        dataset_filename = default_geospatial_datasets_filenames[dataset]
+        parent_path = Path(__file__).parents[1]
+        dataset_path = parent_path / "datasets" / dataset_filename
+    else:
+        # This can only happen with the geostaptial experiments using a custom dataaset file,
+        # otherwise the dataset name is always one of the allowed ones.
+        # Here the assumption is that the dataset file is placed in the process working directory.
+        ray_working_dir = Path.cwd()
+        dataset_path = ray_working_dir / dataset
+
+    if not dataset_path.is_file():
+        error_string = (
+            "The dataset filename provided does not exist or "
+            f"does not point to a valid file: {dataset_path}"
+        )
+        logger.warning(error_string)
+        raise ValueError(error_string)
+
+    logger.debug(f"Dataset path {dataset_path}")
+    return dataset_path
+
+
 def execute_benchmark(
     base_url: str,
     model: str,
     dataset: str,
     backend: str = "openai",
-    interpreter: str = "python",
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
@@ -51,7 +78,6 @@ def execute_benchmark(
     :param model: model
     :param dataset: data set name ["random"]
     :param backend: name of the vLLM benchmark backend to be used ["vllm", "openai", "openai-chat", "openai-audio", "openai-embeddings"]
-    :param interpreter: name of Python interpreter
     :param num_prompts: number of prompts
     :param request_rate: request rate
     :param max_concurrency: maximum number of concurrent requests
@@ -80,9 +106,7 @@ def execute_benchmark(
     logger.debug(
         f"executing benchmark, invoking service at {base_url} with the parameters: "
     )
-    logger.debug(
-        f"model {model}, data set {dataset}, python {interpreter}, num prompts {num_prompts}"
-    )
+    logger.debug(f"model {model}, data set {dataset}, num prompts {num_prompts}")
     logger.debug(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
@@ -135,7 +159,9 @@ def execute_benchmark(
         command.extend(["--max-concurrency", f"{max_concurrency!s}"])
     if custom_args is not None:
         for key, value in custom_args.items():
-            command.extend([key, f"{value!s}"])
+            command.append(key)
+            if value:
+                command.append(f"{value!s}")
 
     logger.debug(f"Command line: {command}")
 
@@ -179,7 +205,6 @@ def execute_random_benchmark(
     burstiness: float = 1,
     number_input_tokens: int | None = None,
     max_output_tokens: int | None = None,
-    interpreter: str = "python",
 ) -> BenchmarkResult:
     """
     Execute benchmark with random dataset
@@ -195,7 +220,6 @@ def execute_random_benchmark(
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     :param number_input_tokens: maximum number of input tokens for each request,
     :param max_output_tokens: maximum number of output tokens for each request,
-    :param interpreter: name of Python interpreter
 
     :return: BenchmarkResult instance
     """
@@ -204,7 +228,6 @@ def execute_random_benchmark(
         base_url=base_url,
         model=model,
         dataset=dataset,
-        interpreter=interpreter,
         num_prompts=num_prompts,
         request_rate=request_rate,
         max_concurrency=max_concurrency,
@@ -230,7 +253,6 @@ def execute_geospatial_benchmark(
     benchmark_retries: int = 3,
     retries_timeout: int = 5,
     burstiness: float = 1,
-    interpreter: str = "python",
 ) -> BenchmarkResult:
     """
     Execute benchmark with geospatial dataset
@@ -244,39 +266,16 @@ def execute_geospatial_benchmark(
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
-    :param interpreter: python interpreter to use
 
     :return: BenchmarkResult instance
     """
-    from pathlib import Path
-
-    if dataset in default_geospatial_datasets_filenames:
-        dataset_filename = default_geospatial_datasets_filenames[dataset]
-        parent_path = Path(__file__).parents[1]
-        dataset_path = parent_path / "datasets" / dataset_filename
-    else:
-        # This can only happen with the performance-testing-geospatial-full-custom-dataset
-        # experiment, otherwise the dataset name is always one of the allowed ones.
-        # Here the assumption is that the dataset file is placed in the  process working directory.
-        ray_working_dir = Path.cwd()
-        dataset_path = ray_working_dir / dataset
-
-    if not dataset_path.is_file():
-        error_string = (
-            "The dataset filename provided does not exist or "
-            f"does not point to a valid file: {dataset_path}"
-        )
-        logger.warning(error_string)
-        raise ValueError(error_string)
-
-    logger.debug(f"Dataset path {dataset_path}")
+    dataset_path = resolve_custom_dataset_path(dataset)
 
     return execute_benchmark(
         base_url=base_url,
-        backend="io-processor-plugin",
+        backend="vllm-pooling",
         model=model,
         dataset="custom",
-        interpreter=interpreter,
         num_prompts=num_prompts,
         request_rate=request_rate,
         max_concurrency=max_concurrency,
@@ -287,14 +286,13 @@ def execute_geospatial_benchmark(
         custom_args={
             "--dataset-path": f"{dataset_path.resolve()}",
             "--endpoint": "/pooling",
-            "--skip-tokenizer-init": True,
+            "--skip-tokenizer-init": None,
         },
     )
 
 
 if __name__ == "__main__":
     results = execute_geospatial_benchmark(
-        interpreter="python3.10",
         base_url="http://localhost:8000",
         model="ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11",
         request_rate=2,

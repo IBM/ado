@@ -49,7 +49,7 @@ def df_to_output(
                 show_edge=True,
                 show_index=True,
                 box=rich.box.SQUARE,
-                do_not_truncate_column_content=no_trunc,
+                do_not_truncate_columns=no_trunc,
             )
         case "csv":
             output = df.to_csv()

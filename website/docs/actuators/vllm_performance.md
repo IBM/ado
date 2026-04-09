@@ -46,7 +46,9 @@
 
 ### Available experiments
 
-The `vllm_performance` actuator implements four experiments:
+The `vllm_performance` actuator implements twelve experiments:
+
+**Standard LLM Benchmarking:**
 
 - `test-deployment-v1`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
@@ -61,6 +63,27 @@ The `vllm_performance` actuator implements four experiments:
 - `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses GuideLLM
   (`guidellm benchmark run`) for benchmarking instead of vLLM's built-in
   benchmarking tool.
+
+**Geospatial Model Benchmarking:**
+
+- `test-geospatial-deployment-v1`: Deploy and benchmark geospatial models
+  (IBM-NASA Prithvi) using pre-packaged datasets for flood detection tasks with
+  vLLM's built-in benchmarking tool.
+- `test-geospatial-endpoint-v1`: Benchmark existing geospatial model endpoints
+  using pre-packaged datasets with vLLM's built-in benchmarking tool.
+- `test-geospatial-deployment-guidellm-v1`: Deploy and benchmark geospatial
+  models using pre-packaged datasets with GuideLLM.
+- `test-geospatial-endpoint-guidellm-v1`: Benchmark existing geospatial model
+  endpoints using pre-packaged datasets with GuideLLM.
+- `test-geospatial-deployment-custom-dataset-v1`: Deploy and benchmark
+  geospatial models with custom datasets using vLLM's built-in benchmarking
+  tool.
+- `test-geospatial-endpoint-custom-dataset-v1`: Benchmark existing geospatial
+  model endpoints with custom datasets using vLLM's built-in benchmarking tool.
+- `test-geospatial-deployment-guidellm-custom-dataset-v1`: Deploy and benchmark
+  geospatial models with custom datasets using GuideLLM.
+- `test-geospatial-endpoint-guidellm-custom-dataset-v1`: Benchmark existing
+  geospatial model endpoints with custom datasets using GuideLLM.
 
 ---
 
@@ -168,8 +191,8 @@ covers several needs:
   cluster resources.
 - **Secure access**: Pass required HuggingFace tokens, set up image pull
   secrets, control in-cluster or remote execution, and toggle SSL verification.
-- **Experiment protocol and retries**: Choose how benchmarks are run, including
-  interpreter, retry logic, and YAML templates for deployments/services used.
+- **Experiment protocol and retries**: Configure retry logic and YAML templates
+  for deployments and services used by the actuator.
 - **Deployment resource management**: Limit the number of concurrent deployments
   and control automated clean-up.
 
@@ -190,7 +213,6 @@ parameters:
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
   image_pull_secret_name: ""            # Optional image pull secret
   in_cluster: false                     # Set to true if running from within the cluster
-  interpreter: python3                  # Language for test drivers/benchmarks
   max_environments: 1                   # Max concurrent vLLM deployments
   namespace: "mynamespace"              # OpenShift/K8s namespace to deploy into
   node_selector:                        # A dictionary of Kubernetes node_selector key:value pairs

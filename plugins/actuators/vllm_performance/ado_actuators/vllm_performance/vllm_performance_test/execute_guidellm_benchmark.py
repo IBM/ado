@@ -45,6 +45,7 @@ def execute_guidellm_benchmark(
     dataset: Literal["random"] = "random",
     output_format: Literal["json", "html", "markdown"] = "json",
     burstiness: float = 1.0,
+    custom_args: dict[str, str | None] | None = None,
 ) -> BenchmarkResult:
     """
     Execute benchmark using GuideLLM
@@ -72,6 +73,8 @@ def execute_guidellm_benchmark(
     :param dataset: Dataset type (currently only 'random' is supported for synthetic data)
     :param output_format: Output format (json, html, or markdown)
     :param burstiness: Burstiness parameter (must be 1.0 for GuideLLM experiments, default: 1.0)
+    :param custom_args: Optional dictionary of custom command-line arguments to add to the guidellm command.
+                       Keys are argument names (e.g., "--backend"), values are argument values (or None for flags).
 
     :return: BenchmarkResult instance with performance metrics
 
@@ -165,6 +168,16 @@ def execute_guidellm_benchmark(
 
         command.extend(["--data", json.dumps(data_config)])
 
+    # Add custom arguments if provided
+    if custom_args:
+        for arg_name, arg_value in custom_args.items():
+            if arg_value is None:
+                # Flag without value
+                command.append(arg_name)
+            else:
+                # Argument with value
+                command.extend([arg_name, str(arg_value)])
+
     # Log the complete command for debugging
     logger.info(f"Executing GuideLLM command: {' '.join(command)}")
 
@@ -250,6 +263,67 @@ def _parse_guidellm_results(output_path: Path) -> BenchmarkResult:
 
     # Transform to standardized result format using Pydantic model
     return guidellm_output.to_benchmark_result()
+
+
+def execute_guidellm_geospatial_benchmark(
+    base_url: str,
+    model: str,
+    dataset: str,
+    num_prompts: int = 500,
+    request_rate: int | None = None,
+    max_concurrency: int | None = None,
+    hf_token: str | None = None,
+    benchmark_retries: int = 3,
+    retries_timeout: int = 5,
+    burstiness: float = 1.0,
+) -> BenchmarkResult:
+    """
+    Execute benchmark for geospatial models using GuideLLM with custom datasets
+
+    This is a thin wrapper around execute_guidellm_benchmark that resolves dataset
+    paths and adds geospatial-specific custom arguments.
+
+    :param base_url: URL for the LLM endpoint (OpenAI-compatible)
+    :param model: Model name/identifier
+    :param dataset: Dataset name (pre-packaged) or filename (custom)
+    :param num_prompts: Total number of requests to send (must be positive)
+    :param request_rate: Request rate (requests per second), None means unlimited
+    :param max_concurrency: Maximum number of concurrent requests (must be positive if specified)
+    :param hf_token: HuggingFace token for authentication
+    :param benchmark_retries: Number of benchmark execution retries (must be positive)
+    :param retries_timeout: Timeout between initial retry (must be positive)
+    :param burstiness: Burstiness parameter (must be 1.0 for GuideLLM experiments)
+
+    :return: BenchmarkResult instance with performance metrics
+
+    :raises ValueError: If any numeric parameter is invalid or burstiness != 1.0
+    :raises GuideLLMBenchmarkError: If the benchmark failed to execute after retries
+    """
+    from .execute_benchmark import resolve_custom_dataset_path
+
+    dataset_path = resolve_custom_dataset_path(dataset)
+
+    # Build custom arguments for geospatial models
+    custom_args: dict[str, str | None] = {
+        "--backend": "openai_http",
+        "--data": str(dataset_path),
+        "--request-format": "/pooling",
+        "--data-column-mapper": "pooling_column_mapper",
+    }
+
+    # Call the base execute_guidellm_benchmark with custom args
+    return execute_guidellm_benchmark(
+        base_url=base_url,
+        model=model,
+        num_prompts=num_prompts,
+        request_rate=request_rate,
+        max_concurrency=max_concurrency,
+        hf_token=hf_token,
+        benchmark_retries=benchmark_retries,
+        retries_timeout=retries_timeout,
+        burstiness=burstiness,
+        custom_args=custom_args,
+    )
 
 
 if __name__ == "__main__":

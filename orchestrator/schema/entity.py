@@ -52,7 +52,7 @@ def entity_identifier_from_properties_and_values(point: dict[str, typing.Any]) -
         An entity identifier
     """
 
-    parts = [f"{key}.{point[key]}" for key in point]
+    parts = [f"{key}.{point[key]}" for key in sorted(point.keys())]
     return "-".join(parts)
 
 

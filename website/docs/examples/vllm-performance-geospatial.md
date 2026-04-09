@@ -80,7 +80,9 @@ First execute:
 ado template actuatorconfiguration --actuator-identifier vllm_performance -o vllm_actuator_configuration.yaml
 ```
 
-Edit the file and set correct values for at least the `namespace` field:
+Edit the file and set correct values for at least the `namespace` field. In this
+example we are assuming the namespace the user has access to is named
+`vllm-testing`.
 
 ```yaml
 # you MUST set this to a namespace where you can create vLLM deployments
@@ -108,44 +110,14 @@ tokens. Key parameters include:
 
 Save the following as `geospatial_space.yaml`:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
-metadata:
-  name: geospatial-flood-detection-space
-  description:
-    "Explore Prithvi geospatial model deployment configurations for flood
-    detection"
-entitySpace:
-  - identifier: model
-    propertyDomain:
-      values:
-        - "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"
-  - identifier: n_gpus
-    propertyDomain:
-      values: [1]
-  - identifier: gpu_type
-    propertyDomain:
-      values:
-        - "NVIDIA-A100-80GB-PCIe"
-  - identifier: memory
-    propertyDomain:
-      values:
-        - "64Gi"
-        - "128Gi"
-  - identifier: max_num_seq
-    propertyDomain:
-      values: [32, 64, 128]
-  - identifier: request_rate
-    propertyDomain:
-      values: [10, 50, 100]
-  - identifier: dataset
-    propertyDomain:
-      values:
-        - "india_url_in_b64_out"
-        - "valencia_url_in_b64_out"
-measurementSpace:
-  - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-geospatial-deployment-v1
+{%
+  include-markdown "./example_yamls/geospatial_flood_detection_space.yaml"
+%}
 ```
+<!-- prettier-ignore-end -->
 
 Then run:
 
@@ -168,23 +140,14 @@ given deployment before creating a new one.
 
 Save the following as `geospatial_operation.yaml`:
 
+<!-- prettier-ignore-start -->
+
 ```yaml
-metadata:
-  name: geospatial-exploration
-  description: "Explore geospatial model deployment configurations"
-operatorIdentifier: random_walk
-operatorConfiguration:
-  sampler:
-    samplerIdentifier: grouped_explicit_grid_sampler
-    samplerConfiguration:
-      grouping:
-        - model
-        - n_gpus
-        - gpu_type
-        - memory
-        - max_num_seq
-      numberOfSamples: all
+{%
+  include-markdown "./example_yamls/geospatial_random_walk.yaml"
+%}
 ```
+<!-- prettier-ignore-end -->
 
 Then, start the operation with:
 

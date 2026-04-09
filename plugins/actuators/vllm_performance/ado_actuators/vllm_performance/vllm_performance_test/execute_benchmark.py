@@ -31,7 +31,7 @@ class VLLMBenchmarkError(Exception):
     """Raised if there was an issue when running the benchmark"""
 
 
-def resolve_geospatial_dataset_path(dataset: str) -> Path:
+def resolve_custom_dataset_path(dataset: str) -> Path:
     """Resolve a built-in or custom geospatial dataset path."""
 
     if dataset in default_geospatial_datasets_filenames:
@@ -62,7 +62,6 @@ def execute_benchmark(
     model: str,
     dataset: str,
     backend: str = "openai",
-    interpreter: str = "python",
     num_prompts: int = 500,
     request_rate: int | None = None,
     max_concurrency: int | None = None,
@@ -79,7 +78,6 @@ def execute_benchmark(
     :param model: model
     :param dataset: data set name ["random"]
     :param backend: name of the vLLM benchmark backend to be used ["vllm", "openai", "openai-chat", "openai-audio", "openai-embeddings"]
-    :param interpreter: name of Python interpreter
     :param num_prompts: number of prompts
     :param request_rate: request rate
     :param max_concurrency: maximum number of concurrent requests
@@ -108,9 +106,7 @@ def execute_benchmark(
     logger.debug(
         f"executing benchmark, invoking service at {base_url} with the parameters: "
     )
-    logger.debug(
-        f"model {model}, data set {dataset}, python {interpreter}, num prompts {num_prompts}"
-    )
+    logger.debug(f"model {model}, data set {dataset}, num prompts {num_prompts}")
     logger.debug(
         f"request_rate {request_rate}, max_concurrency {max_concurrency}, benchmark retries {benchmark_retries}"
     )
@@ -209,7 +205,6 @@ def execute_random_benchmark(
     burstiness: float = 1,
     number_input_tokens: int | None = None,
     max_output_tokens: int | None = None,
-    interpreter: str = "python",
 ) -> BenchmarkResult:
     """
     Execute benchmark with random dataset
@@ -225,7 +220,6 @@ def execute_random_benchmark(
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
     :param number_input_tokens: maximum number of input tokens for each request,
     :param max_output_tokens: maximum number of output tokens for each request,
-    :param interpreter: name of Python interpreter
 
     :return: BenchmarkResult instance
     """
@@ -234,7 +228,6 @@ def execute_random_benchmark(
         base_url=base_url,
         model=model,
         dataset=dataset,
-        interpreter=interpreter,
         num_prompts=num_prompts,
         request_rate=request_rate,
         max_concurrency=max_concurrency,
@@ -260,7 +253,6 @@ def execute_geospatial_benchmark(
     benchmark_retries: int = 3,
     retries_timeout: int = 5,
     burstiness: float = 1,
-    interpreter: str = "python",
 ) -> BenchmarkResult:
     """
     Execute benchmark with geospatial dataset
@@ -274,18 +266,16 @@ def execute_geospatial_benchmark(
     :param benchmark_retries: number of benchmark execution retries
     :param retries_timeout: timeout between initial retry
     :param burstiness: burstiness factor of the request generation, 0 < burstiness < 1
-    :param interpreter: python interpreter to use
 
     :return: BenchmarkResult instance
     """
-    dataset_path = resolve_geospatial_dataset_path(dataset)
+    dataset_path = resolve_custom_dataset_path(dataset)
 
     return execute_benchmark(
         base_url=base_url,
         backend="vllm-pooling",
         model=model,
         dataset="custom",
-        interpreter=interpreter,
         num_prompts=num_prompts,
         request_rate=request_rate,
         max_concurrency=max_concurrency,
@@ -303,7 +293,6 @@ def execute_geospatial_benchmark(
 
 if __name__ == "__main__":
     results = execute_geospatial_benchmark(
-        interpreter="python3.10",
         base_url="http://localhost:8000",
         model="ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11",
         request_rate=2,

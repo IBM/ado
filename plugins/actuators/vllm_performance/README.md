@@ -165,7 +165,6 @@ parameters:
   hf_token: ""
   image_pull_secret_name: ""
   in_cluster: false
-  interpreter: python3
   max_environments: 1
   namespace: null
   node_selector: {}

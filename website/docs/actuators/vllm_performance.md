@@ -191,8 +191,8 @@ covers several needs:
   cluster resources.
 - **Secure access**: Pass required HuggingFace tokens, set up image pull
   secrets, control in-cluster or remote execution, and toggle SSL verification.
-- **Experiment protocol and retries**: Choose how benchmarks are run, including
-  interpreter, retry logic, and YAML templates for deployments/services used.
+- **Experiment protocol and retries**: Configure retry logic and YAML templates
+  for deployments and services used by the actuator.
 - **Deployment resource management**: Limit the number of concurrent deployments
   and control automated clean-up.
 
@@ -213,7 +213,6 @@ parameters:
   hf_token: "<YOUR_HUGGINGFACE_TOKEN>"  # Required for pulling some models
   image_pull_secret_name: ""            # Optional image pull secret
   in_cluster: false                     # Set to true if running from within the cluster
-  interpreter: python3                  # Language for test drivers/benchmarks
   max_environments: 1                   # Max concurrent vLLM deployments
   namespace: "mynamespace"              # OpenShift/K8s namespace to deploy into
   node_selector:                        # A dictionary of Kubernetes node_selector key:value pairs

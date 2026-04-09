@@ -299,9 +299,9 @@ def execute_guidellm_geospatial_benchmark(
     :raises ValueError: If any numeric parameter is invalid or burstiness != 1.0
     :raises GuideLLMBenchmarkError: If the benchmark failed to execute after retries
     """
-    from .execute_benchmark import resolve_geospatial_dataset_path
+    from .execute_benchmark import resolve_custom_dataset_path
 
-    dataset_path = resolve_geospatial_dataset_path(dataset)
+    dataset_path = resolve_custom_dataset_path(dataset)
 
     # Build custom arguments for geospatial models
     custom_args: dict[str, str | None] = {

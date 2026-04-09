@@ -213,24 +213,21 @@ class OperatorMetadata(pydantic.BaseModel):
     version: Annotated[
         str,
         pydantic.Field(
-            default="v0.1",
-            description="Semantic version string for the operator (e.g. 'v0.1').",
+            description="Semantic version string for the operator (e.g. '0.1.0').",
         ),
-    ]
+    ] = "0.1.0"
     description: Annotated[
         str | None,
         pydantic.Field(
-            default=None,
             description="Human-readable description of the operator.",
         ),
-    ]
+    ] = None
     configuration_model: Annotated[
         type[pydantic.BaseModel] | None,
         pydantic.Field(
-            default=None,
             description="Pydantic model class used to validate operation parameters.",
         ),
-    ]
+    ] = None
     example_configuration: Annotated[
         pydantic.BaseModel | None,
         pydantic.Field(

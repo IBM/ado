@@ -178,11 +178,11 @@ def orchestrate(
         operator_fn = (
             operation_resource_configuration.operation.module.operationFunction()
         )
-        output = operator_fn(
+        output: OperationOutput = operator_fn(
             discovery_space,
             operationInfo=operation_info,
             **operation_parameters,
-        )  # type: OperationOutput
+        )
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
         raise

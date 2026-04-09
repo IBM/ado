@@ -205,7 +205,7 @@ def explore_operation(
     name: str | None = None,
     description: str | None = None,
     configuration_model: type[pydantic.BaseModel] | None = None,
-    version: str | None = "v0.1",
+    version: str | None = "0.1.0",
     configuration_model_default: pydantic.BaseModel | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers an explore (search) operator.
@@ -311,7 +311,7 @@ def explore_operation(
 def modify_operation(
     name: str,
     description: str | None = None,
-    version: str | None = "v0.1",
+    version: str | None = "0.1.0",
     configuration_model: type[pydantic.BaseModel] | None = None,
     configuration_model_default: pydantic.BaseModel | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
@@ -363,7 +363,7 @@ def export_operation(
     name: str,
     description: str | None = None,
     configuration_model: type[pydantic.BaseModel] | None = None,
-    version: str | None = "v0.1",
+    version: str | None = "0.1.0",
     configuration_model_default: pydantic.BaseModel | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as an export operation.

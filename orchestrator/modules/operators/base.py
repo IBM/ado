@@ -33,7 +33,6 @@ from orchestrator.core.operation.resource import OperationResource
 from orchestrator.metastore.sqlstore import SQLStore
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.discovery_space_manager import (
-    DiscoverySpaceManager,
     DiscoverySpaceUpdateSubscriber,
 )
 from orchestrator.schema.entity import Entity
@@ -43,6 +42,8 @@ if typing.TYPE_CHECKING:
     from orchestrator.core.resources import ADOResource
     from orchestrator.metastore.base import ResourceStore
     from orchestrator.modules.actuators.base import ActuatorBase
+
+    from .discovery_space_manager import DiscoverySpaceManagerActor
 
 moduleLog = logging.getLogger("operation_base")
 
@@ -117,8 +118,20 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             inspect.Parameter.POSITIONAL_ONLY,
         )
     ]
+    if len(actual_positional) < len(proto_positional):
+        missing = [p.name for p in proto_positional[len(actual_positional) :]]
+        raise ValueError(
+            f"Operator function is missing required positional parameter(s): "
+            f"{missing!r}."
+        )
+    if len(actual_positional) > len(proto_positional):
+        extra = [p.name for p in actual_positional[len(proto_positional) :]]
+        raise ValueError(
+            f"Operator function has extra positional parameter(s) not in the "
+            f"Protocol: {extra!r}."
+        )
     for idx, (proto_param, actual_param) in enumerate(
-        zip(proto_positional, actual_positional, strict=False), start=1
+        zip(proto_positional, actual_positional, strict=True), start=1
     ):
         expected_type = proto_hints.get(proto_param.name)
         actual_type = hints.get(actual_param.name)
@@ -295,8 +308,7 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         self,
         operationActorName: str,
         namespace: str | None,
-        state: DiscoverySpaceManager,
-        # Will actually be ray.actor.ActorHandle accessing InternalState
+        state: "DiscoverySpaceManagerActor",
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: dict | None = None,
         metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
@@ -309,10 +321,6 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         self.state.subscribeToUpdates.remote(subscriberName=self.actorName)
 
         super().__init__()
-
-    # async def run(self, discoveryState: orchestrator.model.actors.InternalState):
-    #
-    #     pass
 
 
 class Characterize(

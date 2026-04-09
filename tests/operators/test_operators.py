@@ -678,7 +678,7 @@ def test_operator_metadata_identifier_default_version() -> None:
     )
 
     meta = OperatorMetadata(name="op", type=DiscoveryOperationEnum.SEARCH)
-    assert meta.operatorIdentifier == "op-v0.1"
+    assert meta.operatorIdentifier == "op-v0.1.0"
 
 
 def test_operator_function_conf_identifier_delegates_to_operator_metadata() -> None:

@@ -201,112 +201,71 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
 
 
 def explore_operation(
-    target: "type[DiscoveryOperationBase] | None" = None,
-    *,
-    name: str | None = None,
-    description: str | None = None,
-    configuration_model: type[pydantic.BaseModel] | None = None,
-    version: str | None = "0.1.0",
-    configuration_model_default: pydantic.BaseModel | None = None,
-) -> typing.Callable[[OperatorFunction], OperatorFunction]:
-    """Decorator that registers an explore (search) operator.
+    cls: "type[DiscoveryOperationBase]",
+) -> OperatorFunction:
+    """Decorator that registers an explore (search) operator class.
 
-    Supports two usage patterns:
+    All metadata is sourced from the class's ``operator_metadata()``
+    classmethod.  The decorator generates an :class:`OperatorFunction`, validates
+    its signature, and registers it in the explore collection::
 
-    **Class decoration** (preferred, no arguments) — all metadata comes from
-    the class's ``operator_metadata()`` classmethod.  The decorator validates
-    generates dynamically the OperatorFunction body,
-
-    **Function decoration** (legacy, with keyword arguments) — for existing
-    explore operator function that call ``orchestrate_explore_operation`` directly.  The
-    function must pass an ``OperatorModuleConf`` to ``orchestrate_explore_operation``::
-
-
-    Args:
-        target: Set automatically when the decorator is used without parentheses
-            (class path).  Do not pass this argument explicitly.
-        name: Canonical operator name
-        description: Human-readable description shown in the registry.
-        configuration_model: Pydantic model for display in the registry
-        version: Semantic version string (e.g. ``"0.1.0"``).
-        configuration_model_default: Default parameter model instance
-
-    Returns:
-        An `~orchestrator.modules.operators.base.OperatorFunction`
-        This is either the decorated function, or dynamically generated function
-        (class decoration)
-
-    Raises:
-        NotImplementedError: If the decorated class has not
-            implemented ``operator_metadata()``
-        TypeError:  If the decorated class fails validation
-        TypeError:  If ``name`` is not provided to the function decorator
-    """
-
-    def _register(
-        t: "OperatorFunction | type[DiscoveryOperationBase]",
-    ) -> OperatorFunction:
-        import inspect
-
-        if inspect.isclass(t) and issubclass(t, DiscoveryOperationBase):
-            # ------------------------------------------------------------------
-            # Class decoration path
-            # ------------------------------------------------------------------
-            metadata = t.operator_metadata()  # raises NotImplementedError if absent
-            _validate_explore_cls(t, metadata)
-            op_name = metadata.name
-
-            def _generated(
-                discoverySpace: DiscoverySpace,
-                operationInfo: FunctionOperationInfo | None = None,
-                **kwargs: object,
-            ) -> OperationOutput:
-                return orchestrate_explore_operation(
-                    discovery_space=discoverySpace,
-                    operator_reference=OperatorReference(
-                        operationType=DiscoveryOperationEnum.SEARCH,
-                        operatorName=op_name,
-                    ),
-                    parameters=kwargs,
-                    operation_info=operationInfo or FunctionOperationInfo(),
+        @explore_operation
+        class MyOp(Search):
+            @classmethod
+            def operator_metadata(cls) -> OperatorMetadata:
+                return OperatorMetadata(
+                    name="my_op",
+                    version="v1.0",
+                    configuration_model=MyOpParameters,
+                    example_configuration=MyOpParameters(),
+                    type=DiscoveryOperationEnum.SEARCH,
                 )
 
-            _generated.__name__ = op_name
-            _generated.__qualname__ = op_name
-            validate_operator_function_signature(_generated)
-            _generated = typing.cast("OperatorFunction", _generated)
-            explore.operators[op_name] = metadata.model_copy(
-                update={
-                    "function": _generated,
-                    "cls": t,
-                }
-            )
-            return _generated
+            async def run(self) -> OperationOutput | None: ...
 
-        # ------------------------------------------------------------------
-        # Function decoration path (legacy)
-        # ------------------------------------------------------------------
-        if name is None:
-            raise TypeError(
-                "explore_operation: 'name' must be provided when decorating a function."
-            )
-        func = typing.cast("OperatorFunction", t)
-        validate_operator_function_signature(func)
-        explore.operators[name] = OperatorMetadata(
-            name=name,
-            function=func,
-            version=version or "v0.1",
-            description=description,
-            configuration_model=configuration_model,
-            example_configuration=configuration_model_default,
-            type=DiscoveryOperationEnum.SEARCH,
+    Args:
+        cls: The operator class to register.  Must be a subclass of
+            :class:`~orchestrator.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
+            and must implement ``operator_metadata()``.
+
+    Returns:
+        The generated :data:`~orchestrator.modules.operators.base.OperatorFunction`
+        for this operator.
+
+    Raises:
+        NotImplementedError: If ``cls.operator_metadata()`` is not implemented.
+        TypeError: If ``cls`` fails :func:`_validate_explore_cls`.
+    """
+    metadata = cls.operator_metadata()
+    _validate_explore_cls(cls, metadata)
+    op_name = metadata.name
+
+    def _generated(
+        discoverySpace: DiscoverySpace,
+        operationInfo: FunctionOperationInfo | None = None,
+        **kwargs: object,
+    ) -> OperationOutput:
+        return orchestrate_explore_operation(
+            discovery_space=discoverySpace,
+            operator_reference=OperatorReference(
+                operationType=DiscoveryOperationEnum.SEARCH,
+                operatorName=op_name,
+            ),
+            parameters=kwargs,
+            operation_info=operationInfo or FunctionOperationInfo(),
         )
-        return func
 
-    if target is not None:
-        # @explore_operation without parentheses — must be a class
-        return _register(target)
-    return _register
+    _generated.__name__ = op_name
+    _generated.__qualname__ = op_name
+    validate_operator_function_signature(_generated)
+    _generated = typing.cast("OperatorFunction", _generated)
+    explore.operators[op_name] = metadata.model_copy(
+        update={
+            "function": _generated,
+            "cls": cls,
+        }
+    )
+    return _generated
 
 
 def modify_operation(

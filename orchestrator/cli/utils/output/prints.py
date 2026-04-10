@@ -40,7 +40,7 @@ ADO_NO_ACTIVE_CONTEXT_ERROR = (
 
 ADO_NO_CONTEXT_AVAILABLE_ERROR = (
     f"{WARN}There are no contexts available.\n"
-    f"{HINT}You can create a context with [b cyan]ado create context'[/b cyan]",
+    f"{HINT}You can create a context with [b cyan]ado create context[/b cyan]"
 )
 
 # Spinners

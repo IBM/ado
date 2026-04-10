@@ -254,15 +254,13 @@ def test_ado_contexts_list_contexts(tmp_path: Path) -> None:
     )
     assert ado_contexts_default_output_result.exit_code == 0
     ado_contexts_default_output_expected_output = (
-        "┌───────┬────────────────┬─────────┐\n"
-        "│ INDEX │ CONTEXT        │ DEFAULT │\n"
-        "├───────┼────────────────┼─────────┤\n"
-        "│ 0     │ first-context  │         │\n"
-        "│ 1     │ local          │ ✅      │\n"
-        "│ 2     │ second-context │         │\n"
-        "└───────┴────────────────┴─────────┘\n"
-        "\n"
-        "The active context is: local\n"
+        "┌───────┬────────────────┬────────┐\n"
+        "│ INDEX │ CONTEXT        │ ACTIVE │\n"
+        "├───────┼────────────────┼────────┤\n"
+        "│ 0     │ first-context  │        │\n"
+        "│ 1     │ local          │ ✅     │\n"
+        "│ 2     │ second-context │        │\n"
+        "└───────┴────────────────┴────────┘\n"
     )
     assert (
         ado_contexts_default_output_result.output
@@ -381,15 +379,13 @@ def test_ado_contexts_list_contexts_with_context_and_valid_dir_override(
     )
     assert ado_contexts_default_output_result.exit_code == 0
     ado_contexts_default_output_expected_output = (
-        "┌───────┬────────────────┬─────────┐\n"
-        "│ INDEX │ CONTEXT        │ DEFAULT │\n"
-        "├───────┼────────────────┼─────────┤\n"
-        "│ 0     │ first-context  │         │\n"
-        "│ 1     │ local          │         │\n"
-        "│ 2     │ second-context │         │\n"
-        "└───────┴────────────────┴─────────┘\n"
-        "\n"
-        f"The active context is: {valid_ado_project_context.project}\n"
+        "┌───────┬────────────────┬────────┐\n"
+        "│ INDEX │ CONTEXT        │ ACTIVE │\n"
+        "├───────┼────────────────┼────────┤\n"
+        "│ 0     │ first-context  │        │\n"
+        "│ 1     │ local          │        │\n"
+        "│ 2     │ second-context │        │\n"
+        "└───────┴────────────────┴────────┘\n"
     )
     assert (
         ado_contexts_default_output_result.output

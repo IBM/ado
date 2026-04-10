@@ -466,7 +466,7 @@ Where:
   `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
   ignored when the output type is `default` or `raw`.
 - The `--from-sample-store`, `--from-space`, `--from-operation` flags are
-  available **only for `ado get measurementrequests`** and allow specifying what
+  available **only for `ado get requests`** and allow specifying what
   samplestore/space/operation the measurement request belongs to.
 - When using the `--details` flag with the `default` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
@@ -603,7 +603,7 @@ ado get experiments --details
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get measurementrequest measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
+ado get request measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
 ```
 
 <!-- markdownlint-enable line-length -->

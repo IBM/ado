@@ -127,9 +127,9 @@ class AdoShowEntitiesSupportedEntityTypes(Enum):
 
 
 class AdoShowEntitiesSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
     CSV = _CSV
     JSON = _JSON
+    TABLE = _TABLE
 
 
 class AdoShowEntitiesSupportedPropertyFormats(Enum):

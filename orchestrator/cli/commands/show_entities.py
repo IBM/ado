@@ -106,7 +106,7 @@ def show_entities_for_resources(
             "-o",
             help="The format in which to output the entities.",
         ),
-    ] = AdoShowEntitiesSupportedOutputFormats.CONSOLE.value,
+    ] = AdoShowEntitiesSupportedOutputFormats.TABLE.value,
     output_file: Annotated[
         pathlib.Path | None,
         typer.Option(
@@ -179,7 +179,7 @@ def show_entities_for_resources(
     ado_configuration: AdoConfiguration = ctx.obj
 
     # Validate that output_file is only used with file-based formats
-    if output_file and output_format == AdoShowEntitiesSupportedOutputFormats.CONSOLE:
+    if output_file and output_format == AdoShowEntitiesSupportedOutputFormats.TABLE:
         console_print(
             f"{ERROR} --output-file cannot be used with --output console. "
             f"Use --output csv or --output json instead.",

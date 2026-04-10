@@ -20,7 +20,6 @@ _SAMPLE_STORE_SINGULAR = "samplestore"
 
 # Output formats
 _CONFIG = "config"
-_CONSOLE = "console"
 _CSV = "csv"
 _JSON = "json"
 _MARKDOWN_SHORT = "md"

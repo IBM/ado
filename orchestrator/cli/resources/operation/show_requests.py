@@ -66,8 +66,6 @@ def show_operation_requests(parameters: AdoShowRequestsCommandParameters) -> Non
                 raise typer.Exit(1)
             parameters.hide_fields[idx] = hidable_fields[field.lower()]
 
-    file_name = f"measurement_requests_for_operation_{parameters.resource_id}.{parameters.output_format.value}"
-
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         try:
             space = DiscoverySpace.from_operation_id(
@@ -125,6 +123,6 @@ def show_operation_requests(parameters: AdoShowRequestsCommandParameters) -> Non
     df_to_output(
         df=df,
         output_format=parameters.output_format.value,
-        file_name=file_name,
+        output_file=parameters.output_file,
         no_trunc=parameters.no_trunc,
     )

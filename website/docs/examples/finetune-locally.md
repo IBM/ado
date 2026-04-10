@@ -289,13 +289,15 @@ After the operation completes, you can retrieve the results of your
 measurements:
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
-ado show entities space --output-format csv --use-latest
+ado show entities space --output csv --use-latest > entities.csv
 ```
+
 <!-- markdownlint-enable line-length -->
 
-The command will generate a CSV file. Open it to explore the data that your
-operation has collected!
+This command outputs CSV data to stdout, which we redirect to `entities.csv`.
+Open the file to explore the data that your operation has collected!
 
 It should look similar to this:
 

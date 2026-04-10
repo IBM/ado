@@ -154,6 +154,7 @@ nav:
       - Measure throughput of fine-tuning on a remote RayCluster: examples/finetune-remotely.md
       - Testing the throughput of an inference endpoint: examples/vllm-performance-endpoint.md
       - Exploring vLLM deployment performance: examples/vllm-performance-full.md
+      - Benchmarking geospatial models with vLLM: examples/vllm-performance-geospatial.md
       - Efficiently Exploring Parameter Spaces with TRIM: examples/trim.md
       - Characterizing Spaces Without Prior Knowledge: examples/no-priors-characterization.md
   - Core Concepts:

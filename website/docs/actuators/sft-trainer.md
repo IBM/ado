@@ -1953,7 +1953,7 @@ properties on the space you created like so:
 <!-- markdownlint-disable MD046 -->
 
 ```commandline
-ado show entities space --output-format csv $DISCOVERY_SPACE_ID
+ado show entities space --output csv $DISCOVERY_SPACE_ID > entities.csv
 ```
 
 <!-- markdownlint-enable MD046 -->

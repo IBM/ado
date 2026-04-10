@@ -38,6 +38,11 @@ ADO_NO_ACTIVE_CONTEXT_ERROR = (
     "or activate one with [b cyan]ado context[/b cyan]"
 )
 
+ADO_NO_CONTEXT_AVAILABLE_ERROR = (
+    f"{WARN}There are no contexts available.\n"
+    f"{HINT}You can create a context with [b cyan]ado create context[/b cyan]"
+)
+
 # Spinners
 ADO_SPINNER_CONNECTING_TO_DB = "Connecting to the database"
 ADO_SPINNER_QUERYING_DB = "Querying the database"

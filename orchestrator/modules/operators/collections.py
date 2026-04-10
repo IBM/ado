@@ -117,19 +117,19 @@ operationCollectionMap = {
 
 def characterize_operation(
     name: str,
+    version: str,
+    configuration_model: type[pydantic.BaseModel],
+    configuration_model_default: pydantic.BaseModel,
     description: str | None = None,
-    version: str | None = "v0.1",
-    configuration_model: type[pydantic.BaseModel] | None = None,
-    configuration_model_default: pydantic.BaseModel | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as a characterize operation.
 
     Args:
         name: Canonical operator name used in the registry.
-        description: Human-readable description shown in the registry.
         version: Version string included in the operator identifier.
         configuration_model: Pydantic model used to validate operation parameters.
         configuration_model_default: Default parameter model instance.
+        description: Human-readable description shown in the registry.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -156,7 +156,7 @@ def characterize_operation(
         characterize.operators[name] = OperatorMetadata(
             name=name,
             function=wrapper,
-            version=version or "v0.1",
+            version=version,
             description=description,
             configuration_model=configuration_model,
             example_configuration=configuration_model_default,
@@ -178,19 +178,13 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
     Raises:
         TypeError: If ``t`` is not a
             :class:`~orchestrator.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
-            subclass, if ``metadata.configuration_model`` is not set, or if
-            ``metadata.cls`` is set to a class other than ``t``.
+            subclass, or if ``metadata.cls`` is set to a class other than ``t``.
     """
     if not issubclass(t, DiscoverySpaceSubscribingDiscoveryOperation):
         raise TypeError(
             f"@explore_operation: {t.__name__} must be a subclass of "
             "DiscoverySpaceSubscribingDiscoveryOperation (i.e. inherit from "
             "Search or Characterize)."
-        )
-    if metadata.configuration_model is None:
-        raise TypeError(
-            f"@explore_operation on {t.__name__}: operator_metadata() must set "
-            "configuration_model."
         )
     if metadata.cls is not None and metadata.cls is not t:
         raise TypeError(
@@ -270,19 +264,19 @@ def explore_operation(
 
 def modify_operation(
     name: str,
+    version: str,
+    configuration_model: type[pydantic.BaseModel],
+    configuration_model_default: pydantic.BaseModel,
     description: str | None = None,
-    version: str | None = "0.1.0",
-    configuration_model: type[pydantic.BaseModel] | None = None,
-    configuration_model_default: pydantic.BaseModel | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as a modify operation.
 
     Args:
         name: Canonical operator name used in the registry.
-        description: Human-readable description shown in the registry.
         version: Version string included in the operator identifier.
         configuration_model: Pydantic model used to validate operation parameters.
         configuration_model_default: Default parameter model instance.
+        description: Human-readable description shown in the registry.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -309,7 +303,7 @@ def modify_operation(
         modify.operators[name] = OperatorMetadata(
             name=name,
             function=wrapper,
-            version=version or "v0.1",
+            version=version,
             description=description,
             configuration_model=configuration_model,
             example_configuration=configuration_model_default,
@@ -322,19 +316,19 @@ def modify_operation(
 
 def export_operation(
     name: str,
+    version: str,
+    configuration_model: type[pydantic.BaseModel],
+    configuration_model_default: pydantic.BaseModel,
     description: str | None = None,
-    configuration_model: type[pydantic.BaseModel] | None = None,
-    version: str | None = "0.1.0",
-    configuration_model_default: pydantic.BaseModel | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as an export operation.
 
     Args:
         name: Canonical operator name used in the registry.
-        description: Human-readable description shown in the registry.
-        configuration_model: Pydantic model used to validate operation parameters.
         version: Version string included in the operator identifier.
+        configuration_model: Pydantic model used to validate operation parameters.
         configuration_model_default: Default parameter model instance.
+        description: Human-readable description shown in the registry.
 
     Returns:
         A decorator that wraps and registers the decorated function under ``name``.
@@ -361,7 +355,7 @@ def export_operation(
         export.operators[name] = OperatorMetadata(
             name=name,
             function=wrapper,
-            version=version or "v0.1",
+            version=version,
             description=description,
             configuration_model=configuration_model,
             example_configuration=configuration_model_default,

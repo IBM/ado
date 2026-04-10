@@ -612,27 +612,44 @@ def test_operator_default_and_validate(
 
 def test_operator_metadata_identifier_property() -> None:
     """OperatorMetadata.operatorIdentifier returns '{name}-{version}'."""
+    import pydantic
+
     from orchestrator.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
 
+    class _P(pydantic.BaseModel):
+        pass
+
     meta = OperatorMetadata(
         name="my_op",
         version="v2.0",
+        configuration_model=_P,
+        example_configuration=_P(),
         type=DiscoveryOperationEnum.SEARCH,
     )
     assert meta.operatorIdentifier == "my_op-v2.0"
 
 
 def test_operator_metadata_identifier_default_version() -> None:
-    """OperatorMetadata.operatorIdentifier uses 'v0.1' when version is not supplied."""
+    """OperatorMetadata.operatorIdentifier uses '0.1.0' when version is not supplied."""
+    import pydantic
+
     from orchestrator.core.operation.config import (
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
 
-    meta = OperatorMetadata(name="op", type=DiscoveryOperationEnum.SEARCH)
+    class _P(pydantic.BaseModel):
+        pass
+
+    meta = OperatorMetadata(
+        name="op",
+        configuration_model=_P,
+        example_configuration=_P(),
+        type=DiscoveryOperationEnum.SEARCH,
+    )
     assert meta.operatorIdentifier == "op-0.1.0"
 
 

@@ -221,17 +221,17 @@ class OperatorMetadata(pydantic.BaseModel):
         ),
     ] = None
     configuration_model: Annotated[
-        type[pydantic.BaseModel] | None,
+        type[pydantic.BaseModel],
         pydantic.Field(
             description="Pydantic model class used to validate operation parameters.",
         ),
-    ] = None
+    ]
     example_configuration: Annotated[
-        pydantic.BaseModel | None,
+        pydantic.BaseModel,
         pydantic.Field(
             description="Default instance of the configuration model.",
         ),
-    ] = None
+    ]
     cls: Annotated[
         type | None,
         pydantic.Field(
@@ -433,33 +433,22 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
                 importlib.import_module(self.module.moduleName), self.module.moduleClass
             )
             operator_metadata = operator_class.operator_metadata()
-            if operator_metadata.configuration_model is not None:
-                self.parameters = operator_metadata.configuration_model.model_validate(
-                    self.parameters
-                )
+            self.parameters = operator_metadata.configuration_model.model_validate(
+                self.parameters
+            )
         else:
-            import logging
-
             from orchestrator.modules.operators.collections import (
                 operationCollectionMap,
             )
 
             operation_type = self.module.operationType
             operator_name = self.module.operatorName
-            operator_metadata = operationCollectionMap[operation_type].operators.get(
+            operator_metadata = operationCollectionMap[operation_type].operators[
                 operator_name
+            ]
+            self.parameters = operator_metadata.configuration_model.model_validate(
+                self.parameters
             )
-            configuration_model = (
-                operator_metadata.configuration_model if operator_metadata else None
-            )
-
-            if configuration_model:
-                self.parameters = configuration_model.model_validate(self.parameters)
-            else:
-                logger = logging.getLogger(__file__)
-                logger.warning(
-                    f"No configuration model was available for operation {operator_name} of type {operation_type}"
-                )
 
         return self
 

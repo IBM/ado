@@ -44,7 +44,7 @@ def run_general_operation_core_closure(
 def orchestrate_general_operation(
     operator_function: OperatorFunction,
     operation_parameters: dict,
-    parameters_model: type[pydantic.BaseModel] | None,
+    parameters_model: type[pydantic.BaseModel],
     discovery_space: DiscoverySpace,
     operation_info: FunctionOperationInfo,
     operation_type: orchestrator.core.operation.config.DiscoveryOperationEnum,
@@ -66,7 +66,7 @@ def orchestrate_general_operation(
             DiscoverySpace and FunctionOperationInfo as first two arguments, followed
             by operation-specific parameters
         operation_parameters: Dictionary of parameters to pass to the operator function
-        parameters_model: Optional Pydantic model to validate operation_parameters against
+        parameters_model: Pydantic model to validate operation_parameters against
         discovery_space: The discovery space to operate on
         operation_info: Information about the operation including metadata, actuator
             configuration identifiers, and namespace
@@ -100,8 +100,7 @@ def orchestrate_general_operation(
         operationType=operation_type,
     )
 
-    if parameters_model:
-        parameters_model.model_validate(operation_parameters)
+    parameters_model.model_validate(operation_parameters)
 
     # Check the space
     if not discovery_space.measurementSpace.isConsistent:

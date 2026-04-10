@@ -65,7 +65,19 @@ Similar to `oc projects`, users can list available contexts by running:
 ado contexts
 ```
 
-The default context will also be printed out.
+It's also possible to output this information in multiple formats via the
+`-o/--output` flag:
+
+```shell
+# List context names only
+ado contexts -o name
+
+# Export contexts as YAML
+ado contexts -o yaml
+
+# Export contexts as JSON
+ado contexts -o json
+```
 
 ##### Switching between contexts
 

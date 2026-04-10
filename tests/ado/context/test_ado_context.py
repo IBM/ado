@@ -269,18 +269,16 @@ def test_ado_contexts_list_contexts(tmp_path: Path) -> None:
         == ado_contexts_default_output_expected_output
     )
 
-    # Test with the simple output
-    ado_contexts_simple_output_result = runner.invoke(
+    # Test with the name output format
+    ado_contexts_name_output_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "contexts", "--simple"],
+        ["--override-ado-app-dir", str(tmp_path), "contexts", "-o", "name"],
     )
-    assert ado_contexts_simple_output_result.exit_code == 0
-    ado_contexts_simple_output_expected_output = (
-        "first-context\nlocal\nsecond-context\n"
-    )
+    assert ado_contexts_name_output_result.exit_code == 0
+    ado_contexts_name_output_expected_output = "first-context\nlocal\nsecond-context\n"
     assert (
-        ado_contexts_simple_output_result.output
-        == ado_contexts_simple_output_expected_output
+        ado_contexts_name_output_result.output
+        == ado_contexts_name_output_expected_output
     )
 
 
@@ -314,8 +312,8 @@ def test_ado_contexts_list_contexts_with_context_and_empty_dir_override(
     )
     assert ado_contexts_result.output == ado_contexts_expected_output
 
-    # Test with the simple output
-    ado_contexts_simple_output_result = runner.invoke(
+    # Test with the name output format
+    ado_contexts_name_output_result = runner.invoke(
         ado,
         [
             "--override-ado-app-dir",
@@ -323,17 +321,18 @@ def test_ado_contexts_list_contexts_with_context_and_empty_dir_override(
             "-c",
             context_location,
             "contexts",
-            "--simple",
+            "-o",
+            "name",
         ],
     )
-    assert ado_contexts_simple_output_result.exit_code == 1
-    ado_contexts_simple_output_expected_output = (
+    assert ado_contexts_name_output_result.exit_code == 1
+    ado_contexts_name_output_expected_output = (
         "WARN:   There are no contexts available.\n"
         "HINT:   You can create a context with ado create context\n"
     )
     assert (
-        ado_contexts_simple_output_result.output
-        == ado_contexts_simple_output_expected_output
+        ado_contexts_name_output_result.output
+        == ado_contexts_name_output_expected_output
     )
 
 
@@ -397,16 +396,22 @@ def test_ado_contexts_list_contexts_with_context_and_valid_dir_override(
         == ado_contexts_default_output_expected_output
     )
 
-    # Test with the simple output
-    ado_contexts_simple_output_result = runner.invoke(
+    # Test with the name output format
+    ado_contexts_name_output_result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", str(tmp_path), "contexts", "--simple"],
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "-c",
+            context_location,
+            "contexts",
+            "-o",
+            "name",
+        ],
     )
-    assert ado_contexts_simple_output_result.exit_code == 0
-    ado_contexts_simple_output_expected_output = (
-        "first-context\nlocal\nsecond-context\n"
-    )
+    assert ado_contexts_name_output_result.exit_code == 0
+    ado_contexts_name_output_expected_output = "first-context\nlocal\nsecond-context\n"
     assert (
-        ado_contexts_simple_output_result.output
-        == ado_contexts_simple_output_expected_output
+        ado_contexts_name_output_result.output
+        == ado_contexts_name_output_expected_output
     )

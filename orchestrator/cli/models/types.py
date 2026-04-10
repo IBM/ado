@@ -153,9 +153,9 @@ class AdoShowRelatedSupportedResourceTypes(Enum):
 
 #################### ado show requests ####################
 class AdoShowRequestsSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
     CSV = _CSV
     JSON = _JSON
+    TABLE = _TABLE
 
 
 class AdoShowRequestsSupportedResourceTypes(Enum):

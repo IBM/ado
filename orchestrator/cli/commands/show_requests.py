@@ -56,7 +56,7 @@ def show_requests_for_resources(
             "-o",
             help="The format in which to output the requests.",
         ),
-    ] = AdoShowRequestsSupportedOutputFormats.CONSOLE.value,
+    ] = AdoShowRequestsSupportedOutputFormats.TABLE.value,
     output_file: Annotated[
         pathlib.Path | None,
         typer.Option(
@@ -123,7 +123,7 @@ def show_requests_for_resources(
     ado_configuration: AdoConfiguration = ctx.obj
 
     # Validate that output_file is only used with file-based formats
-    if output_file and output_format == AdoShowRequestsSupportedOutputFormats.CONSOLE:
+    if output_file and output_format == AdoShowRequestsSupportedOutputFormats.TABLE:
         console_print(
             f"{ERROR} --output-file cannot be used with --output console. "
             f"Use --output csv or --output json instead.",

@@ -12,12 +12,10 @@ from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
-    OperatorModuleConf,
-    OperatorReference,
+    OperatorMetadata,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,
     cleanup_callback_functions,
@@ -163,44 +161,8 @@ def run_explore_operation_core_closure(
     return _run_explore_operation_core
 
 
-def _resolve_operator_class(
-    operator_reference: OperatorReference | OperatorModuleConf,
-) -> type:
-    """Resolves the class for an explore operator.
-
-    For ``OperatorReference`` the class is looked up from the explore
-    collection using the registered operator name.  For ``OperatorModuleConf``
-    the class is loaded dynamically from the module path
-
-    Args:
-        operator_reference: Either an OperatorReference of OperatorModuleConf
-
-    Returns:
-        The DiscoveryOperationBase subclass for this operator.
-
-    Raises:
-        ValueError: If no class has been registered for the operator name
-            (OperatorReference path) or the module cannot be loaded
-            (OperatorModuleConf path).
-    """
-    if isinstance(operator_reference, OperatorReference):
-        from orchestrator.modules.operators.collections import (
-            operationCollectionMap,
-        )
-
-        operator = operationCollectionMap[
-            operator_reference.operationType
-        ].operators.get(operator_reference.operatorName)
-        if operator is None or operator.cls is None:
-            raise ValueError(
-                f"No operator class registered for {operator_reference.operatorName}"
-            )
-        return operator.cls
-    return load_module_class_or_function(operator_reference)
-
-
 def orchestrate_explore_operation(
-    operator_reference: OperatorReference | OperatorModuleConf,
+    operator_metadata: OperatorMetadata,
     discovery_space: DiscoverySpace,
     parameters: dict,
     operation_info: FunctionOperationInfo,
@@ -219,9 +181,8 @@ def orchestrate_explore_operation(
     execute the operation, handle exceptions, and store the operation results.
 
     Params:
-        operator_reference: Configuration identifying the operator — either
-            an OperatorReference referencing a registered operator or a module-conf
-            referencing a class directly.
+        operator_metadata: Registered metadata for the operator, carrying the class,
+            configuration model, name, and type.
         discovery_space: The discovery space to operate on
         parameters: Dictionary of parameters for the operation
         operation_info: Information about the operation including metadata, actuator
@@ -231,8 +192,8 @@ def orchestrate_explore_operation(
         OperationOutput containing the results and status of the operation
 
     Raises:
-        ValueError: If the MeasurementSpace is not consistent with EntitySpace or if
-            actuator configurations are invalid
+        ValueError: If the MeasurementSpace is not consistent with EntitySpace,
+            actuator configurations are invalid, or no operator class is registered
         pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
         ray.exceptions.ActorDiedError: If there was an error initializing the actuators
@@ -244,14 +205,12 @@ def orchestrate_explore_operation(
     import orchestrator.modules.operators.setup
 
     if not operation_info.ray_namespace:
-        namespace_prefix = (
-            operator_reference.operatorName
-            if isinstance(operator_reference, OperatorReference)
-            else operator_reference.moduleClass
-        )
         operation_info.ray_namespace = (
-            f"{namespace_prefix}-namespace-{str(uuid.uuid4())[:8]}"
+            f"{operator_metadata.name}-namespace-{str(uuid.uuid4())[:8]}"
         )
+
+    # Validate parameters
+    operator_metadata.configuration_model.model_validate(parameters)
 
     # Check the space
     if not discovery_space.measurementSpace.isConsistent:
@@ -306,17 +265,9 @@ def orchestrate_explore_operation(
     # OPERATOR
     #
 
-    # Resolve the actor class and validate parameters
-    operator_class = _resolve_operator_class(
-        operator_reference
-    )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
-
-    op_metadata = operator_class.operator_metadata()
-    op_metadata.configuration_model.model_validate(parameters)
-
     # Create operator actor
     operator = orchestrator.modules.operators.setup.setup_operator(
-        operator_module=operator_reference,
+        operator_metadata=operator_metadata,
         parameters=parameters,
         discovery_space=discovery_space,
         actuators=actuators,
@@ -377,7 +328,7 @@ def orchestrate_explore_operation(
         operation_output = _run_operation_harness(
             run_closure=explore_run_closure,
             discovery_space=discovery_space,
-            operator_module=operator_reference,
+            operator_metadata=operator_metadata,
             operation_parameters=parameters,
             operation_info=operation_info,
             operation_identifier=identifier,

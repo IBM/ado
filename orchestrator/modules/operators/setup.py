@@ -10,13 +10,12 @@ import pydantic
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
-    OperatorModuleConf,
+    OperatorMetadata,
     OperatorReference,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
@@ -135,7 +134,7 @@ def setup_actuators(
 
 
 def setup_operator(
-    operator_module: OperatorReference | OperatorModuleConf,
+    operator_metadata: OperatorMetadata,
     parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
@@ -144,13 +143,11 @@ def setup_operator(
 ) -> "OperatorActor":
     """Sets up and creates an operator actor for class-based explore operations.
 
-    Instantiates an operator class as a ray Actor from either an OperatorReference
-    or an OperatorModuleConf
+    Instantiates the operator class from ``operator_metadata`` as a Ray actor.
 
     Params:
-        operator_module: Configuration identifying the operator — either a
-            function-conf referencing a registered name or a module-conf
-            referencing a class directly.
+        operator_metadata: Registered metadata for the operator, carrying the class
+            and canonical name.
         parameters: Dictionary of parameters to pass to the operator
         discovery_space: The discovery space the operator will operate on
         namespace: Ray namespace to create the operator actor in
@@ -159,6 +156,10 @@ def setup_operator(
 
     Returns:
         OperatorActor handle for the created operator actor
+
+    Raises:
+        ValueError: If ``operator_metadata.cls`` is None (operator was not registered
+            via the class decorator).
     """
 
     import ray
@@ -167,21 +168,14 @@ def setup_operator(
 
     moduleLog.info("Creating operation")
 
-    if isinstance(operator_module, OperatorReference):
-        from orchestrator.modules.operators.collections import operationCollectionMap
+    if operator_metadata.cls is None:
+        raise ValueError(
+            f"No operator class registered for '{operator_metadata.name}'. "
+            "Ensure the operator is decorated with @explore_operation."
+        )
 
-        registered_operator = operationCollectionMap[
-            operator_module.operationType
-        ].operators.get(operator_module.operatorName)
-        if registered_operator is None or registered_operator.cls is None:
-            raise ValueError(
-                f"No operator class registered for {operator_module.operatorName}"
-            )
-        base_class = registered_operator.cls
-        actor_name = operator_module.operatorName
-    else:
-        base_class = load_module_class_or_function(operator_module)
-        actor_name = operator_module.moduleClass
+    base_class = operator_metadata.cls
+    actor_name = operator_metadata.name
 
     operator = (
         ray.remote(base_class)
@@ -198,8 +192,14 @@ def setup_operator(
     print("=========== Operation Details ============\n")
     print(f"Space ID: {discovery_space.uri}")
     print(f"Sample Store ID:  {discovery_space.sample_store.identifier}")
+    operator_reference = OperatorReference(
+        operatorName=operator_metadata.name,
+        operationType=operator_metadata.type,
+    )
     conf_string = orchestrator.utilities.output.pydantic_model_as_yaml(
-        DiscoveryOperationConfiguration(module=operator_module, parameters=parameters),
+        DiscoveryOperationConfiguration(
+            module=operator_reference, parameters=parameters
+        ),
         exclude_none=True,
     )
     print(f"Operation Configuration:\n {conf_string}")

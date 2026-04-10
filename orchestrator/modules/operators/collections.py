@@ -15,7 +15,6 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
     OperatorMetadata,
-    OperatorReference,
 )
 from orchestrator.modules.operators.base import (
     DiscoveryOperationBase,
@@ -143,12 +142,10 @@ def characterize_operation(
             **kwargs: object,
         ) -> OperationOutput:
             return orchestrate_general_operation(
-                operator_function=func,
+                operator_metadata=characterize.operators[name],
                 operation_parameters=kwargs,
-                parameters_model=characterize.operators[name].configuration_model,
                 discovery_space=discoverySpace,
                 operation_info=operationInfo or FunctionOperationInfo(),
-                operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.CHARACTERIZE,
             )
 
         validate_operator_function_signature(wrapper)
@@ -240,11 +237,8 @@ def explore_operation(
         **kwargs: object,
     ) -> OperationOutput:
         return orchestrate_explore_operation(
+            operator_metadata=explore.operators[op_name],
             discovery_space=discoverySpace,
-            operator_reference=OperatorReference(
-                operationType=DiscoveryOperationEnum.SEARCH,
-                operatorName=op_name,
-            ),
             parameters=kwargs,
             operation_info=operationInfo or FunctionOperationInfo(),
         )
@@ -290,12 +284,10 @@ def modify_operation(
             **kwargs: object,
         ) -> OperationOutput:
             return orchestrate_general_operation(
-                operator_function=func,
+                operator_metadata=modify.operators[name],
                 operation_parameters=kwargs,
-                parameters_model=modify.operators[name].configuration_model,
                 discovery_space=discoverySpace,
                 operation_info=operationInfo or FunctionOperationInfo(),
-                operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.MODIFY,
             )
 
         validate_operator_function_signature(wrapper)
@@ -342,12 +334,10 @@ def export_operation(
             **kwargs: object,
         ) -> OperationOutput:
             return orchestrate_general_operation(
-                operator_function=func,
+                operator_metadata=export.operators[name],
                 operation_parameters=kwargs,
-                parameters_model=export.operators[name].configuration_model,
                 discovery_space=discoverySpace,
                 operation_info=operationInfo or FunctionOperationInfo(),
-                operation_type=orchestrator.core.operation.config.DiscoveryOperationEnum.EXPORT,
             )
 
         validate_operator_function_signature(wrapper)

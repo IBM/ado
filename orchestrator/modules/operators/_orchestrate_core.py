@@ -13,7 +13,7 @@ from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
-    OperatorModuleConf,
+    OperatorMetadata,
     OperatorReference,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
@@ -46,7 +46,7 @@ def log_space_details(discovery_space: "DiscoverySpace") -> None:
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
     discovery_space: DiscoverySpace,
-    operator_module: OperatorModuleConf | OperatorReference,
+    operator_metadata: OperatorMetadata,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     operation_identifier: str | None = None,
@@ -61,7 +61,7 @@ def _run_operation_harness(
     Params:
         run_closure: Callable that executes the operation and returns OperationOutput
         discovery_space: The discovery space the operation is running on
-        operator_module: Configuration for the operator (either module or function-based)
+        operator_metadata: Metadata for the registered operator.
         operation_parameters: Dictionary of parameters for the operation
         operation_info: Information about the operation including metadata and actuator configs
         operation_identifier: Optional pre-existing identifier for the operation resource
@@ -80,9 +80,13 @@ def _run_operation_harness(
     # Create and add OperationResource to metastore
     #
 
+    operator_reference = OperatorReference(
+        operatorName=operator_metadata.name,
+        operationType=operator_metadata.type,
+    )
     operation_resource = create_operation_and_add_to_metastore(
         discovery_space=discovery_space,
-        operator_module=operator_module,
+        operator_module=operator_reference,
         operation_parameters=operation_parameters,
         metastore=discovery_space.metadataStore,
         operation_info=operation_info,

@@ -64,7 +64,7 @@ def get_context(
             console_print(context)
         return
 
-    if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
+    if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
         import rich.box
 
         contexts_df = _prepare_context_dataframe(

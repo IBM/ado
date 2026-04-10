@@ -14,7 +14,7 @@ def get_operation(parameters: AdoGetCommandParameters) -> None:
         handle_ado_get_special_formats,
     )
 
-    if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
+    if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
         handle_ado_get_default_format(
             parameters=parameters,
             resource_type=CoreResourceKinds.OPERATION,

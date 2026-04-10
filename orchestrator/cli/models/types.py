@@ -93,7 +93,7 @@ class AdoEditSupportedResourceTypes(Enum):
 #################### ado get ####################
 class AdoGetSupportedOutputFormats(Enum):
     CONFIG = _CONFIG
-    DEFAULT = _DEFAULT
+    DEFAULT = _TABLE
     JSON = _JSON
     NAME = _NAME
     RAW = _RAW

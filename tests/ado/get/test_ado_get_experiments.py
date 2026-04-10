@@ -143,7 +143,7 @@ def test_get_experiments_invalid_output_format() -> None:
     result = runner.invoke(ado, ["get", "experiments", "-o", "json"])
     assert result.exit_code == 1
     if os.environ.get("CI", "false") != "true":
-        assert "Only the default output format" in result.output
+        assert "Only the table output format" in result.output
 
 
 def test_get_experiments_with_yaml_output_format() -> None:
@@ -152,7 +152,7 @@ def test_get_experiments_with_yaml_output_format() -> None:
     result = runner.invoke(ado, ["get", "experiments", "-o", "yaml"])
     assert result.exit_code == 1
     if os.environ.get("CI", "false") != "true":
-        assert "Only the default output format" in result.output
+        assert "Only the table output format" in result.output
 
 
 def test_get_experiments_output_contains_actuator_info() -> None:

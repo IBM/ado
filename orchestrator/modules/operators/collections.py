@@ -206,7 +206,7 @@ def explore_operation(
             def operator_metadata(cls) -> OperatorMetadata:
                 return OperatorMetadata(
                     name="my_op",
-                    version="v1.0",
+                    version="0.1.0",
                     configuration_model=MyOpParameters,
                     example_configuration=MyOpParameters(),
                     type=DiscoveryOperationEnum.SEARCH,

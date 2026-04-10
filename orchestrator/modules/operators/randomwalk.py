@@ -422,20 +422,6 @@ class RandomWalk(Characterize):
     """Performs a random walk through a set of known entities in a space"""
 
     @classmethod
-    def defaultOperationParameters(
-        cls,
-    ) -> RandomWalkParameters:
-
-        return RandomWalkParameters()
-
-    @classmethod
-    def validateOperationParameters(
-        cls, parameters: dict | pydantic.BaseModel
-    ) -> RandomWalkParameters:
-
-        return RandomWalkParameters.model_validate(parameters)
-
-    @classmethod
     def description(cls) -> str:
 
         return """RandomWalk provides capabilities for sampling points in an entity space and applying
@@ -961,21 +947,7 @@ class RandomWalk(Characterize):
 
     def operationIdentifier(self) -> str:
 
-        return f"{self.__class__.operatorIdentifier()}-{self.runid}"
-
-    @classmethod
-    def operatorIdentifier(cls) -> str:
-
-        from importlib.metadata import version
-
-        version = version("ado-core")
-
-        return f"randomwalk-{version}"
-
-    @classmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-
-        return DiscoveryOperationEnum.SEARCH
+        return f"{self.__class__.operator_metadata().operatorIdentifier}-{self.runid}"
 
     @classmethod
     def operator_metadata(cls) -> OperatorMetadata:

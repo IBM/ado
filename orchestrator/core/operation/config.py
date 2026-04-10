@@ -182,15 +182,14 @@ class OperatorModuleConf(ModuleConf):
         c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
-        return c.operationType()
+        return c.operator_metadata().type
 
     @property
     def operatorIdentifier(self) -> str:
         c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
-
-        return c.operatorIdentifier()
+        return c.operator_metadata().operatorIdentifier
 
 
 class OperatorMetadata(pydantic.BaseModel):
@@ -416,7 +415,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
     @pydantic.model_validator(mode="after")
     def validate_and_downcast_parameters(self) -> Self:
-        """Validates and downcasts operation parameters based on the module type.
+        """Validates and downcasts operation parameters.
 
         For OperatorModuleConf modules, validates parameters using the operation's
         validateOperationParameters method. For OperatorReference modules,
@@ -430,10 +429,14 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         """
         if isinstance(self.module, OperatorModuleConf):
             # This is guaranteed to not raise an error thanks to ensure_module_is_installed
-            operation = getattr(
+            operator_class = getattr(
                 importlib.import_module(self.module.moduleName), self.module.moduleClass
             )
-            self.parameters = operation.validateOperationParameters(self.parameters)
+            operator_metadata = operator_class.operator_metadata()
+            if operator_metadata.configuration_model is not None:
+                self.parameters = operator_metadata.configuration_model.model_validate(
+                    self.parameters
+                )
         else:
             import logging
 
@@ -443,10 +446,12 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
             operation_type = self.module.operationType
             operator_name = self.module.operatorName
-            operator = operationCollectionMap[operation_type].operators.get(
+            operator_metadata = operationCollectionMap[operation_type].operators.get(
                 operator_name
             )
-            configuration_model = operator.configuration_model if operator else None
+            configuration_model = (
+                operator_metadata.configuration_model if operator_metadata else None
+            )
 
             if configuration_model:
                 self.parameters = configuration_model.model_validate(self.parameters)

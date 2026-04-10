@@ -767,23 +767,6 @@ class RayTune(Search):
     """Uses raytune optimization algorithm to search through entities in a space"""
 
     @classmethod
-    def defaultOperationParameters(
-        cls,
-    ) -> RayTuneConfiguration:
-        return RayTuneConfiguration(
-            tuneConfig=OrchTuneConfig(
-                metric="wallclock_time", search_alg=OrchSearchAlgorithm(name="bayesopt")
-            ),
-            runtimeConfig=OrchRunConfig(),
-        )
-
-    @classmethod
-    def validateOperationParameters(
-        cls, parameters: dict | pydantic.BaseModel
-    ) -> RayTuneConfiguration:
-        return RayTuneConfiguration.model_validate(parameters)
-
-    @classmethod
     def description(cls) -> str:
         return """RayTune provides capabilities for sampling points in an entity space and applying
                measurements to them via optimization algorithms.
@@ -997,19 +980,7 @@ class RayTune(Search):
         return self._requestIndex
 
     def operationIdentifier(self) -> str:
-        return f"{self.__class__.operatorIdentifier()}-{self.params.tuneConfig.search_alg.name}-{self.runid}"
-
-    @classmethod
-    def operatorIdentifier(cls) -> str:
-        from importlib.metadata import version
-
-        version = version("ado-ray-tune")
-
-        return f"raytune-{version}"
-
-    @classmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-        return DiscoveryOperationEnum.SEARCH
+        return f"{self.__class__.operator_metadata().operatorIdentifier}-{self.params.tuneConfig.search_alg.name}-{self.runid}"
 
     @classmethod
     def operator_metadata(cls) -> OperatorMetadata:
@@ -1021,7 +992,13 @@ class RayTune(Search):
             version=version("ado-ray-tune"),
             description=cls.description(),
             configuration_model=RayTuneConfiguration,
-            example_configuration=cls.defaultOperationParameters(),
+            example_configuration=RayTuneConfiguration(
+                tuneConfig=OrchTuneConfig(
+                    metric="wallclock_time",
+                    search_alg=OrchSearchAlgorithm(name="bayesopt"),
+                ),
+                runtimeConfig=OrchRunConfig(),
+            ),
             type=DiscoveryOperationEnum.SEARCH,
         )
 

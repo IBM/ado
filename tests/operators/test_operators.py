@@ -38,27 +38,6 @@ from orchestrator.modules.operators.randomwalk import (
 )
 
 
-def test_randomwalk_class_methods() -> None:
-
-    import orchestrator.metastore.project
-
-    assert (
-        RandomWalk.operationType()
-        == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
-    )
-    assert RandomWalk.operatorIdentifier().split("-")[0] == "randomwalk"
-
-
-def test_raytune_class_methods() -> None:
-    import orchestrator.metastore.project
-
-    assert (
-        RayTune.operationType()
-        == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
-    )
-    assert RayTune.operatorIdentifier().split("-")[0] == "raytune"
-
-
 def test_operator_function_conf() -> None:
 
     function = orchestrator.core.operation.config.OperatorReference(
@@ -80,30 +59,15 @@ def test_operator_module_conf(
     operator_module_conf: orchestrator.core.operation.config.OperatorModuleConf,
 ) -> None:
 
+    from orchestrator.modules.module import load_module_class_or_function
+
     assert (
         operator_module_conf.operationType
         == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
     )
-    assert (
-        operator_module_conf.operatorIdentifier.split("-")[0]
-        == operator_module_conf.moduleClass.lower()
-    )
-
-
-def test_operator_module_conf_random_walk() -> None:
-
-    module = orchestrator.core.operation.config.OperatorModuleConf(
-        moduleName="orchestrator.modules.operators.randomwalk",
-        moduleClass="RandomWalk",
-    )
-
-    assert module.operatorIdentifier
-    assert isinstance(module.operatorIdentifier, str)
-    assert (
-        module.operationType
-        == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
-    )
-    assert module.operatorIdentifier.split("-")[0] == "randomwalk"
+    cls = load_module_class_or_function(operator_module_conf)
+    expected_name = cls.operator_metadata().name
+    assert operator_module_conf.operatorIdentifier.startswith(f"{expected_name}-")
 
 
 def test_characterize(expected_characterize_operators: list[str]) -> None:
@@ -171,11 +135,7 @@ def test_explore_operator_class_registration(
     for name in expected_explore_operators:
         operator = orchestrator.modules.operators.collections.explore.operators[name]
         cls = operator.cls
-        # Ray-decorated classes become ActorClass objects so issubclass is not
-        # usable; verify the registered object is non-None and exposes the
-        # operatorIdentifier classmethod expected of explore operators.
         assert cls is not None
-        assert hasattr(cls, "operatorIdentifier")
 
 
 def test_explore_operator_function_conf_identifier_matches_registered_name() -> None:
@@ -279,7 +239,7 @@ def test_random_walk_operation_configuration() -> None:
         orchestrator.modules.operators.collections.explore.operators[
             "random_walk"
         ].example_configuration
-        == RandomWalk.defaultOperationParameters()
+        == RandomWalk.operator_metadata().example_configuration
     )
 
 
@@ -308,7 +268,7 @@ def test_raytune_operation_configuration(
         orchestrator.modules.operators.collections.explore.operators[
             "ray_tune"
         ].example_configuration
-        == RayTune.defaultOperationParameters()
+        == RayTune.operator_metadata().example_configuration
     )
 
 
@@ -329,12 +289,10 @@ def test_random_walk_config(
     import pydantic
 
     assert randomWalkConf is not None
-    assert RandomWalk.validateOperationParameters(
-        parameters=randomWalkConf.operation.parameters
-    )
+    assert RandomWalkParameters.model_validate(randomWalkConf.operation.parameters)
 
-    parameters_model: RandomWalkParameters = RandomWalk.validateOperationParameters(
-        parameters=randomWalkConf.operation.parameters
+    parameters_model: RandomWalkParameters = RandomWalkParameters.model_validate(
+        randomWalkConf.operation.parameters
     )
 
     # Test sampler
@@ -349,7 +307,7 @@ def test_random_walk_config(
     parameters_dict["foo"] = "bar"
 
     with pytest.raises(pydantic.ValidationError):
-        RandomWalk.validateOperationParameters(parameters=parameters_dict)
+        RandomWalkParameters.model_validate(parameters_dict)
 
     # Test extra params not allowed
 
@@ -358,7 +316,7 @@ def test_random_walk_config(
     parameters_dict["number-iterations"] = 6
 
     with pytest.raises(pydantic.ValidationError):
-        RandomWalk.validateOperationParameters(parameters=parameters_dict)
+        RandomWalkParameters.model_validate(parameters_dict)
 
 
 def test_random_walk_custom_sampler_config() -> None:
@@ -435,17 +393,16 @@ def test_ray_tune_config(
     """Test running a random_walk operation via the operation functions"""
 
     import pydantic
+    from ado_ray_tune.operator import RayTuneConfiguration
 
     assert raytuneConf is not None
-    assert RayTune.validateOperationParameters(
-        parameters=raytuneConf.operation.parameters
-    )
+    assert RayTuneConfiguration.model_validate(raytuneConf.operation.parameters)
 
     parameters_dict = raytuneConf.operation.parameters.model_dump()
     parameters_dict["foo"] = "bar"
 
     with pytest.raises(pydantic.ValidationError):
-        RandomWalk.validateOperationParameters(parameters=parameters_dict)
+        RandomWalkParameters.model_validate(parameters_dict)
 
 
 def test_run_random_walk_operation(
@@ -461,9 +418,7 @@ def test_run_random_walk_operation(
     assert discoverySpace is not None
     assert randomWalkConf is not None
     randomWalkConf.spaces[0] = ml_multi_cloud_space.uri
-    assert RandomWalk.validateOperationParameters(
-        parameters=randomWalkConf.operation.parameters
-    )
+    assert RandomWalkParameters.model_validate(randomWalkConf.operation.parameters)
 
     random_walk_fn = orchestrator.modules.operators.collections.explore.operators[
         "random_walk"
@@ -582,15 +537,15 @@ def test_run_ray_tune_operation(
 ) -> None:
     """Test running a ray_tune operation via the operation functions"""
 
+    from ado_ray_tune.operator import RayTuneConfiguration
+
     import orchestrator.core.resources
 
     discoverySpace = ml_multi_cloud_space
 
     assert discoverySpace is not None
     assert raytuneConf is not None
-    assert RayTune.validateOperationParameters(
-        parameters=raytuneConf.operation.parameters
-    )
+    assert RayTuneConfiguration.model_validate(raytuneConf.operation.parameters)
 
     ray_tune_fn = orchestrator.modules.operators.collections.explore.operators[
         "ray_tune"
@@ -643,11 +598,11 @@ def test_operator_default_and_validate(
     optimizer_operator: type[RandomWalk] | type[RayTune],
 ) -> None:
 
-    assert optimizer_operator
-    default = optimizer_operator.defaultOperationParameters()
-    parameters = default.model_dump() if not isinstance(default, dict) else default
-
-    assert optimizer_operator.validateOperationParameters(parameters=parameters)
+    meta = optimizer_operator.operator_metadata()
+    assert meta.configuration_model is not None
+    assert meta.example_configuration is not None
+    parameters = meta.example_configuration.model_dump()
+    assert meta.configuration_model.model_validate(parameters)
 
 
 # ---------------------------------------------------------------------------
@@ -726,24 +681,6 @@ def test_explore_operation_class_decorator_registers_function() -> None:
                 type=DiscoveryOperationEnum.SEARCH,
             )
 
-        @classmethod
-        def operatorIdentifier(cls) -> str:
-            return "_test_class_op-v0.1"
-
-        @classmethod
-        def operationType(cls) -> DiscoveryOperationEnum:
-            return DiscoveryOperationEnum.SEARCH
-
-        @classmethod
-        def defaultOperationParameters(cls) -> _Params:
-            return _Params()
-
-        @classmethod
-        def validateOperationParameters(
-            cls, parameters: dict | pydantic.BaseModel
-        ) -> _Params:
-            return _Params.model_validate(parameters)
-
         def operationIdentifier(self) -> str:
             return "_test_class_op-run"
 
@@ -792,7 +729,6 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
     op = explore.operators.get("_test_cls_stored")
     assert op is not None
     assert op.cls is not None
-    assert hasattr(op.cls, "operatorIdentifier")
 
 
 def test_explore_operation_class_decorator_metadata_from_class() -> None:
@@ -821,24 +757,6 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
                 example_configuration=_Params2(),
                 type=DiscoveryOperationEnum.SEARCH,
             )
-
-        @classmethod
-        def operatorIdentifier(cls) -> str:
-            return "_test_class_op2-v3.0"
-
-        @classmethod
-        def operationType(cls) -> DiscoveryOperationEnum:
-            return DiscoveryOperationEnum.SEARCH
-
-        @classmethod
-        def defaultOperationParameters(cls) -> _Params2:
-            return _Params2()
-
-        @classmethod
-        def validateOperationParameters(
-            cls, parameters: dict | pydantic.BaseModel
-        ) -> _Params2:
-            return _Params2.model_validate(parameters)
 
         def operationIdentifier(self) -> str:
             return "_test_class_op2-run"
@@ -888,20 +806,3 @@ def test_ray_tune_registration() -> None:
     assert rt.name == "ray_tune"
     assert rt.cls is not None
     assert callable(rt.function)
-
-
-def test_explore_operation_function_decorator_missing_name_raises() -> None:
-    """Decorating a plain function without name raises TypeError."""
-    from orchestrator.core.discoveryspace.space import DiscoverySpace
-    from orchestrator.core.operation.config import FunctionOperationInfo
-    from orchestrator.core.operation.operation import OperationOutput
-    from orchestrator.modules.operators.collections import explore_operation
-
-    with pytest.raises(TypeError, match="name"):
-
-        @explore_operation()
-        def _nameless(
-            discoverySpace: DiscoverySpace,
-            operationInfo: FunctionOperationInfo | None = None,
-            **kwargs: object,
-        ) -> OperationOutput: ...

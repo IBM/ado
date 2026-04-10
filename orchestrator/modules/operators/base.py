@@ -9,7 +9,6 @@ import logging
 import typing
 from typing import Protocol
 
-import pydantic
 import ray
 import ray.exceptions
 
@@ -22,7 +21,6 @@ import orchestrator.modules.actuators.replay
 import orchestrator.schema.reference
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
     OperatorModuleConf,
@@ -151,7 +149,7 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
 # Some operations are not RayActors: They don't have to use Actuators and StateUpdateQueue or Ray. They can use ray-workers
 
 
-class DiscoveryOperationBase:
+class DiscoveryOperationBase(metaclass=abc.ABCMeta):
 
     def operationIdentifier(self) -> str:
         """A unique id for the operation instance being run by the operator.
@@ -166,109 +164,29 @@ class DiscoveryOperationBase:
         return f"{type(self).__name__.lower()}-{uuid.uuid4().hex[:8]}"
 
     @classmethod
-    def operatorIdentifier(cls) -> str:
-        """The identifier of this operator (``<name>-<version>``).
-
-        Deprecated: Implement operator_metadata instead
-
-        Raises:
-            NotImplementedError: If not overridden.
-        """
-        raise NotImplementedError(
-            f"{cls.__name__}.operatorIdentifier() is not implemented. "
-            "New operators should implement operator_metadata() instead."
-        )
-
-    @classmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-        """The type of operation this operator applies.
-
-        Deprecated: Implement operator_metadata instead
-
-        Raises:
-            NotImplementedError: If not overridden.
-        """
-        raise NotImplementedError(
-            f"{cls.__name__}.operationType() is not implemented. "
-            "New operators should implement operator_metadata() instead."
-        )
-
-    @classmethod
-    def defaultOperationParameters(
-        cls,
-    ) -> pydantic.BaseModel:
-        """A default pydantic model for this operator's parameters.
-
-        Deprecated: Implement operator_metadata instead
-
-        Raises:
-            NotImplementedError: If not overridden.
-        """
-        raise NotImplementedError(
-            f"{cls.__name__}.defaultOperationParameters() is not implemented. "
-            "New operators should implement operator_metadata() instead."
-        )
-
-    @classmethod
-    def validateOperationParameters(
-        cls,
-        parameters: dict | pydantic.BaseModel,
-    ) -> pydantic.BaseModel:
-        """Validate and coerce ``parameters`` into the operator's model type.
-
-        Deprecated: Implement operator_metadata instead
-
-        Raises:
-            NotImplementedError: If not overridden and no ``configuration_model``
-                is registered.
-        """
-        raise NotImplementedError(
-            f"{cls.__name__}.validateOperationParameters() is not implemented. "
-            "Set configuration_model in operator_metadata() for parameter validation."
-        )
-
-    @classmethod
+    @abc.abstractmethod
     def operator_metadata(
         cls,
     ) -> "orchestrator.core.operation.config.OperatorMetadata":
-        """Returns :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
+        """Return :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
 
-        This method should be overridden by subclasses.
+        Subclasses must override this method and return an
+        :class:`~orchestrator.core.operation.config.OperatorMetadata` instance
+        that describes the operator's name, version, type, and configuration
+        model.  The ``@explore_operation`` decorator fills in the ``function``
+        and ``cls`` fields before registering::
 
-        For backwards compatibility this method contains an implementation
-        that works with older DiscoveryOperationBase classes.
-
-        Raises:
-            NotImplementedError: If neither this method is overridden nor the
-                legacy classmethods ``defaultOperationParameters()`` and
-                ``operationType()`` are implemented.
+            @classmethod
+            def operator_metadata(cls) -> OperatorMetadata:
+                return OperatorMetadata(
+                    name="my_op",
+                    version="v1.0",
+                    configuration_model=MyOpParameters,
+                    example_configuration=MyOpParameters(),
+                    type=DiscoveryOperationEnum.SEARCH,
+                )
         """
-
-        # Try to build from legacy classmethods.
-        try:
-            default_params = cls.defaultOperationParameters()
-        except NotImplementedError:
-            raise NotImplementedError(
-                f"{cls.__name__} must implement operator_metadata()."
-            ) from None
-
-        try:
-            op_type = cls.operationType()
-        except NotImplementedError:
-            raise NotImplementedError(
-                f"{cls.__name__}: operationType() must be implemented alongside "
-                "defaultOperationParameters() for legacy classes."
-            ) from None
-
-        from orchestrator.core.operation.config import OperatorMetadata
-
-        return OperatorMetadata(
-            name=cls.__name__.lower(),
-            configuration_model=type(default_params),
-            example_configuration=default_params,
-            cls=cls,
-            type=op_type,
-        )
+        raise NotImplementedError(f"{cls.__name__} must implement operator_metadata().")
 
 
 class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):

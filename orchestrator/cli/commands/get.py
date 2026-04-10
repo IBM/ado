@@ -265,38 +265,21 @@ def get_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-get
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # List sample stores
-
     ado get samplestores
 
-
-
     # Save the configuration of a discovery space as YAML
-
     ado get space <space-id> -o yaml > space.yaml
 
-
-
     # List actuators and details about them
-
     ado get actuators --details
 
-
-
     # List all experiments
-
     ado get experiments
 
-
-
     # List experiments with details
-
     ado get experiments --details
     """
     ado_configuration: AdoConfiguration = ctx.obj

@@ -125,11 +125,17 @@ def handle_ado_get_special_formats(
                 )
 
         status.stop()
-        console_print(
-            format_resource_for_ado_get_custom_format(
-                to_print=resources, parameters=parameters
-            )
+        output_content = format_resource_for_ado_get_custom_format(
+            to_print=resources, parameters=parameters
         )
+
+        if parameters.output_file:
+            parameters.output_file.write_text(output_content)
+            console_print(
+                f"{SUCCESS}Output written to {parameters.output_file}", stderr=True
+            )
+        else:
+            console_print(output_content)
 
 
 def handle_ado_get_default_format(

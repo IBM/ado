@@ -131,13 +131,9 @@ Where:
   example, you can create a space along with a sample store definition, or
   create an operation together with an actuator configuration and a space
   definition. See the Examples section for more details.
-- `--use-latest` allows reusing the previous identifier of a certain resource
-  kind. It is only supported for spaces and operations. The latest identifiers
-  are updated every time an `ado create` command is successful. The stored
-  identifiers are not per-context, meaning that, for example running
-  `ado create samplestore`, changing context, and running
-  `ado create --use-latest samplestore` will raise an error. Ignored if `--with`
-  is used.
+- `--use-latest` allows reusing the latest identifier of a certain resource kind
+  from the current context's metastore. It is only supported for spaces and
+  operations during `ado create`. Ignored if `--with` is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
@@ -309,7 +305,7 @@ Where:
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   allows getting a description of the space, given a space configuration file.
 - `--use-latest` flag is **currently only available for spaces** and allows
-  describing the latest space created locally. It is not context aware.
+  describing the most recently created space from the current context.
 - `--actuator-id` (**optional**) can be used only when the resource type is
   experiment and is used to indicate what actuator the experiment belongs to.
 
@@ -639,8 +635,8 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -687,8 +683,8 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   enables showing entities that match the space defined in the configuration
   file. **NOTE**: using this flag forces `--include matching`.
@@ -800,8 +796,8 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  operation created locally. It is not context aware. It is ignored if a
-  RESOURCE_ID is provided.
+  operation from the current context. It is ignored if a RESOURCE_ID is
+  provided.
 - `--output` (or `-o`) determines the output format. Output is written to stdout
   by default, or to a file if `--output-file` is specified.
 - `--output-file` specifies a file path to write the output to. If not provided,
@@ -852,8 +848,8 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  operation created locally. It is not context aware. It is ignored if a
-  RESOURCE_ID is provided.
+  operation from the current context. It is ignored if a RESOURCE_ID is
+  provided.
 - `--output` (or `-o`) determines the output format. Output is written to stdout
   by default, or to a file if `--output-file` is specified.
 - `--output-file` specifies a file path to write the output to. If not provided,
@@ -905,8 +901,8 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -941,7 +937,7 @@ Where:
 - `RESOURCE_TYPE` is always _discoveryspace_ (_space_)
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
 - `--use-latest` will add the identifier of the latest (i.e. most recent) space
-  created locally to the RESOURCE_IDS. It is not context aware.
+  from the current context to the RESOURCE_IDS.
 - By using (optionally multiple times) the `--query` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the

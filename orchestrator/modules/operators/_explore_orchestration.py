@@ -48,7 +48,7 @@ if typing.TYPE_CHECKING:
 def graceful_explore_operation_shutdown(
     identifier: str,
     operator: "OperatorActor",
-    state: "DiscoverySpaceManagerActor",
+    discovery_space_manager: "DiscoverySpaceManagerActor",
     actuators: list["ActuatorActor"],
     namespace: str,
     timeout: int = 60,
@@ -70,7 +70,7 @@ def graceful_explore_operation_shutdown(
     ) as status:
 
         moduleLog.debug("Shutting down state")
-        ray.get(state.shutdown.remote())
+        ray.get(discovery_space_manager.shutdown.remote())
 
         status.update(f"Shutdown ({identifier}) - cleaning up custom actors")
 
@@ -89,7 +89,7 @@ def graceful_explore_operation_shutdown(
 
         terminate_actor_waitables = [
             operator.__ray_terminate__.remote(),
-            state.__ray_terminate__.remote(),
+            discovery_space_manager.__ray_terminate__.remote(),
         ]
         # __ray_terminate allows atexit handlers of actors to run
         # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
@@ -99,7 +99,7 @@ def graceful_explore_operation_shutdown(
         n_actors = len(terminate_actor_waitables)
         moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
 
-        actors = [operator, state]
+        actors = [operator, discovery_space_manager]
         actors.extend(actuators)
 
         terminate_waitable_to_actor_lookup = dict(
@@ -128,7 +128,7 @@ def graceful_explore_operation_shutdown(
 
 
 def run_explore_operation_core_closure(
-    operator: "OperatorActor", state: "DiscoverySpaceManagerActor"
+    operator: "OperatorActor", discovery_space_manager: "DiscoverySpaceManagerActor"
 ) -> typing.Callable[[], OperationOutput | None]:
 
     def _run_explore_operation_core() -> OperationOutput:
@@ -141,10 +141,10 @@ def run_explore_operation_core_closure(
             name="RichConsoleQueue", lifetime="detached", get_if_exists=True
         ).remote()
 
-        discovery_space = ray.get(state.discoverySpace.remote())
+        discovery_space = ray.get(discovery_space_manager.discoverySpace.remote())
         operation_id = ray.get(operator.operationIdentifier.remote())
 
-        state.startMonitoring.remote()
+        discovery_space_manager.startMonitoring.remote()
         future = operator.run.remote()
 
         # Start the rich live updates
@@ -272,7 +272,7 @@ def orchestrate_explore_operation(
         discovery_space=discovery_space,
         actuators=actuators,
         namespace=operation_info.ray_namespace,
-        state=discovery_space_manager,
+        discovery_space_manager=discovery_space_manager,
     )  # type: "OperatorActor"
     identifier = ray.get(operator.operationIdentifier.remote())
 
@@ -289,7 +289,7 @@ def orchestrate_explore_operation(
         lambda: graceful_explore_operation_shutdown(
             identifier=identifier,
             operator=operator,
-            state=discovery_space_manager,
+            discovery_space_manager=discovery_space_manager,
             actuators=list(actuators.values()),
             namespace=operation_info.ray_namespace,
         )
@@ -341,7 +341,7 @@ def orchestrate_explore_operation(
             graceful_explore_operation_shutdown(
                 identifier=identifier,
                 operator=operator,
-                state=discovery_space_manager,
+                discovery_space_manager=discovery_space_manager,
                 actuators=list(actuators.values()),
                 namespace=operation_info.ray_namespace,
             )

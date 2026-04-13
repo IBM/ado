@@ -12,7 +12,6 @@ from typing import Protocol
 import ray
 import ray.exceptions
 
-import orchestrator.core.metadata
 import orchestrator.core.operation.resource
 import orchestrator.core.resources
 import orchestrator.metastore.project
@@ -244,17 +243,15 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         self,
         operationActorName: str,
         namespace: str | None,
-        state: "DiscoverySpaceManagerActor",
+        discovery_space_manager: "DiscoverySpaceManagerActor",
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
-        params: dict | None = None,
-        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
     ) -> None:
-        # Common code for StateSubscribingDiscoveryOperations
-        self.state = state
         self.actorName = operationActorName
         self.namespace = namespace
+        self.ds_manager = discovery_space_manager
+        self.actuators = actuators
         # noinspection PyUnresolvedReferences
-        self.state.subscribeToUpdates.remote(subscriberName=self.actorName)
+        self.ds_manager.subscribeToUpdates.remote(subscriberName=self.actorName)
 
         super().__init__()
 

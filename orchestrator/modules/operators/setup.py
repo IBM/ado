@@ -138,7 +138,7 @@ def setup_operator(
     parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
-    state: "DiscoverySpaceManagerActor",
+    discovery_space_manager: "DiscoverySpaceManagerActor",
     actuators: dict,
 ) -> "OperatorActor":
     """Sets up and creates an operator actor for class-based explore operations.
@@ -151,7 +151,7 @@ def setup_operator(
         parameters: Dictionary of parameters to pass to the operator
         discovery_space: The discovery space the operator will operate on
         namespace: Ray namespace to create the operator actor in
-        state: DiscoverySpaceManager actor handle for state management
+        discovery_space_manager: DiscoverySpaceManager actor handle
         actuators: Dictionary of actuator actor handles keyed by actuator identifier
 
     Returns:
@@ -183,7 +183,7 @@ def setup_operator(
         .remote(
             operationActorName=actor_name,
             namespace=namespace,
-            state=state,
+            discovery_space_manager=discovery_space_manager,
             params=parameters,
             actuators=actuators,
         )

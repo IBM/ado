@@ -782,7 +782,7 @@ class RayTune(Explore):
         self,
         operationActorName: str,
         namespace: str,
-        state: DiscoverySpaceManager,
+        discovery_space_manager: DiscoverySpaceManager,
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: dict | None = None,
     ) -> None:
@@ -799,18 +799,16 @@ class RayTune(Explore):
 
         self.params = RayTuneConfiguration(**params)
 
-        self.actuators = actuators
         self._entitiesSubmitted = 0
         self._finishedMeasurements = {}
         self._requestIndex = 0
         self.received_critical_error_notification = False
         self.criticalError = None  # Will store the critical error if we receive one
 
-        # Sets state, actorName ivars and subscribes to the state
         super().__init__(
             operationActorName=operationActorName,
             namespace=namespace,
-            state=state,
+            discovery_space_manager=discovery_space_manager,
             actuators=actuators,
         )
 
@@ -843,11 +841,11 @@ class RayTune(Explore):
         try:
             # noinspection PyUnresolvedReferences
             entity_space = (
-                await self.state.entitySpace.remote()
+                await self.ds_manager.entitySpace.remote()
             )  # type: EntitySpaceRepresentation
             # noinspection PyUnresolvedReferences
             measurement_space = (
-                await self.state.measurementSpace.remote()
+                await self.ds_manager.measurementSpace.remote()
             )  # type: MeasurementSpace
 
             metric_or_metrics = self.params.tuneConfig.metric
@@ -880,7 +878,7 @@ class RayTune(Explore):
                     measurement_space=measurement_space,
                     entity_space=entity_space,
                     actuators=self.actuators,
-                    state=self.state,
+                    state=self.ds_manager,
                     orchestrator_config=self.params.orchestratorConfig,
                     target_metric=self.params.tuneConfig.metric,
                     debugging=False,
@@ -969,7 +967,7 @@ class RayTune(Explore):
             )
 
         # noinspection PyUnresolvedReferences
-        self.state.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
 
         return operation_output
 

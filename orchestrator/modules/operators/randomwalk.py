@@ -436,7 +436,7 @@ class RandomWalk(Explore):
         self,
         operationActorName: str,
         namespace: str,
-        state: DiscoverySpaceManager,
+        discovery_space_manager: DiscoverySpaceManager,
         actuators: dict[str, "ActuatorBase"],
         params: dict | None = None,
     ) -> None:
@@ -455,7 +455,6 @@ class RandomWalk(Explore):
         self.criticalError = False
 
         self.update_queue = asyncio.queues.Queue()
-        self.actuators = actuators
         self._entitiesSampled = 0
         self._experimentsRequested = 0
         # Key is requestIndex, value is RequestRetry
@@ -464,11 +463,10 @@ class RandomWalk(Explore):
         # If this was not true we would need to use the entity id+requestIndex
         self._retriedExperimentRequests = {}  # type: dict[int, RequestRetry]
 
-        # Sets state, actorName ivars and subscribes to the state
         super().__init__(
             operationActorName=operationActorName,
             namespace=namespace,
-            state=state,
+            discovery_space_manager=discovery_space_manager,
             actuators=actuators,
         )
 
@@ -494,16 +492,16 @@ class RandomWalk(Explore):
             f"Starting random walk. Sampler config is: {self.params.samplerConfig}"
         )
         # noinspection PyUnresolvedReferences
-        measurement_queue = await self.state.measurement_queue.remote()
+        measurement_queue = await self.ds_manager.measurement_queue.remote()
         sampler = self.params.samplerConfig.sampler()
         self.log.debug(sampler)
 
         iterator = await sampler.remoteEntityIterator(
-            remoteDiscoverySpace=self.state, batchsize=1
+            remoteDiscoverySpace=self.ds_manager, batchsize=1
         )
 
         # noinspection PyUnresolvedReferences
-        ds = await self.state.discoverySpace.remote()  # type: DiscoverySpace
+        ds = await self.ds_manager.discoverySpace.remote()  # type: DiscoverySpace
 
         measurement_space = ds.measurementSpace
         entity_space: EntitySpaceRepresentation | None = ds.entitySpace
@@ -519,7 +517,7 @@ class RandomWalk(Explore):
                         number_entities = entity_space.size
                     except AttributeError as error:
                         # noinspection PyUnresolvedReferences
-                        self.state.unsubscribeFromUpdates.remote(
+                        self.ds_manager.unsubscribeFromUpdates.remote(
                             subscriberName=self.actorName
                         )
                         raise ValueError(
@@ -532,7 +530,7 @@ class RandomWalk(Explore):
                         )
                 else:
                     # noinspection PyUnresolvedReferences
-                    self.state.unsubscribeFromUpdates.remote(
+                    self.ds_manager.unsubscribeFromUpdates.remote(
                         subscriberName=self.actorName
                     )
                     raise ValueError(
@@ -755,7 +753,7 @@ class RandomWalk(Explore):
                 f"Was notified that {finished_requests} measurements had completed before error."
             )
         # noinspection PyUnresolvedReferences
-        self.state.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
 
     def _processCompletedMeasurement(
         self,

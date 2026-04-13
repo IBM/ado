@@ -211,9 +211,37 @@ class OperatorMetadata(pydantic.BaseModel):
     version: Annotated[
         str,
         pydantic.Field(
-            description="Semantic version string for the operator (e.g. '0.1.0').",
+            description=(
+                "PEP 440 version string for the operator (e.g. '0.1.0', "
+                "'1.2.3.dev4+abc.dirty').  Validated on construction."
+            ),
         ),
     ] = "0.1.0"
+
+    @pydantic.field_validator("version", mode="after")
+    @classmethod
+    def validate_version_is_pep440(cls, value: str) -> str:
+        """Validate that *version* is a valid PEP 440 version string.
+
+        Args:
+            value: The version string to validate.
+
+        Returns:
+            The original version string unchanged.
+
+        Raises:
+            ValueError: If *value* is not a valid PEP 440 version string.
+        """
+        from packaging.version import InvalidVersion, Version
+
+        try:
+            Version(value)
+        except InvalidVersion as exc:
+            raise ValueError(
+                f"Operator version {value!r} is not a valid PEP 440 version string: {exc}"
+            ) from exc
+        return value
+
     description: Annotated[
         str | None,
         pydantic.Field(

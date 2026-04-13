@@ -653,6 +653,62 @@ def test_operator_metadata_identifier_default_version() -> None:
     assert meta.operatorIdentifier == "op-0.1.0"
 
 
+def test_operator_metadata_version_valid_pep440() -> None:
+    """OperatorMetadata accepts valid PEP 440 version strings."""
+    import pydantic
+
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+
+    class _P(pydantic.BaseModel):
+        pass
+
+    valid_versions = [
+        "0.1.0",
+        "1.2.3",
+        "1.0.0.dev5",
+        "1.7.1.dev82+1ee4e59.dirty",
+        "2.0.0a1",
+        "2.0.0rc1",
+        "v1.0.0",
+    ]
+    for ver in valid_versions:
+        meta = OperatorMetadata(
+            name="op",
+            version=ver,
+            configuration_model=_P,
+            example_configuration=_P(),
+            type=DiscoveryOperationEnum.SEARCH,
+        )
+        assert meta.version == ver
+
+
+def test_operator_metadata_version_invalid_pep440() -> None:
+    """OperatorMetadata rejects strings that are not valid PEP 440 versions."""
+    import pydantic
+
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+
+    class _P(pydantic.BaseModel):
+        pass
+
+    invalid_versions = ["not-a-version", "hello", "1.0.0-final"]
+    for ver in invalid_versions:
+        with pytest.raises(pydantic.ValidationError, match="PEP 440"):
+            OperatorMetadata(
+                name="op",
+                version=ver,
+                configuration_model=_P,
+                example_configuration=_P(),
+                type=DiscoveryOperationEnum.SEARCH,
+            )
+
+
 def test_operator_function_conf_identifier_delegates_to_operator_metadata() -> None:
     """OperatorReference.operatorIdentifier equals explore.operators[name].operatorIdentifier."""
     from orchestrator.core.operation.config import (

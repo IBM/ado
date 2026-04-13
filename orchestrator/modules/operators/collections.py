@@ -7,7 +7,6 @@ import typing
 from typing import Annotated
 
 import pydantic
-from pydantic import ConfigDict
 
 import orchestrator.core.operation.config
 from orchestrator.core.discoveryspace.space import DiscoverySpace
@@ -49,8 +48,6 @@ class OperatorCollection(pydantic.BaseModel):
     operators: Annotated[
         dict[str, OperatorMetadata], pydantic.Field(default_factory=dict)
     ]
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def list_operators(self) -> list[str]:
         """Returns all registered operator names."""

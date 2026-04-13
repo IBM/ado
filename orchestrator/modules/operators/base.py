@@ -58,44 +58,40 @@ class OperatorFunction(Protocol):
 def validate_operator_function_signature(fn: typing.Callable) -> None:
     """Validate that *fn* conforms to the :class:`OperatorFunction` Protocol.
 
-    Checks the return type and each positional parameter type against the
-    Protocol's annotations, skipping any annotation that is absent on either
-    side.  Introspection errors (e.g. built-ins, ``functools.partial``) are
-    silently ignored so that registration always succeeds when type information
-    is unavailable.
+    Validates the positional parameter count against the Protocol, then
+    checks that every positional parameter and the return value carry a type
+    annotation whose type matches the Protocol.  Type hints are mandatory:
+    an operator function without them cannot be verified to be correct, so
+    a ``ValueError`` is raised rather than silently skipping the check.
+
+    If ``inspect.signature`` cannot be obtained for *fn* a ``ValueError`` is
+    raised, because conformance cannot be confirmed.  A failure to inspect the
+    Protocol itself propagates as-is (it indicates a framework bug).
 
     Args:
         fn: The callable to validate.
 
     Raises:
-        ValueError: If a present annotation does not match the corresponding
-            annotation in the Protocol.
+        ValueError: If *fn* does not conform to the Protocol, if its
+            signature cannot be inspected, or if any required type hints are
+            absent or unresolvable.
     """
     import inspect
 
-    try:
-        proto_hints = typing.get_type_hints(OperatorFunction.__call__)
-        proto_sig = inspect.signature(OperatorFunction.__call__)
-    except Exception:  # noqa: BLE001
-        return
+    _HINTS_MISSING_HINT = (
+        "Operator functions must declare the correct types for all parameters "
+        "and the return value to pass validation."
+    )
+
+    proto_sig = inspect.signature(OperatorFunction.__call__)
 
     try:
-        hints = typing.get_type_hints(fn)
         sig = inspect.signature(fn)
-    except Exception:  # noqa: BLE001
-        return
-
-    expected_return = proto_hints.get("return")
-    actual_return = hints.get("return")
-    if (
-        expected_return is not None
-        and actual_return is not None
-        and actual_return != expected_return
-    ):
+    except (TypeError, ValueError) as exc:
         raise ValueError(
-            f"Operator function return type must be {expected_return!r}, "
-            f"got {actual_return!r}."
-        )
+            f"Cannot validate operator function {fn!r}: signature could not "
+            f"be inspected ({exc})."
+        ) from exc
 
     proto_positional = [
         p
@@ -128,16 +124,42 @@ def validate_operator_function_signature(fn: typing.Callable) -> None:
             f"Operator function has extra positional parameter(s) not in the "
             f"Protocol: {extra!r}."
         )
+
+    proto_hints = typing.get_type_hints(OperatorFunction.__call__)
+
+    try:
+        hints = typing.get_type_hints(fn)
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError(
+            f"Operator function has valid structure but type hints are missing "
+            f"or unresolvable ({exc}). {_HINTS_MISSING_HINT}"
+        ) from exc
+
+    missing_hints: list[str] = [
+        f"parameter {p.name!r}" for p in actual_positional if p.name not in hints
+    ]
+    if "return" not in hints:
+        missing_hints.append("return type")
+    if missing_hints:
+        raise ValueError(
+            f"Operator function has valid structure but type hints are missing "
+            f"for {missing_hints}. {_HINTS_MISSING_HINT}"
+        )
+
+    expected_return = proto_hints.get("return")
+    actual_return = hints["return"]
+    if expected_return is not None and actual_return != expected_return:
+        raise ValueError(
+            f"Operator function return type must be {expected_return!r}, "
+            f"got {actual_return!r}."
+        )
+
     for idx, (proto_param, actual_param) in enumerate(
         zip(proto_positional, actual_positional, strict=True), start=1
     ):
         expected_type = proto_hints.get(proto_param.name)
-        actual_type = hints.get(actual_param.name)
-        if (
-            expected_type is not None
-            and actual_type is not None
-            and actual_type != expected_type
-        ):
+        actual_type = hints[actual_param.name]
+        if expected_type is not None and actual_type != expected_type:
             raise ValueError(
                 f"Operator function parameter {actual_param.name!r} "
                 f"(position {idx}) must be {expected_type!r}, "
@@ -180,7 +202,7 @@ class DiscoveryOperationBase(metaclass=abc.ABCMeta):
             def operator_metadata(cls) -> OperatorMetadata:
                 return OperatorMetadata(
                     name="my_op",
-                    version="v1.0",
+                    version="0.1.0",
                     configuration_model=MyOpParameters,
                     example_configuration=MyOpParameters(),
                     type=DiscoveryOperationEnum.SEARCH,

@@ -23,7 +23,7 @@ def valid_op_no_kwargs(
 ) -> OperationOutput: ...
 
 
-def valid_op_no_annotations(
+def no_annotations(
     discoverySpace,  # noqa: ANN001
     operationInfo=None,  # noqa: ANN001
 ) -> OperationOutput: ...
@@ -69,12 +69,55 @@ class TestValidSignatures:
         """Omitting **kwargs is allowed."""
         validate_operator_function_signature(valid_op_no_kwargs)
 
-    def test_valid_no_annotations(self) -> None:
-        """Missing annotations are skipped without error."""
-        validate_operator_function_signature(valid_op_no_annotations)
+
+class TestHintIntrospectionFailure:
+    def test_unresolvable_forward_reference_raises(self) -> None:
+        """An unresolvable forward reference in annotations raises ValueError.
+
+        A function whose annotation references a name that is not in scope
+        causes typing.get_type_hints to raise NameError.  The function has
+        valid structure but the hints are unresolvable, so validation must
+        reject it rather than silently skipping the type checks.
+        """
+
+        def bad_hints(
+            discoverySpace: "UnresolvableType",  # noqa: F821
+            operationInfo: FunctionOperationInfo | None = None,
+        ) -> OperationOutput: ...
+
+        with pytest.raises(ValueError, match="type hints are missing or unresolvable"):
+            validate_operator_function_signature(bad_hints)
+
+    def test_uninspectable_fn_raises(self) -> None:
+        """A callable whose signature cannot be inspected must raise ValueError.
+
+        Conformance cannot be confirmed when introspection fails, so silently
+        passing would allow invalid callables through.
+        """
+        import inspect
+        import unittest.mock as mock
+
+        fn = lambda: None  # noqa: E731
+        original_signature = inspect.signature
+
+        def patched_signature(obj: object, **kwargs: object) -> inspect.Signature:
+            if obj is fn:
+                raise TypeError("not inspectable")
+            return original_signature(obj, **kwargs)  # type: ignore[arg-type]
+
+        with (
+            mock.patch("inspect.signature", side_effect=patched_signature),
+            pytest.raises(ValueError, match="signature could not be inspected"),
+        ):
+            validate_operator_function_signature(fn)
 
 
 class TestInvalidSignatures:
+    def test_missing_param_annotations_rejected(self) -> None:
+        """A function with unannotated parameters is rejected."""
+        with pytest.raises(ValueError, match="type hints are missing"):
+            validate_operator_function_signature(no_annotations)
+
     def test_missing_operation_info(self) -> None:
         """Function with only one positional parameter is rejected."""
         with pytest.raises(ValueError, match="operationInfo"):

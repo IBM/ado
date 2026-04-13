@@ -44,10 +44,10 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
         )
 
         # Validate output format
-        if parameters.output_format != AdoGetSupportedOutputFormats.DEFAULT:
+        if parameters.output_format != AdoGetSupportedOutputFormats.TABLE:
             spinner.stop()
             console_print(
-                f"{ERROR}Only the {AdoGetSupportedOutputFormats.DEFAULT.value} output format "
+                f"{ERROR}Only the {AdoGetSupportedOutputFormats.TABLE.value} output format "
                 "is supported by this command.",
                 stderr=True,
             )

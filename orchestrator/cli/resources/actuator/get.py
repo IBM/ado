@@ -31,11 +31,11 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
 
     # Validate output format early
     if parameters.output_format not in {
-        AdoGetSupportedOutputFormats.DEFAULT,
+        AdoGetSupportedOutputFormats.TABLE,
         AdoGetSupportedOutputFormats.NAME,
     }:
         console_print(
-            f"{ERROR}Only the {AdoGetSupportedOutputFormats.DEFAULT.value} and "
+            f"{ERROR}Only the {AdoGetSupportedOutputFormats.TABLE.value} and "
             f"{AdoGetSupportedOutputFormats.NAME.value} output formats "
             "are supported by this command.",
             stderr=True,

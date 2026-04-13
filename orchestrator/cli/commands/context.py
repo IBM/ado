@@ -16,7 +16,6 @@ from orchestrator.cli.resources.context.get import get_context
 from orchestrator.cli.utils.output.prints import (
     ADO_NO_ACTIVE_CONTEXT_ERROR,
     console_print,
-    magenta,
 )
 
 if typing.TYPE_CHECKING:
@@ -39,20 +38,12 @@ def manage_contexts(
     See https://ibm.github.io/ado/getting-started/ado/#ado-context for
     detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # View the active context
-
     ado context
 
-
-
     # Set local as your active context
-
     ado context local
     """
     ado_configuration: AdoConfiguration = ctx.obj
@@ -70,12 +61,15 @@ def manage_contexts(
 
 def list_contexts(
     ctx: typer.Context,
-    simple: Annotated[
-        bool,
+    output_format: Annotated[
+        AdoGetSupportedOutputFormats,
         typer.Option(
-            "--simple", help="Display only context names.", show_default=False
+            "--output",
+            "-o",
+            help="Output format. Use 'name' to display only context names.",
+            show_default=False,
         ),
-    ] = False,
+    ] = AdoGetSupportedOutputFormats.TABLE,
 ) -> None:
     """
     List available contexts.
@@ -83,21 +77,19 @@ def list_contexts(
     See https://ibm.github.io/ado/getting-started/ado/#ado-context
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # View available contexts and active context
-
     ado contexts
 
+    # List available context names only
+    ado contexts -o name
 
+    # Get contexts as YAML
+    ado contexts -o yaml
 
-    # List available contexts
-
-    ado contexts --simple
+    # Get contexts as JSON
+    ado contexts -o json
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
@@ -116,7 +108,8 @@ def list_contexts(
         matching_space=None,
         minimize_output=True,
         no_trunc=False,
-        output_format=AdoGetSupportedOutputFormats.DEFAULT,
+        output_file=None,
+        output_format=output_format,
         resource_id=None,
         resource_type=AdoGetSupportedResourceTypes.CONTEXT,
         show_deprecated=False,
@@ -124,21 +117,14 @@ def list_contexts(
     )
 
     # NOTE: there will always be at least one context (local)
-    get_context(
-        parameters=parameters,
-        simplify_output=simple,
-    )
+    get_context(parameters=parameters)
 
-    if simple:
-        return
-
-    if ado_configuration.active_context is None:
+    # Warn user if no context is active only when using the TABLE format
+    if (
+        output_format == AdoGetSupportedOutputFormats.TABLE
+        and ado_configuration.active_context is None
+    ):
         console_print(ADO_NO_ACTIVE_CONTEXT_ERROR, stderr=True)
-        return
-
-    console_print(
-        f"\nThe active context is: {magenta(ado_configuration.active_context)}"
-    )
 
 
 def register_context_command(app: typer.Typer) -> None:
@@ -151,5 +137,5 @@ def register_context_command(app: typer.Typer) -> None:
 def register_contexts_command(app: typer.Typer) -> None:
     app.command(
         name="contexts",
-        options_metavar="[--simple]",
+        options_metavar="[--output | -o <format>]",
     )(list_contexts)

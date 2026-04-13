@@ -65,7 +65,19 @@ Similar to `oc projects`, users can list available contexts by running:
 ado contexts
 ```
 
-The default context will also be printed out.
+It's also possible to output this information in multiple formats via the
+`-o/--output` flag:
+
+```shell
+# List context names only
+ado contexts -o name
+
+# Export contexts as YAML
+ado contexts -o yaml
+
+# Export contexts as JSON
+ado contexts -o json
+```
 
 ##### Switching between contexts
 
@@ -382,6 +394,7 @@ The complete syntax of the `ado get` command is as follows:
 
 ```shell
 ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+                                    [--output-file <path>] \
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
@@ -422,7 +435,7 @@ Where:
 
 <!-- prettier-ignore-start -->
 
-    - The `default` format shows the _identifier_, the _name_, and the _age_ of
+    - The `table` format shows the _identifier_, the _name_, and the _age_ of
       the matching resources.
     - The `name` format outputs only the resource identifiers, one per line
       (similar to `kubectl get -o name`).
@@ -434,6 +447,10 @@ Where:
 
 <!-- prettier-ignore-end -->
 
+- `--output-file` allows writing the output to a specified file instead of
+  stdout. This flag is only supported when using the `yaml`, `json`, `config`,
+  or `raw` output formats. It cannot be used with the `default` or `name`
+  formats.
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
   used to show them.
@@ -452,11 +469,11 @@ Where:
 - `--minimize` minimizes the output. This might entail applying transformations
   on the model, changing it from the original. If set, it implies
   `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
-  ignored when the output type is `default` or `raw`.
+  ignored when the output type is `table` or `raw`.
 - The `--from-sample-store`, `--from-space`, `--from-operation` flags are
-  available **only for `ado get measurementrequests`** and allow specifying what
+  available **only for `ado get requests`** and allow specifying what
   samplestore/space/operation the measurement request belongs to.
-- When using the `--details` flag with the `default` output format, additional
+- When using the `--details` flag with the `table` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
 - The `--show-deprecated` flag is available **only for `ado get experiments`**
@@ -591,10 +608,22 @@ ado get experiments --details
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get measurementrequest measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
+ado get request measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
 ```
 
 <!-- markdownlint-enable line-length -->
+
+##### Saving a Discovery Space configuration to a file
+
+```shell
+ado get space my-space-id -o yaml --output-file space.yaml
+```
+
+##### Saving all operations as JSON
+
+```shell
+ado get operations -o json --output-file operations.json
+```
 
 ### ado show
 
@@ -654,7 +683,7 @@ The complete syntax of the `ado show entities` command is as follows:
 ```shell
 ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
-                  [--output | -o {console | csv | json}] \
+                  [--output | -o {table | csv | json}] \
                   [--output-file <path>] \
                   [--property <property-name>] \
                   [--include {sampled | matching | missing | unsampled}] \
@@ -697,15 +726,14 @@ Where:
 
 <!-- prettier-ignore-start -->
 
-    - `console` (print to stdout)
+    - `table` (print to stdout)
     - `csv` (write CSV to stdout, or to file if `--output-file` is specified)
     - `json` (write JSON to stdout, or to file if `--output-file` is specified)
 
 <!-- prettier-ignore-end -->
 
-- `--output-file` specifies a file path to write the output to. If not provided,
-  output is written to stdout (except for console format which always prints to
-  stdout).
+- `--output-file` specifies a file path to write the output to (except for table
+  format which always prints to stdout).
 
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
@@ -780,7 +808,7 @@ The complete syntax of the `ado show requests` command is as follows:
 
 ```shell
 ado show requests operation [RESOURCE_ID] [--use-latest] \
-                            [--output | -o <console | csv | json>] \
+                            [--output | -o <table | csv | json>] \
                             [--output-file <path>] \
                             [--hide <field>]
 ```
@@ -832,7 +860,7 @@ The complete syntax of the `ado show results` command is as follows:
 
 ```shell
 ado show results operation [RESOURCE_ID] [--use-latest] \
-                           [--output | -o <console | csv | json>] \
+                           [--output | -o <table | csv | json>] \
                            [--output-file <path>] \
                            [--hide <field>]
 ```

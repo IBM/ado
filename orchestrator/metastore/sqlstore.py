@@ -1246,7 +1246,8 @@ class SQLResourceStore(ResourceStore):
                             "WHERE identifier = ("
                             "   SELECT subject_identifier"
                             "   FROM resource_relationships"
-                            "   WHERE object_identifier=:operation_identifier)"
+                            "   WHERE object_identifier=:operation_identifier"
+                            "   AND subject_identifier LIKE 'space-%')"
                         ).bindparams(operation_identifier=identifier)
                     ).first()[0]
 

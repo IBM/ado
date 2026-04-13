@@ -508,64 +508,173 @@ except (
 
 ## Creating Explore Operators
 
-Explore operators sample and measure entities. In `ado` all explore operation
-run as distributed ray jobs with:
+Explore operators sample entities from a discovery space and submit them for
+measurement.  Unlike other operator types, the logic runs inside a **Ray
+actor** and requires a class to be implemented.
 
-- actuator ray actors for performing measurements
-- discovery space manager actor for storing and notifying about measurement
-  results
+### Implementation
 
-This means explore operators need to be implemented differently to the others,
-in particular
-
-- The logic of your explore operator must be implemented as a ray actor (a
-  class)
-- The explore operator functions must call this class i.e. you won't have any
-  operator logic in the function
-
-### Explore operation functions
-
-All explore operation functions follow this pattern:
+1. Create a class that subclasses
+`orchestrator.modules.operators.base.Explore`
+2. Decorate it with `@explore_operation`
+3. Implement, at least, the following methods:
+   - **`operator_metadata()`** — a classmethod returning an
+     `OperatorMetadata` instance that describes your operator.
+   - **`run()`** — an async method containing your operator logic
+   - **`onUpdate()`**, **`onCompleted`** and **`onError`** - methods
+   that handle notifications about completed measurements
+  
+A simple example is show below:
 
 ```python
-@explore_operation(
-    name="ray_tune",
-    description=RayTune.description(),
-    configuration_model=RayTuneConfiguration,
-    configuration_model_default=RayTuneConfiguration(),
+import asyncio
+import pydantic
+from orchestrator.core.datacontainer.resource import DataContainer
+from orchestrator.core.datacontainer.resource import DataContainerResource
+from orchestrator.core.operation.config import DiscoveryOperationEnum, OperatorMetadata
+from orchestrator.core.operation.operation import OperationOutput
+from orchestrator.core.operation.resource import (
+    OperationExitStateEnum,
+    OperationResourceEventEnum,
+    OperationResourceStatus,
 )
-def ray_tune(
-        discoverySpace: DiscoverySpace,
-        operationInfo: FunctionOperationInfo = FunctionOperationInfo(),
-        **kwargs: typing.Dict,
-) -> OperationOutput:
-    """
-    Performs an optimization on a given discoverySpace
-
-    """
-
-    from orchestrator.core.operation.config import OperatorModuleConf
-    from orchestrator.module.operator.orchestrate import orchestrate_explore_operation
+from orchestrator.modules.operators.base import Explore, measure_or_replay
+from orchestrator.modules.operators.collections import explore_operation
 
 
-    ## This describes where the class that implements your explore operation is
-    module = OperatorModuleConf(
-        moduleName="ado_ray_tune.operator",  # The name of the package containing your explore actor
-        moduleClass="RayTune",  # The name of your explore actor class
-    )
+class MySearchParameters(pydantic.BaseModel):
+    num_entities: int = 10
 
-    # Tell ado to execute your class
-    return orchestrate_explore_operation(
-        discovery_space=discoverySpace,
-        module=module,
-        parameters=kwargs,
-        operation_info=operationInfo,  # Important: This is where you must pass the operationInfo parameter to ado
-    )
+
+@explore_operation
+class MySearchOperator(Explore):
+
+    def __init__(self, operationActorName, namespace, discovery_space_manager, actuators, params=None):
+        self.params = MySearchParameters(**(params or {}))
+        # Queue for completed-measurement notifications received via onUpdate
+        self.completed_measurements_queue = asyncio.Queue()
+        super().__init__(
+            operationActorName=operationActorName,
+            namespace=namespace,
+            discovery_space_manager=discovery_space_manager,
+            actuators=actuators,
+        )
+
+    @classmethod
+    def operator_metadata(cls) -> OperatorMetadata:
+        return OperatorMetadata(
+            name="my_search",
+            version="0.1.0",
+            description="A minimal example search operator.",
+            configuration_model=MySearchParameters,
+            example_configuration=MySearchParameters(),
+            type=DiscoveryOperationEnum.SEARCH,
+        )
+
+    # --- callbacks from DiscoverySpaceManager --------------------------------
+    # onUpdate: called when a measurement completes
+    # onError:  called on an unrecoverable error 
+
+    def onUpdate(self, measurementRequest) -> None:
+        self.completed_measurements_queue.put_nowait(measurementRequest)
+
+    def onCompleted(self) -> None:
+        pass
+
+    def onError(self, error: Exception) -> None:
+        self.completed_measurements_queue.put_nowait(error)
+
+    # -------------------------------------------------------------------------
+
+    async def run(self) -> OperationOutput | None:
+        measurement_queue = await self.ds_manager.measurement_queue.remote()
+        ds = await self.ds_manager.discoverySpace.remote()
+        experiments = ds.measurementSpace.independentExperiments
+
+        error_message = ""
+
+        # Sample entities and submit them for measurement
+        submitted = 0
+        async for entities in ...:  # use your chosen sampling strategy
+            for experiment in experiments:
+                request_ids = measure_or_replay(
+                    requestIndex=submitted,
+                    requesterid=self.operationIdentifier(),
+                    entities=entities,
+                    experimentReference=experiment.reference,
+                    actuators=self.actuators,
+                    measurement_queue=measurement_queue,
+                    memoize=False,
+                )
+                submitted += len(request_ids)
+
+        # Wait for all submitted measurements to complete
+        completed = 0
+        while not error_message and completed < submitted:
+            item = await self.completed_measurements_queue.get()
+            if isinstance(item, Exception):
+                error_message = f"Discovery space manager error: {item}"
+                break
+            if item.operation_id == self.operationIdentifier():
+                completed += 1
+
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+
+        if error_message:
+            return OperationOutput(
+                exitStatus=OperationResourceStatus(
+                    event=OperationResourceEventEnum.FINISHED,
+                    exit_state=OperationExitStateEnum.FAIL,
+                    message=error_message,
+                )
+            )
+        # exitStatus defaults to success when omitted
+        summary = DataContainer(data={"entities_submitted": submitted})
+        return OperationOutput(resources=[DataContainerResource(config=summary)])
 ```
 
-### Explore operator classes
+### Tips
 
-TBA
+**Submit measurements in batches.**  Submitting a batch at once, then waiting
+for all of them to complete before sampling the next batch, is the simplest
+pattern.  A more advanced approach is to submit the next entity as soon as one
+measurement finishes (continuous batching), which keeps actuators busy and
+reduces idle time.
+
+**Use `measure_or_replay` for all submissions.**  Do not call actuators
+directly.  `measure_or_replay` handles memoisation (reusing a prior
+measurement result when `memoize=True`) and routes the request to the correct
+actuator.
+
+**Use `self.operationIdentifier()` as the `requesterid`.**  The update
+notifications you receive via `onUpdate` include the `operation_id` that
+created the request.  Filtering on `measurement_request.operation_id ==
+self.operationIdentifier()` lets you ignore notifications from other
+concurrent operations sharing the same space.
+
+**Unsubscribe before returning.**  Call
+`self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)`
+at the end of `run()` as a courtesy — it stops the `DiscoverySpaceManager` from
+dispatching further `onUpdate` and `onCompleted` calls to an operator that has
+already finished.
+
+### Error handling
+
+**Errors from `measure_or_replay`.**  The function raises `KeyError` (no
+actuator can handle the experiment) or `MeasurementError` (experiment is
+deprecated for the actuator version in use). These don't have to be caught
+as they are handled by `ado`. It records the operation with exit state `ERROR` including the full
+exception message.  You only need to catch them explicitly if you want finer
+control.
+
+**Errors from the discovery space manager.**  If the discovery space manager
+encounters an unrecoverable problem it calls `onError`. This arrives asynchronously
+and without explicit handling run() could wait forever for a new measurement result
+to arrive. A recommended pattern to handle this is shown in the example above: `onError`
+puts the exception onto the same `asyncio.Queue` that `onUpdate` uses for
+completed measurements.  In the wait loop, check whether the item dequeued is an
+`Exception` to detect this sentinel and exit early, then return a failed
+`OperationOutput`.
 
 ## Operator plugin packages
 

@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import itertools
+import logging
 import re
 import typing
 
@@ -883,3 +884,30 @@ def test_ray_tune_registration() -> None:
     assert rt.name == "ray_tune"
     assert rt.cls is not None
     assert callable(rt.function)
+
+
+def test_warn_if_operator_name_reused_logs_for_duplicate(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Reusing an operator name logs a warning before the registry entry is replaced."""
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        OperatorMetadata,
+    )
+    from orchestrator.modules.operators.collections import _warn_if_operator_name_reused
+
+    class _Cfg(pydantic.BaseModel):
+        pass
+
+    placeholder = OperatorMetadata(
+        name="dup",
+        configuration_model=_Cfg,
+        example_configuration=_Cfg(),
+        type=DiscoveryOperationEnum.CHARACTERIZE,
+    )
+    ops: dict[str, OperatorMetadata] = {"dup": placeholder}
+
+    with caplog.at_level(logging.WARNING):
+        _warn_if_operator_name_reused("characterize", "dup", ops)
+
+    assert any("already registered" in r.getMessage() for r in caplog.records)

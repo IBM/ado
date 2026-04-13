@@ -30,6 +30,18 @@ from orchestrator.modules.operators.orchestrate import (
 moduleLog = logging.getLogger("operation_collections")
 
 
+def _warn_if_operator_name_reused(
+    collection_label: str, name: str, operators: dict[str, OperatorMetadata]
+) -> None:
+    """Log a warning when registering under a name that is already in use."""
+    if name in operators:
+        moduleLog.warning(
+            "Operator %r is already registered in %s; replacing the existing entry",
+            name,
+            collection_label,
+        )
+
+
 class OperatorCollection(pydantic.BaseModel):
     """A registry of operators of a single discovery operation type.
 
@@ -147,6 +159,7 @@ def characterize_operation(
 
         validate_operator_function_signature(wrapper)
         wrapper = typing.cast("OperatorFunction", wrapper)
+        _warn_if_operator_name_reused("characterize", name, characterize.operators)
         characterize.operators[name] = OperatorMetadata(
             name=name,
             function=wrapper,
@@ -177,8 +190,8 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
     if not issubclass(t, DiscoverySpaceSubscribingDiscoveryOperation):
         raise TypeError(
             f"@explore_operation: {t.__name__} must be a subclass of "
-            "DiscoverySpaceSubscribingDiscoveryOperation (i.e. inherit from "
-            "Search or Characterize)."
+            "DiscoverySpaceSubscribingDiscoveryOperation (e.g. subclass "
+            "`Explore` or another discovery operation that subscribes to the space)."
         )
     if metadata.cls is not None and metadata.cls is not t:
         raise TypeError(
@@ -248,6 +261,7 @@ def explore_operation(
     _generated.__qualname__ = op_name
     validate_operator_function_signature(_generated)
     _generated = typing.cast("OperatorFunction", _generated)
+    _warn_if_operator_name_reused("explore", op_name, explore.operators)
     explore.operators[op_name] = metadata.model_copy(
         update={
             "function": _generated,
@@ -293,6 +307,7 @@ def modify_operation(
 
         validate_operator_function_signature(wrapper)
         wrapper = typing.cast("OperatorFunction", wrapper)
+        _warn_if_operator_name_reused("modify", name, modify.operators)
         modify.operators[name] = OperatorMetadata(
             name=name,
             function=wrapper,
@@ -343,6 +358,7 @@ def export_operation(
 
         validate_operator_function_signature(wrapper)
         wrapper = typing.cast("OperatorFunction", wrapper)
+        _warn_if_operator_name_reused("export", name, export.operators)
         export.operators[name] = OperatorMetadata(
             name=name,
             function=wrapper,

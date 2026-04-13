@@ -25,7 +25,7 @@ DATAFRAME_COLS_THRESHOLD = 20
 
 def df_to_output(
     df: "pd.DataFrame",
-    output_format: Literal["console", "json", "csv"],
+    output_format: Literal["table", "json", "csv"],
     output_file: Path | str | None = None,
     no_trunc: bool = False,
 ) -> None:
@@ -33,9 +33,9 @@ def df_to_output(
 
     Args:
         df: The dataframe to output
-        output_format: The format to use (console, json, or csv)
-        output_file: Optional file path. If None, output goes to stdout (except for console format)
-        no_trunc: Whether to avoid truncating columns in console output
+        output_format: The format to use (table, json, or csv)
+        output_file: Optional file path. If None, output goes to stdout (except for table format)
+        no_trunc: Whether to avoid truncating columns in table output
     """
     if df.empty:
         console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
@@ -43,7 +43,7 @@ def df_to_output(
 
     # For csv and json formats
     match output_format:
-        case "console":
+        case "table":
             output = dataframe_to_rich_table(
                 df,
                 show_edge=True,

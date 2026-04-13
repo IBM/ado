@@ -69,7 +69,7 @@ def list_contexts(
             help="Output format. Use 'name' to display only context names.",
             show_default=False,
         ),
-    ] = AdoGetSupportedOutputFormats.DEFAULT,
+    ] = AdoGetSupportedOutputFormats.TABLE,
 ) -> None:
     """
     List available contexts.
@@ -118,9 +118,9 @@ def list_contexts(
     # NOTE: there will always be at least one context (local)
     get_context(parameters=parameters)
 
-    # Warn user if no context is active only when using the DEFAULT format
+    # Warn user if no context is active only when using the TABLE format
     if (
-        output_format == AdoGetSupportedOutputFormats.DEFAULT
+        output_format == AdoGetSupportedOutputFormats.TABLE
         and ado_configuration.active_context is None
     ):
         console_print(ADO_NO_ACTIVE_CONTEXT_ERROR, stderr=True)

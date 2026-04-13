@@ -33,16 +33,16 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
 
     # Validate output format
     if parameters.output_format not in {
-        AdoGetSupportedOutputFormats.DEFAULT,
+        AdoGetSupportedOutputFormats.TABLE,
         AdoGetSupportedOutputFormats.NAME,
     }:
         console_print(
             f"{WARN}{cyan('ado get operators')} only supports the "
-            f"{AdoGetSupportedOutputFormats.DEFAULT.value} and "
+            f"{AdoGetSupportedOutputFormats.TABLE.value} and "
             f"{AdoGetSupportedOutputFormats.NAME.value} output formats",
             stderr=True,
         )
-        parameters.output_format = AdoGetSupportedOutputFormats.DEFAULT
+        parameters.output_format = AdoGetSupportedOutputFormats.TABLE
 
     # Handle NAME output format
     if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
@@ -70,7 +70,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
                 console_print(operator_name)
         return
 
-    # Build entries for DEFAULT format
+    # Build entries for TABLE format
     entries = []
     for (
         collection

@@ -48,7 +48,7 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
     if parameters.matching_point:
 
         matching_spaces = _find_spaces_matching_point(parameters)
-        if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
+        if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
             output_df = format_default_ado_get_multiple_resources(
                 resources=_discovery_space_resource_list_to_ado_get_default_dataframe(
                     resources=matching_spaces, parameters=parameters
@@ -80,7 +80,7 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
     if parameters.matching_space or parameters.matching_space_id:
 
         matching_spaces = _find_spaces_matching_space(parameters)
-        if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
+        if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
             output_df = format_default_ado_get_multiple_resources(
                 resources=matching_spaces,
                 resource_kind=CoreResourceKinds.DISCOVERYSPACE,
@@ -100,7 +100,7 @@ def get_discovery_space(parameters: AdoGetCommandParameters) -> None:
 
         return
 
-    if parameters.output_format == AdoGetSupportedOutputFormats.DEFAULT:
+    if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
         handle_ado_get_default_format(
             parameters=parameters,
             resource_type=CoreResourceKinds.DISCOVERYSPACE,

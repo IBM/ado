@@ -65,14 +65,16 @@ def _check_if_using_unsupported_operator_module_conf(
         operation_resource_configuration.operation.module, OperatorModuleConf
     ):
         moduleLog.warning(
-            "The supplied operation configuration uses the unsupported OperatorModuleConf format "
-            "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
-            "instead. See the documentation for migration guidance."
+            "The supplied operation configuration uses an unsupported legacy format for the"
+            "operation.module field: Use operatorName/operationType instead "
+            "of moduleName/moduleClass. See https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace"
+            "for an example. "
         )
         raise ValueError(
-            "The supplied operation configuration uses the unsupported OperatorModuleConf format "
-            "(moduleName/moduleClass). Use OperatorReference (operatorName/operationType) "
-            "instead. See the documentation for migration guidance."
+            "The supplied operation configuration uses an unsupported legacy format for the"
+            "operation.module field: Use operatorName/operationType instead "
+            "of moduleName/moduleClass. See https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace"
+            "for an example. "
         )
 
 

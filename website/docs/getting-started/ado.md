@@ -393,7 +393,8 @@ The complete syntax of the `ado get` command is as follows:
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <table | yaml | json | config | raw>] \
+ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+                                    [--output-file <path>] \
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
@@ -446,6 +447,10 @@ Where:
 
 <!-- prettier-ignore-end -->
 
+- `--output-file` allows writing the output to a specified file instead of
+  stdout. This flag is only supported when using the `yaml`, `json`, `config`,
+  or `raw` output formats. It cannot be used with the `default` or `name`
+  formats.
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
   used to show them.
@@ -607,6 +612,18 @@ ado get request measurement-request-123 --from-operation randomwalk-0.5.0-123abc
 ```
 
 <!-- markdownlint-enable line-length -->
+
+##### Saving a Discovery Space configuration to a file
+
+```shell
+ado get space my-space-id -o yaml --output-file space.yaml
+```
+
+##### Saving all operations as JSON
+
+```shell
+ado get operations -o json --output-file operations.json
+```
 
 ### ado show
 

@@ -183,6 +183,19 @@ def get_resource(
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
         ),
     ] = False,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+            rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
+        ),
+    ] = None,
     show_deprecated: Annotated[
         bool,
         typer.Option(
@@ -284,6 +297,18 @@ def get_resource(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
+    # Validate that output_file is only used with file-based formats
+    if output_file and output_format in (
+        AdoGetSupportedOutputFormats.DEFAULT,
+        AdoGetSupportedOutputFormats.NAME,
+    ):
+        console_print(
+            f"{ERROR} --output-file cannot be used with --output {output_format.value}. "
+            f"Use --output yaml, --output json, or --output config instead.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE and (
         matching_point or matching_space or matching_space_id
     ):
@@ -355,6 +380,7 @@ def get_resource(
         matching_space=matching_space,
         minimize_output=minimize_output,
         no_trunc=no_trunc,
+        output_file=output_file,
         output_format=output_format,
         resource_id=resource_id,
         resource_type=resource_type,

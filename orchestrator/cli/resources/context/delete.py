@@ -1,14 +1,12 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import pydantic
 import typer
 import yaml
 from rich.prompt import Confirm
 
 from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
 from orchestrator.cli.utils.output.prints import (
-    ERROR,
     HINT,
     INFO,
     SUCCESS,
@@ -17,7 +15,7 @@ from orchestrator.cli.utils.output.prints import (
     context_not_in_available_contexts_error_str,
     cyan,
 )
-from orchestrator.metastore.project import ProjectContext
+from orchestrator.core.legacy.utils import get_nested_value
 
 
 def delete_context(parameters: AdoDeleteCommandParameters) -> None:
@@ -36,21 +34,11 @@ def delete_context(parameters: AdoDeleteCommandParameters) -> None:
     configuration_file = parameters.ado_configuration.project_context_path_for_context(
         parameters.resource_id
     )
+    context_dict = yaml.safe_load(configuration_file.read_text())
 
-    try:
-        context = ProjectContext.model_validate(
-            yaml.safe_load(configuration_file.read_text())
-        )
-    except pydantic.ValidationError as e:
-        console_print(
-            f"{ERROR}The path provided is not a valid ado context file: {e}",
-            stderr=True,
-        )
-        raise typer.Exit(1) from e
-
-    # AP: if the user hasn't done anything with the DB, the file will not exist
+    # AP: the db might not exist if the user has never used the local context
     if (
-        context.metadataStore.scheme == "sqlite"
+        get_nested_value(context_dict, "metadataStore.scheme") == "sqlite"
         and parameters.ado_configuration.local_db_path_for_context(
             parameters.resource_id
         ).exists()

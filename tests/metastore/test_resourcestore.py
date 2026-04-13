@@ -44,16 +44,18 @@ from orchestrator.metastore.sqlstore import SQLStore
 
 sqlite3_version = sqlite3.sqlite_version_info
 
+# AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
+# ref: https://sqlite.org/json1.html#jptr
+requires_sqlite_3_38 = pytest.mark.skipif(
+    sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
+)
 
+
+@requires_sqlite_3_38
 def test_get_resources_of_kind(
     resource_store: SQLStore, resource_type: CoreResourceKinds
 ) -> None:
     """Test can we get resource of the given kind from the resource_store"""
-
-    # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-    # ref: https://sqlite.org/json1.html#jptr
-    if resource_store.engine.dialect.name == "sqlite" and sqlite3_version < (3, 38, 0):
-        pytest.xfail("SQLite version 3.38.0 or higher is required")
 
     resources = resource_store.getResourcesOfKind(resource_type.value)
     for resource in resources.values():
@@ -65,19 +67,12 @@ def test_get_resources_of_kind(
     assert len(expected_ids.IDENTIFIER) == len(resources.keys())
 
 
+@requires_sqlite_3_38
 def test_get_resources_and_get_resource_identifiers_of_kind(
     sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
 ) -> None:
     """
     Test can we get resource of the given kind from the resource_store of type new"""
-
-    # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-    # ref: https://sqlite.org/json1.html#jptr
-    if (
-        sql_store_with_resources_preloaded.engine.dialect.name == "sqlite"
-        and sqlite3_version < (3, 38, 0)
-    ):
-        pytest.xfail("SQLite version 3.38.0 or higher is required")
 
     x = sql_store_with_resources_preloaded.getResourceIdentifiersOfKind(
         resource_type.value
@@ -102,6 +97,7 @@ def test_get_resources_and_get_resource_identifiers_of_kind(
         assert len(objects) > 0
 
 
+@requires_sqlite_3_38
 def test_get_related_resource_identifiers(
     sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
 ) -> None:
@@ -109,14 +105,6 @@ def test_get_related_resource_identifiers(
     Tests getting the identifiers of related resources
 
     """
-
-    # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-    # ref: https://sqlite.org/json1.html#jptr
-    if (
-        sql_store_with_resources_preloaded.engine.dialect.name == "sqlite"
-        and sqlite3_version < (3, 38, 0)
-    ):
-        pytest.xfail("SQLite version 3.38.0 or higher is required")
 
     identifiers = sql_store_with_resources_preloaded.getResourceIdentifiersOfKind(
         resource_type.value
@@ -220,6 +208,7 @@ def test_add_and_delete_discovery_space(
     )
 
 
+@requires_sqlite_3_38
 def test_add_update_and_delete_operation_related_to_discovery_space(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     sql_store: SQLStore,
@@ -228,15 +217,6 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     """
     Tests adding an operation and its relation to a discovery space and then deleting it
     """
-
-    # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-    # ref: https://sqlite.org/json1.html#jptr
-    if sql_store.engine.dialect.name == "sqlite" and sqlite3_version < (
-        3,
-        38,
-        0,
-    ):
-        pytest.xfail("SQLite version 3.38.0 or higher is required")
 
     space_resource = random_space_resource_from_db()
     space_identifier = space_resource.identifier
@@ -325,21 +305,13 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
     )
 
 
+@requires_sqlite_3_38
 def test_add_operation_and_output(
     random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
     sql_store: SQLStore,
     random_walk_multicloud_operation_configuration: DiscoveryOperationResourceConfiguration,
     data_container_resource: orchestrator.core.datacontainer.resource.DataContainerResource,
 ) -> None:
-
-    # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-    # ref: https://sqlite.org/json1.html#jptr
-    if sql_store.engine.dialect.name == "sqlite" and sqlite3_version < (
-        3,
-        38,
-        0,
-    ):
-        pytest.xfail("SQLite version 3.38.0 or higher is required")
 
     import orchestrator.core.resources
     import orchestrator.modules.operators.base
@@ -496,3 +468,151 @@ def test_custom_sample_store_loading(
         model.config.specification.storageLocation
         == ado_test_file_project_context.metadataStore
     )
+
+
+@requires_sqlite_3_38
+def test_get_latest_resource_identifiers_of_kinds_empty_database(
+    resource_store: SQLStore,
+) -> None:
+    """Test get_latest_resource_identifiers_of_kinds with empty database returns empty dict."""
+
+    result = resource_store.get_latest_resource_identifiers_of_kinds(
+        kinds=[CoreResourceKinds.DISCOVERYSPACE, CoreResourceKinds.OPERATION]
+    )
+
+    assert isinstance(result, dict)
+    assert len(result) == 0
+
+
+@requires_sqlite_3_38
+def test_get_latest_resource_identifiers_of_kinds_single_kind(
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    resource_store: SQLStore,
+) -> None:
+    """Test get_latest_resource_identifiers_of_kinds with single kind returns correct identifier."""
+
+    # Create a space resource
+    space = random_space_resource_from_db(None)
+
+    # Query for latest discoveryspace
+    result = resource_store.get_latest_resource_identifiers_of_kinds(
+        kinds=[CoreResourceKinds.DISCOVERYSPACE]
+    )
+
+    assert isinstance(result, dict)
+    assert len(result) == 1
+    assert CoreResourceKinds.DISCOVERYSPACE in result
+    assert result[CoreResourceKinds.DISCOVERYSPACE] == space.identifier
+
+
+@requires_sqlite_3_38
+def test_get_latest_resource_identifiers_of_kinds_multiple_kinds(
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    resource_store: SQLStore,
+    operation_resource: OperationResource,
+) -> None:
+    """Test get_latest_resource_identifiers_of_kinds with multiple kinds in single query."""
+
+    # Create a space resource
+    space = random_space_resource_from_db(None)
+
+    # Add an operation resource
+    resource_store.addResource(operation_resource)
+
+    # Query for both kinds in single batch query
+    result = resource_store.get_latest_resource_identifiers_of_kinds(
+        kinds=[CoreResourceKinds.DISCOVERYSPACE, CoreResourceKinds.OPERATION]
+    )
+
+    assert isinstance(result, dict)
+    assert len(result) == 2
+    assert CoreResourceKinds.DISCOVERYSPACE in result
+    assert CoreResourceKinds.OPERATION in result
+    assert result[CoreResourceKinds.DISCOVERYSPACE] == space.identifier
+    assert result[CoreResourceKinds.OPERATION] == operation_resource.identifier
+
+
+@requires_sqlite_3_38
+def test_get_latest_resource_identifiers_of_kinds_multiple_resources_same_kind(
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    resource_store: SQLStore,
+) -> None:
+    """Test get_latest_resource_identifiers_of_kinds returns most recent when multiple resources of same kind exist."""
+
+    import time
+
+    # Create first space
+    _space1 = random_space_resource_from_db(None)
+
+    # Small delay to ensure different timestamps
+    time.sleep(0.1)
+
+    # Create second space (should be more recent)
+    space2 = random_space_resource_from_db(None)
+
+    # Query for latest discoveryspace
+    result = resource_store.get_latest_resource_identifiers_of_kinds(
+        kinds=[CoreResourceKinds.DISCOVERYSPACE]
+    )
+
+    assert isinstance(result, dict)
+    assert len(result) == 1
+    assert CoreResourceKinds.DISCOVERYSPACE in result
+    # Should return the most recently created space
+    assert (
+        result[CoreResourceKinds.DISCOVERYSPACE] == space2.identifier
+    ), f"Previous one was {_space1.identifier}"
+
+
+@requires_sqlite_3_38
+def test_get_latest_resource_identifiers_of_kinds_some_kinds_missing(
+    random_space_resource_from_db: Callable[[str | None], DiscoverySpaceResource],
+    resource_store: SQLStore,
+) -> None:
+    """Test get_latest_resource_identifiers_of_kinds omits kinds with no resources."""
+
+    # Create only a space resource
+    space = random_space_resource_from_db(None)
+
+    # Query for both space and operation, but only space exists
+    result = resource_store.get_latest_resource_identifiers_of_kinds(
+        kinds=[CoreResourceKinds.DISCOVERYSPACE, CoreResourceKinds.OPERATION]
+    )
+
+    assert isinstance(result, dict)
+    assert len(result) == 1
+    assert CoreResourceKinds.DISCOVERYSPACE in result
+    assert CoreResourceKinds.OPERATION not in result
+    assert result[CoreResourceKinds.DISCOVERYSPACE] == space.identifier
+
+
+@requires_sqlite_3_38
+def test_get_latest_resource_identifiers_of_kinds_invalid_kind(
+    resource_store: SQLStore,
+) -> None:
+    """Test get_latest_resource_identifiers_of_kinds raises ValueError for invalid kind."""
+
+    # This should raise ValueError because we're passing an invalid kind
+    # Note: This test assumes the method validates kinds before querying
+    invalid_kind = "invalid_kind"  # type: ignore[arg-type]
+    with pytest.raises(
+        ValueError, match="All kinds must be CoreResourceKinds instances"
+    ):
+        resource_store.get_latest_resource_identifiers_of_kinds(kinds=[invalid_kind])
+
+
+@requires_sqlite_3_38
+def test_get_latest_resource_identifiers_of_kinds_multiple_invalid_kinds(
+    resource_store: SQLStore,
+) -> None:
+    """Test get_latest_resource_identifiers_of_kinds reports all invalid kinds at once."""
+
+    # This should raise ValueError with all invalid kinds listed
+    invalid_kind1 = "invalid_kind1"  # type: ignore[arg-type]
+    invalid_kind2 = "invalid_kind2"  # type: ignore[arg-type]
+    with pytest.raises(
+        ValueError, match="All kinds must be CoreResourceKinds instances"
+    ):
+        resource_store.get_latest_resource_identifiers_of_kinds(
+            kinds=[invalid_kind1, invalid_kind2]
+        )

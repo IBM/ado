@@ -136,7 +136,7 @@ def describe_resource(
         resource_id = get_effective_resource_id(
             explicit_resource_id=resource_id,
             resource_type=resource_type.value,
-            ado_configuration=ado_configuration,
+            project_context=ado_configuration.project_context,
         )
 
     if not (resource_id or resource_configuration) or (

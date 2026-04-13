@@ -38,7 +38,7 @@ from orchestrator.modules.module import (
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from orchestrator.modules.operators.base import Characterize, measure_or_replay
+from orchestrator.modules.operators.base import Explore, measure_or_replay
 from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from orchestrator.schema.entity import Entity
@@ -418,7 +418,7 @@ class RequestRetry(pydantic.BaseModel):
         )
 
 
-class RandomWalk(Characterize):
+class RandomWalk(Explore):
     """Performs a random walk through a set of known entities in a space"""
 
     @classmethod

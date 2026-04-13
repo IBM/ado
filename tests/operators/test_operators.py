@@ -679,14 +679,14 @@ def test_explore_operation_class_decorator_registers_function() -> None:
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
-    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.base import Explore
     from orchestrator.modules.operators.collections import explore, explore_operation
 
     class _Params(pydantic.BaseModel):
         pass
 
     @explore_operation
-    class _TestOp(Search):
+    class _TestOp(Explore):
         @classmethod
         def operator_metadata(cls) -> OperatorMetadata:
             return OperatorMetadata(
@@ -722,14 +722,14 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
-    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.base import Explore
     from orchestrator.modules.operators.collections import explore, explore_operation
 
     class _ParamsCls(pydantic.BaseModel):
         pass
 
     @explore_operation
-    class _TestOpCls(Search):
+    class _TestOpCls(Explore):
         @classmethod
         def operator_metadata(cls) -> OperatorMetadata:
             return OperatorMetadata(
@@ -756,14 +756,14 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
         DiscoveryOperationEnum,
         OperatorMetadata,
     )
-    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.base import Explore
     from orchestrator.modules.operators.collections import explore, explore_operation
 
     class _Params2(pydantic.BaseModel):
         x: int = 42
 
     @explore_operation
-    class _TestOp2(Search):
+    class _TestOp2(Explore):
         @classmethod
         def operator_metadata(cls) -> OperatorMetadata:
             return OperatorMetadata(
@@ -793,13 +793,13 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
 def test_explore_operation_class_decorator_missing_operator_metadata_raises() -> None:
     """Decorating a Search subclass without operator_metadata() raises NotImplementedError."""
 
-    from orchestrator.modules.operators.base import Search
+    from orchestrator.modules.operators.base import Explore
     from orchestrator.modules.operators.collections import explore_operation
 
     with pytest.raises(NotImplementedError):
 
         @explore_operation
-        class _BadOp(Search):
+        class _BadOp(Explore):
             # No operator_metadata() and no legacy classmethods — must raise.
             async def run(self) -> None:
                 pass

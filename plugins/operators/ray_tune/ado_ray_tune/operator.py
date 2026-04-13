@@ -35,7 +35,7 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.base import (
-    Search,
+    Explore,
     measure_or_replay,
 )
 from orchestrator.modules.operators.collections import explore_operation
@@ -763,7 +763,7 @@ def search_space_from_explicit_entity_space(
     return space
 
 
-class RayTune(Search):
+class RayTune(Explore):
     """Uses raytune optimization algorithm to search through entities in a space"""
 
     @classmethod

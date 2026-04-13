@@ -216,11 +216,7 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
     DiscoverySpaceUpdateSubscriber,
     metaclass=abc.ABCMeta,
 ):
-    """Instances of this class can cause updates the state and receives details of updates via the StateUpdateSubscriber interface
-
-    Instances of this class are RayActors and must run in Ray.
-    They work on a Ray wrapped instance of the DiscoveryState (models.actors.InternalState)
-    """
+    """Instances of this class can receive notifications when measurements are added to a DiscoverySpace"""
 
     def __init__(
         self,
@@ -241,20 +237,23 @@ class DiscoverySpaceSubscribingDiscoveryOperation(
         super().__init__()
 
 
-class Characterize(
+class Explore(
     DiscoverySpaceSubscribingDiscoveryOperation,
     UnaryDiscoveryOperation,
     metaclass=abc.ABCMeta,
 ):
-    pass
+    """Subclasses sample entities from a DiscoverySpace and run measurements on them
 
+    The general pattern is that on calling run() the subclass
+    1. Samples a set of entities from the discovery space
+    2. Submits them for measurement using measure_or_replay()
+    3. Waits for notifications that measurements are completed
+    4. Returns to 1 or finishes
 
-class Search(
-    DiscoverySpaceSubscribingDiscoveryOperation,
-    UnaryDiscoveryOperation,
-    metaclass=abc.ABCMeta,
-):
-    pass
+    Subclasses define different sampling strategies and submission strategies
+    e.g. wait for all measurements to complete before sending new batch or
+    submit new measurements as soon as one completes.
+    """
 
 
 def measure_or_replay(

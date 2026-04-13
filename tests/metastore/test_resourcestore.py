@@ -1,7 +1,6 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import re
-import sqlite3
 import uuid
 from collections.abc import Callable
 
@@ -30,6 +29,7 @@ from orchestrator.core.resources import (
 )
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.metastore.sqlstore import SQLStore
+from tests.conftest import requires_sqlite_3_38
 
 # Methods to test:
 # READ
@@ -41,14 +41,6 @@ from orchestrator.metastore.sqlstore import SQLStore
 
 
 # Test for new resource store
-
-sqlite3_version = sqlite3.sqlite_version_info
-
-# AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-# ref: https://sqlite.org/json1.html#jptr
-requires_sqlite_3_38 = pytest.mark.skipif(
-    sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
-)
 
 
 @requires_sqlite_3_38

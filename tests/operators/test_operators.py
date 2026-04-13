@@ -726,7 +726,7 @@ def test_operator_function_conf_identifier_delegates_to_operator_metadata() -> N
 
 
 def test_explore_operation_class_decorator_registers_function() -> None:
-    """@explore_operation on a Search subclass with operator_metadata() registers a callable."""
+    """@explore_operation returns the class unchanged and stores the OperatorFunction in the collection."""
     import inspect
 
     import pydantic
@@ -747,7 +747,7 @@ def test_explore_operation_class_decorator_registers_function() -> None:
         def operator_metadata(cls) -> OperatorMetadata:
             return OperatorMetadata(
                 name="_test_class_op",
-                version="v0.1",
+                version="0.1.0",
                 description="A test operator.",
                 configuration_model=_Params,
                 example_configuration=_Params(),
@@ -760,11 +760,15 @@ def test_explore_operation_class_decorator_registers_function() -> None:
         async def run(self) -> None:
             pass
 
-    assert "_test_class_op" in explore.operators
-    assert callable(_TestOp)
+    # The decorator returns the class unchanged
+    assert isinstance(_TestOp, type)
+    assert issubclass(_TestOp, Explore)
 
-    # The returned callable must match the OperatorFunction signature
-    sig = inspect.signature(_TestOp)
+    # The generated OperatorFunction is stored in the collection
+    assert "_test_class_op" in explore.operators
+    fn = explore.operators["_test_class_op"].function
+    assert callable(fn)
+    sig = inspect.signature(fn)
     params = list(sig.parameters.keys())
     assert "discoverySpace" in params
     assert "operationInfo" in params
@@ -790,7 +794,7 @@ def test_explore_operation_class_decorator_cls_stored() -> None:
         def operator_metadata(cls) -> OperatorMetadata:
             return OperatorMetadata(
                 name="_test_cls_stored",
-                version="v0.1",
+                version="0.1.0",
                 configuration_model=_ParamsCls,
                 example_configuration=_ParamsCls(),
                 type=DiscoveryOperationEnum.SEARCH,
@@ -824,7 +828,7 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
         def operator_metadata(cls) -> OperatorMetadata:
             return OperatorMetadata(
                 name="_test_class_op2",
-                version="v3.0",
+                version="3.0.0",
                 description="Another test operator.",
                 configuration_model=_Params2,
                 example_configuration=_Params2(),
@@ -839,7 +843,7 @@ def test_explore_operation_class_decorator_metadata_from_class() -> None:
 
     registered = explore.operators["_test_class_op2"]
     assert registered.name == "_test_class_op2"
-    assert registered.version == "v3.0"
+    assert registered.version == "3.0.0"
     assert registered.description == "Another test operator."
     assert registered.configuration_model is _Params2
     assert isinstance(registered.example_configuration, _Params2)

@@ -763,6 +763,7 @@ def search_space_from_explicit_entity_space(
     return space
 
 
+@explore_operation
 class RayTune(Explore):
     """Uses raytune optimization algorithm to search through entities in a space"""
 
@@ -1001,6 +1002,3 @@ class RayTune(Explore):
             ),
             type=DiscoveryOperationEnum.SEARCH,
         )
-
-
-_ = explore_operation(RayTune)

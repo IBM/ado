@@ -418,6 +418,7 @@ class RequestRetry(pydantic.BaseModel):
         )
 
 
+@explore_operation
 class RandomWalk(Explore):
     """Performs a random walk through a set of known entities in a space"""
 
@@ -960,6 +961,3 @@ class RandomWalk(Explore):
             example_configuration=RandomWalkParameters(),
             type=DiscoveryOperationEnum.SEARCH,
         )
-
-
-_ = explore_operation(RandomWalk)

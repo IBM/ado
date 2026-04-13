@@ -190,15 +190,16 @@ def _validate_explore_cls(t: type, metadata: OperatorMetadata) -> None:
 
 def explore_operation(
     cls: "type[DiscoveryOperationBase]",
-) -> OperatorFunction:
+) -> "type[DiscoveryOperationBase]":
     """Decorator that registers an explore (search) operator class.
 
     All metadata is sourced from the class's ``operator_metadata()``
-    classmethod.  The decorator generates an :class:`OperatorFunction`, validates
-    its signature, and registers it in the explore collection::
+    classmethod.  The decorator generates an :class:`OperatorFunction`,
+    validates its signature, registers it in the explore collection, and
+    returns the **original class unchanged**::
 
         @explore_operation
-        class MyOp(Search):
+        class MyOp(Explore):
             @classmethod
             def operator_metadata(cls) -> OperatorMetadata:
                 return OperatorMetadata(
@@ -211,14 +212,17 @@ def explore_operation(
 
             async def run(self) -> OperationOutput | None: ...
 
+    The generated operator function is accessible via
+    ``explore.operators[name].function``; the class name continues to refer
+    to the class itself.
+
     Args:
         cls: The operator class to register.  Must be a subclass of
             :class:`~orchestrator.modules.operators.base.DiscoverySpaceSubscribingDiscoveryOperation`
             and must implement ``operator_metadata()``.
 
     Returns:
-        The generated :data:`~orchestrator.modules.operators.base.OperatorFunction`
-        for this operator.
+        *cls* unchanged.
 
     Raises:
         NotImplementedError: If ``cls.operator_metadata()`` is not implemented.
@@ -250,7 +254,7 @@ def explore_operation(
             "cls": cls,
         }
     )
-    return _generated
+    return cls
 
 
 def modify_operation(

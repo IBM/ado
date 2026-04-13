@@ -280,10 +280,8 @@ Operation:
   metadata: {}
   operation:
     module:
-      moduleClass: RayTune
-      moduleName: ado_ray_tune.operator
-      modulePath: .
-      moduleType: operation
+      operatorName: ray_tune
+      operationType: search
     parameters:
       tuneConfig:
         max_concurrent_trials: 2

@@ -193,7 +193,7 @@ discussed in [explore operators](#creating-explore-operators).
 > created in.
 
 The operator function must return data using the
-`orchestrators.core.operation.operation.OperationOutput` pydantic model.
+`orchestrator.core.operation.operation.OperationOutput` pydantic model.
 
 ```python
 class OperationOutput(pydantic.BaseModel):
@@ -495,15 +495,18 @@ try:
     # operator logic
     ...
 except KeyboardInterrupt as error:
-    # Assumes created_resources is an array containing all ado resource already created
-    raise InterruptedOperationError(resources=created_resources) from error
-except (
-    InterruptedOperationError
-) as nested_operation_error:  # This is when a nested operation was interrupted first
-    # IMPORTANT: You must add the identifier of the interrupted nested operation
+    # Assumes created_resources lists all ADO resources already created, and
+    # operation_id is the identifier string of this operation (from your context).
     raise InterruptedOperationError(
-        resources=created_resources, identifier=nested_operation_error.identifier
+        operation_identifier=operation_id,
+        resources=created_resources,
     ) from error
+except InterruptedOperationError as nested_operation_error:
+    # Nested operation was interrupted first; propagate using its operation identifier.
+    raise InterruptedOperationError(
+        operation_identifier=nested_operation_error.operation_identifier,
+        resources=created_resources,
+    ) from nested_operation_error
 ```
 
 ## Creating Explore Operators

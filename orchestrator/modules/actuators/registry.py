@@ -83,7 +83,7 @@ class ActuatorRegistry:
         import orchestrator.modules.actuators as builtin_actuators
         from orchestrator.modules.actuators.base import ActuatorBase, ActuatorModuleConf
 
-        # Mpass actuator ids to actuator configurations: G
+        # Maps actuator ids to generic actuator parameter payloads from configuration.
         self.actuatorConfigurationMap: dict[str, GenericActuatorParameters] = {}
         if actuator_configurations:
             self.actuatorConfigurationMap.update(actuator_configurations)

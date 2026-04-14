@@ -400,8 +400,8 @@ If entities have multiple measurements e.g. you turned this off and then turned
 it on again, then if an entity has multiple measurements each one will be
 replayed.
 
-Check [replayed measurements](explore_operators.md#replayed-measurements) for
-more details.
+Check [replayed measurements](explore_operators.md#memoization-replaying-measurements)
+for more details.
 
 ### Retrying Failed Measurements
 

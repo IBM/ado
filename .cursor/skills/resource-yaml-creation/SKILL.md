@@ -43,9 +43,7 @@ placeholders and resolve them at creation time — do not hard-code IDs.
 ### --use-latest
 
 Queries the current context's metastore to find the most recently created
-resource of the given type. It is context-aware: switching to a different
-context and using --use-latest will find the most recent resource in that
-context's database, not the previously active one.
+resource of the given type.
 
 ```bash
 # Create space, then operation that references it — no manual ID copy

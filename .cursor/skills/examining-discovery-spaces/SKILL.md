@@ -93,8 +93,6 @@ The output produced by '-o/--output' can be very large e.g. from "show entities"
 Use the `--output-file` flag with the name of the file where to save the output
 and, when inspecting these files:
 
-When inspecting these files:
-
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
 - Avoid head -n > 1 unless you have a specific need e.g. checking if file is

@@ -35,16 +35,6 @@ from orchestrator.core.operation.resource import (
 )
 
 
-def _save_operation_identifier(
-    parameters: AdoCreateCommandParameters, operation_identifier: str
-) -> None:
-    """Save operation identifier to configuration for reuse with --use-latest."""
-    parameters.ado_configuration.latest_resource_ids[CoreResourceKinds.OPERATION] = (
-        operation_identifier
-    )
-    parameters.ado_configuration.store()
-
-
 def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
 
     import orchestrator.modules.operators.orchestrate
@@ -165,7 +155,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         console_print(f"{ERROR}Failed to create operation:\n\t{e}", stderr=True)
         raise typer.Exit(1) from e
     except InterruptedOperationError as e:
-        _save_operation_identifier(parameters, e.operation_identifier)
         console_print(
             f"{ERROR}Created operation with identifier {magenta(e.operation_identifier)} "
             "but it was interrupted.",
@@ -179,7 +168,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         )
         raise typer.Exit(3) from e
     except OperationException as e:
-        _save_operation_identifier(parameters, e.operation.identifier)
         console_print(
             f"{ERROR}An unexpected error occurred. "
             f"Operation {magenta(e.operation.identifier)} did not run successfully:\n\n"
@@ -194,9 +182,6 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         )
         raise
 
-    # Save the identifier of the resource we created for reuse
-    _save_operation_identifier(parameters, operation_output.operation.identifier)
-
     return output_operation_result(result=operation_output)
 
 
@@ -204,55 +189,44 @@ def reuse_requested_latest_identifiers(
     resource_configuration: DiscoveryOperationResourceConfiguration,
     parameters: AdoCreateCommandParameters,
 ) -> None:
+    """Fetch latest resource identifiers from database in a single batch query."""
+    from orchestrator.cli.utils.generic.wrappers import get_sql_store
 
-    if CoreResourceKinds.ACTUATORCONFIGURATION in parameters.use_latest:
-        latest_recorded_actuator_configuration = (
-            parameters.ado_configuration.latest_resource_ids.get(
-                CoreResourceKinds.ACTUATORCONFIGURATION
-            )
-        )
+    sql_store = get_sql_store(parameters.ado_configuration.project_context)
 
-        if not latest_recorded_actuator_configuration:
+    # Batch query for all requested kinds at once
+    latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
+        kinds=parameters.use_latest
+    )
+
+    # Map resource kinds to their configuration fields
+    resource_field_mapping = {
+        CoreResourceKinds.ACTUATORCONFIGURATION: "actuatorConfigurationIdentifiers",
+        CoreResourceKinds.DISCOVERYSPACE: "spaces",
+    }
+
+    # Handle each requested resource kind
+    for resource_kind in parameters.use_latest:
+        if resource_kind not in resource_field_mapping:
+            continue
+
+        latest_id = latest_ids.get(resource_kind)
+        if not latest_id:
             console_print(
-                latest_identifier_for_resource_not_found(
-                    CoreResourceKinds.ACTUATORCONFIGURATION
-                ),
+                latest_identifier_for_resource_not_found(resource_kind),
                 stderr=True,
             )
             raise typer.Exit(1)
 
-        resource_configuration.actuatorConfigurationIdentifiers = [
-            latest_recorded_actuator_configuration
-        ]
+        # Set the appropriate field on the configuration
+        field_name = resource_field_mapping[resource_kind]
+        setattr(resource_configuration, field_name, [latest_id])
 
         console_print(
             value_in_configuration_replaced_with_latest_identifier_for_resource(
-                reused_resource_kind=CoreResourceKinds.ACTUATORCONFIGURATION,
+                reused_resource_kind=resource_kind,
                 target_resource_kind=CoreResourceKinds.OPERATION,
-                replacement_identifier=latest_recorded_actuator_configuration,
-            ),
-            stderr=True,
-        )
-
-    if CoreResourceKinds.DISCOVERYSPACE in parameters.use_latest:
-        latest_recorded_space = parameters.ado_configuration.latest_resource_ids.get(
-            CoreResourceKinds.DISCOVERYSPACE
-        )
-        if not latest_recorded_space:
-            console_print(
-                latest_identifier_for_resource_not_found(
-                    CoreResourceKinds.DISCOVERYSPACE
-                ),
-                stderr=True,
-            )
-            raise typer.Exit(1)
-
-        resource_configuration.spaces = [latest_recorded_space]
-        console_print(
-            value_in_configuration_replaced_with_latest_identifier_for_resource(
-                reused_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
-                target_resource_kind=CoreResourceKinds.OPERATION,
-                replacement_identifier=latest_recorded_space,
+                replacement_identifier=latest_id,
             ),
             stderr=True,
         )

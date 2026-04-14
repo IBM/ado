@@ -98,13 +98,15 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
     elif (
         parameters.use_latest and CoreResourceKinds.SAMPLESTORE in parameters.use_latest
     ):
+        sql_store = get_sql_store(parameters.ado_configuration.project_context)
 
-        latest_recorded_sample_store = (
-            parameters.ado_configuration.latest_resource_ids.get(
-                CoreResourceKinds.SAMPLESTORE
-            )
+        # Query for single kind (only SAMPLESTORE needed here)
+        latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
+            kinds=[CoreResourceKinds.SAMPLESTORE]
         )
-        if not latest_recorded_sample_store:
+        latest_sample_store = latest_ids.get(CoreResourceKinds.SAMPLESTORE)
+
+        if not latest_sample_store:
             console_print(
                 latest_identifier_for_resource_not_found(CoreResourceKinds.SAMPLESTORE),
                 stderr=True,
@@ -115,11 +117,11 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
             value_in_configuration_replaced_with_latest_identifier_for_resource(
                 reused_resource_kind=CoreResourceKinds.SAMPLESTORE,
                 target_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
-                replacement_identifier=latest_recorded_sample_store,
+                replacement_identifier=latest_sample_store,
             ),
             stderr=True,
         )
-        space_configuration.sampleStoreIdentifier = latest_recorded_sample_store
+        space_configuration.sampleStoreIdentifier = latest_sample_store
 
     elif parameters.new_sample_store:
 
@@ -172,9 +174,6 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
             )
 
         space_configuration.sampleStoreIdentifier = sample_store_resource.identifier
-        parameters.ado_configuration.latest_resource_ids[
-            CoreResourceKinds.SAMPLESTORE
-        ] = sample_store_resource.identifier
 
     elif parameters.use_default_sample_store:
         space_configuration.sampleStoreIdentifier = "default"
@@ -255,12 +254,6 @@ def create_discovery_space(parameters: AdoCreateCommandParameters) -> str | None
 
         status.update(ADO_SPINNER_SAVING_TO_DB)
         space.saveSpace()
-
-    # Save the identifier of the resource we created
-    # for reuse
-    parameters.ado_configuration.latest_resource_ids[
-        CoreResourceKinds.DISCOVERYSPACE
-    ] = space.uri
 
     console_print(
         f"{SUCCESS}Created space with identifier: {magenta(space.uri)}", stderr=True

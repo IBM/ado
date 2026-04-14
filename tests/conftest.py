@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import sqlite3
 import uuid
 from collections.abc import Callable, Generator
 
@@ -33,6 +34,13 @@ from .fixtures.schema.results import *
 # This import is required to be run after the others,
 # or we will get create_sample_store fixture not found.
 from .fixtures.samplestore.crud_from_configurations import *
+
+# SQLite version check for tests requiring JSON operators (-> and ->>)
+# ref: https://sqlite.org/json1.html#jptr
+sqlite3_version = sqlite3.sqlite_version_info
+requires_sqlite_3_38 = pytest.mark.skipif(
+    sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
+)
 
 
 @pytest.fixture(scope="session")

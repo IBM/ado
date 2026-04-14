@@ -66,7 +66,7 @@ compatible data from other spaces.
 > Each explore operator provides a way to turn memoization on and off. See the
 > [random walk](../operators/random-walk.md) and
 > [ray tune](../operators/optimisation-with-ray-tune.md) operator documentation
-> for how to control this setting.
+> for examples of how this setting is controlled.
 
 *Memoization* is the name for data reuse that happens automatically during an
 explore operation. When an operation samples an Entity it proceeds as follows:

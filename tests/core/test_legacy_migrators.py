@@ -3,7 +3,6 @@
 
 """Integration tests for legacy migrators with pydantic models and upgrade process"""
 
-import sqlite3
 from collections.abc import Callable
 from pathlib import Path
 
@@ -13,8 +12,7 @@ import pytest
 from orchestrator.core.legacy.registry import LegacyMigratorRegistry, legacy_migrator
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
-
-sqlite3_version = sqlite3.sqlite_version_info
+from tests.conftest import requires_sqlite_3_38
 
 
 class TestLegacyMigratorWithPydantic:
@@ -352,12 +350,7 @@ class TestUpgradeHandlerIntegration:
             "unknown" in result.output.lower() or "not found" in result.output.lower()
         )
 
-    # AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-    # ref: https://sqlite.org/json1.html#jptr
-    @pytest.mark.skipif(
-        sqlite3_version < (3, 38, 0),
-        reason="SQLite version 3.38.0 or higher is required",
-    )
+    @requires_sqlite_3_38
     def test_upgrade_auto_resolves_migrator_dependencies(
         self,
         legacy_migrators_loaded: None,

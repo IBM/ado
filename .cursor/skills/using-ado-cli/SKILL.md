@@ -33,14 +33,14 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 
 These plausible-sounding commands do not exist in ado. Do not write them:
 
-| ❌ Does not exist | ✅ Correct equivalent |
-| --------- | -------------------- |
-| `ado run` | `ado create operation -f op.yaml` |
-| `ado start` | `ado create operation -f op.yaml` |
-| `ado execute` | `ado create operation -f op.yaml` |
-| `ado launch` | `ado create operation -f op.yaml` |
-| `ado list` | `ado get spaces` / `ado get operations` |
-| `ado status` | `ado show details space SPACE_ID` |
+| ❌ Does not exist | ✅ Correct equivalent                   |
+| ----------------- | --------------------------------------- |
+| `ado run`         | `ado create operation -f op.yaml`       |
+| `ado start`       | `ado create operation -f op.yaml`       |
+| `ado execute`     | `ado create operation -f op.yaml`       |
+| `ado launch`      | `ado create operation -f op.yaml`       |
+| `ado list`        | `ado get spaces` / `ado get operations` |
+| `ado status`      | `ado show details space SPACE_ID`       |
 
 **Key principle**: `ado create operation` both _defines_ and _starts_ the
 operation in a single command. There is no separate "run" step.
@@ -175,7 +175,8 @@ uv run ado show results operation op-123
 
 ### --use-latest
 
-Uses the ID of the most recently created resource of the relevant type.
+Queries the current context's metastore to find the most recently created
+resource of the given type.
 
 **Without --use-latest**:
 
@@ -199,8 +200,7 @@ uv run ado create space -f space.yaml
 uv run ado create operation -f operation.yaml --use-latest
 ```
 
-The `--use-latest` flag automatically fills in the space ID from the previous
-`ado create space` command.
+The `--use-latest` flag automatically fills in the latest space ID.
 
 ### --set
 

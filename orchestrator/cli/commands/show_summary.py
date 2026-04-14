@@ -6,6 +6,7 @@ import typing
 from typing import Annotated
 
 import typer
+from rich.status import Status
 
 from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowSummaryCommandParameters
@@ -16,10 +17,12 @@ from orchestrator.cli.models.types import (
 from orchestrator.cli.resources.discovery_space.show_summary import (
     show_discovery_space_summary,
 )
+from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.input.parsers import (
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import (
+    ADO_SPINNER_QUERYING_DB,
     ERROR,
     console_print,
     latest_identifier_for_resource_not_found,
@@ -201,7 +204,15 @@ def show_summary_for_resources(
         raise typer.Exit(1)
 
     resource_kind = CoreResourceKinds(resource_type.value)
-    resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
+
+    # Fetch the latest resource ID from the database
+    sql_store = get_sql_store(ado_configuration.project_context)
+    with Status(ADO_SPINNER_QUERYING_DB):
+        latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
+            kinds=[resource_kind]
+        )
+
+    resource_id = latest_ids.get(resource_kind)
     if not resource_id:
         console_print(
             latest_identifier_for_resource_not_found(

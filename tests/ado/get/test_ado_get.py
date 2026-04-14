@@ -3,11 +3,9 @@
 import importlib.metadata
 import os
 import pathlib
-import sqlite3
 from collections.abc import Callable
 
 import pandas as pd
-import pytest
 import rich.box
 import yaml
 from testcontainers.mysql import MySqlContainer
@@ -19,18 +17,13 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.metastore.sqlstore import SQLStore
 from orchestrator.utilities.rich import dataframe_to_rich_table, render_to_string
+from tests.conftest import requires_sqlite_3_38
 from tests.utilities.cli_rendering import (
     render_ado_resources_to_cli_output,
 )
 
-sqlite3_version = sqlite3.sqlite_version_info
 
-
-# AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-# ref: https://sqlite.org/json1.html#jptr
-@pytest.mark.skipif(
-    sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
-)
+@requires_sqlite_3_38
 def test_space_exists(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,
@@ -82,11 +75,7 @@ def test_get_robotic_lab_actuator() -> None:
         assert rendered_output in result.output
 
 
-# AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-# ref: https://sqlite.org/json1.html#jptr
-@pytest.mark.skipif(
-    sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
-)
+@requires_sqlite_3_38
 def test_field_querying(
     tmp_path: pathlib.Path,
     mysql_test_instance: MySqlContainer,

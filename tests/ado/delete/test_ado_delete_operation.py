@@ -2,10 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 import pathlib
-import sqlite3
 from collections.abc import Callable
 
-import pytest
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
@@ -18,15 +16,10 @@ from orchestrator.schema.request import (
     MeasurementRequestStateEnum,
     ReplayedMeasurement,
 )
+from tests.conftest import requires_sqlite_3_38
 
-sqlite3_version = sqlite3.sqlite_version_info
 
-
-# AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-# ref: https://sqlite.org/json1.html#jptr
-@pytest.mark.skipif(
-    sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
-)
+@requires_sqlite_3_38
 def test_delete_ml_multi_cloud_operation(
     tmp_path: pathlib.Path,
     valid_ado_project_context: ProjectContext,

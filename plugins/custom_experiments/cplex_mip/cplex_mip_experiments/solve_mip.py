@@ -95,11 +95,12 @@ TimeLimit = ConstitutiveProperty(
         "description": (
             "CPLEX time limit per seed run in seconds (CPX_PARAM_TILIM). "
             "Default is 1e75 (no limit); CPLEX runs until the optimal solution is found. "
-            "No domain range is enforced — any positive value including 1e75 is accepted."
+            "Any positive value up to 1e75 is accepted."
         )
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[0, 1e75],  # Positive values only
     ),
 )
 

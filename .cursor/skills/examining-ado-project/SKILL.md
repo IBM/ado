@@ -17,7 +17,7 @@ related metadata in the ado project associated to the active context.
   [using-ado-cli](../using-ado-cli/SKILL.md)).
 - See [projects and contexts](../../../website/docs/resources/metastore.md#contexts-and-projects)
   for details on what projects and contexts are
-- NOTE: Users may refer to an ado project using either the term "project" or "context"
+- Users may refer to an ado project using either the term "project" or "context"
 
 ## Tips
 
@@ -32,13 +32,12 @@ Context names and project names are identical by construction.
 
 If asked to examine a specific named project:
 
-1. uv run ado context - see if it has the correct name
-   a. If yes continue to [next step](#1-overview-activity-and-types)
-   b. if no, execute `uv run ado get contexts` - see if there is another context
-      with matching name
-    i. if there is switch to that context: `uv run ado context $NAME`
-    ii. if not inform user a context connecting to the project the specified
-        cannot be found
+1. Check the active context name: `uv run ado context`
+   - If it has the correct name, continue to [next step](#1-overview-activity-and-types)
+   - If not, run `uv run ado get contexts` to list all available contexts
+     - If one matches, switch to it: `uv run ado context $NAME`
+     - If none match, inform the user that a context for the specified project
+       cannot be found
 
 ## 1. Overview: activity and types
 
@@ -63,7 +62,7 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 
     **Heuristic — operation IDs:** many ids encode the operator and a version
     segment, e.g. `OPERATOR_NAME-VERSION-...-UID` (exact shape varies). Use this
-    together with `uv run ado get operators --details` to understand more about
+    together with `uv run ado get operator --details` to understand more about
     the operators used.
 
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
@@ -94,8 +93,8 @@ uv run ado template discoveryspace --include-schema
 uv run ado template operation --include-schema
 ```
 
-From **space** YAML: note **experiment** and **actuator**  
-identifiers referenced by each space.
+From **space** YAML: note **experiment** and **actuator** identifiers
+referenced by each space.
 
 Gain further information on the experiments using
 
@@ -106,7 +105,7 @@ uv run ado get actuators --details
 uv run ado get experiments --details 
 # Outputs detailed information on an experiment 
 # Use to drill down into most used experiments
-uv run ado describe experiment $EXPERIEMENTID
+uv run ado describe experiment $EXPERIMENT_ID
 ```
 
 From **operation** YAML: note actuatorconfigurations used (if any),
@@ -151,9 +150,16 @@ Write a concise markdown report
   needed), where `ado_context_name` is the **active ado metastore context**
   (`uv run ado context`).
 - Write the report as `project_<YYYY-MM-DD>_report.md`.
-- If a report already exists check if there has been any activity
-in the project since it was written - if not ask user if they want
-to replace it.
+- If a report already exists, check whether there has been meaningful activity
+  since it was written before replacing it:
+  1. Run `uv run ado get spaces --details` and `uv run ado get operations
+     --details` and note the age of the most recent resource.
+  2. If the most recent resource is **younger** than the date of the existing
+     report, there has been new activity — proceed to write a new report.
+  3. If not, ask the user whether they want to replace it.
+  4. If finer-grained confirmation is needed, fetch the YAML of the most recent
+     space or operation (`uv run ado get space SPACE_ID -o yaml`) and read its
+     `creationTimestamp` field.
 
 ### Project summary
 

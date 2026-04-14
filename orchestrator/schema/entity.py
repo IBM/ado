@@ -45,15 +45,32 @@ def entity_identifier_from_properties_and_values(point: dict[str, typing.Any]) -
     """
     Creates an entity identifier based on a set of constitutive property ids and values for those properties
 
+    If the identifier exceeds safe length (700 characters), it is hashed to ensure database compatibility.
+
     Parameters:
         point: A dictionary of constitutive property id, value pairs
 
     Returns:
-        An entity identifier
+        An entity identifier (human-readable if short, hashed if long)
     """
 
     parts = [f"{key}.{point[key]}" for key in sorted(point.keys())]
-    return "-".join(parts)
+    full_identifier = "-".join(parts)
+
+    # Use 700 as threshold to leave margin below 768 limit
+    MAX_SAFE_LENGTH = 700
+
+    if len(full_identifier) > MAX_SAFE_LENGTH:
+        import hashlib
+
+        # Hash long identifiers to ensure they fit in database
+        hash_hex = hashlib.sha256(
+            full_identifier.encode("utf-8"), usedforsecurity=False
+        ).hexdigest()
+        # Prefix to indicate it's a hash
+        return f"hash-{hash_hex}"
+
+    return full_identifier
 
 
 class Entity(pydantic.BaseModel):

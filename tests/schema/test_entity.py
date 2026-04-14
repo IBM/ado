@@ -862,3 +862,67 @@ def test_entity_identifier_from_properties_and_values_sorted() -> None:
     assert (
         id_numeric == expected_numeric
     ), f"Expected identifier to be {expected_numeric}, but got {id_numeric}"
+
+
+def test_entity_identifier_short_not_hashed() -> None:
+    """Test that short identifiers remain unchanged (not hashed)."""
+    point = {"prop1": "val1", "prop2": "val2"}
+    identifier = entity_identifier_from_properties_and_values(point)
+    assert identifier == "prop1.val1-prop2.val2"
+    assert not identifier.startswith("hash-")
+
+
+def test_entity_identifier_long_hashed() -> None:
+    """Test that long identifiers are hashed when they exceed the safe length."""
+    # Create point with many properties to exceed 700 chars (produces 4539 chars)
+    point = {f"property_{i}": f"value_{i}" * 10 for i in range(50)}
+    identifier = entity_identifier_from_properties_and_values(point)
+
+    # Verify it's a hash (starts with "hash-" prefix)
+    assert identifier.startswith(
+        "hash-"
+    ), "Long identifier should be hashed with 'hash-' prefix"
+
+    # Verify the identifier is within database limits
+    assert (
+        len(identifier) < 768
+    ), f"Identifier length {len(identifier)} exceeds database limit"
+
+    # Verify it's a valid SHA256 hash (64 hex chars + 5 char prefix = 69 total)
+    assert len(identifier) == 69, f"Expected hash length 69, got {len(identifier)}"
+
+
+def test_entity_identifier_different_points_different_identifiers() -> None:
+    """Test that different points produce different identifiers."""
+    point1 = {"prop1": "val1"}
+    point2 = {"prop1": "val2"}
+    id1 = entity_identifier_from_properties_and_values(point1)
+    id2 = entity_identifier_from_properties_and_values(point2)
+    assert id1 != id2, "Different points should produce different identifiers"
+
+    # Test with long identifiers
+    long_point1 = {f"property_{i}": f"value_{i}" * 10 for i in range(50)}
+    long_point2 = {f"property_{i}": f"different_{i}" * 10 for i in range(50)}
+    long_id1 = entity_identifier_from_properties_and_values(long_point1)
+    long_id2 = entity_identifier_from_properties_and_values(long_point2)
+    assert (
+        long_id1 != long_id2
+    ), "Different long points should produce different hashed identifiers"
+
+
+def test_entity_identifier_threshold_boundary() -> None:
+    """Test behavior at the 700 character threshold."""
+    # Create an identifier just under the threshold
+    point = {f"p{i}": f"v{i}" * 20 for i in range(14)}
+    point_identifier = "-".join([f"{k}.{point[k]}" for k in sorted(point.keys())])
+    assert len(point_identifier) == 699, "Identifier should be 699 characters"
+
+    point_id = entity_identifier_from_properties_and_values(point)
+    assert not point_id.startswith(
+        "hash-"
+    ), "Identifier under threshold should not be hashed"
+
+    # Add one entry and bring the point above the threshold
+    point["p14"] = "v14" * 20
+    point_id = entity_identifier_from_properties_and_values(point)
+    assert point_id.startswith("hash-"), "Identifier over threshold should be hashed"

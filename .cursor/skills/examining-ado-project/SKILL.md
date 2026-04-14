@@ -134,7 +134,14 @@ configurations)
 uv run ado get spaces --matching-space-id SPACE_ID
 ```
 
-to build a picture of how they are related.
+Use the output to
+
+- Group spaces that match
+- Within each group identify subgroups whose spaces are identical
+- If multiple subgroups identify the hierarchy between them (broadest to narrowest)
+- Within subgroups identify what if measurement space is different between them
+- Combine this information with the sequence of space creation to
+  understand how researchers have been evolving the spaces
 
 Optionally complement with one-hop links:
 

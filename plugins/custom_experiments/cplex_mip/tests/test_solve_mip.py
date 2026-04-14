@@ -52,17 +52,17 @@ class TestExperimentRegistration:
 
 
 class TestRequiredProperties:
-    def test_no_required_properties(self, experiment: Experiment) -> None:
-        """solve_mip has no required properties — all inputs are optional."""
-        assert len(experiment.requiredProperties) == 0
+    def test_mps_file_required(self, experiment: Experiment) -> None:
+        """solve_mip requires mps_file."""
+        assert len(experiment.requiredProperties) == 1
+        assert experiment.requiredProperties[0].identifier == "mps_file"
 
 
 class TestOptionalProperties:
     def test_all_optional_properties_present(self, experiment: Experiment) -> None:
-        """All eleven optional properties must be defined."""
+        """All twelve optional properties must be defined."""
         optional_ids = {p.identifier for p in experiment.optionalProperties}
         expected = {
-            "mps_file",
             "n_seeds",
             "node_selection",
             "variable_selection",
@@ -71,6 +71,8 @@ class TestOptionalProperties:
             "n_threads",
             "rins_frequency",
             "cut_passes",
+            "cut_passes_all",
+            "mip_emphasis",
             "parallel",
             "progress_interval_s",
         }
@@ -108,12 +110,33 @@ class TestOptionalProperties:
         )
         assert prop.propertyDomain.domainRange == [1, 100]
 
-    def test_mps_file_default_is_bab6(self, experiment: Experiment) -> None:
-        """mps_file domain must include the bab6 path as a value."""
+    def test_mps_file_example_in_required_domain(self, experiment: Experiment) -> None:
+        """mps_file (required) domain lists an example path."""
         prop = next(
-            p for p in experiment.optionalProperties if p.identifier == "mps_file"
+            p for p in experiment.requiredProperties if p.identifier == "mps_file"
         )
-        assert DEFAULT_MPS in prop.propertyDomain.values
+        assert "/path/to/instance.mps.gz" in prop.propertyDomain.values
+
+    def test_cut_passes_all_domain_values(self, experiment: Experiment) -> None:
+        """cut_passes_all domain must match categorical levels."""
+        prop = next(
+            p for p in experiment.optionalProperties if p.identifier == "cut_passes_all"
+        )
+        assert set(prop.propertyDomain.values) == {
+            "cplex_default",
+            -1,
+            0,
+            1,
+            2,
+            3,
+        }
+
+    def test_mip_emphasis_domain_values(self, experiment: Experiment) -> None:
+        """mip_emphasis domain must be [0, 1, 2, 3, 4, 5]."""
+        prop = next(
+            p for p in experiment.optionalProperties if p.identifier == "mip_emphasis"
+        )
+        assert sorted(prop.propertyDomain.values) == [0, 1, 2, 3, 4, 5]
 
     def test_time_limit_domain_type(self, experiment: Experiment) -> None:
         """time_limit_s must be a continuous variable with no enforced range."""
@@ -207,12 +230,19 @@ class TestDefaultParameterization:
         }
         assert param_map["cut_passes"] == 0
 
-    def test_mps_file_default(self, experiment: Experiment) -> None:
-        """Default mps_file must be the bab6 path."""
+    def test_cut_passes_all_default(self, experiment: Experiment) -> None:
+        """Default cut_passes_all must be cplex_default (no overrides)."""
         param_map = {
             p.property.identifier: p.value for p in experiment.defaultParameterization
         }
-        assert param_map["mps_file"] == DEFAULT_MPS
+        assert param_map["cut_passes_all"] == "cplex_default"
+
+    def test_mip_emphasis_default(self, experiment: Experiment) -> None:
+        """Default mip_emphasis must be 0 (balanced)."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map["mip_emphasis"] == 0
 
     def test_parallel_default(self, experiment: Experiment) -> None:
         """Default parallel must be True (Ray remote execution)."""
@@ -255,6 +285,7 @@ class TestExperimentRoundTrip:
         reloaded = Experiment.model_validate(dumped)
         assert reloaded.identifier == experiment.identifier
         assert reloaded.actuatorIdentifier == experiment.actuatorIdentifier
+        assert len(reloaded.requiredProperties) == len(experiment.requiredProperties)
         assert len(reloaded.optionalProperties) == len(experiment.optionalProperties)
         assert len(reloaded.targetProperties) == len(experiment.targetProperties)
 
@@ -399,6 +430,75 @@ class TestSolveMipVectorOutput:
         assert result["objective_over_time"][0][2] == -105.0  # forward-fill
 
 
+class TestApplyCutPassesAll:
+    """``_apply_cut_passes_all`` caps aggressiveness per CPLEX cut family."""
+
+    def test_level_three_capped_to_two_for_gomory(self) -> None:
+        """Families with max 2 must not receive level 3."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _apply_cut_passes_all
+
+        model = MagicMock()
+        _apply_cut_passes_all(model, 3)
+        model.parameters.mip.cuts.gomory.set.assert_called_once_with(2)
+        model.parameters.mip.cuts.cliques.set.assert_called_once_with(3)
+
+    def test_negative_one_unclipped(self) -> None:
+        """-1 (off) must pass through for all families."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _apply_cut_passes_all
+
+        model = MagicMock()
+        _apply_cut_passes_all(model, -1)
+        model.parameters.mip.cuts.zerohalfcut.set.assert_called_once_with(-1)
+
+
+class TestBuildTimeGridAndAlign:
+    """``progress_time_grid`` must extend far enough for the latest sample timestamp."""
+
+    def test_grid_last_point_covers_non_multiple_max_elapsed(self) -> None:
+        """If max_elapsed is not on the interval lattice, extend past it."""
+        from cplex_mip_experiments.solve_mip import _build_time_grid
+
+        grid = _build_time_grid(60.0, 1e75, 95.0)
+        assert grid[-1] >= 95.0
+        assert grid == [0.0, 60.0, 120.0]
+
+    def test_grid_extends_when_max_elapsed_exceeds_time_limit(self) -> None:
+        """Wall clock can slightly exceed TILIM; grid must still cover terminal sample."""
+        from cplex_mip_experiments.solve_mip import _build_time_grid
+
+        grid = _build_time_grid(60.0, 3600.0, 3655.0)
+        assert grid[-1] >= 3655.0
+
+    def test_align_ingests_terminal_when_elapsed_not_on_grid(self) -> None:
+        """Last grid point t must satisfy t >= last sample elapsed."""
+        from cplex_mip_experiments.solve_mip import _align_to_grid, _build_time_grid
+
+        samples = [
+            {
+                "elapsed": 0.0,
+                "best_objective": 1.0,
+                "best_bound": 0.0,
+                "nodes_explored": 0,
+                "mip_gap": None,
+            },
+            {
+                "elapsed": 95.0,
+                "best_objective": -16.0,
+                "best_bound": -16.0,
+                "nodes_explored": 1,
+                "mip_gap": 0.0,
+            },
+        ]
+        grid = _build_time_grid(60.0, 1e75, 95.0)
+        aligned = _align_to_grid(samples, grid)
+        assert aligned["best_bound"][-1] == -16.0
+        assert aligned["best_objective"][-1] == -16.0
+
+
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
 class TestCommunityEditionLimits:
     """When CPLEX Community Edition limits (error 1016) are hit, the experiment must raise."""
@@ -414,6 +514,7 @@ class TestCommunityEditionLimits:
         mock_model.read = MagicMock()
         mock_model.parameters.randomseed.set = MagicMock()
         mock_model.parameters.threads.set = MagicMock()
+        mock_model.parameters.emphasis.mip.set = MagicMock()
         mock_model.parameters.mip.strategy.nodeselect.set = MagicMock()
         mock_model.parameters.mip.strategy.variableselect.set = MagicMock()
         mock_model.parameters.mip.strategy.heuristicfreq.set = MagicMock()
@@ -442,6 +543,7 @@ class TestCommunityEditionLimits:
                 n_threads=1,
                 rins_frequency=0,
                 cut_passes=0,
+                mip_emphasis=0,
             )
         assert exc_info.value.args[2] == 1016
 
@@ -456,6 +558,7 @@ class TestCommunityEditionLimits:
         mock_model.read = MagicMock()
         mock_model.parameters.randomseed.set = MagicMock()
         mock_model.parameters.threads.set = MagicMock()
+        mock_model.parameters.emphasis.mip.set = MagicMock()
         mock_model.parameters.mip.strategy.nodeselect.set = MagicMock()
         mock_model.parameters.mip.strategy.variableselect.set = MagicMock()
         mock_model.parameters.mip.strategy.heuristicfreq.set = MagicMock()
@@ -481,6 +584,7 @@ class TestCommunityEditionLimits:
                 n_threads=1,
                 rins_frequency=0,
                 cut_passes=0,
+                mip_emphasis=0,
             )
         assert result["solve_status"] == "cplex_error_1234"
         assert result["objective_value"] is None

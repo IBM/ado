@@ -4,7 +4,7 @@
 import logging
 import sys
 import time
-from typing import Any
+from typing import Any, Literal
 
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
 from orchestrator.schema.domain import PropertyDomain, VariableTypeEnum
@@ -12,19 +12,19 @@ from orchestrator.schema.property import ConstitutiveProperty
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MPS_FILE = "/Users/michaelj/tmp/miplib_2017_benchmarks/bab6.mps.gz"
+CutPassesAllLevel = Literal["cplex_default", -1, 0, 1, 2, 3]
 
 MpsFile = ConstitutiveProperty(
     identifier="mps_file",
     metadata={
         "description": (
             "Path to the MPS instance file to solve (.mps or .mps.gz). "
-            f"Defaults to the bab6 MIPLIB 2017 benchmark ({DEFAULT_MPS_FILE})."
+            "Example: a MIPLIB benchmark such as bab6.mps.gz."
         )
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
-        values=[DEFAULT_MPS_FILE],
+        values=["/path/to/instance.mps.gz"],
     ),
 )
 
@@ -146,6 +146,39 @@ CutPasses = ConstitutiveProperty(
     ),
 )
 
+CutPassesAll = ConstitutiveProperty(
+    identifier="cut_passes_all",
+    metadata={
+        "description": (
+            "Uniform aggressiveness for every CPLEX MIP cut family (interactive "
+            "`set mip cuts all …`). Each `parameters.mip.cuts.*` value is set to "
+            "this level capped by that family's maximum (-1 off, 0 automatic, "
+            "1 moderate, 2 aggressive; some families support 3 very aggressive). "
+            "`cplex_default` does not change cut parameters (solver defaults)."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CATEGORICAL_VARIABLE_TYPE,
+        values=["cplex_default", -1, 0, 1, 2, 3],
+    ),
+)
+
+MipEmphasis = ConstitutiveProperty(
+    identifier="mip_emphasis",
+    metadata={
+        "description": (
+            "MIP optimization emphasis (CPX_PARAM_MIPEMPHASIS / "
+            "`set mip emphasis mip`): 0=balanced optimality and feasibility, "
+            "1=integer feasibility, 2=optimality, 3=best bound, "
+            "4=hidden feasible solutions, 5=heuristic."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
+        values=[0, 1, 2, 3, 4, 5],
+    ),
+)
+
 Parallel = ConstitutiveProperty(
     identifier="parallel",
     metadata={
@@ -156,6 +189,7 @@ Parallel = ConstitutiveProperty(
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
+        values=[False, True],
     ),
 )
 
@@ -174,6 +208,35 @@ ProgressInterval = ConstitutiveProperty(
         domainRange=[0, 86400],  # 0 = disabled, up to 24h
     ),
 )
+
+# Max aggressiveness level per ``parameters.mip.cuts.*`` family (CPLEX 22.1 API).
+_MIP_CUT_FAMILY_MAX_LEVEL: dict[str, int] = {
+    "bqp": 3,
+    "cliques": 3,
+    "covers": 3,
+    "disjunctive": 3,
+    "flowcovers": 2,
+    "gomory": 2,
+    "gubcovers": 2,
+    "implied": 2,
+    "liftproj": 3,
+    "localimplied": 3,
+    "mcfcut": 2,
+    "mircut": 2,
+    "nodecuts": 3,
+    "pathcut": 2,
+    "rlt": 3,
+    "zerohalfcut": 2,
+}
+
+
+def _apply_cut_passes_all(model: object, level: int) -> None:
+    """Set every MIP cut family to ``level``, capped by that family's maximum."""
+    cuts = model.parameters.mip.cuts
+    for name, max_level in _MIP_CUT_FAMILY_MAX_LEVEL.items():
+        capped = min(max(level, -1), max_level)
+        getattr(cuts, name).set(capped)
+
 
 # Sentinel for "no incumbent" from CPLEX (e.g. 1e75).
 _NO_INCUMBENT_SENTINEL = 1e70
@@ -264,16 +327,65 @@ def _build_time_grid(
     time_limit_s: float,
     max_elapsed: float,
 ) -> list[float]:
-    """Build time grid [0, interval, 2*interval, ...] up to cap."""
+    """Build uniform grid ``[0, interval_s, 2*interval_s, ...]`` covering all samples.
+
+    ``max_elapsed`` is the latest ``elapsed`` among callbacks and the post-solve
+    terminal row (per ``solve_mip``). The grid must reach at least ``max_elapsed``
+    on its last point; otherwise ``_align_to_grid`` would never apply samples with
+    ``elapsed`` between the previous multiple of ``interval_s`` and ``max_elapsed``.
+
+    When ``time_limit_s`` is finite, the initial cap is at least the limit and at
+    least ``max_elapsed`` (handles small overrun past ``TILIM``).
+    """
     if interval_s <= 0:
         return []
-    cap = time_limit_s if time_limit_s < 1e70 else max_elapsed
+    cap = float(time_limit_s) if time_limit_s < 1e70 else float(max_elapsed)
+    cap = max(cap, float(max_elapsed))
     grid: list[float] = []
     t = 0.0
-    while t <= cap:
+    while t <= cap + 1e-9:
         grid.append(t)
         t += interval_s
+    while grid and grid[-1] + 1e-9 < float(max_elapsed):
+        grid.append(grid[-1] + interval_s)
     return grid
+
+
+def _append_terminal_progress_sample(
+    *,
+    model: object,
+    progress_samples: list[dict[str, Any]],
+    solve_time: float,
+    objective_value: float | None,
+    mip_gap: float | None,
+    nodes_explored: int,
+) -> None:
+    """Append one sample at solve end so the aligned grid includes the final MIP state.
+
+    Periodic MIPInfoCallback samples can omit the last jump to optimality if the
+    solver finishes between two callback ticks; ``objective_values`` then reflect
+    the optimum while ``best_bound_over_time`` would otherwise forward-fill a
+    stale bound.
+    """
+    import cplex
+
+    best_bound: float | None = None
+    try:
+        best_bound = float(model.solution.MIP.get_best_objective_value())
+    except (cplex.exceptions.CplexSolverError, AttributeError, TypeError, ValueError):
+        best_bound = None
+    if best_bound is not None and abs(best_bound) >= _NO_INCUMBENT_SENTINEL:
+        best_bound = None
+
+    progress_samples.append(
+        {
+            "elapsed": float(solve_time),
+            "best_objective": objective_value,
+            "best_bound": best_bound,
+            "nodes_explored": nodes_explored,
+            "mip_gap": mip_gap,
+        }
+    )
 
 
 def _run_single_seed(
@@ -289,6 +401,8 @@ def _run_single_seed(
     n_threads: int,
     rins_frequency: int,
     cut_passes: int,
+    cut_passes_all: CutPassesAllLevel = "cplex_default",
+    mip_emphasis: int = 0,
     progress_interval_s: float = 0,
 ) -> dict[str, Any]:
     """Run CPLEX on a single MPS instance with the given random seed and parameters.
@@ -302,6 +416,10 @@ def _run_single_seed(
         variable_selection: Variable selection strategy (CPX_PARAM_VARSEL).
         heuristic_frequency: Heuristic frequency (CPX_PARAM_HEURFREQ).
         time_limit_s: Time limit in seconds (CPX_PARAM_TILIM).
+        cut_passes_all: Uniform MIP cut aggressiveness for all families, capped
+            per family, or ``cplex_default`` to leave CPLEX defaults unchanged.
+        mip_emphasis: MIP emphasis (CPX_PARAM_MIPEMPHASIS): 0-5, see property
+            metadata; default 0 matches CPLEX balanced emphasis.
         progress_interval_s: If > 0, capture progress at this interval (seconds).
 
     Returns:
@@ -322,6 +440,7 @@ def _run_single_seed(
     model.read(mps_file)
     model.parameters.randomseed.set(seed)
     model.parameters.threads.set(n_threads)
+    model.parameters.emphasis.mip.set(mip_emphasis)
     model.parameters.mip.strategy.nodeselect.set(node_selection)
     model.parameters.mip.strategy.variableselect.set(variable_selection)
     model.parameters.mip.strategy.heuristicfreq.set(heuristic_frequency)
@@ -330,6 +449,8 @@ def _run_single_seed(
     model.parameters.timelimit.set(time_limit_s)
     model.parameters.mip.display.set(4)
     model.parameters.mip.interval.set(100)
+    if cut_passes_all != "cplex_default":
+        _apply_cut_passes_all(model, int(cut_passes_all))
 
     progress_samples: list[dict[str, Any]] = []
     if progress_interval_s > 0:
@@ -340,7 +461,7 @@ def _run_single_seed(
     logger.debug(
         "Solving %s with seed=%d, n_threads=%d, node_selection=%d, "
         "variable_selection=%d, heuristic_frequency=%d, rins_frequency=%d, "
-        "cut_passes=%d, time_limit_s=%.1g",
+        "cut_passes=%d, cut_passes_all=%r, mip_emphasis=%d, time_limit_s=%.1g",
         mps_file,
         seed,
         n_threads,
@@ -349,6 +470,8 @@ def _run_single_seed(
         heuristic_frequency,
         rins_frequency,
         cut_passes,
+        cut_passes_all,
+        mip_emphasis,
         time_limit_s,
     )
 
@@ -407,6 +530,16 @@ def _run_single_seed(
 
     logger.info("End solver %d of %d", solver_n, n_seeds)
 
+    if progress_interval_s > 0:
+        _append_terminal_progress_sample(
+            model=model,
+            progress_samples=progress_samples,
+            solve_time=solve_time,
+            objective_value=obj,
+            mip_gap=gap,
+            nodes_explored=nodes,
+        )
+
     return {
         "solve_time_s": solve_time,
         "objective_value": obj,
@@ -418,9 +551,8 @@ def _run_single_seed(
 
 
 @custom_experiment(
-    required_properties=[],
+    required_properties=[MpsFile],
     optional_properties=[
-        MpsFile,
         NSeeds,
         NodeSelection,
         VariableSelection,
@@ -429,6 +561,8 @@ def _run_single_seed(
         NThreads,
         RinsFrequency,
         CutPasses,
+        CutPassesAll,
+        MipEmphasis,
         Parallel,
         ProgressInterval,
     ],
@@ -456,7 +590,7 @@ def _run_single_seed(
     parameterization={},
 )
 def solve_mip(
-    mps_file: str = DEFAULT_MPS_FILE,
+    mps_file: str,
     n_seeds: int = 5,
     node_selection: int = 1,
     variable_selection: int = 0,
@@ -465,6 +599,8 @@ def solve_mip(
     n_threads: int = 1,
     rins_frequency: int = 0,
     cut_passes: int = 0,
+    cut_passes_all: CutPassesAllLevel = "cplex_default",
+    mip_emphasis: int = 0,
     parallel: bool = True,
     progress_interval_s: float = 0,
 ) -> dict[str, list]:
@@ -484,6 +620,9 @@ def solve_mip(
             0=automatic, n=apply every n nodes.
         cut_passes: Max cutting-plane passes at root (CPX_PARAM_CUTPASSES).
             -1=no cuts, 0=automatic, n=at most n passes.
+        cut_passes_all: Same aggressiveness for all ``mip.cuts`` families, capped
+            per family; ``cplex_default`` leaves CPLEX defaults unchanged.
+        mip_emphasis: CPLEX MIP emphasis (0=balanced through 5=heuristic); default 0.
         parallel: If True, run each seed as a Ray remote task (requires ray_remote).
             If False, run seeds in serial.
         progress_interval_s: If > 0, capture intermediate progress at this interval
@@ -500,6 +639,9 @@ def solve_mip(
         - progress_time_grid: Shared time points (seconds).
         - objective_over_time, best_bound_over_time, nodes_explored_over_time,
           mip_gap_over_time: list[list] of aligned values [seed][time_idx].
+          A terminal sample at solve completion is appended so forward-filled
+          grid values can reflect the final incumbent and best bound, not only
+          the last periodic callback.
     """
     import ray
 
@@ -516,6 +658,8 @@ def solve_mip(
             n_threads=n_threads,
             rins_frequency=rins_frequency,
             cut_passes=cut_passes,
+            cut_passes_all=cut_passes_all,
+            mip_emphasis=mip_emphasis,
             progress_interval_s=progress_interval_s,
         )
 

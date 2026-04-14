@@ -12,6 +12,7 @@ from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
 from orchestrator.core.samplestore.sql import SQLSampleStore
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
+from tests.conftest import requires_sqlite_3_38
 
 
 def test_create_discovery_space_dry_run_success(tmp_path: pathlib.Path) -> None:
@@ -206,6 +207,7 @@ def test_create_discovery_space_success_new_sample_store(
     assert result.output.startswith(expected_output)
 
 
+@requires_sqlite_3_38
 def test_create_discovery_space_success_with_latest_samplestore(
     tmp_path: pathlib.Path,
     valid_ado_project_context: ProjectContext,

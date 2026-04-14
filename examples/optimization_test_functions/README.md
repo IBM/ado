@@ -182,8 +182,8 @@ ado create space -f space.yaml --use-default-sample-store
 This will output a `discoveryspace` id you can use to run an optimization
 operation.
 
-Assuming you did not modify `space.yaml`, running
-`ado describe space --use-latest` will output (identifiers will
+Assuming the space you just created is the most recent space in the current
+context, running `ado describe space --use-latest` will output (identifiers will
 be different):
 
 ```terminaloutput

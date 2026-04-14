@@ -25,6 +25,8 @@ def random_space_resource_from_file(
     def _random_space_resource_from_file(
         sample_store_id: str | None = None,
     ) -> DiscoverySpaceResource:
+        import datetime
+
         file = pathlib.Path("tests/resources/space/discoveryspace_resource.json")
         random_resource_id = random_identifier()
         if not sample_store_id:
@@ -36,6 +38,7 @@ def random_space_resource_from_file(
         # Final touch-ups
         space.identifier = random_resource_id
         space.config.sampleStoreIdentifier = sample_store_id
+        space.created = datetime.datetime.now(datetime.timezone.utc)
         return space
 
     return _random_space_resource_from_file

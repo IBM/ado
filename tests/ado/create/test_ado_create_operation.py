@@ -13,6 +13,7 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import DiscoveryOperationResourceConfiguration
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.output import pydantic_model_as_yaml
+from tests.conftest import requires_sqlite_3_38
 
 
 @pytest.fixture(
@@ -208,6 +209,7 @@ def test_create_operation_success_with_discovery_space(
     assert result.exit_code == 0, result.output
 
 
+@requires_sqlite_3_38
 def test_create_ml_multi_cloud_operation_success_lhc_sampler(
     tmp_path: pathlib.Path,
     ml_multi_cloud_sample_store_configuration_file: pathlib.Path,

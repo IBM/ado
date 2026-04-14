@@ -42,19 +42,16 @@ placeholders and resolve them at creation time — do not hard-code IDs.
 
 ### --use-latest
 
-Fills in the most recently created resource ID of the given type.
+Queries the current context's metastore to find the most recently created
+resource of the given type. It is context-aware: switching to a different
+context and using --use-latest will find the most recent resource in that
+context's database, not the previously active one.
 
 ```bash
 # Create space, then operation that references it — no manual ID copy
 uv run ado create space -f space.yaml
 uv run ado create operation -f operation.yaml --use-latest space
 ```
-
-> **Context scoping**: `--use-latest` resolves relative to the _execution
-> context_, not the project. On a laptop, it finds the last resource created
-> locally. When launched with `--remote`, it finds the last resource created on
-> the remote cluster. Keep this in mind when reusing resources across
-> environments.
 
 ### --with
 
@@ -123,8 +120,8 @@ uv run ado template actuatorconfiguration --actuator-identifier my_actuator
 
 ### DiscoverySpace
 
-See [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md)
-for further details on creating discovery spaces.
+See [formulate-discovery-problem](../formulate-discovery-problem/SKILL.md) for
+further details on creating discovery spaces.
 
 **Before creating** (ado create space), check if a matching space already
 exists:

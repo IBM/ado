@@ -28,6 +28,8 @@ on, and whether measurements and results look healthy.
   [using-ado-cli](../using-ado-cli/SKILL.md).
 - For metastore filtering, schemas see
   [query-ado-data](../query-ado-data/SKILL.md).
+- For a project/context wide view (all spaces and operations), see
+  [examining-ado-project](../examining-ado-project/SKILL.md).
 
 ## Context
 
@@ -52,7 +54,8 @@ In the case of (b) (latest) get the actual operation identifier as follows
 uv run ado show related operation --use-latest
 ```
 
-This will output the id of the latest operation.
+This will output the id of the latest operation created
+in the active ado context.
 
 ## Tips
 

@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
 from collections.abc import Callable
 from typing import Any
 from unittest.mock import patch
@@ -9,7 +10,7 @@ import pytest
 
 from orchestrator.schema.experiment import Experiment
 
-DEFAULT_MPS = "/Users/michaelj/tmp/miplib_2017_benchmarks/bab6.mps.gz"
+DEFAULT_MPS = str(pathlib.Path(__file__).parent / "markshare_4_0.mps.gz")
 
 try:
     import cplex  # noqa: F401

@@ -15,7 +15,7 @@ from orchestrator.cli.utils.output.prints import (
     context_not_in_available_contexts_error_str,
     cyan,
 )
-from orchestrator.core.legacy.utils import get_nested_value
+from orchestrator.utilities.dictionaries import get_nested_value
 
 
 def delete_context(parameters: AdoDeleteCommandParameters) -> None:

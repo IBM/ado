@@ -171,6 +171,7 @@ def _handle_table_format(
             dataframe_to_rich_table(
                 df,
                 box=rich.box.SQUARE,
+                show_index=True,
                 show_edge=True,
                 do_not_truncate_columns=(
                     ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc

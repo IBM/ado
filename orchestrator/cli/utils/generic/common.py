@@ -3,8 +3,8 @@
 
 import typer
 
-from orchestrator.cli.core.config import AdoConfiguration
 from orchestrator.cli.utils.output.prints import (
+    ADO_SPINNER_QUERYING_DB,
     WARN,
     console_print,
     latest_identifier_for_resource_not_found,
@@ -12,22 +12,25 @@ from orchestrator.cli.utils.output.prints import (
     using_latest_identifier_for_resource,
 )
 from orchestrator.core import CoreResourceKinds
+from orchestrator.metastore.project import ProjectContext
 
 
 def get_effective_resource_id(
-    explicit_resource_id: str, resource_type: str, ado_configuration: AdoConfiguration
+    explicit_resource_id: str | None,
+    resource_type: str,
+    project_context: ProjectContext,
 ) -> str:
     """
     Determines the effective resource ID to use, prioritizing an explicitly provided ID.
 
-    If an explicit resource ID is provided, it takes precedence over any configuration or flags.
-    Otherwise, the method attempts to retrieve the latest resource ID from the ADO configuration
-    based on the resource type. If no ID is found, the program exits with an error.
+    If an explicit resource ID is provided, it takes precedence over the latest resource IDs.
+    Otherwise, the method queries the database to retrieve the latest resource ID for the
+    given resource type. If no ID is found, the program exits with an error.
 
     Args:
-        explicit_resource_id (str): The resource ID explicitly provided by the user.
+        explicit_resource_id (str | None): The resource ID explicitly provided by the user.
         resource_type (str): The type of resource (i.e., a cli resource type).
-        ado_configuration (AdoConfiguration): Configuration object containing latest resource IDs.
+        project_context (ProjectContext): The project context for database access.
 
     Returns:
         str: The effective resource ID to use.
@@ -35,16 +38,27 @@ def get_effective_resource_id(
     Raises:
         typer.Exit: If no latest resource ID is found for the given resource type.
     """
+    from rich.status import Status
+
+    from orchestrator.cli.utils.generic.wrappers import get_sql_store
 
     if explicit_resource_id:
         console_print(
-            f"{WARN}explicitly specified resource ids take precedence over the --use-latest flag\n\t"
-            f"The command will show details for {resource_type} {magenta(explicit_resource_id)}"
+            f"{WARN}explicitly specified resource ids take precedence over the --use-latest flag\n"
+            f"\tThis command will use {resource_type} identifier {magenta(explicit_resource_id)}"
         )
         return explicit_resource_id
 
     resource_kind = CoreResourceKinds(resource_type)
-    resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
+
+    # Query database for latest resource ID
+    sql_store = get_sql_store(project_context)
+    with Status(ADO_SPINNER_QUERYING_DB):
+        latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
+            kinds=[resource_kind]
+        )
+
+    resource_id = latest_ids.get(resource_kind)
     if not resource_id:
         console_print(
             latest_identifier_for_resource_not_found(

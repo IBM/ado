@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 import random
-import sqlite3
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -25,13 +24,12 @@ from orchestrator.schema.result import (
     MeasurementResultStateEnum,
     ValidMeasurementResult,
 )
+from tests.conftest import requires_sqlite_3_38
 
 if TYPE_CHECKING:
     from orchestrator.core.operation.config import (
         DiscoveryOperationResourceConfiguration,
     )
-
-sqlite3_version = sqlite3.sqlite_version_info
 
 
 def test_get_single_resource_by_id(
@@ -51,11 +49,7 @@ def test_get_single_resource_by_id(
     assert db_resource is not None
 
 
-# AP: the -> and ->> syntax in SQLite is only supported from version 3.38.0
-# ref: https://sqlite.org/json1.html#jptr
-@pytest.mark.skipif(
-    sqlite3_version < (3, 38, 0), reason="SQLite version 3.38.0 or higher is required"
-)
+@requires_sqlite_3_38
 def test_get_all_resources_of_kind(
     resource_generator_from_db: tuple[CoreResourceKinds, str],
     get_resource_identifiers_by_resource_kind: Callable[[str], pd.DataFrame],

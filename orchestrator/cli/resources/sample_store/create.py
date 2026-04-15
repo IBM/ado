@@ -19,7 +19,6 @@ from orchestrator.cli.utils.output.prints import (
     magenta,
 )
 from orchestrator.cli.utils.pydantic.updaters import override_values_in_pydantic_model
-from orchestrator.core import CoreResourceKinds
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
@@ -83,12 +82,6 @@ def create_sample_store(parameters: AdoCreateCommandParameters) -> str:
             sample_store_configuration,
             sql,
         )
-
-    # Save the identifier of the resource we created
-    # for reuse
-    parameters.ado_configuration.latest_resource_ids[CoreResourceKinds.SAMPLESTORE] = (
-        sample_store.identifier
-    )
 
     console_print(
         f"{SUCCESS}Created sample store with identifier {magenta(sample_store.identifier)}",

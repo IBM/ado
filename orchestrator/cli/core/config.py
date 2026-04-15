@@ -19,7 +19,6 @@ from orchestrator.cli.utils.output.prints import (
     green,
     magenta,
 )
-from orchestrator.core import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.utilities.location import SQLiteStoreConfiguration
 
@@ -35,7 +34,21 @@ class AdoConfiguration(pydantic.BaseModel):
     _app_dir: Path = Path(typer.get_app_dir(ADO_APP_NAME))
     _project_context: ProjectContext | None = None
     active_context: str | None = None
-    latest_resource_ids: dict[CoreResourceKinds, str] = {}
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def remove_latest_resource_ids(cls, data: dict) -> dict:
+        """Before validator to handle backwards compatibility with old config files.
+
+        This validator strips the deprecated 'latest_resource_ids' field if present
+        before validation occurs. This ensures old config files can be loaded without
+        errors.
+        """
+        # Strip deprecated field before validation
+        if isinstance(data, dict) and "latest_resource_ids" in data:
+            data.pop("latest_resource_ids")
+
+        return data
 
     @classmethod
     def load(
@@ -103,6 +116,7 @@ class AdoConfiguration(pydantic.BaseModel):
 
             ado_config._project_context = project_context
             ado_config.active_context = project_context.project
+            ado_config.store()
             return ado_config
 
         # At this point we don't have a context_path to load from.

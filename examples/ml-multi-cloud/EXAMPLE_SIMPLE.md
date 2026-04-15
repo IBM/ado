@@ -537,8 +537,8 @@ will give you a summary of what has been measured.
 
 > [!NOTE]
 >
-> If you want to run these commands with the latest space created use the
-> `--use-latest` flag as above
+> If you want to run these commands against the most recent space in the current
+> context, use the `--use-latest` flag as above.
 
 ### Resource provenance
 

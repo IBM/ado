@@ -10,9 +10,11 @@ provides the capability to perform a random walk `operation` on a
 The `operator` defines the inputs arguments you can set for its `operations`.
 
 The [operators](../operators/working-with-operators.md) section contains more
-details about the available `operators`, their functionality and usage them. This
-page covers how you create and work with `operations` using a given `operator`
-in general.
+details about the available `operators`, their functionality, and how to use
+them. In particular, [explore operators](../operators/explore_operators.md)
+provides details on how you sample and measure entities from a `discoveryspace`.
+This page covers how you create and work with `operations` using a given
+`operator` in general.
 
 ## Creating an `operation` resource
 

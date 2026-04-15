@@ -1004,9 +1004,9 @@ Where:
 
 <!-- prettier-ignore-start -->
 
-    - `md` - for Markdown text (written to stdout or file).
-    - `table` (**default**) - for Markdown tables (written to stdout or file).
-    - `csv` - for CSV format (written to stdout or file).
+    - `md` - for Markdown text.
+    - `table` (**default**) - for Markdown tables.
+    - `csv` - for CSV format.
 
 <!-- prettier-ignore-end -->
 

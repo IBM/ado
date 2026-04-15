@@ -76,7 +76,7 @@ def test_get_robotic_lab_actuator() -> None:
         )
         rendered_output = render_to_string(
             dataframe_to_rich_table(
-                expected_output, show_edge=True, box=rich.box.SQUARE
+                expected_output, show_index=True, show_edge=True, box=rich.box.SQUARE
             )
         )
         assert rendered_output in result.output

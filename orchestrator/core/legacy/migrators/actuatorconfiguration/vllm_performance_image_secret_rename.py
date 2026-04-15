@@ -4,13 +4,13 @@
 """Legacy migrator for vllm_performance actuator image_secret field rename"""
 
 from orchestrator.core.legacy.registry import legacy_migrator
-from orchestrator.core.legacy.utils import (
+from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.utilities.dictionaries import (
     get_nested_value,
     has_nested_field,
     remove_nested_field,
     set_nested_value,
 )
-from orchestrator.core.resources import CoreResourceKinds
 
 
 @legacy_migrator(

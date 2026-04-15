@@ -4,12 +4,12 @@
 """Legacy migrator for migrating GT4SDTransformer to CSVSampleStore"""
 
 from orchestrator.core.legacy.registry import legacy_migrator
-from orchestrator.core.legacy.utils import (
+from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.utilities.dictionaries import (
     get_nested_value,
     has_nested_field,
     set_nested_value,
 )
-from orchestrator.core.resources import CoreResourceKinds
 
 
 @legacy_migrator(

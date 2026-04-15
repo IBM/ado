@@ -1,6 +1,5 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
-import rich.box
 import typer
 from rich.status import Status
 
@@ -15,7 +14,6 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
-from orchestrator.utilities.rich import dataframe_to_rich_table
 from orchestrator.utilities.strings import (
     normalize_and_truncate_at_period,
 )
@@ -44,33 +42,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
         )
         parameters.output_format = AdoGetSupportedOutputFormats.TABLE
 
-    # Handle NAME output format
-    if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
-
-        # Collect all operator names
-        operator_names = []
-        for (
-            collection
-        ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
-            operator_names.extend(collection.function_operations)
-
-        if parameters.resource_id:
-            # Single operator: verify it exists and output its name
-            if parameters.resource_id not in operator_names:
-                console_print(
-                    f"{ERROR}{parameters.resource_id} is not among the available operators.\n"
-                    f"{HINT}Run {cyan('ado get operators')} to list them.",
-                    stderr=True,
-                )
-                raise typer.Exit(1)
-            console_print(parameters.resource_id)
-        else:
-            # Multiple operators: output all names
-            for operator_name in sorted(operator_names):
-                console_print(operator_name)
-        return
-
-    # Build entries for TABLE format
+    # Build entries for DataFrame
     entries = []
     for (
         collection
@@ -115,12 +87,8 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
     # After renaming some entries in the TYPE column
     # the values may not be sorted anymore
     operators = operators.sort_values(by=["TYPE", "OPERATOR"]).reset_index(drop=True)
-    console_print(
-        dataframe_to_rich_table(
-            operators,
-            show_edge=True,
-            show_index=True,
-            box=rich.box.SQUARE,
-            do_not_truncate_columns=parameters.no_trunc,
-        )
-    )
+
+    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+    # Use unified handler for rendering
+    handle_ado_get(parameters=parameters, dataframe=operators)

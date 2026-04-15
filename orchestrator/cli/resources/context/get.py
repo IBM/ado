@@ -17,7 +17,6 @@ from orchestrator.cli.utils.output.prints import (
     cyan,
 )
 from orchestrator.metastore.project import ProjectContext
-from orchestrator.utilities.rich import dataframe_to_rich_table
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -58,35 +57,22 @@ def get_context(
     # AP: we always want to dump default values for contexts
     parameters.exclude_default = False
 
-    if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
-        # NAME format: output only context names, one per line
-        for context in sorted(available_contexts):
-            console_print(context)
-        return
-
-    if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
-        import rich.box
-
+    # For NAME and TABLE formats, use DataFrame
+    if parameters.output_format in {
+        AdoGetSupportedOutputFormats.NAME,
+        AdoGetSupportedOutputFormats.TABLE,
+    }:
         contexts_df = _prepare_context_dataframe(
             contexts=available_contexts,
             active_context=parameters.ado_configuration.active_context,
         )
 
-        console_print(
-            dataframe_to_rich_table(
-                contexts_df,
-                show_edge=True,
-                show_index=True,
-                box=rich.box.SQUARE,
-                do_not_truncate_columns=parameters.no_trunc,
-            )
-        )
+        from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+        handle_ado_get(parameters=parameters, dataframe=contexts_df)
         return
 
-    from orchestrator.cli.utils.resources.formatters import (
-        format_resource_for_ado_get_custom_format,
-    )
-
+    # For structured formats (YAML, JSON, CONFIG), load full resources
     to_print = []
     try:
         for ctx in available_contexts:
@@ -113,11 +99,9 @@ def get_context(
     if parameters.resource_id:
         to_print = to_print[0]
 
-    console_print(
-        format_resource_for_ado_get_custom_format(
-            to_print=to_print, parameters=parameters
-        )
-    )
+    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+    handle_ado_get(parameters=parameters, resources=to_print)
 
 
 def _prepare_context_dataframe(

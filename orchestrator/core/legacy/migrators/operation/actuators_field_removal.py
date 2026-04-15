@@ -4,8 +4,8 @@
 """Legacy migrator for removing deprecated actuators field from operations"""
 
 from orchestrator.core.legacy.registry import legacy_migrator
-from orchestrator.core.legacy.utils import remove_nested_field
 from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.utilities.dictionaries import remove_nested_field
 
 
 @legacy_migrator(

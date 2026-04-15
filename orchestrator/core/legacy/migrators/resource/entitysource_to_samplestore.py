@@ -4,8 +4,8 @@
 """Legacy migrator for migrating entitysource kind to samplestore kind"""
 
 from orchestrator.core.legacy.registry import legacy_migrator
-from orchestrator.core.legacy.utils import has_nested_field, set_nested_value
 from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.utilities.dictionaries import has_nested_field, set_nested_value
 
 
 @legacy_migrator(

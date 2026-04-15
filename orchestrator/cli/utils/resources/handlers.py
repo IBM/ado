@@ -94,13 +94,19 @@ def _handle_name_format(
 ) -> None:
     """Handle NAME output format - output identifiers only (most efficient)."""
 
-    # If dataframe provided, extract IDENTIFIER column
+    # If dataframe provided, extract identifier column
     if dataframe is not None:
         if dataframe.empty:
             console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
             return
-        if "IDENTIFIER" in dataframe.columns:
-            for identifier in dataframe["IDENTIFIER"]:
+
+        identifier_column = (
+            parameters.no_trunc[0]
+            if isinstance(parameters.no_trunc, list) and len(parameters.no_trunc) == 1
+            else "IDENTIFIER"
+        )
+        if identifier_column in dataframe.columns:
+            for identifier in dataframe[identifier_column]:
                 console_print(identifier)
         return
 

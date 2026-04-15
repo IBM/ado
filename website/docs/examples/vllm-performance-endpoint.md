@@ -27,7 +27,7 @@
 > - Install the following Python packages:
 >
 > ```bash
-> pip install hyperopt
+> pip install optuna
 > pip install ado-ray-tune
 > pip install ado-vllm-performance
 > ```
@@ -36,8 +36,7 @@
 
 > [!TIP] TL;DR
 >
-> Get the files `vllm_request_rate_space.yaml` and `operation_hyperopt.yaml`
-> from
+> Get the files `vllm_request_rate_space.yaml` and `operation_optuna.yaml` from
 > [our repository](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls).
 >
 > - `vllm_request_rate_space.yaml`: this file defines the _endpoint_, _model_,
@@ -48,14 +47,14 @@
 >          to match your own.**
 >   <!-- markdownlint-enable MD046 -->
 >   <!-- markdownlint-enable MD007  -->
-> - `operation_hyperopt.yaml`: this file contains the optimization parameters.
->   You do not need to edit it.
+> - `operation_optuna.yaml`: this file contains the optimization parameters. You
+>   do not need to edit it.
 >
 > Then, in a directory with these files, execute:
 >
 > ```bash
 > : # Note: this will create a discoveryspace resource you can reuse subsequently
-> ado create operation -f operation_hyperopt.yaml --with space=vllm_request_rate_space.yaml
+> ado create operation -f operation_optuna.yaml --with space=vllm_request_rate_space.yaml
 > ```
 
 ## Verify the installation
@@ -107,20 +106,20 @@ ado create space -f vllm_request_rate_space.yaml
 > More complex `discoveryspace`s can be created, for example also including the
 > number of input tokens. See [Next Steps](#next-steps).
 
-## Use hyperopt to find the best input request rate
+## Use Optuna to find the best input request rate
 
-[Hyperopt](http://hyperopt.github.io/hyperopt/) uses
-[Tree-Parzen Estimators (TPE)](https://proceedings.neurips.cc/paper_files/paper/2011/file/86e8f7ab32cfd12577bc2619bc635690-Paper.pdf)
-which is a bayesian approach that is expected to be good for discrete dimensions
-and noisy metrics, which we have here i.e. `request_throughput`.
+[Optuna](https://optuna.org/) uses
+[Tree-structured Parzen Estimators (TPE)](https://proceedings.neurips.cc/paper_files/paper/2011/file/86e8f7ab32cfd12577bc2619bc635690-Paper.pdf)
+by default, which is a Bayesian approach that is expected to be good for
+discrete dimensions and noisy metrics, which we have here i.e.
+`request_throughput`.
 
 <!-- markdownlint-disable-next-line MD013 -->
 
 The file
-[operation_hyperopt.yaml](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/)
-defines an optimization that will look for points (in this case
-`request_rate`s)that result in a `request_throughput` within the top 20th
-percentile. The files contents look like:
+[operation_optuna.yaml](https://github.com/IBM/ado/tree/main/plugins/actuators/vllm_performance/yamls/)
+defines an optimization that will look for points (in this case `request_rate`s)
+that result in high `request_throughput`. The file's contents look like:
 
 ```yaml
 spaces:
@@ -135,24 +134,26 @@ operation:
       mode: "max"
       num_samples: 16
       search_alg:
-        name: hyperopt
-        n_initial_points: 8 #Number of points to sample before optimizing
-        gamma: 0.25 #The top gamma fraction of measured values are considered "good"
+        name: optuna
+        params:
+          sampler: TPESampler
+          sampler_parameters:
+            n_startup_trials: 8 # Number of random samples before optimization
 ```
 
 Create the operation with:
 
 ```commandline
-ado create operation -f hyperopt.yaml --use-latest space
+ado create operation -f operation_optuna.yaml --use-latest space
 ```
 
 Results will appear as they are measured.
 
 > [!NOTE]
 >
-> Hyperopt samples with replacement so you may see the same points sampled
-> twice. The likelihood increases as the number of points in the space decreases
-> The likelihood increase as number of points in the space decreases
+> Optuna's TPESampler may sample the same point multiple times, especially as
+> the search converges on promising regions. The likelihood increases as the
+> number of points in the space decreases.
 
 ### Monitor the optimization
 
@@ -186,25 +187,24 @@ ado show entities space --output csv --use-latest > entities.csv
 > `ado show entities operation $OPERATION_ID` to see the sampling time-series of
 > that operation.
 
-## Some notes on hyperopt and TPE
+## Some notes on Optuna and TPE
 
-What you should observe is that as the search proceeds **hyperopt** will begin
-to prefer sampling points in the region with stable maximum, even if it has seen
-better values in "unstable" regions.
+What you should observe is that as the search proceeds **Optuna** will begin to
+prefer sampling points in regions that consistently give good results, even if
+it has occasionally seen better values in "unstable" regions.
 
 > [!IMPORTANT]
 >
-> Do not just take the best point found by hyperopt but look at where it was
+> Do not just take the best point found by Optuna but look at where it was
 > focusing its attention
 
 TPE builds models of where the "good" regions and "bad" regions of the discovery
 space are i.e. `P(x|good)`, `P(x|bad)`, where x is an input point. It then
-chooses new points to test by maximizing `P(x|good)/P(x|bad)`
+chooses new points to test by maximizing `P(x|good)/P(x|bad)`.
 
-This makes TPE robust to noise in request_throughput as it is not trying to find
-where the maximum is but is trying to find the request_rates that are most
-likely to give high throughput (above defined as throughput in top 20
-percentile). This also makes it robust to outliers.
+This makes TPE robust to noise in `request_throughput` as it is not trying to
+find where the exact maximum is but is trying to find the `request_rate`s that
+are most likely to give high throughput. This also makes it robust to outliers.
 
 Issues may arise if the optimal region is not sampled in the initial points and
 this region is disjoint from other regions with "good" performance. As the
@@ -213,9 +213,10 @@ and the best region is unlikely to be visited.
 
 > [!TIP]
 >
-> The number of samples hyperopt will use for first guess of good region is
-> (n_initial_points)\*gamma -> in above case 2, the other will be used for the
-> "bad" region
+> By default, Optuna's TPESampler uses the top 10% of observations (capped at 25
+> samples maximum) as the "good" region. With `n_startup_trials: 8`, the first 8
+> samples are random, then optimization begins. After 80+ samples, the "good"
+> region will be capped at the best 25 observations.
 
 ## Next steps
 
@@ -229,8 +230,7 @@ and the best region is unlikely to be visited.
   parameters can be explored
 - Try varying **`burstiness`** or **`number_input_tokens`**, or adding them as
   dimensions of the `entityspace`, to explore their impact on throughput
-- Try varying `num_samples`, `gamma` and `n_initial_points` parameters of
-  hyperopt
+- Try varying `num_samples` and `n_startup_trials` parameters of Optuna
   - You can keep running the optimization on the same `discoveryspace`. The
     previous runs will not influence new runs, but their results will be reused,
     speeding experimentation up

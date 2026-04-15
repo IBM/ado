@@ -73,7 +73,7 @@ re-measure an entity they sample if it already has data for that measurement.
 For example, an explore operation samples an entity from a space whose
 `measurementspace` includes an experiment called "myexperiment-v1". If it sees
 the entity has values for experiment `myexperiment-v1`, it won't execute it
-again, instead it replays it, and feature called **memoization**.
+again, instead it replays it, a feature called **memoization**.
 
 This means if a different user sampled and measured this entity with this
 experiment on a different space we transparently reuse their results, saving
@@ -107,11 +107,9 @@ it could not measure any of its target properties, the `entity` will be added to
 the `samplestore` (if it was not present already); the `operation` will proceed;
 but this entity will have no measured values for this experiment.
 
-If a measurement fails it is termed `invalid`.
-An Invalid measurement does not measure anything.
-However, invalid measurements are still added to the `samplestore`.
-This allows you to see a list of all measurements in an operation, even
-those that failed, along with the failure reason.
+Measurements that fail are still added in the `samplestore` in the form of
+**Invalid Measurements**. These measurements only record their failure reason
+(and not any result), to help track what measurements in an operation failed.
 
 > [!IMPORTANT]
 >

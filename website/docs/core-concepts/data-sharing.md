@@ -23,25 +23,23 @@ Two principles underpin data reuse in `ado`:
 
 ### Entities
 
-In `ado` two Entities are the same if they have identical
-sets of [constitutive property](properties-and-domains.md#property-types) values.
-Hence, `ado` uses [constitutive property](properties-and-domains.md#property-types)
-values to check
-if an Entity is present in the Sample Store,
-regardless of which Discovery Space originally recorded them.
+In `ado` two Entities are the same if they have identical sets of
+[constitutive property](properties-and-domains.md#property-types) values. Hence,
+`ado` uses [constitutive property](properties-and-domains.md#property-types)
+values to check if an Entity is present in the Sample Store, regardless of which
+Discovery Space originally recorded them.
 
->[!IMPORTANT]
+> [!IMPORTANT]
 >
-> The match does not use Entity identifiers as there are
-> situations where they could be  different even for Entities
-> with same constitutive properties.
+> The match does not use Entity identifiers as there are situations where they
+> could be different even for Entities with same constitutive properties.
 
 ### Measurements
 
-When an Entity is retrieved from the Sample Store, it carries
-the results of all Experiments that have been applied to it. `ado` checks
-whether any of those experiment identifiers match an Experiment in the current
-Measurement Space — if so, the result can be reused.
+When an Entity is retrieved from the Sample Store, it carries the results of all
+Experiments that have been applied to it. `ado` checks whether any of those
+experiment identifiers match an Experiment in the current Measurement Space — if
+so, the result can be reused.
 
 ## Data retrieval modes
 
@@ -72,16 +70,14 @@ compatible data from other spaces.
 explore operation. When an operation samples an Entity it proceeds as follows:
 
 - The Entity is sampled from the Entity Space
-- The Entity's record is retrieved from the Sample Store if present
-  - This match is on constitutive property values
-- If **memoization is on**
-    - for each Experiment in the Measurement Space, `ado` checks
-      if a result for it already exists (via the Experiment's unique identifier)
-        - if it does, the result is reused. If there is more than one result,
-          they are all reused
-- If **memoization is off**
-    - existing results are ignored. Each Experiment in the Measurement Space is
-      applied again to the Entity. The new results are added to any existing.
+- The Entity's record is retrieved from the Sample Store if present (*matching
+  on constitutive property values*).
+- If **memoization is on**, `ado` checks for existing results for each
+  Experiment in the Measurement Space using the Experiment’s unique identifier
+  and reuses all matching results if any are found.
+- If **memoization is off**, `ado` ignores existing results, reapplying each
+  Experiment in the Measurement Space to the Entity. The new results are added
+  to any that already exist.
 
 See [explore operators](../operators/explore_operators.md#memoization-replaying-measurements)
 for how memoization fits into the explore execution loop, and

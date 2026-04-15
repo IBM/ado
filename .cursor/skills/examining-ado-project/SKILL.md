@@ -1,11 +1,11 @@
 ---
 name: examining-ado-project
 description: >-
-  Builds a picture of work in an ado project: activity volume,
-  spaces and operations created over time, experiments and operation configs 
-  used etc. Use to create a project/context overview report,
-  summarize what the team has been doing in an ado project, report trends across
-  spaces/operations, or to onboard onto an ado project.
+  Builds a picture of work in an ado project: activity volume, spaces and
+  operations created over time, experiments and operation configs  used etc. Use
+  to create a project/context overview report, summarize what the team has been
+  doing in an ado project, report trends across spaces/operations, or to onboard
+  onto an ado project.
 ---
 
 # Examining an ado Project
@@ -15,16 +15,19 @@ related metadata in the ado project associated to the active context.
 
 - Run all commands from the **repository root** with `uv run` (see
   [using-ado-cli](../using-ado-cli/SKILL.md)).
-- See [projects and contexts](../../../website/docs/resources/metastore.md#contexts-and-projects)
+- See
+  [projects and contexts](../../../website/docs/resources/metastore.md#contexts-and-projects)
   for details on what projects and contexts are
 - Users may refer to an ado project using either the term "project" or "context"
 
 ## Tips
 
-- Prefer metastore listing and YAML dumps before heavy `uv run ado show` data pulls;
-  see [query-ado-data](../query-ado-data/SKILL.md).
-- For one space in depth: [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
-- For one operation in depth: [examining-ado-operations](../examining-ado-operations/SKILL.md).
+- Prefer metastore listing and YAML dumps before heavy `uv run ado show` data
+  pulls; see [query-ado-data](../query-ado-data/SKILL.md).
+- For one space in depth:
+  [examining-discovery-spaces](../examining-discovery-spaces/SKILL.md).
+- For one operation in depth:
+  [examining-ado-operations](../examining-ado-operations/SKILL.md).
 
 ## Pre-requisites - Check active context is associated with expected project
 
@@ -33,7 +36,8 @@ Context names and project names are identical by construction.
 If asked to examine a specific named project:
 
 1. Check the active context name: `uv run ado context`
-   - If it has the correct name, continue to [next step](#1-overview-activity-and-types)
+   - If it has the correct name, continue to
+     [next step](#1-overview-activity-and-types)
    - If not, run `uv run ado get contexts` to list all available contexts
      - If one matches, switch to it: `uv run ado context $NAME`
      - If none match, inform the user that a context for the specified project
@@ -49,8 +53,8 @@ Goal: volume of work, recency, and which spaces attract the most operations.
    uv run ado get spaces --details
    ```
 
-   Use **age** (list is age-sorted, most recent last), **name**, **description**,
-   and **labels** to infer themes and activity.
+   Use **age** (list is age-sorted, most recent last), **name**,
+   **description**, and **labels** to infer themes and activity.
 
 2. **Operations (tabular, with metadata)**
 
@@ -60,10 +64,10 @@ Goal: volume of work, recency, and which spaces attract the most operations.
 
    Relates operations to target spaces; age and labels summarize recent work.
 
-    **Heuristic — operation IDs:** many ids encode the operator and a version
-    segment, e.g. `OPERATOR_NAME-VERSION-...-UID` (exact shape varies). Use this
-    together with `uv run ado get operator --details` to understand more about
-    the operators used.
+   **Heuristic — operation IDs:** many ids encode the operator and a version
+   segment, e.g. `OPERATOR_NAME-VERSION-...-UID` (exact shape varies). Use this
+   together with `uv run ado get operator --details` to understand more about
+   the operators used.
 
 **Synthesis:** cluster mentally (or in notes) by **creation time** to see bursts
 of activity; count operations **per space** from the operations listing to see
@@ -75,15 +79,16 @@ Goal: experiments/actuators in use, operation parameters, and how much was
 **submitted** for measurement (entities selected by explore-style operators—may
 differ from completed measurements if runs failed).
 
-Dump full resource documents for easier scripted or batched reading:
+Dump full resource documents for easier scripted or batched reading. Use
+`--output-file` to ensure proper file handling:
 
 ```bash
-uv run ado get spaces -o yaml > spaces.yaml
-uv run ado get operations -o yaml > operations.yaml
+uv run ado get spaces -o yaml --output-file spaces.yaml
+uv run ado get operations -o yaml --output-file operations.yaml
 ```
 
-On **large metastores**, these files can be very large—prefer `uv run ado get …
--q …` filters, scripts, or the SQL store API (see
+On **large metastores**, these files can be very large—prefer
+`uv run ado get … -q …` filters, scripts, or the SQL store API (see
 [query-ado-data](../query-ado-data/SKILL.md)) before dumping everything.
 
 When interpreting YAML fields, confirm paths against resource schemas:
@@ -93,25 +98,25 @@ uv run ado template discoveryspace --include-schema
 uv run ado template operation --include-schema
 ```
 
-From **space** YAML: note **experiment** and **actuator** identifiers
-referenced by each space.
+From **space** YAML: note **experiment** and **actuator** identifiers referenced
+by each space.
 
 Gain further information on the experiments using
 
 ```bash
 # Outputs description of actuators used
-uv run ado get actuators --details 
-# Outputs description of experiments used 
-uv run ado get experiments --details 
-# Outputs detailed information on an experiment 
+uv run ado get actuators --details
+# Outputs description of experiments used
+uv run ado get experiments --details
+# Outputs detailed information on an experiment
 # Use to drill down into most used experiments
 uv run ado describe experiment $EXPERIMENT_ID
 ```
 
-From **operation** YAML: note actuatorconfigurations used (if any),
-read **parameters** (operator-specific), target
-**discoveryspace** references, and any fields that indicate **entity count /
-batch / sample** configuration for explore operations.
+From **operation** YAML: note actuatorconfigurations used (if any), read
+**parameters** (operator-specific), target **discoveryspace** references, and
+any fields that indicate **entity count / batch / sample** configuration for
+explore operations.
 
 **Synthesize:**
 
@@ -123,9 +128,9 @@ batch / sample** configuration for explore operations.
 
 ## 3. Space relationships and entity-space shape
 
-From step 2, pick a handful of **commonly operated on or recent** spaces. For each,
-inspect its fragment in `spaces.yaml`, focusing on **entity space** structure
-(dimensions, bounds, representation).
+From step 2, pick a handful of **commonly operated on or recent** spaces. For
+each, inspect its fragment in `spaces.yaml`, focusing on **entity space**
+structure (dimensions, bounds, representation).
 
 Find **Spaces that match these spaces** (refinement, expansion, or parallel
 configurations)
@@ -138,10 +143,11 @@ Use the output to
 
 - Group spaces that match
 - Within each group identify subgroups whose spaces are identical
-- If multiple subgroups identify the hierarchy between them (broadest to narrowest)
+- If multiple subgroups identify the hierarchy between them (broadest to
+  narrowest)
 - Within subgroups identify what if measurement space is different between them
-- Combine this information with the sequence of space creation to
-  understand how researchers have been evolving the spaces
+- Combine this information with the sequence of space creation to understand how
+  researchers have been evolving the spaces
 
 Optionally complement with one-hop links:
 
@@ -159,8 +165,9 @@ Write a concise markdown report
 - Write the report as `project_<YYYY-MM-DD>_report.md`.
 - If a report already exists, check whether there has been meaningful activity
   since it was written before replacing it:
-  1. Run `uv run ado get spaces --details` and `uv run ado get operations
-     --details` and note the age of the most recent resource.
+  1. Run `uv run ado get spaces --details` and
+     `uv run ado get operations --details` and note the age of the most recent
+     resource.
   2. If the most recent resource is **younger** than the date of the existing
      report, there has been new activity — proceed to write a new report.
   3. If not, ask the user whether they want to replace it.
@@ -186,7 +193,8 @@ Write a concise markdown report
 
 ### Operations overview
 
-- Operator mix and whether **parameters** or **operator choice** evolve over time.
+- Operator mix and whether **parameters** or **operator choice** evolve over
+  time.
 - Which operations **submitted** the most entities (from operation YAML/config).
 - What **analysis**-style operations ran (infer from operator names and
   parameters).

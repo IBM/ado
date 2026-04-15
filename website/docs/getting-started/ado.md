@@ -777,6 +777,9 @@ Where:
 
 ###### Show matching entities in a Space with target format and output them as CSV
 
+Recommended approach using `--output-file` (ensures columns aren't truncated and
+handles file write errors):
+
 ```shell
  ado show entities space space-abc123-456def --include matching \
                                              --property-format target \
@@ -845,7 +848,8 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 ado show requests operation randomwalk-0.5.0-123abc -o csv > requests.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show requests operation randomwalk-0.5.0-123abc -o csv --output-file requests.csv
@@ -903,7 +907,8 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 ado show results operation randomwalk-0.5.0-123abc -o csv > results.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.csv
@@ -1050,7 +1055,8 @@ ado show summary space space-abc123-456def -o md
 ado show summary space -l issue=123 -o csv > summary.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show summary space -l issue=123 -o csv --output-file summary.csv

@@ -54,8 +54,8 @@ In the case of (b) (latest) get the actual operation identifier as follows
 uv run ado show related operation --use-latest
 ```
 
-This will output the id of the latest operation created
-in the active ado context.
+This will output the id of the latest operation created in the active ado
+context.
 
 ## Tips
 
@@ -70,9 +70,9 @@ redirected to a file and loaded with python.
 
 ### Large output files
 
-The output produced by '-o/--output' can be very large e.g. from "show entities",
-"show requests" or "show results". Use the `--output-file` flag with the name of
-the file where to save the output and, when inspecting these files:
+The output produced by '-o/--output' can be very large e.g. from "show
+entities", "show requests" or "show results". Use the `--output-file` flag with
+the name of the file where to save the output and, when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
@@ -191,10 +191,11 @@ An operation can create the following resources
 - operations: In this case recursively examine the operations using this skill
 - datacontainers: This contains non-ado resource outputs e.g. CSV data.
 
-To retrieve contents of data container
+To retrieve contents of data container. Use `--output-file` to ensure proper
+file handling:
 
 ```bash
-uv run ado get datacontainer -o yaml $DATACONTAINER_IDENTIFIER > datacontainer.yaml
+uv run ado get datacontainer -o yaml $DATACONTAINER_IDENTIFIER --output-file datacontainer.yaml
 ```
 
 For each output resource summarize what it is/contains.
@@ -272,10 +273,9 @@ uv run ado show entities operation OPERATION_ID \
 
 ### Step 4: Analyze the Measurement data
 
-Perform an analysis of the measurements, checking e.g. distributions of
-metrics, metric outliers, correlations between metrics.
-Take into account the domain of the experiment and meaning of metrics
-when looking for patterns.
+Perform an analysis of the measurements, checking e.g. distributions of metrics,
+metric outliers, correlations between metrics. Take into account the domain of
+the experiment and meaning of metrics when looking for patterns.
 
 ## Diagnose if an Explore or Search Operation is Running Workflow
 

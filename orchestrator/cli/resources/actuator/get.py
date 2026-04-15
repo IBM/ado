@@ -1,14 +1,12 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import rich.box
 import typer
 from rich.status import Status
 
 from orchestrator.cli.models.parameters import AdoGetCommandParameters
 from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
 from orchestrator.cli.utils.output.prints import (
-    ADO_INFO_EMPTY_DATAFRAME,
     ADO_SPINNER_GETTING_OUTPUT_READY,
     ADO_SPINNER_INITIALIZING_ACTUATOR_REGISTRY,
     ERROR,
@@ -16,7 +14,6 @@ from orchestrator.cli.utils.output.prints import (
     INFO,
     console_print,
 )
-from orchestrator.utilities.rich import dataframe_to_rich_table
 
 
 def get_actuator(parameters: AdoGetCommandParameters) -> None:
@@ -63,18 +60,6 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
             )
             raise typer.Exit(1)
 
-        # Handle NAME output format
-        if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
-            spinner.stop()
-            if parameters.resource_id:
-                # Single actuator: output its identifier (existence already validated above)
-                console_print(parameters.resource_id)
-            else:
-                # Multiple actuators: output all identifiers
-                for actuator_id in available_actuators:
-                    console_print(actuator_id)
-            return
-
         spinner.update(ADO_SPINNER_GETTING_OUTPUT_READY)
 
         # Build column structure
@@ -109,16 +94,9 @@ def get_actuator(parameters: AdoGetCommandParameters) -> None:
         # Create DataFrame
         output_df = pd.DataFrame(data=data, columns=columns)
 
-        if output_df.empty:
-            spinner.stop()
-            console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-            return
+        spinner.stop()
 
-    console_print(
-        dataframe_to_rich_table(
-            output_df,
-            box=rich.box.SQUARE,
-            show_edge=True,
-            do_not_truncate_columns=parameters.no_trunc,
-        )
-    )
+    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+    # Use unified handler for rendering
+    handle_ado_get(parameters=parameters, dataframe=output_df)

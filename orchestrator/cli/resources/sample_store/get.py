@@ -2,23 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 from orchestrator.cli.models.parameters import AdoGetCommandParameters
-from orchestrator.cli.models.types import AdoGetSupportedOutputFormats
+from orchestrator.cli.utils.resources.handlers import handle_ado_get
 from orchestrator.core.resources import CoreResourceKinds
 
 
 def get_sample_store(parameters: AdoGetCommandParameters) -> None:
-    from orchestrator.cli.utils.resources.handlers import (
-        handle_ado_get_default_format,
-        handle_ado_get_special_formats,
-    )
-
-    if parameters.output_format == AdoGetSupportedOutputFormats.TABLE:
-        handle_ado_get_default_format(
-            parameters=parameters,
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-        )
-    else:
-        handle_ado_get_special_formats(
-            parameters=parameters,
-            resource_type=CoreResourceKinds.SAMPLESTORE,
-        )
+    handle_ado_get(parameters=parameters, resource_type=CoreResourceKinds.SAMPLESTORE)

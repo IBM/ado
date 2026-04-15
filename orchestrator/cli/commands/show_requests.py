@@ -122,15 +122,6 @@ def show_requests_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    # Validate that output_file is only used with file-based formats
-    if output_file and output_format == AdoShowRequestsSupportedOutputFormats.TABLE:
-        console_print(
-            f"{ERROR} --output-file cannot be used with --output console. "
-            f"Use --output csv or --output json instead.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
     if not resource_id and not use_latest:
         console_print(
             f"{ERROR}You must specify either a resource id or the --use-latest flag",

@@ -178,15 +178,6 @@ def show_entities_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    # Validate that output_file is only used with file-based formats
-    if output_file and output_format == AdoShowEntitiesSupportedOutputFormats.TABLE:
-        console_print(
-            f"{ERROR} --output-file cannot be used with --output console. "
-            f"Use --output csv or --output json instead.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
     if use_latest:
         resource_id = get_effective_resource_id(
             explicit_resource_id=resource_id,

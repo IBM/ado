@@ -191,18 +191,6 @@ def show_summary_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    # Validate that output_file is only used with file-based formats
-    if output_file and output_format in (
-        AdoShowSummarySupportedOutputFormats.MARKDOWN,
-        AdoShowSummarySupportedOutputFormats.TABLE,
-    ):
-        console_print(
-            f"{ERROR} --output-file cannot be used with --output {output_format.value}. "
-            f"Use --output csv instead.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
     resource_kind = CoreResourceKinds(resource_type.value)
 
     # Fetch the latest resource ID from the database

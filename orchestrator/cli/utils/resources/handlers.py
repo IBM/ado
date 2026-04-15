@@ -8,6 +8,7 @@ import pydantic
 import rich.rule
 import typer
 import yaml
+from rich.console import RenderableType
 from rich.status import Status
 
 from orchestrator.cli.models.types import (
@@ -106,17 +107,19 @@ def _handle_name_format(
             else "IDENTIFIER"
         )
         if identifier_column in dataframe.columns:
-            for identifier in dataframe[identifier_column]:
-                console_print(identifier)
+            output = "\n".join(
+                str(identifier) for identifier in dataframe[identifier_column]
+            )
+            _write_or_print_output(output, parameters.output_file)
         return
 
     # If resources provided, extract identifiers
     if resources is not None:
         if isinstance(resources, list):
-            for resource in resources:
-                console_print(resource.identifier)
+            output = "\n".join(resource.identifier for resource in resources)
         else:
-            console_print(resources.identifier)
+            output = resources.identifier
+        _write_or_print_output(output, parameters.output_file)
         return
 
     # Otherwise use efficient DB query
@@ -141,7 +144,7 @@ def _handle_name_format(
                     resource_id=parameters.resource_id, kind=resource_type
                 )
             status.stop()
-            console_print(parameters.resource_id)
+            _write_or_print_output(parameters.resource_id, parameters.output_file)
         else:
             # Multiple resources: use efficient getResourceIdentifiersOfKind
             identifiers_df = sql_store.getResourceIdentifiersOfKind(
@@ -154,8 +157,10 @@ def _handle_name_format(
                 console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
                 return
             # Output one identifier per line
-            for identifier in identifiers_df["IDENTIFIER"]:
-                console_print(identifier)
+            output = "\n".join(
+                str(identifier) for identifier in identifiers_df["IDENTIFIER"]
+            )
+            _write_or_print_output(output, parameters.output_file)
 
 
 def _handle_table_format(
@@ -173,17 +178,22 @@ def _handle_table_format(
             console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
             return
 
-        console_print(
-            dataframe_to_rich_table(
-                df,
-                box=rich.box.SQUARE,
-                show_index=True,
-                show_edge=True,
-                do_not_truncate_columns=(
-                    ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
-                ),
+        # When writing to file, avoid truncating columns by default
+        if parameters.output_file:
+            do_not_truncate = True
+        else:
+            do_not_truncate = (
+                ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
             )
+
+        table = dataframe_to_rich_table(
+            df,
+            box=rich.box.SQUARE,
+            show_index=True,
+            show_edge=True,
+            do_not_truncate_columns=do_not_truncate,
         )
+        _write_or_print_output(table, parameters.output_file)
         return
 
     # If dataframe provided, use it directly
@@ -351,9 +361,21 @@ def _handle_structured_formats(
     _write_or_print_output(output_content, parameters.output_file)
 
 
-def _write_or_print_output(content: str, output_file: pathlib.Path | None) -> None:
-    """Helper to write to file or print to console."""
+def _write_or_print_output(
+    content: str | RenderableType, output_file: pathlib.Path | None
+) -> None:
+    """Helper to write to file or print to console.
+
+    Args:
+        content: String content or rich renderable to output
+        output_file: Optional file path. If provided, content is written to file.
+    """
     if output_file:
+        # Convert to string if it's a rich renderable
+        if not isinstance(content, str):
+            from orchestrator.utilities.rich import render_to_string
+
+            content = render_to_string(content, auto_width=True)
         output_file.write_text(content)
         console_print(f"{SUCCESS}Output written to {output_file}", stderr=True)
     else:

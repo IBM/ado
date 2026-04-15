@@ -34,27 +34,57 @@ def df_to_output(
     Args:
         df: The dataframe to output
         output_format: The format to use (table, json, or csv)
-        output_file: Optional file path. If None, output goes to stdout (except for table format)
-        no_trunc: Whether to avoid truncating columns in table output
+        output_file: Optional file path. If None, output goes to stdout.
+            When writing table format to a file, columns are not truncated by default.
+        no_trunc: Whether to avoid truncating columns in table output (console only).
+            Ignored when output_file is provided as truncation is automatically disabled.
     """
     if df.empty:
         console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
         return
 
+    # Convert output_file to Path if it's a string
+    if output_file is not None and isinstance(output_file, str):
+        output_file = Path(output_file)
+
     # For csv and json formats
     match output_format:
         case "table":
-            output = dataframe_to_rich_table(
+            # When writing to file, avoid truncating columns by default
+            do_not_truncate = True if output_file else no_trunc
+
+            table = dataframe_to_rich_table(
                 df,
                 show_edge=True,
                 show_index=True,
                 box=rich.box.SQUARE,
-                do_not_truncate_columns=no_trunc,
+                do_not_truncate_columns=do_not_truncate,
             )
+            if output_file:
+                # Convert table to string for file output
+                from orchestrator.utilities.rich import render_to_string
+
+                output_str = render_to_string(table, auto_width=True)
+                output_file.write_text(output_str)
+                console_print(
+                    f"{SUCCESS} Output saved as {magenta(str(output_file))}",
+                    stderr=True,
+                )
+            else:
+                console_print(table)
+                if (
+                    df.shape[0] >= DATAFRAME_ROWS_THRESHOLD
+                    or df.shape[1] >= DATAFRAME_COLS_THRESHOLD
+                ):
+                    console_print(
+                        f"{HINT}The output is very large. Consider redirecting it to a file",
+                        stderr=True,
+                    )
+            return
         case "csv":
             output = df.to_csv()
         case "json":
-            output = df.to_json()
+            output = df.to_json() or ""
 
     if not output_file:
         console_print(output)

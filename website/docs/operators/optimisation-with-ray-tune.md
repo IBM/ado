@@ -31,9 +31,10 @@ Use the `ray_tune` operator when you want to:
   property/target property i.e. sample to understand the distribution of that
   metric in the space
 
-The `ray_tune` operator supports **memoization**: if it samples the same entity
-twice, and that entity has already had the measurement space applied, it will
-replay the already measured values (by default).
+The `ray_tune` operator supports
+[**memoization**](../core-concepts/data-sharing.md#memoization): if it samples
+the same entity twice, and that entity has already had the measurement space
+applied, it will replay the already measured values (by default).
 
 ### Differences in using the `ray_tune` operator and RayTune directly
 
@@ -41,7 +42,7 @@ Using RayTune via the ado `ray_tune` operator brings the following advantages:
 
 - Distributed storage and sharing of optimization runs and their results
 - Automatic recording of provenance
-- Transparent and distributed memoization
+- Transparent and distributed [memoization](../core-concepts/data-sharing.md#memoization)
 - Fully declarative interface, no need for programming
 
 However, there are a few drawbacks:

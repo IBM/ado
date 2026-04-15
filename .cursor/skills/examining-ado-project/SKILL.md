@@ -123,7 +123,7 @@ batch / sample** configuration for explore operations.
 
 ## 3. Space relationships and entity-space shape
 
-From step 2, pick a handful of **high-traffic or recent** spaces. For each,
+From step 2, pick a handful of **commonly operated on or recent** spaces. For each,
 inspect its fragment in `spaces.yaml`, focusing on **entity space** structure
 (dimensions, bounds, representation).
 

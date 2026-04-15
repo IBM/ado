@@ -444,9 +444,7 @@ Where:
 <!-- prettier-ignore-end -->
 
 - `--output-file` allows writing the output to a specified file instead of
-  stdout. This flag is only supported when using the `yaml`, `json`, `config`,
-  or `raw` output formats. It cannot be used with the `default` or `name`
-  formats.
+  stdout. Avoids truncating columns when used with the `table` format.
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
   used to show them.
@@ -621,6 +619,18 @@ ado get space my-space-id -o yaml --output-file space.yaml
 ado get operations -o json --output-file operations.json
 ```
 
+##### Saving resource identifiers to a file
+
+```shell
+ado get spaces -o name --output-file space-ids.txt
+```
+
+##### Saving table output to a file
+
+```shell
+ado get spaces --output-file spaces-table.txt
+```
+
 ### ado show
 
 When interacting with resources, we might be interested in seeing some of their
@@ -793,6 +803,12 @@ ado show entities operation randomwalk-0.5.0-123abc -o json \
                                                     --property my-property-2
 ```
 
+###### Save table output of entities to a file
+
+```shell
+ado show entities space space-abc123-456def --output-file entities-table.txt
+```
+
 #### ado show requests
 
 _show requests_ supports displaying the `MeasurementRequest`s that were part of
@@ -845,6 +861,12 @@ ado show requests operation randomwalk-0.5.0-123abc --hide type --hide "experime
 
 <!-- markdownlint-enable line-length -->
 
+###### Save table output of requests to a file
+
+```shell
+ado show requests operation randomwalk-0.5.0-123abc --output-file requests-table.txt
+```
+
 #### ado show results
 
 _show results_ supports displaying the `MeasurementResult`s that were part of an
@@ -891,6 +913,12 @@ ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.
 
 ```shell
 ado show results operation randomwalk-0.5.0-123abc --hide uid
+```
+
+###### Save table output of results to a file
+
+```shell
+ado show results operation randomwalk-0.5.0-123abc --output-file results-table.txt
 ```
 
 #### ado show related
@@ -1026,6 +1054,18 @@ Or to write to a file directly:
 
 ```shell
 ado show summary space -l issue=123 -o csv --output-file summary.csv
+```
+
+###### Save table summary output to a file
+
+```shell
+ado show summary space my-space-id --output-file summary-table.txt
+```
+
+###### Save markdown summary output to a file
+
+```shell
+ado show summary space my-space-id -o md --output-file summary.md
 ```
 
 ###### Get the summary of spaces that include granite-7b-base in the property domain

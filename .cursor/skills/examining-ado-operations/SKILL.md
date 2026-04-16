@@ -28,6 +28,8 @@ on, and whether measurements and results look healthy.
   [using-ado-cli](../using-ado-cli/SKILL.md).
 - For metastore filtering, schemas see
   [query-ado-data](../query-ado-data/SKILL.md).
+- For a project/context wide view (all spaces and operations), see
+  [examining-ado-project](../examining-ado-project/SKILL.md).
 
 ## Context
 
@@ -52,7 +54,8 @@ In the case of (b) (latest) get the actual operation identifier as follows
 uv run ado show related operation --use-latest
 ```
 
-This will output the id of the latest operation.
+This will output the id of the latest operation created
+in the active ado context.
 
 ## Tips
 
@@ -67,10 +70,9 @@ redirected to a file and loaded with python.
 
 ### Large output files
 
-The files created by '-o/--output-format' can be very large e.g. from "show
-entities", "show requests" or "show results".
-
-When inspecting these files:
+The output produced by '-o/--output' can be very large e.g. from "show entities",
+"show requests" or "show results". Use the `--output-file` flag with the name of
+the file where to save the output and, when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
@@ -240,9 +242,9 @@ measured, noting the [guidelines on large files](#large-output-files):
 
 ```bash
 uv run ado show requests operation OPERATION_ID \
-  --output-format csv
+  -o csv --output-file OPERATION_ID_requests.csv
 uv run ado show results operation OPERATION_ID \
-  --output-format csv
+  -o csv --output-file OPERATION_ID_results.csv
 ```
 
 - **requests**: This is metadata on what the sampling operation asked an
@@ -265,7 +267,7 @@ To get the data on measurements execute (noting the
 
 ```bash
 uv run ado show entities operation OPERATION_ID \
-  --output-format csv
+  -o csv --output-file OPERATION_ID_entities.csv
 ```
 
 ### Step 4: Analyze the Measurement data

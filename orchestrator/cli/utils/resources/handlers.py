@@ -125,11 +125,17 @@ def handle_ado_get_special_formats(
                 )
 
         status.stop()
-        console_print(
-            format_resource_for_ado_get_custom_format(
-                to_print=resources, parameters=parameters
-            )
+        output_content = format_resource_for_ado_get_custom_format(
+            to_print=resources, parameters=parameters
         )
+
+        if parameters.output_file:
+            parameters.output_file.write_text(output_content)
+            console_print(
+                f"{SUCCESS}Output written to {parameters.output_file}", stderr=True
+            )
+        else:
+            console_print(output_content)
 
 
 def handle_ado_get_default_format(
@@ -167,7 +173,11 @@ def handle_ado_get_default_format(
                     box=rich.box.SQUARE,
                     show_index=True,
                     show_edge=True,
-                    do_not_truncate_column_content=parameters.no_trunc,
+                    do_not_truncate_columns=(
+                        ["IDENTIFIER"]
+                        if not parameters.no_trunc
+                        else parameters.no_trunc
+                    ),
                 )
             )
             return
@@ -191,7 +201,9 @@ def handle_ado_get_default_format(
                 output_df,
                 box=rich.box.SQUARE,
                 show_edge=True,
-                do_not_truncate_column_content=parameters.no_trunc,
+                do_not_truncate_columns=(
+                    ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
+                ),
             )
         )
 

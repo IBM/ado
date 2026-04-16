@@ -643,6 +643,71 @@ class SQLResourceStore(ResourceStore):
 
         return output_df[columns]
 
+    def get_latest_resource_identifiers_of_kinds(
+        self,
+        kinds: list[CoreResourceKinds],
+    ) -> dict[CoreResourceKinds, str]:
+        """Retrieve the identifiers of the most recently created resources for multiple kinds.
+
+        This method executes a single database query to fetch the latest resource
+        identifier for each specified kind, minimizing database round-trips.
+
+        Args:
+            kinds: List of resource kinds to query
+
+        Returns:
+            Dictionary mapping each kind to its most recent resource identifier.
+            Kinds with no resources are omitted from the result.
+
+        Raises:
+            ValueError: If any supplied kind is not a known CoreResourceKinds value
+
+        Example:
+            >>> store.get_latest_resource_identifiers_of_kinds([
+            ...     CoreResourceKinds.DISCOVERYSPACE,
+            ...     CoreResourceKinds.ACTUATORCONFIGURATION
+            ... ])
+            {
+                CoreResourceKinds.DISCOVERYSPACE: "space-abc123",
+                CoreResourceKinds.ACTUATORCONFIGURATION: "actconf-def456"
+            }
+        """
+        if not kinds:
+            return {}
+
+        # Validate all kinds are CoreResourceKinds instances
+        invalid_kinds = [
+            kind for kind in kinds if not isinstance(kind, CoreResourceKinds)
+        ]
+
+        if invalid_kinds:
+            raise ValueError(
+                f"All kinds must be CoreResourceKinds instances. Invalid: {invalid_kinds}"
+            )
+
+        # Convert CoreResourceKinds to string values for SQL query
+        kind_values = [kind.value for kind in kinds]
+
+        # Generate and execute the SQL query (returns bound TextClause)
+        query = orchestrator.metastore.sql.statements.resource_select_latest_by_kinds(
+            kinds=kind_values,
+            dialect=self.engine.dialect.name,
+        )
+
+        with self.engine.connect() as connectable:
+            result = connectable.execute(query)
+            rows = result.fetchall()
+
+        # Build dictionary mapping kind to identifier
+        latest_ids: dict[CoreResourceKinds, str] = {}
+        for row in rows:
+            identifier, kind_str, _created = row
+            # Convert string kind back to CoreResourceKinds enum
+            kind_enum = CoreResourceKinds(kind_str)
+            latest_ids[kind_enum] = identifier
+
+        return latest_ids
+
     def resourceTable(self) -> "pd.DataFrame":
         import pandas as pd
 
@@ -1246,7 +1311,8 @@ class SQLResourceStore(ResourceStore):
                             "WHERE identifier = ("
                             "   SELECT subject_identifier"
                             "   FROM resource_relationships"
-                            "   WHERE object_identifier=:operation_identifier)"
+                            "   WHERE object_identifier=:operation_identifier"
+                            "   AND subject_identifier LIKE 'space-%')"
                         ).bindparams(operation_identifier=identifier)
                     ).first()[0]
 

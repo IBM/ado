@@ -5,12 +5,19 @@
 
 # Import all migrator subpackages to trigger registration
 from orchestrator.core.legacy.migrators import (
+    actuatorconfiguration,
     discoveryspace,
     operation,
     resource,
     samplestore,
 )
 
-__all__ = ["discoveryspace", "operation", "resource", "samplestore"]
+__all__ = [
+    "actuatorconfiguration",
+    "discoveryspace",
+    "operation",
+    "resource",
+    "samplestore",
+]
 
 # Made with Bob

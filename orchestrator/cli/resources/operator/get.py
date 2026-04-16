@@ -23,6 +23,9 @@ from orchestrator.utilities.strings import (
 
 def get_operator(parameters: AdoGetCommandParameters) -> None:
 
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["OPERATOR"]
+
     with Status(ADO_SPINNER_GETTING_OUTPUT_READY):
         import pandas as pd
 
@@ -30,16 +33,16 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
 
     # Validate output format
     if parameters.output_format not in {
-        AdoGetSupportedOutputFormats.DEFAULT,
+        AdoGetSupportedOutputFormats.TABLE,
         AdoGetSupportedOutputFormats.NAME,
     }:
         console_print(
             f"{WARN}{cyan('ado get operators')} only supports the "
-            f"{AdoGetSupportedOutputFormats.DEFAULT.value} and "
+            f"{AdoGetSupportedOutputFormats.TABLE.value} and "
             f"{AdoGetSupportedOutputFormats.NAME.value} output formats",
             stderr=True,
         )
-        parameters.output_format = AdoGetSupportedOutputFormats.DEFAULT
+        parameters.output_format = AdoGetSupportedOutputFormats.TABLE
 
     # Handle NAME output format
     if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
@@ -67,7 +70,7 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
                 console_print(operator_name)
         return
 
-    # Build entries for DEFAULT format
+    # Build entries for TABLE format
     entries = []
     for (
         collection
@@ -116,6 +119,6 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
             show_edge=True,
             show_index=True,
             box=rich.box.SQUARE,
-            do_not_truncate_column_content=parameters.no_trunc,
+            do_not_truncate_columns=parameters.no_trunc,
         )
     )

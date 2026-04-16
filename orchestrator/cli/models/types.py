@@ -20,9 +20,7 @@ _SAMPLE_STORE_SINGULAR = "samplestore"
 
 # Output formats
 _CONFIG = "config"
-_CONSOLE = "console"
 _CSV = "csv"
-_DEFAULT = "default"
 _JSON = "json"
 _MARKDOWN_SHORT = "md"
 _NAME = "name"
@@ -93,10 +91,10 @@ class AdoEditSupportedResourceTypes(Enum):
 #################### ado get ####################
 class AdoGetSupportedOutputFormats(Enum):
     CONFIG = _CONFIG
-    DEFAULT = _DEFAULT
     JSON = _JSON
     NAME = _NAME
     RAW = _RAW
+    TABLE = _TABLE
     YAML = _YAML
 
 
@@ -128,9 +126,9 @@ class AdoShowEntitiesSupportedEntityTypes(Enum):
 
 
 class AdoShowEntitiesSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
     CSV = _CSV
     JSON = _JSON
+    TABLE = _TABLE
 
 
 class AdoShowEntitiesSupportedPropertyFormats(Enum):
@@ -154,9 +152,9 @@ class AdoShowRelatedSupportedResourceTypes(Enum):
 
 #################### ado show requests ####################
 class AdoShowRequestsSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
     CSV = _CSV
     JSON = _JSON
+    TABLE = _TABLE
 
 
 class AdoShowRequestsSupportedResourceTypes(Enum):
@@ -165,9 +163,9 @@ class AdoShowRequestsSupportedResourceTypes(Enum):
 
 #################### ado show results ####################
 class AdoShowResultsSupportedOutputFormats(Enum):
-    CONSOLE = _CONSOLE
     CSV = _CSV
     JSON = _JSON
+    TABLE = _TABLE
 
 
 class AdoShowResultsSupportedResourceTypes(Enum):

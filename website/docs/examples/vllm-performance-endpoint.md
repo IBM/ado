@@ -169,7 +169,9 @@ and the results (this outputs the entities in sampled order):
 ado show entities operation --use-latest
 ```
 
-Instead of `--use-latest` you can also supply the operation id directly.
+Instead of `--use-latest` you can also supply the operation id directly if you
+want to inspect a specific operation rather than the most recent one in the
+current context.
 
 ### Check final results
 
@@ -177,7 +179,7 @@ When the output indicates that the experiment has finished, you can inspect the
 results of all operations run so far on the space with:
 
 ```commandline
-ado show entities space --output-format csv --use-latest
+ado show entities space --output csv --use-latest > entities.csv
 ```
 
 > [!NOTE]

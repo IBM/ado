@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
 import typing
 from typing import Annotated
 
@@ -51,9 +52,23 @@ def show_requests_for_resources(
     output_format: Annotated[
         AdoShowRequestsSupportedOutputFormats,
         typer.Option(
-            "-o", "--output-format", help="The format in which to output the requests."
+            "--output",
+            "-o",
+            help="The format in which to output the requests.",
         ),
-    ] = AdoShowRequestsSupportedOutputFormats.CONSOLE.value,
+    ] = AdoShowRequestsSupportedOutputFormats.TABLE.value,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ] = None,
     hide_fields: Annotated[
         list[str] | None,
         typer.Option(
@@ -107,6 +122,15 @@ def show_requests_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
+    # Validate that output_file is only used with file-based formats
+    if output_file and output_format == AdoShowRequestsSupportedOutputFormats.TABLE:
+        console_print(
+            f"{ERROR} --output-file cannot be used with --output console. "
+            f"Use --output csv or --output json instead.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     if not resource_id and not use_latest:
         console_print(
             f"{ERROR}You must specify either a resource id or the --use-latest flag",
@@ -118,13 +142,14 @@ def show_requests_for_resources(
         resource_id = get_effective_resource_id(
             explicit_resource_id=resource_id,
             resource_type=resource_type.value,
-            ado_configuration=ado_configuration,
+            project_context=ado_configuration.project_context,
         )
 
     parameters = AdoShowRequestsCommandParameters(
         ado_configuration=ado_configuration,
         hide_fields=hide_fields,
         no_trunc=no_trunc,
+        output_file=output_file,
         output_format=output_format,
         resource_id=resource_id,
     )
@@ -140,5 +165,5 @@ def register_show_requests_command(app: typer.Typer) -> None:
     app.command(
         name="requests",
         no_args_is_help=True,
-        options_metavar="[-o | --output-format <format>] [--hide <column>]",
+        options_metavar="[-o | --output <format>] [--output-file <path>] [--hide <column>]",
     )(show_requests_for_resources)

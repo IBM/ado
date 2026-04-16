@@ -65,7 +65,19 @@ Similar to `oc projects`, users can list available contexts by running:
 ado contexts
 ```
 
-The default context will also be printed out.
+It's also possible to output this information in multiple formats via the
+`-o/--output` flag:
+
+```shell
+# List context names only
+ado contexts -o name
+
+# Export contexts as YAML
+ado contexts -o yaml
+
+# Export contexts as JSON
+ado contexts -o json
+```
 
 ##### Switching between contexts
 
@@ -119,13 +131,9 @@ Where:
   example, you can create a space along with a sample store definition, or
   create an operation together with an actuator configuration and a space
   definition. See the Examples section for more details.
-- `--use-latest` allows reusing the previous identifier of a certain resource
-  kind. It is only supported for spaces and operations. The latest identifiers
-  are updated every time an `ado create` command is successful. The stored
-  identifiers are not per-context, meaning that, for example running
-  `ado create samplestore`, changing context, and running
-  `ado create --use-latest samplestore` will raise an error. Ignored if `--with`
-  is used.
+- `--use-latest` allows reusing the latest identifier of a certain resource kind
+  from the current context's metastore. It is only supported for spaces and
+  operations during `ado create`. Ignored if `--with` is used.
 - `--new-sample-store` creates a new sample store. Only available when running
   `ado create` on `space` and `samplestore`. If running
   `ado create space --new-sample-store`, the `sampleStoreIdentifier` contained
@@ -297,7 +305,7 @@ Where:
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   allows getting a description of the space, given a space configuration file.
 - `--use-latest` flag is **currently only available for spaces** and allows
-  describing the latest space created locally. It is not context aware.
+  describing the most recently created space from the current context.
 - `--actuator-id` (**optional**) can be used only when the resource type is
   experiment and is used to indicate what actuator the experiment belongs to.
 
@@ -382,6 +390,7 @@ The complete syntax of the `ado get` command is as follows:
 
 ```shell
 ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
+                                    [--output-file <path>] \
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
@@ -422,7 +431,7 @@ Where:
 
 <!-- prettier-ignore-start -->
 
-    - The `default` format shows the _identifier_, the _name_, and the _age_ of
+    - The `table` format shows the _identifier_, the _name_, and the _age_ of
       the matching resources.
     - The `name` format outputs only the resource identifiers, one per line
       (similar to `kubectl get -o name`).
@@ -434,6 +443,10 @@ Where:
 
 <!-- prettier-ignore-end -->
 
+- `--output-file` allows writing the output to a specified file instead of
+  stdout. This flag is only supported when using the `yaml`, `json`, `config`,
+  or `raw` output formats. It cannot be used with the `default` or `name`
+  formats.
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
   used to show them.
@@ -452,11 +465,11 @@ Where:
 - `--minimize` minimizes the output. This might entail applying transformations
   on the model, changing it from the original. If set, it implies
   `--exclude-default`, `--exclude-unset`, and `--exclude-none`. This option is
-  ignored when the output type is `default` or `raw`.
+  ignored when the output type is `table` or `raw`.
 - The `--from-sample-store`, `--from-space`, `--from-operation` flags are
-  available **only for `ado get measurementrequests`** and allow specifying what
+  available **only for `ado get requests`** and allow specifying what
   samplestore/space/operation the measurement request belongs to.
-- When using the `--details` flag with the `default` output format, additional
+- When using the `--details` flag with the `table` output format, additional
   columns with the _description_ and the _labels_ of the matching resources are
   printed.
 - The `--show-deprecated` flag is available **only for `ado get experiments`**
@@ -591,10 +604,22 @@ ado get experiments --details
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado get measurementrequest measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
+ado get request measurement-request-123 --from-operation randomwalk-0.5.0-123abc -o yaml
 ```
 
 <!-- markdownlint-enable line-length -->
+
+##### Saving a Discovery Space configuration to a file
+
+```shell
+ado get space my-space-id -o yaml --output-file space.yaml
+```
+
+##### Saving all operations as JSON
+
+```shell
+ado get operations -o json --output-file operations.json
+```
 
 ### ado show
 
@@ -627,8 +652,8 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -654,7 +679,8 @@ The complete syntax of the `ado show entities` command is as follows:
 ```shell
 ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
-                  [--output-format {console | csv | json}] \
+                  [--output | -o {table | csv | json}] \
+                  [--output-file <path>] \
                   [--property <property-name>] \
                   [--include {sampled | matching | missing | unsampled}] \
                   [--aggregate {mean | median | variance | std | min | max}]
@@ -674,8 +700,8 @@ Where:
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
   enables showing entities that match the space defined in the configuration
   file. **NOTE**: using this flag forces `--include matching`.
@@ -691,15 +717,19 @@ Where:
 
 <!-- prettier-ignore-end -->
 
-- `--output-format` is the format in which to display the entity data. One of:
+- `--output` (or `-o`) is the format in which to display the entity data. One
+  of:
 
 <!-- prettier-ignore-start -->
 
-    - `console` (print to stdout)
-    - `csv` (output as CSV file)
-    - `json` (output as JSON file)
+    - `table` (print to stdout)
+    - `csv` (write CSV to stdout, or to file if `--output-file` is specified)
+    - `json` (write JSON to stdout, or to file if `--output-file` is specified)
 
 <!-- prettier-ignore-end -->
+
+- `--output-file` specifies a file path to write the output to (except for table
+  format which always prints to stdout).
 
 - `--property` (can be specified multiple times) is used to filter what measured
   properties need to be output.
@@ -740,7 +770,15 @@ Where:
 ```shell
  ado show entities space space-abc123-456def --include matching \
                                              --property-format target \
-                                             --output-format csv
+                                             -o csv --output-file entities.csv
+```
+
+Or to write CSV to stdout for piping:
+
+```shell
+ ado show entities space space-abc123-456def --include matching \
+                                             --property-format target \
+                                             -o csv > entities.csv
 ```
 
 <!-- markdownlint-disable line-length -->
@@ -750,7 +788,7 @@ Where:
 <!-- markdownlint-enable line-length -->
 
 ```shell
-ado show entities operation randomwalk-0.5.0-123abc --output-format json \
+ado show entities operation randomwalk-0.5.0-123abc -o json \
                                                     --property my-property-1 \
                                                     --property my-property-2
 ```
@@ -766,17 +804,20 @@ The complete syntax of the `ado show requests` command is as follows:
 
 ```shell
 ado show requests operation [RESOURCE_ID] [--use-latest] \
-                            [--output-format | -o <console | csv | json>] \
+                            [--output | -o <table | csv | json>] \
+                            [--output-file <path>] \
                             [--hide <field>]
 ```
 
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  operation created locally. It is not context aware. It is ignored if a
-  RESOURCE_ID is provided.
-- `--output-format` determines whether the output will be printed to console or
-  saved to a file.
+  operation from the current context. It is ignored if a RESOURCE_ID is
+  provided.
+- `--output` (or `-o`) determines the output format. Output is written to stdout
+  by default, or to a file if `--output-file` is specified.
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 - `--hide` can be specified multiple times and allows hiding fields from the
   output.
 
@@ -785,7 +826,13 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 ###### Show measurement requests for an operation and save them as csv
 
 ```shell
-ado show requests operation randomwalk-0.5.0-123abc -o csv
+ado show requests operation randomwalk-0.5.0-123abc -o csv > requests.csv
+```
+
+Or to write to a file directly:
+
+```shell
+ado show requests operation randomwalk-0.5.0-123abc -o csv --output-file requests.csv
 ```
 
 ###### Show measurement requests for an operation and hide certain fields
@@ -809,17 +856,20 @@ The complete syntax of the `ado show results` command is as follows:
 
 ```shell
 ado show results operation [RESOURCE_ID] [--use-latest] \
-                           [--output-format | -o <console | csv | json>] \
+                           [--output | -o <table | csv | json>] \
+                           [--output-file <path>] \
                            [--hide <field>]
 ```
 
 <!-- markdownlint-enable line-length -->
 
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  operation created locally. It is not context aware. It is ignored if a
-  RESOURCE_ID is provided.
-- `--output-format` determines whether the output will be printed to console or
-  saved to a file.
+  operation from the current context. It is ignored if a RESOURCE_ID is
+  provided.
+- `--output` (or `-o`) determines the output format. Output is written to stdout
+  by default, or to a file if `--output-file` is specified.
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 - `--hide` can be specified multiple times and allows hiding fields from the
   output.
 
@@ -828,7 +878,13 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 ###### Show measurement results for an operation
 
 ```shell
-ado show results operation randomwalk-0.5.0-123abc -o csv
+ado show results operation randomwalk-0.5.0-123abc -o csv > results.csv
+```
+
+Or to write to a file directly:
+
+```shell
+ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.csv
 ```
 
 ###### Show measurement results for an operation and hide certain fields
@@ -861,8 +917,8 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
-  resource of RESOURCE_TYPE created locally. It is not context aware. It is
-  ignored if a RESOURCE_ID is provided.
+  resource of RESOURCE_TYPE from the current context. It is ignored if a
+  RESOURCE_ID is provided.
 
 ##### Examples
 
@@ -888,7 +944,8 @@ ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
                  [--query | -q <path=candidate>] \
                  [--label | -l <LABEL> ] \
                  [--with-property | -p <PROPERTY> ] \
-                 [--format | -o <md | table | csv>]
+                 [--output | -o <md | table | csv>] \
+                 [--output-file <path>]
 ```
 
 Where:
@@ -896,7 +953,7 @@ Where:
 - `RESOURCE_TYPE` is always _discoveryspace_ (_space_)
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
 - `--use-latest` will add the identifier of the latest (i.e. most recent) space
-  created locally to the RESOURCE_IDS. It is not context aware.
+  from the current context to the RESOURCE_IDS.
 - By using (optionally multiple times) the `--query` (or `-q`) flag, users can
   restrict the resources returned by requiring that a field in the resource is
   equal to a provided value or that the content of a JSON document appear in the
@@ -909,16 +966,19 @@ Where:
   results).
 - `--with-property | -p` displays values for a subset of the constitutive
   properties. Cannot be used when the output format is `md`.
-- `--format | -o` allows choosing the output format in which the information
-  should be displayed. Can be one of either:
+- `--output` (or `-o`) allows choosing the output format in which the
+  information should be displayed. Can be one of either:
 
 <!-- prettier-ignore-start -->
 
-    - `md` - for Markdown text.
-    - `table` (**default**) - for Markdown tables.
-    - `csv` - for a comma separated file.
+    - `md` - for Markdown text (written to stdout or file).
+    - `table` (**default**) - for Markdown tables (written to stdout or file).
+    - `csv` - for CSV format (written to stdout or file).
 
 <!-- prettier-ignore-end -->
+
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 
 ##### Examples
 
@@ -959,7 +1019,13 @@ ado show summary space space-abc123-456def -o md
 ###### Get the summary of a multiple spaces as a CSV file via key-value labels
 
 ```shell
-ado show summary space -l issue=123 -o csv
+ado show summary space -l issue=123 -o csv > summary.csv
+```
+
+Or to write to a file directly:
+
+```shell
+ado show summary space -l issue=123 -o csv --output-file summary.csv
 ```
 
 ###### Get the summary of spaces that include granite-7b-base in the property domain

@@ -14,7 +14,7 @@ from orchestrator.metastore.project import ProjectContext
 def test_get_experiments_basic() -> None:
     """Test basic experiment listing without details"""
     runner = CliRunner()
-    result = runner.invoke(ado, ["get", "experiments"])
+    result = runner.invoke(ado, ["get", "experiments", "--no-trunc"])
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert "ACTUATOR ID" in result.output
@@ -25,7 +25,9 @@ def test_get_experiments_basic() -> None:
 def test_get_experiments_basic_show_deprecated() -> None:
     """Test basic experiment listing without details"""
     runner = CliRunner()
-    result = runner.invoke(ado, ["get", "experiments", "--show-deprecated"])
+    result = runner.invoke(
+        ado, ["get", "experiments", "--show-deprecated", "--no-trunc"]
+    )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert "ACTUATOR ID" in result.output
@@ -36,7 +38,7 @@ def test_get_experiments_basic_show_deprecated() -> None:
 def test_get_experiments_with_details() -> None:
     """Test experiment listing with --details flag"""
     runner = CliRunner()
-    result = runner.invoke(ado, ["get", "experiments", "--details"])
+    result = runner.invoke(ado, ["get", "experiments", "--details", "--no-trunc"])
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
         assert "ACTUATOR ID" in result.output
@@ -49,7 +51,7 @@ def test_get_experiments_with_details_show_deprecated() -> None:
     """Test experiment listing with --details flag"""
     runner = CliRunner()
     result = runner.invoke(
-        ado, ["get", "experiments", "--details", "--show-deprecated"]
+        ado, ["get", "experiments", "--details", "--show-deprecated", "--no-trunc"]
     )
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
@@ -141,7 +143,7 @@ def test_get_experiments_invalid_output_format() -> None:
     result = runner.invoke(ado, ["get", "experiments", "-o", "json"])
     assert result.exit_code == 1
     if os.environ.get("CI", "false") != "true":
-        assert "Only the default output format" in result.output
+        assert "Only the table output format" in result.output
 
 
 def test_get_experiments_with_yaml_output_format() -> None:
@@ -150,7 +152,7 @@ def test_get_experiments_with_yaml_output_format() -> None:
     result = runner.invoke(ado, ["get", "experiments", "-o", "yaml"])
     assert result.exit_code == 1
     if os.environ.get("CI", "false") != "true":
-        assert "Only the default output format" in result.output
+        assert "Only the table output format" in result.output
 
 
 def test_get_experiments_output_contains_actuator_info() -> None:

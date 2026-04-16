@@ -178,6 +178,11 @@ table = space.matchingEntitiesTable()
 
 ## Target vs observed property formats
 
+!!! info end
+
+    For the conceptual distinction between target and observed properties see
+    [Target and Observed Properties](../core-concepts/actuators.md#target-and-observed-properties).
+
 There are two formats the entities can be output controlled by the
 `--property-format` option to `show entities`
 

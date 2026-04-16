@@ -430,3 +430,49 @@ def upsert_entities(
             """)  # noqa: S608 - sample_store_name is not untrusted
 
     return query
+
+
+def resource_select_latest_by_kinds(
+    kinds: list[str],
+    dialect: Literal["mysql", "sqlite"] = "mysql",
+) -> sqlalchemy.TextClause:
+    """Generate SQL to fetch the most recently created resource for each specified kind.
+
+    Uses a window function (ROW_NUMBER) to rank resources by creation time within
+    each kind, then filters to only the most recent (rank=1) for each kind.
+
+    Args:
+        kinds: List of resource kind values to query
+        dialect: SQL dialect ("mysql" or "sqlite") - unused, kept for API consistency
+
+    Returns:
+        Bound SQLAlchemy TextClause with kinds parameter
+
+    Example result:
+        identifier                          | kind              | created
+        ------------------------------------|-------------------|-------------------------
+        space-f3660b-default                | discoveryspace    | 2026-04-13T08:00:00.000Z
+        randomwalk-1.7.0-c47119             | operation         | 2026-04-13T09:00:00.000Z
+    """
+    if not kinds:
+        raise ValueError("kinds list cannot be empty")
+
+    # Both MySQL and SQLite support this syntax
+    # Use parameter binding with expanding=True for the IN clause
+    return sqlalchemy.text("""
+        WITH ranked_resources AS (
+            SELECT
+                identifier,
+                kind,
+                data->>'$.created' as created,
+                ROW_NUMBER() OVER (
+                    PARTITION BY kind
+                    ORDER BY data->>'$.created' DESC
+                ) as rn
+            FROM resources
+            WHERE kind IN :kinds
+        )
+        SELECT identifier, kind, created
+        FROM ranked_resources
+        WHERE rn = 1
+    """).bindparams(sqlalchemy.bindparam("kinds", value=kinds, expanding=True))

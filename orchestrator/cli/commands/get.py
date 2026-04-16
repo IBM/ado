@@ -119,10 +119,9 @@ def get_resource(
             "--output",
             "-o",
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
-            show_default=False,
             help="Output information in a different format. The 'json', 'raw', and 'yaml' formats will output the entire resource. The 'name' format outputs only resource identifiers (similar to kubectl get -o name). Not all formats may be supported by all resources.",
         ),
-    ] = AdoGetSupportedOutputFormats.DEFAULT.value,
+    ] = AdoGetSupportedOutputFormats.TABLE.value,
     exclude_default: Annotated[
         bool,
         typer.Option(
@@ -167,7 +166,7 @@ def get_resource(
             Make an attempt to minimize the output produced.
             This might entail applying transformations on the model, changing it from the original.
 
-            Ignored when the output type is default or raw.
+            Ignored when the output type is table or raw.
             If set, implies --exclude-default --exclude-unset --exclude-none.
             """,
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
@@ -184,6 +183,19 @@ def get_resource(
             rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
         ),
     ] = False,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+            rich_help_panel=OUTPUT_CONFIGURATION_OPTIONS,
+        ),
+    ] = None,
     show_deprecated: Annotated[
         bool,
         typer.Option(
@@ -237,7 +249,7 @@ def get_resource(
             help="""
             Provide a space configuration to match other spaces. Only for spaces.
 
-            If set, disregards --query and --label, and uses the default output format.
+            If set, disregards --query and --label, and uses the table output format.
             """,
             file_okay=True,
             dir_okay=False,
@@ -253,7 +265,7 @@ def get_resource(
             Provide a space id to match other spaces. Only for spaces.
             Takes precedence over --matching-space.
 
-            If set, disregards --query and --label, and uses the default output format.
+            If set, disregards --query and --label, and uses the table output format.
             """,
             show_default=False,
             rich_help_panel=DISCOVERY_SPACE_ONLY_OPTIONS,
@@ -266,41 +278,36 @@ def get_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-get
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # List sample stores
-
     ado get samplestores
 
-
-
     # Save the configuration of a discovery space as YAML
-
     ado get space <space-id> -o yaml > space.yaml
 
-
-
     # List actuators and details about them
-
     ado get actuators --details
 
-
-
     # List all experiments
-
     ado get experiments
 
-
-
     # List experiments with details
-
     ado get experiments --details
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    # Validate that output_file is only used with file-based formats
+    if output_file and output_format in (
+        AdoGetSupportedOutputFormats.DEFAULT,
+        AdoGetSupportedOutputFormats.NAME,
+    ):
+        console_print(
+            f"{ERROR} --output-file cannot be used with --output {output_format.value}. "
+            f"Use --output yaml, --output json, or --output config instead.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
 
     if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE and (
         matching_point or matching_space or matching_space_id
@@ -322,13 +329,13 @@ def get_resource(
 
     if (
         matching_space or matching_space_id
-    ) and output_format != AdoGetSupportedOutputFormats.DEFAULT:
+    ) and output_format != AdoGetSupportedOutputFormats.TABLE:
         console_print(
             f"{WARN}--matching-space and --matching-space-id only support "
-            f"the {AdoGetSupportedOutputFormats.DEFAULT.value} output format.",
+            f"the {AdoGetSupportedOutputFormats.TABLE.value} output format.",
             stderr=True,
         )
-        output_format = AdoGetSupportedOutputFormats.DEFAULT
+        output_format = AdoGetSupportedOutputFormats.TABLE
 
     if exclude_fields and output_format not in {
         AdoGetSupportedOutputFormats.JSON,
@@ -373,6 +380,7 @@ def get_resource(
         matching_space=matching_space,
         minimize_output=minimize_output,
         no_trunc=no_trunc,
+        output_file=output_file,
         output_format=output_format,
         resource_id=resource_id,
         resource_type=resource_type,

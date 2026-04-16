@@ -25,6 +25,9 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
     Details mode: Adds DESCRIPTION and DEPRECATED columns
     """
 
+    if not parameters.no_trunc:
+        parameters.no_trunc = ["EXPERIMENT ID"]
+
     console_print(
         f"{WARN}This is a local command. It will not reflect the experiments on a remote cluster.",
         stderr=True,
@@ -41,10 +44,10 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
         )
 
         # Validate output format
-        if parameters.output_format != AdoGetSupportedOutputFormats.DEFAULT:
+        if parameters.output_format != AdoGetSupportedOutputFormats.TABLE:
             spinner.stop()
             console_print(
-                f"{ERROR}Only the {AdoGetSupportedOutputFormats.DEFAULT.value} output format "
+                f"{ERROR}Only the {AdoGetSupportedOutputFormats.TABLE.value} output format "
                 "is supported by this command.",
                 stderr=True,
             )
@@ -125,6 +128,6 @@ def get_experiment(parameters: AdoGetCommandParameters) -> None:
             output_df,
             box=rich.box.SQUARE,
             show_edge=True,
-            do_not_truncate_column_content=parameters.no_trunc,
+            do_not_truncate_columns=parameters.no_trunc,
         )
     )

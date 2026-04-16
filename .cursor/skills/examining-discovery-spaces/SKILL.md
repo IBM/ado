@@ -29,6 +29,8 @@ directory if needed)
   [query-ado-data](../query-ado-data/SKILL.md).
 - For examining operations run on a space, see
   [examining-ado-operations](../examining-ado-operations/SKILL.md).
+- For a project/context wide view (all spaces and operations), see
+  [examining-ado-project](../examining-ado-project/SKILL.md).
 
 ## Context
 
@@ -71,7 +73,7 @@ Why is it useful to work with matching data?
 
 To apply this skill you need either:
 
-(a) a space id; (b) explicit instruction to examine the latest space
+(a) a space id; (b) explicit instruction to examine “the latest” space
 
 In the case of (b) get the actual identifier:
 
@@ -89,10 +91,9 @@ for same YAML.
 
 ### Large output files
 
-The files created by '-o/--output-format' can be very large e.g. from "show
-entities".
-
-When inspecting these files:
+The output produced by '-o/--output' can be very large e.g. from "show entities".
+Use the `--output-file` flag with the name of the file where to save the output
+and, when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
@@ -179,12 +180,11 @@ for the following.
 uv run ado show entities space SPACE_ID \
   --include measured \
   --property-format target \
-  --output-format csv
+  -o csv --output-file SPACE_ID_entities.csv
 ```
 
-This writes the data to `SPACE_ID_description_measured_target.csv`
-automatically. If you find `SPACE_ID_description_measured_target.csv` already
-exists do not use it, as data may be stale
+This writes the data to `SPACE_ID_entities.csv`. If you find `SPACE_ID_entities.csv`
+already exists do not use it, as data may be stale
 
 You can also get lists of all unmeasured or missing entities, though this is not
 typically required unless you want to analyse the unsampled portion.

@@ -1,10 +1,12 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
 import typing
 from typing import Annotated
 
 import typer
+from rich.status import Status
 
 from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowSummaryCommandParameters
@@ -15,10 +17,12 @@ from orchestrator.cli.models.types import (
 from orchestrator.cli.resources.discovery_space.show_summary import (
     show_discovery_space_summary,
 )
+from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.input.parsers import (
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import (
+    ADO_SPINNER_QUERYING_DB,
     ERROR,
     console_print,
     latest_identifier_for_resource_not_found,
@@ -126,11 +130,23 @@ def show_summary_for_resources(
     output_format: Annotated[
         AdoShowSummarySupportedOutputFormats,
         typer.Option(
-            "--format",
+            "--output",
             "-o",
             help="The format in which to output the summary.",
         ),
     ] = AdoShowSummarySupportedOutputFormats.TABLE.value,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ] = None,
     render_output: Annotated[
         bool,
         typer.Option(
@@ -175,8 +191,28 @@ def show_summary_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
+    # Validate that output_file is only used with file-based formats
+    if output_file and output_format in (
+        AdoShowSummarySupportedOutputFormats.MARKDOWN,
+        AdoShowSummarySupportedOutputFormats.TABLE,
+    ):
+        console_print(
+            f"{ERROR} --output-file cannot be used with --output {output_format.value}. "
+            f"Use --output csv instead.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     resource_kind = CoreResourceKinds(resource_type.value)
-    resource_id = ado_configuration.latest_resource_ids.get(resource_kind)
+
+    # Fetch the latest resource ID from the database
+    sql_store = get_sql_store(ado_configuration.project_context)
+    with Status(ADO_SPINNER_QUERYING_DB):
+        latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
+            kinds=[resource_kind]
+        )
+
+    resource_id = latest_ids.get(resource_kind)
     if not resource_id:
         console_print(
             latest_identifier_for_resource_not_found(
@@ -213,6 +249,7 @@ def show_summary_for_resources(
         ado_configuration=ado_configuration,
         columns_to_hide=columns_to_hide,
         include_properties=include_properties,
+        output_file=output_file,
         output_format=output_format,
         query=query,
         render_output=render_output,

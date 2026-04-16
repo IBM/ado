@@ -38,7 +38,8 @@ class AdoGetCommandParameters(pydantic.BaseModel):
     matching_space_id: str | None
     matching_space: pathlib.Path | None
     minimize_output: bool
-    no_trunc: bool
+    no_trunc: bool | list[str]
+    output_file: pathlib.Path | None
     output_format: AdoGetSupportedOutputFormats
     resource_id: str | None
     resource_type: AdoGetSupportedResourceTypes
@@ -90,6 +91,7 @@ class AdoShowEntitiesCommandParameters(pydantic.BaseModel):
     entities_property_format: AdoShowEntitiesSupportedPropertyFormats
     entities_type: AdoShowEntitiesSupportedEntityTypes
     no_trunc: bool
+    output_file: Path | None
     properties: list[str] | None
     resource_configuration: Path | None
     resource_id: str | None
@@ -104,6 +106,7 @@ class AdoShowRequestsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     hide_fields: list[str] | None
     no_trunc: bool
+    output_file: Path | None
     output_format: AdoShowRequestsSupportedOutputFormats
     resource_id: str
 
@@ -112,6 +115,7 @@ class AdoShowResultsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     hide_fields: list[str] | None
     no_trunc: bool
+    output_file: Path | None
     output_format: AdoShowResultsSupportedOutputFormats
     resource_id: str
 
@@ -120,6 +124,7 @@ class AdoShowSummaryCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     columns_to_hide: list[str] | None
     include_properties: list[str] | None
+    output_file: Path | None
     output_format: AdoShowSummarySupportedOutputFormats
     query: list[dict[str, str | None]] | None
     render_output: bool

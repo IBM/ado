@@ -176,11 +176,13 @@ uv run ado show details $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 Get entities and their measurements from a space or operation:
 
 ```bash
-uv run ado show entities $RESOURCETYPE [RESOURCE_ID] [--use-latest] \
-                  [--include {sampled | matching | missing | unsampled}] \
+uv run ado show entities RESOURCE_TYPE [RESOURCE_ID] \
+                  [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
-                  [--output-format {console | csv | json}] \
+                  [--output | -o {console | csv | json}] \
+                  [--output-file <path>] \
                   [--property <property-name>] \
+                  [--include {sampled | matching | missing | unsampled}] \
                   [--aggregate {mean | median | variance | std | min | max}]
 ```
 
@@ -191,7 +193,9 @@ uv run ado show entities $RESOURCETYPE [RESOURCE_ID] [--use-latest] \
 - `--include` (spaces only): `sampled`, `unsampled`, `matching`, `missing`
 - `--property-format`: `observed` (one row per entity) or `target` (one row per
   entity-experiment pair)
-- `--output-format`: `console`, `csv`, or `json`
+- `--output` (or `-o`): `console`, `csv`, or `json`
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
 - `--property`: Filter specific properties (can specify multiple times)
 - `--aggregate`: Aggregate multiple values
 
@@ -201,13 +205,13 @@ uv run ado show entities $RESOURCETYPE [RESOURCE_ID] [--use-latest] \
 # Show matching entities in a space as CSV
 uv run ado show entities space space-abc123-456def --include matching \
                                              --property-format target \
-                                             --output-format csv
+                                             -o csv --output-file space-abc123-456def-entities.csv
 
 # Show entities from an operation with specific properties
 uv run ado show entities operation randomwalk-0.5.0-123abc \
                   --property my-property-1 \
                   --property my-property-2 \
-                  --output-format json
+                  -o csv --output-file randomwalk-0.5.0-123abc.csv
 ```
 
 ### Show Requests
@@ -216,7 +220,8 @@ Get measurement requests sent during an operation:
 
 ```bash
 uv run ado show requests operation [RESOURCE_ID] [--use-latest] \
-                            [--output-format {console | csv | json}] \
+                            [--output | -o <console | csv | json>] \
+                            [--output-file <path>] \
                             [--hide <field>]
 ```
 
@@ -232,7 +237,8 @@ Get measurement results metadata (valid/invalid status, etc.):
 
 ```bash
 uv run ado show results operation [RESOURCE_ID] [--use-latest] \
-                           [--output-format {console | csv | json}] \
+                           [--output | -o <console | csv | json>] \
+                           [--output-file <path>] \
                            [--hide <field>]
 ```
 
@@ -280,7 +286,7 @@ uv run ado get spaces -q 'config.entitySpace={"propertyDomain":{"values":["mistr
 ### Export operation entities to CSV
 
 ```bash
-uv run ado show entities operation OPERATION_ID --output-format csv
+uv run ado show entities operation OPERATION_ID -o csv --output-file OPERATION_ID_entities.csv
 ```
 
 ### Get all resources related to a space

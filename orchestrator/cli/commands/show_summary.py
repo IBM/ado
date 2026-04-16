@@ -132,7 +132,9 @@ def show_summary_for_resources(
         typer.Option(
             "--output",
             "-o",
-            help="The format in which to output the summary.",
+            help="The format in which to output the summary. "
+            "Options: table (rich console table), md-table (markdown table), "
+            "md-report (markdown prose report), csv (CSV format).",
         ),
     ] = AdoShowSummarySupportedOutputFormats.TABLE.value,
     output_file: Annotated[
@@ -151,7 +153,7 @@ def show_summary_for_resources(
         bool,
         typer.Option(
             "--render",
-            help="Render the output in the console. Only supported for markdown and table output.",
+            help="Render the output in the console. Only supported for markdown table and markdown report output.",
         ),
     ] = False,
 ) -> None:
@@ -167,13 +169,13 @@ def show_summary_for_resources(
 
 
 
-    # Show a high-level summary of the discovery space as a Markdown table
+    # Show a high-level summary of the discovery space as a rich table
 
     ado show summary space <space-id>
 
 
 
-    # Show a high-level summary of the latest discovery space as a Markdown table
+    # Show a high-level summary of the latest discovery space as a rich table
 
     ado show summary space --use-latest
 
@@ -185,9 +187,9 @@ def show_summary_for_resources(
 
 
 
-    # Show a detailed summary of the discovery space as a Markdown document
+    # Show a detailed summary of the discovery space as a Markdown report
 
-    ado show summary space <space-id> -o md
+    ado show summary space <space-id> -o md-report
     """
     ado_configuration: AdoConfiguration = ctx.obj
 

@@ -998,14 +998,15 @@ Where:
   specified multiple times (even in conjunction with `-q` to further filter
   results).
 - `--with-property | -p` displays values for a subset of the constitutive
-  properties. Cannot be used when the output format is `md`.
+  properties. Cannot be used when the output format is `md-report`.
 - `--output` (or `-o`) allows choosing the output format in which the
   information should be displayed. Can be one of either:
 
 <!-- prettier-ignore-start -->
 
-    - `md` - for Markdown text.
-    - `table` (**default**) - for Markdown tables.
+    - `table` (**default**) - for a formatted table output.
+    - `md-table` - for a table in Markdown format.
+    - `md-report` - for a report in Markdown format.
     - `csv` - for CSV format.
 
 <!-- prettier-ignore-end -->
@@ -1015,7 +1016,7 @@ Where:
 
 ##### Examples
 
-###### Get the summary of a space as a Markdown table
+###### Get the summary of a space as a rich table
 
 ```shell
 ado show summary space space-abc123-456def
@@ -1023,7 +1024,7 @@ ado show summary space space-abc123-456def
 
 <!-- markdownlint-disable line-length -->
 
-###### Get the summary of a space as a Markdown table and include the constitutive property MY_PROPERTY
+###### Get the summary of a space as a rich table and include the constitutive property MY_PROPERTY
 
 <!-- markdownlint-enable line-length -->
 
@@ -1031,22 +1032,22 @@ ado show summary space space-abc123-456def
 ado show summary space space-abc123-456def -p MY_PROPERTY
 ```
 
-###### Get the summary of multiple spaces as a Markdown table via identifiers
+###### Get the summary of multiple spaces as a rich table via identifiers
 
 ```shell
 ado show summary space space-abc123-456def space-ghi789-123jkl
 ```
 
-###### Get the summary of multiple spaces as a Markdown table via key-value labels
+###### Get the summary of multiple spaces as a rich table via key-value labels
 
 ```shell
 ado show summary space -l issue=123
 ```
 
-###### Get the summary of a space as a Markdown text
+###### Get the summary of a space as a Markdown report
 
 ```shell
-ado show summary space space-abc123-456def -o md
+ado show summary space space-abc123-456def -o md-report
 ```
 
 ###### Get the summary of a multiple spaces as a CSV file via key-value labels

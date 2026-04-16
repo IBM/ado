@@ -23,6 +23,8 @@ _CONFIG = "config"
 _CSV = "csv"
 _JSON = "json"
 _MARKDOWN_SHORT = "md"
+_MARKDOWN_REPORT = "md-report"
+_MARKDOWN_TABLE = "md-table"
 _NAME = "name"
 _RAW = "raw"
 _TABLE = "table"
@@ -174,8 +176,9 @@ class AdoShowResultsSupportedResourceTypes(Enum):
 
 #################### ado show summary ####################
 class AdoShowSummarySupportedOutputFormats(enum.Enum):
-    MARKDOWN = _MARKDOWN_SHORT
     TABLE = _TABLE
+    MARKDOWN_TABLE = _MARKDOWN_TABLE
+    MARKDOWN_REPORT = _MARKDOWN_REPORT
     CSV = _CSV
 
 

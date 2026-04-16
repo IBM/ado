@@ -12,7 +12,7 @@ from orchestrator.schema.experiment import ExperimentReference
 
 def test_extract_base_class_from_undecorated_actuator() -> None:
     """Test that extraction works with undecorated classes (returns as-is)."""
-    from orchestrator.modules.actuators.registry import _extract_base_actuator_class
+    from orchestrator.utilities.ray import extract_base_class
 
     class TestActuator(ActuatorBase):  # noqa: ANN001, ANN202, ANN206
         identifier = "test_undecorated"
@@ -33,7 +33,7 @@ def test_extract_base_class_from_undecorated_actuator() -> None:
             return ExperimentCatalog(identifier=cls.identifier, experiments=[])
 
     # Extract from undecorated class (should return the same class)
-    extracted_class = _extract_base_actuator_class(TestActuator)
+    extracted_class = extract_base_class(TestActuator, ActuatorBase)
 
     # Should return the same class
     assert extracted_class is TestActuator
@@ -49,12 +49,12 @@ def test_extract_base_class_from_undecorated_actuator_in_codebase() -> None:
     class as-is for undecorated actuators.
     """
     from orchestrator.modules.actuators import custom_experiments
-    from orchestrator.modules.actuators.registry import _extract_base_actuator_class
+    from orchestrator.utilities.ray import extract_base_class
 
     actuator_class = custom_experiments.CustomExperiments
 
     # Extraction should return the same class for undecorated actuators
-    extracted = _extract_base_actuator_class(actuator_class)
+    extracted = extract_base_class(actuator_class, ActuatorBase)
     assert extracted is actuator_class
     assert issubclass(extracted, ActuatorBase)
     assert extracted.identifier == "custom_experiments"

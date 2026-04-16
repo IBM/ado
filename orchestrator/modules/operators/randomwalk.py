@@ -29,21 +29,18 @@ from orchestrator.core.discoveryspace.samplers import (
     SequentialSampleSelector,
     WalkModeEnum,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
-    FunctionOperationInfo,
+    OperatorMetadata,
 )
-from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
     load_module_class_or_function,
 )
-from orchestrator.modules.operators.base import Characterize, measure_or_replay
+from orchestrator.modules.operators.base import Explore, measure_or_replay
 from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
-from orchestrator.modules.operators.orchestrate import orchestrate_explore_operation
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
@@ -421,23 +418,9 @@ class RequestRetry(pydantic.BaseModel):
         )
 
 
-@ray.remote
-class RandomWalk(Characterize):
+@explore_operation
+class RandomWalk(Explore):
     """Performs a random walk through a set of known entities in a space"""
-
-    @classmethod
-    def defaultOperationParameters(
-        cls,
-    ) -> RandomWalkParameters:
-
-        return RandomWalkParameters()
-
-    @classmethod
-    def validateOperationParameters(
-        cls, parameters: dict | pydantic.BaseModel
-    ) -> RandomWalkParameters:
-
-        return RandomWalkParameters.model_validate(parameters)
 
     @classmethod
     def description(cls) -> str:
@@ -453,7 +436,7 @@ class RandomWalk(Characterize):
         self,
         operationActorName: str,
         namespace: str,
-        state: DiscoverySpaceManager,
+        discovery_space_manager: DiscoverySpaceManager,
         actuators: dict[str, "ActuatorBase"],
         params: dict | None = None,
     ) -> None:
@@ -472,7 +455,6 @@ class RandomWalk(Characterize):
         self.criticalError = False
 
         self.update_queue = asyncio.queues.Queue()
-        self.actuators = actuators
         self._entitiesSampled = 0
         self._experimentsRequested = 0
         # Key is requestIndex, value is RequestRetry
@@ -481,11 +463,10 @@ class RandomWalk(Characterize):
         # If this was not true we would need to use the entity id+requestIndex
         self._retriedExperimentRequests = {}  # type: dict[int, RequestRetry]
 
-        # Sets state, actorName ivars and subscribes to the state
         super().__init__(
             operationActorName=operationActorName,
             namespace=namespace,
-            state=state,
+            discovery_space_manager=discovery_space_manager,
             actuators=actuators,
         )
 
@@ -511,16 +492,16 @@ class RandomWalk(Characterize):
             f"Starting random walk. Sampler config is: {self.params.samplerConfig}"
         )
         # noinspection PyUnresolvedReferences
-        measurement_queue = await self.state.measurement_queue.remote()
+        measurement_queue = await self.ds_manager.measurement_queue.remote()
         sampler = self.params.samplerConfig.sampler()
         self.log.debug(sampler)
 
         iterator = await sampler.remoteEntityIterator(
-            remoteDiscoverySpace=self.state, batchsize=1
+            remoteDiscoverySpace=self.ds_manager, batchsize=1
         )
 
         # noinspection PyUnresolvedReferences
-        ds = await self.state.discoverySpace.remote()  # type: DiscoverySpace
+        ds = await self.ds_manager.discoverySpace.remote()  # type: DiscoverySpace
 
         measurement_space = ds.measurementSpace
         entity_space: EntitySpaceRepresentation | None = ds.entitySpace
@@ -536,7 +517,7 @@ class RandomWalk(Characterize):
                         number_entities = entity_space.size
                     except AttributeError as error:
                         # noinspection PyUnresolvedReferences
-                        self.state.unsubscribeFromUpdates.remote(
+                        self.ds_manager.unsubscribeFromUpdates.remote(
                             subscriberName=self.actorName
                         )
                         raise ValueError(
@@ -549,7 +530,7 @@ class RandomWalk(Characterize):
                         )
                 else:
                     # noinspection PyUnresolvedReferences
-                    self.state.unsubscribeFromUpdates.remote(
+                    self.ds_manager.unsubscribeFromUpdates.remote(
                         subscriberName=self.actorName
                     )
                     raise ValueError(
@@ -772,7 +753,7 @@ class RandomWalk(Characterize):
                 f"Was notified that {finished_requests} measurements had completed before error."
             )
         # noinspection PyUnresolvedReferences
-        self.state.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
 
     def _processCompletedMeasurement(
         self,
@@ -965,54 +946,16 @@ class RandomWalk(Characterize):
 
     def operationIdentifier(self) -> str:
 
-        return f"{self.__class__.operatorIdentifier()}-{self.runid}"
+        return f"{self.__class__.operator_metadata().operatorIdentifier}-{self.runid}"
 
     @classmethod
-    def operatorIdentifier(cls) -> str:
-
-        from importlib.metadata import version
-
-        version = version("ado-core")
-
-        return f"randomwalk-{version}"
-
-    @classmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-
-        return DiscoveryOperationEnum.SEARCH
-
-
-@explore_operation(
-    name="random_walk",
-    description=RandomWalk.description(),
-    configuration_model=RandomWalkParameters,
-    configuration_model_default=RandomWalkParameters(),
-    version=version("ado-core"),
-)
-def random_walk(
-    discoverySpace: DiscoverySpace,
-    operationInfo: FunctionOperationInfo | None = None,
-    **kwargs: dict,
-) -> OperationOutput:
-    """
-    Performs a random_walk operation on a given discoverySpace
-
-    """
-
-    import orchestrator.modules.module
-
-    if operationInfo is None:
-        operationInfo = FunctionOperationInfo()
-
-    module = orchestrator.core.operation.config.OperatorModuleConf(
-        moduleName="orchestrator.modules.operators.randomwalk",
-        moduleClass="RandomWalk",
-        moduleType=orchestrator.modules.module.ModuleTypeEnum.OPERATION,
-    )
-
-    return orchestrate_explore_operation(
-        discovery_space=discoverySpace,
-        operator_module=module,
-        parameters=kwargs,
-        operation_info=operationInfo,
-    )
+    def operator_metadata(cls) -> OperatorMetadata:
+        """Returns operator metadata for the random_walk explore operator."""
+        return OperatorMetadata(
+            name="random_walk",
+            version=version("ado-core"),
+            description=cls.description(),
+            configuration_model=RandomWalkParameters,
+            example_configuration=RandomWalkParameters(),
+            type=DiscoveryOperationEnum.SEARCH,
+        )

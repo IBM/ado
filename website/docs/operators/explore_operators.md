@@ -141,10 +141,8 @@ config:
       issue: "904"
   operation:
     module:
-      moduleClass: RandomWalk
-      moduleName: orchestrator.modules.operators.randomwalk
-      modulePath: .
-      moduleType: operation
+      operatorName: random_walk
+      operationType: search
     parameters:
       batchSize: 4
       singleMeasurement: false

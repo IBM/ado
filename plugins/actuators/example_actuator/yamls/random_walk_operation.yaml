@@ -4,8 +4,8 @@ spaces:
   - 'space-75f7af-c04713' # REPLACE WITH REAL SPACE ID. Note only one spaceid allowed
 operation:
   module:
-    moduleClass: RandomWalk
-    moduleName: orchestrator.modules.operators.randomwalk
+    operatorName: random_walk
+    operationType: search
   parameters:
     numberEntities: 10
     batchSize: 2

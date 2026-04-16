@@ -42,22 +42,46 @@ def get_operator(parameters: AdoGetCommandParameters) -> None:
         )
         parameters.output_format = AdoGetSupportedOutputFormats.TABLE
 
-    # Build entries for DataFrame
+    # Handle NAME output format
+    if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
+
+        # Collect all operator names
+        operator_names = []
+        for (
+            collection
+        ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
+            operator_names.extend(collection.operators.keys())
+
+        if parameters.resource_id:
+            # Single operator: verify it exists and output its name
+            if parameters.resource_id not in operator_names:
+                console_print(
+                    f"{ERROR}{parameters.resource_id} is not among the available operators.\n"
+                    f"{HINT}Run {cyan('ado get operators')} to list them.",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
+            console_print(parameters.resource_id)
+        else:
+            # Multiple operators: output all names
+            for operator_name in sorted(operator_names):
+                console_print(operator_name)
+        return
+
+    # Build entries for TABLE format
     entries = []
     for (
         collection
     ) in orchestrator.modules.operators.collections.operationCollectionMap.values():
-        for function_name in collection.function_operations:
+        for operator_name, operator in collection.operators.items():
             entry = {
-                "OPERATOR": function_name,
-                "VERSION": collection.function_operation_versions.get(
-                    function_name, ""
-                ),
+                "OPERATOR": operator_name,
+                "VERSION": operator.version,
                 "TYPE": collection.type.value,
             }
             if parameters.show_details:
                 entry["DESCRIPTION"] = normalize_and_truncate_at_period(
-                    collection.function_operation_descriptions.get(function_name, "")
+                    operator.description or ""
                 )
             entries.append(entry)
 

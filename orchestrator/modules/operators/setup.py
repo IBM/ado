@@ -10,12 +10,12 @@ import pydantic
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
-    OperatorModuleConf,
+    OperatorMetadata,
+    OperatorReference,
     get_actuator_configurations,
     validate_actuator_configurations_against_space_configuration,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
@@ -134,51 +134,72 @@ def setup_actuators(
 
 
 def setup_operator(
-    operator_module: OperatorModuleConf,
+    operator_metadata: OperatorMetadata,
     parameters: dict,
     discovery_space: DiscoverySpace,
     namespace: str,
-    state: "DiscoverySpaceManagerActor",
+    discovery_space_manager: "DiscoverySpaceManagerActor",
     actuators: dict,
 ) -> "OperatorActor":
-    """Sets up and creates an operator actor for class-based operations
+    """Sets up and creates an operator actor for class-based explore operations.
 
-    This function loads the operator class, creates a Ray actor instance with the
-    specified namespace, and initializes it with the provided parameters, state,
-    and actuators.
+    Instantiates the operator class from ``operator_metadata`` as a Ray actor.
 
     Params:
-        operator_module: Configuration for the operator module to load
+        operator_metadata: Registered metadata for the operator, carrying the class
+            and canonical name.
         parameters: Dictionary of parameters to pass to the operator
         discovery_space: The discovery space the operator will operate on
         namespace: Ray namespace to create the operator actor in
-        state: DiscoverySpaceManager actor handle for state management
+        discovery_space_manager: DiscoverySpaceManager actor handle
         actuators: Dictionary of actuator actor handles keyed by actuator identifier
 
     Returns:
         OperatorActor handle for the created operator actor
+
+    Raises:
+        ValueError: If ``operator_metadata.cls`` is None (operator was not registered
+            via the class decorator).
     """
+
+    import ray
 
     import orchestrator.utilities.output
 
     moduleLog.info("Creating operation")
 
-    operatorClass = load_module_class_or_function(operator_module)
-    operator = operatorClass.options(
-        name=operator_module.moduleClass, namespace=namespace
-    ).remote(
-        operationActorName=operator_module.moduleClass,
-        namespace=namespace,
-        state=state,
-        params=parameters,
-        actuators=actuators,
+    if operator_metadata.cls is None:
+        raise ValueError(
+            f"No operator class registered for '{operator_metadata.name}'. "
+            "Ensure the operator is decorated with @explore_operation."
+        )
+
+    base_class = operator_metadata.cls
+    actor_name = operator_metadata.name
+
+    operator = (
+        ray.remote(base_class)
+        .options(name=actor_name, namespace=namespace)
+        .remote(
+            operationActorName=actor_name,
+            namespace=namespace,
+            discovery_space_manager=discovery_space_manager,
+            params=parameters,
+            actuators=actuators,
+        )
     )
 
     print("=========== Operation Details ============\n")
     print(f"Space ID: {discovery_space.uri}")
     print(f"Sample Store ID:  {discovery_space.sample_store.identifier}")
+    operator_reference = OperatorReference(
+        operatorName=operator_metadata.name,
+        operationType=operator_metadata.type,
+    )
     conf_string = orchestrator.utilities.output.pydantic_model_as_yaml(
-        DiscoveryOperationConfiguration(module=operator_module, parameters=parameters),
+        DiscoveryOperationConfiguration(
+            module=operator_reference, parameters=parameters
+        ),
         exclude_none=True,
     )
     print(f"Operation Configuration:\n {conf_string}")

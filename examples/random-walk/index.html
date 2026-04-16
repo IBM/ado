@@ -104,10 +104,8 @@ Sample Store identifier: 6da1f4
 </code></pre></div> <p>The first line, "SUBMIT EXPERIMENT", indicates the entity - <code>provider.B-cpu_family.1-vcpu_size.1-nodes.4</code> - and experiment - <code>replay.benchmark_performance</code> submitted. The next line gives a summary of what has happened so far: this is the second entity sampled and submitted; one experiment has completed; and the sampler is waiting on one active experiment before submitting a new one. Finally, the "EXPERIMENT COMPLETION" line indicates the experiment has finished.</p> <p>The operation will end with information like:</p> <div class=highlight><pre><span></span><code><span class=nt>config</span><span class=p>:</span>
 <span class=w>  </span><span class=nt>operation</span><span class=p>:</span>
 <span class=w>    </span><span class=nt>module</span><span class=p>:</span>
-<span class=w>      </span><span class=nt>moduleClass</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">RandomWalk</span>
-<span class=w>      </span><span class=nt>moduleName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">orchestrator.modules.operators.randomwalk</span>
-<span class=w>      </span><span class=nt>modulePath</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">.</span>
-<span class=w>      </span><span class=nt>moduleType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">operation</span>
+<span class=w>      </span><span class=nt>operatorName</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">random_walk</span>
+<span class=w>      </span><span class=nt>operationType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">search</span>
 <span class=w>    </span><span class=nt>parameters</span><span class=p>:</span>
 <span class=w>      </span><span class=nt>batchSize</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 <span class=w>      </span><span class=nt>numberEntities</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">48</span>

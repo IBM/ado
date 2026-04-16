@@ -1,0 +1,21 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: optuna_request_throughput
+spaces:
+  - space-ccf2bf-a50274 #substitute with your space id or override when running
+operation:
+  module:
+    operatorName: "ray_tune"
+    operationType: "search"
+  parameters:
+    tuneConfig:
+      metric: "request_throughput" # The metric to optimize
+      mode: 'max'
+      num_samples: 20
+      search_alg:
+        name: optuna
+        params:
+          sampler: TPESampler
+          sampler_parameters:
+            n_startup_trials: 10 # Number of random samples before optimization

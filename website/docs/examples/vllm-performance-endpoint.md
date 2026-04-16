@@ -132,13 +132,13 @@ operation:
     tuneConfig:
       metric: "request_throughput" # The metric to optimize
       mode: "max"
-      num_samples: 16
+      num_samples: 20
       search_alg:
         name: optuna
         params:
           sampler: TPESampler
           sampler_parameters:
-            n_startup_trials: 8 # Number of random samples before optimization
+            n_startup_trials: 10 # Number of random samples before optimization
 ```
 
 Create the operation with:
@@ -151,9 +151,9 @@ Results will appear as they are measured.
 
 > [!NOTE]
 >
-> Optuna's TPESampler may sample the same point multiple times, especially as
-> the search converges on promising regions. The likelihood increases as the
-> number of points in the space decreases.
+> Optuna's TPESampler samples with replacement and it may sample the same point
+> multiple times. The likelihood increases as the number of points in the space
+> decreases.
 
 ### Monitor the optimization
 
@@ -215,7 +215,7 @@ and the best region is unlikely to be visited.
 >
 > By default, Optuna's TPESampler uses the top 10% of observations (capped at 25
 > samples maximum) as the "good" region. With `n_startup_trials: 8`, the first 8
-> samples are random, then optimization begins. After 80+ samples, the "good"
+> samples are random, then optimization begins. After 250+ samples, the "good"
 > region will be capped at the best 25 observations.
 
 ## Next steps

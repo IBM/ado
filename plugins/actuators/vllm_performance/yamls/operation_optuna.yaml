@@ -12,10 +12,10 @@ operation:
     tuneConfig:
       metric: "request_throughput" # The metric to optimize
       mode: 'max'
-      num_samples: 16
+      num_samples: 20
       search_alg:
         name: optuna
         params:
           sampler: TPESampler
           sampler_parameters:
-            n_startup_trials: 8 # Number of random samples before optimization
+            n_startup_trials: 10 # Number of random samples before optimization

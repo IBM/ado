@@ -135,7 +135,10 @@ def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters) ->
             )
             return
 
-        if parameters.render_output:
+        if parameters.render_output and parameters.output_format in {
+            AdoShowSummarySupportedOutputFormats.MARKDOWN_REPORT,
+            AdoShowSummarySupportedOutputFormats.MARKDOWN_TABLE,
+        }:
             from rich.markdown import Markdown
 
             result = Markdown(result)

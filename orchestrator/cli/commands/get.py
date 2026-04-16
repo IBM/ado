@@ -297,18 +297,6 @@ def get_resource(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    # Validate that output_file is only used with file-based formats
-    if output_file and output_format in (
-        AdoGetSupportedOutputFormats.DEFAULT,
-        AdoGetSupportedOutputFormats.NAME,
-    ):
-        console_print(
-            f"{ERROR} --output-file cannot be used with --output {output_format.value}. "
-            f"Use --output yaml, --output json, or --output config instead.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
     if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE and (
         matching_point or matching_space or matching_space_id
     ):

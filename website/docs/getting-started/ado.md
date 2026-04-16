@@ -444,9 +444,7 @@ Where:
 <!-- prettier-ignore-end -->
 
 - `--output-file` allows writing the output to a specified file instead of
-  stdout. This flag is only supported when using the `yaml`, `json`, `config`,
-  or `raw` output formats. It cannot be used with the `default` or `name`
-  formats.
+  stdout. Avoids truncating columns when used with the `table` format.
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
   used to show them.
@@ -621,6 +619,18 @@ ado get space my-space-id -o yaml --output-file space.yaml
 ado get operations -o json --output-file operations.json
 ```
 
+##### Saving resource identifiers to a file
+
+```shell
+ado get spaces -o name --output-file space-ids.txt
+```
+
+##### Saving table output to a file
+
+```shell
+ado get spaces --output-file spaces-table.txt
+```
+
 ### ado show
 
 When interacting with resources, we might be interested in seeing some of their
@@ -767,6 +777,9 @@ Where:
 
 ###### Show matching entities in a Space with target format and output them as CSV
 
+Recommended approach using `--output-file` (ensures columns aren't truncated and
+handles file write errors):
+
 ```shell
  ado show entities space space-abc123-456def --include matching \
                                              --property-format target \
@@ -791,6 +804,12 @@ Or to write CSV to stdout for piping:
 ado show entities operation randomwalk-0.5.0-123abc -o json \
                                                     --property my-property-1 \
                                                     --property my-property-2
+```
+
+###### Save table output of entities to a file
+
+```shell
+ado show entities space space-abc123-456def --output-file entities-table.txt
 ```
 
 #### ado show requests
@@ -829,7 +848,8 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 ado show requests operation randomwalk-0.5.0-123abc -o csv > requests.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show requests operation randomwalk-0.5.0-123abc -o csv --output-file requests.csv
@@ -844,6 +864,12 @@ ado show requests operation randomwalk-0.5.0-123abc --hide type --hide "experime
 ```
 
 <!-- markdownlint-enable line-length -->
+
+###### Save table output of requests to a file
+
+```shell
+ado show requests operation randomwalk-0.5.0-123abc --output-file requests-table.txt
+```
 
 #### ado show results
 
@@ -881,7 +907,8 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 ado show results operation randomwalk-0.5.0-123abc -o csv > results.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.csv
@@ -891,6 +918,12 @@ ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.
 
 ```shell
 ado show results operation randomwalk-0.5.0-123abc --hide uid
+```
+
+###### Save table output of results to a file
+
+```shell
+ado show results operation randomwalk-0.5.0-123abc --output-file results-table.txt
 ```
 
 #### ado show related
@@ -971,9 +1004,9 @@ Where:
 
 <!-- prettier-ignore-start -->
 
-    - `md` - for Markdown text (written to stdout or file).
-    - `table` (**default**) - for Markdown tables (written to stdout or file).
-    - `csv` - for CSV format (written to stdout or file).
+    - `md` - for Markdown text.
+    - `table` (**default**) - for Markdown tables.
+    - `csv` - for CSV format.
 
 <!-- prettier-ignore-end -->
 
@@ -1022,10 +1055,23 @@ ado show summary space space-abc123-456def -o md
 ado show summary space -l issue=123 -o csv > summary.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show summary space -l issue=123 -o csv --output-file summary.csv
+```
+
+###### Save table summary output to a file
+
+```shell
+ado show summary space my-space-id --output-file summary-table.txt
+```
+
+###### Save markdown summary output to a file
+
+```shell
+ado show summary space my-space-id -o md --output-file summary.md
 ```
 
 ###### Get the summary of spaces that include granite-7b-base in the property domain

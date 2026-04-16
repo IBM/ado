@@ -172,7 +172,8 @@ Write a concise markdown report
      report, there has been new activity — proceed to write a new report.
   3. If not, ask the user whether they want to replace it.
   4. If finer-grained confirmation is needed, fetch the YAML of the most recent
-     space or operation (`uv run ado get space SPACE_ID -o yaml`) and read its
+     space or operation (`uv run ado get space SPACE_ID -o yaml --output-file
+     SPACE_ID.yaml`, or the same pattern for `operation`) and read its
      `creationTimestamp` field.
 
 ### Project summary

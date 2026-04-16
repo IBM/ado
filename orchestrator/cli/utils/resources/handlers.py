@@ -67,6 +67,11 @@ def handle_ado_get(
         resource_type: Type of resource to fetch (for DB queries)
         dataframe: Pre-built DataFrame (for custom data sources)
         resources: Pre-fetched resources (for custom filtering)
+
+    Raises:
+        ValueError: If an identifier column (either "IDENTIFIER" or the value of
+            parameters.no_trunc if it's a list with a single element) is not found
+            in the provided dataframe when using NAME output format.
     """
     match parameters.output_format:
         case AdoGetSupportedOutputFormats.NAME:
@@ -93,7 +98,14 @@ def _handle_name_format(
     dataframe: "pd.DataFrame | None",
     resources: "list[ADOResource] | ADOResource | None",
 ) -> None:
-    """Handle NAME output format - output identifiers only (most efficient)."""
+    """
+    Handle NAME output format - output identifiers only (most efficient).
+
+    Raises:
+        ValueError: If an identifier column (either "IDENTIFIER" or the value of
+            parameters.no_trunc if it's a list with a single element) is not found
+            in the provided dataframe.
+    """
 
     # If dataframe provided, extract identifier column
     if dataframe is not None:
@@ -106,11 +118,15 @@ def _handle_name_format(
             if isinstance(parameters.no_trunc, list) and len(parameters.no_trunc) == 1
             else "IDENTIFIER"
         )
-        if identifier_column in dataframe.columns:
-            output = "\n".join(
-                str(identifier) for identifier in dataframe[identifier_column]
+        if identifier_column not in dataframe.columns:
+            raise ValueError(
+                f"Identifier column '{identifier_column}' not found in dataframe. "
+                f"Available columns: {', '.join(dataframe.columns)}"
             )
-            _write_or_print_output(output, parameters.output_file)
+        output = "\n".join(
+            str(identifier) for identifier in dataframe[identifier_column]
+        )
+        _write_or_print_output(output, parameters.output_file)
         return
 
     # If resources provided, extract identifiers

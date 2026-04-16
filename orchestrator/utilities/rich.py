@@ -200,16 +200,27 @@ def dataframe_to_rich_table(
     return table
 
 
-def render_to_string(renderable: "RenderableType", width: int | None = None) -> str:
+def render_to_string(
+    renderable: "RenderableType",
+    width: int | None = None,
+    auto_width: bool = False,
+) -> str:
     """Render a rich renderable to a string.
 
     Args:
         renderable: A RenderableType object (e.g., Table, Panel, Text, etc.)
         width: Optional width for the console. If None, uses default width.
+        auto_width: If True, automatically set console width to match the renderable's
+            width (if available). This prevents truncation when writing to files.
+            Takes precedence over the width parameter.
 
     Returns:
         A string representation of the rendered output
     """
+    # If auto_width is requested and the renderable has a width attribute, use it
+    if auto_width and hasattr(renderable, "width") and renderable.width is not None:
+        width = renderable.width
+
     console = Console(width=width, force_terminal=False, legacy_windows=False)
     with console.capture() as capture:
         console.print(renderable)

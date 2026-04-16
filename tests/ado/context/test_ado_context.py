@@ -356,14 +356,19 @@ def test_ado_contexts_list_contexts_with_context_and_valid_dir_override(
         do_not_fail_on_available_contexts=True, _override_config_dir=tmp_path
     )
 
-    # We create empty contexts where ado expects them, so they appear
+    # We create contexts where ado expects them, so they appear
     # in the list of available contexts
-    ado_configuration.project_context_path_for_context("first-context").touch()
-    ado_configuration.project_context_path_for_context("second-context").touch()
+    valid_context_yaml = pydantic_model_as_yaml(valid_ado_project_context)
+    ado_configuration.project_context_path_for_context("first-context").write_text(
+        valid_context_yaml
+    )
+    ado_configuration.project_context_path_for_context("second-context").write_text(
+        valid_context_yaml
+    )
 
     # We prepare our override context
     context_location = tmp_path / f"{random_identifier()}.yaml"
-    context_location.write_text(pydantic_model_as_yaml(valid_ado_project_context))
+    context_location.write_text(valid_context_yaml)
 
     runner = CliRunner()
     # Test with the default (rich) output

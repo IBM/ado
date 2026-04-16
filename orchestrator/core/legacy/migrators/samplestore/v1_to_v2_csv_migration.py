@@ -4,8 +4,8 @@
 """Legacy migrator for migrating CSV sample stores from v1 to v2 format"""
 
 from orchestrator.core.legacy.registry import legacy_migrator
-from orchestrator.core.legacy.utils import get_nested_value, has_nested_field
 from orchestrator.core.resources import CoreResourceKinds
+from orchestrator.utilities.dictionaries import get_nested_value, has_nested_field
 
 
 @legacy_migrator(

@@ -3,7 +3,7 @@
 
 """Tests for legacy migrator utility functions"""
 
-from orchestrator.core.legacy.utils import (
+from orchestrator.utilities.dictionaries import (
     get_nested_value,
     get_parent_dict_and_key,
     has_nested_field,

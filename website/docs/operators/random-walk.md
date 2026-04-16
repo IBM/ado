@@ -24,9 +24,10 @@ Use the `random_walk` operator when you want to:
   (finite size spaces)
 - sample entities matching particular conditions (see below)
 
-The `random_walk` operator supports `memoization`: if it samples the same entity
-twice, and that entity has already had the measurement space applied, it will
-replay the already measured values (by default).
+The `random_walk` operator supports
+[memoization](../core-concepts/data-sharing.md#memoization): if it samples the
+same entity twice, and that entity has already had the measurement space applied,
+it will replay the already measured values (by default).
 
 ### What happens if I apply multiple `random_walk` operations to a space?
 
@@ -34,8 +35,9 @@ If you apply multiple `random_walk` operations, you just get multiple random
 walks of the different lengths and types you have requested.
 
 All explore operations are independent. This means each proceeds as configured -
-the only influence of previous operations is to enable `memoization` if a
-subsequent operation visits the same point.
+the only influence of previous operations is to enable
+[memoization](../core-concepts/data-sharing.md#memoization) if a subsequent
+operation visits the same point.
 
 To concretize this, consider two `random_walk` operations that sample
 deterministically (i.e. aren't actually random). The first is configured to
@@ -398,8 +400,8 @@ If entities have multiple measurements e.g. you turned this off and then turned
 it on again, then if an entity has multiple measurements each one will be
 replayed.
 
-Check [replayed measurements](explore_operators.md#replayed-measurements) for
-more details.
+Check [replayed measurements](explore_operators.md#memoization-replaying-measurements)
+for more details.
 
 ### Retrying Failed Measurements
 

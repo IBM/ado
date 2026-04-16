@@ -13,17 +13,18 @@ from orchestrator.cli.utils.output.prints import (
 from orchestrator.metastore.project import ProjectContext
 
 if typing.TYPE_CHECKING:
-    from orchestrator.metastore.sqlstore import SQLStore
+    from orchestrator.metastore.sqlstore import SQLResourceStore
 
 
-def get_sql_store(project_context: ProjectContext) -> "SQLStore":
+def get_sql_store(project_context: ProjectContext) -> "SQLResourceStore":
     from sqlalchemy.exc import OperationalError
 
     from orchestrator.metastore.sqlstore import SQLStore
 
     with Status(ADO_SPINNER_CONNECTING_TO_DB) as status:
         try:
-            return SQLStore(project_context=project_context)
+            # SQLStore.__new__ returns SQLResourceStore
+            return SQLStore(project_context=project_context)  # type: ignore[abstract]
         except OperationalError as e:
             status.stop()
             console_print(

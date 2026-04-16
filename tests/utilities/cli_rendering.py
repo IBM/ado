@@ -71,4 +71,4 @@ def render_ado_resources_to_cli_output(
         do_not_truncate_columns=do_not_truncate_columns,
     )
 
-    return render_to_string(table, width=table.width)
+    return render_to_string(table, auto_width=True)

@@ -29,6 +29,8 @@ directory if needed)
   [query-ado-data](../query-ado-data/SKILL.md).
 - For examining operations run on a space, see
   [examining-ado-operations](../examining-ado-operations/SKILL.md).
+- For a project/context wide view (all spaces and operations), see
+  [examining-ado-project](../examining-ado-project/SKILL.md).
 
 ## Context
 
@@ -71,7 +73,7 @@ Why is it useful to work with matching data?
 
 To apply this skill you need either:
 
-(a) a space id; (b) explicit instruction to examine the latest space
+(a) a space id; (b) explicit instruction to examine “the latest” space
 
 In the case of (b) get the actual identifier:
 
@@ -92,8 +94,6 @@ for same YAML.
 The output produced by '-o/--output' can be very large e.g. from "show entities".
 Use the `--output-file` flag with the name of the file where to save the output
 and, when inspecting these files:
-
-When inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large

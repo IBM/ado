@@ -7,12 +7,11 @@ import abc
 import contextlib
 import logging
 import typing
+from typing import Protocol
 
-import pydantic
 import ray
 import ray.exceptions
 
-import orchestrator.core.metadata
 import orchestrator.core.operation.resource
 import orchestrator.core.resources
 import orchestrator.metastore.project
@@ -21,18 +20,16 @@ import orchestrator.modules.actuators.replay
 import orchestrator.schema.reference
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
-    DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
-    OperatorFunctionConf,
     OperatorModuleConf,
+    OperatorReference,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.operation.resource import OperationResource
 from orchestrator.metastore.sqlstore import SQLStore
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.discovery_space_manager import (
-    DiscoverySpaceManager,
     DiscoverySpaceUpdateSubscriber,
 )
 from orchestrator.schema.entity import Entity
@@ -43,7 +40,130 @@ if typing.TYPE_CHECKING:
     from orchestrator.metastore.base import ResourceStore
     from orchestrator.modules.actuators.base import ActuatorBase
 
+    from .discovery_space_manager import DiscoverySpaceManagerActor
+
 moduleLog = logging.getLogger("operation_base")
+
+
+class OperatorFunction(Protocol):
+    def __call__(
+        self,
+        discoverySpace: DiscoverySpace,
+        operationInfo: FunctionOperationInfo | None = None,
+        **kwargs: object,
+    ) -> OperationOutput: ...
+
+
+def validate_operator_function_signature(fn: typing.Callable) -> None:
+    """Validate that *fn* conforms to the :class:`OperatorFunction` Protocol.
+
+    Validates the positional parameter count against the Protocol, then
+    checks that every positional parameter and the return value carry a type
+    annotation whose type matches the Protocol.  Type hints are mandatory:
+    an operator function without them cannot be verified to be correct, so
+    a ``ValueError`` is raised rather than silently skipping the check.
+
+    If ``inspect.signature`` cannot be obtained for *fn* a ``ValueError`` is
+    raised, because conformance cannot be confirmed.  A failure to inspect the
+    Protocol itself propagates as-is (it indicates a framework bug).
+
+    Args:
+        fn: The callable to validate.
+
+    Raises:
+        ValueError: If *fn* does not conform to the Protocol, if its
+            signature cannot be inspected, or if any required type hints are
+            absent or unresolvable.
+    """
+    import inspect
+
+    _HINTS_MISSING_HINT = (
+        "Operator functions must declare the correct types for all parameters "
+        "and the return value to pass validation."
+    )
+
+    proto_sig = inspect.signature(OperatorFunction.__call__)
+
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Cannot validate operator function {fn!r}: signature could not "
+            f"be inspected ({exc})."
+        ) from exc
+
+    proto_positional = [
+        p
+        for p in proto_sig.parameters.values()
+        if p.name != "self"
+        and p.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.POSITIONAL_ONLY,
+        )
+    ]
+    actual_positional = [
+        p
+        for p in sig.parameters.values()
+        if p.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.POSITIONAL_ONLY,
+        )
+    ]
+    if len(actual_positional) < len(proto_positional):
+        missing = [p.name for p in proto_positional[len(actual_positional) :]]
+        raise ValueError(
+            f"Operator function is missing required positional parameter(s): "
+            f"{missing!r}."
+        )
+    if len(actual_positional) > len(proto_positional):
+        extra = [p.name for p in actual_positional[len(proto_positional) :]]
+        raise ValueError(
+            f"Operator function has extra positional parameter(s) not in the "
+            f"Protocol: {extra!r}."
+        )
+
+    proto_hints = typing.get_type_hints(OperatorFunction.__call__)
+
+    try:
+        hints = typing.get_type_hints(fn)
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError(
+            f"Operator function has valid structure but type hints are missing "
+            f"or unresolvable ({exc}). {_HINTS_MISSING_HINT}"
+        ) from exc
+
+    missing_hints: list[str] = [
+        f"parameter {p.name!r}" for p in actual_positional if p.name not in hints
+    ]
+    if "return" not in hints:
+        missing_hints.append("return type")
+    if missing_hints:
+        raise ValueError(
+            f"Operator function has valid structure but type hints are missing "
+            f"for {missing_hints}. {_HINTS_MISSING_HINT}"
+        )
+
+    expected_return = proto_hints.get("return")
+    actual_return = hints["return"]
+    if expected_return is not None and actual_return != expected_return:
+        raise ValueError(
+            f"Operator function return type must be {expected_return!r}, "
+            f"got {actual_return!r}."
+        )
+
+    for idx, (proto_param, actual_param) in enumerate(
+        zip(proto_positional, actual_positional, strict=True), start=1
+    ):
+        expected_type = proto_hints.get(proto_param.name)
+        actual_type = hints[actual_param.name]
+        if expected_type is not None and actual_type != expected_type:
+            raise ValueError(
+                f"Operator function parameter {actual_param.name!r} "
+                f"(position {idx}) must be {expected_type!r}, "
+                f"got {actual_type!r}."
+            )
 
 
 # Some operations are RayActors: These operations use Actuators and StateUpdateQueue and require Ray
@@ -52,40 +172,42 @@ moduleLog = logging.getLogger("operation_base")
 
 class DiscoveryOperationBase(metaclass=abc.ABCMeta):
 
-    @abc.abstractmethod
     def operationIdentifier(self) -> str:
-        """A unique id for the operation instance being run by the operator
+        """A unique id for the operation instance being run by the operator.
 
-        should have form $operatorIdentifier-$version-$uid"""
+        Returns ``"<classname>-<8-hex-uuid>"``, stable for the lifetime of
+        the instance.  Override when a deterministic or richer identifier is
+        needed (e.g. embedding the operator version or a caller-supplied run
+        id).
+        """
+        import uuid
 
-    @classmethod
-    @abc.abstractmethod
-    def operatorIdentifier(cls) -> str:
-        """The identifier of this operator
-
-        should have form method-version"""
-
-    @classmethod
-    @abc.abstractmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-        """The type of operation this operator applies"""
+        return f"{type(self).__name__.lower()}-{uuid.uuid4().hex[:8]}"
 
     @classmethod
     @abc.abstractmethod
-    def defaultOperationParameters(
+    def operator_metadata(
         cls,
-    ) -> pydantic.BaseModel:
-        """A default pytdantic model for this operations parameters with this operator"""
+    ) -> "orchestrator.core.operation.config.OperatorMetadata":
+        """Return :class:`~orchestrator.core.operation.config.OperatorMetadata` for this operator.
 
-    @classmethod
-    @abc.abstractmethod
-    def validateOperationParameters(
-        cls,
-        parameters: dict | pydantic.BaseModel,
-    ) -> pydantic.BaseModel:
-        """If the parameters are valid returns a model for them.
+        Subclasses must override this method and return an
+        :class:`~orchestrator.core.operation.config.OperatorMetadata` instance
+        that describes the operator's name, version, type, and configuration
+        model.  The ``@explore_operation`` decorator fills in the ``function``
+        and ``cls`` fields before registering::
 
-        Otherwise, will raise ValidationErrors"""
+            @classmethod
+            def operator_metadata(cls) -> OperatorMetadata:
+                return OperatorMetadata(
+                    name="my_op",
+                    version="0.1.0",
+                    configuration_model=MyOpParameters,
+                    example_configuration=MyOpParameters(),
+                    type=DiscoveryOperationEnum.SEARCH,
+                )
+        """
+        raise NotImplementedError(f"{cls.__name__} must implement operator_metadata().")
 
 
 class UnaryDiscoveryOperation(metaclass=abc.ABCMeta):
@@ -110,7 +232,49 @@ class MultivariateDiscoveryOperation(metaclass=abc.ABCMeta):
         pass
 
 
-# Note: We need async and sync versions because depending on agent
+class DiscoverySpaceSubscribingDiscoveryOperation(
+    DiscoveryOperationBase,
+    DiscoverySpaceUpdateSubscriber,
+    metaclass=abc.ABCMeta,
+):
+    """Instances of this class can receive notifications when measurements are added to a DiscoverySpace"""
+
+    def __init__(
+        self,
+        operationActorName: str,
+        namespace: str | None,
+        discovery_space_manager: "DiscoverySpaceManagerActor",
+        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
+    ) -> None:
+        self.actorName = operationActorName
+        self.namespace = namespace
+        self.ds_manager = discovery_space_manager
+        self.actuators = actuators
+        # noinspection PyUnresolvedReferences
+        self.ds_manager.subscribeToUpdates.remote(subscriberName=self.actorName)
+
+        super().__init__()
+
+
+class Explore(
+    DiscoverySpaceSubscribingDiscoveryOperation,
+    UnaryDiscoveryOperation,
+    metaclass=abc.ABCMeta,
+):
+    """Subclasses sample entities from a DiscoverySpace and run measurements on them
+
+    The general pattern is that on calling run() the subclass
+    1. Samples a set of entities from the discovery space
+    2. Submits them for measurement using measure_or_replay()
+    3. Waits for notifications that measurements are completed
+    4. Returns to 1 or finishes
+
+    Subclasses define different sampling strategies and submission strategies
+    e.g. wait for all measurements to complete before sending new batch or
+    submit new measurements as soon as one completes.
+    """
+
+
 def measure_or_replay(
     requestIndex: int,
     requesterid: str,
@@ -210,77 +374,6 @@ def measure_or_replay(
     return request_ids
 
 
-class DiscoverySpaceSubscribingDiscoveryOperation(
-    DiscoveryOperationBase,
-    DiscoverySpaceUpdateSubscriber,
-    metaclass=abc.ABCMeta,
-):
-    """Instances of this class can cause updates the state and receives details of updates via the StateUpdateSubscriber interface
-
-    Instances of this class are RayActors and must run in Ray.
-    They work on a Ray wrapped instance of the DiscoveryState (models.actors.InternalState)
-    """
-
-    def __init__(
-        self,
-        operationActorName: str,
-        namespace: str | None,
-        state: DiscoverySpaceManager,
-        # Will actually be ray.actor.ActorHandle accessing InternalState
-        actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
-        params: dict | None = None,
-        metadata: orchestrator.core.metadata.ConfigurationMetadata | None = None,
-    ) -> None:
-        # Common code for StateSubscribingDiscoveryOperations
-        self.state = state
-        self.actorName = operationActorName
-        self.namespace = namespace
-        # noinspection PyUnresolvedReferences
-        self.state.subscribeToUpdates.remote(subscriberName=self.actorName)
-
-        super().__init__()
-
-    # async def run(self, discoveryState: orchestrator.model.actors.InternalState):
-    #
-    #     pass
-
-
-class Characterize(
-    DiscoverySpaceSubscribingDiscoveryOperation,
-    UnaryDiscoveryOperation,
-    metaclass=abc.ABCMeta,
-):
-    pass
-
-
-class Search(
-    DiscoverySpaceSubscribingDiscoveryOperation,
-    UnaryDiscoveryOperation,
-    metaclass=abc.ABCMeta,
-):
-    pass
-
-
-class Compare(
-    DiscoveryOperationBase, MultivariateDiscoveryOperation, metaclass=abc.ABCMeta
-):
-    pass
-
-
-class Modify(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMeta):
-    pass
-
-
-class Fuse(
-    DiscoveryOperationBase, MultivariateDiscoveryOperation, metaclass=abc.ABCMeta
-):
-    pass
-
-
-class Learn(DiscoveryOperationBase, UnaryDiscoveryOperation, metaclass=abc.ABCMeta):
-    pass
-
-
 def add_operation_output_to_metastore(
     operation: "OperationResource",
     output: "OperationOutput",
@@ -332,7 +425,7 @@ def add_operation_and_output_to_metastore(
 
 def create_operation_and_add_to_metastore(
     discovery_space: DiscoverySpace,
-    operator_module: OperatorModuleConf | OperatorFunctionConf,
+    operator_module: OperatorModuleConf | OperatorReference,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     metastore: SQLStore,

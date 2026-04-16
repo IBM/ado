@@ -182,19 +182,115 @@ class OperatorModuleConf(ModuleConf):
         c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
-        return c.operationType()
+        return c.operator_metadata().type
 
     @property
     def operatorIdentifier(self) -> str:
         c: type[orchestrator.modules.operators.base.DiscoveryOperationBase] = (
             load_module_class_or_function(self)
         )
+        return c.operator_metadata().operatorIdentifier
 
-        return c.operatorIdentifier()
+
+class OperatorMetadata(pydantic.BaseModel):
+    """Registry metadata for a registered operator."""
+
+    name: Annotated[
+        str,
+        pydantic.Field(description="Canonical name the operator is registered under."),
+    ]
+    function: Annotated[
+        typing.Callable | None,
+        pydantic.Field(
+            description=(
+                "The callable implementing the operator. None when returned by "
+                "operator_metadata() before the decorator injects it."
+            ),
+        ),
+    ] = None
+    version: Annotated[
+        str,
+        pydantic.Field(
+            description=(
+                "PEP 440 version string for the operator (e.g. '0.1.0', "
+                "'1.2.3.dev4+abc.dirty').  Validated on construction."
+            ),
+        ),
+    ] = "0.1.0"
+
+    description: Annotated[
+        str | None,
+        pydantic.Field(
+            description="Human-readable description of the operator.",
+        ),
+    ] = None
+    configuration_model: Annotated[
+        type[pydantic.BaseModel],
+        pydantic.Field(
+            description="Pydantic model class used to validate operation parameters.",
+        ),
+    ]
+    example_configuration: Annotated[
+        pydantic.BaseModel,
+        pydantic.Field(
+            description="Default instance of the configuration model.",
+        ),
+    ]
+    cls: Annotated[
+        type | None,
+        pydantic.Field(
+            description=(
+                "For explore operators: the unwrapped Python class implementing the "
+                "operator. None for function-only operators. The concrete "
+                "modules/operators layer enforces that this is a DiscoveryOperationBase "
+                "subclass; config.py treats it as an opaque type to stay decoupled."
+            ),
+        ),
+    ] = None
+    type: Annotated[
+        DiscoveryOperationEnum,
+        pydantic.Field(
+            description="The discovery operation type this operator belongs to."
+        ),
+    ]
+
+    @pydantic.field_validator("version", mode="after")
+    @classmethod
+    def validate_version_is_pep440(cls, value: str) -> str:
+        """Validate that *version* is a valid PEP 440 version string.
+
+        Args:
+            value: The version string to validate.
+
+        Returns:
+            The original version string unchanged.
+
+        Raises:
+            ValueError: If *value* is not a valid PEP 440 version string.
+        """
+        from packaging.version import InvalidVersion, Version
+
+        try:
+            Version(value)
+        except InvalidVersion as exc:
+            raise ValueError(
+                f"Operator version {value!r} is not a valid PEP 440 version string: {exc}"
+            ) from exc
+        return value
+
+    @property
+    def operatorIdentifier(self) -> str:
+        """Canonical identifier for this operator: ``{name}-{version}``."""
+        return f"{self.name}-{self.version}"
 
 
-class OperatorFunctionConf(pydantic.BaseModel):
-    """Describes an operator vended as a function"""
+class OperatorReference(pydantic.BaseModel):
+    """Identifies a registered operator by name and operation type.
+
+    A lightweight reference used to look up an operator from the registry and
+    dispatch to its callable.  Paired with :class:`OperatorMetadata`, which
+    holds the full operator metadata stored in the registry.
+    """
 
     model_config = ConfigDict(extra="forbid")
     operationType: Annotated[
@@ -216,7 +312,7 @@ class OperatorFunctionConf(pydantic.BaseModel):
 
         if (
             self.operatorName
-            not in operationCollectionMap[self.operationType].function_operations
+            not in operationCollectionMap[self.operationType].operators
         ):
             raise ValueError(
                 f"Operator {self.operatorName} had no functions of type {self.operationType}"
@@ -234,18 +330,64 @@ class OperatorFunctionConf(pydantic.BaseModel):
             self.operationType
         ]
 
-        return collection.function_operations.get(self.operatorName)
+        operator = collection.operators.get(self.operatorName)
+        return operator.function if operator else None
 
     @property
     def operatorIdentifier(self) -> str:
+        """Canonical identifier delegated to ``OperatorMetadata.operatorIdentifier``.
 
+        Returns:
+            ``"{operatorName}-{version}"`` as stored in the operator registry,
+            or ``"{operatorName}-None"`` if the operator is not yet registered.
+        """
         import orchestrator.modules.operators.collections
 
         collection = orchestrator.modules.operators.collections.operationCollectionMap[
             self.operationType
         ]
 
-        return f"{self.operatorName}-{collection.function_operation_versions.get(self.operatorName)}"
+        operator = collection.operators.get(self.operatorName)
+        return operator.operatorIdentifier if operator else f"{self.operatorName}-None"
+
+
+# ---------------------------------------------------------------------------
+# Backwards-compatibility alias — use OperatorReference in new code
+# ---------------------------------------------------------------------------
+
+
+class OperatorFunctionConf(OperatorReference):
+    """Deprecated alias for :class:`OperatorReference`.
+
+    .. deprecated::
+        ``OperatorFunctionConf`` has been renamed to :class:`OperatorReference`.
+        Update imports and instantiation sites to use ``OperatorReference``
+        directly.
+    """
+
+    @pydantic.model_validator(mode="wrap")
+    @classmethod
+    def _warn_deprecated(
+        cls, value: object, handler: pydantic.ValidatorFunctionWrapHandler
+    ) -> "OperatorFunctionConf":
+        """Emit a deprecation warning whenever OperatorFunctionConf is instantiated.
+
+        Args:
+            value: The raw input value passed to the model.
+            handler: The pydantic validation handler.
+
+        Returns:
+            The validated model instance.
+        """
+        import warnings
+
+        warnings.warn(
+            "OperatorFunctionConf has been renamed to OperatorReference. "
+            "Update your import to use OperatorReference instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return handler(value)
 
 
 class DiscoveryOperationConfiguration(pydantic.BaseModel):
@@ -254,7 +396,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     module: Annotated[
-        OperatorModuleConf | OperatorFunctionConf,
+        OperatorModuleConf | OperatorReference,
         pydantic.Field(
             description="The module or function providing the discovery operation"
         ),
@@ -270,8 +412,8 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     @pydantic.field_validator("module", mode="after")
     @classmethod
     def ensure_module_is_installed(
-        cls, module: OperatorModuleConf | OperatorFunctionConf
-    ) -> OperatorModuleConf | OperatorFunctionConf:
+        cls, module: OperatorModuleConf | OperatorReference
+    ) -> OperatorModuleConf | OperatorReference:
         """Validates that the operator module is installed and accessible.
 
         Args:
@@ -283,7 +425,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         Raises:
             ValueError: If the operator module is not installed or cannot be imported.
         """
-        if isinstance(module, OperatorFunctionConf):
+        if isinstance(module, OperatorReference):
             return module
 
         import importlib
@@ -299,10 +441,10 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
 
     @pydantic.model_validator(mode="after")
     def validate_and_downcast_parameters(self) -> Self:
-        """Validates and downcasts operation parameters based on the module type.
+        """Validates and downcasts operation parameters.
 
         For OperatorModuleConf modules, validates parameters using the operation's
-        validateOperationParameters method. For OperatorFunctionConf modules,
+        validateOperationParameters method. For OperatorReference modules,
         validates parameters against the configuration model if available.
 
         Returns:
@@ -313,30 +455,26 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         """
         if isinstance(self.module, OperatorModuleConf):
             # This is guaranteed to not raise an error thanks to ensure_module_is_installed
-            operation = getattr(
+            operator_class = getattr(
                 importlib.import_module(self.module.moduleName), self.module.moduleClass
             )
-            self.parameters = operation.validateOperationParameters(self.parameters)
+            operator_metadata = operator_class.operator_metadata()
+            self.parameters = operator_metadata.configuration_model.model_validate(
+                self.parameters
+            )
         else:
-            import logging
-
             from orchestrator.modules.operators.collections import (
                 operationCollectionMap,
             )
 
             operation_type = self.module.operationType
             operator_name = self.module.operatorName
-            configuration_model = operationCollectionMap[
-                operation_type
-            ].configuration_model_for_operation(operator_name)
-
-            if configuration_model:
-                self.parameters = configuration_model.model_validate(self.parameters)
-            else:
-                logger = logging.getLogger(__file__)
-                logger.warning(
-                    f"No configuration model was available for operation {operator_name} of type {operation_type}"
-                )
+            operator_metadata = operationCollectionMap[operation_type].operators[
+                operator_name
+            ]
+            self.parameters = operator_metadata.configuration_model.model_validate(
+                self.parameters
+            )
 
         return self
 

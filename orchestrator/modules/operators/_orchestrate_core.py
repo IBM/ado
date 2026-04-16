@@ -13,8 +13,8 @@ from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
-    OperatorFunctionConf,
-    OperatorModuleConf,
+    OperatorMetadata,
+    OperatorReference,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.core.operation.resource import (
@@ -46,7 +46,7 @@ def log_space_details(discovery_space: "DiscoverySpace") -> None:
 def _run_operation_harness(
     run_closure: typing.Callable[[], OperationOutput],
     discovery_space: DiscoverySpace,
-    operator_module: OperatorModuleConf | OperatorFunctionConf,
+    operator_metadata: OperatorMetadata,
     operation_parameters: dict,
     operation_info: FunctionOperationInfo,
     operation_identifier: str | None = None,
@@ -61,7 +61,7 @@ def _run_operation_harness(
     Params:
         run_closure: Callable that executes the operation and returns OperationOutput
         discovery_space: The discovery space the operation is running on
-        operator_module: Configuration for the operator (either module or function-based)
+        operator_metadata: Metadata for the registered operator.
         operation_parameters: Dictionary of parameters for the operation
         operation_info: Information about the operation including metadata and actuator configs
         operation_identifier: Optional pre-existing identifier for the operation resource
@@ -80,9 +80,13 @@ def _run_operation_harness(
     # Create and add OperationResource to metastore
     #
 
+    operator_reference = OperatorReference(
+        operatorName=operator_metadata.name,
+        operationType=operator_metadata.type,
+    )
     operation_resource = create_operation_and_add_to_metastore(
         discovery_space=discovery_space,
-        operator_module=operator_module,
+        operator_module=operator_reference,
         operation_parameters=operation_parameters,
         metastore=discovery_space.metadataStore,
         operation_info=operation_info,
@@ -103,7 +107,7 @@ def _run_operation_harness(
     operationStatus = OperationResourceStatus(
         event=OperationResourceEventEnum.FINISHED,
         exit_state=OperationExitStateEnum.ERROR,
-        message="Operation exited due uncaught exception)",
+        message="Operation exited due to uncaught exception)",
     )
     try:
         operation_resource.status.append(
@@ -178,18 +182,16 @@ def _run_operation_harness(
         sys.stdout.flush()
         if shutdown_signal_received:
             moduleLog.warning(
-                f"Operation {operation_identifier} exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
+                f"Operation {operation_resource.identifier} exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
             )
             if operation_output:
                 moduleLog.info("Operation returned output - will save")
 
-            operationStatus = (
-                OperationResourceStatus(
-                    event=OperationResourceEventEnum.FINISHED,
-                    exit_state=OperationExitStateEnum.ERROR,
-                    message="An external event e.g. SIGTERM, initiated shutdown. "
-                    "This may have caused the operation to exit early",
-                ),
+            operationStatus = OperationResourceStatus(
+                event=OperationResourceEventEnum.FINISHED,
+                exit_state=OperationExitStateEnum.ERROR,
+                message="An external event e.g. SIGTERM, initiated shutdown. "
+                "This may have caused the operation to exit early",
             )
         else:
             if not operation_output:
@@ -202,7 +204,7 @@ def _run_operation_harness(
                 )
             else:
                 moduleLog.debug(
-                    f"Operation {operation_identifier} exited normally with status {operation_output.exitStatus}"
+                    f"Operation {operation_resource.identifier} exited normally with status {operation_output.exitStatus}"
                 )
     finally:
         if operation_output:
@@ -212,7 +214,7 @@ def _run_operation_harness(
 
             # Add it to metastore
             moduleLog.info(
-                f"Adding output for operation {operation_identifier} to metastore"
+                f"Adding output for operation {operation_resource.identifier} to metastore"
             )
             add_operation_output_to_metastore(
                 operation=operation_resource,

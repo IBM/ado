@@ -25,6 +25,7 @@ from orchestrator.core.discoveryspace.space import (
 )
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
+    OperatorMetadata,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.core.operation.resource import (
@@ -34,9 +35,10 @@ from orchestrator.core.operation.resource import (
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.operators.base import (
-    Search,
+    Explore,
     measure_or_replay,
 )
+from orchestrator.modules.operators.collections import explore_operation
 from orchestrator.modules.operators.discovery_space_manager import DiscoverySpaceManager
 from orchestrator.schema.domain import PropertyDomain
 from orchestrator.schema.entity import (
@@ -761,26 +763,9 @@ def search_space_from_explicit_entity_space(
     return space
 
 
-@ray.remote
-class RayTune(Search):
+@explore_operation
+class RayTune(Explore):
     """Uses raytune optimization algorithm to search through entities in a space"""
-
-    @classmethod
-    def defaultOperationParameters(
-        cls,
-    ) -> RayTuneConfiguration:
-        return RayTuneConfiguration(
-            tuneConfig=OrchTuneConfig(
-                metric="wallclock_time", search_alg=OrchSearchAlgorithm(name="bayesopt")
-            ),
-            runtimeConfig=OrchRunConfig(),
-        )
-
-    @classmethod
-    def validateOperationParameters(
-        cls, parameters: dict | pydantic.BaseModel
-    ) -> RayTuneConfiguration:
-        return RayTuneConfiguration.model_validate(parameters)
 
     @classmethod
     def description(cls) -> str:
@@ -797,7 +782,7 @@ class RayTune(Search):
         self,
         operationActorName: str,
         namespace: str,
-        state: DiscoverySpaceManager,
+        discovery_space_manager: DiscoverySpaceManager,
         actuators: dict[str, "orchestrator.modules.actuators.base.ActuatorBase"],
         params: dict | None = None,
     ) -> None:
@@ -814,18 +799,16 @@ class RayTune(Search):
 
         self.params = RayTuneConfiguration(**params)
 
-        self.actuators = actuators
         self._entitiesSubmitted = 0
         self._finishedMeasurements = {}
         self._requestIndex = 0
         self.received_critical_error_notification = False
         self.criticalError = None  # Will store the critical error if we receive one
 
-        # Sets state, actorName ivars and subscribes to the state
         super().__init__(
             operationActorName=operationActorName,
             namespace=namespace,
-            state=state,
+            discovery_space_manager=discovery_space_manager,
             actuators=actuators,
         )
 
@@ -858,11 +841,11 @@ class RayTune(Search):
         try:
             # noinspection PyUnresolvedReferences
             entity_space = (
-                await self.state.entitySpace.remote()
+                await self.ds_manager.entitySpace.remote()
             )  # type: EntitySpaceRepresentation
             # noinspection PyUnresolvedReferences
             measurement_space = (
-                await self.state.measurementSpace.remote()
+                await self.ds_manager.measurementSpace.remote()
             )  # type: MeasurementSpace
 
             metric_or_metrics = self.params.tuneConfig.metric
@@ -895,7 +878,7 @@ class RayTune(Search):
                     measurement_space=measurement_space,
                     entity_space=entity_space,
                     actuators=self.actuators,
-                    state=self.state,
+                    state=self.ds_manager,
                     orchestrator_config=self.params.orchestratorConfig,
                     target_metric=self.params.tuneConfig.metric,
                     debugging=False,
@@ -984,7 +967,7 @@ class RayTune(Search):
             )
 
         # noinspection PyUnresolvedReferences
-        self.state.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
+        self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)
 
         return operation_output
 
@@ -996,16 +979,24 @@ class RayTune(Search):
         return self._requestIndex
 
     def operationIdentifier(self) -> str:
-        return f"{self.__class__.operatorIdentifier()}-{self.params.tuneConfig.search_alg.name}-{self.runid}"
+        return f"{self.__class__.operator_metadata().operatorIdentifier}-{self.params.tuneConfig.search_alg.name}-{self.runid}"
 
     @classmethod
-    def operatorIdentifier(cls) -> str:
+    def operator_metadata(cls) -> OperatorMetadata:
+        """Returns operator metadata for the ray_tune explore operator."""
         from importlib.metadata import version
 
-        version = version("ado-ray-tune")
-
-        return f"raytune-{version}"
-
-    @classmethod
-    def operationType(cls) -> DiscoveryOperationEnum:
-        return DiscoveryOperationEnum.SEARCH
+        return OperatorMetadata(
+            name="ray_tune",
+            version=version("ado-ray-tune"),
+            description=cls.description(),
+            configuration_model=RayTuneConfiguration,
+            example_configuration=RayTuneConfiguration(
+                tuneConfig=OrchTuneConfig(
+                    metric="wallclock_time",
+                    search_alg=OrchSearchAlgorithm(name="bayesopt"),
+                ),
+                runtimeConfig=OrchRunConfig(),
+            ),
+            type=DiscoveryOperationEnum.SEARCH,
+        )

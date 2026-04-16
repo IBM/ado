@@ -243,10 +243,8 @@ The operation will end with information like:
 config:
   operation:
     module:
-      moduleClass: RandomWalk
-      moduleName: orchestrator.modules.operators.randomwalk
-      modulePath: .
-      moduleType: operation
+      operatorName: random_walk
+      operationType: search
     parameters:
       batchSize: 1
       numberEntities: 48

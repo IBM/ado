@@ -202,6 +202,15 @@ The recommended method is to specify `ado-core` and the pypi package names of
 any plugins required in the `packages.fromPyPI` section of your
 `remote_context.yaml`.
 
+> [!NOTE] Wheel paths and `fromPyPI`
+>
+> Entries in `fromPyPI` that resolve to an existing `.whl` file on
+> the machine running `ado --remote` will be transferred to the remote cluster.
+> Other entries are forwarded unchanged to the
+> cluster's `uv` install step. This includes paths that were not present
+> on submitting machine - these will be interpreted as paths to wheels
+> that are on the remote filesystem.
+
 ### Dynamic installation from source
 
 If you need to install plugins or packages from source, specify the path to them

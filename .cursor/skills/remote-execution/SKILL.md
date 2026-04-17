@@ -51,8 +51,8 @@ oc whoami   # OpenShift
 kubectl get nodes   # Kubernetes
 ```
 
-If this fails, log in first — the port-forward will fail with a credentials
-error otherwise.
+If this fails, request user to log in first — the port-forward will
+fail with a credentials error otherwise.
 
 ---
 
@@ -98,6 +98,19 @@ Prefer the two-step pattern when you want the space registered in the local
 metastore (e.g. for local querying or validation) before submitting.
 
 ---
+
+## Tips
+
+Check if all entries under `additionalFiles` in the remote
+execution context YAML are required for the current submission.
+Comment or remove those that are not to avoid uploading
+unnecessary data.
+
+Check if the value of the `wait` field is suitable for
+the command being executed. In general do not wait
+for `create operation` as it can be hours long.
+If you are executing `get` or `show` commands waiting is valid
+as these may only take seconds to minutes.
 
 ## Common Issues
 
@@ -154,3 +167,30 @@ fromPyPI:
   - ray==2.52.1 # match the cluster's installed version
   - ado-ray-tune
 ```
+
+### Behaviour of packages specified in fromSource does not reflect local edits
+
+Often local edits are made to a plugin - to add new features or fix an issue -
+that is included in a remote execution context via `fromSource`. In some cases
+you may observe that the changes made are not reflected in the behaviour of the
+remote run. Some examples:
+
+- A problem in experiment decorator preventing its use is fixed,
+but it still can't be imported
+- A print log is added to record some information but the log does not appear
+- A new parameter or output is added to an experiment but its not present in
+remote run
+
+The most likely cause of this behaviour is that the versioning of the wheel
+built for
+the plugin is not specific enough to distinguish it from a previously
+installed wheel of the same plugin. For example, the default versioning
+scheme may include commit and date, where date denotes there are
+"dirty" local changes in the wheel. However, after the first install
+of a plugin with a local edit on a day, all subsequent installs, even
+with different edits have the same version, and ray will not install them,
+thinking they are already present.
+
+The solution is to use a more fine-grained versioning scheme for dirty edits
+in the plugin pyproject.toml. See [plugin development](../../rules/plugin-development.mdc)
+for details.

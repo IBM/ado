@@ -26,6 +26,7 @@ include = ["trim*"]
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"
 
 [tool.uv.sources]
 ado-core = { workspace = true }

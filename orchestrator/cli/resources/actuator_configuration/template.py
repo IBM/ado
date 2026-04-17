@@ -55,12 +55,9 @@ def template_actuator_configuration(parameters: AdoTemplateCommandParameters) ->
         parameters=actuator.default_parameters(is_template=True),
     )
 
-    output_path = pathlib.Path(
-        f"{parameters.actuator_identifier}_{parameters.output_path}"
-    )
     serialise_pydantic_model(
         model=model_instance,
-        output_path=output_path,
+        output_path=parameters.output_file,
     )
 
     if parameters.include_schema:
@@ -70,7 +67,6 @@ def template_actuator_configuration(parameters: AdoTemplateCommandParameters) ->
         # duck-typed parameters that are implemented by the actuator.
         from pydantic import create_model
 
-        schema_output_path = pathlib.Path(output_path.stem + "_schema.yaml")
         create_model_parameters = {
             "actuatorIdentifier": (str, ...),
             "parameters": (model_instance.parameters.__class__, ...),
@@ -83,9 +79,15 @@ def template_actuator_configuration(parameters: AdoTemplateCommandParameters) ->
                 stderr=True,
             )
 
-        serialise_pydantic_model_json_schema(
-            model=create_model(
-                model_instance.__class__.__name__, **create_model_parameters
-            ).model_construct(model_instance.model_dump()),
-            output_path=schema_output_path,
-        )
+        schema_model = create_model(
+            model_instance.__class__.__name__, **create_model_parameters
+        ).model_construct(model_instance.model_dump())
+
+        if parameters.output_file is None:
+            # If outputting to stdout, also output schema to stdout
+            serialise_pydantic_model_json_schema(schema_model, None)
+        else:
+            schema_output_path = pathlib.Path(
+                parameters.output_file.stem + "_schema.yaml"
+            )
+            serialise_pydantic_model_json_schema(schema_model, schema_output_path)

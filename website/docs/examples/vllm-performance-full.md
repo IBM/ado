@@ -83,7 +83,8 @@ deploy on. This is provided via an `actuatorconfiguration`.
 First execute:
 
 ```commandline
-ado template actuatorconfiguration --actuator-identifier vllm_performance -o vllm_actuator_configuration.yaml
+ado template actuatorconfiguration --actuator-identifier vllm_performance \
+                                   --output-file vllm_actuator_configuration.yaml
 ```
 
 This will create a file called `vllm_actuator_configuration.yaml`

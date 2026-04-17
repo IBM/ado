@@ -39,8 +39,6 @@ For `ado get` and `ado show` subcommands:
   stdout. Prefer this over shell redirection for large output so encoding and
   table rendering stay consistent.
 
-For `ado template` only, `-o` / `--output` is the **path for the generated
-template file**. That command does not use `--output-file`.
 
 ## Commands That do not exist
 

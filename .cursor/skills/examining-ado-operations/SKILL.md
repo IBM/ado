@@ -61,18 +61,19 @@ context.
 
 ### Avoiding refetching YAML
 
-`ado get -o yaml` flag outputs YAML to console. It's often useful to redirect
-this to a temporary file and work with that to avoid multiple `ado get` calls
-for same YAML.
+`ado get … -o yaml` (or `json`) writes to stdout by default. Prefer
+`--output-file PATH` with the same format flag, then work from that file to
+avoid repeated `ado get` calls for the same resource.
 
-In particular "get datacontainer -o yaml|json" can be large and should be
-redirected to a file and loaded with python.
+In particular `ado get datacontainer … -o yaml` or `-o json` can be large; use
+`--output-file` and load the file with Python (or another tool) instead of
+re-fetching.
 
 ### Large output files
 
-The output produced by '-o/--output' can be very large e.g. from "show
-entities", "show requests" or "show results". Use the `--output-file` flag with
-the name of the file where to save the output and, when inspecting these files:
+The output for a chosen `-o`/`--output` **format** can be very large (for example
+from `show entities`, `show requests`, or `show results`). Use `--output-file`
+with the destination path and, when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
@@ -90,7 +91,7 @@ the name of the file where to save the output and, when inspecting these files:
 ### Step 1: Get the operation YAML
 
 ```bash
-uv run ado get operation OPERATION_ID -o yaml
+uv run ado get operation OPERATION_ID -o yaml --output-file OPERATION_ID.yaml
 ```
 
 Extract and summarise:
@@ -159,7 +160,7 @@ the schema.
 Using the space id from step 1
 
 ```bash
-uv run ado get space SPACE_ID -o yaml
+uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml
 uv run ado describe space SPACE_ID
 ```
 
@@ -195,7 +196,7 @@ To retrieve contents of data container. Use `--output-file` to ensure proper
 file handling:
 
 ```bash
-uv run ado get datacontainer -o yaml $DATACONTAINER_IDENTIFIER --output-file datacontainer.yaml
+uv run ado get datacontainer $DATACONTAINER_IDENTIFIER -o yaml --output-file datacontainer.yaml
 ```
 
 For each output resource summarize what it is/contains.

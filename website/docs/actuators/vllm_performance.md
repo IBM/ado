@@ -269,7 +269,8 @@ uses the `vllm_performance` actuator.
 > You can generate a default configuration via the ado CLI:
 >
 > ```shell
-> ado template actuatorconfiguration --actuator-identifier vllm_performance -o actuatorconfiguration.yaml
+> ado template actuatorconfiguration --actuator-identifier vllm_performance \
+>                                    --output-file actuatorconfiguration.yaml
 > ```
 
 ### Developer Mode

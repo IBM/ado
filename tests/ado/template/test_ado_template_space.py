@@ -18,7 +18,14 @@ def test_template_space(
     file_name = tmp_path / random_identifier()
     result = runner.invoke(
         ado,
-        ["--override-ado-app-dir", tmp_path, "template", "space", "-o", file_name],
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "template",
+            "space",
+            "--output-file",
+            file_name,
+        ],
     )
     assert result.exit_code == 0
     assert f"Success! File saved as {file_name}" in result.output
@@ -38,7 +45,7 @@ def test_template_space_from_experiment(
             "space",
             "--from-experiment",
             "peptide_mineralization",
-            "-o",
+            "--output-file",
             file_name,
         ],
     )

@@ -76,7 +76,7 @@ uv run ado describe experiment $EXPERIMENT_ID
 **Generate initial template from experiment:**
 
 ```bash
-uv run ado template space --from-experiment $EXPERIMENT_ID -o space.yaml
+uv run ado template space --from-experiment $EXPERIMENT_ID --output-file space.yaml
 ```
 
 **Manual structure:**
@@ -106,7 +106,7 @@ uv run ado get operators
 **Get operator template:**
 
 ```bash
-uv run ado template operation --operator-name $OPERATOR_NAME -o operation.yaml
+uv run ado template operation --operator-name $OPERATOR_NAME --output-file operation.yaml
 ```
 
 ### Step 2b: Decide Parameters

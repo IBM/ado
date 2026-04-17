@@ -60,14 +60,18 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
 
         serialise_pydantic_model(
             model=model_instance,
-            output_path=parameters.output_path,
+            output_path=parameters.output_file,
         )
 
         if parameters.include_schema:
-            schema_output_path = pathlib.Path(
-                parameters.output_path.stem + "_schema.yaml"
-            )
-            serialise_pydantic_model_json_schema(model_instance, schema_output_path)
+            if parameters.output_file is None:
+                # If outputting to stdout, also output schema to stdout
+                serialise_pydantic_model_json_schema(model_instance, None)
+            else:
+                schema_output_path = pathlib.Path(
+                    parameters.output_file.stem + "_schema.yaml"
+                )
+                serialise_pydantic_model_json_schema(model_instance, schema_output_path)
         return
 
     # The user has requested a specific operator for the template
@@ -132,28 +136,29 @@ def template_operation(parameters: AdoTemplateCommandParameters) -> None:
         operation=default_operation_configuration,
     )
 
-    # It's more helpful if the file name contains the operator name
-    output_path = (
-        pathlib.Path(parameters.output_path.stem + f"_{parameters.operator_name}.yaml")
-        if not parameters.output_path
-        else parameters.output_path
-    )
-
     orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model(
         model=model_instance,
-        output_path=output_path,
+        output_path=parameters.output_file,
     )
 
     if parameters.include_schema:
-        schema_output_path = pathlib.Path(output_path.stem + "_schema.yaml")
         schema_model_instance = (
             default_operation_configuration.parameters
             if parameters.parameters_only_schema
             else model_instance
         )
-        orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model_json_schema(
-            schema_model_instance, schema_output_path
-        )
+        if parameters.output_file is None:
+            # If outputting to stdout, also output schema to stdout
+            orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model_json_schema(
+                schema_model_instance, None
+            )
+        else:
+            schema_output_path = pathlib.Path(
+                parameters.output_file.stem + "_schema.yaml"
+            )
+            orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model_json_schema(
+                schema_model_instance, schema_output_path
+            )
 
 
 def find_operator_type_by_name(

@@ -138,7 +138,7 @@ class AdoTemplateCommandParameters(pydantic.BaseModel):
     include_schema: bool
     operator_name: str | None
     operator_type: DiscoveryOperationEnum | None
-    output_path: Path | None
+    output_file: Path | None
     parameters_only_schema: bool
     template_local_context: bool
 

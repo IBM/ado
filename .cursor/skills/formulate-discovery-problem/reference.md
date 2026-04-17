@@ -43,11 +43,12 @@ See
 
 ### Domain range bounds (numeric)
 
-`domainRange: [lower, upper]` is **half-open**:
-**lower inclusive, upper exclusive** — valid values satisfy
-`lower <= value < upper`. The upper endpoint itself is **not** in the domain.
+`domainRange: [lower, upper]` is **half-open**: **lower inclusive, upper
+exclusive** — valid values satisfy `lower <= value < upper`. The upper endpoint
+itself is **not** in the domain.
 
-See [properties and domains](../../../website/docs/core-concepts/properties-and-domains.md)
+See
+[properties and domains](../../../website/docs/core-concepts/properties-and-domains.md)
 for the full discussion.
 
 ### Variable Types
@@ -188,13 +189,13 @@ uv run ado template operation --operator-name NAME --include-schema
 **Space from experiment:**
 
 ```bash
-uv run ado template space --from-experiment EXPERIMENT -o space.yaml
+uv run ado template space --from-experiment EXPERIMENT --output-file space.yaml
 ```
 
 **Operation template:**
 
 ```bash
-uv run ado template operation --operator-name OPERATOR_NAME -o operation.yaml
+uv run ado template operation --operator-name OPERATOR_NAME --output-file operation.yaml
 ```
 
 **List experiments:**

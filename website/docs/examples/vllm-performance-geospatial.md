@@ -77,7 +77,8 @@ is provided via an `actuatorconfiguration`.
 First execute:
 
 ```commandline
-ado template actuatorconfiguration --actuator-identifier vllm_performance -o vllm_actuator_configuration.yaml
+ado template actuatorconfiguration --actuator-identifier vllm_performance \
+                                   --output-file vllm_actuator_configuration.yaml
 ```
 
 Edit the file and set correct values for at least the `namespace` field. In this

@@ -179,7 +179,7 @@ Get entities and their measurements from a space or operation:
 uv run ado show entities RESOURCE_TYPE [RESOURCE_ID] \
                   [--use-latest] [--file | -f <file.yaml>]\
                   [--property-format {observed | target}] \
-                  [--output | -o {console | csv | json}] \
+                  [--output | -o {csv | json | table}] \
                   [--output-file <path>] \
                   [--property <property-name>] \
                   [--include {sampled | matching | missing | unsampled}] \
@@ -193,7 +193,7 @@ uv run ado show entities RESOURCE_TYPE [RESOURCE_ID] \
 - `--include` (spaces only): `sampled`, `unsampled`, `matching`, `missing`
 - `--property-format`: `observed` (one row per entity) or `target` (one row per
   entity-experiment pair)
-- `--output` (or `-o`): `console`, `csv`, or `json`
+- `--output` (or `-o`): `csv`, `json`, or `table`
 - `--output-file` specifies a file path to write the output to. If not provided,
   output is written to stdout.
 - `--property`: Filter specific properties (can specify multiple times)
@@ -220,7 +220,7 @@ Get measurement requests sent during an operation:
 
 ```bash
 uv run ado show requests operation [RESOURCE_ID] [--use-latest] \
-                            [--output | -o <console | csv | json>] \
+                            [--output | -o <csv | json | table>] \
                             [--output-file <path>] \
                             [--hide <field>]
 ```
@@ -228,7 +228,8 @@ uv run ado show requests operation [RESOURCE_ID] [--use-latest] \
 **Example:**
 
 ```bash
-uv run ado show requests operation randomwalk-0.5.0-123abc -o csv
+uv run ado show requests operation randomwalk-0.5.0-123abc \
+  -o csv --output-file randomwalk-0.5.0-123abc-requests.csv
 ```
 
 ### Show Results
@@ -237,7 +238,7 @@ Get measurement results metadata (valid/invalid status, etc.):
 
 ```bash
 uv run ado show results operation [RESOURCE_ID] [--use-latest] \
-                           [--output | -o <console | csv | json>] \
+                           [--output | -o <csv | json | table>] \
                            [--output-file <path>] \
                            [--hide <field>]
 ```
@@ -248,7 +249,8 @@ not the actual measurement values.
 **Example:**
 
 ```bash
-uv run ado show results operation randomwalk-0.5.0-123abc -o csv
+uv run ado show results operation randomwalk-0.5.0-123abc \
+  -o csv --output-file randomwalk-0.5.0-123abc-results.csv
 ```
 
 ## Getting Schemas

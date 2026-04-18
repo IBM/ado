@@ -23,7 +23,7 @@ your analysis method or experiment for free.
   [best practices](https://clig.dev)
 - :handshake: _Projects_: Allow distributed groups of users to
   [collaborate and share data](resources/metastore.md)
-- :electric_plug: _Extendable_: Easily
+- :electric*plug: \_Extendable*: Easily
   [add new experiments](actuators/creating-custom-experiments.md),
   [optimizers or other tools.](operators/creating-operators.md)
 - :gear: _Scalable_: We use [ray](https://ray.io) as our execution engine
@@ -37,38 +37,42 @@ your analysis method or experiment for free.
 - :mag: _Optimization and sampling_: Out-of-the-box, leverage powerful
   optimization methods [via `raytune`](operators/optimisation-with-ray-tune.md)
   or use our [flexible in built sampler](operators/random-walk.md)
+- :material-robot-outline: _Coding agents_: Supercharge your workflow. `ado`'s
+  typed resources and bundled skills enable AI assistants to autonomously
+  formulate, validate, and run experiments. [Learn more](how-to/index.md).
 
 ### Foundation Model Experimentation
 
-We have developed `ado` plugins providing advanced experiments for testing
-foundation-models:
+We have developed `ado` plugins providing advanced capabilities for performance
+testing of foundation-models:
 
 - :stopwatch: [fine-tuning performance benchmarking](actuators/sft-trainer.md)
 - :stopwatch:
-[inference performance benchmarking](examples/vllm-performance-endpoint.md)
-(using the
-  [vLLM performance benchmark](https://docs.vllm.ai/en/latest/cli/bench/serve.html))
-- **COMING SOON** :crystal_ball: inference and fine-tuning prediction
+  [inference performance benchmarking](examples/vllm-performance-endpoint.md)
+  (using [vLLM bench](https://docs.vllm.ai/en/latest/cli/bench/serve.html) or
+  [guidellm](https://github.com/vllm-project/guidellm))
+- :crystal_ball: [predictive performance models creation](operators/trim.md)
 
 ## Requirements
 
-A basic installation of `ado` only requires a recent Python version (3.10 to 3.13).
-This will allow you to run [many of our examples](examples/examples.md) and
-explore ado features.
+A basic installation of `ado` only requires a recent Python version (3.10 to
+3.13). This will allow you to run [many of our examples](examples/examples.md)
+and explore ado features.
 
 ### Additional Requirements
 
 Some advanced features have additional requirements:
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 - **Distributed Projects** **_(Optional)_**: To support projects with multiple
   users you will need a remote, accessible, MySQL database. See
   [here](getting-started/installing-backend-services.md#using-the-distributed-mysql-backend-for-ado)
   for more
 - **Multi-Node Execution** **_(Optional)_**: To support multi-node or scaling
-  execution you may need a multi-node RayCluster. See
-  [here](getting-started/installing-backend-services.md#deploying-kuberay-and-creating-a-raycluster)
-  for more details
+execution you may need a multi-node RayCluster. See
+[here](getting-started/installing-backend-services.md#deploying-kuberay-and-creating-a-raycluster)
+for more details
 <!-- markdownlint-enable descriptive-link-text -->
 
 In addition `ado` plugins may have additional requirements for executing
@@ -86,34 +90,29 @@ In addition `ado` plugins may have additional requirements for executing
 
 - :material-clock-fast:{ .lg .middle } **Set up in 1 minute**
 
-    ---
+  ***
 
-    You can install **ado** by:
+  You can install **ado** by:
 
-    ```shell
-    pip install ado-core
-    ```
+        pip install ado-core
 
-    Now try:
+  Now try:
 
-    ```commandline
-    ado get contexts
-    ```
+        ado get contexts
 
-    You will see a **context**, `local`, is listed.
+  You will see a **context**, `local`, is listed.
 
-    A context is like a project.
-    The `local` context links to a local database you can use as a sandbox for testing.
+  A context is like a project. The `local` context links to a local database you
+  can use as a sandbox for testing.
 
-    Try:
+  Try:
 
-    ```commandline
-    ado get operators
-    ```
+        ado get operators
 
-    to see a list of the in-built operators.  
+  to see a list of the in-built operators.
 
-    Next, we recommend you try our short [tutorial](examples/random-walk.md) which will give an idea of how `ado` works.
+  Next, we recommend you try our short [tutorial](examples/random-walk.md) which
+  will give an idea of how `ado` works.
 
 </div>
 <!-- markdownlint-enable line-length -->
@@ -144,18 +143,20 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
 - :octicons-rocket-24:{ .lg .middle } **Let's get started!**
 
-    ---
+  ***
 
-    Jump into our tutorial
+  Jump into our tutorial to see how `ado` works in practice.
 
-    [Taking a random walk :octicons-arrow-right-24:](examples/random-walk.md)
+  [Taking a random walk :octicons-arrow-right-24:](examples/random-walk.md)
 
-- :octicons-terminal-24:{ .lg .middle } **Check out the ADO cli**
+- :octicons-book-24:{ .lg .middle } **Explore How-To Guides**
 
-    ---
+  ***
 
-    Get familiar with the capabilities of the `ado` command-line interface.
+  Role-based guides for researchers, experiment developers, and core
+  contributors, including how to unlock AI-assisted workflows.
 
-    [Dive into the CLI reference docs :octicons-arrow-right-24:](getting-started/ado.md)
+  [Read the How-To Guides :octicons-arrow-right-24:](how-to/index.md)
 
 </div>
+<!-- markdownlint-enable line-length -->

@@ -137,6 +137,3 @@ class NoPriorsSampleSelector(BaseSampler):
 
     def __init__(self, parameters: NoPriorsParameters) -> None:
         self.params = parameters
-
-
-# Made with Bob

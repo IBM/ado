@@ -63,6 +63,3 @@ class NoPriorsParameters(BaseModel):
             ),
         ),
     ] = "clhs"
-
-
-# Made with Bob

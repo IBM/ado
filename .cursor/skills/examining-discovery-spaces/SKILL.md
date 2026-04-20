@@ -85,15 +85,15 @@ uv run ado show related space --use-latest
 
 ### Avoiding refetching YAML
 
-`ado get -o yaml` flag outputs YAML to console. It's often useful to redirect
-this to a temporary file and work with that to avoid multiple `ado get` calls
-for same YAML.
+`ado get … -o yaml` writes YAML to stdout by default. Prefer `--output-file
+PATH` (with the same `-o yaml`) to save it once and reuse the file instead of
+calling `ado get` repeatedly for the same resource.
 
 ### Large output files
 
-The output produced by '-o/--output' can be very large e.g. from "show entities".
-Use the `--output-file` flag with the name of the file where to save the output
-and, when inspecting these files:
+The output produced for a given `-o`/`--output` **format** can be very large
+(for example from `show entities`). Use `--output-file` with the path where the
+output should be saved, and when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
@@ -110,7 +110,7 @@ Then steps 4,5 and 6 can be run in parallel.
 ### Step 1: Get Space YAML
 
 ```bash
-uv run ado get space SPACE_ID -o yaml
+uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml
 ```
 
 Extract and summarise:

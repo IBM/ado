@@ -279,6 +279,47 @@ spaces:
   - your-spaces
 ```
 
+### Advanced Samplers
+
+When the base samplers are not enough, `random_walk` can also use more
+specialized samplers that still integrate with its normal batching, filtering, and
+memoization.
+
+#### Quasi-Random Sampling Strategies
+
+The `NoPriorsSampleSelector` provides quasi-random sampling strategies designed
+for high-dimensional discrete spaces. These strategies produce sequences where
+consecutive elements are maximally dispersed, favoring uniform coverage of the
+space:
+
+- **`sobol`**: Sobol sequences are low-discrepancy quasi-random sequences widely
+  used for space-filling designs. They provide better coverage than pure random
+  sampling by ensuring points are well-distributed across all dimensions.
+- **`clhs`**: Concatenated Latin Hypercube Sampling (CLHS) samples each dimension
+  independently without replacement, cycling through all values before repeating.
+  This ensures each dimension is uniformly covered.
+
+**Collision Handling**: Sobol sampling may produce collisions (duplicate points)
+when mapping continuous Sobol sequences to discrete integer coordinates. When
+collisions are detected, the sampler automatically falls back to CLHS to ensure
+the requested number of unique samples.
+
+#### Example: Sobol Sampling
+
+Example using Sobol ordering for quasi-random low-discrepancy coverage:
+
+```yaml
+samplerConfig:
+  module:
+    moduleName: orchestrator.core.discoveryspace.no_priors_sampler
+    moduleClass: NoPriorsSampleSelector
+  parameters:
+    targetOutput: yield
+    samples: 100
+    batchSize: 1
+    sampling_strategy: sobol
+```
+
 ### Custom Samplers
 
 It is also possible to specify that `random_walk` uses a custom sampler. This is

@@ -62,9 +62,9 @@ Based on your chosen strategy, follow the appropriate setup guide below.
   
 
 3. **Install your dependencies**, including `ado-core` and your own plugin in
-    editable mode. You can install `ado-core` directly from PyPI:
+    editable mode. 
 
-        pip install ado-core
+        uv pip install -e path/to/your/<plugin-name>
 
 ---
 

@@ -59,7 +59,7 @@ Based on your chosen strategy, follow the appropriate setup guide below.
 
 2. **Add `ado-core` as a dependency** in your plugin's `pyproject.toml` file:
 
-    [project] dependencies = [ "ado-core", # ... your other dependencies ]
+  
 
 3. **Install your dependencies**, including `ado-core` and your own plugin in
     editable mode. You can install `ado-core` directly from PyPI:

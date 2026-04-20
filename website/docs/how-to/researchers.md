@@ -61,9 +61,11 @@ your behalf.
     uv sync --group test
     source .venv/bin/activate
 
-!!! info `uv sync` installs `ado` in editable mode along with all its
-development and testing dependencies, creating the perfect environment for both
-research and future plugin development.
+!!! info 
+
+  `uv sync` installs `ado` in editable mode along with all its
+  development and testing dependencies, creating the perfect environment for both
+  research and future plugin development.
 
 ### 2. Activate the Agent
 
@@ -100,9 +102,9 @@ a solid foundation to work with. For more on this, see the
 Whether you choose the CLI path or the agent path, the core research process in
 `ado` remains the same:
 
-1. **Choose Your Tools:** Select the `experiments` (experiments) you want to use
+1. **Choose Your Tools:** Select the `experiments` you want to use
 2. **Define Your Space:** Describe points you want to explore with the
-   experiments in a `discoveryspace` YAML file.
+   experiments in a `discoveryspace` YAML file
 3. **Configure Your Strategy:** Create an `explore operation` YAML that defines
    the search strategy
 4. **Execute:** Run the operation locally or on a

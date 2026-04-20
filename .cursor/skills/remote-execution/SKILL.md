@@ -168,29 +168,20 @@ fromPyPI:
   - ado-ray-tune
 ```
 
-### Behaviour of packages specified in fromSource does not reflect local edits
+### fromSource plugin changes not reflected in remote run
 
-Often local edits are made to a plugin - to add new features or fix an issue -
-that is included in a remote execution context via `fromSource`. In some cases
-you may observe that the changes made are not reflected in the behaviour of the
-remote run. Some examples:
+Local edits to a plugin included via `fromSource` may not be reflected in
+the remote run. Symptoms include: a fixed import error still occurring, an
+added log line not appearing, or a new parameter not being present.
 
-- A problem in experiment decorator preventing its use is fixed,
-but it still can't be imported
-- A print log is added to record some information but the log does not appear
-- A new parameter or output is added to an experiment but its not present in
-remote run
+The most likely cause is that the wheel built for the plugin has the same
+version as a wheel already cached by Ray. The default `setuptools_scm` local
+scheme appends only the date for dirty (uncommitted) changes, so multiple dirty
+builds on the same day share the same version string. Ray sees the version as
+already installed and skips reinstallation.
 
-The most likely cause of this behaviour is that the versioning of the wheel
-built for
-the plugin is not specific enough to distinguish it from a previously
-installed wheel of the same plugin. For example, the default versioning
-scheme may include commit and date, where date denotes there are
-"dirty" local changes in the wheel. However, after the first install
-of a plugin with a local edit on a day, all subsequent installs, even
-with different edits have the same version, and ray will not install them,
-thinking they are already present.
-
-The solution is to use a more fine-grained versioning scheme for dirty edits
-in the plugin pyproject.toml. See [plugin development](../../rules/plugin-development.mdc)
-for details.
+The solution is to add `local_scheme = "node-and-timestamp"` to
+`[tool.setuptools_scm]` in the plugin's `pyproject.toml`. This appends the git
+node and a timestamp to the version, making each dirty build uniquely versioned.
+See [plugin development](../../rules/plugin-development.mdc) for details and
+examples.

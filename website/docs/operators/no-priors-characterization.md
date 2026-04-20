@@ -1,1 +1,0 @@
-../../../plugins/operators/no-priors-characterization/README.md

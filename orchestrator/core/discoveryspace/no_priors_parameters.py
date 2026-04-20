@@ -65,8 +65,4 @@ class NoPriorsParameters(BaseModel):
     ] = "clhs"
 
 
-if __name__ == "__main__":
-    params = NoPriorsParameters.model_validate(NoPriorsParameters(targetOutput="test"))
-    print(
-        f"type of model_validate output on no-priors-characterization default is {type(params)}, printing the full object gives {params}"
-    )
+# Made with Bob

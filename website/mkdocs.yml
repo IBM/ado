@@ -194,4 +194,3 @@ nav:
       - The Random Walk Operator: operators/random-walk.md
       - The Ray Tune Operator: operators/optimisation-with-ray-tune.md
       - The TRIM Operator: operators/trim.md
-      - The No-Priors Characterization Operator: operators/no-priors-characterization.md

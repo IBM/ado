@@ -1,13 +1,26 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
+# CLHS space-filling configuration using random_walk with no-priors sampler
 spaces:
   - space-c8717f-3a68bf
 operation:
   module:
-    operationType: characterize
-    operatorName: no_priors_characterization
+    operationType: explore
+    operatorName: random_walk
   parameters:
-    targetOutput: yield
-    samples: 30
+    numberEntities: 30
     batchSize: 1
-    sampling_strategy: clhs
+    samplerConfig:
+      module:
+        moduleName: orchestrator.core.discoveryspace.no_priors_sampler
+        moduleClass: NoPriorsSampleSelector
+      parameters:
+        targetOutput: yield
+        samples: 30
+        batchSize: 1
+        sampling_strategy: clhs
+    singleMeasurement: true
+    filter:
+      filterMode: unmeasured
+
+# Made with Bob

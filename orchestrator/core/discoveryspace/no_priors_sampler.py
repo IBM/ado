@@ -7,11 +7,11 @@ import typing
 
 from pydantic import BaseModel
 
-from no_priors_characterization.no_priors_pydantic import NoPriorsParameters
-from no_priors_characterization.utils.order import order_df_for_sampling_with_no_priors
-from no_priors_characterization.utils.space_df_connector import (
+from orchestrator.core.discoveryspace.no_priors_parameters import NoPriorsParameters
+from orchestrator.core.discoveryspace.no_priors_utils import (
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
+    order_df_for_sampling_with_no_priors,
 )
 from orchestrator.core.discoveryspace.samplers import BaseSampler
 from orchestrator.core.discoveryspace.space import DiscoverySpace, Entity
@@ -137,3 +137,6 @@ class NoPriorsSampleSelector(BaseSampler):
 
     def __init__(self, parameters: NoPriorsParameters) -> None:
         self.params = parameters
+
+
+# Made with Bob

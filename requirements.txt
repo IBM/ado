@@ -1262,9 +1262,9 @@ six==1.17.0 \
     # via
     #   opencensus
     #   python-dateutil
-smart-open==7.5.1 \
-    --hash=sha256:3e07cbbd9c8a908bcb8e25d48becf1a5cbb4886fa975e9f34c672ed171df2318 \
-    --hash=sha256:3f08e16827c4733699e6b2cc40328a3568f900cb12ad9a3ad233ba6c872d9fe7
+smart-open==7.6.0 \
+    --hash=sha256:2a78f454610a826aa688065b54b4a0a9b12a5599fa61d5190e9bac2df5e5f53f \
+    --hash=sha256:44717f46b5ff276fac03b88e5d13d1c416f064f3b7b081381b0fa8889004bd7e
     # via ray
 sqlalchemy==2.0.49 \
     --hash=sha256:0c98c59075b890df8abfcc6ad632879540f5791c68baebacb4f833713b510e75 \

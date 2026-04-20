@@ -17,7 +17,7 @@ contribute to the `ado` framework itself
 
 ---
 
-## `ado` and Coding Agents: Your Automated Research Partner
+## `ado` and Coding Agents
 
 `ado` is designed from the ground up to partner with coding agents, creating a
 powerful automated research assistant. This isn't just about agent skills; `ado`'s

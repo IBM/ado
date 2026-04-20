@@ -32,8 +32,8 @@ lives in [Developing ado](../getting-started/developing.md) and
 
 Before you submit a pull request, ensure your changes adhere to this checklist:
 
-- **Code Style:** Follow **PEP8** naming (with **camelCase** for pydantic model
-  fields), full **type annotations**, and **Google-style docstrings**.
+- **Code Style:** Follow **PEP8** naming, include all **type annotations**, and
+  use **Google-style docstrings**.
 - **Formatting & Linting:** Code must be formatted with **black** and pass
   **ruff**.
 - **Testing:** All new features or fixes must include or update **tests**. We

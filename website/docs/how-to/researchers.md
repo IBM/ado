@@ -61,7 +61,7 @@ your behalf.
     uv sync --group test
     source .venv/bin/activate
 
-!!! info 
+!!! info
 
   `uv sync` installs `ado` in editable mode along with all its
   development and testing dependencies, creating the perfect environment for both
@@ -70,8 +70,8 @@ your behalf.
 ### 2. Activate the Agent
 
 Simply open the cloned `ado` folder as the workspace root in your agent-enabled
-IDE (like Cursor). The agent will automatically detect and load the skills from
-the `.cursor/skills/` directory.
+IDE. Many coding agents, include Claude, Cursor and Bob, should  automatically detect
+and load the skills. If your IDE doesn't create a link to `.cursor` for it.
 
 ### 3. What Your Agent Can Do For You
 

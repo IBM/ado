@@ -90,29 +90,34 @@ In addition `ado` plugins may have additional requirements for executing
 
 - :material-clock-fast:{ .lg .middle } **Set up in 1 minute**
 
-  ***
+    ---
 
-  You can install **ado** by:
+    You can install **ado** by:
 
-        pip install ado-core
+    ```shell
+    pip install ado-core
+    ```
 
-  Now try:
+    Now try:
 
-        ado get contexts
+    ```commandline
+    ado get contexts
+    ```
 
-  You will see a **context**, `local`, is listed.
+    You will see a **context**, `local`, is listed.
 
-  A context is like a project. The `local` context links to a local database you
-  can use as a sandbox for testing.
+    A context is like a project.
+    The `local` context links to a local database you can use as a sandbox for testing.
 
-  Try:
+    Try:
 
-        ado get operators
+    ```commandline
+    ado get operators
+    ```
 
-  to see a list of the in-built operators.
+    to see a list of the in-built operators.  
 
-  Next, we recommend you try our short [tutorial](examples/random-walk.md) which
-  will give an idea of how `ado` works.
+    Next, we recommend you try our short [tutorial](examples/random-walk.md) which will give an idea of how `ado` works.
 
 </div>
 <!-- markdownlint-enable line-length -->
@@ -143,20 +148,18 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
 - :octicons-rocket-24:{ .lg .middle } **Let's get started!**
 
-  ***
+    ---
 
-  Jump into our tutorial to see how `ado` works in practice.
+    Jump into our tutorial
 
-  [Taking a random walk :octicons-arrow-right-24:](examples/random-walk.md)
+    [Taking a random walk :octicons-arrow-right-24:](examples/random-walk.md)
 
-- :octicons-book-24:{ .lg .middle } **Explore How-To Guides**
+- :octicons-terminal-24:{ .lg .middle } **Check out the ADO cli**
 
-  ***
+    ---
 
-  Role-based guides for researchers, experiment developers, and core
-  contributors, including how to unlock AI-assisted workflows.
+    Get familiar with the capabilities of the `ado` command-line interface.
 
-  [Read the How-To Guides :octicons-arrow-right-24:](how-to/index.md)
+    [Dive into the CLI reference docs :octicons-arrow-right-24:](getting-started/ado.md)
 
 </div>
-<!-- markdownlint-enable line-length -->

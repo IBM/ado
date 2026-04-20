@@ -80,6 +80,7 @@ build-backend = "setuptools.build_meta"
 include-package-data = true # This is on by default, including it for clarity
 
 [tool.setuptools_scm]
+local_scheme = "node-and-timestamp"
 
 [tool.setuptools.packages.find]
 where = ["."]

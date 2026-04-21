@@ -10,9 +10,9 @@ ENV CUDA_HOME=/usr/local/cuda
 # Set LD_LIBRARY_PATH to avoid runtime errors (so far only experienced when running vLLM with the vllm_performance actuator)
 ENV LD_LIBRARY_PATH=/home/ray/anaconda3/lib:${LD_LIBRARY_PATH}
 
-# Set SOURCE_DATE_EPOCH to guarantee that all the wheels built will use
+# Pass SOURCE_DATE_EPOCH to guarantee that all the wheels built will use
 # the same timestamp.
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
+ARG SOURCE_DATE_EPOCH
 
 USER 0
 RUN chgrp -R 0 /home/ray && \
@@ -23,13 +23,15 @@ USER 1000
 COPY --chown=1000:0 ./ ado
 
 ## Install ado
-RUN cd ado && \
+RUN export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} && \
+    cd ado && \
     uv pip install --system -r requirements.txt && \
     uv pip install --system --no-deps --strict \
     '.'
 
 ## Install ray-tune operator
-RUN cd ado && \
+RUN export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} && \
+    cd ado && \
     uv pip install --system \
     'plugins/operators/ray_tune/'
 

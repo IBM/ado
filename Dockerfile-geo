@@ -3,11 +3,12 @@ ARG CUDA_VERSION=cu121
 ARG BASE_IMAGE=quay.io/ado/ado:latest-py${PYTHON_VERSION}-${CUDA_VERSION}
 FROM $BASE_IMAGE
 
-# Set SOURCE_DATE_EPOCH to guarantee that all the wheels built will use
+# Pass SOURCE_DATE_EPOCH to guarantee that all the wheels built will use
 # the same timestamp.
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
+ARG SOURCE_DATE_EPOCH=0
 
 ## Install ado-vllm-performance
-RUN cd ado && \
+RUN export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} && \
+    cd ado && \
     uv pip install --system \
     'plugins/actuators/vllm_performance'

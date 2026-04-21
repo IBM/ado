@@ -154,26 +154,15 @@ def show_entities_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-entities
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the entities that have been sampled in a space
-
     ado show entities space <space-id> --include sampled
-
-
-
 
     # Show the entities that have been sampled in the latest space
     ado show entities space --use-latest
 
-
-
     # Show the entities measured in an operation, one row per entity
-
     ado show entities operation <operation-id> --property-format target
     """
     ado_configuration: AdoConfiguration = ctx.obj

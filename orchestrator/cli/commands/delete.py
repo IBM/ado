@@ -86,27 +86,15 @@ def delete_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-delete
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Delete an operation and its results
-
     ado delete operation <operation-id>
 
-
-
-
     # Delete a sample store that contains data
-
     ado delete samplestore <sample-store-id> --force
 
-
-
     # Delete a local context and its db
-
     ado delete context <context-name> --delete-local-db
     """
 

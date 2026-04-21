@@ -21,28 +21,30 @@ from orchestrator.metastore.base import (
 
 
 def delete_discovery_space(parameters: AdoDeleteCommandParameters) -> None:
+    # Extract the single resource_id from the list
+    resource_id = parameters.resource_ids[0]
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         if not sql.containsResourceWithIdentifier(
-            identifier=parameters.resource_id,
+            identifier=resource_id,
             kind=CoreResourceKinds.DISCOVERYSPACE,
         ):
             status.stop()
             raise ResourceDoesNotExistError(
-                resource_id=parameters.resource_id,
+                resource_id=resource_id,
                 kind=CoreResourceKinds.DISCOVERYSPACE,
             )
 
         children_resources = sql.getRelatedObjectResourceIdentifiers(
-            identifier=parameters.resource_id
+            identifier=resource_id
         )
         if not children_resources.empty:
             status.stop()
             console_print(
                 cannot_delete_resource_due_to_children_resources(
                     resource_kind=CoreResourceKinds.DISCOVERYSPACE,
-                    resource_id=parameters.resource_id,
+                    resource_id=resource_id,
                     children_resources=children_resources,
                 ),
                 stderr=True,
@@ -51,7 +53,7 @@ def delete_discovery_space(parameters: AdoDeleteCommandParameters) -> None:
 
         status.update(ADO_SPINNER_DELETING_FROM_DB)
         try:
-            sql.delete_discovery_space(identifier=parameters.resource_id)
+            sql.delete_discovery_space(identifier=resource_id)
         except DeleteFromDatabaseError:
             status.stop()
             raise

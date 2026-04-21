@@ -19,12 +19,14 @@ from orchestrator.utilities.dictionaries import get_nested_value
 
 
 def delete_context(parameters: AdoDeleteCommandParameters) -> None:
+    # Extract the single resource_id from the list
+    resource_id = parameters.resource_ids[0]
 
     available_contexts = parameters.ado_configuration.available_contexts
-    if parameters.resource_id not in available_contexts:
+    if resource_id not in available_contexts:
         console_print(
             context_not_in_available_contexts_error_str(
-                requested_context=parameters.resource_id,
+                requested_context=resource_id,
                 available_contexts=available_contexts,
             ),
             stderr=True,
@@ -32,16 +34,14 @@ def delete_context(parameters: AdoDeleteCommandParameters) -> None:
         raise typer.Exit(1)
 
     configuration_file = parameters.ado_configuration.project_context_path_for_context(
-        parameters.resource_id
+        resource_id
     )
     context_dict = yaml.safe_load(configuration_file.read_text())
 
     # AP: the db might not exist if the user has never used the local context
     if (
         get_nested_value(context_dict, "metadataStore.scheme") == "sqlite"
-        and parameters.ado_configuration.local_db_path_for_context(
-            parameters.resource_id
-        ).exists()
+        and parameters.ado_configuration.local_db_path_for_context(resource_id).exists()
     ):
         if parameters.delete_local_db is None:
             parameters.delete_local_db = Confirm.ask(
@@ -53,7 +53,7 @@ def delete_context(parameters: AdoDeleteCommandParameters) -> None:
                 )
 
         local_db_path = parameters.ado_configuration.local_db_path_for_context(
-            parameters.resource_id
+            resource_id
         )
         if parameters.delete_local_db:
             console_print(f"{INFO}Deleting local db {local_db_path}\n", stderr=True)
@@ -66,11 +66,11 @@ def delete_context(parameters: AdoDeleteCommandParameters) -> None:
     configuration_file.unlink()
     console_print(SUCCESS, stderr=True)
 
-    if parameters.resource_id == parameters.ado_configuration.active_context:
+    if resource_id == parameters.ado_configuration.active_context:
         parameters.ado_configuration.active_context = None
         parameters.ado_configuration.store()
         console_print(
-            f"{WARN}{parameters.resource_id} was your default context.\n"
+            f"{WARN}{resource_id} was your default context.\n"
             f"{HINT}Set a different one with {cyan('ado context')} or {cyan('ado create context')}",
             stderr=True,
         )

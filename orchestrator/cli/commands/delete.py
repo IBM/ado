@@ -6,11 +6,6 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.exceptions.handlers import (
-    handle_no_related_resource,
-    handle_resource_deletion_error,
-    handle_resource_does_not_exist,
-)
 from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
 from orchestrator.cli.models.types import AdoDeleteSupportedResourceTypes
@@ -22,6 +17,7 @@ from orchestrator.cli.resources.data_container.delete import delete_data_contain
 from orchestrator.cli.resources.discovery_space.delete import delete_discovery_space
 from orchestrator.cli.resources.operation.delete import delete_operation
 from orchestrator.cli.resources.sample_store.delete import delete_sample_store
+from orchestrator.cli.utils.output.prints import console_print
 from orchestrator.metastore.base import (
     DeleteFromDatabaseError,
     NoRelatedResourcesError,
@@ -32,6 +28,66 @@ if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
 
 CONTEXT_ONLY_PANEL_NAME = "Context-only options"
+
+
+def _report_deletion_results(
+    resource_type: AdoDeleteSupportedResourceTypes,
+    successes: list[str],
+    failures: list[tuple[str, Exception]],
+    ado_configuration: "AdoConfiguration",
+) -> None:
+    """
+    Report the results of batch deletion operations.
+
+    Args:
+        resource_type: The type of resource being deleted
+        successes: List of successfully deleted resource IDs
+        failures: List of (resource_id, exception) tuples for failed deletions
+        ado_configuration: The ado configuration
+    """
+    from orchestrator.cli.utils.output.prints import (
+        SUCCESS,
+        console_print,
+        magenta,
+    )
+
+    total = len(successes) + len(failures)
+
+    # If only one resource and it succeeded, use simple success message
+    if total == 1 and len(successes) == 1:
+        console_print(SUCCESS)
+        return
+
+    # Report individual results
+    for resource_id in successes:
+        console_print(
+            f":white_check_mark: Successfully deleted: {magenta(resource_id)}"
+        )
+
+    for resource_id, error in failures:
+        error_msg = str(error)
+        # Extract meaningful error message
+        if isinstance(error, ResourceDoesNotExistError):
+            error_msg = "Resource does not exist"
+        elif isinstance(error, NoRelatedResourcesError):
+            error_msg = "No related resources found"
+        elif isinstance(error, DeleteFromDatabaseError):
+            error_msg = "Failed to delete from database"
+        elif "children" in error_msg.lower():
+            error_msg = "Cannot delete due to dependent resources"
+
+        console_print(
+            f":x: Failed to delete {magenta(resource_id)}: {error_msg}", stderr=True
+        )
+
+    # Summary
+    if total > 1:
+        console_print("\nSummary:")
+        console_print(f"  - Successfully deleted {len(successes)} resource(s)")
+        if failures:
+            console_print(
+                f"  - Failed to delete {len(failures)} resource(s)", stderr=True
+            )
 
 
 def delete_resource(
@@ -45,11 +101,11 @@ def delete_resource(
             click_type=HiddenPluralChoice(AdoDeleteSupportedResourceTypes),
         ),
     ],
-    resource_id: Annotated[
-        str,
+    resource_ids: Annotated[
+        list[str],
         typer.Argument(
             ...,
-            help="The id of the resource to delete.",
+            help="The id(s) of the resource(s) to delete. Multiple IDs can be provided.",
             show_default=False,
         ),
     ],
@@ -91,6 +147,9 @@ def delete_resource(
     # Delete an operation and its results
     ado delete operation <operation-id>
 
+    # Delete multiple operations
+    ado delete operation <op-id-1> <op-id-2> <op-id-3>
+
     # Delete a sample store that contains data
     ado delete samplestore <sample-store-id> --force
 
@@ -99,13 +158,6 @@ def delete_resource(
     """
 
     ado_configuration: AdoConfiguration = ctx.obj
-
-    parameters = AdoDeleteCommandParameters(
-        ado_configuration=ado_configuration,
-        delete_local_db=delete_local_db,
-        force=force,
-        resource_id=resource_id,
-    )
 
     method_mapping = {
         AdoDeleteSupportedResourceTypes.ACTUATOR_CONFIGURATION: delete_actuator_configuration,
@@ -116,18 +168,46 @@ def delete_resource(
         AdoDeleteSupportedResourceTypes.OPERATION: delete_operation,
     }
 
-    try:
-        method_mapping[resource_type](parameters=parameters)
-    except ResourceDoesNotExistError as e:
-        handle_resource_does_not_exist(
-            error=e, project_context=ado_configuration.project_context
+    # Process each resource ID
+    successes: list[str] = []
+    failures: list[tuple[str, Exception]] = []
+
+    for resource_id in resource_ids:
+        # Create parameters with single resource_id for backward compatibility
+        single_params = AdoDeleteCommandParameters(
+            ado_configuration=ado_configuration,
+            delete_local_db=delete_local_db,
+            force=force,
+            resource_ids=[resource_id],
         )
-    except NoRelatedResourcesError as e:
-        handle_no_related_resource(
-            error=e, project_context=ado_configuration.project_context
-        )
-    except DeleteFromDatabaseError as e:
-        handle_resource_deletion_error(error=e)
+
+        try:
+            method_mapping[resource_type](parameters=single_params)
+            successes.append(resource_id)
+        except (
+            ResourceDoesNotExistError,
+            NoRelatedResourcesError,
+            DeleteFromDatabaseError,
+        ) as e:
+            failures.append((resource_id, e))
+        except typer.Exit:
+            # Resource-specific delete functions may raise typer.Exit
+            # Treat this as a failure for this resource
+            failures.append((resource_id, Exception("Deletion failed")))
+        finally:
+            console_print("")
+
+    # Report results
+    _report_deletion_results(
+        resource_type=resource_type,
+        successes=successes,
+        failures=failures,
+        ado_configuration=ado_configuration,
+    )
+
+    # Exit with error if any deletions failed
+    if failures:
+        raise typer.Exit(1)
 
 
 def register_delete_command(app: typer.Typer) -> None:

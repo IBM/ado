@@ -12,7 +12,7 @@ ENV LD_LIBRARY_PATH=/home/ray/anaconda3/lib:${LD_LIBRARY_PATH}
 
 # Pass SOURCE_DATE_EPOCH to guarantee that all the wheels built will use
 # the same timestamp.
-ARG SOURCE_DATE_EPOCH
+ARG SOURCE_DATE_EPOCH=0
 
 USER 0
 RUN chgrp -R 0 /home/ray && \

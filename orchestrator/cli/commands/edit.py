@@ -62,21 +62,12 @@ def edit_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-edit
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Edit the metadata of a sample store
-
     ado edit samplestore <sample-store-id>
 
-
-
-
     # Edit the metadata of a space using vim
-
     ado edit space --editor vim
     """
     ado_configuration: AdoConfiguration = ctx.obj

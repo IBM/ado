@@ -58,11 +58,7 @@ def upgrade_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-upgrade
     for detailed documentation and examples.
 
-
-
     Examples:
-
-
 
     # Upgrade all operations
 

@@ -142,20 +142,12 @@ def template_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-template
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Create a template for a local context
-
     ado template context --local-context
 
-
-
     # Create a template for an operation that uses the ray_tune operator
-
     ado template operation --operator-name ray_tune
     """
     ado_configuration: AdoConfiguration = ctx.obj

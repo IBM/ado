@@ -26,7 +26,7 @@ DATAFRAME_COLS_THRESHOLD = 20
 def df_to_output(
     df: "pd.DataFrame",
     output_format: Literal["table", "json", "csv"],
-    output_file: Path | str | None = None,
+    output_file: Path | None = None,
     no_trunc: bool = False,
 ) -> None:
     """Output a dataframe to stdout or file.
@@ -43,11 +43,6 @@ def df_to_output(
         console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
         return
 
-    # Convert output_file to Path if it's a string
-    if output_file is not None and isinstance(output_file, str):
-        output_file = Path(output_file)
-
-    # For csv and json formats
     match output_format:
         case "table":
             # When writing to file, avoid truncating columns by default
@@ -85,6 +80,8 @@ def df_to_output(
             output = df.to_csv()
         case "json":
             output = df.to_json() or ""
+        case _:
+            raise ValueError(f"Unsupported output format: {output_format!r}")
 
     if not output_file:
         console_print(output)

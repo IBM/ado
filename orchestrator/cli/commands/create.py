@@ -177,26 +177,15 @@ def create_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-create
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Create a space with a new sample store
-
     ado create space -f <space.yaml> --new-sample-store
 
-
-
     # Start an operation
-
     ado create operation -f <operation.yaml>
 
-
-
     # Create a context
-
     ado create context -f <file.yaml>
     """
 

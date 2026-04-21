@@ -99,27 +99,15 @@ def describe_resource(
     See https://ibm.github.io/ado/getting-started/ado/#ado-describe
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Describe an existing space
-
     ado describe space <space-id>
 
-
-
-
     # Describe a space from a space configuration file
-
     ado describe space -f <space.yaml>
 
-
-
     # Describe an experiment and explicitly specify the actuator id
-
     ado describe experiment <experiment-id> --actuator-id <actuator-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj

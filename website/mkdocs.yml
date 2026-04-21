@@ -152,7 +152,7 @@ nav:
           - Search based on a custom objective function: examples/search-custom-objective.md
       - Space Characterization:
           - Identify the important dimensions of a space: examples/lhu.md
-          - Efficiently Exploring Parameter Spaces with TRIM: examples/trim.md
+          - Quickly building a predictive model for a configuration space: examples/trim.md
           - Characterizing Spaces Without Prior Knowledge: examples/no-priors-characterization.md
       - Fine-Tuning Throughput:
           - Measure throughput of fine-tuning locally: examples/finetune-locally.md

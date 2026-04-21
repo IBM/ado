@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import inspect
 import logging
 import typing
 
@@ -21,6 +22,24 @@ from orchestrator.modules.operators.base import OperatorFunction
 moduleLog = logging.getLogger("general_orchestration")
 
 
+def _operator_callable_for_harness(registered: OperatorFunction) -> OperatorFunction:
+    """Resolve the callable to execute inside :func:`_run_operation_harness`.
+
+    Operators registered via ``characterize_operation`` / ``modify_operation`` /
+    ``export_operation`` store a *wrapper* in :class:`~orchestrator.core.operation.config.OperatorMetadata`
+    that delegates to :func:`orchestrate_general_operation`. The harness must run the
+    underlying implementation (``functools.wraps`` sets ``__wrapped__``); otherwise
+    ``run_closure`` re-invokes the wrapper and recurses without bound.
+
+    Args:
+        registered: The callable stored on the operator metadata (wrapper or not).
+
+    Returns:
+        The innermost unwrapped callable, or *registered* if there is no wrapper chain.
+    """
+    return typing.cast("OperatorFunction", inspect.unwrap(registered))
+
+
 def run_general_operation_core_closure(
     operation_function: OperatorFunction,
     discovery_space: DiscoverySpace,
@@ -29,9 +48,8 @@ def run_general_operation_core_closure(
 ) -> typing.Callable[[], OperationOutput | None]:
 
     def _run_general_operation_core() -> OperationOutput | None:
-        return operation_function(
-            discovery_space, operationInfo, **operation_parameters
-        )
+        implementation = _operator_callable_for_harness(operation_function)
+        return implementation(discovery_space, operationInfo, **operation_parameters)
 
     return _run_general_operation_core
 

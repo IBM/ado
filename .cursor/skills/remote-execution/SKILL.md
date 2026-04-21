@@ -51,8 +51,8 @@ oc whoami   # OpenShift
 kubectl get nodes   # Kubernetes
 ```
 
-If this fails, log in first — the port-forward will fail with a credentials
-error otherwise.
+If this fails, request user to log in first — the port-forward will
+fail with a credentials error otherwise.
 
 ---
 
@@ -98,6 +98,19 @@ Prefer the two-step pattern when you want the space registered in the local
 metastore (e.g. for local querying or validation) before submitting.
 
 ---
+
+## Tips
+
+Check if all entries under `additionalFiles` in the remote
+execution context YAML are required for the current submission.
+Comment or remove those that are not to avoid uploading
+unnecessary data.
+
+Check if the value of the `wait` field is suitable for
+the command being executed. In general do not wait
+for `create operation` as it can be hours long.
+If you are executing `get` or `show` commands waiting is valid
+as these may only take seconds to minutes.
 
 ## Common Issues
 
@@ -154,3 +167,21 @@ fromPyPI:
   - ray==2.52.1 # match the cluster's installed version
   - ado-ray-tune
 ```
+
+### fromSource plugin changes not reflected in remote run
+
+Local edits to a plugin included via `fromSource` may not be reflected in
+the remote run. Symptoms include: a fixed import error still occurring, an
+added log line not appearing, or a new parameter not being present.
+
+The most likely cause is that the wheel built for the plugin has the same
+version as a wheel already cached by Ray. The default `setuptools_scm` local
+scheme appends only the date for dirty (uncommitted) changes, so multiple dirty
+builds on the same day share the same version string. Ray sees the version as
+already installed and skips reinstallation.
+
+The solution is to add `local_scheme = "node-and-timestamp"` to
+`[tool.setuptools_scm]` in the plugin's `pyproject.toml`. This appends the git
+node and a timestamp to the version, making each dirty build uniquely versioned.
+See [plugin development](../../rules/plugin-development.mdc) for details and
+examples.

@@ -44,11 +44,21 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"  # Points to repo root
+local_scheme = "node-and-timestamp"
 
 [project]
 name = "your-plugin-name"
 dynamic = ["version"]  # Version set automatically by setuptools_scm
 ```
+
+`local_scheme = "node-and-timestamp"` makes each dirty (uncommitted) build
+produce a unique version using the git node and a timestamp (e.g.
+`1.2.3.dev4+gabcdef.d20260420123456`). Without it the default `dirty` scheme
+only appends `.d<date>`, so multiple dirty builds on the same day share the same
+version string. This matters for remote execution: Ray caches installed wheels by
+version, so a stale cached wheel will be used instead of a freshly built one if
+the version has not changed. See
+[remote-execution](../skills/remote-execution/SKILL.md) for the full diagnosis.
 
 ### Dependencies
 
@@ -281,6 +291,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -307,6 +318,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"
 
 [project]
 name = "my-operator"
@@ -339,4 +351,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"
 ```

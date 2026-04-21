@@ -31,3 +31,4 @@ sfttrainer = [
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"

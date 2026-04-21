@@ -55,6 +55,7 @@ vllm_performance = [
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"
 
 # Required when added as a workspace package
 [tool.uv.sources]

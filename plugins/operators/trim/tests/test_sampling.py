@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
-from no_priors_characterization.utils.one_dimensional_sampling import (
-    get_index_list_ordered_partitions,
+
+from orchestrator.core.discoveryspace.no_priors_utils import (
     get_index_list_van_der_corput,
-)  # Replace with actual module name
+)
 
 # --- Error Handling Tests ---
 
@@ -36,21 +36,3 @@ def test_get_index_list_nn_full_sampling() -> None:
 def test_get_index_list_nn_sorted_sampling(points: int, expected: list[int]) -> None:
     """Should return sorted sampling for segment of length 17."""
     assert get_index_list_van_der_corput(17, points, sort=True) == expected
-
-
-# --- Functional Tests for get_index_list_ordered_partitions ---
-
-
-@pytest.mark.parametrize(
-    ("points", "expected"),
-    [
-        (7, [0, 2, 4, 8, 10, 12, 16]),
-        (8, [0, 2, 4, 6, 8, 10, 12, 16]),
-        (9, [0, 2, 4, 6, 8, 10, 12, 14, 16]),
-    ],
-)
-def test_get_index_list_ordered_partitions_sampling(
-    points: int, expected: list[int]
-) -> None:
-    """Should return correct partition-based sampling for segment of length 17."""
-    assert get_index_list_ordered_partitions(17, points) == expected

@@ -13,10 +13,11 @@ from collections import Counter
 from typing import Any
 
 import pytest
-from no_priors_characterization.utils.high_dimensional_sampling import (
+from test_data_documentation import TEST_DATAFRAMES
+
+from orchestrator.core.discoveryspace.no_priors_utils import (
     concatenated_latin_hypercube_sampling,
 )
-from test_data_documentation import TEST_DATAFRAMES
 
 
 class TestConcatenatedLatinHypercubeSampling:

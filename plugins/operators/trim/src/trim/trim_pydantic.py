@@ -5,8 +5,9 @@ import logging
 from typing import Annotated
 
 import pydantic
-from no_priors_characterization.no_priors_pydantic import NoPriorsParameters
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from orchestrator.core.discoveryspace.no_priors_parameters import NoPriorsParameters
 
 
 class SamplingBudget(pydantic.BaseModel):

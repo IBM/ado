@@ -19,6 +19,11 @@ import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
+from orchestrator.core.discoveryspace.no_priors_utils import (
+    get_index_list_van_der_corput,
+    get_list_of_entities_from_df_and_space,
+    get_source_and_target,
+)
 from orchestrator.core.discoveryspace.samplers import BaseSampler
 from trim.trim_pydantic import TrimParameters
 
@@ -29,11 +34,6 @@ if TYPE_CHECKING:
     from orchestrator.modules.operators.discovery_space_manager import (
         DiscoverySpaceManager,
     )
-from no_priors_characterization.utils import (
-    get_index_list_van_der_corput,
-    get_list_of_entities_from_df_and_space,
-    get_source_and_target,
-)
 
 from orchestrator.utilities.pandas import sort_rows_by_column_names
 from trim.utils.exceptions import InsufficientDataError

@@ -99,6 +99,7 @@ test = [
   "pfas-custom-functions",
   "profile-space",
   "robotic-lab",
+  "trim-custom-experiments",
 ]
 
 [build-system]
@@ -153,6 +154,7 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
+trim-custom-experiments = { path = "examples/trim/custom_experiments", editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [tool.uv-dynamic-versioning]

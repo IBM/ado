@@ -9,11 +9,11 @@ from collections.abc import Callable
 import pytest
 import trim_custom_experiments.experiments  # noqa: F401 — registers ideal-gas experiment
 import yaml
-from no_priors_characterization.no_priors_pydantic import NoPriorsParameters
 from testcontainers.mysql import MySqlContainer
 
 import orchestrator.modules.operators.randomwalk  # noqa: F401
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
+from orchestrator.core.discoveryspace.no_priors_parameters import NoPriorsParameters
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.resource import (
     OperationExitStateEnum,

@@ -422,8 +422,10 @@ def identify_and_copy_local_wheels(
     """Identify local wheel paths in the fromPyPI YAML section and copy into the working directory.
 
     Entries that resolve to existing .whl files are copied into the working dir
-    so they are distributed to all Ray nodes. Other entries are treated as
-    PyPI package names and left unchanged.
+    so they are distributed to all Ray nodes. Other entries are passed through
+    unchanged into the Ray runtime ``uv`` list (PyPI requirements, version
+    pins, or paths such as ``/data/.../*.whl`` that must exist where ``uv``
+    installs on the cluster).
 
     Args:
         from_pypi: The fromPyPI package list.

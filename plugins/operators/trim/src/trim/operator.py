@@ -54,12 +54,15 @@ def trim(
         OperationOutput containing the operation resources and metadata
     """
     # Lazy import to avoid circular import issues during plugin loading
+    import orchestrator.modules.operators.randomwalk  # noqa: F401 - registers explore.random_walk
+    from orchestrator.modules.operators.collections import explore
     from orchestrator.modules.operators.randomwalk import (
         CustomSamplerConfiguration,
         RandomWalkParameters,
         SamplerModuleConf,
-        random_walk,
     )
+
+    random_walk = explore.operators["random_walk"].function
 
     params = TrimParameters.model_validate(kwargs)
     logger_trim.info(

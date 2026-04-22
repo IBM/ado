@@ -98,6 +98,7 @@ test = [
   "pfas-custom-functions",
   "profile-space",
   "robotic-lab",
+  "trim-custom-experiments",
 ]
 
 [build-system]
@@ -150,6 +151,7 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
+trim-custom-experiments = { path = "examples/trim/custom_experiments", editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [tool.uv-dynamic-versioning]
@@ -157,6 +159,23 @@ vcs = "git"
 style = "pep440"
 pattern = "default-unprefixed"
 fallback-version = "0.0.0"
-tagged-metadata = true
-dirty = true
-bump = true
+# Versioning logic (Dunamai / PEP 440):
+# - Exact tag (distance == 0) → use the base version; add +dirty only if the repo is dirty
+# - Ahead of tag (distance > 0) → bump the base version, add .devN, plus commit/timestamp metadata
+# - `select | list` removes optional entries and materializes metadata as a real list
+#   (required by serialize_pep440)
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    stage,
+    revision,
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

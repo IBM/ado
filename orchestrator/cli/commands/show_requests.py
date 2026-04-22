@@ -98,26 +98,15 @@ def show_requests_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-requests
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the timeseries of requests for an operation
-
     ado show requests operation <operation-id>
 
-
-
     # Show the timeseries of requests for the latest operation
-
     ado show requests operation --use-latest
 
-
-
     # Show the timeseries of requests for an operation and hide the request id and metadata columns
-
     ado show requests operation <operation-id> --hide id --hide metadata
     """
     ado_configuration: AdoConfiguration = ctx.obj

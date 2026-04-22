@@ -22,7 +22,6 @@ from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.utilities.distribution import distribution_from_module
 from orchestrator.utilities.logging import configure_logging
-from orchestrator.utilities.ray import extract_base_class
 
 if typing.TYPE_CHECKING:
     import pandas as pd
@@ -198,8 +197,6 @@ class ActuatorRegistry:
                     # we do not need to check whether we have already
                     # registered the actuator
                     self.log.debug(f"Add actuator plugin {actuator}")
-                    # Extract base class in case actuator_class is Ray-decorated
-                    actuator_class = extract_base_class(actuator_class, ActuatorBase)
                     self.registerActuator(
                         actuatorid=actuator_class.identifier,
                         actuatorClass=actuator_class,

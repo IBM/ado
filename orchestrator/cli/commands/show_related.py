@@ -73,20 +73,12 @@ def show_related_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-related
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the resources related to a space
-
     ado show related space <space-id>
 
-
-
     # Show the resources related to the latest space
-
     ado show related space --use-latest
     """
     ado_configuration: AdoConfiguration = ctx.obj

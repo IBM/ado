@@ -163,32 +163,18 @@ def show_summary_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-summary
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show a high-level summary of the discovery space as a rich table
-
     ado show summary space <space-id>
 
-
-
     # Show a high-level summary of the latest discovery space as a rich table
-
     ado show summary space --use-latest
 
-
-
     # Show a high-level summary of discovery spaces matching a label
-
     ado show summary space -l key=value
 
-
-
     # Show a detailed summary of the discovery space as a Markdown report
-
     ado show summary space <space-id> -o md-report
     """
     ado_configuration: AdoConfiguration = ctx.obj

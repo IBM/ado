@@ -72,26 +72,15 @@ def show_details_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-details
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the size of a space and what operations have been run on it
-
     ado show details space <space-id>
-
-
-
 
     # Show details for the latest space
     ado show details space --use-latest
 
-
-
     # Show how many entities were measured as part of an operation
-
     ado show details operation <operation-id>
     """
     ado_configuration: AdoConfiguration = ctx.obj

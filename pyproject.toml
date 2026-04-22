@@ -61,6 +61,7 @@ dev = [
   "pytest>=8.3.5",
   "pytest-asyncio>=1.0.0",
   "pytest-cov>=7.0.0",
+  "pytest-env>=1.1.0",
   "pytest-recording>=0.13.4",
   "pytest-timeout>=2.4.0",
   "pytest-xdist>=3.6.1",
@@ -114,6 +115,10 @@ source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
 packages = ["orchestrator"]
+
+# Read by Ray on first `import ray` (pytest-env runs when pytest starts, before conftest).
+[tool.pytest_env]
+RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
 
 [tool.uv]
 default-groups = ["dev", "docs"]

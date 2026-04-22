@@ -47,6 +47,9 @@ Repository = "https://github.com/IBM/ado"
 ado = "orchestrator.cli.core.cli:app"
 run_experiment = "orchestrator.utilities.run_experiment:main"
 
+[project.entry-points."ado.operators"]
+randomwalk = "orchestrator.modules.operators.randomwalk"
+
 [dependency-groups]
 dev = [
   "black>=25.1.0",

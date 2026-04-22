@@ -144,6 +144,11 @@ nav:
       - Developing ado: getting-started/developing.md
       - Roadmap: getting-started/roadmap.md
       - Contributing: getting-started/contributing.md
+  - How-To Guides:
+      - how-to/index.md
+      - Researchers & Benchmarkers: how-to/researchers.md
+      - Plugin Developers: how-to/plugin-developers.md
+      - Core Developers: how-to/core-developers.md
   - Examples:
       - Overview: examples/examples.md
       - Search and Optimization:

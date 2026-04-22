@@ -1,0 +1,17 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+config:
+  actuatorIdentifier: mock
+  parameters:
+    outer_field:
+      another_field: simple
+      inner_field:
+        test_value: found_it
+    simple_field: test
+created: '2026-03-22T19:47:56.575084Z'
+identifier: actuatorconfiguration-mock-17e0864c
+status:
+  - event: created
+    recorded_at: '2026-03-22T19:47:56.575113Z'
+  - event: added
+    recorded_at: '2026-03-22T19:47:56.603225Z'

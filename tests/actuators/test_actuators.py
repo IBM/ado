@@ -138,7 +138,7 @@ def test_custom_experiments(
         "custom_experiments"
     )
 
-    assert len(c.experiments) == 5
+    assert len(c.experiments) == 7
 
     for e in c.experiments:
         assert catalog.experimentForReference(e.reference) is not None

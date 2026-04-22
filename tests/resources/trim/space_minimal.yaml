@@ -1,0 +1,22 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Discrete grid for trim integration tests: current Cartesian size is 8 entities.
+# Keep minPoints/maxPoints in tests/operators/test_trim_example_integration.py <= 8.
+metadata:
+  name: trim_integration_minimal
+entitySpace:
+  - identifier: temperature
+    propertyDomain:
+      domainRange: [270, 274]
+      interval: 2.0
+  - identifier: volume
+    propertyDomain:
+      domainRange: [1, 3]
+      interval: 1.0
+  - identifier: mol
+    propertyDomain:
+      domainRange: [0.1, 0.3]
+      interval: 0.1
+experiments:
+  - actuatorIdentifier: custom_experiments
+    experimentIdentifier: calculate_pressure_ideal_gas

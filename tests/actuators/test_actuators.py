@@ -113,8 +113,8 @@ def test_custom_experiments(
     # SV 7/02/26
     # This test needs to be updated every time a new custom experiment is added to ado
     assert (
-        len(catalog.experiments) == 5
-    ), "Expected 5 experiments in the custom_experiments catalog for testing "
+        len(catalog.experiments) == 7
+    ), "Expected 7 experiments in the custom_experiments catalog for testing "
 
     identifiers = {e.identifier for e in catalog.experiments}
     assert {
@@ -123,7 +123,9 @@ def test_custom_experiments(
         "min_gpu_recommender",
         "avoid_oom_recommender",
         "nevergrad_opt_3d_test_func",
-    } == identifiers, f"Expected the experiments to be called - acid_test, calculate_density, min_gpu_recommender, and nevergrad_opt_3d_test_func but they are called {identifiers}"
+        "calculate_pressure_ideal_gas",
+        "calculate_pressure_gas",
+    } == identifiers, f"Expected the experiments to be called - acid_test, calculate_density, min_gpu_recommender, calculate_pressure_ideal_gas, calculate_pressure_gas, and nevergrad_opt_3d_test_func but they are called {identifiers}"
     loaded = custom_experiments.loadedExperiment.remote(
         orchestrator.schema.reference.ExperimentReference(
             actuatorIdentifier="custom_experiments", experimentIdentifier="acid_test"
@@ -136,7 +138,7 @@ def test_custom_experiments(
         "custom_experiments"
     )
 
-    assert len(c.experiments) == 5
+    assert len(c.experiments) == 7
 
     for e in c.experiments:
         assert catalog.experimentForReference(e.reference) is not None

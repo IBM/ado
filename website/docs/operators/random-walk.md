@@ -299,9 +299,8 @@ space:
   independently without replacement, cycling through all values before repeating.
   This ensures each dimension is uniformly covered.
 
-**Collision Handling**: Sobol sampling may produce collisions (duplicate points)
-when mapping continuous Sobol sequences to discrete integer coordinates. When
-collisions are detected, the sampler automatically falls back to CLHS to ensure
+**Collision Handling**: Sobol sampling may produce collisions (duplicate points),
+when this happens the sampler automatically falls back to CLHS to ensure
 the requested number of unique samples.
 
 #### Example: Sobol Sampling

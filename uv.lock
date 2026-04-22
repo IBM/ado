@@ -79,6 +79,8 @@ dependencies = [
     { name = "pymysql", extra = ["rsa"] },
     { name = "pyyaml" },
     { name = "ray", extra = ["serve"] },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.16.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sqlalchemy" },
     { name = "typer" },
     { name = "uv" },
@@ -143,6 +145,7 @@ requires-dist = [
     { name = "pymysql", extras = ["rsa"], specifier = ">=1.1.1" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "ray", extras = ["serve"], specifier = ">=2.9" },
+    { name = "scipy" },
     { name = "sqlalchemy", specifier = ">2" },
     { name = "typer", specifier = ">=0.22.0" },
     { name = "uv", specifier = ">=0.10.4" },
@@ -8611,7 +8614,7 @@ wheels = [
 
 [[package]]
 name = "ydata-profiling"
-version = "4.18.3"
+version = "4.18.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dacite" },
@@ -8637,9 +8640,9 @@ dependencies = [
     { name = "visions", extra = ["type-image-path"] },
     { name = "wordcloud" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/90/fecdf08148ce205075eae12380726655fd3c52f323940d90abe07f137471/ydata_profiling-4.18.3.tar.gz", hash = "sha256:9817caa784b4065455c2f527a106edd74719b2dfb3a69c0b8760d5ed4ee27613", size = 331603, upload-time = "2026-04-16T23:49:07.871Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/40/83/03011a81f7148a71b81dfd9afda9c497de9801a3af24a2f636e47701b052/ydata_profiling-4.18.1.tar.gz", hash = "sha256:6dc529893c84abecda2e6038564cabcd69a6b801a730e077b61b6d500a98f30c", size = 331100, upload-time = "2026-01-13T18:28:59.076Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/0b/da00faee551dfc0b984b0b6b4fc049aa15e18dfdb987e94281d8c79f3112/ydata_profiling-4.18.3-py2.py3-none-any.whl", hash = "sha256:3482932fb6f49c182391bcdc564541406ffde8ead5c15305242e7dad419a34b2", size = 400782, upload-time = "2026-04-16T23:49:06.048Z" },
+    { url = "https://files.pythonhosted.org/packages/64/2c/992c6ef2677b182b86157eef2124a0e837aa3d128b5b09f6fb03cd51bb0a/ydata_profiling-4.18.1-py2.py3-none-any.whl", hash = "sha256:cd816865930f090cc71bbd5c2045b90c727e7448e3402d22f397f7ed3d4e2927", size = 400396, upload-time = "2026-01-13T18:28:57.08Z" },
 ]
 
 [[package]]

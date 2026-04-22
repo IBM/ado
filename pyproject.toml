@@ -130,18 +130,19 @@ required-environments = [
 # added as path-based sources.
 [tool.uv.workspace]
 members = [
-  "plugins/custom_experiments/autoconf",
-  "plugins/operators/ray_tune",
-  # "plugins/actuators/sfttrainer",
-  "plugins/actuators/vllm_performance",
-  "plugins/operators/anomalous_series",
   "examples/density_example",
   "examples/optimization_test_functions/custom_experiments",
   "examples/pfas-generative-models/custom_actuator_function",
-  "plugins/operators/profile_space",
+  "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
-  "plugins/operators/trim",
-  "plugins/operators/no-priors-characterization"
+  "plugins/actuators/vllm_performance",
+  "plugins/custom_experiments/autoconf",
+  "plugins/operators/anomalous_series",
+  "plugins/operators/no-priors-characterization",
+  "plugins/operators/profile_space",
+  "plugins/operators/ray_tune",
+  # "plugins/actuators/sfttrainer",
+  "plugins/operators/trim"
 ]
 
 [tool.uv.sources]
@@ -157,7 +158,7 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
-trim-custom-experiments = { path = "examples/trim/custom_experiments", editable = true }
+trim-custom-experiments = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [tool.uv-dynamic-versioning]

@@ -53,10 +53,13 @@ def random_identifier() -> Callable[[], str]:
 
 @pytest.fixture(scope="session", autouse=True)
 def initialize_ray() -> Generator[None, None, None]:
-    """Initialize Ray with working_dir=None to avoid package size issues during tests."""
-    # Using dict form instead of RuntimeEnv object - they behave differently
+    """Start Ray for the test session.
+
+    For ``uv run pytest``, the Ray "uv run" driver hook must be off by ensuring
+    ``RAY_ENABLE_UV_RUN_RUNTIME_ENV`` when ``ray`` is first imported. This
+    is set for pytest via ``pytest-env`` in ``pyproject.toml``
+    """
     ray.init(
-        runtime_env={"working_dir": None},
         ignore_reinit_error=True,
     )
     yield

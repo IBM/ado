@@ -7,7 +7,7 @@ from typing import Annotated
 import pydantic
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from orchestrator.core.discoveryspace.no_priors_parameters import NoPriorsParameters
+from trim.samplers.no_priors_parameters import NoPriorsParameters
 
 
 class SamplingBudget(pydantic.BaseModel):

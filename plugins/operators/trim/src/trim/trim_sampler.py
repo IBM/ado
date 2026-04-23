@@ -19,12 +19,12 @@ import numpy as np
 import pandas as pd
 from autogluon.tabular import TabularDataset, TabularPredictor
 
-from orchestrator.core.discoveryspace.no_priors_utils import (
+from orchestrator.core.discoveryspace.samplers import BaseSampler
+from trim.samplers.no_priors_utils import (
     get_index_list_van_der_corput,
     get_list_of_entities_from_df_and_space,
     get_source_and_target,
 )
-from orchestrator.core.discoveryspace.samplers import BaseSampler
 from trim.trim_pydantic import TrimParameters
 
 if TYPE_CHECKING:

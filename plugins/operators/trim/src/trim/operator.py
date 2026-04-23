@@ -5,11 +5,11 @@
 import logging
 from importlib.metadata import version
 
-from orchestrator.core.discoveryspace.no_priors_utils import get_source_and_target
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import FunctionOperationInfo
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.operators.collections import characterize_operation
+from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
 )  # Importing this way works when the package is installed
@@ -98,7 +98,7 @@ def trim(
         # Use random-walk with no-priors sampler instead of direct operator call
         no_priors_module = SamplerModuleConf(
             moduleClass="NoPriorsSampleSelector",
-            moduleName="orchestrator.core.discoveryspace.no_priors_sampler",
+            moduleName="trim.samplers.no_priors_sampler",
         )
         no_priors_sampler_config = CustomSamplerConfiguration(
             module=no_priors_module,

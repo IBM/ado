@@ -102,6 +102,5 @@ def test_delete_nonexistent_actuator_configuration(
         ],
     )
     assert result.exit_code == 1, result.output
-    assert (
-        "ERROR:  The database does not contain a resource with id does-not-exist and kind actuatorconfiguration."
-    ) in result.output.strip()
+    assert "Failed to delete does-not-exist" in result.output
+    assert "Resource does not exist" in result.output

@@ -279,46 +279,6 @@ spaces:
   - your-spaces
 ```
 
-### Advanced Samplers
-
-When the base samplers are not enough, `random_walk` can also use more
-specialized samplers that still integrate with its normal batching, filtering, and
-memoization.
-
-#### Quasi-Random Sampling Strategies
-
-The `NoPriorsSampleSelector` provides quasi-random sampling strategies designed
-for high-dimensional discrete spaces. These strategies produce sequences where
-consecutive elements are maximally dispersed, favoring uniform coverage of the
-space:
-
-- **`sobol`**: Sobol sequences are low-discrepancy quasi-random sequences widely
-  used for space-filling designs. They provide better coverage than pure random
-  sampling by ensuring points are well-distributed across all dimensions.
-- **`clhs`**: Concatenated Latin Hypercube Sampling (CLHS) samples each dimension
-  independently without replacement, cycling through all values before repeating.
-  This ensures each dimension is uniformly covered.
-
-**Collision Handling**: Sobol sampling may produce collisions (duplicate points),
-when this happens the sampler automatically falls back to CLHS to ensure
-the requested number of unique samples.
-
-#### Example: Sobol Sampling
-
-Example using Sobol ordering for quasi-random low-discrepancy coverage:
-
-```yaml
-samplerConfig:
-  module:
-    moduleName: orchestrator.core.discoveryspace.no_priors_sampler
-    moduleClass: NoPriorsSampleSelector
-  parameters:
-    targetOutput: yield
-    samples: 100
-    batchSize: 1
-    sampling_strategy: sobol
-```
-
 ### Custom Samplers
 
 It is also possible to specify that `random_walk` uses a custom sampler. This is
@@ -376,6 +336,92 @@ class MySampler(BaseSampler):
     def __init__(self, parameters: MySamplerParams):
          ...
 ```
+
+#### Quasi-Random Sampling Strategies
+
+Some useful custom samplers are provided through the TRIM plugin.
+To use these samplers, you must first install TRIM, from root the command is:
+
+```bash
+pip install plugins/operators/trim/
+```
+
+The `NoPriorsSampleSelector` provides quasi-random sampling strategies designed
+for high-dimensional discrete spaces. These strategies produce sequences where
+consecutive elements are maximally dispersed, favoring uniform coverage of the
+space:
+
+- **`sobol`**: Sobol sequences are low-discrepancy quasi-random sequences widely
+  used for space-filling designs. They provide better coverage than pure random
+  sampling by ensuring points are well-distributed across all dimensions.
+- **`clhs`**: Concatenated Latin Hypercube Sampling (CLHS) samples each dimension
+  independently without replacement, cycling through all values before repeating.
+  This ensures each dimension is uniformly covered.
+
+**Collision Handling**: Sobol sampling may produce collisions (duplicate points),
+when this happens the sampler automatically falls back to CLHS to ensure
+the requested number of unique samples.
+
+#### Example: Sobol Sampling
+
+Here we write an example using Sobol ordering for quasi-random
+low-discrepancy coverage. Make sure to install the TRIM package first.
+Then install TRIM custom experiments with
+
+```bash
+pip install examples/trim/custom_experiments/
+```
+
+To create a discoveryspace and explore it with the TRIM operator, execute the
+following from the root of the ado repository:
+
+```bash
+ado create space -f examples/trim/example_yamls/space_pressure.yaml --new-sample-store
+
+ado create operation -f \
+    examples/trim/example_yamls/randomwalk_sobol_operation.yaml \
+    --use-latest space
+```
+
+The configuration file `randomwalk_sobol_operation.yaml` contains the following
+to specify which points to sample
+
+```yaml
+samplerConfig:
+  module:
+    moduleName: trim.samplers.no_priors_sampler
+    moduleClass: NoPriorsSampleSelector
+  parameters:
+    targetOutput: pressure
+    samples: 20
+    batchSize: 1
+    sampling_strategy: sobol
+```
+
+Since `batchSize: 1` the operation will sample one point at a time, this
+ensures that the sequence of measurements has the desired uniform coverage
+
+```bash
+ado show entities operation --use-latest  -o csv --output-file your_file.csv
+```
+
+The file `your_file.csv` will contain the sequence of sampled points, you
+will see something like this:
+
+<!-- markdownlint-disable line-length -->
+
+```csv
+request_index,result_index,identifier,experiment_id,generatorid,mol,temperature,volume,pressure,request_id,entity_index,valid
+0,0,mol.0.2-temperature.274-volume.8,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.2,274,8,56.9540689333,c8f814,0,True
+1,0,mol.0.7-temperature.284-volume.1,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.7,284,1,1652.9151684584,232c8e,0,True
+2,0,mol.0.4-temperature.294-volume.7,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.4,294,7,139.6829719824,9c6ae3,0,True
+3,0,mol.0.9-temperature.284-volume.5,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.9,284,5,425.03532903216,83a93d,0,True
+4,0,mol.0.5-temperature.280-volume.6,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.5,280,6,194.00412775333334,9e8ecd,0,True
+5,0,mol.0.1-temperature.298-volume.4,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.1,298,4,61.9427465041,db9284,0,True
+...
+```
+
+<!-- markdownlint-enable line-length -->
 
 ### Sampling all Entities
 

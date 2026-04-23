@@ -368,7 +368,7 @@ you can create. The fastest way to update these metadata is to use the
 The complete syntax of the `ado edit` command is as follows:
 
 ```shell
-ado edit RESOURCE_TYPE RESOURCE_ID [--editor <NAME>]
+ado edit RESOURCE_TYPE RESOURCE_ID [--metadata <FILE>] [--editor <NAME>]
 ```
 
 Where:
@@ -388,19 +388,26 @@ Where:
     <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
-- `--editor` is the name of the editor you want to use for editing metadata. It
+- `--metadata` is an optional path to a YAML file. The contents are **merged** into
+  the resource’s existing stored metadata
+  (for example, add or update `name`, `description`, and `labels`) without
+  opening an editor. `labels` are merged as key–value maps; other fields from the
+  file overwrite the previous values. You cannot use `--metadata` together with
+  `--editor`.
+- `--editor` is the name of the editor you want to use for **interactive** editing
+  of metadata. It
   must be one of the supported ones, which currently are:
 
     <!-- prettier-ignore-start -->
 
-    - `vim` (_default_)
+    - `vim`
     - `vi`
-    - `nano`
+    - `nano` (_default_ if `ADO_EDITOR` is not set when using interactive edit)
 
     <!-- prettier-ignore-end -->
 
-Alternatively, you can also set the value for this flag by using the environment
-variable `ADO_EDITOR`.
+For interactive mode, you can set the default editor with the `ADO_EDITOR`
+environment variable.
 
 #### Examples
 
@@ -420,6 +427,12 @@ ado edit space space-abc123-456def --editor nano
 
 ```shell
 ADO_EDITOR=nano ado edit space space-abc123-456def
+```
+
+##### Merging metadata from a YAML file (non-interactive)
+
+```shell
+ado edit space space-abc123-456def --metadata extra-metadata.yaml
 ```
 
 ### ado get

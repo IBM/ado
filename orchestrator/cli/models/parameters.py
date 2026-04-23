@@ -75,8 +75,9 @@ class AdoDescribeCommandParameters(pydantic.BaseModel):
 
 class AdoEditCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
-    editor: AdoEditSupportedEditors
+    editor: AdoEditSupportedEditors | None
     resource_id: str
+    metadata_path: Path | None = None
 
 
 class AdoShowDetailsCommandParameters(pydantic.BaseModel):

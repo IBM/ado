@@ -12,4 +12,5 @@ def edit_data_container(parameters: AdoEditCommandParameters) -> None:
         resource_type=CoreResourceKinds.DATACONTAINER,
         project_context=parameters.ado_configuration.project_context,
         editor=parameters.editor,
+        metadata_path=parameters.metadata_path,
     )

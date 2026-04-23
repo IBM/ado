@@ -28,6 +28,9 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
+from orchestrator.cli.utils.pydantic.metadata_merge import (
+    merge_configuration_metadata_dicts,
+)
 from orchestrator.cli.utils.resources.formatters import (
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
@@ -430,7 +433,8 @@ def handle_edit_resource_metadata(
     resource_id: str,
     resource_type: "CoreResourceKinds",
     project_context: "ProjectContext",
-    editor: AdoEditSupportedEditors,
+    editor: AdoEditSupportedEditors | None,
+    metadata_path: pathlib.Path | None = None,
 ) -> None:
     import subprocess  # noqa: S404
     import tempfile
@@ -444,27 +448,62 @@ def handle_edit_resource_metadata(
             status.stop()
             raise ResourceDoesNotExistError(resource_id=resource_id, kind=resource_type)
 
-    with tempfile.TemporaryDirectory() as d:
-        file = pathlib.Path(d) / pathlib.Path("tmp_metadata.yaml")
-        orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model(
-            model=resource.config.metadata,
-            output_path=file,
-            suppress_success_message=True,
-        )
-
+    if metadata_path is not None:
         try:
-            subprocess.run([editor.value, file], check=True)  # noqa: S603
-        except subprocess.CalledProcessError as e:
-            console_print(f"{ERROR}The editor exited with an error: {e}", stderr=True)
-            raise typer.Exit(1) from e
-
-        try:
-            new_metadata = ConfigurationMetadata.model_validate(
-                yaml.safe_load(file.read_text())
+            raw = yaml.safe_load(metadata_path.read_text())
+        except (OSError, yaml.YAMLError) as e:
+            console_print(
+                f"{ERROR}Could not read metadata from {metadata_path}:\n{e}",
+                stderr=True,
             )
-        except pydantic.ValidationError as e:
-            console_print(f"{ERROR}The updated metadata was invalid: {e}", stderr=True)
             raise typer.Exit(1) from e
+        if raw is not None and not isinstance(raw, dict):
+            console_print(
+                f"{ERROR}The metadata file {metadata_path} must contain a YAML mapping "
+                "(object) at the top level.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+        patch: dict[str, typing.Any] = raw if isinstance(raw, dict) else {}
+        base_dict = resource.config.metadata.model_dump()
+        try:
+            merged = merge_configuration_metadata_dicts(base=base_dict, patch=patch)
+            new_metadata = ConfigurationMetadata.model_validate(merged)
+        except pydantic.ValidationError as e:
+            console_print(f"{ERROR}The merged metadata was invalid: {e}", stderr=True)
+            raise typer.Exit(1) from e
+    else:
+        if editor is None:
+            console_print(
+                f"{ERROR}No editor was provided for interactive metadata editing.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+        with tempfile.TemporaryDirectory() as d:
+            file = pathlib.Path(d) / pathlib.Path("tmp_metadata.yaml")
+            orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model(
+                model=resource.config.metadata,
+                output_path=file,
+                suppress_success_message=True,
+            )
+
+            try:
+                subprocess.run([editor.value, file], check=True)  # noqa: S603
+            except subprocess.CalledProcessError as e:
+                console_print(
+                    f"{ERROR}The editor exited with an error: {e}", stderr=True
+                )
+                raise typer.Exit(1) from e
+
+            try:
+                new_metadata = ConfigurationMetadata.model_validate(
+                    yaml.safe_load(file.read_text())
+                )
+            except pydantic.ValidationError as e:
+                console_print(
+                    f"{ERROR}The updated metadata was invalid: {e}", stderr=True
+                )
+                raise typer.Exit(1) from e
 
     resource.config.metadata = new_metadata
     with Status(ADO_SPINNER_SAVING_TO_DB):

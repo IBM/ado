@@ -12,4 +12,5 @@ def edit_operation(parameters: AdoEditCommandParameters) -> None:
         resource_type=CoreResourceKinds.OPERATION,
         project_context=parameters.ado_configuration.project_context,
         editor=parameters.editor,
+        metadata_path=parameters.metadata_path,
     )

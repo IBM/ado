@@ -279,14 +279,10 @@ spaces:
   - your-spaces
 ```
 
-### Custom Samplers
+## Custom Samplers
 
-It is also possible to specify that `random_walk` uses a custom sampler. This is
-a class that inherits from
-`orchestrator.core.discoveryspace.samplers.BaseSampler`. This is useful for
-implementing more complex sampling schemes. For example, for developers who want
-to use random_walk to drive an exploration but have custom logic to execute
-before choosing each sample/entity.
+`random_walk` can also use custom samplers for
+more complex sampling schemes.
 
 For custom samplers the `samplerConfig` field has the following structure:
 
@@ -302,45 +298,11 @@ parameters: # A dictionary of key value pairs with the values for the custom sam
 
 <!-- markdownlint-enable line-length -->
 
-#### Implementing a Custom Sampler
+### Available Custom Samplers
 
-To implement a custom sampler create a sub-class of
-`orchestrator.core.discovery.samplers.BaseSampler` and implement all required
-methods
+#### No Priors Sample Selector
 
-The `BaseSampler` class does not specify any `__init__` parameters. If your
-custom class requires initialization parameters then
-
-- define a pydantic model for them
-- override the `parameters_model` class method to return this model
-- add a non keyword parameter to your custom classes `__init__` that is this
-  type.
-
-For example:
-
-```python
-# Class for the custom samplers parameters
-class MySamplerParams(BaseModel):
-   ...
-
-# Subclass of BaseSampler implementing the custom sampling logic
-class MySampler(BaseSampler):
-
-    @classmethod
-    def parameters_model(cls) -> Optional[Type[BaseModel]]:
-
-        # Return the custom samplers parameters model
-        return MySamplerParams
-
-    # Add an init arg to take the parameters model
-    def __init__(self, parameters: MySamplerParams):
-         ...
-```
-
-#### Quasi-Random Sampling Strategies
-
-Some useful custom samplers are provided through the TRIM plugin.
-To use these samplers, you must first install TRIM, from root the command is:
+To install `NoPriorsSampleSelector` execute
 
 ```bash
 pip install plugins/operators/trim/
@@ -362,7 +324,7 @@ space:
 when this happens the sampler automatically falls back to CLHS to ensure
 the requested number of unique samples.
 
-#### Example: Sobol Sampling
+##### Example: Sobol Sampling
 
 Here we write an example using Sobol ordering for quasi-random
 low-discrepancy coverage. Make sure to install the TRIM package first.
@@ -422,6 +384,41 @@ request_index,result_index,identifier,experiment_id,generatorid,mol,temperature,
 ```
 
 <!-- markdownlint-enable line-length -->
+
+#### Implementing a Custom Sampler
+
+To implement a custom sampler create a sub-class of
+`orchestrator.core.discovery.samplers.BaseSampler` and implement all required
+methods
+
+The `BaseSampler` class does not specify any `__init__` parameters. If your
+custom class requires initialization parameters then
+
+- define a pydantic model for them
+- override the `parameters_model` class method to return this model
+- add a non keyword parameter to your custom classes `__init__` that is this
+  type.
+
+For example:
+
+```python
+# Class for the custom samplers parameters
+class MySamplerParams(BaseModel):
+   ...
+
+# Subclass of BaseSampler implementing the custom sampling logic
+class MySampler(BaseSampler):
+
+    @classmethod
+    def parameters_model(cls) -> Optional[Type[BaseModel]]:
+
+        # Return the custom samplers parameters model
+        return MySamplerParams
+
+    # Add an init arg to take the parameters model
+    def __init__(self, parameters: MySamplerParams):
+         ...
+```
 
 ### Sampling all Entities
 

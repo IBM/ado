@@ -48,6 +48,9 @@ Repository = "https://github.com/IBM/ado"
 ado = "orchestrator.cli.core.cli:app"
 run_experiment = "orchestrator.utilities.run_experiment:main"
 
+[project.entry-points."ado.operators"]
+randomwalk = "orchestrator.modules.operators.randomwalk"
+
 [dependency-groups]
 dev = [
   "black>=25.1.0",
@@ -59,6 +62,7 @@ dev = [
   "pytest>=8.3.5",
   "pytest-asyncio>=1.0.0",
   "pytest-cov>=7.0.0",
+  "pytest-env>=1.1.0",
   "pytest-recording>=0.13.4",
   "pytest-timeout>=2.4.0",
   "pytest-xdist>=3.6.1",
@@ -112,6 +116,10 @@ source = "uv-dynamic-versioning"
 [tool.hatch.build.targets.wheel]
 packages = ["orchestrator"]
 
+# Read by Ray on first `import ray` (pytest-env runs when pytest starts, before conftest).
+[tool.pytest_env]
+RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
+
 [tool.uv]
 default-groups = ["dev", "docs"]
 required-environments = [
@@ -127,17 +135,19 @@ required-environments = [
 # added as path-based sources.
 [tool.uv.workspace]
 members = [
-  "plugins/custom_experiments/autoconf",
-  "plugins/operators/ray_tune",
-  # "plugins/actuators/sfttrainer",
-  "plugins/actuators/vllm_performance",
-  "plugins/operators/anomalous_series",
   "examples/density_example",
   "examples/optimization_test_functions/custom_experiments",
   "examples/pfas-generative-models/custom_actuator_function",
-  "plugins/operators/profile_space",
+  "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
-  "plugins/operators/trim",
+  "plugins/actuators/vllm_performance",
+  "plugins/custom_experiments/autoconf",
+  "plugins/operators/anomalous_series",
+  "plugins/operators/no-priors-characterization",
+  "plugins/operators/profile_space",
+  "plugins/operators/ray_tune",
+  # "plugins/actuators/sfttrainer",
+  "plugins/operators/trim"
 ]
 
 [tool.uv.sources]
@@ -152,7 +162,7 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
-trim-custom-experiments = { path = "examples/trim/custom_experiments", editable = true }
+trim-custom-experiments = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [tool.uv-dynamic-versioning]

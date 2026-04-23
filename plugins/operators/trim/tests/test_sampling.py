@@ -2,10 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import pytest
-
-from orchestrator.core.discoveryspace.no_priors_utils import (
-    get_index_list_van_der_corput,
-)
+from trim.samplers.no_priors_utils import get_index_list_van_der_corput
 
 # --- Error Handling Tests ---
 

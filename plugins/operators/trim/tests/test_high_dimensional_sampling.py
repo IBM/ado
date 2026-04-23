@@ -14,10 +14,7 @@ from typing import Any
 
 import pytest
 from test_data_documentation import TEST_DATAFRAMES
-
-from orchestrator.core.discoveryspace.no_priors_utils import (
-    concatenated_latin_hypercube_sampling,
-)
+from trim.samplers.no_priors_utils import concatenated_latin_hypercube_sampling
 
 
 class TestConcatenatedLatinHypercubeSampling:

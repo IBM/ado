@@ -90,6 +90,55 @@ def test_get_resources_and_get_resource_identifiers_of_kind(
 
 
 @requires_sqlite_3_38
+def test_get_resources_sorted_by_created_ascending(
+    sql_store: SQLStore,
+    random_space_resource_from_file: Callable[[str | None], DiscoverySpaceResource],
+    create_resources: Callable[
+        [list[orchestrator.core.resources.ADOResource], SQLStore], None
+    ],
+) -> None:
+    """Test that getResources returns resources sorted by created timestamp in ascending order (oldest first)."""
+    import datetime
+
+    # Create multiple resources from file with explicit created timestamps
+    space1 = random_space_resource_from_file()
+    space1.created = datetime.datetime(
+        2024, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
+    )
+
+    space2 = random_space_resource_from_file()
+    space2.created = datetime.datetime(
+        2024, 1, 2, 12, 0, 0, tzinfo=datetime.timezone.utc
+    )
+
+    space3 = random_space_resource_from_file()
+    space3.created = datetime.datetime(
+        2024, 1, 3, 12, 0, 0, tzinfo=datetime.timezone.utc
+    )
+
+    # Add resources to database using create_resources fixture
+    create_resources([space1, space2, space3])
+
+    # Get all three resources
+    identifiers = [space1.identifier, space2.identifier, space3.identifier]
+    resources = sql_store.getResources(identifiers)
+
+    # Convert to list to check order
+    resource_list = list(resources.values())
+
+    # Verify we got all three resources
+    assert len(resource_list) == 3
+
+    # Verify they are sorted by created timestamp in ascending order (oldest first)
+    assert resource_list[0].created <= resource_list[1].created
+    assert resource_list[1].created <= resource_list[2].created
+
+    # Verify the oldest is space1 and most recent is space3
+    assert resource_list[0].identifier == space1.identifier
+    assert resource_list[2].identifier == space3.identifier
+
+
+@requires_sqlite_3_38
 def test_get_related_resource_identifiers(
     sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
 ) -> None:

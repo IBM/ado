@@ -113,18 +113,70 @@ class NoPriorsSampleSelector(BaseSampler):
     def entityIterator(
         self, discoverySpace: DiscoverySpace, batchsize: int = 1
     ) -> typing.Generator[list[Entity], None, None]:
-        """Returns an remoteEntityIterator that returns entities in order"""
+        """
+        Generate entities for no-priors characterization sampling (synchronous version).
+
+        Orders the target space using a high-dimensional sampling strategy (e.g., CLHS, Sobol)
+        without relying on prior model knowledge or feature importance.
+
+        Args:
+            discoverySpace: The discovery space to sample from
+            batchsize: Number of entities to yield per iteration
+
+        Yields:
+            List of Entity objects to be measured, in the determined order
+        """
 
         def iterator_closure(
             space: DiscoverySpace,
         ) -> typing.Callable[[], typing.Generator[list[Entity], None, None]]:
 
-            # list_of_entities = list(...)  # type: ignore[name-defined]
-            # numberEntities = len(list_of_entities)
+            logger_no_priors.info("Characterization with no-priors starts.\n")
+            logger_no_priors.info(f"Parameters are:\n{self.params}\n\n")
 
-            def iterator() -> typing.Generator[list[Entity], None, None]:  # type: ignore[name-defined]
-                raise NotImplementedError
-                # ...for i in range(0, numberEntities, batchsize):
+            source_df, target_df = get_source_and_target(
+                space, self.params.targetOutput
+            )
+            logger_no_priors.info(f"Target dataframe has length {len(target_df)}")
+
+            # The 'samples' parameter specifies the number of NEW entities to sample,
+            # regardless of how many entities have already been measured in the space
+            logger_no_priors.info(
+                f"Space has {len(source_df)} measured entities. "
+                f"Sampling {self.params.samples} new entities as requested."
+            )
+            target_df = order_df_for_sampling_with_no_priors(
+                target_df,
+                [cp.identifier for cp in space.entitySpace.constitutiveProperties],
+                self.params.samples,
+                strategy=self.params.sampling_strategy,
+            )
+            list_of_entities_for_no_prior_characterization = (
+                get_list_of_entities_from_df_and_space(df=target_df, space=space)
+            )
+
+            logger_no_priors.info(
+                "\n\nCharacterization with no-priors finished. Starting Iterative Modeling.\n"
+            )
+
+            def iterator() -> typing.Generator[list[Entity], None, None]:
+                logger_no_priors.info(
+                    "\n\nIteration over sorted entities for no priors characterization starts.\n"
+                )
+                for i in range(
+                    0, len(list_of_entities_for_no_prior_characterization), batchsize
+                ):
+                    entities = list_of_entities_for_no_prior_characterization[
+                        i : i + batchsize
+                    ]
+                    if len(entities) == 0:
+                        logger_no_priors.info(
+                            "\n\nCharacterization with no-priors finished.\n"
+                        )
+                        break
+                    else:
+                        yield entities
+                logger_no_priors.info("\n\nCharacterization with no-priors finished.\n")
 
             return iterator
 

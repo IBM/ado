@@ -129,13 +129,11 @@ def orchestrate(
         #     os.environ[key] = value
         #
         # ray.init(
-        #     runtime_env=RuntimeEnv(env_vars=ray_env_vars, working_dir=None),
+        #     runtime_env=RuntimeEnv(env_vars=ray_env_vars),
         #     ignore_reinit_error=True,
         # )
 
-        # Using RuntimeEnv with working_dir=None does not produce same behaviour as dict
         ray.init(
-            runtime_env={"working_dir": None},
             ignore_reinit_error=True,
         )
 

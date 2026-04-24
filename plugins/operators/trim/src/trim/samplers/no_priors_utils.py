@@ -74,10 +74,10 @@ def get_index_list_van_der_corput(
 
     if len(sampled_indices) == length_segment:
         maximal_indices_list = list(range(length_segment))
-        if sampled_indices.sort() != maximal_indices_list:
+        if sorted(sampled_indices) != maximal_indices_list:
             logging.error(
-                "Sampled indices do not correspond to [0,..., max_n_indices -1]"
-                "Returning list(range(max_n_indices)"
+                "Sampled indices do not correspond to [0,..., max_n_indices -1]. "
+                "Returning list(range(max_n_indices))"
             )
         return maximal_indices_list
 

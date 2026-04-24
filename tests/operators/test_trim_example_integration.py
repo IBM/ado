@@ -13,7 +13,6 @@ from testcontainers.mysql import MySqlContainer
 
 import orchestrator.modules.operators.randomwalk  # noqa: F401
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.discoveryspace.no_priors_parameters import NoPriorsParameters
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.resource import (
     OperationExitStateEnum,
@@ -31,6 +30,7 @@ from orchestrator.modules.operators.collections import characterize
 
 pytest.importorskip("autogluon")
 
+from trim.samplers.no_priors_parameters import NoPriorsParameters
 from trim.trim_pydantic import (
     AutoGluonArgs,
     SamplingBudget,

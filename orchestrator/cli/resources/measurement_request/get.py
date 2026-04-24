@@ -12,7 +12,6 @@ from orchestrator.cli.models.types import (
 )
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.output.prints import (
-    ADO_SPINNER_GETTING_OUTPUT_READY,
     ADO_SPINNER_QUERYING_DB,
     ERROR,
     HINT,
@@ -20,9 +19,6 @@ from orchestrator.cli.utils.output.prints import (
     WARN,
     console_print,
     cyan,
-)
-from orchestrator.cli.utils.resources.formatters import (
-    format_resource_for_ado_get_custom_format,
 )
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.resources import CoreResourceKinds
@@ -107,9 +103,9 @@ def get_measurement_request(parameters: AdoGetCommandParameters) -> None:
             status.stop()
             raise ResourceDoesNotExistError(resource_id=parameters.resource_id)
 
-        status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
-        console_print(
-            format_resource_for_ado_get_custom_format(
-                to_print=measurement_request, parameters=parameters
-            )
-        )
+        status.stop()
+
+    from orchestrator.cli.utils.resources.handlers import handle_ado_get
+
+    # Use unified handler for rendering
+    handle_ado_get(parameters=parameters, resources=measurement_request)

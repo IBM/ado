@@ -35,6 +35,45 @@ ado [--context | -c <context-file.yaml>] \
 - `--log-level | -l` configures the logging level. This does not affect child
   processes.
 
+### Resource Type Shorthands
+
+Many ado CLI commands accept resource types as arguments. To make commands more
+concise, ado supports **shorthand aliases** for resource type names. You can use
+either the full name or the shorthand interchangeably in any command.
+
+#### Available Shorthands
+
+> [!WARNING]
+>
+> Shorthands are case-sensitive and must be lowercase.
+
+| Full Resource Type    | Shorthand | Example Usage                       |
+| --------------------- | --------- | ----------------------------------- |
+| actuatorconfiguration | ac        | `ado get ac`                        |
+| context               | ctx       | `ado delete ctx my-context`         |
+| datacontainer         | dcr       | `ado describe dcr container-123`    |
+| discoveryspace        | space     | `ado create space -f space.yaml`    |
+| experiment            | exp       | `ado get exp`                       |
+| measurementrequest    | request   | `ado get request`                   |
+| operation             | op        | `ado show details op operation-456` |
+| samplestore           | store     | `ado get store`                     |
+
+#### Usage Examples
+
+```shell
+# These commands are equivalent:
+ado get discoveryspace space-abc123
+ado get space space-abc123
+
+# These commands are equivalent:
+ado create actuatorconfiguration -f config.yaml
+ado create ac -f config.yaml
+
+# These commands are equivalent:
+ado delete operation op-xyz789
+ado delete op op-xyz789
+```
+
 ### ado context
 
 **ado** supports storing configuration and authentication details for multiple
@@ -107,10 +146,11 @@ ado create RESOURCE_TYPE [--file | -f <FILE.yaml>] \
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types for `ado create`,
-  currently:
+- `RESOURCE_TYPE` is one of the supported resource types for `ado create`. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - _actuator_
     - _actuatorconfiguration_ (_ac_)
@@ -119,7 +159,7 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--file` or `-f` is a path to the resource configuration file in YAML format.
   It is mandatory in all scenarios, except when running
@@ -227,10 +267,11 @@ ado delete RESOURCE_TYPE RESOURCE_ID \
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to delete. Currently, the
-  only supported types are:
+- `RESOURCE_TYPE` is the type of resource you want to delete. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
@@ -239,17 +280,17 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to delete.
 - `--force` enables forced deletion of resources in the following cases:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - When attempting to delete operations while other operations are executing.
     - When attempting to delete sample stores that still contain data.
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - When deleting a local context, users can specify the flags `--delete-local-db`
   or `--no-delete-local-db` to explicitly delete or preserve a local DB when
@@ -290,16 +331,17 @@ ado describe RESOURCE_TYPE [RESOURCE_ID] [--file | -f <file.yaml>] \
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to describe. Currently, the
-  supported resource types are:
+- `RESOURCE_TYPE` is the type of resource you want to describe. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - _experiment_
     - _datacontainer_ (_dcr_)
     - _discoveryspace_ (_space_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to describe.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
@@ -331,9 +373,11 @@ ado edit RESOURCE_TYPE RESOURCE_ID [--editor <NAME>]
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to edit. Supported types are:
+- `RESOURCE_TYPE` is the type of resource you want to edit. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
@@ -341,19 +385,19 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
 - `--editor` is the name of the editor you want to use for editing metadata. It
   must be one of the supported ones, which currently are:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - `vim` (_default_)
     - `vi`
     - `nano`
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 Alternatively, you can also set the value for this flag by using the environment
 variable `ADO_EDITOR`.
@@ -409,10 +453,11 @@ ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | conf
 
 Where:
 
-- `RESOURCE_TYPE` is the type of resource you want to get. Currently, the only
-  supported types are:
+- `RESOURCE_TYPE` is the type of resource you want to get. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _actuator_
@@ -424,12 +469,12 @@ Where:
     - _samplestore_ (_store_)
     - _discoveryspace_ (_space_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the optional unique identifier of the resource to get.
 - `--output` or `-o` determine the type of output that will be displayed:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - The `table` format shows the _identifier_, the _name_, and the _age_ of
       the matching resources.
@@ -441,12 +486,10 @@ Where:
     - The `raw` format displays the raw resource as stored in the database,
       performing no validation.
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--output-file` allows writing the output to a specified file instead of
-  stdout. This flag is only supported when using the `yaml`, `json`, `config`,
-  or `raw` output formats. It cannot be used with the `default` or `name`
-  formats.
+  stdout. Avoids truncating columns when used with the `table` format.
 - `--exclude-default` (set by default) allows excluding fields that use default
   values from the output. Alternatively, the `--no-exclude-default` flag can be
   used to show them.
@@ -621,6 +664,18 @@ ado get space my-space-id -o yaml --output-file space.yaml
 ado get operations -o json --output-file operations.json
 ```
 
+##### Saving resource identifiers to a file
+
+```shell
+ado get spaces -o name --output-file space-ids.txt
+```
+
+##### Saving table output to a file
+
+```shell
+ado get spaces --output-file spaces-table.txt
+```
+
 ### ado show
 
 When interacting with resources, we might be interested in seeing some of their
@@ -640,14 +695,16 @@ ado show details RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
-    - _operation_ (_op_)
     - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see details
   for.
@@ -688,14 +745,16 @@ ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
-    - _operation_ (_op_)
     - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
   entities for.
@@ -708,25 +767,25 @@ Where:
 - `--property-format` defines the naming format used for measured properties in
   the output, one of:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - `observed`: properties are named `$experimentid.$property_id`.
       There will be one row per entity.
     - `target`: properties are named `$property_id`.
       There will be one row per (entity, experiment) pair.
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--output` (or `-o`) is the format in which to display the entity data. One
   of:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - `table` (print to stdout)
     - `csv` (write CSV to stdout, or to file if `--output-file` is specified)
     - `json` (write JSON to stdout, or to file if `--output-file` is specified)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--output-file` specifies a file path to write the output to (except for table
   format which always prints to stdout).
@@ -736,7 +795,7 @@ Where:
 - `--include` (**exclusive to spaces**) determines what type of entities to
   include. One of:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - `sampled`: Entities that have been measured by explore operations on the
       `discoveryspace`
@@ -747,12 +806,12 @@ Where:
     - `missing`: Entities in the `discoveryspace` that are not in the
       `samplestore` the `discoveryspace` uses
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--aggregate` allows applying an aggregation to the result values in case
   multiple are present. One of:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - `mean`
     - `median`
@@ -761,11 +820,14 @@ Where:
     - `min`
     - `max`
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 ##### Examples
 
 ###### Show matching entities in a Space with target format and output them as CSV
+
+Recommended approach using `--output-file` (ensures columns aren't truncated and
+handles file write errors):
 
 ```shell
  ado show entities space space-abc123-456def --include matching \
@@ -791,6 +853,12 @@ Or to write CSV to stdout for piping:
 ado show entities operation randomwalk-0.5.0-123abc -o json \
                                                     --property my-property-1 \
                                                     --property my-property-2
+```
+
+###### Save table output of entities to a file
+
+```shell
+ado show entities space space-abc123-456def --output-file entities-table.txt
 ```
 
 #### ado show requests
@@ -829,7 +897,8 @@ ado show requests operation [RESOURCE_ID] [--use-latest] \
 ado show requests operation randomwalk-0.5.0-123abc -o csv > requests.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show requests operation randomwalk-0.5.0-123abc -o csv --output-file requests.csv
@@ -844,6 +913,12 @@ ado show requests operation randomwalk-0.5.0-123abc --hide type --hide "experime
 ```
 
 <!-- markdownlint-enable line-length -->
+
+###### Save table output of requests to a file
+
+```shell
+ado show requests operation randomwalk-0.5.0-123abc --output-file requests-table.txt
+```
 
 #### ado show results
 
@@ -881,7 +956,8 @@ ado show results operation [RESOURCE_ID] [--use-latest] \
 ado show results operation randomwalk-0.5.0-123abc -o csv > results.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.csv
@@ -891,6 +967,12 @@ ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.
 
 ```shell
 ado show results operation randomwalk-0.5.0-123abc --hide uid
+```
+
+###### Save table output of results to a file
+
+```shell
+ado show results operation randomwalk-0.5.0-123abc --output-file results-table.txt
 ```
 
 #### ado show related
@@ -904,15 +986,19 @@ The complete syntax of the `ado show related` command is as follows:
 ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
 ```
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
+    - _actuatorconfiguration_ (_ac_)
+    - _datacontainer_ (_dcr_)
+    - _discoveryspace_ (_space_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
-    - _discoveryspace_ (_space_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see related
   resources for.
@@ -950,7 +1036,8 @@ ado show summary RESOURCE_TYPE [RESOURCE_IDS...] [--use-latest] \
 
 Where:
 
-- `RESOURCE_TYPE` is always _discoveryspace_ (_space_)
+- `RESOURCE_TYPE` is always discoveryspace (space). See
+  [Resource Type Shorthands](#resource-type-shorthands) for the shorthand alias.
 - `RESOURCE_IDS` are one or more space-separated space identifiers.
 - `--use-latest` will add the identifier of the latest (i.e. most recent) space
   from the current context to the RESOURCE_IDS.
@@ -965,24 +1052,25 @@ Where:
   specified multiple times (even in conjunction with `-q` to further filter
   results).
 - `--with-property | -p` displays values for a subset of the constitutive
-  properties. Cannot be used when the output format is `md`.
+  properties. Cannot be used when the output format is `md-report`.
 - `--output` (or `-o`) allows choosing the output format in which the
   information should be displayed. Can be one of either:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
-    - `md` - for Markdown text (written to stdout or file).
-    - `table` (**default**) - for Markdown tables (written to stdout or file).
-    - `csv` - for CSV format (written to stdout or file).
+    - `table` (**default**) - for a formatted table output.
+    - `md-table` - for a table in Markdown format.
+    - `md-report` - for a report in Markdown format.
+    - `csv` - for CSV format.
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--output-file` specifies a file path to write the output to. If not provided,
   output is written to stdout.
 
 ##### Examples
 
-###### Get the summary of a space as a Markdown table
+###### Get the summary of a space as a rich table
 
 ```shell
 ado show summary space space-abc123-456def
@@ -990,7 +1078,7 @@ ado show summary space space-abc123-456def
 
 <!-- markdownlint-disable line-length -->
 
-###### Get the summary of a space as a Markdown table and include the constitutive property MY_PROPERTY
+###### Get the summary of a space as a rich table and include the constitutive property MY_PROPERTY
 
 <!-- markdownlint-enable line-length -->
 
@@ -998,22 +1086,22 @@ ado show summary space space-abc123-456def
 ado show summary space space-abc123-456def -p MY_PROPERTY
 ```
 
-###### Get the summary of multiple spaces as a Markdown table via identifiers
+###### Get the summary of multiple spaces as a rich table via identifiers
 
 ```shell
 ado show summary space space-abc123-456def space-ghi789-123jkl
 ```
 
-###### Get the summary of multiple spaces as a Markdown table via key-value labels
+###### Get the summary of multiple spaces as a rich table via key-value labels
 
 ```shell
 ado show summary space -l issue=123
 ```
 
-###### Get the summary of a space as a Markdown text
+###### Get the summary of a space as a Markdown report
 
 ```shell
-ado show summary space space-abc123-456def -o md
+ado show summary space space-abc123-456def -o md-report
 ```
 
 ###### Get the summary of a multiple spaces as a CSV file via key-value labels
@@ -1022,10 +1110,23 @@ ado show summary space space-abc123-456def -o md
 ado show summary space -l issue=123 -o csv > summary.csv
 ```
 
-Or to write to a file directly:
+Or to write to a file directly (recommended - ensures columns aren't truncated
+and handles file write errors):
 
 ```shell
 ado show summary space -l issue=123 -o csv --output-file summary.csv
+```
+
+###### Save table summary output to a file
+
+```shell
+ado show summary space my-space-id --output-file summary-table.txt
+```
+
+###### Save markdown summary output to a file
+
+```shell
+ado show summary space my-space-id -o md --output-file summary.md
 ```
 
 ###### Get the summary of spaces that include granite-7b-base in the property domain
@@ -1051,7 +1152,7 @@ The complete syntax of the `ado template` command is as follows:
 <!-- markdownlint-disable line-length -->
 
 ```shell
-ado template RESOURCE_TYPE [--output | -o <PATH>] \
+ado template RESOURCE_TYPE [--output-file <PATH>] \
                            [--include-schema] \
                            [--operator-name <NAME>] \
                            [--operator-type <TYPE>] \
@@ -1065,21 +1166,23 @@ ado template RESOURCE_TYPE [--output | -o <PATH>] \
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - _actuator_
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
-    - _operation_ (_op_)
     - _discoveryspace_ (_space_)
+    - _operation_ (_op_)
+    - _samplestore_ (_store_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
-- `--output` or `-o` can be used to point to a location where to save the
-  template. By default, the template will be saved in the current directory with
-  an autogenerated name.
+- `--output-file` can be used to specify a file path where the template will be
+  saved. If not specified, the template will be written to stdout.
 - `--include-schema`, if set, will also produce the JSON Schema of the resource
   the template was generated for.
 - `--operator-name` (**exclusive for operations**) allows generating an
@@ -1088,7 +1191,7 @@ Where:
 - `--operator-type` (**exclusive for operations**) is the type of operator to
   generate a template for. Must be one of the supported operator types:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - `characterize`
     - `search`
@@ -1098,7 +1201,7 @@ Where:
     - `fuse`
     - `learn`
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--actuator-configuration` (**exclusive for actuatorconfigurations**) is the
   identifier of the actuator to output. If unset, a generic actuator
@@ -1170,17 +1273,19 @@ ado upgrade RESOURCE_TYPE [--apply-legacy-migrator <VALIDATOR_ID>] \
 
 Where:
 
-- `RESOURCE_TYPE` is one of the supported resource types:
+- `RESOURCE_TYPE` is one of the supported resource types. See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+  Currently supported:
 
-<!-- prettier-ignore-start -->
+    <!-- prettier-ignore-start -->
 
     - _actuatorconfiguration_ (_ac_)
     - _datacontainer_ (_dcr_)
+    - _discoveryspace_ (_space_)
     - _operation_ (_op_)
     - _samplestore_ (_store_)
-    - _discoveryspace_ (_space_)
 
-<!-- prettier-ignore-end -->
+    <!-- prettier-ignore-end -->
 
 - `--apply-legacy-migrator` applies a specific legacy migrator by identifier
   during the upgrade process. This option can be specified multiple times to

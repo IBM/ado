@@ -15,6 +15,7 @@ from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     DiscoveryOperationResourceConfiguration,
     FunctionOperationInfo,
+    OperatorModuleConf,
 )
 from orchestrator.core.operation.operation import OperationException, OperationOutput
 from orchestrator.metastore.base import ResourceDoesNotExistError
@@ -25,11 +26,12 @@ from orchestrator.modules.operators._cleanup import (
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
 )
-from orchestrator.modules.operators._explore_orchestration import (
-    orchestrate_explore_operation,
-)
 
-# Want this function to be accessed via this module not the private module
+# These functions are re-exported via this module — keep the imports even if
+# not referenced locally.
+from orchestrator.modules.operators._explore_orchestration import (
+    orchestrate_explore_operation,  # noqa: F401
+)
 from orchestrator.modules.operators._general_orchestration import (
     orchestrate_general_operation,  # noqa: F401
 )
@@ -54,6 +56,26 @@ def graceful_orchestrate_shutdown() -> None:
         moduleLog.info("Waiting for logs to flush ...")
         time.sleep(10)
         moduleLog.info("Graceful shutdown complete")
+
+
+def _check_if_using_unsupported_operator_module_conf(
+    operation_resource_configuration: DiscoveryOperationResourceConfiguration,
+) -> None:
+    if isinstance(
+        operation_resource_configuration.operation.module, OperatorModuleConf
+    ):
+        moduleLog.warning(
+            "The supplied operation configuration uses an unsupported legacy format for the"
+            "operation.module field: Use operatorName/operationType instead "
+            "of moduleName/moduleClass. See https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace"
+            "for an example. "
+        )
+        raise ValueError(
+            "The supplied operation configuration uses an unsupported legacy format for the"
+            "operation.module field: Use operatorName/operationType instead "
+            "of moduleName/moduleClass. See https://ibm.github.io/ado/examples/random-walk/#exploring-the-discoveryspace"
+            "for an example. "
+        )
 
 
 def orchestrate(
@@ -151,32 +173,18 @@ def orchestrate(
         operation_parameters = operation_parameters.model_dump()
 
     try:
-        if isinstance(
-            operation_resource_configuration.operation.module,
-            orchestrator.core.operation.config.OperatorModuleConf,
-        ):
-            if (
-                operation_resource_configuration.operation.module.operationType
-                == orchestrator.core.operation.config.DiscoveryOperationEnum.SEARCH
-            ):
-                output = orchestrate_explore_operation(
-                    operator_module=operation_resource_configuration.operation.module,
-                    discovery_space=discovery_space,
-                    parameters=operation_parameters,
-                    operation_info=operation_info,
-                )
-            else:
-                raise ValueError(
-                    "Implementing operations as classes is only supported for explore operations"
-                )
-        else:
-            output = (
-                operation_resource_configuration.operation.module.operationFunction()(
-                    discovery_space,
-                    operationInfo=operation_info,
-                    **operation_parameters,
-                )
-            )  # type: OperationOutput
+        _check_if_using_unsupported_operator_module_conf(
+            operation_resource_configuration
+        )
+
+        operator_fn = (
+            operation_resource_configuration.operation.module.operationFunction()
+        )
+        output: OperationOutput = operator_fn(
+            discovery_space,
+            operationInfo=operation_info,
+            **operation_parameters,
+        )
     except KeyboardInterrupt:
         moduleLog.warning("Caught keyboard interrupt - initiating graceful shutdown")
         raise

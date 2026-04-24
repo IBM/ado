@@ -105,11 +105,17 @@ You can inspect the full extent of an Experiment's inputs with
 
 ## Sampling and Measurement
 
-Data is added to a Discovery Space by running an **operation** on it, for
+Data is added to a Discovery Space by running an **explore operation** on it, for
 example a Random Walk or a Bayesian optimisation. The operation selects
 Entities from the Entity Space, applies the Experiments in the Measurement
 Space to them and stores the results in the Sample Store. Operations are
 described in the [resources documentation](../resources/operation.md).
+
+Explore operations support **memoization**: if an Entity has already been
+measured by an Experiment (even by a different operation on a different Discovery
+Space using the same Sample Store), the existing result is reused rather than
+re-running the measurement. See
+[Shared Sample Stores: Memoization](data-sharing.md#memoization) for details.
 
 An Entity and its measurements only become **associated with a Discovery Space**
 when an operation on that space has sampled them. Even if the underlying Sample

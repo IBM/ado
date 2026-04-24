@@ -47,6 +47,9 @@ Repository = "https://github.com/IBM/ado"
 ado = "orchestrator.cli.core.cli:app"
 run_experiment = "orchestrator.utilities.run_experiment:main"
 
+[project.entry-points."ado.operators"]
+randomwalk = "orchestrator.modules.operators.randomwalk"
+
 [dependency-groups]
 dev = [
   "black>=25.1.0",
@@ -58,6 +61,7 @@ dev = [
   "pytest>=8.3.5",
   "pytest-asyncio>=1.0.0",
   "pytest-cov>=7.0.0",
+  "pytest-env>=1.1.0",
   "pytest-recording>=0.13.4",
   "pytest-timeout>=2.4.0",
   "pytest-xdist>=3.6.1",
@@ -99,6 +103,7 @@ test = [
   "pfas-custom-functions",
   "profile-space",
   "robotic-lab",
+  "trim-custom-experiments",
 ]
 
 [build-system]
@@ -110,6 +115,10 @@ source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
 packages = ["orchestrator"]
+
+# Read by Ray on first `import ray` (pytest-env runs when pytest starts, before conftest).
+[tool.pytest_env]
+RAY_ENABLE_UV_RUN_RUNTIME_ENV = "0"
 
 [tool.uv]
 default-groups = ["dev", "docs"]
@@ -126,18 +135,19 @@ required-environments = [
 # added as path-based sources.
 [tool.uv.workspace]
 members = [
-  "plugins/custom_experiments/autoconf",
-  "plugins/operators/ray_tune",
-  # "plugins/actuators/sfttrainer",
-  "plugins/actuators/vllm_performance",
-  "plugins/operators/anomalous_series",
   "examples/density_example",
   "examples/optimization_test_functions/custom_experiments",
   "examples/pfas-generative-models/custom_actuator_function",
-  "plugins/operators/profile_space",
+  "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
-  "plugins/operators/trim",
-  "plugins/operators/no-priors-characterization"
+  "plugins/actuators/vllm_performance",
+  "plugins/custom_experiments/autoconf",
+  "plugins/operators/anomalous_series",
+  "plugins/operators/no-priors-characterization",
+  "plugins/operators/profile_space",
+  "plugins/operators/ray_tune",
+  # "plugins/actuators/sfttrainer",
+  "plugins/operators/trim"
 ]
 
 [tool.uv.sources]
@@ -153,6 +163,7 @@ optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
 profile-space = { workspace = true, editable = true }
 robotic-lab = { workspace = true, editable = true }
+trim-custom-experiments = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }
 
 [tool.uv-dynamic-versioning]
@@ -160,6 +171,23 @@ vcs = "git"
 style = "pep440"
 pattern = "default-unprefixed"
 fallback-version = "0.0.0"
-tagged-metadata = true
-dirty = true
-bump = true
+# Versioning logic (Dunamai / PEP 440):
+# - Exact tag (distance == 0) → use the base version; add +dirty only if the repo is dirty
+# - Ahead of tag (distance > 0) → bump the base version, add .devN, plus commit/timestamp metadata
+# - `select | list` removes optional entries and materializes metadata as a real list
+#   (required by serialize_pep440)
+format-jinja = """
+{%- set metadata = [
+    distance != 0 and "g" ~ commit,
+    distance != 0 and "d" ~ timestamp,
+    dirty and "dirty"
+] -%}
+
+{{ serialize_pep440(
+    distance == 0 and base or bump_version(base),
+    stage,
+    revision,
+    dev=distance or None,
+    metadata=metadata | select | list
+) }}
+"""

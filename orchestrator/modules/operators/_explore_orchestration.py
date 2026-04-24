@@ -12,11 +12,10 @@ from orchestrator.core import OperationResource
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import (
     FunctionOperationInfo,
-    OperatorModuleConf,
+    OperatorMetadata,
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
-from orchestrator.modules.module import load_module_class_or_function
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,
     cleanup_callback_functions,
@@ -49,7 +48,7 @@ if typing.TYPE_CHECKING:
 def graceful_explore_operation_shutdown(
     identifier: str,
     operator: "OperatorActor",
-    state: "DiscoverySpaceManagerActor",
+    discovery_space_manager: "DiscoverySpaceManagerActor",
     actuators: list["ActuatorActor"],
     namespace: str,
     timeout: int = 60,
@@ -71,7 +70,7 @@ def graceful_explore_operation_shutdown(
     ) as status:
 
         moduleLog.debug("Shutting down state")
-        ray.get(state.shutdown.remote())
+        ray.get(discovery_space_manager.shutdown.remote())
 
         status.update(f"Shutdown ({identifier}) - cleaning up custom actors")
 
@@ -90,7 +89,7 @@ def graceful_explore_operation_shutdown(
 
         terminate_actor_waitables = [
             operator.__ray_terminate__.remote(),
-            state.__ray_terminate__.remote(),
+            discovery_space_manager.__ray_terminate__.remote(),
         ]
         # __ray_terminate allows atexit handlers of actors to run
         # see  https://docs.ray.io/en/latest/ray-core/api/doc/ray.kill.html
@@ -100,7 +99,7 @@ def graceful_explore_operation_shutdown(
         n_actors = len(terminate_actor_waitables)
         moduleLog.debug(f"waiting for graceful shutdown of {n_actors} actors")
 
-        actors = [operator, state]
+        actors = [operator, discovery_space_manager]
         actors.extend(actuators)
 
         terminate_waitable_to_actor_lookup = dict(
@@ -129,7 +128,7 @@ def graceful_explore_operation_shutdown(
 
 
 def run_explore_operation_core_closure(
-    operator: "OperatorActor", state: "DiscoverySpaceManagerActor"
+    operator: "OperatorActor", discovery_space_manager: "DiscoverySpaceManagerActor"
 ) -> typing.Callable[[], OperationOutput | None]:
 
     def _run_explore_operation_core() -> OperationOutput:
@@ -142,10 +141,10 @@ def run_explore_operation_core_closure(
             name="RichConsoleQueue", lifetime="detached", get_if_exists=True
         ).remote()
 
-        discovery_space = ray.get(state.discoverySpace.remote())
+        discovery_space = ray.get(discovery_space_manager.discoverySpace.remote())
         operation_id = ray.get(operator.operationIdentifier.remote())
 
-        state.startMonitoring.remote()
+        discovery_space_manager.startMonitoring.remote()
         future = operator.run.remote()
 
         # Start the rich live updates
@@ -163,12 +162,12 @@ def run_explore_operation_core_closure(
 
 
 def orchestrate_explore_operation(
-    operator_module: OperatorModuleConf,
+    operator_metadata: OperatorMetadata,
     discovery_space: DiscoverySpace,
     parameters: dict,
     operation_info: FunctionOperationInfo,
 ) -> OperationOutput:
-    """Orchestrates an explore operation
+    """Orchestrates an explore operation.
 
     This function sets up and executes an explore (search) operation. It handles:
     - Initializing the resource cleaner
@@ -182,7 +181,8 @@ def orchestrate_explore_operation(
     execute the operation, handle exceptions, and store the operation results.
 
     Params:
-        operator_module: Configuration for the operator module (class-based operation)
+        operator_metadata: Registered metadata for the operator, carrying the class,
+            configuration model, name, and type.
         discovery_space: The discovery space to operate on
         parameters: Dictionary of parameters for the operation
         operation_info: Information about the operation including metadata, actuator
@@ -192,8 +192,8 @@ def orchestrate_explore_operation(
         OperationOutput containing the results and status of the operation
 
     Raises:
-        ValueError: If the MeasurementSpace is not consistent with EntitySpace or if
-            actuator configurations are invalid
+        ValueError: If the MeasurementSpace is not consistent with EntitySpace,
+            actuator configurations are invalid, or no operator class is registered
         pydantic.ValidationError: If the operation parameters are not valid
         OperationException: If there is an error during the operation
         ray.exceptions.ActorDiedError: If there was an error initializing the actuators
@@ -206,8 +206,11 @@ def orchestrate_explore_operation(
 
     if not operation_info.ray_namespace:
         operation_info.ray_namespace = (
-            f"{operator_module.moduleClass}-namespace-{str(uuid.uuid4())[:8]}"
+            f"{operator_metadata.name}-namespace-{str(uuid.uuid4())[:8]}"
         )
+
+    # Validate parameters
+    operator_metadata.configuration_model.model_validate(parameters)
 
     # Check the space
     if not discovery_space.measurementSpace.isConsistent:
@@ -251,7 +254,7 @@ def orchestrate_explore_operation(
         queue=measurement_queue,
         space=discovery_space,
         namespace=operation_info.ray_namespace,
-    )  # type: "InternalStateActor"
+    )  # type: DiscoverySpaceManagerActor
     moduleLog.debug(
         f"Waiting for discovery space manager to be ready: {discovery_space_manager}"
     )
@@ -262,20 +265,14 @@ def orchestrate_explore_operation(
     # OPERATOR
     #
 
-    # Validate the parameters for the operation
-    operator_class = load_module_class_or_function(
-        operator_module
-    )  # type: typing.Type["StateSubscribingDiscoveryOperation"]
-    operator_class.validateOperationParameters(parameters)
-
     # Create operator actor
     operator = orchestrator.modules.operators.setup.setup_operator(
-        operator_module=operator_module,
+        operator_metadata=operator_metadata,
         parameters=parameters,
         discovery_space=discovery_space,
         actuators=actuators,
         namespace=operation_info.ray_namespace,
-        state=discovery_space_manager,
+        discovery_space_manager=discovery_space_manager,
     )  # type: "OperatorActor"
     identifier = ray.get(operator.operationIdentifier.remote())
 
@@ -292,7 +289,7 @@ def orchestrate_explore_operation(
         lambda: graceful_explore_operation_shutdown(
             identifier=identifier,
             operator=operator,
-            state=discovery_space_manager,
+            discovery_space_manager=discovery_space_manager,
             actuators=list(actuators.values()),
             namespace=operation_info.ray_namespace,
         )
@@ -311,17 +308,17 @@ def orchestrate_explore_operation(
 
         def finalize_callback(operation_resource: OperationResource) -> None:
             # Even on exception we can still get entities submitted
-            logging.debug("Finalize callback - Getting entities submitted")
+            moduleLog.debug("Finalize callback - Getting entities submitted")
             try:
                 operation_resource.metadata["entities_submitted"] = ray.get(
                     operator_actor.numberEntitiesSampled.remote(), timeout=10
                 )
-                logging.debug("Finalize callback - Getting experiments requested")
+                moduleLog.debug("Finalize callback - Getting experiments requested")
                 operation_resource.metadata["experiments_requested"] = ray.get(
                     operator_actor.numberMeasurementsRequested.remote()
                 )
             except GetTimeoutError:
-                logging.warning(
+                moduleLog.warning(
                     "Unable to retrieve entity/experiment submission data from operator"
                 )
 
@@ -331,7 +328,7 @@ def orchestrate_explore_operation(
         operation_output = _run_operation_harness(
             run_closure=explore_run_closure,
             discovery_space=discovery_space,
-            operator_module=operator_module,
+            operator_metadata=operator_metadata,
             operation_parameters=parameters,
             operation_info=operation_info,
             operation_identifier=identifier,
@@ -344,7 +341,7 @@ def orchestrate_explore_operation(
             graceful_explore_operation_shutdown(
                 identifier=identifier,
                 operator=operator,
-                state=discovery_space_manager,
+                discovery_space_manager=discovery_space_manager,
                 actuators=list(actuators.values()),
                 namespace=operation_info.ray_namespace,
             )

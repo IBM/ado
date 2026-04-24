@@ -1,4 +1,4 @@
-# Efficiently Exploring Parameter Spaces with TRIM
+# Quickly building a predictive model for a configuration space
 
 <!-- markdownlint-disable no-blanks-blockquote -->
 
@@ -52,10 +52,10 @@
 ## What is TRIM?
 
 **TRIM (Transfer Refined Iterative Modeling)** is a characterization operator
-designed to efficiently build a surrogate model of a system. It's perfect for
-situations where measuring points in your parameter space is costly.
-
-It works in two main phases:
+designed to efficiently build a surrogate model of a system. This surrogate
+model is especially useful when evaluating points in the parameter space is
+costly, as it enables predictions at unmeasured points instead of relying on
+direct measurements. It works in two main phases:
 
 1. **No-Priors Characterization**: If there isn't enough existing data, TRIM
    starts by sampling a small, representative set of points to get a baseline

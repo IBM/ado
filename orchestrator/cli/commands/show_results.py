@@ -93,38 +93,18 @@ def show_results_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-results
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the timeseries of results for an operation
-
     ado show results operation <operation-id>
 
-
-
     # Show the timeseries of results for the latest operation
-
     ado show results operation --use-latest
 
-
-
     # Show the timeseries of results for an operation and hide the result uid
-
     ado show results operation <operation-id> --hide uid
     """
     ado_configuration: AdoConfiguration = ctx.obj
-
-    # Validate that output_file is only used with file-based formats
-    if output_file and output_format == AdoShowResultsSupportedOutputFormats.TABLE:
-        console_print(
-            f"{ERROR} --output-file cannot be used with --output console. "
-            f"Use --output csv or --output json instead.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
 
     if not resource_id and not use_latest:
         console_print(

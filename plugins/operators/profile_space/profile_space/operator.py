@@ -3,6 +3,7 @@
 from importlib.metadata import version
 
 import pandas as pd
+import pydantic
 
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import FunctionOperationInfo
@@ -10,14 +11,18 @@ from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.operators.collections import characterize_operation
 
 
+class ProfileParameters(pydantic.BaseModel):
+    """Parameters for the profile operator (no configurable options)."""
+
+
 # See https://ibm.github.io/ado/operators/creating-operators/#ado-operator-functions
 # for documentation on the decorator and its parameters
 @characterize_operation(
     name="profile",
-    configuration_model=None,  # You can use this field to define the option of your operator if any - see https://ibm.github.io/ado/operators/creating-operators/#describing-your-operation-input-parameters
-    configuration_model_default=None,  # Use this field to provide default/example values for your operator
-    description="Returns a ydata_profiling ProfileReport for the space",
     version=version("ado-core"),
+    configuration_model=ProfileParameters,
+    configuration_model_default=ProfileParameters(),
+    description="Returns a ydata_profiling ProfileReport for the space",
 )
 # operator function can have any name but have similar parameters - see https://ibm.github.io/ado/operators/creating-operators/#operator-function-parameters
 def profile(

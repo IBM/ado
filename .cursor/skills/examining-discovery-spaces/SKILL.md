@@ -29,6 +29,8 @@ directory if needed)
   [query-ado-data](../query-ado-data/SKILL.md).
 - For examining operations run on a space, see
   [examining-ado-operations](../examining-ado-operations/SKILL.md).
+- For a project/context wide view (all spaces and operations), see
+  [examining-ado-project](../examining-ado-project/SKILL.md).
 
 ## Context
 
@@ -71,7 +73,7 @@ Why is it useful to work with matching data?
 
 To apply this skill you need either:
 
-(a) a space id; (b) explicit instruction to examine the latest space
+(a) a space id; (b) explicit instruction to examine “the latest” space
 
 In the case of (b) get the actual identifier:
 
@@ -83,20 +85,20 @@ uv run ado show related space --use-latest
 
 ### Avoiding refetching YAML
 
-`ado get-o yaml` flag outputs YAML to console. It's often useful to redirect
-this to a temporary file and work with that to avoid multiple `ado get` calls
-for same YAML.
+`ado get … -o yaml` writes YAML to stdout by default. Prefer `--output-file
+PATH` (with the same `-o yaml`) to save it once and reuse the file instead of
+calling `ado get` repeatedly for the same resource.
 
 ### Large output files
 
-The output produced by '-o/--output' can be very large e.g. from "show entities".
-Use the `--output-file` flag with the name of the file where to save the output
-and, when inspecting these files:
+The output produced for a given `-o`/`--output` **format** can be very large
+(for example from `show entities`). Use `--output-file` with the path where the
+output should be saved, and when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
 - Avoid head -n > 1 unless you have a specific need e.g. checking if file is
-  corrputed
+  corrupted
 - Avoid tail unless you have a specific need
 - Prefer python e.g. pandas.read_csv for any detailed analysis on the file.
 
@@ -108,7 +110,7 @@ Then steps 4,5 and 6 can be run in parallel.
 ### Step 1: Get Space YAML
 
 ```bash
-uv run ado get space SPACE_ID -o yaml
+uv run ado get space SPACE_ID -o yaml --output-file SPACE_ID.yaml
 ```
 
 Extract and summarise:

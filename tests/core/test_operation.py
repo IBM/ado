@@ -144,7 +144,9 @@ def test_operation_config_file_valid(valid_operation_config_file: str) -> None:
         moduleClass = load_module_class_or_function(
             module
         )  # type: "orchestrator.modules.operators.base.DiscoveryOperationBase"
-        moduleClass.validateOperationParameters(parameters=op_cfg.parameters)
+        meta = moduleClass.operator_metadata()
+        if meta.configuration_model is not None:
+            meta.configuration_model.model_validate(op_cfg.parameters)
 
 
 def test_set_manual_operation_identifier(

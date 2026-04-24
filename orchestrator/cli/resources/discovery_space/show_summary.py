@@ -74,13 +74,15 @@ def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters) ->
             )
             raise typer.Exit(1)
 
-        result = ""
-        if parameters.output_format == AdoShowSummarySupportedOutputFormats.MARKDOWN:
+        if (
+            parameters.output_format
+            == AdoShowSummarySupportedOutputFormats.MARKDOWN_REPORT
+        ):
 
             if parameters.include_properties:
                 console_print(
                     f"{WARN}It's not possible to restrict the constitutive properties shown "
-                    f"when using {AdoShowSummarySupportedOutputFormats.MARKDOWN.value} output.",
+                    f"when using {AdoShowSummarySupportedOutputFormats.MARKDOWN_REPORT.value} output.",
                     stderr=True,
                 )
 
@@ -98,9 +100,31 @@ def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters) ->
                 ]
             ).fillna("")
 
+            if parameters.output_format == AdoShowSummarySupportedOutputFormats.TABLE:
+
+                import rich.box
+
+                from orchestrator.utilities.rich import (
+                    dataframe_to_rich_table,
+                    render_to_string,
+                )
+
+                # When writing to file, avoid truncating columns by default
+                table = dataframe_to_rich_table(
+                    df,
+                    show_edge=True,
+                    show_index=True,
+                    box=rich.box.SQUARE,
+                    do_not_truncate_columns=parameters.output_file is not None,
+                )
+                result = render_to_string(table, auto_width=True)
+
             if parameters.output_format == AdoShowSummarySupportedOutputFormats.CSV:
                 result = df.to_csv()
-            elif parameters.output_format == AdoShowSummarySupportedOutputFormats.TABLE:
+            elif (
+                parameters.output_format
+                == AdoShowSummarySupportedOutputFormats.MARKDOWN_TABLE
+            ):
                 result = df.to_markdown()
 
         if parameters.output_file:
@@ -111,7 +135,10 @@ def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters) ->
             )
             return
 
-        if parameters.render_output:
+        if parameters.render_output and parameters.output_format in {
+            AdoShowSummarySupportedOutputFormats.MARKDOWN_REPORT,
+            AdoShowSummarySupportedOutputFormats.MARKDOWN_TABLE,
+        }:
             from rich.markdown import Markdown
 
             result = Markdown(result)

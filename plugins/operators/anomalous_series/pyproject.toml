@@ -8,3 +8,4 @@ anomalous_series = "anomalous_series.operator"
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"

@@ -29,6 +29,17 @@ uv run ado [COMMAND] [SUBCOMMAND1] [SUBCOMMAND2] --help
 - Required arguments are included
 - Optional flags match actual CLI behavior
 
+## Output format vs output file
+
+For `ado get` and `ado show` subcommands:
+
+- `-o` / `--output` selects the **output format** (for example `yaml`, `table`,
+  `csv`, or `json`; allowed values depend on the command — use `--help`).
+- `--output-file PATH` writes that formatted output to **PATH** instead of
+  stdout. Prefer this over shell redirection for large output so encoding and
+  table rendering stay consistent.
+
+
 ## Commands That do not exist
 
 These plausible-sounding commands do not exist in ado. Do not write them:
@@ -81,8 +92,11 @@ Lists resources of a given type and gets resource YAML
 #List all spaces
 uv run ado get spaces
 
-#Get the YAML for a space
+# Get the YAML for a space (console)
 uv run ado get space SPACE_ID -o yaml
+
+# Or write the same YAML to a file
+uv run ado get space SPACE_ID -o yaml --output-file space.yaml
 ```
 
 ### ado create
@@ -281,8 +295,8 @@ View the entities (inputs) and their measurements (outputs):
 # List all operations
 uv run ado get operations
 
-# Get details on a specific operation
-uv run ado get operation -o yaml op-123
+# Get details on a specific operation (YAML to a file)
+uv run ado get operation op-123 -o yaml --output-file op-123.yaml
 
 # Get the entities and measurements
 uv run ado show entities operation op-123

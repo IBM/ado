@@ -132,7 +132,9 @@ def show_summary_for_resources(
         typer.Option(
             "--output",
             "-o",
-            help="The format in which to output the summary.",
+            help="The format in which to output the summary. "
+            "Options: table (rich console table), md-table (markdown table), "
+            "md-report (markdown prose report), csv (CSV format).",
         ),
     ] = AdoShowSummarySupportedOutputFormats.TABLE.value,
     output_file: Annotated[
@@ -151,7 +153,7 @@ def show_summary_for_resources(
         bool,
         typer.Option(
             "--render",
-            help="Render the output in the console. Only supported for markdown and table output.",
+            help="Render the output in the console. Only supported for markdown table and markdown report output.",
         ),
     ] = False,
 ) -> None:
@@ -161,47 +163,21 @@ def show_summary_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-summary
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
-    # Show a high-level summary of the discovery space as a Markdown table
-
+    # Show a high-level summary of the discovery space as a rich table
     ado show summary space <space-id>
 
-
-
-    # Show a high-level summary of the latest discovery space as a Markdown table
-
+    # Show a high-level summary of the latest discovery space as a rich table
     ado show summary space --use-latest
 
-
-
     # Show a high-level summary of discovery spaces matching a label
-
     ado show summary space -l key=value
 
-
-
-    # Show a detailed summary of the discovery space as a Markdown document
-
-    ado show summary space <space-id> -o md
+    # Show a detailed summary of the discovery space as a Markdown report
+    ado show summary space <space-id> -o md-report
     """
     ado_configuration: AdoConfiguration = ctx.obj
-
-    # Validate that output_file is only used with file-based formats
-    if output_file and output_format in (
-        AdoShowSummarySupportedOutputFormats.MARKDOWN,
-        AdoShowSummarySupportedOutputFormats.TABLE,
-    ):
-        console_print(
-            f"{ERROR} --output-file cannot be used with --output {output_format.value}. "
-            f"Use --output csv instead.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
 
     resource_kind = CoreResourceKinds(resource_type.value)
 

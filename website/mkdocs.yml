@@ -144,19 +144,28 @@ nav:
       - Developing ado: getting-started/developing.md
       - Roadmap: getting-started/roadmap.md
       - Contributing: getting-started/contributing.md
+  - How-To Guides:
+      - how-to/index.md
+      - Researchers & Benchmarkers: how-to/researchers.md
+      - Plugin Developers: how-to/plugin-developers.md
+      - Core Developers: how-to/core-developers.md
   - Examples:
-      - examples/examples.md
-      - Taking a random walk: examples/random-walk.md
-      - Search a space with an optimizer: examples/best-configuration-search.md
-      - Search based on a custom objective function: examples/search-custom-objective.md
-      - Identify the important dimensions of a space: examples/lhu.md
-      - Measure throughput of fine-tuning locally: examples/finetune-locally.md
-      - Measure throughput of fine-tuning on a remote RayCluster: examples/finetune-remotely.md
-      - Testing the throughput of an inference endpoint: examples/vllm-performance-endpoint.md
-      - Exploring vLLM deployment performance: examples/vllm-performance-full.md
-      - Benchmarking geospatial models with vLLM: examples/vllm-performance-geospatial.md
-      - Efficiently Exploring Parameter Spaces with TRIM: examples/trim.md
-      - Characterizing Spaces Without Prior Knowledge: examples/no-priors-characterization.md
+      - Overview: examples/examples.md
+      - Search and Optimization:
+          - Taking a random walk: examples/random-walk.md
+          - Search a space with an optimizer: examples/best-configuration-search.md
+          - Search based on a custom objective function: examples/search-custom-objective.md
+      - Space Characterization:
+          - Identify the important dimensions of a space: examples/lhu.md
+          - Quickly building a predictive model for a configuration space: examples/trim.md
+          - Characterizing Spaces Without Prior Knowledge: examples/no-priors-characterization.md
+      - Fine-Tuning Throughput:
+          - Measure throughput of fine-tuning locally: examples/finetune-locally.md
+          - Measure throughput of fine-tuning on a remote RayCluster: examples/finetune-remotely.md
+      - vLLM Performance:
+          - Testing the throughput of an inference endpoint: examples/vllm-performance-endpoint.md
+          - Exploring vLLM deployment performance: examples/vllm-performance-full.md
+          - Benchmarking geospatial models with vLLM: examples/vllm-performance-geospatial.md
   - Core Concepts:
       - core-concepts/concepts.md
       - Properties and Domains: core-concepts/properties-and-domains.md

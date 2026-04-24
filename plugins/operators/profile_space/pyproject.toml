@@ -8,3 +8,4 @@ profile_space = "profile_space.operator"
 
 [tool.setuptools_scm]
 root = "../../../"
+local_scheme = "node-and-timestamp"

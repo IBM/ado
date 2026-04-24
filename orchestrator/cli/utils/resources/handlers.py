@@ -8,6 +8,7 @@ import pydantic
 import rich.rule
 import typer
 import yaml
+from rich.console import RenderableType
 from rich.status import Status
 
 from orchestrator.cli.models.types import (
@@ -39,118 +40,222 @@ from orchestrator.utilities.rich import dataframe_to_rich_table
 logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
+    import pandas as pd
+
     from orchestrator.cli.models.parameters import (
         AdoGetCommandParameters,
         AdoUpgradeCommandParameters,
     )
-    from orchestrator.core import CoreResourceKinds
+    from orchestrator.core import ADOResource, CoreResourceKinds
     from orchestrator.metastore.project import ProjectContext
     from orchestrator.metastore.sqlstore import SQLStore
 
 
-def handle_ado_get_special_formats(
+def handle_ado_get(
     parameters: "AdoGetCommandParameters",
-    resource_type: "CoreResourceKinds",
+    resource_type: "CoreResourceKinds | None" = None,
+    dataframe: "pd.DataFrame | None" = None,
+    resources: "list[ADOResource] | ADOResource | None" = None,
 ) -> None:
+    """
+    Unified handler for all ado get commands.
 
-    if (
-        parameters.output_format == AdoGetSupportedOutputFormats.CONFIG
-        and not parameters.resource_id
-    ):
-        console_print(f"{ERROR}{ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE}", stderr=True)
+    Delegates to format-specific handlers that fetch data efficiently.
+
+    Args:
+        parameters: Command parameters including output format and filters
+        resource_type: Type of resource to fetch (for DB queries)
+        dataframe: Pre-built DataFrame (for custom data sources)
+        resources: Pre-fetched resources (for custom filtering)
+
+    Raises:
+        ValueError: If an identifier column (either "IDENTIFIER" or the value of
+            parameters.no_trunc if it's a list with a single element) is not found
+            in the provided dataframe when using NAME output format.
+    """
+    match parameters.output_format:
+        case AdoGetSupportedOutputFormats.NAME:
+            _handle_name_format(parameters, resource_type, dataframe, resources)
+        case AdoGetSupportedOutputFormats.TABLE:
+            _handle_table_format(parameters, resource_type, dataframe, resources)
+        case AdoGetSupportedOutputFormats.RAW:
+            _handle_raw_format(parameters, resource_type)
+        case (
+            AdoGetSupportedOutputFormats.YAML
+            | AdoGetSupportedOutputFormats.JSON
+            | AdoGetSupportedOutputFormats.CONFIG
+        ):
+            _handle_structured_formats(parameters, resource_type, resources)
+        case _:
+            raise NotImplementedError(
+                f"Output format {parameters.output_format} is not implemented"
+            )
+
+
+def _handle_name_format(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> None:
+    """
+    Handle NAME output format - output identifiers only (most efficient).
+
+    Raises:
+        ValueError: If an identifier column (either "IDENTIFIER" or the value of
+            parameters.no_trunc if it's a list with a single element) is not found
+            in the provided dataframe.
+    """
+
+    # If dataframe provided, extract identifier column
+    if dataframe is not None:
+        if dataframe.empty:
+            console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+            return
+
+        identifier_column = (
+            parameters.no_trunc[0]
+            if isinstance(parameters.no_trunc, list) and len(parameters.no_trunc) == 1
+            else "IDENTIFIER"
+        )
+        if identifier_column not in dataframe.columns:
+            raise ValueError(
+                f"Identifier column '{identifier_column}' not found in dataframe. "
+                f"Available columns: {', '.join(dataframe.columns)}"
+            )
+        output = "\n".join(
+            str(identifier) for identifier in dataframe[identifier_column]
+        )
+        _write_or_print_output(output, parameters.output_file)
+        return
+
+    # If resources provided, extract identifiers
+    if resources is not None:
+        if isinstance(resources, list):
+            output = "\n".join(resource.identifier for resource in resources)
+        else:
+            output = resources.identifier
+        _write_or_print_output(output, parameters.output_file)
+        return
+
+    # Otherwise use efficient DB query
+    if resource_type is None:
+        console_print(
+            f"{ERROR}resource_type must be provided when dataframe and resources are None",
+            stderr=True,
+        )
         raise typer.Exit(1)
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
     with Status(ADO_SPINNER_QUERYING_DB) as status:
-
-        if parameters.output_format == AdoGetSupportedOutputFormats.NAME:
-            # NAME format: output only resource identifiers
-            if parameters.resource_id:
-                # Single resource: verify it exists and output its identifier
-                if not sql_store.containsResourceWithIdentifier(
-                    identifier=parameters.resource_id, kind=resource_type
-                ):
-                    status.stop()
-                    raise ResourceDoesNotExistError(
-                        resource_id=parameters.resource_id, kind=resource_type
-                    )
+        if parameters.resource_id:
+            # Single resource: verify it exists and output its identifier
+            if not sql_store.containsResourceWithIdentifier(
+                identifier=parameters.resource_id, kind=resource_type
+            ):
                 status.stop()
-                console_print(parameters.resource_id)
-            else:
-                # Multiple resources: use efficient getResourceIdentifiersOfKind
-                identifiers_df = sql_store.getResourceIdentifiersOfKind(
-                    kind=resource_type.value,
-                    field_selectors=parameters.field_selectors,
-                    details=False,
+                raise ResourceDoesNotExistError(
+                    resource_id=parameters.resource_id, kind=resource_type
                 )
-                status.stop()
-                if identifiers_df.empty:
-                    console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-                    return
-                # Output one identifier per line
-                for identifier in identifiers_df["IDENTIFIER"]:
-                    console_print(identifier)
+            status.stop()
+            _write_or_print_output(parameters.resource_id, parameters.output_file)
+        else:
+            # Multiple resources: use efficient getResourceIdentifiersOfKind
+            identifiers_df = sql_store.getResourceIdentifiersOfKind(
+                kind=resource_type.value,
+                field_selectors=parameters.field_selectors,
+                details=False,
+            )
+            status.stop()
+            if identifiers_df.empty:
+                console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+                return
+            # Output one identifier per line
+            output = "\n".join(
+                str(identifier) for identifier in identifiers_df["IDENTIFIER"]
+            )
+            _write_or_print_output(output, parameters.output_file)
+
+
+def _handle_table_format(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    dataframe: "pd.DataFrame | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> None:
+    """Handle TABLE output format - render DataFrame as table."""
+    import pandas as pd
+    import rich.box
+
+    def _handle_df_output_for_table_format(df: "pd.DataFrame") -> None:
+        if df.empty:
+            console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
             return
 
-        if parameters.output_format == AdoGetSupportedOutputFormats.RAW:
-
-            if not parameters.resource_id:
-                status.stop()
-                console_print(
-                    f"{ERROR}Raw output mode is available only when specifying a resource_id",
-                    stderr=True,
-                )
-                raise typer.Exit(1)
-
-            resources = sql_store.getResourceRaw(parameters.resource_id)
-
-        else:
-            if parameters.resource_id:
-                resources = sql_store.getResource(
-                    identifier=parameters.resource_id, kind=resource_type
-                )
-                if not resources:
-                    status.stop()
-                    raise ResourceDoesNotExistError(
-                        resource_id=parameters.resource_id, kind=resource_type
-                    )
-            else:
-                resources = list(
-                    sql_store.getResourcesOfKind(
-                        kind=resource_type.value,
-                        field_selectors=parameters.field_selectors,
-                    ).values()
-                )
-
-        status.stop()
-        output_content = format_resource_for_ado_get_custom_format(
-            to_print=resources, parameters=parameters
-        )
-
+        # When writing to file, avoid truncating columns by default
         if parameters.output_file:
-            parameters.output_file.write_text(output_content)
-            console_print(
-                f"{SUCCESS}Output written to {parameters.output_file}", stderr=True
+            do_not_truncate = True
+        else:
+            do_not_truncate = (
+                ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
+            )
+
+        table = dataframe_to_rich_table(
+            df,
+            box=rich.box.SQUARE,
+            show_index=True,
+            show_edge=True,
+            do_not_truncate_columns=do_not_truncate,
+        )
+        _write_or_print_output(table, parameters.output_file)
+        return
+
+    # If dataframe provided, use it directly
+    if dataframe is not None:
+        return _handle_df_output_for_table_format(dataframe)
+
+    # If resources provided, convert to DataFrame
+    if resources is not None:
+        if isinstance(resources, list):
+            # Multiple resources: build DataFrame manually
+            if not resources:
+                console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
+                return None
+            # Build DataFrame from resources
+            output_df = pd.concat(
+                [
+                    format_default_ado_get_single_resource(
+                        resource=resource, show_details=parameters.show_details
+                    )
+                    for resource in resources
+                ],
+                ignore_index=True,
             )
         else:
-            console_print(output_content)
+            # Single resource
+            output_df = format_default_ado_get_single_resource(
+                resource=resources, show_details=parameters.show_details
+            )
 
+        return _handle_df_output_for_table_format(output_df)
 
-def handle_ado_get_default_format(
-    parameters: "AdoGetCommandParameters",
-    resource_type: "CoreResourceKinds",
-) -> None:
-
-    import rich.box
+    # Otherwise use DB query
+    if resource_type is None:
+        console_print(
+            f"{ERROR}resource_type must be provided when dataframe and resources are None",
+            stderr=True,
+        )
+        raise typer.Exit(1)
 
     sql_store = get_sql_store(
         project_context=parameters.ado_configuration.project_context
     )
     with Status(ADO_SPINNER_QUERYING_DB) as status:
         if not parameters.resource_id:
-            resources = sql_store.getResourceIdentifiersOfKind(
+            # Multiple resources
+            resources_df = sql_store.getResourceIdentifiersOfKind(
                 kind=resource_type.value,
                 field_selectors=parameters.field_selectors,
                 details=parameters.show_details,
@@ -158,54 +263,139 @@ def handle_ado_get_default_format(
 
             status.update(ADO_SPINNER_GETTING_OUTPUT_READY)
             output_df = format_default_ado_get_multiple_resources(
-                resources=resources,
+                resources=resources_df,
                 resource_kind=resource_type,
             )
 
-            status.stop()
-            if output_df.empty:
-                console_print(ADO_INFO_EMPTY_DATAFRAME, stderr=True)
-                return
+        else:
+            # Single resource
+            resource = sql_store.getResource(
+                identifier=parameters.resource_id, kind=resource_type
+            )
 
-            console_print(
-                dataframe_to_rich_table(
-                    output_df,
-                    box=rich.box.SQUARE,
-                    show_index=True,
-                    show_edge=True,
-                    do_not_truncate_columns=(
-                        ["IDENTIFIER"]
-                        if not parameters.no_trunc
-                        else parameters.no_trunc
-                    ),
+            if not resource:
+                status.stop()
+                raise ResourceDoesNotExistError(
+                    resource_id=parameters.resource_id, kind=resource_type
                 )
-            )
-            return
 
-        resource = sql_store.getResource(
-            identifier=parameters.resource_id, kind=resource_type
-        )
-        status.stop()
-
-        if not resource:
-            raise ResourceDoesNotExistError(
-                resource_id=parameters.resource_id, kind=resource_type
+            output_df = format_default_ado_get_single_resource(
+                resource=resource, show_details=parameters.show_details
             )
 
-        output_df = format_default_ado_get_single_resource(
-            resource=resource, show_details=parameters.show_details
-        )
+    return _handle_df_output_for_table_format(output_df)
 
+
+def _handle_raw_format(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+) -> None:
+    """Handle RAW output format - output raw dict representation."""
+    if not parameters.resource_id:
         console_print(
-            dataframe_to_rich_table(
-                output_df,
-                box=rich.box.SQUARE,
-                show_edge=True,
-                do_not_truncate_columns=(
-                    ["IDENTIFIER"] if not parameters.no_trunc else parameters.no_trunc
-                ),
-            )
+            f"{ERROR}Raw output mode is available only when specifying a resource_id",
+            stderr=True,
         )
+        raise typer.Exit(1)
+
+    if resource_type is None:
+        console_print(
+            f"{ERROR}resource_type must be provided for RAW format",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    sql_store = get_sql_store(
+        project_context=parameters.ado_configuration.project_context
+    )
+    with Status(ADO_SPINNER_QUERYING_DB):
+        resources = sql_store.getResourceRaw(parameters.resource_id)
+
+    output_content = format_resource_for_ado_get_custom_format(
+        to_print=resources, parameters=parameters
+    )
+
+    _write_or_print_output(output_content, parameters.output_file)
+
+
+def _handle_structured_formats(
+    parameters: "AdoGetCommandParameters",
+    resource_type: "CoreResourceKinds | None",
+    resources: "list[ADOResource] | ADOResource | None",
+) -> None:
+    """Handle YAML, JSON, CONFIG formats."""
+    # Validate CONFIG format requirements
+    if (
+        parameters.output_format == AdoGetSupportedOutputFormats.CONFIG
+        and not parameters.resource_id
+        and resources is None
+    ):
+        console_print(f"{ERROR}{ADO_GET_CONFIG_ONLY_WHEN_SINGLE_RESOURCE}", stderr=True)
+        raise typer.Exit(1)
+
+    # If resources provided, use them
+    if resources is not None:
+        output_content = format_resource_for_ado_get_custom_format(
+            to_print=resources, parameters=parameters
+        )
+        _write_or_print_output(output_content, parameters.output_file)
+        return
+
+    # Otherwise fetch from DB
+    if resource_type is None:
+        console_print(
+            f"{ERROR}resource_type must be provided when resources are None",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    sql_store = get_sql_store(
+        project_context=parameters.ado_configuration.project_context
+    )
+    with Status(ADO_SPINNER_QUERYING_DB) as status:
+        if parameters.resource_id:
+            fetched_resources = sql_store.getResource(
+                identifier=parameters.resource_id, kind=resource_type
+            )
+            if not fetched_resources:
+                status.stop()
+                raise ResourceDoesNotExistError(
+                    resource_id=parameters.resource_id, kind=resource_type
+                )
+        else:
+            fetched_resources = list(
+                sql_store.getResourcesOfKind(
+                    kind=resource_type.value,
+                    field_selectors=parameters.field_selectors,
+                ).values()
+            )
+
+    output_content = format_resource_for_ado_get_custom_format(
+        to_print=fetched_resources, parameters=parameters
+    )
+
+    _write_or_print_output(output_content, parameters.output_file)
+
+
+def _write_or_print_output(
+    content: str | RenderableType, output_file: pathlib.Path | None
+) -> None:
+    """Helper to write to file or print to console.
+
+    Args:
+        content: String content or rich renderable to output
+        output_file: Optional file path. If provided, content is written to file.
+    """
+    if output_file:
+        # Convert to string if it's a rich renderable
+        if not isinstance(content, str):
+            from orchestrator.utilities.rich import render_to_string
+
+            content = render_to_string(content, auto_width=True)
+        output_file.write_text(content)
+        console_print(f"{SUCCESS}Output written to {output_file}", stderr=True)
+    else:
+        console_print(content)
 
 
 def print_related_resources(

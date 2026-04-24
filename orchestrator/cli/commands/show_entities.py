@@ -154,38 +154,18 @@ def show_entities_for_resources(
     See https://ibm.github.io/ado/getting-started/ado/#ado-show-entities
     for detailed documentation and examples.
 
-
-
     Examples:
 
-
-
     # Show the entities that have been sampled in a space
-
     ado show entities space <space-id> --include sampled
-
-
-
 
     # Show the entities that have been sampled in the latest space
     ado show entities space --use-latest
 
-
-
     # Show the entities measured in an operation, one row per entity
-
     ado show entities operation <operation-id> --property-format target
     """
     ado_configuration: AdoConfiguration = ctx.obj
-
-    # Validate that output_file is only used with file-based formats
-    if output_file and output_format == AdoShowEntitiesSupportedOutputFormats.TABLE:
-        console_print(
-            f"{ERROR} --output-file cannot be used with --output console. "
-            f"Use --output csv or --output json instead.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
 
     if use_latest:
         resource_id = get_effective_resource_id(

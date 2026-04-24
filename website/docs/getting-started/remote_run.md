@@ -271,19 +271,19 @@ additionalFiles:
 ### Ray’s uv run integration
 
 Ray provides a native integration that allows `uv run ...` to function as an
-"environment-aware" driver launch. It automatically packages the
-working_dir, which defaults to the current directory, and applies uv-based runtime
-configurations directly to worker nodes. This serves as a built-in mechanism for
-seamless dependency and environment handling across a distributed cluster. For
-more details, see the [Ray documentation on using uv for package management](https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#using-uv-for-package-management)
+"environment-aware" driver launch. It automatically packages the working
+directory and applies uv-based runtime configurations directly to worker nodes.
+This serves as a built-in mechanism for seamless dependency and environment
+handling across a distributed cluster. For more details, see the
+[Ray documentation on using uv for package management](https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#using-uv-for-package-management)
 
 ### ADO default: the integration is disabled unless you opt in
 
-By default, when you start the ado or run_experiment executables (including via
-`uv run …`), ADO sets `RAY_ENABLE_UV_RUN_RUNTIME_ENV=0` before importing ray,
-if the variable is not already set in your environment. This is done to avoid
-unintentionally packaging/uploading your entire current working directory during
-typical local development runs.
+The `ado` and `run_experiment` CLIs (including when invoked via `uv run …`)
+disable Ray's uv run integration by default. Unless the user has explicitly set
+`RAY_ENABLE_UV_RUN_RUNTIME_ENV`, ado sets it to `0` before importing Ray. This
+is done to avoid unintentionally packaging/uploading your entire current working
+directory during typical local development runs.
 
 ### Enabling Ray’s `uv run` driver integration
 
@@ -294,8 +294,8 @@ shell before starting ado
 export RAY_ENABLE_UV_RUN_RUNTIME_ENV=1
 ```
 
-To have the (uv-run-started) driver in ado connect to an existing Ray cluster, set
-RAY_ADDRESS in the environment
+To have the (uv-run-started) driver in ado connect to an existing Ray cluster,
+set `RAY_ADDRESS` in the environment
 
 ```bash
 export RAY_ADDRESS=...

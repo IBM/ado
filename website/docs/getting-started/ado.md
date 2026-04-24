@@ -368,7 +368,8 @@ you can create. The fastest way to update these metadata is to use the
 The complete syntax of the `ado edit` command is as follows:
 
 ```shell
-ado edit RESOURCE_TYPE RESOURCE_ID [--metadata <FILE>] [--editor <NAME>]
+ado edit RESOURCE_TYPE RESOURCE_ID [-p, --patch <YAML>] \
+    [--patch-file <FILE>] [--editor <NAME>]
 ```
 
 Where:
@@ -388,12 +389,16 @@ Where:
     <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
-- `--metadata` is an optional path to a YAML file. The contents are **merged** into
-  the resource’s existing stored metadata
-  (for example, add or update `name`, `description`, and `labels`) without
-  opening an editor. `labels` are merged as key–value maps; other fields from the
-  file overwrite the previous values. You cannot use `--metadata` together with
-  `--editor`.
+- `-p` / `--patch` is an optional inline YAML/JSON string (the default
+  non-interactive input, similar to `oc` / `kubectl patch -p`). It is
+  **merged** into the resource’s existing stored metadata using a one-level
+  strategic update:
+  `labels` are merged as key–value maps; other top-level fields from the patch
+  replace the previous values. You can use a patch string **or** a file, not both.
+- `--patch-file` is an optional path to a YAML/JSON file with the same merge
+  behaviour as `--patch`. You may not use `--patch` and `--patch-file` together.
+  You may not use an explicit `--editor` on the same command as any non-interactive
+  patch; `$ADO_EDITOR` alone does not count.
 - `--editor` is the name of the editor you want to use for **interactive** editing
   of metadata. It
   must be one of the supported ones, which currently are:
@@ -429,10 +434,16 @@ ado edit space space-abc123-456def --editor nano
 ADO_EDITOR=nano ado edit space space-abc123-456def
 ```
 
-##### Merging metadata from a YAML file (non-interactive)
+##### Merging metadata with an inline patch (non-interactive, oc-style)
 
 ```shell
-ado edit space space-abc123-456def --metadata extra-metadata.yaml
+ado edit space space-abc123-456def -p "labels: { team: front }"
+```
+
+##### Merging metadata from a file (non-interactive)
+
+```shell
+ado edit space space-abc123-456def --patch-file extra-metadata.yaml
 ```
 
 ### ado get

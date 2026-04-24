@@ -117,15 +117,18 @@ uv run ado create operation -f operation.yaml
 Updates **metadata** (name, description, labels, etc.) for metastore resources.
 
 ```bash
-# Interactive (editor: default nano, or $ADO_EDITOR)
+# Interactive (default editor: nano, or $ADO_EDITOR)
 uv run ado edit space SPACE_ID
 
-# Non-interactive: merge a YAML file into existing metadata (no --editor)
-uv run ado edit space SPACE_ID --metadata meta.yaml
+# Non-interactive: default is an inline patch (-p / --patch), like oc
+uv run ado edit space SPACE_ID -p "labels: { team: research }"
+
+# Or merge from a file
+uv run ado edit space SPACE_ID --patch-file meta.yaml
 ```
 
-`--metadata` and `--editor` cannot be used together. Verify options with
-`uv run ado edit --help`.
+Do not pass an **explicit** `--editor` with `-p` / `--patch` or `--patch-file` on
+the same invocation. Use `uv run ado edit --help` for current options.
 
 ### ado show
 

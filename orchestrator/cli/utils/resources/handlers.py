@@ -28,9 +28,6 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
-from orchestrator.cli.utils.pydantic.metadata_merge import (
-    merge_configuration_metadata_dicts,
-)
 from orchestrator.cli.utils.resources.formatters import (
     format_default_ado_get_multiple_resources,
     format_default_ado_get_single_resource,
@@ -429,12 +426,37 @@ def print_related_resources(
         console_print(f"  - {row['IDENTIFIER']}")
 
 
+def strategic_merge_configuration_metadata(
+    base: dict[str, typing.Any], patch: dict[str, typing.Any]
+) -> dict[str, typing.Any]:
+    """
+    Strategic merge for metadata dicts: ``labels`` is merged; other top-level
+    keys are replaced via ``dict.update`` (oc/kubectl style).
+    """
+    out = dict(base)
+    rest = dict(patch)
+    if "labels" in rest:
+        v = rest.pop("labels")
+        if v is None:
+            out["labels"] = None
+        elif isinstance(v, dict):
+            left = out.get("labels")
+            if not isinstance(left, dict):
+                left = {}
+            out["labels"] = {**left, **v}
+        else:
+            out["labels"] = v
+    out.update(rest)
+    return out
+
+
 def handle_edit_resource_metadata(
     resource_id: str,
     resource_type: "CoreResourceKinds",
     project_context: "ProjectContext",
     editor: AdoEditSupportedEditors | None,
     metadata_path: pathlib.Path | None = None,
+    metadata_patch: str | None = None,
 ) -> None:
     import subprocess  # noqa: S404
     import tempfile
@@ -448,26 +470,41 @@ def handle_edit_resource_metadata(
             status.stop()
             raise ResourceDoesNotExistError(resource_id=resource_id, kind=resource_type)
 
-    if metadata_path is not None:
-        try:
-            raw = yaml.safe_load(metadata_path.read_text())
-        except (OSError, yaml.YAMLError) as e:
+    if metadata_path is not None or metadata_patch is not None:
+        if metadata_path is not None and metadata_patch is not None:
             console_print(
-                f"{ERROR}Could not read metadata from {metadata_path}:\n{e}",
+                f"{ERROR}Use only one of --patch / -p and --patch-file.",
+                stderr=True,
+            )
+            raise typer.Exit(1)
+        try:
+            if metadata_path is not None:
+                raw = yaml.safe_load(metadata_path.read_text())
+            else:
+                raw = yaml.safe_load(metadata_patch)  # type: ignore[arg-type]
+        except (OSError, yaml.YAMLError) as e:
+            source: pathlib.Path | str
+            if metadata_path is not None:
+                source = metadata_path
+            else:
+                source = "inline --patch / -p"
+            console_print(
+                f"{ERROR}Could not read metadata from {source}:\n{e}",
                 stderr=True,
             )
             raise typer.Exit(1) from e
         if raw is not None and not isinstance(raw, dict):
             console_print(
-                f"{ERROR}The metadata file {metadata_path} must contain a YAML mapping "
-                "(object) at the top level.",
+                f"{ERROR}The metadata patch must be a YAML/JSON object at the top level.",
                 stderr=True,
             )
             raise typer.Exit(1)
-        patch: dict[str, typing.Any] = raw if isinstance(raw, dict) else {}
+        patch_dict: dict[str, typing.Any] = raw if isinstance(raw, dict) else {}
         base_dict = resource.config.metadata.model_dump()
         try:
-            merged = merge_configuration_metadata_dicts(base=base_dict, patch=patch)
+            merged = strategic_merge_configuration_metadata(
+                base=base_dict, patch=patch_dict
+            )
             new_metadata = ConfigurationMetadata.model_validate(merged)
         except pydantic.ValidationError as e:
             console_print(f"{ERROR}The merged metadata was invalid: {e}", stderr=True)

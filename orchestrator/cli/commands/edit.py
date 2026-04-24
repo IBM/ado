@@ -1,12 +1,12 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-import os
 import pathlib
 import typing
 from typing import Annotated
 
 import typer
+from click.core import ParameterSource
 
 from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
@@ -35,28 +35,15 @@ if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
 
 
-def _resolve_interactive_ado_edit_editor(
-    editor_cli: str | None,
-) -> AdoEditSupportedEditors:
-    """
-    Select an editor: ``--editor`` if given, else ``$ADO_EDITOR``, else nano.
-    """
-    raw: str | None = editor_cli
-    if raw is None:
-        raw = os.environ.get("ADO_EDITOR")
-    if raw is None:
-        return AdoEditSupportedEditors.NANO
-    token = str(raw).removesuffix("s")
-    for member in AdoEditSupportedEditors:
-        if member.value == token:
-            return member
-    valid = ", ".join(sorted(m.value for m in AdoEditSupportedEditors))
-    console_print(
-        f"{ERROR}Invalid --editor (or $ADO_EDITOR) value {raw!r}. "
-        f"Use one of: {valid}.",
-        stderr=True,
-    )
-    raise typer.Exit(1)
+def _parse_ado_edit_editor_name(value: str) -> AdoEditSupportedEditors:
+    """Map *value* from :class:`HiddenPluralChoice` to the editor enum member."""
+    token = value.removesuffix("s")
+    for m in AdoEditSupportedEditors:
+        if m.value == token:
+            return m
+    raise RuntimeError(
+        "HiddenPluralChoice should have already validated the editor"
+    )  # pragma: no cover
 
 
 def edit_resource(
@@ -79,24 +66,35 @@ def edit_resource(
         ),
     ],
     editor: Annotated[
-        str | None,
+        str,
         typer.Option(
             "--editor",
+            envvar="ADO_EDITOR",
             help=(
-                "Editor for interactive mode (not used with --metadata). "
-                "Default: nano, or the ADO_EDITOR environment variable if set."
+                "The editor to use to edit metadata (interactive mode only; "
+                "not with --patch or --patch-file)."
+            ),
+            show_default=AdoEditSupportedEditors.NANO.value,
+            click_type=HiddenPluralChoice(AdoEditSupportedEditors),
+        ),
+    ] = AdoEditSupportedEditors.NANO.value,
+    patch: Annotated[
+        str | None,
+        typer.Option(
+            "-p",
+            "--patch",
+            help=(
+                "YAML/JSON to merge into metadata (strategic merge; default "
+                "non-interactive input, like oc -p)."
             ),
             show_default=False,
         ),
     ] = None,
-    metadata: Annotated[
+    patch_file: Annotated[
         pathlib.Path | None,
         typer.Option(
-            "--metadata",
-            help=(
-                "YAML file whose contents are merged into this resource's "
-                "metadata (non-interactive; cannot be combined with --editor)."
-            ),
+            "--patch-file",
+            help="File with YAML/JSON to merge into metadata.",
             file_okay=True,
             dir_okay=False,
             exists=True,
@@ -120,29 +118,44 @@ def edit_resource(
     # Edit the metadata of a space using vim
     ado edit space <space-id> --editor vim
 
-    # Merge additional metadata from a file (e.g. labels) without an editor
-    ado edit space <space-id> --metadata meta.yaml
+    # Merge metadata with an inline patch (oc-style) or a file
+    ado edit space <space-id> -p "labels: { team: core }"
+    ado edit space <space-id> --patch-file meta.yaml
     """
-    if metadata is not None and editor is not None:
+    if patch is not None and patch_file is not None:
         console_print(
-            f"{ERROR}The options --metadata and --editor may not be used together.",
+            f"{ERROR}Use only one of --patch / -p and --patch-file.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    non_interactive = patch is not None or patch_file is not None
+    if non_interactive and ctx.get_parameter_source("editor") in (
+        ParameterSource.COMMANDLINE,
+        ParameterSource.PROMPT,
+    ):
+        console_print(
+            f"{ERROR}The options --patch / -p and --patch-file "
+            "may not be used with an explicit --editor flag.",
             stderr=True,
         )
         raise typer.Exit(1)
 
     ado_configuration: AdoConfiguration = ctx.obj
-    if metadata is not None:
+    if non_interactive:
         parameters = AdoEditCommandParameters(
             ado_configuration=ado_configuration,
             editor=None,
             resource_id=resource_id,
-            metadata_path=metadata,
+            metadata_patch=patch,
+            metadata_path=patch_file,
         )
     else:
         parameters = AdoEditCommandParameters(
             ado_configuration=ado_configuration,
-            editor=_resolve_interactive_ado_edit_editor(editor),
+            editor=_parse_ado_edit_editor_name(editor),
             resource_id=resource_id,
+            metadata_patch=None,
             metadata_path=None,
         )
 
@@ -170,5 +183,6 @@ def register_edit_command(app: typer.Typer) -> None:
     app.command(
         name="edit",
         no_args_is_help=True,
-        options_metavar="[--metadata <file>] [--editor <name>]",
+        options_metavar="[-p, --patch <yaml>] [--patch-file <file>] "
+        "[--editor <name>]",
     )(edit_resource)

@@ -77,7 +77,14 @@ class AdoEditCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     editor: AdoEditSupportedEditors | None
     resource_id: str
-    metadata_path: Path | None = None
+    metadata_patch: str | None = pydantic.Field(
+        default=None,
+        description="Inline YAML/JSON patch; mutually exclusive with metadata_path.",
+    )
+    metadata_path: Path | None = pydantic.Field(
+        default=None,
+        description="Path to patch file; mutually exclusive with metadata_patch.",
+    )
 
 
 class AdoShowDetailsCommandParameters(pydantic.BaseModel):

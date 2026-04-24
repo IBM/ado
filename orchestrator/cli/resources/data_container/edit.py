@@ -13,4 +13,5 @@ def edit_data_container(parameters: AdoEditCommandParameters) -> None:
         project_context=parameters.ado_configuration.project_context,
         editor=parameters.editor,
         metadata_path=parameters.metadata_path,
+        metadata_patch=parameters.metadata_patch,
     )

@@ -8,8 +8,8 @@ from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
 from orchestrator.cli.utils.generic.wrappers import get_sql_store
-from orchestrator.cli.utils.pydantic.metadata_merge import (
-    merge_configuration_metadata_dicts,
+from orchestrator.cli.utils.resources.handlers import (
+    strategic_merge_configuration_metadata,
 )
 from orchestrator.core import SampleStoreResource
 from orchestrator.core.metadata import ConfigurationMetadata
@@ -17,24 +17,56 @@ from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 
 
-def test_merge_configuration_metadata_dicts_preserves_name_merges_labels() -> None:
+def test_strategic_merge_preserves_name_merges_labels() -> None:
     base = ConfigurationMetadata(
         name="keep-me", description="d", labels={"a": "1"}
     ).model_dump()
     patch = {"labels": {"b": "2"}}
-    merged = merge_configuration_metadata_dicts(base, patch)
+    merged = strategic_merge_configuration_metadata(base, patch)
     assert merged["name"] == "keep-me"
     assert merged["labels"] == {"a": "1", "b": "2"}
 
 
-def test_merge_configuration_metadata_dicts_labels_from_none() -> None:
+def test_strategic_merge_labels_from_none() -> None:
     base = ConfigurationMetadata(name=None, labels=None).model_dump()
     patch = {"labels": {"x": "y"}}
-    merged = merge_configuration_metadata_dicts(base, patch)
+    merged = strategic_merge_configuration_metadata(base, patch)
     assert merged["labels"] == {"x": "y"}
 
 
-def test_ado_edit_metadata_mutex(
+def test_ado_edit_mutex_patch_and_patch_file(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+    f = tmp_path / "m.yaml"
+    f.write_text("labels:\n  k: v\n")
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "edit",
+            "samplestore",
+            "dummy",
+            "-p",
+            "labels: {a: b}",
+            "--patch-file",
+            str(f),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "only one of" in result.output.lower()
+
+
+def test_ado_edit_mutex_editor_with_patch_file(
     tmp_path: pathlib.Path,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
@@ -56,14 +88,16 @@ def test_ado_edit_metadata_mutex(
             "edit",
             "samplestore",
             "dummy",
-            "--metadata",
+            "--patch-file",
             str(patch_file),
             "--editor",
             "vim",
         ],
     )
     assert result.exit_code == 1
-    assert "may not be used together" in result.output
+    out = result.output.lower()
+    assert "explicit" in out
+    assert "editor" in out
 
 
 def test_ado_edit_metadata_merges_into_store(
@@ -96,7 +130,7 @@ def test_ado_edit_metadata_merges_into_store(
             "edit",
             "samplestore",
             store.identifier,
-            "--metadata",
+            "--patch-file",
             str(patch_file),
         ],
     )
@@ -108,6 +142,44 @@ def test_ado_edit_metadata_merges_into_store(
     assert updated is not None
     assert updated.config.metadata.name == "orig"
     assert updated.config.metadata.labels == {"team": "ado", "run": "ci"}
+
+
+def test_ado_edit_inline_patch(
+    tmp_path: pathlib.Path,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    random_sample_store_resource_from_file: Callable[[], SampleStoreResource],
+) -> None:
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    store = random_sample_store_resource_from_file()
+    store.config.metadata = ConfigurationMetadata(labels={"a": "1"})
+    sql = get_sql_store(project_context=valid_ado_project_context)
+    sql.addResource(store)
+
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            str(tmp_path),
+            "edit",
+            "samplestore",
+            store.identifier,
+            "-p",
+            "labels: {b: '2'}",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    updated = sql.getResource(
+        identifier=store.identifier, kind=CoreResourceKinds.SAMPLESTORE
+    )
+    assert updated is not None
+    assert updated.config.metadata.labels == {"a": "1", "b": "2"}
 
 
 def test_ado_edit_metadata_rejects_non_mapping_yaml(
@@ -138,9 +210,9 @@ def test_ado_edit_metadata_rejects_non_mapping_yaml(
             "edit",
             "samplestore",
             store.identifier,
-            "--metadata",
+            "--patch-file",
             str(patch_file),
         ],
     )
     assert result.exit_code == 1
-    assert "must contain a YAML mapping" in result.output
+    assert "YAML/JSON object" in result.output

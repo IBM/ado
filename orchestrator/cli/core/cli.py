@@ -1,6 +1,15 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+# Before any other imports: Ray's ``uv`` driver hook (see
+# ``orchestrator.utilities.ray_local_init``) reads ``RAY_ENABLE_UV_RUN_RUNTIME_ENV``
+# at the first ``import ray``. The ``ado create operation`` code path eventually
+# imports ``ray``; this default keeps local ``uv run ado …`` from packaging the
+# whole worktree. Set the variable in the environment to ``1`` to opt in.
+import os
+
+os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
+
 import logging
 import pathlib
 import sys

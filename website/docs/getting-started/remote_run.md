@@ -287,7 +287,7 @@ directory during typical local development runs.
 
 ### Enabling Ray’s `uv run` driver integration
 
-If you do want Ray’s `uv run` driver integration behavior, set this in your
+If you'd like to use Ray’s `uv run` driver integration feature, set this in your
 shell before starting ado
 
 ```bash

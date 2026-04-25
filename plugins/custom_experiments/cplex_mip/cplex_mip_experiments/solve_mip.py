@@ -670,7 +670,7 @@ def solve_mip(
                 "parallel=True requires the experiment to run with ray_remote "
                 "(use_ray=True). Ray is not initialized."
             )
-        remote_fn = ray.remote(_run_one)
+        remote_fn = ray.remote(num_cpus=n_threads)(_run_one)
         refs = [remote_fn.remote(seed) for seed in range(n_seeds)]
         results = ray.get(refs)
     else:

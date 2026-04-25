@@ -596,7 +596,7 @@ def solve_mip(
     node_selection: int = 1,
     variable_selection: int = 0,
     heuristic_frequency: int = 0,
-    time_limit_s: float = 1e75,
+    time_limit_s: float = 1e74,
     n_threads: int = 1,
     rins_frequency: int = 0,
     cut_passes: int = 0,

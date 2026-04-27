@@ -197,7 +197,7 @@ class ComponentsYaml:
             vllm_serve_args.append("--enable-mm-embeds")
         if otel_traces_endpoint is not None:
             vllm_serve_args.append("--otlp-traces-endpoint")
-            vllm_serve_args.append("$OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+            vllm_serve_args.append(otel_traces_endpoint)
 
         # container
         container = spec["containers"][0]

@@ -158,7 +158,6 @@ nav:
       - Space Characterization:
           - Identify the important dimensions of a space: examples/lhu.md
           - Quickly building a predictive model for a configuration space: examples/trim.md
-          - Characterizing Spaces Without Prior Knowledge: examples/no-priors-characterization.md
       - Fine-Tuning Throughput:
           - Measure throughput of fine-tuning locally: examples/finetune-locally.md
           - Measure throughput of fine-tuning on a remote RayCluster: examples/finetune-remotely.md
@@ -199,4 +198,3 @@ nav:
       - The Random Walk Operator: operators/random-walk.md
       - The Ray Tune Operator: operators/optimisation-with-ray-tune.md
       - The TRIM Operator: operators/trim.md
-      - The No-Priors Characterization Operator: operators/no-priors-characterization.md

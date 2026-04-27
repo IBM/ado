@@ -340,7 +340,7 @@ class MySampler(BaseSampler):
 ### Sampling all Entities
 
 If either of the following conditions are true you can specify a value of "all"
-for the `numberOfEntities` field in the random walk configuration:
+for the `numberEntities` field in the random walk configuration:
 
 - All dimensions in the `entityspace`s are discrete and bounded or categorical
 - The sampling type is `selector` i.e. you are iterating over an existing set
@@ -362,9 +362,9 @@ ValueError when the execution starts.
 !!! warning end
 
     For `discoveryspaces` where one/both of the above conditions are True setting
-    `numberOfEntities` greater than the corresponding size (size of space, or number
+    `numberEntities` greater than the corresponding size (size of space, or number
     of matching entities in `samplestore`) will raise a ValueError. This means you
-    cannot set `numberOfEntities` to an arbitrarily large number to ensure sampling
+    cannot set `numberEntities` to an arbitrarily large number to ensure sampling
     all of them - use `all` instead.
 
 ### Filtering Entities

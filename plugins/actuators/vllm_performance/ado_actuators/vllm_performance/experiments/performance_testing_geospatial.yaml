@@ -136,7 +136,7 @@ performance_testing-geospatial-full:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 17]
+        domainRange: [1, 256]
         interval: 1
     - identifier: memory
       metadata:
@@ -174,7 +174,7 @@ performance_testing-geospatial-full:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [8192, 32769]
+        domainRange: [256, 32769]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:
@@ -240,7 +240,7 @@ performance_testing-geospatial-full:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 16384
+      value: 256
     - property:
         identifier: 'n_gpus'
       value: 1
@@ -329,7 +329,7 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 17]
+        domainRange: [1, 256]
         interval: 1
     - identifier: memory
       metadata:
@@ -367,7 +367,7 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [8192, 32769]
+        domainRange: [256, 32769]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:
@@ -381,7 +381,7 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(deployment) The GPU type to use"
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
-        values: ['NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB']
+        values: ['NVIDIA-A100-80GB-PCIe', 'NVIDIA-A100-SXM4-80GB', 'NVIDIA-H100-PCIe']
     - identifier: 'skip_tokenizer_init'
       metadata:
         description: "(deployment) skip tokenizer initialization"
@@ -433,7 +433,7 @@ performance_testing-geospatial-full-custom-dataset:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 16384
+      value: 256
     - property:
         identifier: 'n_gpus'
       value: 1
@@ -669,7 +669,7 @@ performance_testing-geospatial-full-guidellm:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 17]
+        domainRange: [1, 256]
         interval: 1
     - identifier: memory
       metadata:
@@ -707,7 +707,7 @@ performance_testing-geospatial-full-guidellm:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [8192, 32769]
+        domainRange: [256, 32769]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:
@@ -773,7 +773,7 @@ performance_testing-geospatial-full-guidellm:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 16384
+      value: 256
     - property:
         identifier: 'n_gpus'
       value: 1
@@ -860,7 +860,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 17]
+        domainRange: [1, 256]
         interval: 1
     - identifier: memory
       metadata:
@@ -966,7 +966,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 16384
+      value: 256
     - property:
         identifier: 'n_gpus'
       value: 1

@@ -74,8 +74,7 @@ def edit_resource(
                 "The editor to use to edit metadata (interactive mode only; "
                 "not with --patch or --patch-file)."
             ),
-            show_default=AdoEditSupportedEditors.NANO.value,
-            click_type=HiddenPluralChoice(AdoEditSupportedEditors),
+            click_type=AdoEditSupportedEditors,
         ),
     ] = AdoEditSupportedEditors.NANO.value,
     patch: Annotated[

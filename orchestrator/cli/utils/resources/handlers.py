@@ -433,21 +433,19 @@ def strategic_merge_configuration_metadata(
     Strategic merge for metadata dicts: ``labels`` is merged; other top-level
     keys are replaced via ``dict.update`` (oc/kubectl style).
     """
-    out = dict(base)
-    rest = dict(patch)
-    if "labels" in rest:
-        v = rest.pop("labels")
-        if v is None:
-            out["labels"] = None
-        elif isinstance(v, dict):
-            left = out.get("labels")
-            if not isinstance(left, dict):
-                left = {}
-            out["labels"] = {**left, **v}
+    merged = dict(base)
+    overrides = dict(patch)
+    if "labels" in overrides:
+        new_labels = overrides.pop("labels")
+        old_labels = merged.get("labels", {})
+        if new_labels is None:
+            merged["labels"] = None
+        elif old_labels is None:
+            merged["labels"] = new_labels
         else:
-            out["labels"] = v
-    out.update(rest)
-    return out
+            merged["labels"] = old_labels | new_labels
+
+    return merged | overrides
 
 
 def handle_edit_resource_metadata(

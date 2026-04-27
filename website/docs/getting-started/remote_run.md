@@ -22,6 +22,7 @@ generating the Ray runtime environment, and running `ray job submit` for you.
 > will fail with a clear error if a SQLite context is detected.
 
 <!-- markdownlint-disable-next-line MD028 -->
+
 > [!IMPORTANT] Cluster login
 >
 > If your cluster requires a port-forward, `oc` (OpenShift CLI) or `kubectl`
@@ -204,12 +205,11 @@ any plugins required in the `packages.fromPyPI` section of your
 
 > [!NOTE] Wheel paths and `fromPyPI`
 >
-> Entries in `fromPyPI` that resolve to an existing `.whl` file on
-> the machine running `ado --remote` will be transferred to the remote cluster.
-> Other entries are forwarded unchanged to the
-> cluster's `uv` install step. This includes paths that were not present
-> on submitting machine - these will be interpreted as paths to wheels
-> that are on the remote filesystem.
+> Entries in `fromPyPI` that resolve to an existing `.whl` file on the machine
+> running `ado --remote` will be transferred to the remote cluster. Other
+> entries are forwarded unchanged to the cluster's `uv` install step. This
+> includes paths that were not present on submitting machine - these will be
+> interpreted as paths to wheels that are on the remote filesystem.
 
 ### Dynamic installation from source
 
@@ -264,4 +264,40 @@ envVars:
 additionalFiles:
   - /absolute/path/to/data_file.csv
   - path/to/my_data_dir/ # directories are also supported
+```
+
+## Using Ray’s uv run driver integration with `ado`
+
+### Ray’s uv run integration
+
+Ray provides a native integration that allows `uv run ...` to function as an
+"environment-aware" driver launch. It automatically packages the working
+directory and applies uv-based runtime configurations directly to worker nodes.
+This serves as a built-in mechanism for seamless dependency and environment
+handling across a distributed cluster. For more details, see the
+[Ray documentation on using uv for package management](https://docs.ray.io/en/latest/ray-core/handling-dependencies.html#using-uv-for-package-management)
+
+### ADO default: the integration is disabled unless you opt in
+
+The `ado` and `run_experiment` CLIs (including when invoked via `uv run …`)
+disable Ray's uv run integration by default. Unless the user has explicitly set
+`RAY_ENABLE_UV_RUN_RUNTIME_ENV`, ado sets it to `0` before importing Ray. This
+is done to avoid unintentionally packaging/uploading your entire current working
+directory during typical local development runs.
+
+### Enabling Ray’s `uv run` driver integration
+
+If you'd like to use Ray’s `uv run` driver integration feature, set this in your
+shell before starting ado
+
+```bash
+export RAY_ENABLE_UV_RUN_RUNTIME_ENV=1
+```
+
+To have the (uv-run-started) driver in ado connect to an existing Ray cluster,
+set `RAY_ADDRESS` in the environment
+
+```bash
+export RAY_ADDRESS=...
+uv run ado create op ...
 ```

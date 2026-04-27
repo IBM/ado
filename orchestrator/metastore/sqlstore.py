@@ -385,6 +385,10 @@ class SQLResourceStore(ResourceStore):
         are not present in the database are simply omitted from the
         returned mapping.
 
+        The returned dictionary is sorted by the `created` timestamp of each
+        resource in ascending order (oldest first), matching the AGE sorting
+        behavior used in CLI commands.
+
         ``identifiers`` may be passed as either a plain list or a
         :class:`pandas.Series`; if a series is supplied it is converted
         to a list first.
@@ -400,8 +404,10 @@ class SQLResourceStore(ResourceStore):
             dict[str, orchestrator.core.resources.ADOResource]:
                 A mapping where each key is an identifier found in the
                 database and the value is the corresponding deserialized
-                resource instance. If a particular identifier does not
-                exist, it will not appear in the returned dictionary.
+                resource instance. Resources are ordered by their `created`
+                timestamp in ascending order (oldest first). If a
+                particular identifier does not exist, it will not appear
+                in the returned dictionary.
 
         Raises:
             ValueError: If ignore_validation_errors is False and a resource
@@ -446,7 +452,8 @@ class SQLResourceStore(ResourceStore):
                     else:
                         retval[identifier] = resource
 
-        return retval
+        # Sort by resource.created ascending (oldest first, matching AGE sort behavior)
+        return dict(sorted(retval.items(), key=lambda item: item[1].created))
 
     def getResourceIdentifiersOfKind(
         self,

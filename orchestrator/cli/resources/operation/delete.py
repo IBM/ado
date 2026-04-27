@@ -29,27 +29,29 @@ from orchestrator.metastore.base import (
 
 
 def delete_operation(parameters: AdoDeleteCommandParameters) -> None:
+    # Extract the single resource_id from the list
+    resource_id = parameters.resource_ids[0]
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:
 
         if not sql.containsResourceWithIdentifier(
-            identifier=parameters.resource_id,
+            identifier=resource_id,
             kind=CoreResourceKinds.OPERATION,
         ):
             raise ResourceDoesNotExistError(
-                resource_id=parameters.resource_id, kind=CoreResourceKinds.OPERATION
+                resource_id=resource_id, kind=CoreResourceKinds.OPERATION
             )
 
         children_resources = sql.getRelatedObjectResourceIdentifiers(
-            identifier=parameters.resource_id
+            identifier=resource_id
         )
         if not children_resources.empty:
             status.stop()
             console_print(
                 cannot_delete_resource_due_to_children_resources(
                     resource_kind=CoreResourceKinds.OPERATION,
-                    resource_id=parameters.resource_id,
+                    resource_id=resource_id,
                     children_resources=children_resources,
                 ),
                 stderr=True,
@@ -59,14 +61,14 @@ def delete_operation(parameters: AdoDeleteCommandParameters) -> None:
         status.update(ADO_SPINNER_DELETING_FROM_DB)
         try:
             sql.delete_operation(
-                identifier=parameters.resource_id,
+                identifier=resource_id,
                 ignore_running_operations=parameters.force,
             )
         except NotSupportedOnSQLiteError as e:
             status.stop()
             console_print(
                 f"{ERROR}Checking for running operations using the same sample store as "
-                f"operation {magenta(parameters.resource_id)} is not supported on local contexts.\n"
+                f"operation {magenta(resource_id)} is not supported on local contexts.\n"
                 f"{HINT}Make sure there are no such operations, and force the deletion by adding the "
                 f"{cyan('--force')} flag.",
                 stderr=True,

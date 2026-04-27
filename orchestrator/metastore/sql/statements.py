@@ -60,6 +60,11 @@ def check_field_in_sqlite_json_document(
     and constructs SQL subqueries that can be used to filter rows produced by SQLite's json_tree
     function based on whether the specified fields and values exist at the given JSON path.
 
+    Note: SQLite's json_tree quotes field names containing underscores. This function handles
+    that by quoting such field names in the generated patterns. This may produce false positives
+    in complex nested structures where the same field name appears at different nesting levels,
+    but these are filtered by the INTERSECT logic in simulate_json_contains_on_sqlite.
+
     Args:
         candidate (dict | list | str | int | float): The JSON structure or scalar value to match against.
             - If a scalar (str, int, float), generates a simple query checking for value presence.
@@ -196,9 +201,14 @@ def check_field_in_sqlite_json_document(
             # The use of % in the path is because json_tree will add list items in the path.
             # (e.g., $.config.entitySpace[2].propertyDomain). As we can't know for sure
             # whether a field is a list or not, we use the LIKE operator and a wildcard (%)
+
+            # SQLite quotes field names containing underscores in json_tree paths.
+            # Quote the field name if it contains an underscore to match SQLite's behavior.
+            field_pattern = f'"{field}"' if "_" in field else field
+
             fragments.extend(
                 check_field_in_sqlite_json_document(
-                    candidate[field], f"{path}%.{field}"
+                    candidate[field], f"{path}%.{field_pattern}"
                 )
             )
             continue
@@ -207,6 +217,9 @@ def check_field_in_sqlite_json_document(
         # with an array field, for which the path would contain
         # the index.
         if isinstance(candidate[field], _ScalarType):
+            # Note: We do NOT quote the field name in F.key because the 'key' column
+            # in json_tree is never quoted. Only intermediate fields in the 'path'
+            # column are quoted when they contain underscores.
             fragments.append(
                 f"{preamble} F.path LIKE '{path}%' AND "
                 f"F.key = '{field}' AND "

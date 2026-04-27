@@ -171,7 +171,11 @@ def trim(
         operationInfo=FunctionOperationInfo.model_validate(
             {
                 "metadata": {"completed operation": "Iterative Modeling Operation"},
-                "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
+                "actuatorConfigurationIdentifiers": (
+                    operationInfo.actuatorConfigurationIdentifiers
+                    if operationInfo
+                    else []
+                ),
             }
         ),
         **trim_rwparams.model_dump(),

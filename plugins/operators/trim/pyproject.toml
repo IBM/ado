@@ -5,7 +5,6 @@ readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
   "ado-core",
-  "ado-no-priors-characterization",
   "autogluon-tabular[catboost,xgboost]==1.5",
   "numpy",
   "pandas>=2.2.0",
@@ -30,4 +29,3 @@ local_scheme = "node-and-timestamp"
 
 [tool.uv.sources]
 ado-core = { workspace = true }
-ado-no-priors-characterization = { workspace = true }

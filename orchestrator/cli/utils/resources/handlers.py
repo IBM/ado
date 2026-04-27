@@ -478,18 +478,15 @@ def handle_edit_resource_metadata(
             )
             raise typer.Exit(1)
         try:
-            if metadata_path is not None:
-                raw = yaml.safe_load(metadata_path.read_text())
-            else:
-                raw = yaml.safe_load(metadata_patch)  # type: ignore[arg-type]
-        except (OSError, yaml.YAMLError) as e:
-            source: pathlib.Path | str
-            if metadata_path is not None:
-                source = metadata_path
-            else:
-                source = "inline --patch / -p"
+            raw = yaml.safe_load(
+                metadata_patch
+                if metadata_patch is not None
+                else metadata_path.read_text()
+            )
+            _ = ConfigurationMetadata.model_validate(raw)
+        except (OSError, yaml.YAMLError, ValueError) as e:
             console_print(
-                f"{ERROR}Could not read metadata from {source}:\n{e}",
+                f"{ERROR}The provided metadata was invalid: {e}",
                 stderr=True,
             )
             raise typer.Exit(1) from e
@@ -532,17 +529,15 @@ def handle_edit_resource_metadata(
                 )
                 raise typer.Exit(1) from e
 
-            try:
-                new_metadata = ConfigurationMetadata.model_validate(
-                    yaml.safe_load(file.read_text())
-                )
-            except pydantic.ValidationError as e:
-                console_print(
-                    f"{ERROR}The updated metadata was invalid: {e}", stderr=True
-                )
-                raise typer.Exit(1) from e
+            new_metadata = yaml.safe_load(file.read_text())
 
-    resource.config.metadata = new_metadata
+    try:
+        resource.config.metadata = ConfigurationMetadata.model_validate(
+            new_metadata
+        )
+    except pydantic.ValidationError as e:
+        console_print(f"{ERROR}The updated metadata was invalid: {e}", stderr=True)
+        raise typer.Exit(1) from e
     with Status(ADO_SPINNER_SAVING_TO_DB):
         sql.updateResource(resource)
 

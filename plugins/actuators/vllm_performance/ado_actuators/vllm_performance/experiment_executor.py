@@ -166,6 +166,7 @@ def _create_environment(
 
     # We retrieve the PVC name from the actor because it is one to be shared for the whole experiment
     pvc_name = ray.get(env_manager.get_experiment_pvc_name.remote())
+    otel_traces_endpoint = ray.get(env_manager.get_otel_traces_endpoint.remote())
 
     match env.state:
         case EnvironmentState.NONE:
@@ -216,6 +217,7 @@ def _create_environment(
                         skip_tokenizer_init=values.get("skip_tokenizer_init", 0) == 1,
                         enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
+                        otel_traces_endpoint=otel_traces_endpoint,
                         check_interval=check_interval,
                         timeout=timeout,
                     )

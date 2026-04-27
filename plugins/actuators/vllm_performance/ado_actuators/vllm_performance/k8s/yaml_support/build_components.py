@@ -91,6 +91,7 @@ class ComponentsYaml:
         enforce_eager: bool = False,
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
+        otel_traces_endpoint: str | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -194,6 +195,9 @@ class ComponentsYaml:
             vllm_serve_args.append("--io-processor-plugin")
             vllm_serve_args.append(io_processor_plugin)
             vllm_serve_args.append("--enable-mm-embeds")
+        if otel_traces_endpoint is not None:
+            vllm_serve_args.append("--otlp-traces-endpoint")
+            vllm_serve_args.append("$OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 
         # container
         container = spec["containers"][0]
@@ -231,6 +235,13 @@ class ComponentsYaml:
             )
         if logging.root.level == logging.DEBUG:
             container["env"].append({"name": "VLLM_LOGGING_LEVEL", "value": "DEBUG"})
+        if otel_traces_endpoint is not None:
+            container["env"].append(
+                {
+                    "name": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+                    "value": otel_traces_endpoint,
+                }
+            )
         # volume mounts
         if claim_name is not None:
             container["volumeMounts"].extend(

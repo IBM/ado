@@ -260,6 +260,7 @@ class ComponentsManager:
         enforce_eager: bool = False,
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
+        otel_traces_endpoint: str | None = None,
     ) -> None:
         """
         create deployment for model
@@ -283,6 +284,7 @@ class ComponentsManager:
         :param enforce_eager: flag to enforce using Pytorch eager mode
         :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
         :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
+        :param otel_traces_endpoint: OpenTelemetry traces endpoint URL
         :return:
         """
         if node_selector is None:
@@ -310,6 +312,7 @@ class ComponentsManager:
             skip_tokenizer_init=skip_tokenizer_init,
             io_processor_plugin=io_processor_plugin,
             enforce_eager=enforce_eager,
+            otel_traces_endpoint=otel_traces_endpoint,
         )
         logger.debug(json.dumps(deployment_yaml, indent=2))
 

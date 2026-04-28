@@ -142,7 +142,6 @@ members = [
   "plugins/actuators/vllm_performance",
   "plugins/custom_experiments/autoconf",
   "plugins/operators/anomalous_series",
-  "plugins/operators/no-priors-characterization",
   "plugins/operators/profile_space",
   "plugins/operators/ray_tune",
   # "plugins/actuators/sfttrainer",

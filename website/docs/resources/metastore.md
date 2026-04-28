@@ -26,12 +26,13 @@ local metastore can hold a single project. Hence, there is one database per
 local metastore instance that contains the resources associated with this
 project.
 
-A context for a local metastore looks like:
+A context for a local metastore on macOS looks like:
 
 ```yaml
 project: local-test
 metadataStore:
   path: $HOME/Library/Application Support/ado/databases/local-test.db
+  scheme: sqlite
   sslVerify: false
 ```
 

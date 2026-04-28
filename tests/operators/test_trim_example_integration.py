@@ -9,7 +9,6 @@ from collections.abc import Callable
 import pytest
 import trim_custom_experiments.experiments  # noqa: F401 — registers ideal-gas experiment
 import yaml
-from no_priors_characterization.no_priors_pydantic import NoPriorsParameters
 from testcontainers.mysql import MySqlContainer
 
 import orchestrator.modules.operators.randomwalk  # noqa: F401
@@ -31,6 +30,7 @@ from orchestrator.modules.operators.collections import characterize
 
 pytest.importorskip("autogluon")
 
+from trim.samplers.no_priors_parameters import NoPriorsParameters
 from trim.trim_pydantic import (
     AutoGluonArgs,
     SamplingBudget,

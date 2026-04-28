@@ -15,8 +15,6 @@ class NoPriorsParameters(BaseModel):
 
         strategy (str): sampling subroutine:
         - 'random': selects random points from the beginning
-        - 'one_shift': refer to one_shift_then_random_points_high_dimensional_sampling
-        - 'recursive_aggregation': refer to recursive_aggregation_high_dimensional_sampling
         - 'clhs': refer to concatenated_latin_hypercube_sampling
         - 'sobol': sobol sampling
     """
@@ -48,25 +46,15 @@ class NoPriorsParameters(BaseModel):
     ] = 1
 
     sampling_strategy: Annotated[
-        Literal["random", "one_shift", "recursive_aggregation", "clhs", "sobol"],
+        Literal["random", "clhs", "sobol"],
         BeforeValidator(lambda s: s.lower()),
         Field(
             description=(
                 "Sampling subroutine. Supported values:\n"
                 " - 'random': selects random points from the beginning\n"
-                " - 'one_shift': see one_shift_then_random_points_high_dimensional_sampling\n"
-                " - 'recursive_aggregation': see recursive_aggregation_high_dimensional_sampling\n"
                 " - 'clhs': dimension-wise random without replacement until each dim cycles\n"
                 " - 'sobol': sobol sampling via scipy\n"
-                "Aliases: 'random_shifts' → 'recursive_aggregation'.\n"
                 "Validation is case-insensitive; value is normalized to lowercase."
             ),
         ),
     ] = "clhs"
-
-
-if __name__ == "__main__":
-    params = NoPriorsParameters.model_validate(NoPriorsParameters(targetOutput="test"))
-    print(
-        f"type of model_validate output on no-priors-characterization default is {type(params)}, printing the full object gives {params}"
-    )

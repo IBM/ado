@@ -92,7 +92,6 @@ resolution-helpers = [
 #   cuda dependencies.
 test = [
   "ado-autoconf",
-  "ado-no-priors-characterization",
   "ado-ray-tune",
   "ado-sfttrainer; python_version < '3.13'",
   "ado-trim",
@@ -143,7 +142,6 @@ members = [
   "plugins/actuators/vllm_performance",
   "plugins/custom_experiments/autoconf",
   "plugins/operators/anomalous_series",
-  "plugins/operators/no-priors-characterization",
   "plugins/operators/profile_space",
   "plugins/operators/ray_tune",
   # "plugins/actuators/sfttrainer",
@@ -152,7 +150,6 @@ members = [
 
 [tool.uv.sources]
 ado-autoconf = { workspace = true, editable = true }
-ado-no-priors-characterization = { workspace = true, editable = true }
 ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { workspace = true, editable = true }

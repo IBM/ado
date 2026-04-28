@@ -14,7 +14,7 @@ from orchestrator.modules.operators.collections import characterize
 
 @pytest.mark.parametrize(
     "operator_name",
-    ["profile", "no_priors_characterization"],
+    ["profile"],
 )
 def test_operator_callable_for_harness_unwraps_decorated_operator(
     operator_name: str,

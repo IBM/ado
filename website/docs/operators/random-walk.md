@@ -59,25 +59,6 @@ After the second operation:
   replayed (as they were already measured during the first operation)
 - The timeseries of this second operation is stored. It has 200 entities in it.
 
-## Controlling sampling and measurements: Continuous batching
-
-When a `random_walk` operation encounters an unmeasured entity in the
-`discoveryspace`, it applies the experiments defined by its `measurementspace`.
-Depending on the experiments, you may want to control how many concurrent
-experiments are being executed.
-
-`random_walk` uses continuous batching to set the number of concurrent
-**requested** experiments and ensure that, as far as possible, there is always
-this number of experiments in flight.
-
-This approach maximizes throughput compared to standard batch-wise submission.
-In the normal case the time to finish measuring batch of N entities is, at a
-minimum, the time taken for the longest experiment to complete. This means if
-one experiment is very long and the others short, there can be capacity in the
-system for (N-1) additional entities to be measured but it will not be used.
-
-The next section explains more about configuring continuous batching
-
 ## Configuring a `random_walk` operation
 
 The parameters for a `random_walk` operation are (default values shown):
@@ -109,7 +90,7 @@ metadata:
 operation:
   module:
     operatorName: random_walk
-    operatorType: explore
+    operationType: search
   parameters:
     batchSize: 1
     samplerConfig:
@@ -123,6 +104,8 @@ spaces:
   - your-spaces
 ```
 
+The following sections explain the different options
+
 !!! info end
 
     You can get a default `random_walk` operation template and the schema of its
@@ -131,10 +114,27 @@ spaces:
     The information output by this command should always be preferred
     over the information presented here if there is an inconsistency.
 
+## Continuous batching
+
+When a `random_walk` operation encounters an unmeasured entity in the
+`discoveryspace`, it applies the experiments defined by its `measurementspace`.
+Depending on the experiments, you may want to control how many concurrent
+experiments are being executed.
+
+`random_walk` uses continuous batching to set the number of concurrent
+**requested** experiments and ensure that, as far as possible, there is always
+this number of experiments in flight.
+
+This approach maximizes throughput compared to standard batch-wise submission.
+In the normal case the time to finish measuring batch of N entities is, at a
+minimum, the time taken for the longest experiment to complete. This means if
+one experiment is very long and the others short, there can be capacity in the
+system for (N-1) additional entities to be measured but it will not be used.
+
 ### Batch Size and Concurrent Experiments
 
-When it comes to managing resources during an exploration, the key variable one
-wants to control is the number of concurrent experiments.
+When it comes to managing resources during an exploration, the key variable
+to control is the number of concurrent experiments.
 
 For the `random_walk` operator, this number is its `batchSize` parameter (the
 number of initial entities submitted) multiplied by the number of experiments in
@@ -151,7 +151,37 @@ this many concurrent experiment requests during the operation.
     Hence, continuous batching can only maintain that there are
     N experiments requested at any time.
 
-### Base Sampling Types and Modes
+### Sampling all Entities
+
+If either of the following conditions are true you can specify a value of "all"
+for the `numberEntities` field in the random walk configuration:
+
+- All dimensions in the `entityspace`s are discrete and bounded or categorical
+- The sampling type is `selector` i.e. you are iterating over an existing set
+  number of entities in a `samplestore`
+
+In the first case `all` will be converted to the size of the space. In the
+second case `all` will be converted to the number of matching entities in the
+`samplestore`.
+
+If both of these conditions is False the `random_walk` operator will raise a
+ValueError when the execution starts.
+
+!!! info end
+
+    Depending on the Filter settings a randomwalk operation may not sample "all"
+    entities even if "all" is specified. This is because the filter may filter out
+    some entities.
+
+!!! warning end
+
+    For `discoveryspaces` where one/both of the above conditions are True setting
+    `numberEntities` greater than the corresponding size (size of space, or number
+    of matching entities in `samplestore`) will raise a ValueError. This means you
+    cannot set `numberEntities` to an arbitrarily large number to ensure sampling
+    all of them - use `all` instead.
+
+## Basic Sampling
 
 The `samplerConfig` field controls how Entities are sampled during the
 operation. The base `samplerConfig` is shown in the examples above and has the
@@ -163,7 +193,7 @@ samplerType: selector
 grouping: []
 ```
 
-#### Sampling Types
+### Sampling Types
 
 There are two sampling types: `generator` and `selector`.
 
@@ -175,7 +205,7 @@ are bounded.
 The `selector` sampling type draws _existing matching entities_ from the
 `samplestore` of the `discoveryspace` i.e. it doesn't use the entity space.
 
-#### Sampler Modes
+### Sampler Modes
 
 Both sampling types support four modes, which can be categorised as flat or
 grouped:
@@ -230,7 +260,7 @@ for x in propertyN.values:
          entity({'propertyN':x, 'propertyN_1':y, ..., 'property1':z})
 ```
 
-#### Why Grouped Modes?
+### Why Grouped Modes?
 
 The advantage of the group modes is that they can allow
 [actuators](../actuators/working-with-actuators.md) to reuse their test
@@ -248,7 +278,7 @@ allows.
     See the docs of the specific actuator you are using to see if and how it can
     benefit from grouping.
 
-#### Enabling Grouping
+### Enabling Grouping
 
 To use the grouped modes (`randomgrouped`, `sequentialgrouped`) you need to
 supply a list of constitutive properties to group by using the `grouping`
@@ -261,7 +291,7 @@ metadata:
 operation:
   module:
     operatorName: random_walk
-    operatorType: explore
+    operationType: search
   parameters:
     batchSize: 1
     samplerConfig:
@@ -279,14 +309,10 @@ spaces:
   - your-spaces
 ```
 
-### Custom Samplers
+## Custom Samplers
 
-It is also possible to specify that `random_walk` uses a custom sampler. This is
-a class that inherits from
-`orchestrator.core.discoveryspace.samplers.BaseSampler`. This is useful for
-implementing more complex sampling schemes. For example, for developers who want
-to use random_walk to drive an exploration but have custom logic to execute
-before choosing each sample/entity.
+`random_walk` can also use custom samplers for
+more complex sampling schemes.
 
 For custom samplers the `samplerConfig` field has the following structure:
 
@@ -302,7 +328,94 @@ parameters: # A dictionary of key value pairs with the values for the custom sam
 
 <!-- markdownlint-enable line-length -->
 
-#### Implementing a Custom Sampler
+### Available Custom Samplers
+
+#### No Priors Sample Selector
+
+To install `NoPriorsSampleSelector` execute
+
+```bash
+pip install plugins/operators/trim/
+```
+
+The `NoPriorsSampleSelector` provides quasi-random sampling strategies designed
+for high-dimensional discrete spaces. These strategies produce sequences where
+consecutive elements are maximally dispersed, favoring uniform coverage of the
+space:
+
+- **`sobol`**: Sobol sequences are low-discrepancy quasi-random sequences widely
+  used for space-filling designs. They provide better coverage than pure random
+  sampling by ensuring points are well-distributed across all dimensions.
+- **`clhs`**: Concatenated Latin Hypercube Sampling (CLHS) samples each dimension
+  independently without replacement, cycling through all values before repeating.
+  This ensures each dimension is uniformly covered.
+
+**Collision Handling**: Sobol sampling may produce collisions (duplicate points),
+when this happens the sampler automatically falls back to CLHS to ensure
+the requested number of unique samples.
+
+##### Example: Sobol Sampling
+
+Here we write an example using Sobol ordering for quasi-random
+low-discrepancy coverage. Make sure to install the TRIM package first.
+Then install TRIM custom experiments with
+
+```bash
+pip install examples/trim/custom_experiments/
+```
+
+To create a discoveryspace and explore it with the TRIM operator, execute the
+following from the root of the ado repository:
+
+```bash
+ado create space -f examples/trim/example_yamls/space_pressure.yaml --new-sample-store
+
+ado create operation -f \
+    examples/trim/example_yamls/randomwalk_sobol_operation.yaml \
+    --use-latest space
+```
+
+The configuration file `randomwalk_sobol_operation.yaml` contains the following
+to specify which points to sample
+
+```yaml
+samplerConfig:
+  module:
+    moduleName: trim.samplers.no_priors_sampler
+    moduleClass: NoPriorsSampleSelector
+  parameters:
+    targetOutput: pressure
+    samples: 20
+    batchSize: 1
+    sampling_strategy: sobol
+```
+
+Since `batchSize: 1` the operation will sample one point at a time, this
+ensures that the sequence of measurements has the desired uniform coverage
+
+```bash
+ado show entities operation --use-latest  -o csv --output-file your_file.csv
+```
+
+The file `your_file.csv` will contain the sequence of sampled points, you
+will see something like this:
+
+<!-- markdownlint-disable line-length -->
+
+```csv
+request_index,result_index,identifier,experiment_id,generatorid,mol,temperature,volume,pressure,request_id,entity_index,valid
+0,0,mol.0.2-temperature.274-volume.8,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.2,274,8,56.9540689333,c8f814,0,True
+1,0,mol.0.7-temperature.284-volume.1,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.7,284,1,1652.9151684584,232c8e,0,True
+2,0,mol.0.4-temperature.294-volume.7,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.4,294,7,139.6829719824,9c6ae3,0,True
+3,0,mol.0.9-temperature.284-volume.5,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.9,284,5,425.03532903216,83a93d,0,True
+4,0,mol.0.5-temperature.280-volume.6,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.5,280,6,194.00412775333334,9e8ecd,0,True
+5,0,mol.0.1-temperature.298-volume.4,custom_experiments.calculate_pressure_ideal_gas,no_priors_characterization,0.1,298,4,61.9427465041,db9284,0,True
+...
+```
+
+<!-- markdownlint-enable line-length -->
+
+### Implementing a Custom Sampler
 
 To implement a custom sampler create a sub-class of
 `orchestrator.core.discovery.samplers.BaseSampler` and implement all required
@@ -337,37 +450,7 @@ class MySampler(BaseSampler):
          ...
 ```
 
-### Sampling all Entities
-
-If either of the following conditions are true you can specify a value of "all"
-for the `numberOfEntities` field in the random walk configuration:
-
-- All dimensions in the `entityspace`s are discrete and bounded or categorical
-- The sampling type is `selector` i.e. you are iterating over an existing set
-  number of entities in a `samplestore`
-
-In the first case `all` will be converted to the size of the space. In the
-second case `all` will be converted to the number of matching entities in the
-`samplestore`.
-
-If both of these conditions is False the `random_walk` operator will raise a
-ValueError when the execution starts.
-
-!!! info end
-
-    Depending on the Filter settings a randomwalk operation may not sample "all"
-    entities even if "all" is specified. This is because the filter may filter out
-    some entities.
-
-!!! warning end
-
-    For `discoveryspaces` where one/both of the above conditions are True setting
-    `numberOfEntities` greater than the corresponding size (size of space, or number
-    of matching entities in `samplestore`) will raise a ValueError. This means you
-    cannot set `numberOfEntities` to an arbitrarily large number to ensure sampling
-    all of them - use `all` instead.
-
-### Filtering Entities
+## Filtering Entities
 
 In some circumstance you may want to only sample a subset of Entities. Some
 examples include
@@ -391,26 +474,29 @@ which can take the following values:
 - `measured`: Only Entities fully measured by the experiments in the
   `measurementspace` will be sampled
 
-### Multiple Measurement
+## Memoization: Reusing existing measurements
 
-By setting `singleMeasurement:` to False the random walk operation will measure
-ALL entities it samples, even if they already have measurements.
+If `singleMeasurement:` is False, all experiments are applied to
+ALL entities sampled, even if they already have the results for that
+experiment.
 
-If entities have multiple measurements e.g. you turned this off and then turned
-it on again, then if an entity has multiple measurements each one will be
+By setting `singleMeasurement:` to True (the default) a random walk operation
+will check if an experiment has already been applied to an entity and,
+if it has, reuse a.k.a. replay, the result.
+
+If the entity has multiple results for the same experiment, each one will be
 replayed.
-
-Check [replayed measurements](explore_operators.md#memoization-replaying-measurements)
+See [replayed measurements](explore_operators.md#memoization-replaying-measurements)
 for more details.
 
-### Retrying Failed Measurements
+## Retrying Failed Measurements
 
 If the measurement of an entity by an experiment fails `random_walk` can retry
 it. The parameter controlling this is `maxRetries` which by default is 0 - no
 retries. If `maxRetries` is N then failing measurements will be retried up to
 `N` times.
 
-#### Experiment request index v number of experiments requested
+### Experiment request index v number of experiments requested
 
 To understand a `random_walk` operations logs when maxRetries is greater than 0
 it's necessary to understand how it tracks the entity+experiment combinations it

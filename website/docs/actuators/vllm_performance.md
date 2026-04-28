@@ -148,7 +148,7 @@ entity:
   n_cpus: 8
   memory: 128Gi
   gpu_type: NVIDIA-A100-80GB-PCIe
-  max_batch_tokens: 8192
+  max_batch_tokens: 256
   max_num_seq: 32
   n_gpus: 1
   request_rate: 10

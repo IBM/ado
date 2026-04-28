@@ -240,7 +240,7 @@ performance_testing-geospatial-full:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 256
+      value: 16384
     - property:
         identifier: 'n_gpus'
       value: 1
@@ -433,7 +433,7 @@ performance_testing-geospatial-full-custom-dataset:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 256
+      value: 16384
     - property:
         identifier: 'n_gpus'
       value: 1
@@ -773,7 +773,7 @@ performance_testing-geospatial-full-guidellm:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 256
+      value: 16384
     - property:
         identifier: 'n_gpus'
       value: 1
@@ -966,7 +966,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
       value: 256
     - property:
         identifier: 'max_batch_tokens'
-      value: 256
+      value: 16384
     - property:
         identifier: 'n_gpus'
       value: 1

@@ -174,7 +174,7 @@ performance_testing-geospatial-full:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [256, 32769]
+        domainRange: [1024, 32768]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:
@@ -367,7 +367,7 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [256, 32769]
+        domainRange: [1024, 32768]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:
@@ -707,7 +707,7 @@ performance_testing-geospatial-full-guidellm:
         description: "(deployment) maximum number of batched tokens per iteration"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [256, 32769]
+        domainRange: [1024, 32768]
         interval: 1024
     - identifier: 'n_gpus'
       metadata:

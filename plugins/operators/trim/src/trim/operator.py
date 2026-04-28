@@ -5,12 +5,11 @@
 import logging
 from importlib.metadata import version
 
-from no_priors_characterization.utils import get_source_and_target
-
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.core.operation.config import FunctionOperationInfo
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.operators.collections import characterize_operation
+from trim.samplers.no_priors_utils import get_source_and_target
 from trim.trim_pydantic import (
     TrimParameters,
 )  # Importing this way works when the package is installed
@@ -55,8 +54,7 @@ def trim(
         OperationOutput containing the operation resources and metadata
     """
     # Lazy import to avoid circular import issues during plugin loading
-    import orchestrator.modules.operators.randomwalk  # noqa: F401 — registers explore.random_walk
-    from orchestrator.modules.operators.collections import characterize, explore
+    from orchestrator.modules.operators.collections import explore
     from orchestrator.modules.operators.randomwalk import (
         CustomSamplerConfiguration,
         RandomWalkParameters,
@@ -97,9 +95,23 @@ def trim(
             f"Note: Trim sampler has been called with a minimum budget of {params.samplingBudget.minPoints} points."
         )
 
-        # Call the no-priors-characterization operator directly
-        no_priors_operator = characterize.no_priors_characterization
-        op_output_characterization_no_prior = no_priors_operator(
+        # Use random-walk with no-priors sampler instead of direct operator call
+        no_priors_module = SamplerModuleConf(
+            moduleClass="NoPriorsSampleSelector",
+            moduleName="trim.samplers.no_priors_sampler",
+        )
+        no_priors_sampler_config = CustomSamplerConfiguration(
+            module=no_priors_module,
+            parameters=params.noPriorParameters,
+        )
+        no_priors_rwparams = RandomWalkParameters(
+            samplerConfig=no_priors_sampler_config,
+            batchSize=params.noPriorParameters.batchSize,
+            numberEntities=params.samplingBudget.minPoints - len(source_df),
+            singleMeasurement=True,
+        )
+
+        op_output_characterization_no_prior = random_walk(
             discoverySpace=discoverySpace,
             operationInfo=FunctionOperationInfo.model_validate(
                 {
@@ -114,7 +126,7 @@ def trim(
                     ),
                 }
             ),
-            **params.noPriorParameters.model_dump(),
+            **no_priors_rwparams.model_dump(),
         )
 
         source_df, target_df = get_source_and_target(
@@ -159,7 +171,11 @@ def trim(
         operationInfo=FunctionOperationInfo.model_validate(
             {
                 "metadata": {"completed operation": "Iterative Modeling Operation"},
-                "actuatorConfigurationIdentifiers": operationInfo.actuatorConfigurationIdentifiers,
+                "actuatorConfigurationIdentifiers": (
+                    operationInfo.actuatorConfigurationIdentifiers
+                    if operationInfo
+                    else []
+                ),
             }
         ),
         **trim_rwparams.model_dump(),

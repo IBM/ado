@@ -376,8 +376,6 @@ def export_operation(
 def load_operators() -> None:
     from importlib.metadata import entry_points
 
-    import orchestrator.modules.operators.randomwalk  # noqa: F401
-
     for operator_plugin in entry_points(group="ado.operators"):
         try:
             operator_plugin.load()

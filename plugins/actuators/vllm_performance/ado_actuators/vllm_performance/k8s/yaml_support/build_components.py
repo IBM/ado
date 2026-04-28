@@ -216,7 +216,7 @@ class ComponentsYaml:
         limits["memory"] = memory
         limits["nvidia.com/gpu"] = str(n_gpus)
 
-        if "env" not in container:
+        if container.get("env") is None:
             container["env"] = []
         if hf_token is not None:
             container["env"].append({"name": "HF_TOKEN", "value": hf_token})

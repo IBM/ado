@@ -76,7 +76,7 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
             description="If true, disables automatic installation of vllm and guidellm dependencies in Ray task environment. Useful for development when dependencies are already installed."
         ),
     ] = False
-    otel_traces_endpoint: Annotated[
+    otlp_traces_endpoint: Annotated[
         str | None,
         pydantic.Field(
             description="OpenTelemetry traces endpoint URL for vLLM observability"

@@ -3,6 +3,7 @@
 This is the repository for the **a**ccelerated **d**iscovery **o**rchestrator
 (**`ado`**).
 
+
 **`ado`** is a unified platform for **executing computational experiments at
 scale** and **analysing their results**. It can be extended with new experiments
 or new analysis tools. It allows distributed teams of researchers and engineers

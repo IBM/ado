@@ -6,8 +6,6 @@ Unit tests for OTLP traces endpoint feature in vllm_performance actuator.
 Tests parameter validation, YAML generation, and backward compatibility.
 """
 
-import yaml
-
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from plugins.actuators.vllm_performance.ado_actuators.vllm_performance.actuator_parameters import (
     VLLMPerformanceTestParameters,
@@ -53,36 +51,36 @@ class TestActuatorConfigurationWithOTLP:
 
     def test_actuator_configuration_with_otlp_endpoint(self) -> None:
         """Test full actuator configuration with OTLP endpoint"""
-        config_yaml = """
-actuatorIdentifier: vllm_performance
-parameters:
-  namespace: test-namespace
-  otlp_traces_endpoint: http://jaeger:4318/v1/traces
-"""
-        config = ActuatorConfiguration(**yaml.safe_load(config_yaml))
+        config = ActuatorConfiguration(
+            actuatorIdentifier="vllm_performance",
+            parameters=VLLMPerformanceTestParameters(  # type: ignore[call-arg]
+                namespace="test-namespace",
+                otlp_traces_endpoint="http://jaeger:4318/v1/traces",
+            ),
+        )
         assert str(config.parameters.otlp_traces_endpoint) == "http://jaeger:4318/v1/traces"  # type: ignore[union-attr]
 
     def test_actuator_configuration_without_otlp_endpoint(self) -> None:
         """Test actuator configuration without OTLP endpoint (backward compatibility)"""
-        config_yaml = """
-actuatorIdentifier: vllm_performance
-parameters:
-  namespace: test-namespace
-  max_environments: 3
-"""
-        config = ActuatorConfiguration(**yaml.safe_load(config_yaml))
+        config = ActuatorConfiguration(
+            actuatorIdentifier="vllm_performance",
+            parameters=VLLMPerformanceTestParameters(  # type: ignore[call-arg]
+                namespace="test-namespace",
+                max_environments=3,
+            ),
+        )
         assert config.parameters.otlp_traces_endpoint is None  # type: ignore[union-attr]
 
     def test_actuator_configuration_yaml_roundtrip(self) -> None:
         """Test YAML serialization roundtrip with OTLP endpoint"""
-        config_yaml = """
-actuatorIdentifier: vllm_performance
-parameters:
-  namespace: test-namespace
-  otlp_traces_endpoint: http://jaeger:4318/v1/traces
-  max_environments: 2
-"""
-        config = ActuatorConfiguration(**yaml.safe_load(config_yaml))
+        config = ActuatorConfiguration(
+            actuatorIdentifier="vllm_performance",
+            parameters=VLLMPerformanceTestParameters(  # type: ignore[call-arg]
+                namespace="test-namespace",
+                otlp_traces_endpoint="http://jaeger:4318/v1/traces",
+                max_environments=2,
+            ),
+        )
 
         # Serialize back to dict
         config_dict = config.model_dump()

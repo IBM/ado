@@ -8,6 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import pydantic
 import yaml
 
 PVC_MOUNT_PATH = "/dev/cache"
@@ -91,6 +92,7 @@ class ComponentsYaml:
         enforce_eager: bool = False,
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
+        otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -194,6 +196,9 @@ class ComponentsYaml:
             vllm_serve_args.append("--io-processor-plugin")
             vllm_serve_args.append(io_processor_plugin)
             vllm_serve_args.append("--enable-mm-embeds")
+        if otlp_traces_endpoint is not None:
+            vllm_serve_args.append("--otlp-traces-endpoint")
+            vllm_serve_args.append(str(otlp_traces_endpoint))
 
         # container
         container = spec["containers"][0]
@@ -212,10 +217,12 @@ class ComponentsYaml:
         limits["memory"] = memory
         limits["nvidia.com/gpu"] = str(n_gpus)
 
-        if "env" not in container:
+        if container.get("env") is None:
             container["env"] = []
         if hf_token is not None:
             container["env"].append({"name": "HF_TOKEN", "value": hf_token})
+        if otlp_traces_endpoint is not None:
+            container["env"].append({"name": "OTEL_SERVICE_NAME", "value": k8s_name})
         if claim_name is not None:
             container["env"].extend(
                 [

@@ -3,6 +3,7 @@
 
 import logging
 
+import pydantic
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -39,7 +40,7 @@ def create_test_environment(
     enforce_eager: bool = False,
     skip_tokenizer_init: bool = False,
     io_processor_plugin: str | None = None,
-    otlp_traces_endpoint: str | None = None,
+    otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> None:

@@ -77,7 +77,7 @@ class VLLMPerformanceTestParameters(GenericActuatorParameters):
         ),
     ] = False
     otlp_traces_endpoint: Annotated[
-        str | None,
+        pydantic.AnyUrl | None,
         pydantic.Field(
             description="OpenTelemetry traces endpoint URL for vLLM observability"
         ),

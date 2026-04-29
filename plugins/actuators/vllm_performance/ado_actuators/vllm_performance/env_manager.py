@@ -112,7 +112,7 @@ class EnvironmentManager:
         verify_ssl: bool = False,
         pvc_name: str | None = None,
         pvc_template: str | None = None,
-        otlp_traces_endpoint: str | None = None,
+        otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     ) -> None:
         """
         Initialize
@@ -301,7 +301,7 @@ class EnvironmentManager:
             request_id=request_id, k8s_name=env.k8s_name, model=env.model
         )
 
-    def get_otlp_traces_endpoint(self) -> str | None:
+    def get_otlp_traces_endpoint(self) -> pydantic.AnyUrl | None:
         """
         Get the OTLP traces endpoint
         :return: OTLP traces endpoint URL or None

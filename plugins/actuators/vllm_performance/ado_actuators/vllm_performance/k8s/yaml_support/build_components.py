@@ -8,6 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import pydantic
 import yaml
 
 PVC_MOUNT_PATH = "/dev/cache"
@@ -91,7 +92,7 @@ class ComponentsYaml:
         enforce_eager: bool = False,
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
-        otlp_traces_endpoint: str | None = None,
+        otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     ) -> dict[str, Any]:
         """
         Generate deployment yaml
@@ -197,7 +198,7 @@ class ComponentsYaml:
             vllm_serve_args.append("--enable-mm-embeds")
         if otlp_traces_endpoint is not None:
             vllm_serve_args.append("--otlp-traces-endpoint")
-            vllm_serve_args.append(otlp_traces_endpoint)
+            vllm_serve_args.append(str(otlp_traces_endpoint))
 
         # container
         container = spec["containers"][0]
@@ -239,7 +240,7 @@ class ComponentsYaml:
             container["env"].append(
                 {
                     "name": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
-                    "value": otlp_traces_endpoint,
+                    "value": str(otlp_traces_endpoint),
                 }
             )
         # volume mounts

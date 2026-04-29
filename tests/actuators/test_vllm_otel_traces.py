@@ -29,7 +29,23 @@ class TestOTLPTracesEndpointParameter:
         """Test that otlp_traces_endpoint accepts valid URLs"""
         url = "http://jaeger:4318/v1/traces"
         params = VLLMPerformanceTestParameters(otlp_traces_endpoint=url)  # type: ignore[call-arg]
-        assert params.otlp_traces_endpoint == url
+        assert str(params.otlp_traces_endpoint) == url
+
+    def test_otlp_traces_endpoint_rejects_invalid_url(self) -> None:
+        """Test that otlp_traces_endpoint rejects invalid URLs"""
+        import pytest
+        from pydantic import ValidationError
+
+        invalid_urls = [
+            "hello",  # Not a URL
+            "not-a-url",  # Not a URL
+            "://invalid",  # Missing scheme
+            "http://",  # Missing host
+        ]
+
+        for invalid_url in invalid_urls:
+            with pytest.raises(ValidationError):
+                VLLMPerformanceTestParameters(otlp_traces_endpoint=invalid_url)  # type: ignore[call-arg]
 
 
 class TestActuatorConfigurationWithOTLP:
@@ -44,7 +60,7 @@ parameters:
   otlp_traces_endpoint: http://jaeger:4318/v1/traces
 """
         config = ActuatorConfiguration(**yaml.safe_load(config_yaml))
-        assert config.parameters.otlp_traces_endpoint == "http://jaeger:4318/v1/traces"  # type: ignore[union-attr]
+        assert str(config.parameters.otlp_traces_endpoint) == "http://jaeger:4318/v1/traces"  # type: ignore[union-attr]
 
     def test_actuator_configuration_without_otlp_endpoint(self) -> None:
         """Test actuator configuration without OTLP endpoint (backward compatibility)"""
@@ -71,13 +87,13 @@ parameters:
         # Serialize back to dict
         config_dict = config.model_dump()
         assert (
-            config_dict["parameters"]["otlp_traces_endpoint"]
+            str(config_dict["parameters"]["otlp_traces_endpoint"])
             == "http://jaeger:4318/v1/traces"
         )
 
         # Create new config from serialized dict
         config_restored = ActuatorConfiguration(**config_dict)
-        assert config_restored.parameters.otlp_traces_endpoint == "http://jaeger:4318/v1/traces"  # type: ignore[union-attr]
+        assert str(config_restored.parameters.otlp_traces_endpoint) == "http://jaeger:4318/v1/traces"  # type: ignore[union-attr]
 
 
 class TestDeploymentYAMLWithOTLP:

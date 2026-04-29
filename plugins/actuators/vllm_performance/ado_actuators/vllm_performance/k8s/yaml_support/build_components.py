@@ -236,13 +236,6 @@ class ComponentsYaml:
             )
         if logging.root.level == logging.DEBUG:
             container["env"].append({"name": "VLLM_LOGGING_LEVEL", "value": "DEBUG"})
-        if otlp_traces_endpoint is not None:
-            container["env"].append(
-                {
-                    "name": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
-                    "value": str(otlp_traces_endpoint),
-                }
-            )
         # volume mounts
         if claim_name is not None:
             container["volumeMounts"].extend(

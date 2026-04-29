@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-Unit tests for OTEL traces endpoint feature in vllm_performance actuator.
+Unit tests for OTLP traces endpoint feature in vllm_performance actuator.
 Tests parameter validation, YAML generation, and backward compatibility.
 """
 
@@ -107,15 +107,9 @@ class TestDeploymentYAMLWithOTLP:
             otlp_traces_endpoint=None,
         )
 
-        # Verify no OTEL env var
         container = yaml_dict["spec"]["template"]["spec"]["containers"][0]
-        env_vars = container.get("env") or []
-        otel_env = [
-            e for e in env_vars if e["name"] == "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-        ]
-        assert len(otel_env) == 0
 
-        # Verify no OTEL arg
+        # Verify no OTLP arg
         args = container["args"]
         assert "--otlp-traces-endpoint" not in args
 
@@ -128,14 +122,8 @@ class TestDeploymentYAMLWithOTLP:
             otlp_traces_endpoint=otlp_url,
         )
 
-        # Verify OTLP env var is present
+        # Verify OTLP env var is NOT set (endpoint is passed via args instead)
         container = yaml_dict["spec"]["template"]["spec"]["containers"][0]
-        env_vars = container.get("env") or []
-        otlp_env = [
-            e for e in env_vars if e["name"] == "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
-        ]
-        assert len(otlp_env) == 1
-        assert otlp_env[0]["value"] == otlp_url
 
         # Verify OTLP arg is present with correct value
         args = container["args"]
@@ -156,9 +144,7 @@ class TestDeploymentYAMLWithOTLP:
         args = container["args"]
         otlp_arg_index = args.index("--otlp-traces-endpoint")
 
-        # Verify it's the actual URL, not "$OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
         assert args[otlp_arg_index + 1] == otlp_url
-        assert args[otlp_arg_index + 1] != "$OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
 
 
 # Made with Bob

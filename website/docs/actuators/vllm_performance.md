@@ -257,19 +257,19 @@ ado create actuatorconfiguration -f vllm_config.yaml
 >
 ### OpenTelemetry Observability
 
-The `otel_traces_endpoint` parameter enables distributed tracing
+The `otlp_traces_endpoint` parameter enables distributed tracing
 for vLLM deployments, allowing you to monitor and analyze request
 lifecycles through OpenTelemetry-compatible observability platforms.
 
 **Configuration:**
 
-Add the `otel_traces_endpoint` parameter to your actuatorconfiguration:
+Add the `otlp_traces_endpoint` parameter to your actuatorconfiguration:
 
 ```yaml
 actuatorIdentifier: vllm_performance
 parameters:
   namespace: "mynamespace"
-  otel_traces_endpoint: "http://jaeger:4317/v1/traces"  # Optional gRPC endpoint
+  otlp_traces_endpoint: "http://jaeger:4317/v1/traces"  # Optional gRPC endpoint
   # ... other parameters
 ```
 
@@ -282,7 +282,6 @@ parameters:
 
 **How it works:**
 
-- Sets the `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` environment variable
 - Configures vLLM's `--otlp-traces-endpoint` argument
 - Exports traces to your specified OTLP endpoint
 

@@ -221,6 +221,8 @@ class ComponentsYaml:
             container["env"] = []
         if hf_token is not None:
             container["env"].append({"name": "HF_TOKEN", "value": hf_token})
+        if otlp_traces_endpoint is not None:
+            container["env"].append({"name": "OTEL_SERVICE_NAME", "value": k8s_name})
         if claim_name is not None:
             container["env"].extend(
                 [

@@ -146,5 +146,42 @@ class TestDeploymentYAMLWithOTLP:
 
         assert args[otlp_arg_index + 1] == otlp_url
 
+    def test_deployment_yaml_without_otlp_no_service_name(self) -> None:
+        """Test that OTEL_SERVICE_NAME is not set when OTLP endpoint is not provided"""
+        yaml_dict = ComponentsYaml.deployment_yaml(
+            k8s_name="test-deployment",
+            model="test-model",
+            otlp_traces_endpoint=None,
+        )
+
+        container = yaml_dict["spec"]["template"]["spec"]["containers"][0]
+        env_vars = container.get("env", [])
+
+        # Verify OTEL_SERVICE_NAME is not set
+        service_name_vars = [
+            e for e in env_vars if e.get("name") == "OTEL_SERVICE_NAME"
+        ]
+        assert len(service_name_vars) == 0
+
+    def test_deployment_yaml_with_otlp_sets_service_name(self) -> None:
+        """Test that OTEL_SERVICE_NAME is set to deployment name when OTLP endpoint is provided"""
+        otlp_url = "http://jaeger:4318/v1/traces"
+        k8s_name = "test-deployment-12345"
+        yaml_dict = ComponentsYaml.deployment_yaml(
+            k8s_name=k8s_name,
+            model="test-model",
+            otlp_traces_endpoint=otlp_url,
+        )
+
+        container = yaml_dict["spec"]["template"]["spec"]["containers"][0]
+        env_vars = container.get("env", [])
+
+        # Verify OTEL_SERVICE_NAME is set with correct value
+        service_name_vars = [
+            e for e in env_vars if e.get("name") == "OTEL_SERVICE_NAME"
+        ]
+        assert len(service_name_vars) == 1
+        assert service_name_vars[0]["value"] == k8s_name
+
 
 # Made with Bob

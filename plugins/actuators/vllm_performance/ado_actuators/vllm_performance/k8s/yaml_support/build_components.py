@@ -186,14 +186,11 @@ class ComponentsYaml:
         if max_num_seq is not None:
             vllm_serve_args.extend(["--max-num-seq", f"{max_num_seq}"])
 
-        vllm_serve_args.extend(
-            [
-                "--tensor-parallel-size",
-                f"{n_gpus}",
-                "--dtype",
-                dtype.value,
-            ]
-        )
+        # Only set tensor-parallel-size if n_gpus > 1 (default is 1)
+        if n_gpus > 1:
+            vllm_serve_args.extend(["--tensor-parallel-size", f"{n_gpus}"])
+
+        vllm_serve_args.extend(["--dtype", dtype.value])
 
         if enforce_eager:
             vllm_serve_args.append("--enforce-eager")

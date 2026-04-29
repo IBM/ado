@@ -215,22 +215,17 @@ class TestDeploymentParameters:
         assert args[0] == base_deployment_params["model"]
 
         # Verify required VLLM parameters are present
-        expected_flags = [
-            "--tensor-parallel-size",
-            "--dtype",
-        ]
+        assert "--dtype" in args
 
-        for flag in expected_flags:
-            assert flag in args, f"Expected flag {flag} not found in args"
-
-        # Verify optional parameters are NOT present by default
+        # Verify optional parameters are NOT present by default (including tensor-parallel-size for single GPU)
         assert "--max-num-batched-tokens" not in args
         assert "--gpu-memory-utilization" not in args
         assert "--cpu-offload-gb" not in args
         assert "--max-num-seq" not in args
+        assert "--tensor-parallel-size" not in args  # Not set for single GPU (n_gpus=1)
 
-    def test_tensor_parallel_size_matches_gpus(self) -> None:
-        """Test that tensor-parallel-size matches the number of GPUs."""
+    def test_tensor_parallel_size_set_for_multi_gpu(self) -> None:
+        """Test that tensor-parallel-size is set when n_gpus > 1."""
         n_gpus = 4
         deployment_yaml = ComponentsYaml.deployment_yaml(
             k8s_name="test-vllm-deployment",
@@ -244,6 +239,18 @@ class TestDeploymentParameters:
         assert "--tensor-parallel-size" in args
         idx = args.index("--tensor-parallel-size")
         assert args[idx + 1] == str(n_gpus)
+
+    def test_tensor_parallel_size_not_set_for_single_gpu(
+        self, base_deployment_params: dict
+    ) -> None:
+        """Test that tensor-parallel-size is NOT set for single GPU (n_gpus=1)."""
+        deployment_yaml = ComponentsYaml.deployment_yaml(**base_deployment_params)
+
+        container = deployment_yaml["spec"]["template"]["spec"]["containers"][0]
+        args = container["args"]
+
+        # tensor-parallel-size should NOT be set for single GPU
+        assert "--tensor-parallel-size" not in args
 
     def test_deployment_metadata_correct(self, base_deployment_params: dict) -> None:
         """Test that deployment metadata is correctly set."""

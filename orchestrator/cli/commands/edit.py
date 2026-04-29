@@ -35,17 +35,6 @@ if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
 
 
-def _parse_ado_edit_editor_name(value: str) -> AdoEditSupportedEditors:
-    """Map *value* from :class:`HiddenPluralChoice` to the editor enum member."""
-    token = value.removesuffix("s")
-    for m in AdoEditSupportedEditors:
-        if m.value == token:
-            return m
-    raise RuntimeError(
-        "HiddenPluralChoice should have already validated the editor"
-    )  # pragma: no cover
-
-
 def edit_resource(
     ctx: typer.Context,
     resource_type: Annotated[
@@ -66,7 +55,7 @@ def edit_resource(
         ),
     ],
     editor: Annotated[
-        str,
+        AdoEditSupportedEditors,
         typer.Option(
             "--editor",
             envvar="ADO_EDITOR",
@@ -74,7 +63,6 @@ def edit_resource(
                 "The editor to use to edit metadata (interactive mode only; "
                 "not with --patch or --patch-file)."
             ),
-            click_type=AdoEditSupportedEditors,
         ),
     ] = AdoEditSupportedEditors.NANO.value,
     patch: Annotated[
@@ -152,7 +140,7 @@ def edit_resource(
     else:
         parameters = AdoEditCommandParameters(
             ado_configuration=ado_configuration,
-            editor=_parse_ado_edit_editor_name(editor),
+            editor=editor,
             resource_id=resource_id,
             metadata_patch=None,
             metadata_path=None,

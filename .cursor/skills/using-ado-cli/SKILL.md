@@ -120,7 +120,8 @@ Updates **metadata** (name, description, labels, etc.) for metastore resources.
 # Interactive (default editor: nano, or $ADO_EDITOR)
 uv run ado edit space SPACE_ID
 
-# Non-interactive: default is an inline patch (-p / --patch), like oc
+# Non-interactive: default is an inline YAML or JSON patch (-p / --patch), 
+# like oc
 uv run ado edit space SPACE_ID -p "labels: { team: research }"
 
 # Or merge from a file
@@ -164,7 +165,7 @@ uv run ado describe experiment EXPERIMENT_ID
 
 For `ado get` and `ado show` subcommands, output can be captured with a shell
 redirect (`>`) or with the `--output-file PATH` flag. In many cases a redirect
-is perfectly fine and fits naturally into terminal workflows:
+(or pipe) is perfectly fine and fits naturally into terminal workflows:
 
 ```bash
 uv run ado get space SPACE_ID -o yaml > space.yaml
@@ -174,11 +175,14 @@ uv run ado show entities operation OPERATION_ID -o csv > entities.csv
 Prefer `--output-file` in the following situations:
 
 - **Pre-flight checks**: ado validates that the path is writable before starting
-  a potentially long data fetch, avoiding a silent failure at the end.
+  a potentially long data fetch, avoiding a failure after fetch.
 - **Stdout pollution**: if any log lines or warnings are mixed into stdout (e.g.
   when another tool in the pipeline writes to stdout), a redirect captures that
   noise alongside the data. `--output-file` writes only the formatted output to
   the file; logs continue to go to stderr.
+- **Table Truncation**: when output to terminal the table format (the default
+  for --output) may truncate columns to fit terminal width. This truncation is not
+  removed when the output is redirected, but is if --output-file specified
 
 ```bash
 uv run ado show entities operation OPERATION_ID -o csv --output-file entities.csv

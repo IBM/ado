@@ -469,12 +469,6 @@ def handle_edit_resource_metadata(
             raise ResourceDoesNotExistError(resource_id=resource_id, kind=resource_type)
 
     if metadata_path is not None or metadata_patch is not None:
-        if metadata_path is not None and metadata_patch is not None:
-            console_print(
-                f"{ERROR}Use only one of --patch / -p and --patch-file.",
-                stderr=True,
-            )
-            raise typer.Exit(1)
         try:
             raw = yaml.safe_load(
                 metadata_patch
@@ -488,22 +482,13 @@ def handle_edit_resource_metadata(
                 stderr=True,
             )
             raise typer.Exit(1) from e
-        if raw is not None and not isinstance(raw, dict):
-            console_print(
-                f"{ERROR}The metadata patch must be a YAML/JSON object at the top level.",
-                stderr=True,
+        if raw is None:
+            new_metadata = {}
+        else:
+            base_dict = resource.config.metadata.model_dump()
+            new_metadata = strategic_merge_configuration_metadata(
+                base=base_dict, patch=raw
             )
-            raise typer.Exit(1)
-        patch_dict: dict[str, typing.Any] = raw if isinstance(raw, dict) else {}
-        base_dict = resource.config.metadata.model_dump()
-        try:
-            merged = strategic_merge_configuration_metadata(
-                base=base_dict, patch=patch_dict
-            )
-            new_metadata = ConfigurationMetadata.model_validate(merged)
-        except pydantic.ValidationError as e:
-            console_print(f"{ERROR}The merged metadata was invalid: {e}", stderr=True)
-            raise typer.Exit(1) from e
     else:
         if editor is None:
             console_print(
@@ -530,9 +515,7 @@ def handle_edit_resource_metadata(
             new_metadata = yaml.safe_load(file.read_text())
 
     try:
-        resource.config.metadata = ConfigurationMetadata.model_validate(
-            new_metadata
-        )
+        resource.config.metadata = ConfigurationMetadata.model_validate(new_metadata)
     except pydantic.ValidationError as e:
         console_print(f"{ERROR}The updated metadata was invalid: {e}", stderr=True)
         raise typer.Exit(1) from e

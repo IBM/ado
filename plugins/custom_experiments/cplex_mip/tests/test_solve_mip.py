@@ -140,7 +140,7 @@ class TestOptionalProperties:
         assert sorted(prop.propertyDomain.values) == [0, 1, 2, 3, 4, 5]
 
     def test_time_limit_domain_type(self, experiment: Experiment) -> None:
-        """time_limit_s must be a continuous variable with no enforced range."""
+        """time_limit_s must be continuous with a nonnegative range including 1e75."""
         prop = next(
             p for p in experiment.optionalProperties if p.identifier == "time_limit_s"
         )
@@ -150,7 +150,7 @@ class TestOptionalProperties:
             prop.propertyDomain.variableType
             == VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE
         )
-        assert prop.propertyDomain.domainRange is None
+        assert prop.propertyDomain.domainRange == [0, 1e76]
 
     def test_n_threads_domain_values(self, experiment: Experiment) -> None:
         """n_threads domain must contain exactly [1, 2, 4, 8]."""

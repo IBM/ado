@@ -95,12 +95,14 @@ TimeLimit = ConstitutiveProperty(
         "description": (
             "CPLEX time limit per seed run in seconds (CPX_PARAM_TILIM). "
             "Default is 1e75 (no limit); CPLEX runs until the optimal solution is found. "
-            "Any positive value up to 1e75 is accepted."
+            "Any positive value up to and including 1e75 is accepted."
         )
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
-        domainRange=[0, 1e75],  # Positive values only
+        # Upper bound is strictly above 1e75: float ULP makes (1e75 + 1) == 1e75, which
+        # breaks ``value < max(domainRange)`` validation for the default 1e75.
+        domainRange=[0, 1e76],
     ),
 )
 
@@ -344,6 +346,9 @@ def _build_time_grid(
     cap = max(cap, float(max_elapsed))
     grid: list[float] = []
     t = 0.0
+    # 1e-9 is added to avoid issues with rounding errors when
+    # accumulating t+interval_s
+    # e.g. 0.2+0.1 in python is not 0.3
     while t <= cap + 1e-9:
         grid.append(t)
         t += interval_s
@@ -596,7 +601,7 @@ def solve_mip(
     node_selection: int = 1,
     variable_selection: int = 0,
     heuristic_frequency: int = 0,
-    time_limit_s: float = 1e74,
+    time_limit_s: float = 1e75,
     n_threads: int = 1,
     rins_frequency: int = 0,
     cut_passes: int = 0,

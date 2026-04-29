@@ -80,11 +80,11 @@ class ComponentsYaml:
         n_gpus: int = 1,
         n_cpus: int = 8,
         memory: str = "128Gi",
-        max_batch_tokens: int = 16384,
-        gpu_memory_utilization: float = 0.9,
+        max_batch_tokens: int | None = None,
+        gpu_memory_utilization: float | None = None,
         dtype: VLLMDtype = VLLMDtype.AUTO,
-        cpu_offload: int = 0,
-        max_num_seq: int = 256,
+        cpu_offload: int | None = None,
+        max_num_seq: int | None = None,
         template: str | None = None,
         claim_name: str | None = None,
         hf_token: str | None = None,
@@ -170,21 +170,30 @@ class ComponentsYaml:
                 [{"name": PVC_NAME, "persistentVolumeClaim": {"claimName": claim_name}}]
             )
 
-        vllm_serve_args = [
-            model,
-            "--max-num-batched-tokens",
-            f"{max_batch_tokens}",
-            "--gpu-memory-utilization",
-            f"{gpu_memory_utilization}",
-            "--cpu-offload-gb",
-            f"{cpu_offload}",
-            "--max-num-seq",
-            f"{max_num_seq}",
-            "--tensor-parallel-size",
-            f"{n_gpus}",
-            "--dtype",
-            dtype.value,
-        ]
+        vllm_serve_args = [model]
+
+        if max_batch_tokens is not None:
+            vllm_serve_args.extend(["--max-num-batched-tokens", f"{max_batch_tokens}"])
+
+        if gpu_memory_utilization is not None:
+            vllm_serve_args.extend(
+                ["--gpu-memory-utilization", f"{gpu_memory_utilization}"]
+            )
+
+        if cpu_offload is not None:
+            vllm_serve_args.extend(["--cpu-offload-gb", f"{cpu_offload}"])
+
+        if max_num_seq is not None:
+            vllm_serve_args.extend(["--max-num-seq", f"{max_num_seq}"])
+
+        vllm_serve_args.extend(
+            [
+                "--tensor-parallel-size",
+                f"{n_gpus}",
+                "--dtype",
+                dtype.value,
+            ]
+        )
 
         if enforce_eager:
             vllm_serve_args.append("--enforce-eager")

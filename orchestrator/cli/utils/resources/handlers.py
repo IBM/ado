@@ -475,6 +475,13 @@ def handle_edit_resource_metadata(
                 if metadata_patch is not None
                 else metadata_path.read_text()
             )
+            if raw is not None and not isinstance(raw, dict):
+                console_print(
+                    f"{ERROR}The provided metadata must be a YAML/JSON object "
+                    f"(mapping), not {type(raw).__name__}.",
+                    stderr=True,
+                )
+                raise typer.Exit(1)
             _ = ConfigurationMetadata.model_validate(raw)
         except (OSError, yaml.YAMLError, ValueError) as e:
             console_print(

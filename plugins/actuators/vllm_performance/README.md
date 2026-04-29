@@ -473,6 +473,47 @@ forget to create a corresponding Image pull secret in your assigned namespace.
 You must also update the value of the `image_pull_secret_name` parameter of the
 actuator configuration.
 
+### Understanding Property Value Selection
+
+When you define a discoveryspace, property values are selected according to the
+following priority:
+
+1. **Explicitly defined in your discoveryspace**: If you define a property in
+   your `entitySpace`, that value will be used
+2. **Experiment default parameterization**: If a property is NOT defined in your
+   discoveryspace but IS listed in the experiment's `defaultParameterization`,
+   the default value will be used
+3. **Not set**: If a property is neither in your discoveryspace nor has a
+   default, it will be `None` and won't be passed to the deployment
+
+**Example:**
+
+In the `test-geospatial-deployment-custom-dataset-v1` experiment, the following
+defaults are defined:
+
+```yaml
+defaultParameterization:
+  - property:
+      identifier: "gpu_memory_utilization"
+    value: .9
+  - property:
+      identifier: "cpu_offload"
+    value: 0
+```
+
+This means:
+
+- If you DON'T define `gpu_memory_utilization` in your discoveryspace, it will
+  default to `0.9` and `--gpu-memory-utilization 0.9` will be added to the vLLM
+  deployment
+- If you DO define `gpu_memory_utilization: 0.75` in your discoveryspace, that
+  value will be used instead, and `--gpu-memory-utilization 0.75` will be added
+- To prevent a parameter from being set at all, you would need to modify the
+  experiment definition to remove it from `defaultParameterization`
+
+**To override defaults:** Simply define the property in your discoveryspace's
+`entitySpace` with your desired value(s).
+
 ### Customising Experiment Protocol
 
 The values for the parameters in the entity space must be a subset of the

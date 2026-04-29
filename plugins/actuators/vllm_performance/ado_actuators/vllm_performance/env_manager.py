@@ -112,6 +112,7 @@ class EnvironmentManager:
         verify_ssl: bool = False,
         pvc_name: str | None = None,
         pvc_template: str | None = None,
+        otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     ) -> None:
         """
         Initialize
@@ -121,6 +122,7 @@ class EnvironmentManager:
         :param verify_ssl: flag verify SSL
         :param pvc_name: name of the PVC to be created / used
         :param pvc_template: template of the PVC to be created
+        :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
         """
         self.in_use_environments: dict[str, Environment] = {}
         self.free_environments: list[Environment] = []
@@ -130,6 +132,7 @@ class EnvironmentManager:
         self.max_concurrent = max_concurrent
         self.in_cluster = in_cluster
         self.verify_ssl = verify_ssl
+        self.otlp_traces_endpoint = otlp_traces_endpoint
 
         # component manager for cleanup
         self.manager = ComponentsManager(
@@ -297,6 +300,13 @@ class EnvironmentManager:
         await self.deployment_conflict_manager.wait(
             request_id=request_id, k8s_name=env.k8s_name, model=env.model
         )
+
+    def get_otlp_traces_endpoint(self) -> pydantic.AnyUrl | None:
+        """
+        Get the OTLP traces endpoint
+        :return: OTLP traces endpoint URL or None
+        """
+        return self.otlp_traces_endpoint
 
     def done_using(self, identifier: str, reclaim_on_completion: bool = False) -> None:
         """

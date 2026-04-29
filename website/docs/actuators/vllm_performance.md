@@ -283,6 +283,8 @@ parameters:
 **How it works:**
 
 - Configures vLLM's `--otlp-traces-endpoint` argument
+- Automatically sets the `OTEL_SERVICE_NAME` environment variable
+to the deployment name for trace identification
 - Exports traces to your specified OTLP endpoint
 
 **Note:** This parameter is optional and defaults to `None`.

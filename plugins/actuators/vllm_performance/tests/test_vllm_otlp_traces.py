@@ -6,13 +6,14 @@ Unit tests for OTLP traces endpoint feature in vllm_performance actuator.
 Tests parameter validation, YAML generation, and backward compatibility.
 """
 
-from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
-from plugins.actuators.vllm_performance.ado_actuators.vllm_performance.actuator_parameters import (
+from ado_actuators.vllm_performance.actuator_parameters import (
     VLLMPerformanceTestParameters,
 )
-from plugins.actuators.vllm_performance.ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
+from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     ComponentsYaml,
 )
+
+from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 
 
 class TestOTLPTracesEndpointParameter:

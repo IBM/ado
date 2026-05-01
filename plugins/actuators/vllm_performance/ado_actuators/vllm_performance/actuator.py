@@ -211,12 +211,12 @@ class VLLMPerformanceTest(ActuatorBase):
             )
 
         if experiment.identifier in [
-            "test-deployment-v1",
-            "test-deployment-guidellm-v1",
-            "test-geospatial-deployment-v1",
-            "test-geospatial-deployment-custom-dataset-v1",
-            "test-geospatial-deployment-guidellm-v1",
-            "test-geospatial-deployment-guidellm-custom-dataset-v1",
+            "test-deployment-v2",
+            "test-deployment-guidellm-v2",
+            "test-geospatial-deployment-v2",
+            "test-geospatial-deployment-custom-dataset-v2",
+            "test-geospatial-deployment-guidellm-v2",
+            "test-geospatial-deployment-guidellm-custom-dataset-v2",
         ]:
             if not self.env_manager:
                 raise MissingConfigurationForExperimentError(

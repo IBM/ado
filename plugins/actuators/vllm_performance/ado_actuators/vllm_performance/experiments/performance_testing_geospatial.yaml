@@ -3,7 +3,7 @@
 # The input to an experiment is an Entity. For the Entity to be a valid input
 # it's properties which  match what is defined here
 performance_testing-geospatial-endpoint:
-  identifier: test-geospatial-endpoint-v1
+  identifier: test-geospatial-endpoint-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -81,7 +81,7 @@ performance_testing-geospatial-endpoint:
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint across inference workload configurations'
 performance_testing-geospatial-full:
-  identifier: test-geospatial-deployment-v1
+  identifier: test-geospatial-deployment-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -274,7 +274,7 @@ performance_testing-geospatial-full:
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
 performance_testing-geospatial-full-custom-dataset:
-  identifier: test-geospatial-deployment-custom-dataset-v1
+  identifier: test-geospatial-deployment-custom-dataset-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -464,7 +464,7 @@ performance_testing-geospatial-full-custom-dataset:
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
 performance_testing-geospatial-endpoint-custom-dataset:
-  identifier: test-geospatial-endpoint-custom-dataset-v1
+  identifier: test-geospatial-endpoint-custom-dataset-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -539,7 +539,7 @@ performance_testing-geospatial-endpoint-custom-dataset:
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint across inference workload configurations'
 performance_testing-geospatial-endpoint-guidellm:
-  identifier: test-geospatial-endpoint-guidellm-v1
+  identifier: test-geospatial-endpoint-guidellm-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'
@@ -615,7 +615,7 @@ performance_testing-geospatial-endpoint-guidellm:
   metadata:
     description: 'Test inference performance of a geospatial model served by vLLM endpoint using GuideLLM benchmark suite across inference workload configurations'
 performance_testing-geospatial-full-guidellm:
-  identifier: test-geospatial-deployment-guidellm-v1
+  identifier: test-geospatial-deployment-guidellm-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'
@@ -806,7 +806,7 @@ performance_testing-geospatial-full-guidellm:
   metadata:
     description: 'VLLM performance testing using GuideLLM benchmark suite across compute resource and workload configuration for geospatial models'
 performance_testing-geospatial-guidellm-deployment-custom-dataset:
-  identifier: test-geospatial-deployment-guidellm-custom-dataset-v1
+  identifier: test-geospatial-deployment-guidellm-custom-dataset-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'
@@ -996,7 +996,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
   metadata:
     description: 'GuideLLM performance testing across compute resource and workload configuration for geospatial models with custom dataset'
 performance_testing-geospatial-guidellm-endpoint-custom-dataset:
-  identifier: test-geospatial-endpoint-guidellm-custom-dataset-v1
+  identifier: test-geospatial-endpoint-guidellm-custom-dataset-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'

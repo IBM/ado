@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT
 # The input to an experiment is an Entity. For the Entity to be a valid input
 # it's properties which  match what is defined here
-test-deployment-v1:
-  identifier: test-deployment-v1
+test-deployment-v2:
+  identifier: test-deployment-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -213,8 +213,8 @@ test-deployment-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing across compute resource and workload configuration'
-test-endpoint-v1:
-  identifier: test-endpoint-v1
+test-endpoint-v2:
+  identifier: test-endpoint-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties: # Any entity passed to this experiment must have constitutive properties with these values
     - identifier: 'model'
@@ -336,8 +336,8 @@ test-endpoint-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'Test inference performance of a model served by vLLM endpoint across inference workload configurations'
-test-deployment-guidellm-v1:
-  identifier: test-deployment-guidellm-v1
+test-deployment-guidellm-v2:
+  identifier: test-deployment-guidellm-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'
@@ -545,8 +545,8 @@ test-deployment-guidellm-v1:
     - identifier: "p99_e2el_ms"
   metadata:
     description: 'VLLM performance testing using GuideLLM benchmark suite across compute resource and workload configuration'
-test-endpoint-guidellm-v1:
-  identifier: test-endpoint-guidellm-v1
+test-endpoint-guidellm-v2:
+  identifier: test-endpoint-guidellm-v2
   actuatorIdentifier: "vllm_performance"
   requiredProperties:
     - identifier: 'model'

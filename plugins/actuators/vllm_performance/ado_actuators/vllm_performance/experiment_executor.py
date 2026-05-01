@@ -422,9 +422,9 @@ def run_resource_and_workload_experiment(
             logger.info(f"Executing experiment: {experiment.identifier}")
             result: BenchmarkResult
             if experiment.identifier in [
-                "test-geospatial-deployment-v1",
-                "test-geospatial-deployment-custom-dataset-v1",
-                "test-geospatial-endpoint-custom-dataset-v1",
+                "test-geospatial-deployment-v2",
+                "test-geospatial-deployment-custom-dataset-v2",
+                "test-geospatial-endpoint-custom-dataset-v2",
             ]:
                 logger.info("Using geospatial benchmark for deployment")
                 result = execute_geospatial_benchmark(
@@ -440,8 +440,8 @@ def run_resource_and_workload_experiment(
                     dataset=benchmark_parameters.dataset,
                 )
             elif experiment.identifier in [
-                "test-geospatial-deployment-guidellm-v1",
-                "test-geospatial-deployment-guidellm-custom-dataset-v1",
+                "test-geospatial-deployment-guidellm-v2",
+                "test-geospatial-deployment-guidellm-custom-dataset-v2",
             ]:
                 logger.info("Using GuideLLM geospatial benchmark for deployment")
                 result = execute_guidellm_geospatial_benchmark(
@@ -456,7 +456,7 @@ def run_resource_and_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     burstiness=benchmark_parameters.burstiness,
                 )
-            elif experiment.identifier == "test-deployment-guidellm-v1":
+            elif experiment.identifier == "test-deployment-guidellm-v2":
                 logger.info("Using GuideLLM benchmark for deployment")
                 result = execute_guidellm_benchmark(
                     base_url=benchmark_parameters.endpoint,
@@ -589,8 +589,8 @@ def run_workload_experiment(
             logger.info(f"Executing experiment: {experiment.identifier}")
             result: BenchmarkResult
             if experiment.identifier in [
-                "test-geospatial-endpoint-v1",
-                "test-geospatial-endpoint-custom-dataset-v1",
+                "test-geospatial-endpoint-v2",
+                "test-geospatial-endpoint-custom-dataset-v2",
             ]:
                 logger.info("Using geospatial benchmark for endpoint")
                 result = execute_geospatial_benchmark(
@@ -606,8 +606,8 @@ def run_workload_experiment(
                     dataset=benchmark_parameters.dataset,
                 )
             elif experiment.identifier in [
-                "test-geospatial-endpoint-guidellm-v1",
-                "test-geospatial-endpoint-guidellm-custom-dataset-v1",
+                "test-geospatial-endpoint-guidellm-v2",
+                "test-geospatial-endpoint-guidellm-custom-dataset-v2",
             ]:
                 logger.info("Using GuideLLM geospatial benchmark for endpoint")
                 result = execute_guidellm_geospatial_benchmark(
@@ -622,7 +622,7 @@ def run_workload_experiment(
                     retries_timeout=actuator_parameters.retries_timeout,
                     burstiness=benchmark_parameters.burstiness,
                 )
-            elif experiment.identifier == "test-endpoint-guidellm-v1":
+            elif experiment.identifier == "test-endpoint-guidellm-v2":
                 logger.info("Using GuideLLM benchmark for endpoint")
                 result = execute_guidellm_benchmark(
                     base_url=benchmark_parameters.endpoint,

@@ -12,7 +12,11 @@ from testcontainers.mysql import MySqlContainer
 from typer.testing import CliRunner
 
 from orchestrator.cli.core.cli import app as ado
-from orchestrator.core import OperationResource, SampleStoreResource
+from orchestrator.core import (
+    ActuatorConfigurationResource,
+    OperationResource,
+    SampleStoreResource,
+)
 from orchestrator.core.discoveryspace.space import DiscoverySpace
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.metastore.sqlstore import SQLStore
@@ -120,6 +124,15 @@ def test_field_querying(
 
     sql_store.addResource(sample_store_07c0fa)
     sql_store.addResource(sample_store_resource)
+
+    actuator_config_with_underscores = ActuatorConfigurationResource.model_validate(
+        yaml.safe_load(
+            pathlib.Path(
+                "tests/resources/actuatorconfiguration/mock-ac-with-snake-case.yaml"
+            ).read_text()
+        )
+    )
+    sql_store.addResource(actuator_config_with_underscores)
 
     # ---------------------------------------------------------
     # Query scalar int field with int
@@ -351,6 +364,75 @@ def test_field_querying(
         assert (
             render_ado_resources_to_cli_output(
                 operation_43dfdf, do_not_truncate_columns=["IDENTIFIER"]
+            )
+            == result.output
+        ), result.output
+
+    # ---------------------------------------------------------
+    # Query nested fields with underscores
+    # ---------------------------------------------------------
+    # Query for nested underscore fields
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "actuatorconfigurations",
+            "-q",
+            'config.parameters.outer_field.inner_field.test_value="found_it"',
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert (
+            render_ado_resources_to_cli_output(
+                actuator_config_with_underscores,
+                do_not_truncate_columns=["IDENTIFIER"],
+            )
+            == result.output
+        ), result.output
+
+    # Query with JSON object containing underscore fields
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "actuatorconfigurations",
+            "-q",
+            'config.parameters.outer_field={"inner_field": {"test_value": "found_it"}}',
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert (
+            render_ado_resources_to_cli_output(
+                actuator_config_with_underscores,
+                do_not_truncate_columns=["IDENTIFIER"],
+            )
+            == result.output
+        ), result.output
+
+    # Query for mixed underscore and simple fields
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "actuatorconfigurations",
+            "-q",
+            'config.parameters.outer_field.another_field="simple"',
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        assert (
+            render_ado_resources_to_cli_output(
+                actuator_config_with_underscores,
+                do_not_truncate_columns=["IDENTIFIER"],
             )
             == result.output
         ), result.output

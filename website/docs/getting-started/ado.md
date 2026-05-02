@@ -260,7 +260,7 @@ The **ado** CLI provides the delete command to delete
 The complete syntax of the `ado delete` command is as follows:
 
 ```shell
-ado delete RESOURCE_TYPE RESOURCE_ID \
+ado delete RESOURCE_TYPE RESOURCE_ID [RESOURCE_ID ...] \
            [--force] \
            [--delete-local-db] [--no-delete-local-db]
 ```
@@ -282,7 +282,9 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `RESOURCE_ID` is the unique identifier of the resource to delete.
+- `RESOURCE_ID` is the unique identifier of the resource to delete. Multiple
+  resource IDs can be provided to delete multiple resources of the same type in
+  a single command.
 - `--force` enables forced deletion of resources in the following cases:
 
     <!-- prettier-ignore-start -->
@@ -311,10 +313,28 @@ ado delete context my-context
 ado delete context my-local-context --no-delete-local-db
 ```
 
-##### Deleting a space
+##### Deleting a single space
 
 ```shell
 ado delete space space-abc123-456def
+```
+
+##### Deleting multiple operations
+
+```shell
+ado delete operation op-id-1 op-id-2 op-id-3
+```
+
+##### Deleting multiple operations with force flag
+
+```shell
+ado delete operation op-id-1 op-id-2 op-id-3 --force
+```
+
+##### Deleting multiple discovery spaces
+
+```shell
+ado delete space space-1 space-2 space-3
 ```
 
 ### ado describe

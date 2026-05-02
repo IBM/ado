@@ -63,7 +63,7 @@ class AdoDeleteCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     delete_local_db: bool | None
     force: bool
-    resource_id: str
+    resource_ids: list[str]
 
 
 class AdoDescribeCommandParameters(pydantic.BaseModel):

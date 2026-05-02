@@ -9,6 +9,9 @@ import typing
 from collections.abc import Callable
 from typing import Annotated
 
+# Before `import ray` (see orchestrator.utilities.ray_local_init). Pytest sets this via pytest-env.
+os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
+
 import ray
 import ray.exceptions
 import requests
@@ -54,13 +57,7 @@ def local_execution_closure(
         A callable that submits a local measurement request.
     """
 
-    # Assume run_experiment is being run directly
-    # We set working_dir = None to tell ray to use the CWD for all workers
-    # i.e. we are in local mode, code is local, no need to package
-    # This is required in particular because if "uv run" is used
-    # to execute a process that calls ray.init ray cannot work out that the workers
-    # can use the CWD of the main process.
-    ray.init(ignore_reinit_error=True, runtime_env={"working_dir": None})
+    ray.init(ignore_reinit_error=True)
     initialize_ray_resource_cleaner()
 
     actuators: dict[str, ActorHandle[ActuatorBase]] = {}

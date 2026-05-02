@@ -66,7 +66,7 @@ test-deployment-v1:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 17]
+        domainRange: [1, 256]
         interval: 1
     - identifier: memory
       metadata:
@@ -399,7 +399,7 @@ test-deployment-guidellm-v1:
         description: "(deployment) the number of CPUs to use"
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 17]
+        domainRange: [1, 256]
         interval: 1
     - identifier: memory
       metadata:

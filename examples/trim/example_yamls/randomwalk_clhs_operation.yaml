@@ -1,0 +1,26 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+metadata:
+  name: 'randomwalk-sobol'
+  description: 'Perform a random walk using Sobol quasi-random sampling for better space coverage'
+spaces:
+  - space-2fa5d0-2905f9
+operation:
+  module:
+    operatorName: "random_walk"
+    operationType: "search"
+  parameters:
+    numberEntities: 20
+    batchSize: 5
+    singleMeasurement: true
+    samplerConfig:
+      module:
+        moduleName: trim.samplers.no_priors_sampler
+        moduleClass: NoPriorsSampleSelector
+      parameters:
+        targetOutput: pressure
+        samples: 20
+        batchSize: 1
+        sampling_strategy: clhs
+
+# Made with Bob

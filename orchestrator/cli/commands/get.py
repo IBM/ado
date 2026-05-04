@@ -73,6 +73,15 @@ def get_resource(
             show_default=False,
         ),
     ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Get the latest identifier of the selected resource type. "
+            "Ignored if a resource identifier is also specified.",
+            show_default=False,
+        ),
+    ] = False,
     query: Annotated[
         list[str] | None,
         typer.Option(
@@ -286,6 +295,12 @@ def get_resource(
     # Save the configuration of a discovery space as YAML
     ado get space <space-id> -o yaml > space.yaml
 
+    # Get the latest space as YAML
+    ado get space --use-latest -o yaml
+
+    # Get the latest operation as YAML
+    ado get operation --use-latest -o yaml
+
     # List actuators and details about them
     ado get actuators --details
 
@@ -296,6 +311,16 @@ def get_resource(
     ado get experiments --details
     """
     ado_configuration: AdoConfiguration = ctx.obj
+
+    # Resolve --use-latest to actual resource_id
+    if use_latest:
+        from orchestrator.cli.utils.generic.common import get_effective_resource_id
+
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            project_context=ado_configuration.project_context,
+        )
 
     if resource_type != AdoGetSupportedResourceTypes.DISCOVERY_SPACE and (
         matching_point or matching_space or matching_space_id
@@ -374,6 +399,7 @@ def get_resource(
         resource_type=resource_type,
         show_deprecated=show_deprecated,
         show_details=show_details,
+        use_latest=use_latest,
     )
 
     method_mapping = {

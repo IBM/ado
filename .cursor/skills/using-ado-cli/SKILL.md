@@ -120,7 +120,7 @@ Updates **metadata** (name, description, labels, etc.) for metastore resources.
 # Interactive (default editor: nano, or $ADO_EDITOR)
 uv run ado edit space SPACE_ID
 
-# Non-interactive: default is an inline YAML or JSON patch (-p / --patch), 
+# Non-interactive: default is an inline YAML or JSON patch (-p / --patch),
 # like oc
 uv run ado edit space SPACE_ID -p "labels: { team: research }"
 
@@ -128,8 +128,8 @@ uv run ado edit space SPACE_ID -p "labels: { team: research }"
 uv run ado edit space SPACE_ID --patch-file meta.yaml
 ```
 
-Do not pass an **explicit** `--editor` with `-p` / `--patch` or `--patch-file` on
-the same invocation. Use `uv run ado edit --help` for current options.
+Always prefer a non-interative edit with `-p` / `--patch` or `--patch-file`. Use
+`uv run ado edit --help` for current options.
 
 ### ado show
 
@@ -181,8 +181,8 @@ Prefer `--output-file` in the following situations:
   noise alongside the data. `--output-file` writes only the formatted output to
   the file; logs continue to go to stderr.
 - **Table Truncation**: when output to terminal the table format (the default
-  for --output) may truncate columns to fit terminal width. This truncation is not
-  removed when the output is redirected, but is if --output-file specified
+  for --output) may truncate columns to fit terminal width. This truncation is
+  not removed when the output is redirected, but is if --output-file specified
 
 ```bash
 uv run ado show entities operation OPERATION_ID -o csv --output-file entities.csv

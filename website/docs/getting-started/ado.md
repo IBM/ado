@@ -388,7 +388,7 @@ you can create. The fastest way to update these metadata is to use the
 The complete syntax of the `ado edit` command is as follows:
 
 ```shell
-ado edit RESOURCE_TYPE RESOURCE_ID [-p, --patch <YAML>] \
+ado edit RESOURCE_TYPE RESOURCE_ID [-p | --patch <YAML>] \
     [--patch-file <FILE>] [--editor <NAME>]
 ```
 

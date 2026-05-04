@@ -625,7 +625,7 @@ def tune(
     if failed_trials:
         # The type of error is Exception but
         error: ray.exceptions.RayTaskError = failed_trials[0].error
-        error = str(error.cause) if error.cause else str(error)
+        error = str(error.cause) if getattr(error, "cause", None) else str(error)
         log.debug(f"Error is {error}")
 
     operation_status = (

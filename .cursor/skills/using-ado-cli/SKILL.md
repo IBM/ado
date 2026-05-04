@@ -39,7 +39,6 @@ For `ado get` and `ado show` subcommands:
   stdout. Prefer this over shell redirection for large output so encoding and
   table rendering stay consistent.
 
-
 ## Commands That do not exist
 
 These plausible-sounding commands do not exist in ado. Do not write them:
@@ -97,6 +96,12 @@ uv run ado get space SPACE_ID -o yaml
 
 # Or write the same YAML to a file
 uv run ado get space SPACE_ID -o yaml --output-file space.yaml
+
+# Get the latest space as YAML
+uv run ado get space --use-latest -o yaml
+
+# Get the latest operation as YAML
+uv run ado get operation --use-latest -o yaml
 ```
 
 ### ado create

@@ -455,6 +455,7 @@ The complete syntax of the `ado get` command is as follows:
 ```shell
 ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
                                     [--output-file <path>] \
+                                    [--use-latest] \
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
@@ -492,6 +493,9 @@ Where:
     <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the optional unique identifier of the resource to get.
+- `--use-latest` retrieves the most recently created resource of the specified
+  type. This flag is ignored if a `RESOURCE_ID` is also provided (the explicit
+  ID takes precedence).
 - `--output` or `-o` determine the type of output that will be displayed:
 
     <!-- prettier-ignore-start -->
@@ -654,6 +658,18 @@ ado get operation randomwalk-0.5.0-123abc -o yaml
 
 ```shell
 ado get operations -o name
+```
+
+##### Getting the latest Discovery Space as YAML
+
+```shell
+ado get space --use-latest -o yaml
+```
+
+##### Getting the latest Operation as YAML
+
+```shell
+ado get operation --use-latest -o yaml
 ```
 
 ##### Displaying all current experiments

@@ -409,19 +409,18 @@ Where:
     <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
-- `-p` / `--patch` is an optional inline YAML/JSON string (the default
-  non-interactive input, similar to `oc` / `kubectl patch -p`). It is
-  **merged** into the resource’s existing stored metadata using a one-level
-  strategic update:
+- `-p` / `--patch` is an optional inline YAML/JSON string for non-interactive
+  editing (similar to `oc` / `kubectl patch -p`). It is **merged** into the
+  resource's existing stored metadata using a one-level strategic update:
   `labels` are merged as key–value maps; other top-level fields from the patch
-  replace the previous values. You can use a patch string **or** a file, not both.
+  replace the previous values. You can use a patch string **or** a file, not
+  both. When using `--patch`, the `--editor` flag is ignored.
 - `--patch-file` is an optional path to a YAML/JSON file with the same merge
   behaviour as `--patch`. You may not use `--patch` and `--patch-file` together.
-  You may not use an explicit `--editor` on the same command as any non-interactive
-  patch; `$ADO_EDITOR` alone does not count.
-- `--editor` is the name of the editor you want to use for **interactive** editing
-  of metadata. It
-  must be one of the supported ones, which currently are:
+  When using `--patch-file`, the `--editor` flag is ignored.
+- `--editor` is the name of the editor you want to use for **interactive**
+  editing of metadata (ignored when `--patch` or `--patch-file` is specified).
+  It must be one of the supported ones, which currently are:
 
     <!-- prettier-ignore-start -->
 

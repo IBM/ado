@@ -66,20 +66,31 @@ def test_ado_edit_mutex_patch_and_patch_file(
     assert "only one of" in result.output.lower()
 
 
-def test_ado_edit_mutex_editor_with_patch_file(
+def test_ado_edit_editor_ignored_with_patch_file(
     tmp_path: pathlib.Path,
     valid_ado_project_context: ProjectContext,
     create_active_ado_context: Callable[
         [CliRunner, pathlib.Path, ProjectContext], None
     ],
+    random_sample_store_resource_from_file: Callable[[], SampleStoreResource],
 ) -> None:
+    """Test that --editor flag is ignored (not rejected) when --patch-file is used."""
     runner = CliRunner()
     create_active_ado_context(
         runner=runner, path=tmp_path, project_context=valid_ado_project_context
     )
-    patch_file = tmp_path / "m.yaml"
-    patch_file.write_text("labels:\n  k: v\n")
 
+    # Create a sample store to edit
+    store = random_sample_store_resource_from_file()
+    store.config.metadata = ConfigurationMetadata(labels={"original": "value"})
+    sql = get_sql_store(project_context=valid_ado_project_context)
+    sql.addResource(store)
+
+    # Create patch file
+    patch_file = tmp_path / "m.yaml"
+    patch_file.write_text("labels:\n  patched: 'yes'\n")
+
+    # Run edit with both --patch-file and --editor
     result = runner.invoke(
         ado,
         [
@@ -87,17 +98,22 @@ def test_ado_edit_mutex_editor_with_patch_file(
             str(tmp_path),
             "edit",
             "samplestore",
-            "dummy",
+            store.identifier,
             "--patch-file",
             str(patch_file),
             "--editor",
             "vim",
         ],
     )
-    assert result.exit_code == 1
-    out = result.output.lower()
-    assert "explicit" in out
-    assert "editor" in out
+    # Should succeed (exit code 0) - editor is ignored, not rejected
+    assert result.exit_code == 0, result.output
+
+    # Verify the patch was applied (editor was ignored)
+    updated = sql.getResource(
+        identifier=store.identifier, kind=CoreResourceKinds.SAMPLESTORE
+    )
+    assert updated is not None
+    assert updated.config.metadata.labels == {"original": "value", "patched": "yes"}
 
 
 def test_ado_edit_metadata_merges_into_store(

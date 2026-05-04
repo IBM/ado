@@ -452,7 +452,7 @@ def handle_edit_resource_metadata(
     resource_id: str,
     resource_type: "CoreResourceKinds",
     project_context: "ProjectContext",
-    editor: AdoEditSupportedEditors | None,
+    editor: AdoEditSupportedEditors,
     metadata_path: pathlib.Path | None = None,
     metadata_patch: str | None = None,
 ) -> None:
@@ -468,6 +468,7 @@ def handle_edit_resource_metadata(
             status.stop()
             raise ResourceDoesNotExistError(resource_id=resource_id, kind=resource_type)
 
+    # Non-interactive mode: use patch or patch_file (editor is ignored)
     if metadata_path is not None or metadata_patch is not None:
         try:
             raw = yaml.safe_load(
@@ -497,12 +498,7 @@ def handle_edit_resource_metadata(
                 base=base_dict, patch=raw
             )
     else:
-        if editor is None:
-            console_print(
-                f"{ERROR}No editor was provided for interactive metadata editing.",
-                stderr=True,
-            )
-            raise typer.Exit(1)
+        # Interactive mode: use editor
         with tempfile.TemporaryDirectory() as d:
             file = pathlib.Path(d) / pathlib.Path("tmp_metadata.yaml")
             orchestrator.cli.utils.pydantic.serializers.serialise_pydantic_model(

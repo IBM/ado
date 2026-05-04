@@ -6,7 +6,6 @@ import typing
 from typing import Annotated
 
 import typer
-from click.core import ParameterSource
 
 from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
@@ -60,8 +59,8 @@ def edit_resource(
             "--editor",
             envvar="ADO_EDITOR",
             help=(
-                "The editor to use to edit metadata (interactive mode only; "
-                "not with --patch or --patch-file)."
+                "The editor to use to edit metadata in interactive mode. "
+                "Ignored when --patch or --patch-file is specified."
             ),
         ),
     ] = AdoEditSupportedEditors.NANO.value,
@@ -71,8 +70,8 @@ def edit_resource(
             "-p",
             "--patch",
             help=(
-                "YAML/JSON to merge into metadata (strategic merge; default "
-                "non-interactive input, like oc -p)."
+                "YAML/JSON to merge into metadata (strategic merge). "
+                "Non-interactive mode; --editor is ignored if specified."
             ),
             show_default=False,
         ),
@@ -81,7 +80,10 @@ def edit_resource(
         pathlib.Path | None,
         typer.Option(
             "--patch-file",
-            help="File with YAML/JSON to merge into metadata.",
+            help=(
+                "File with YAML/JSON to merge into metadata. "
+                "Non-interactive mode; --editor is ignored if specified."
+            ),
             file_okay=True,
             dir_okay=False,
             exists=True,
@@ -116,35 +118,14 @@ def edit_resource(
         )
         raise typer.Exit(1)
 
-    non_interactive = patch is not None or patch_file is not None
-    if non_interactive and ctx.get_parameter_source("editor") in (
-        ParameterSource.COMMANDLINE,
-        ParameterSource.PROMPT,
-    ):
-        console_print(
-            f"{ERROR}The options --patch / -p and --patch-file "
-            "may not be used with an explicit --editor flag.",
-            stderr=True,
-        )
-        raise typer.Exit(1)
-
     ado_configuration: AdoConfiguration = ctx.obj
-    if non_interactive:
-        parameters = AdoEditCommandParameters(
-            ado_configuration=ado_configuration,
-            editor=None,
-            resource_id=resource_id,
-            metadata_patch=patch,
-            metadata_path=patch_file,
-        )
-    else:
-        parameters = AdoEditCommandParameters(
-            ado_configuration=ado_configuration,
-            editor=editor,
-            resource_id=resource_id,
-            metadata_patch=None,
-            metadata_path=None,
-        )
+    parameters = AdoEditCommandParameters(
+        ado_configuration=ado_configuration,
+        editor=editor,
+        resource_id=resource_id,
+        metadata_patch=patch,
+        metadata_path=patch_file,
+    )
 
     method_mapping = {
         AdoEditSupportedResourceTypes.ACTUATOR_CONFIGURATION: edit_actuator_configuration,

@@ -211,7 +211,7 @@ uv run ado create operation -f operation.yaml
 uv run ado create space -f space.yaml
 
 # Step 2: Create operation using that space automatically
-uv run ado create operation -f operation.yaml --use-latest
+uv run ado create operation -f operation.yaml --use-latest space
 ```
 
 The `--use-latest` flag automatically fills in the latest space ID.
@@ -318,10 +318,10 @@ uv run ado create operation -f operation.yaml \
 uv run ado create space -f space.yaml
 
 # Validate with dry-run
-uv run ado create operation -f operation.yaml --dry-run --use-latest
+uv run ado create operation -f operation.yaml --dry-run --use-latest space
 
 # Actually create it
-uv run ado create operation -f operation.yaml --use-latest
+uv run ado create operation -f operation.yaml --use-latest space
 ```
 
 ## Related Resources

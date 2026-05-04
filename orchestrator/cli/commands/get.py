@@ -68,7 +68,8 @@ def get_resource(
         typer.Argument(
             help=(
                 "The id of the resource to get. "
-                "If unspecified, the command will return all resources of the specified type."
+                "If unspecified, the command will return all resources of the specified type "
+                "(unless --use-latest is used)."
             ),
             show_default=False,
         ),

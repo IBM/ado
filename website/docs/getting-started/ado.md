@@ -492,7 +492,9 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `RESOURCE_ID` is the optional unique identifier of the resource to get.
+- `RESOURCE_ID` is the optional unique identifier of the resource to get. If not
+  specified, all resources of the given type are returned (unless `--use-latest`
+  is used).
 - `--use-latest` retrieves the most recently created resource of the specified
   type. This flag is ignored if a `RESOURCE_ID` is also provided (the explicit
   ID takes precedence).

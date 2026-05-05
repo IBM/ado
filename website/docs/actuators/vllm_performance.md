@@ -255,6 +255,17 @@ ado create actuatorconfiguration -f vllm_config.yaml
 >   [Deployment Clean-Up](#deployment-clean-up)
 > - [Grouped sampling for efficient deployment usage](#grouped-sampling-for-efficient-deployment-usage)
 
+### OpenTelemetry Observability
+
+The `otlp_traces_endpoint` parameter enables distributed tracing for vLLM
+deployments, allowing you to monitor and analyze request lifecycles through
+OpenTelemetry-compatible observability platforms.
+
+**Configuration:**
+
+Add the `otlp_traces_endpoint` parameter to your actuatorconfiguration:
+
+
 ### Multiple configurations
 
 You can create multiple `actuatorconfiguration`s for the `vllm_performance`

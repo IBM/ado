@@ -3,6 +3,7 @@
 
 import logging
 
+import pydantic
 from ado_actuators.vllm_performance.k8s.manage_components import (
     ComponentsManager,
 )
@@ -39,6 +40,7 @@ def create_test_environment(
     enforce_eager: bool = False,
     skip_tokenizer_init: bool = False,
     io_processor_plugin: str | None = None,
+    otlp_traces_endpoint: pydantic.AnyUrl | None = None,
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> None:
@@ -68,6 +70,7 @@ def create_test_environment(
     :param enforce_eager: flag to enforce using Pytorch eager mode
     :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
     :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
+    :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
     :param check_interval: wait interval in seconds
     :param timeout: timeout in seconds
     :return:
@@ -120,6 +123,7 @@ def create_test_environment(
         enforce_eager=enforce_eager,
         skip_tokenizer_init=skip_tokenizer_init,
         io_processor_plugin=io_processor_plugin,
+        otlp_traces_endpoint=otlp_traces_endpoint,
     )
     logger.debug("deployment created")
     c_manager.wait_deployment_ready(

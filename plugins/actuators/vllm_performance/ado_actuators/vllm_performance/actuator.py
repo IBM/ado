@@ -104,6 +104,7 @@ class VLLMPerformanceTest(ActuatorBase):
                     verify_ssl=params.verify_ssl,
                     pvc_name=params.pvc_name,
                     pvc_template=params.pvc_template,
+                    otlp_traces_endpoint=params.otlp_traces_endpoint,
                 )
             except Exception as error:
                 self.log.warning(

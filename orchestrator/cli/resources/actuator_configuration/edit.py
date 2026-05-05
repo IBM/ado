@@ -12,4 +12,6 @@ def edit_actuator_configuration(parameters: AdoEditCommandParameters) -> None:
         resource_type=CoreResourceKinds.ACTUATORCONFIGURATION,
         project_context=parameters.ado_configuration.project_context,
         editor=parameters.editor,
+        metadata_path=parameters.metadata_path,
+        metadata_patch=parameters.metadata_patch,
     )

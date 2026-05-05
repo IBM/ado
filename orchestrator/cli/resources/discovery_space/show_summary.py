@@ -110,12 +110,16 @@ def show_discovery_space_summary(parameters: AdoShowSummaryCommandParameters) ->
                 )
 
                 # When writing to file, avoid truncating columns by default
+                # Always avoid truncating the "Space ID" column
+                do_not_truncate = (
+                    True if parameters.output_file is not None else ["Space ID"]
+                )
                 table = dataframe_to_rich_table(
                     df,
                     show_edge=True,
                     show_index=True,
                     box=rich.box.SQUARE,
-                    do_not_truncate_columns=parameters.output_file is not None,
+                    do_not_truncate_columns=do_not_truncate,
                 )
                 result = render_to_string(table, auto_width=True)
 

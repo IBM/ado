@@ -114,6 +114,7 @@ def list_contexts(
         resource_type=AdoGetSupportedResourceTypes.CONTEXT,
         show_deprecated=False,
         show_details=False,
+        use_latest=False,
     )
 
     # NOTE: there will always be at least one context (local)

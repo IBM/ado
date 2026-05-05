@@ -6,7 +6,6 @@ import typing
 from typing import Annotated
 
 import typer
-from rich.status import Status
 
 from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowSummaryCommandParameters
@@ -17,21 +16,16 @@ from orchestrator.cli.models.types import (
 from orchestrator.cli.resources.discovery_space.show_summary import (
     show_discovery_space_summary,
 )
-from orchestrator.cli.utils.generic.wrappers import get_sql_store
 from orchestrator.cli.utils.input.parsers import (
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import (
-    ADO_SPINNER_QUERYING_DB,
     ERROR,
     console_print,
-    latest_identifier_for_resource_not_found,
-    using_latest_identifier_for_resource,
 )
 from orchestrator.cli.utils.queries.parser import (
     prepare_query_filters_for_db,
 )
-from orchestrator.core import CoreResourceKinds
 from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
@@ -66,8 +60,8 @@ def show_summary_for_resources(
         bool,
         typer.Option(
             "--use-latest",
-            help="Adds the latest identifier of the selected resource type to "
-            "the identifiers to show a summary for.",
+            help="Show summary for the latest identifier of the selected resource type. "
+            "Ignored if resource identifiers are also specified.",
             show_default=False,
         ),
     ] = False,
@@ -179,34 +173,15 @@ def show_summary_for_resources(
     """
     ado_configuration: AdoConfiguration = ctx.obj
 
-    resource_kind = CoreResourceKinds(resource_type.value)
+    if use_latest:
+        from orchestrator.cli.utils.generic.common import get_effective_resource_id
 
-    # Fetch the latest resource ID from the database
-    sql_store = get_sql_store(ado_configuration.project_context)
-    with Status(ADO_SPINNER_QUERYING_DB):
-        latest_ids = sql_store.get_latest_resource_identifiers_of_kinds(
-            kinds=[resource_kind]
+        # Handle single ID case - get_effective_resource_id handles precedence
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=ids[0] if ids else None,
+            resource_type=resource_type.value,
+            project_context=ado_configuration.project_context,
         )
-
-    resource_id = latest_ids.get(resource_kind)
-    if not resource_id:
-        console_print(
-            latest_identifier_for_resource_not_found(
-                resource_kind=resource_kind, hide_resource_in_flag=True
-            ),
-            stderr=True,
-        )
-        raise typer.Exit(1)
-    console_print(
-        using_latest_identifier_for_resource(
-            resource_kind=resource_kind, resource_identifier=resource_id
-        ),
-        stderr=True,
-    )
-
-    if ids:
-        ids.append(resource_id)
-    else:
         ids = [resource_id]
 
     try:

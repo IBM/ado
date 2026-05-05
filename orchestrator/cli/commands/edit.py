@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import pathlib
 import typing
 from typing import Annotated
 
@@ -23,6 +24,7 @@ from orchestrator.cli.resources.data_container.edit import edit_data_container
 from orchestrator.cli.resources.discovery_space.edit import edit_discovery_space
 from orchestrator.cli.resources.operation.edit import edit_operation
 from orchestrator.cli.resources.sample_store.edit import edit_sample_store
+from orchestrator.cli.utils.output.prints import ERROR, console_print
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
     ResourceDoesNotExistError,
@@ -53,8 +55,43 @@ def edit_resource(
     ],
     editor: Annotated[
         AdoEditSupportedEditors,
-        typer.Option(envvar="ADO_EDITOR", help="The editor to use to edit metadata"),
+        typer.Option(
+            "--editor",
+            envvar="ADO_EDITOR",
+            help=(
+                "The editor to use to edit metadata in interactive mode. "
+                "Ignored when --patch or --patch-file is specified."
+            ),
+        ),
     ] = AdoEditSupportedEditors.NANO.value,
+    patch: Annotated[
+        str | None,
+        typer.Option(
+            "-p",
+            "--patch",
+            help=(
+                "YAML/JSON to merge into metadata (strategic merge). "
+                "Non-interactive mode; --editor is ignored if specified."
+            ),
+            show_default=False,
+        ),
+    ] = None,
+    patch_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--patch-file",
+            help=(
+                "File with YAML/JSON to merge into metadata. "
+                "Non-interactive mode; --editor is ignored if specified."
+            ),
+            file_okay=True,
+            dir_okay=False,
+            exists=True,
+            readable=True,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ] = None,
 ) -> None:
     """
     Edit resources' metadata.
@@ -68,11 +105,26 @@ def edit_resource(
     ado edit samplestore <sample-store-id>
 
     # Edit the metadata of a space using vim
-    ado edit space --editor vim
+    ado edit space <space-id> --editor vim
+
+    # Merge metadata with an inline patch (oc-style) or a file
+    ado edit space <space-id> -p "labels: { team: core }"
+    ado edit space <space-id> --patch-file meta.yaml
     """
+    if patch is not None and patch_file is not None:
+        console_print(
+            f"{ERROR}Use only one of --patch / -p and --patch-file.",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
     ado_configuration: AdoConfiguration = ctx.obj
     parameters = AdoEditCommandParameters(
-        ado_configuration=ado_configuration, editor=editor, resource_id=resource_id
+        ado_configuration=ado_configuration,
+        editor=editor,
+        resource_id=resource_id,
+        metadata_patch=patch,
+        metadata_path=patch_file,
     )
 
     method_mapping = {
@@ -96,6 +148,9 @@ def edit_resource(
 
 
 def register_edit_command(app: typer.Typer) -> None:
-    app.command(name="edit", no_args_is_help=True, options_metavar="[--editor <name>]")(
-        edit_resource
-    )
+    app.command(
+        name="edit",
+        no_args_is_help=True,
+        options_metavar="[-p | --patch <yaml>] [--patch-file <file>] "
+        "[--editor <name>]",
+    )(edit_resource)

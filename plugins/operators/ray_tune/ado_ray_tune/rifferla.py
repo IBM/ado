@@ -78,7 +78,7 @@ class RifferlaParameters(pydantic.BaseModel):
     ] = EntityFilter.SAMPLED
 
     @classmethod
-    def defaultOperationParameters(cls) -> "RifferlaParameters":
+    def example_configuration(cls) -> "RifferlaParameters":
         return cls(
             failed_metric="is_valid",
             failed_value=1,
@@ -93,7 +93,7 @@ class RifferlaParameters(pydantic.BaseModel):
     description="Refines a space to produce one that is denser in entities that have min/max of a given observed property."
     "It does this by identifying which entity space dimensions should be fixed to set values, which explored, and setting range limits for those dimensions. "
     "The method leverages Mutual Information to identify dimensions correlated with the desired observed property.",
-    configuration_model_default=RifferlaParameters.defaultOperationParameters(),
+    example_configuration=RifferlaParameters.example_configuration(),
     version=version("ado-ray-tune"),
 )
 def rifferla(

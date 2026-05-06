@@ -1,9 +1,10 @@
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 !!! info end
 
-    A complete template actuator can be found 
+    A complete template actuator can be found
     [here](https://github.com/IBM/ado/tree/main/plugins/actuators/example_actuator).
-    This example actuator is functional out-of-the-box 
+    This example actuator is functional out-of-the-box
     and can be used as the basis to create new actuators.
 
 Developers can write their own [actuator](../core-concepts/actuators.md) plugins
@@ -31,16 +32,19 @@ or to check an existing actuator plugin.
 
 To create an actuator plugin you **must** use the following package structure
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```text
 $YOUR_REPO_NAME
 ├── ado_actuators # This is ado's namespaced package for actuator plugins
-│   └── $YOUR_PLUGIN_PACKAGE        # Your plugin
-│       ├── __init__.py
-│       ├── actuator_definitions.yaml
-│       └── ...
+│   └── $YOUR_PLUGIN_PACKAGE        # Your plugin
+│       ├── __init__.py
+│       ├── actuator_definitions.yaml
+│       └── ...
 └── pyproject.toml
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 The above is structure creates a Python `namespace` package. In this case the
 namespace package is called "ado_actuators", which is the namespace for `ado`
@@ -51,13 +55,18 @@ When you `pip install` the above package `ado` will detect it when its next run.
 If you want to import the installed package in e.g. the Python console you use
 
 <!-- markdownlint-disable-next-line code-block-style -->
+
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 import ado_actuators.$YOUR_PLUGIN_NAME
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 !!! warning end
 
-    *NOTE*: Do not place an `__init__.py` under `ado_actuators/` - 
+    *NOTE*: Do not place an `__init__.py` under `ado_actuators/` -
     this will overwrite all installed plugins.
 
 !!! info end
@@ -67,10 +76,14 @@ import ado_actuators.$YOUR_PLUGIN_NAME
 
 ### pyproject.toml
 
-The `pyproject.toml` file for an actuator plugin should contain the following fields
+The `pyproject.toml` file for an actuator plugin should contain the following
+fields
 
 <!-- markdownlint-disable line-length -->
 <!-- markdownlint-disable-next-line code-block-style -->
+
+<!-- markdownlint-disable code-block-style -->
+
 ```toml
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
@@ -89,7 +102,6 @@ where = ["."]
 # Note: This is optional.
 # If you don't specify every non Python file that's in SCM will be added
 robotic_lab_actuator = [
-    "actuator_definitions.yaml", # Required: The file that describes the actuator classes the plugin provides
     "experiments.yaml" # Optional file that contains definitions for experiment catalog
 ]
 
@@ -100,7 +112,12 @@ dependencies=[
     "black"
 ]
 dynamic = ["version"]
+
+[project.entry-points."ado.actuators"]
+robotic_lab = "ado_actuators.robotic_lab_actuator.actuator:RoboticLab"
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ## The Actuator Class
@@ -120,7 +137,8 @@ The subclass has to implement two methods:
 A sketch example:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 import orchestrator.modules.actuators.base
 from orchestrator.schema.entity import Entity
@@ -135,22 +153,39 @@ class MyActuator(orchestrator.modules.actuators.base):
   def catalog(self, **kwargs) -> ExperimentCatalog:
     pass
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ### Telling ado about your actuator class(es)
 
-Actuator plugins must include a file called `actuator_definitions.yaml` that is
-installed with the plugin. This file lists all the actuator classes that are
-available in the plugin.
+Actuator plugins must register their actuator classes using entry points in
+`pyproject.toml`. This allows ado to automatically discover and load your
+actuator when the plugin is installed.
 
-An example:
+Add an entry point in your `pyproject.toml`:
 
-<!-- markdownlint-disable-next-line code-block-style -->
-```yaml
-- module:
-    moduleClass: MyActuator
-    moduleName: ado_actuators.myplugin.actuators
+<!-- markdownlint-disable code-block-style -->
+
+```toml
+[project.entry-points."ado.actuators"]
+my-actuator = "ado_actuators.myplugin.actuators:MyActuator"
 ```
+
+<!-- markdownlint-enable code-block-style -->
+
+The entry point format is:
+
+- **Entry point name**: A unique identifier for your actuator (e.g.,
+  `my-actuator`)
+- **Module path**: The full Python path to your actuator class (e.g.,
+  `ado_actuators.myplugin.actuators:MyActuator`)
+
+Your actuator class must:
+
+- Inherit from `ActuatorBase`
+- Define a class attribute `identifier: str` that matches your entry point name
+- Implement the required `submit()` and `catalog()` methods
 
 ### What an actuator is expected to do on `submit`
 
@@ -194,7 +229,8 @@ To write your own actuator parameters class, simply create a class that inherits
 from `GenericActuatorParameters` and add a reference to it in the
 `parameters_class` class variable of your Actuator, as such:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import ActuatorBase
@@ -225,14 +261,19 @@ class Actuator(ActuatorBase):
     parameters_class = InferenceActuatorParameters
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 ### Example custom configurations
 
 Users can obtain an example configuration for your actuator using:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```commandline
 ado template actuatorconfiguration --actuator-identifier $YOUR_ACTUATOR_ID`
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 This example is generated by calling `model_construct()` on your actuator
 parameter class. This means
@@ -250,7 +291,8 @@ missing or incorrect values when the user is creating the
 For example, you can declare a required field like this
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 authToken: typing.Annotated[
     str,
@@ -260,6 +302,8 @@ authToken: typing.Annotated[
     ),
 ] = None  # <--- value that will be written for examples. It is actually invalid
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 If you have no required fields, you may want `ado` to validate your default
@@ -267,22 +311,28 @@ values before outputting them. This is useful for e.g. tests, to ensure there
 isn't an error with the defaults. To do this you can override the
 `default_parameters` method in your Actuator to turn validation on e.g.
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 @override
 def default_parameters(self) -> GenericActuatorParameters:
     return MyActuatorParams()
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 ### Using custom ActuatorConfiguration parameters
 
 Once users have set the relevant values for your actuator in a YAML file they
 can create an `actuatorconfiguration` resource from them
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```commandline
 ado create actuatorconfiguration -f $FILLED_IN_TEMPLATE
 ```
+
+<!-- markdownlint-enable code-block-style -->
 
 The
 [actuatorconfiguration resource documentation](../resources/actuatorconfig.md)
@@ -334,7 +384,8 @@ cases:
 Let's imagine we want to change the name of the `authToken` field to be
 `authorization_token`. The model for our actuator v2 would then be:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
@@ -360,6 +411,8 @@ class InferenceActuatorParameters(GenericActuatorParameters):
     ] = None
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 To enable upgrading of the previous model versions when fields are being
 deprecated, we recommended using a
 [Pydantic Before Model Validator](https://docs.pydantic.dev/latest/concepts/validators/#model-before-validator).
@@ -368,7 +421,8 @@ before validation is applied. To ensure the users are aware of the change, we
 will also use the `warn_deprecated_actuator_parameters_model_in_use` method in
 the validator:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from typing import Annotated, Any
 
@@ -467,11 +521,14 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         return values
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 When a model with the old field is loaded, the user will see the following
 warning:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```text
 WARN:   The parameters for the my_actuator actuator have been updated as of my_actuator v2.
         They are being temporarily auto-upgraded to the latest version.
@@ -479,6 +536,8 @@ WARN:   The parameters for the my_actuator actuator have been updated as of my_a
 HINT:   Run ado upgrade actuatorconfigurations to upgrade the stored actuatorconfigurations.
         Update your actuatorconfiguration YAML files to use the latest format: https://example.com
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ### Updating a field in your actuator's configuration without deprecating it
@@ -486,7 +545,8 @@ HINT:   Run ado upgrade actuatorconfigurations to upgrade the stored actuatorcon
 Let's imagine we want to change the type of the `endpoint` field to be
 `pydantic.HttpUrl`. The model for our actuator v2 would then be:
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
@@ -511,6 +571,8 @@ class InferenceActuatorParameters(GenericActuatorParameters):
     ] = None
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 To enable upgrading of the previous model versions when fields are not being
 deprecated, we recommended using a
 [Pydantic Before Field Validator](https://docs.pydantic.dev/latest/concepts/validators/#field-before-validator).
@@ -524,7 +586,8 @@ applied. To ensure the users are aware of the change, we will also use the
 > [warning about deprecated fields](#deprecating-a-field-in-your-actuators-custom-configuration),
 > but we omit the `deprecated_fields` parameter.
 
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from typing import Annotated
@@ -569,11 +632,14 @@ class InferenceActuatorParameters(GenericActuatorParameters):
         return value
 ```
 
+<!-- markdownlint-enable code-block-style -->
+
 When a model using `str`s will be loaded, the user will see the following
 warning:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```text
 WARN:   The parameters for the my_actuator actuator have been updated as of my_actuator v1.
         They are being temporarily auto-upgraded to the latest version.
@@ -581,6 +647,8 @@ WARN:   The parameters for the my_actuator actuator have been updated as of my_a
 HINT:   Run ado upgrade actuatorconfigurations to upgrade the stored actuatorconfigurations.
         Update your actuatorconfiguration YAML files to use the latest format: https://example.com
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ## Ensure actuator cleanup
@@ -613,7 +681,8 @@ actors that were directly created by it.
 Below is an example of registering a custom class for cleanup:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.modules.operators.orchestrate import CLEANER_ACTOR, ResourceCleaner
 import ray
@@ -624,6 +693,8 @@ try:
 except Exception as e:
     print(f"Failed to register custom actors for clean up {e}. Make sure you clean it up")
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 Once the registration is in place, the `cleanup` method of this actor is invoked
@@ -631,44 +702,44 @@ at the end of execution
 
 ## Signaling progress from your actuator
 
-Actuator developers can provide rich, real-time progress output
-to users running experiments, using utilities available in
-`orchestrator.modules.operators.console_output.py`.
-This is critical for long-running operations (such as deployment,
-environment setup, or benchmarking),
-and helps users visually associate progress with specific requests.
+Actuator developers can provide rich, real-time progress output to users running
+experiments, using utilities available in
+`orchestrator.modules.operators.console_output.py`. This is critical for
+long-running operations (such as deployment, environment setup, or
+benchmarking), and helps users visually associate progress with specific
+requests.
 
 ### How progress signaling works
 
-When performing asynchronous tasks inside your actuator
-(or its experiment executor),
-emit progress or spinner messages to a centralized console queue
+When performing asynchronous tasks inside your actuator (or its experiment
+executor), emit progress or spinner messages to a centralized console queue
 using provided Rich message helpers:
 
-- **RichConsoleSpinnerMessage**: Shows an animated spinner with a label
-(for things like environment creation or deployment in progress)
-- **RichConsoleProgressMessage**: Shows a progress bar reflecting integer percentage
-(for measurable steps such as data transfer, job startup, etc)
+- **RichConsoleSpinnerMessage**: Shows an animated spinner with a label (for
+  things like environment creation or deployment in progress)
+- **RichConsoleProgressMessage**: Shows a progress bar reflecting integer
+  percentage (for measurable steps such as data transfer, job startup, etc)
 
-You should send these messages to the `RichConsoleQueue` actor
-and update or stop them when state changes.
+You should send these messages to the `RichConsoleQueue` actor and update or
+stop them when state changes.
 
 !!! tip end
 
-    Use the `request id` of the MeasurementRequest you're operating on 
+    Use the `request id` of the MeasurementRequest you're operating on
     as the message `id` (and include it in the message `label`).
     This allows your actuator to support progress for multiple experiments
     running concurrently, and the UI will clearly indicate which progress
-    output is tied to which experiment request. 
+    output is tied to which experiment request.
 
 ### Example usage
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 from orchestrator.modules.operators.console_output import RichConsoleSpinnerMessage, RichConsoleProgressMessage
 # Get the console queue where you post progress messages to show
-console = ray.get_actor(name="RichConsoleQueue") 
+console = ray.get_actor(name="RichConsoleQueue")
 request_id = request.requestid  # or similar
 
 # Start a spinner
@@ -697,6 +768,8 @@ console.put.remote(message=RichConsoleProgressMessage(
     progress=35,  # percent
 ))
 ```
+
+<!-- markdownlint-enable code-block-style -->
 <!-- markdownlint-enable line-length -->
 
 ---
@@ -709,12 +782,17 @@ parameters can be defined by the actuator implementer. Typically, the set of
 parameters includes:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
+<!-- markdownlint-disable code-block-style -->
+
 ```python
 request: MeasurementRequest,  # measurement request
 experiment: Union[Experiment, ParameterizedExperiment],  # experiment definition
 state_update_queue: orchestrator.modules.actuators.measurement_queue.MeasurementQueue,  # state update queue
 ```
+
+<!-- markdownlint-enable code-block-style -->
+<!-- markdownlint-enable line-length -->
+
 <!-- markdownlint-enable line-length -->
 
 Any additional parameters can be added to these, as required for actuator

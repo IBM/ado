@@ -1,14 +1,16 @@
 ---
-description: Guidelines for developing ado plugins (actuators, operators, custom_experiments)
+description:
+  Guidelines for developing ado plugins (actuators, operators,
+  custom_experiments)
 globs: "{plugins,examples}/**/*"
 alwaysApply: false
 ---
 
 # Plugin Development Guidelines
 
-These guidelines apply when developing plugins for ado.
-Plugins are developed under `plugins/` or `examples/` directories.
-All general development guidelines from `AGENTS.md` also apply.
+These guidelines apply when developing plugins for ado. Plugins are developed
+under `plugins/` or `examples/` directories. All general development guidelines
+from `AGENTS.md` also apply.
 
 ---
 
@@ -18,7 +20,8 @@ All general development guidelines from `AGENTS.md` also apply.
 
 - **Actuators**: Each actuator is its own package under `plugins/actuators/`
 - **Operators**: Each operator is its own package under `plugins/operators/`
-- **Custom Experiments**: Can have multiple custom experiments in a single package under `plugins/custom_experiments/`
+- **Custom Experiments**: Can have multiple custom experiments in a single
+  package under `plugins/custom_experiments/`
 
 ### Directory Layout
 
@@ -55,9 +58,9 @@ dynamic = ["version"]  # Version set automatically by setuptools_scm
 produce a unique version using the git node and a timestamp (e.g.
 `1.2.3.dev4+gabcdef.d20260420123456`). Without it the default `dirty` scheme
 only appends `.d<date>`, so multiple dirty builds on the same day share the same
-version string. This matters for remote execution: Ray caches installed wheels by
-version, so a stale cached wheel will be used instead of a freshly built one if
-the version has not changed. See
+version string. This matters for remote execution: Ray caches installed wheels
+by version, so a stale cached wheel will be used instead of a freshly built one
+if the version has not changed. See
 [remote-execution](../skills/remote-execution/SKILL.md) for the full diagnosis.
 
 ### Dependencies
@@ -82,19 +85,19 @@ uv pip install -e plugins/your_plugin_type/your_plugin
 
 ### Workspace Membership
 
-By default, plugins added in-tree are not workspace members and should
-not be added to `[tool.uv.workspace]` members in the root `pyproject.toml`.
+By default, plugins added in-tree are not workspace members and should not be
+added to `[tool.uv.workspace]` members in the root `pyproject.toml`.
 
 This means the plugins pyproject.toml should not include a `[tool.uv.sources]`
 section resolving `ado-core` via `{ workspace = true }`.
 
-Only add a plugin to the workspace when explicitly
-asked, for example when the plugin must be included in `uv sync` for CI or
-cross-plugin dependency resolution.
+Only add a plugin to the workspace when explicitly asked, for example when the
+plugin must be included in `uv sync` for CI or cross-plugin dependency
+resolution.
 
 If you mistakenly add `ado-core = { workspace = true }` to a plugin's
-`[tool.uv.sources]` without adding it to the workspace, `uv pip install`
-will fail with:
+`[tool.uv.sources]` without adding it to the workspace, `uv pip install` will
+fail with:
 
 ```
 Failed to parse entry: `ado-core`
@@ -114,19 +117,24 @@ uv add package-name
 
 ## Plugin Registration
 
-### Actuators: Namespaced Packages
+### Actuators: Entry Points
 
-Actuators use namespaced packages and require:
+Actuators use entry points in `pyproject.toml`:
 
-1. Package structure under a namespace
-2. `actuator_definitions.yaml` file
-3. Optional `experiments.yaml` file
+```toml
+[project.entry-points."ado.actuators"]
+my-actuator = "ado_actuators.my_plugin.actuators:MyActuator"
+```
+
+Actuators use namespaced packages under `ado_actuators` and may optionally
+include:
+
+- `experiments.yaml` file for experiment catalog definitions
 
 ```toml
 [tool.setuptools.package-data]
 your_actuator = [
-    "actuator_definitions.yaml",  # Required
-    "experiments.yaml"             # Optional
+    "experiments.yaml"  # Optional: experiment catalog definitions
 ]
 ```
 
@@ -184,8 +192,8 @@ def my_custom_experiment(my_property: float, ...) -> dict[str, Any]:
   values to the function by name, not by position
 - Positional parameters become required properties; keyword parameters become
   optional properties
-- Type annotations on positional parameters allow ado to infer domains:
-  `float` → continuous, `int` → discrete, `Literal` → categorical
+- Type annotations on positional parameters allow ado to infer domains: `float`
+  → continuous, `int` → discrete, `Literal` → categorical
 - Return a `dict` whose keys include the `output_property_identifiers`
 - Define `output_property_identifiers` for measurement results
 - Include descriptive metadata
@@ -199,15 +207,15 @@ For the full decorator API and worked examples, see
 
 ### Unit & Integration Test Location
 
-Keep unit and integration tests **within the plugin package**,
-not in the top-level `tests/` directory.
+Keep unit and integration tests **within the plugin package**, not in the
+top-level `tests/` directory.
 
 ### Testing Checklist
 
 Before considering a plugin complete, verify:
 
-- **Plugin Installation**: Install the plugin into the top-level uv venv
-from the repo root:
+- **Plugin Installation**: Install the plugin into the top-level uv venv from
+  the repo root:
 
   ```bash
   uv pip install -e plugins/your_plugin_type/your_plugin
@@ -229,7 +237,8 @@ uv run ado get operators
 
 and confirm the plugin is installed
 
-- **Experiment execution**: Use the `run_experiment` tool to verify custom_experiment or actuator experiments can execute successfully
+- **Experiment execution**: Use the `run_experiment` tool to verify
+  custom_experiment or actuator experiments can execute successfully
 
 For example:
 
@@ -237,13 +246,15 @@ For example:
 uv run run_experiment point.yaml
 ```
 
-- **Valid DiscoverySpace YAML**: Create and validate a discoveryspace YAML that uses the experiment/actuator
+- **Valid DiscoverySpace YAML**: Create and validate a discoveryspace YAML that
+  uses the experiment/actuator
 
   ```bash
   ado create discoveryspace -f space.yaml --dry-run
   ```
 
-- **Valid Operation YAML**: Create and validate an operation YAML that uses the operator
+- **Valid Operation YAML**: Create and validate an operation YAML that uses the
+  operator
 
   ```bash
   ado create operation -f operation.yaml --dry-run
@@ -285,6 +296,17 @@ Fix any issues that ruff cannot automatically resolve.
 ### Actuator Example
 
 ```toml
+[project]
+name = "my-actuator"
+description = "Description of your actuator"
+dynamic = ["version"]
+dependencies = [
+  "ado-core",
+]
+
+[project.entry-points."ado.actuators"]
+my-actuator = "ado_actuators.my_plugin.actuators:MyActuator"
+
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
@@ -298,15 +320,7 @@ where = ["."]
 exclude = ["build", "build.*", "examples"]
 
 [tool.setuptools.package-data]
-my_actuator = ["actuator_definitions.yaml", "experiments.yaml"]
-
-[project]
-name = "my-actuator"
-description = "Description of your actuator"
-dynamic = ["version"]
-dependencies = [
-  "ado-core",
-]
+my_actuator = ["experiments.yaml"]  # Optional
 ```
 
 ### Operator Example

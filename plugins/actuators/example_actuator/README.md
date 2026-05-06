@@ -27,6 +27,7 @@ ado get experiments --details
 You will see:
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
 ┌─────────────┬────────────────────────┬────────────────────────────────────────────────────────┐
 │ ACTUATOR ID │ EXPERIMENT ID          │ DESCRIPTION                                            │
@@ -36,6 +37,7 @@ You will see:
 │ robotic_lab │ peptide_mineralization │ Measures adsorption of peptide lanthanide combinations │
 └─────────────┴────────────────────────┴────────────────────────────────────────────────────────┘
 ```
+
 <!-- markdownlint-enable line-length -->
 
 On the last line, you can see the new actuator and its experiment.
@@ -52,20 +54,22 @@ ado create samplestore --new-sample-store
 A `samplestore` is a database for storing entities and measurement results. It
 can be reused with multiple `discoveryspaces`.
 
-1. Create a [discoveryspace](https://ibm.github.io/ado/resources/discovery-spaces/):
+1. Create a
+   [discoveryspace](https://ibm.github.io/ado/resources/discovery-spaces/):
 
-    ```bash
-    ado create space -f yamls/discoveryspace.yaml --use-latest samplestore
-    ```
+   ```bash
+   ado create space -f yamls/discoveryspace.yaml --use-latest samplestore
+   ```
 
-    You can use `ado get` or `ado describe` on the `discoveryspace` using
-    the identifier output by the command above.
+   You can use `ado get` or `ado describe` on the `discoveryspace` using the
+   identifier output by the command above.
 
-2. Create a random walk [operation](https://ibm.github.io/ado/resources/operation/):
+2. Create a random walk
+   [operation](https://ibm.github.io/ado/resources/operation/):
 
-    ```bash
-    ado create operation -f yamls/random_walk_operation.yaml --use-latest space
-    ```
+   ```bash
+   ado create operation -f yamls/random_walk_operation.yaml --use-latest space
+   ```
 
 At this point, you can try `ado show entities` to get sampled entities or apply
 other operators. The actuator is already fully integrated with `ado`: all you
@@ -81,9 +85,11 @@ optional properties into the entity space.
 Some examples of how parameterizable experiments can be used:
 
 - [`discoveryspace_override_defaults.yaml`](yamls/discoveryspace_override_defaults.yaml)
+
   - Demonstrates changing the default of one of the optional properties.
 
 - [`discoveryspace_optional_parameter_in_entity_space.yaml`](yamls/discoveryspace_optional_parameter_in_entity_space.yaml)
+
   - Demonstrates using one of the optional parameters to define the entities in
     the entity space.
 
@@ -99,9 +105,11 @@ this is the namespace package that contains all `ado` actuator plugins.
 Key files include:
 
 - `actuator_definitions.yaml` (**Required**)
+
   - Defines which classes in which modules of your package contain actuators.
 
 - `actuators.py` (**Required**, but can have any name)
+
   - Contains the `robotic_lab` actuator in this example.
   - Each actuator plugin must have at least one Python module containing one
     actuator.
@@ -109,6 +117,7 @@ Key files include:
     `actuator_definitions.yaml`.
 
 - `experiments.yaml` (**Optional**)
+
   - Contains YAML definitions of the experiments defined by the actuator.
   - This list could also be created via code in a Python module.
 
@@ -123,13 +132,16 @@ Key files include:
 There are three components you can rename independently:
 
 - **Package name installed via pip** (currently `'robotic_lab'`)
+
   - Change the `name` field in `pyproject.toml`.
 
 - **Python module name** (currently `ado_actuators.robotic_lab_actuator`)
+
   - Rename the `robotic_lab_actuator` directory under `ado_actuators/` to your
     desired name.
   - Update the package name under `[tool.setuptools.package-data]` if used.
-  - Update `actuator_definitions.yaml` to reflect the new name.
+  - Update the entry point in `[project.entry-points."ado.actuators"]` to
+    reflect the new module path.
 
 - **Actuator identifier seen by users**
   - Change the `identifier` field of `RoboticLabActuator` in `actuators.py`.

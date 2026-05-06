@@ -67,7 +67,7 @@ pip install ado-vllm-performance
 This will automatically install both vLLM and GuideLLM benchmarking tools,
 enabling all experiments:
 
-- `test-deployment-v1` and `test-endpoint-v1` (vLLM benchmarks)
+- `test-deployment-v2` and `test-endpoint-v1` (vLLM benchmarks)
 - `test-deployment-guidellm-v1` and `test-endpoint-guidellm-v1` (GuideLLM
   benchmarks)
 - `test-geospatial-deployment-v1` and `test-geospatial-endpoint-v1` (Geospatial
@@ -112,7 +112,7 @@ You should see an output like below:
 │ mock             │ test-experiment-two         │                                                                   │
 │ vllm_performance │ test-deployment-guidellm-v1 │ VLLM performance testing using GuideLLM benchmark suite across    │
 │                  │                             │ compute resource and workload configuration                       │
-│ vllm_performance │ test-deployment-v1          │ VLLM performance testing across compute resource and workload     │
+│ vllm_performance │ test-deployment-v2          │ VLLM performance testing across compute resource and workload     │
 │                  │                             │ configuration                                                     │
 │ vllm_performance │ test-endpoint-guidellm-v1   │ Test inference performance of a model served by vLLM endpoint     │
 │                  │                             │ using GuideLLM benchmark suite across inference workload          │
@@ -132,7 +132,7 @@ and the
 measured by an experiment by running:
 
 ```commandline
-ado describe experiment test-deployment-v1
+ado describe experiment test-deployment-v2
 ```
 
 The experiment protocol for the vLLM actuator is defined in

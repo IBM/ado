@@ -50,14 +50,14 @@ The `vllm_performance` actuator implements twelve experiments:
 
 **Standard LLM Benchmarking:**
 
-- `test-deployment-v1`: This experiment can test the full vLLM workload
+- `test-deployment-v2`: This experiment can test the full vLLM workload
   configuration, including resource requests and server deployment
   configuration. It deploys servers with given configuration on kubernetes and
   runs vLLM's built-in benchmarking tool (`vllm bench serve`) on them with the
   given parameters.
 - `test-endpoint-v1`: This experiment is equivalent to running
   `vllm bench serve` against an endpoint.
-- `test-deployment-guidellm-v1`: Similar to `test-deployment-v1`, but uses
+- `test-deployment-guidellm-v1`: Similar to `test-deployment-v2`, but uses
   GuideLLM (`guidellm benchmark run`) for benchmarking instead of vLLM's
   built-in benchmarking tool.
 - `test-endpoint-guidellm-v1`: Similar to `test-endpoint-v1`, but uses GuideLLM
@@ -154,7 +154,7 @@ entity:
   request_rate: 10
 experiments:
   - actuatorIdentifier: vllm_performance
-    experimentIdentifier: test-deployment-v1
+    experimentIdentifier: test-deployment-v2
 ```
 
 Then run:
@@ -240,7 +240,7 @@ ado create actuatorconfiguration -f vllm_config.yaml
 > [!WARNING] GPU type
 >
 > The GPU type to use in an experiment is set via the experiment itself
-> (test-deployment-v1). **Do not** set this via the `node_selector` parameter of
+> (test-deployment-v2). **Do not** set this via the `node_selector` parameter of
 > the configuration.
 
 <!-- markdownlint-disable-next-line MD028 -->
@@ -299,7 +299,7 @@ experiments can execute even if these packages are not pre-installed in your Ray
 cluster or local environment. The actuator intelligently selects which tool to
 install based on the experiment type:
 
-- For experiments using vLLM's built-in benchmarking (`test-deployment-v1`,
+- For experiments using vLLM's built-in benchmarking (`test-deployment-v2`,
   `test-endpoint-v1`), it installs `ado-vllm-performance[vllm]`
 - For experiments using GuideLLM (`test-deployment-guidellm-v1`,
   `test-endpoint-guidellm-v1`), it installs `ado-vllm-performance[guidellm]`
@@ -359,7 +359,7 @@ parameters:
 
 The `in_cluster` option in your `actuatorconfiguration` tells the
 `vllm_performance` actuator how to communicate with the target Kubernetes or
-OpenShift cluster when running `test-deployment-v1`.
+OpenShift cluster when running `test-deployment-v2`.
 
 If running `ado` from outside the Kubernetes/OpenShift cluster where the
 deployments will be created, leave `in_cluster: false` (the default).

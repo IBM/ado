@@ -24,7 +24,7 @@ model_patterns = {
 mapped_models = {
     "GRANITE_3_1_2B": "granite-3.1-2b",
     "GRANITE_3_1_8B": "granite-3.1-8b-instruct",
-    "LLAMA_3_1_8B": "llama-3.1-8b",
+    "LLAMA_3_1_8B": "llama3.1-8b",
     "GRANITE_4_SMALL": "granite-4.0-h-small",
     "GRANITE_4_TINY": "granite-4.0-h-tiny",
     "GRANITE_4_MICRO": "granite-4.0-h-micro",

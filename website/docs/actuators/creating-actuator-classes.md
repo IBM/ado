@@ -66,7 +66,7 @@ dependencies=[
 dynamic = ["version"]
 
 [project.entry-points."ado.actuators"]
-robotic_lab = "ado_actuators.robotic_lab_actuator.actuator:RoboticLab"
+robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
 ```
 
 <!-- markdownlint-enable code-block-style -->

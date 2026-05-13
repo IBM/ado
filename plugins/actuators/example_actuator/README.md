@@ -98,23 +98,18 @@ Some examples of how parameterizable experiments can be used:
 
 ## The Actuator Package: Key Files
 
-The actuator package is located under `ado_actuators/robotic_lab_actuator`.  
-Note: all actuator packages must be under a directory called `ado_actuators`, as
-this is the namespace package that contains all `ado` actuator plugins.
+The actuator package is located under `src/robotic_lab_actuator/`. This plugin
+uses the src layout, which is the recommended structure for Python packages.
 
 Key files include:
 
-- `actuator_definitions.yaml` (**Required**)
-
-  - Defines which classes in which modules of your package contain actuators.
-
-- `actuators.py` (**Required**, but can have any name)
+- `actuator.py` (**Required**, but can have any name)
 
   - Contains the `robotic_lab` actuator in this example.
   - Each actuator plugin must have at least one Python module containing one
     actuator.
-  - The module name must match the name specified in
-    `actuator_definitions.yaml`.
+  - The actuator class must be registered via the entry point in
+    `pyproject.toml`.
 
 - `experiments.yaml` (**Optional**)
 
@@ -135,14 +130,14 @@ There are three components you can rename independently:
 
   - Change the `name` field in `pyproject.toml`.
 
-- **Python module name** (currently `ado_actuators.robotic_lab_actuator`)
+- **Python module name** (currently `robotic_lab_actuator`)
 
-  - Rename the `robotic_lab_actuator` directory under `ado_actuators/` to your
-    desired name.
+  - Rename the `robotic_lab_actuator` directory under `src/` to your desired
+    name.
   - Update the package name under `[tool.setuptools.package-data]` if used.
   - Update the entry point in `[project.entry-points."ado.actuators"]` to
     reflect the new module path.
 
 - **Actuator identifier seen by users**
-  - Change the `identifier` field of `RoboticLabActuator` in `actuators.py`.
+  - Change the `identifier` field of `RoboticLab` in `actuator.py`.
   - Change the `identifier` fields of the experiments in `experiments.yaml`.

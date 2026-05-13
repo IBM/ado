@@ -169,7 +169,7 @@ Add an entry point in your `pyproject.toml`:
 
 ```toml
 [project.entry-points."ado.actuators"]
-my-actuator = "ado_actuators.myplugin.actuators:MyActuator"
+my-actuator = "myplugin.actuators:MyActuator"
 ```
 
 <!-- markdownlint-enable code-block-style -->

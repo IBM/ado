@@ -123,11 +123,10 @@ Actuators use entry points in `pyproject.toml`:
 
 ```toml
 [project.entry-points."ado.actuators"]
-my-actuator = "ado_actuators.my_plugin.actuators:MyActuator"
+my-actuator = "my_plugin.actuators:MyActuator"
 ```
 
-Actuators use namespaced packages under `ado_actuators` and may optionally
-include:
+Actuators may optionally include:
 
 - `experiments.yaml` file for experiment catalog definitions
 
@@ -305,7 +304,7 @@ dependencies = [
 ]
 
 [project.entry-points."ado.actuators"]
-my-actuator = "ado_actuators.my_plugin.actuators:MyActuator"
+my-actuator = "my_plugin.actuators:MyActuator"
 
 [build-system]
 requires = ["setuptools", "setuptools_scm"]

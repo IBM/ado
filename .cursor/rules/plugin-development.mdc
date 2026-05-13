@@ -119,7 +119,7 @@ uv add package-name
 
 ### Actuators: Entry Points
 
-Actuators use entry points in `pyproject.toml`:
+Actuators use the `ado.actuators` entry point in `pyproject.toml`:
 
 ```toml
 [project.entry-points."ado.actuators"]

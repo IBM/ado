@@ -28,60 +28,12 @@ or to check an existing actuator plugin.
 - Knowledge of [pydantic](https://docs.pydantic.dev/latest/) is useful, but not
   necessary
 
-## Actuator plugin package structure
-
-To create an actuator plugin you **must** use the following package structure
-
-<!-- markdownlint-disable code-block-style -->
-
-```text
-$YOUR_REPO_NAME
-├── ado_actuators # This is ado's namespaced package for actuator plugins
-│   └── $YOUR_PLUGIN_PACKAGE        # Your plugin
-│       ├── __init__.py
-│       ├── actuator_definitions.yaml
-│       └── ...
-└── pyproject.toml
-```
-
-<!-- markdownlint-enable code-block-style -->
-
-The above is structure creates a Python `namespace` package. In this case the
-namespace package is called "ado_actuators", which is the namespace for `ado`
-plugins. Namespace packages allow developers to independently create and
-distribute Python modules that will be installed under a common package name.
-
-When you `pip install` the above package `ado` will detect it when its next run.
-If you want to import the installed package in e.g. the Python console you use
-
-<!-- markdownlint-disable-next-line code-block-style -->
-
-<!-- markdownlint-disable code-block-style -->
-
-```python
-import ado_actuators.$YOUR_PLUGIN_NAME
-```
-
-<!-- markdownlint-enable code-block-style -->
-
-!!! warning end
-
-    *NOTE*: Do not place an `__init__.py` under `ado_actuators/` -
-    this will overwrite all installed plugins.
-
-!!! info end
-
-    You can have multiple plugins under `ado_actuators` in $YOUR_REPO_NAME above.
-    When you install your package all the plugins will be installed.
-
 ### pyproject.toml
 
-The `pyproject.toml` file for an actuator plugin should contain the following
-fields
+The `pyproject.toml` file for an actuator plugin should contain fields similar
+to the following:
 
 <!-- markdownlint-disable line-length -->
-<!-- markdownlint-disable-next-line code-block-style -->
-
 <!-- markdownlint-disable code-block-style -->
 
 ```toml
@@ -109,7 +61,7 @@ robotic_lab_actuator = [
 name="robotic_lab" # Change to your preferred name, along with the actual package
 description="A template for creating an actuator" # Change to describing your actuator
 dependencies=[
-    "black"
+    "ado-core"
 ]
 dynamic = ["version"]
 
@@ -159,9 +111,9 @@ class MyActuator(orchestrator.modules.actuators.base):
 
 ### Telling ado about your actuator class(es)
 
-Actuator plugins must register their actuator classes using entry points in
-`pyproject.toml`. This allows ado to automatically discover and load your
-actuator when the plugin is installed.
+Actuator plugins must register their actuator classes using the `ado.actuators`
+entry point in `pyproject.toml`. This allows ado to automatically discover and
+load your actuator when the plugin is installed.
 
 Add an entry point in your `pyproject.toml`:
 
@@ -179,7 +131,7 @@ The entry point format is:
 - **Entry point name**: A unique identifier for your actuator (e.g.,
   `my-actuator`)
 - **Module path**: The full Python path to your actuator class (e.g.,
-  `ado_actuators.myplugin.actuators:MyActuator`)
+  `myplugin.actuators:MyActuator`)
 
 Your actuator class must:
 

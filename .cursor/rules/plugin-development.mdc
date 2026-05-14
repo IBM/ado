@@ -19,6 +19,8 @@ from `AGENTS.md` also apply.
 ### Package Organization
 
 - **Actuators**: Each actuator is its own package under `plugins/actuators/`
+  - Note: In-tree actuator plugins currently use the `ado_actuators` namespace
+    package, but this is not required for new actuator plugins
 - **Operators**: Each operator is its own package under `plugins/operators/`
 - **Custom Experiments**: Can have multiple custom experiments in a single
   package under `plugins/custom_experiments/`

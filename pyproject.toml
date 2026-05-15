@@ -145,15 +145,15 @@ members = [
   "plugins/operators/anomalous_series",
   "plugins/operators/profile_space",
   "plugins/operators/ray_tune",
-  # "plugins/actuators/sfttrainer",
-  "plugins/operators/trim"
+  # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
+  # "plugins/operators/trim",  # Excluded: incompatible with Python 3.14+ (autogluon==1.5.0 requires pyarrow==20.0.0)
 ]
 
 [tool.uv.sources]
 ado-autoconf = { workspace = true, editable = true }
 ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
-ado-trim = { workspace = true, editable = true }
+ado-trim = { path = "plugins/operators/trim", editable = true }
 ado-vllm-performance = { workspace = true, editable = true }
 anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }

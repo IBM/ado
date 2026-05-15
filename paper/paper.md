@@ -244,8 +244,8 @@ provides a new avenue for researchers to distribute novel experiments, sampling
 methods, and analysis tools. Further, it enhances collaboration by giving
 research teams a shared environment for running experiments and storing data. We
 are actively developing ado to accelerate our own research and are frequently
-releasing new features, for example to enhance its synergy with AI agents to
-further automate the experimental lifecycle.
+releasing new features, for example to increase its synergy with AI agents
+towards more powerful automation of the experiment campaign lifecycle.
 
 # AI Usage Disclosure
 

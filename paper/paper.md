@@ -92,42 +92,38 @@ simple plugin interface (see \autoref{fig:ado}).
 # State of the field
 
 Mature workflow managers such as Galaxy, AiiDA, and Kubeflow excel at scalable,
-reliable DAG orchestration with strong provenance and tight alignment to common
-execution platforms (e.g., HPC for AiiDA; Kubernetes for Kubeflow). As discussed
-in the previous section, they are not ideal for implementing experiment
-campaigns. ML lifecycle management tools like MLflow provide robust experiment
-tracking, metric logging, and artifact management features for individual runs
-[@Zaharia2018AcceleratingTM]. However, they lack a higher-level semantic
-construct for an experiment campaign.
+reliable DAG orchestration with strong provenance and native integration with
+common execution platforms (e.g., HPC for AiiDA; Kubernetes for Kubeflow). Their
+design prioritizes flexible, open-ended execution flow; adding the higher-level
+semantic constructs required for experiment campaigns would conflict with this
+architecture. Similarly, ML lifecycle management tools like MLflow provide
+robust experiment tracking, metric logging, and artifact management features for
+individual runs [@Zaharia2018AcceleratingTM], but do not model the multi-stage
+lifecycle of a campaign as a primary entity.
 
-General black-box optimization frameworks like Optuna, Ax, Nevergrad, and Ray
-Tune are also key components for executing experiment campaigns [@Akiba2019;
-@olson2025ax; @10.1145/3460310.3460312; @Liaw2018]. While these tools are
-beginning to add data management features, for example, persistent storage for
-resuming studies, they require users to define the optimizer, objective, logging
-etc. in code.
+Optimization frameworks like Optuna, Ax, Nevergrad, and Ray Tune are also key
+components for executing experiment campaigns [@Akiba2019; @olson2025ax;
+@10.1145/3460310.3460312; @Liaw2018]. While these tools are beginning to add
+data management features - for example, persistent storage for resuming
+studies - extending them to manage experiment campaigns would lead to duplicated
+effort. Furthermore, using these frameworks requires writing glue logic between
+optimizers, objectives, and logging, which leads to bespoke implementations and
+reduced reusability.
 
-Emerging robotic lab frameworks also highlight the need for integrated campaign
-management. For instance, the Experiment Orchestration System (EOS) provides
-rigorous, repeatable execution for physical experiments [@Angelopoulos2025_EOS].
-The scope of these frameworks is intentionally physical execution, answering how
-to carry out a specific repeatable experiment with lab instruments.
+Emerging robotic lab frameworks, for instance, the Experiment Orchestration
+System (EOS), provide rigorous, repeatable execution for physical experiments
+[@Angelopoulos2025_EOS]. The focus of these frameworks is managing the
+operational complexity of physical execution, answering how to carry out a
+specific repeatable experiment with lab instruments, rather than providing
+domain-agnostic campaign semantics.
 
-We identified that a new approach was necessary, as these existing tools lack
-the core semantic model for an experiment campaign. Adding this to workflow
-managers would conflict with their open-ended DAG design, while adding it to a
-single optimizer library would not generalize and would retain a code-first,
-fragmented approach. For automated lab systems, their focus is on managing
-operational complexity, not providing domain-agnostic, declarative campaign
-semantics above the lab layer.
-
-ado synergizes with, rather than replaces, these tools. It can use workflow
-managers as experiment executors, integrate optimization frameworks, and
-orchestrate physical experiments by coupling with robotic lab systems. At the
-same time, individual experiment implementations within ado's plugin
-architecture can leverage frameworks like MLflow for fine-grained,
-domain-specific tracking. The fact that ado integrates cleanly with these
-systems validates the existence of the gap it fills.
+ado synergizes with, rather than replaces, these tools. It fills a functional
+gap for experiment campaign management through a unified coordination layer that
+integrates cleanly with the existing ecosystem. It can use workflow managers as
+experiment executors, integrate optimization frameworks, and orchestrate
+physical experiments by coupling with robotic lab systems. At the same time,
+individual experiment implementations within ado's plugin architecture can
+leverage frameworks like MLflow for fine-grained, domain-specific tracking.
 
 # Software design
 
@@ -217,33 +213,39 @@ platform's core capabilities
 
 # Research impact statement
 
-ado has been internally battle-tested on complex industrial workloads and
-research questions [@johnston2025efficientreuseablecloudconfiguration]. Its
-impact and utility are demonstrated by a range of publicly available artifacts,
-which provide a strong foundation for community adoption.
-
-- **Large-Scale Benchmarking:** We generated all fine-tuning benchmarks for
-  IBM's watsonx.ai platform. The resulting artifacts, including the
-  [sft-trainer plugin](https://ibm.github.io/ado/actuators/sft-trainer/) and
-  [recommender models built from this data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf),
-  are publicly available.
-- **Advanced Performance Analysis:** The framework was used for detailed
-  performance analysis of geospatial models on vLLM [@10.1145/3600006.3613165].
-  The resulting
-  [vllm-performance plugin](https://ibm.github.io/ado/actuators/vllm_performance/),
-  which includes unique features like automated deployment and tear-down, has
-  been open sourced.
-- **Accelerated Benchmarking:** We developed a method for rapidly building
-  performance models from prior data to accelerate benchmarking. This novel
-  capability is delivered via
-  [the TRIM operator plugin](https://ibm.github.io/ado/operators/trim/). TRIM
-  applies feature-importance-guided active learning to select and measure a
-  minimal set of configurations for building an AutoGluon tabular surrogate.
-
 ado is a community-ready platform for reproducible research, released as open
-source code with extensive documentation. Its plugin architecture provides a
-direct path for contributions, and we are actively developing the framework to
-accelerate our own research, believing others can derive similar advantages.
+source code with extensive documentation. It has been internally battle-tested
+on complex industrial workloads and research questions
+[@johnston2025efficientreuseablecloudconfiguration]. Its realized impact and
+utility are demonstrated by a range of publicly available artifacts.
+
+- **Large-Scale Benchmarking:** All fine-tuning benchmarks for IBM's watsonx.ai
+  platform were executed using ado. This effort produced the
+  [sft-trainer plugin](https://ibm.github.io/ado/actuators/sft-trainer/), which
+  we have open-sourced, and a library of
+  [recommender models derived from the benchmark data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf).
+- **Advanced Performance Analysis:** ado was used to conduct detailed
+  performance analysis of geospatial models on vLLM [@10.1145/3600006.3613165].
+  We have open-sourced the resulting
+  [vllm-performance plugin](https://ibm.github.io/ado/actuators/vllm_performance/)
+  that includes unique features like automated deployment and tear-down of
+  inference services on Kubernetes.
+- **Accelerated Benchmarking:** We have open-sourced
+  [the TRIM operator plugin](https://ibm.github.io/ado/operators/trim/) which we
+  developed to reduce the time required to execute new benchmarking campaigns to
+  account for availability of new workload options e.g. new GPUs, new model
+  versions. It uses feature-importance-guided active learning to build
+  performance surrogates with minimal measurements.
+
+Based on this foundation we believe ado can positively impact research workflows
+in the near term. It lowers the barrier to complex benchmarking by eliminating
+the need to write bespoke orchestration code, while its plugin architecture
+provides a new avenue for researchers to distribute novel experiments, sampling
+methods, and analysis tools. Further, it enhances collaboration by giving
+research teams a shared environment for running experiments and storing data. We
+are actively developing ado to accelerate our own research and are frequently
+releasing new features, for example to enhance its synergy with AI agents to
+further automate the experimental lifecycle.
 
 # AI Usage Disclosure
 

@@ -222,8 +222,10 @@ utility are demonstrated by a range of publicly available artifacts.
 - **Large-Scale Benchmarking:** All fine-tuning benchmarks for IBM's watsonx.ai
   platform were executed using ado. This effort produced the
   [sft-trainer plugin](https://ibm.github.io/ado/actuators/sft-trainer/), which
-  we have open-sourced, and a library of
-  [recommender models derived from the benchmark data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf).
+  we have open-sourced, a library of
+  [recommender models derived from the benchmark data](https://github.com/IBM/ado/tree/main/plugins/custom_experiments/autoconf),
+  and a public dataset for benchmarking predictive models for fine-tuning
+  performance [@lotito2026finetuning].
 - **Advanced Performance Analysis:** ado was used to conduct detailed
   performance analysis of geospatial models on vLLM [@10.1145/3600006.3613165].
   We have open-sourced the resulting

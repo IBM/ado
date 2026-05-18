@@ -12,11 +12,9 @@ import cloudpickle
 import pytest
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
+from orchestrator.modules.actuators.base import DeprecatedExperimentError
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.measurement_queue import (
-    MeasurementQueue,
-    _NullQueue,
-)
+from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
 from orchestrator.modules.actuators.standard import (
     StandardActuator,
 )
@@ -61,6 +59,22 @@ _TEST_CATALOG = ExperimentCatalog(experiments={_EXPERIMENT_ID: _TEST_EXPERIMENT}
 _TEST_REF = ExperimentReference(
     actuatorIdentifier=_ACTUATOR_ID,
     experimentIdentifier=_EXPERIMENT_ID,
+)
+
+_DEPRECATED_EXPERIMENT_ID = "deprecated_double"
+_DEPRECATED_EXPERIMENT = Experiment(
+    actuatorIdentifier=_ACTUATOR_ID,
+    identifier=_DEPRECATED_EXPERIMENT_ID,
+    deprecated=True,
+    requiredProperties=_TEST_EXPERIMENT.requiredProperties,
+    targetProperties=_TEST_EXPERIMENT.targetProperties,
+)
+_DEPRECATED_CATALOG = ExperimentCatalog(
+    experiments={_DEPRECATED_EXPERIMENT_ID: _DEPRECATED_EXPERIMENT}
+)
+_DEPRECATED_REF = ExperimentReference(
+    actuatorIdentifier=_ACTUATOR_ID,
+    experimentIdentifier=_DEPRECATED_EXPERIMENT_ID,
 )
 
 
@@ -114,6 +128,40 @@ class _DoubleXActuator(StandardActuator):
         return {_EXPERIMENT_ID: _double_x}
 
 
+class _DeprecatedExperimentActuator(StandardActuator):
+    """Catalog contains only a deprecated experiment."""
+
+    identifier = _ACTUATOR_ID
+
+    @classmethod
+    def catalog(
+        cls, actuator_configuration: GenericActuatorParameters | None = None
+    ) -> ExperimentCatalog:
+        """Return the catalog with a deprecated experiment."""
+        return _DEPRECATED_CATALOG
+
+    def _experiment_implementations(self) -> dict[str, Callable[..., dict[str, Any]]]:
+        """Unused — resolution raises DeprecatedExperimentError first."""
+        return {_DEPRECATED_EXPERIMENT_ID: _double_x}
+
+
+class _EmptyImplementationsActuator(StandardActuator):
+    """Catalog lists double_x but no Python implementation is registered."""
+
+    identifier = _ACTUATOR_ID
+
+    @classmethod
+    def catalog(
+        cls, actuator_configuration: GenericActuatorParameters | None = None
+    ) -> ExperimentCatalog:
+        """Return the test catalog."""
+        return _TEST_CATALOG
+
+    def _experiment_implementations(self) -> dict[str, Callable[..., dict[str, Any]]]:
+        """Deliberately omit double_x."""
+        return {}
+
+
 class _CustomActuator(StandardActuator):
     """Custom-path actuator: overrides _get_request_executor to track calls."""
 
@@ -121,7 +169,7 @@ class _CustomActuator(StandardActuator):
 
     def __init__(
         self,
-        queue: MeasurementQueue | None = None,
+        queue: MeasurementQueue | NullQueue | None = None,
         params: dict | None = None,
     ) -> None:
         """Initialise with a call counter for side-effect tracking."""
@@ -220,8 +268,8 @@ def test_execute_multi_entity() -> None:
 
 
 def test_execute_no_queue_required() -> None:
-    """execute() works when no MeasurementQueue is provided (_NullQueue is used)."""
-    actuator = _DoubleXActuator()  # no queue argument → _NullQueue
+    """execute() works when no MeasurementQueue is provided (NullQueue is used)."""
+    actuator = _DoubleXActuator()  # no queue argument → NullQueue
     result = actuator.execute(
         entities=[_entity()],
         experimentReference=_TEST_REF,
@@ -246,6 +294,46 @@ def test_execute_with_use_ray() -> None:
     assert result.status == MeasurementRequestStateEnum.SUCCESS
     observed = result.measurements[0].measurements
     assert observed[0].value == pytest.approx(14.0)
+
+
+def test_execute_unknown_experiment_raises_value_error() -> None:
+    """execute() raises ValueError when the reference is absent from the catalog."""
+    actuator = _DoubleXActuator()
+    missing_ref = ExperimentReference(
+        actuatorIdentifier=_ACTUATOR_ID,
+        experimentIdentifier="nonexistent_experiment",
+    )
+    with pytest.raises(ValueError, match="not found in catalog"):
+        actuator.execute(
+            entities=[_entity()],
+            experimentReference=missing_ref,
+            requesterid="test-op",
+            requestIndex=0,
+        )
+
+
+def test_execute_deprecated_experiment_raises_deprecated_error() -> None:
+    """execute() raises DeprecatedExperimentError when the experiment is deprecated."""
+    actuator = _DeprecatedExperimentActuator()
+    with pytest.raises(DeprecatedExperimentError, match="deprecated"):
+        actuator.execute(
+            entities=[_entity()],
+            experimentReference=_DEPRECATED_REF,
+            requesterid="test-op",
+            requestIndex=0,
+        )
+
+
+def test_execute_missing_implementation_raises_key_error() -> None:
+    """execute() raises KeyError when the catalog lists an experiment without code."""
+    actuator = _EmptyImplementationsActuator()
+    with pytest.raises(KeyError, match="No implementation"):
+        actuator.execute(
+            entities=[_entity()],
+            experimentReference=_TEST_REF,
+            requesterid="test-op",
+            requestIndex=0,
+        )
 
 
 def test_submit_dispatches_to_queue() -> None:
@@ -326,20 +414,20 @@ def test_custom_execute_returns_correct_value() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Tests — _NullQueue
+# Tests — NullQueue
 # ---------------------------------------------------------------------------
 
 
 def test_null_queue_put_is_silent() -> None:
-    """_NullQueue.put() accepts items without error and discards them."""
-    q = _NullQueue()
+    """NullQueue.put() accepts items without error and discards them."""
+    q = NullQueue()
     q.put("anything", block=True, timeout=None)
     q.put_nowait("anything_else")
 
 
 def test_null_queue_ray_namespace_returns_none() -> None:
-    """_NullQueue.ray_namespace() returns None."""
-    assert _NullQueue().ray_namespace() is None
+    """NullQueue.ray_namespace() returns None."""
+    assert NullQueue().ray_namespace() is None
 
 
 # ---------------------------------------------------------------------------

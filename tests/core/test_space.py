@@ -325,7 +325,14 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
     """operation_context registers the operation and records STARTED then FINISHED/SUCCESS."""
     from unittest.mock import MagicMock
 
-    from orchestrator.core.operation.config import ScriptOperatorConf
+    from orchestrator.core.discoveryspace.space import (
+        SCRIPT_OPERATION_EXECUTION_LABEL,
+        SCRIPT_OPERATION_LABEL_KEY,
+    )
+    from orchestrator.core.operation.config import (
+        DiscoveryOperationEnum,
+        ScriptOperatorConf,
+    )
     from orchestrator.core.operation.resource import (
         OperationExitStateEnum,
         OperationResourceEventEnum,
@@ -346,8 +353,15 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
     operation = add_call.kwargs["resource"]
     assert add_call.kwargs["relatedIdentifiers"] == [pfas_space.uri]
     assert isinstance(operation.config.operation.module, ScriptOperatorConf)
+    assert (
+        operation.config.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+    )
+    assert operation.operationType == DiscoveryOperationEnum.SEARCH
     assert operation.config.metadata.description == "Script operation for testing"
-    assert operation.config.metadata.labels == {"source": "test"}
+    assert operation.config.metadata.labels == {
+        SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,
+        "source": "test",
+    }
 
     assert mock_store.updateResource.call_count == 2
     finished_operation = mock_store.updateResource.call_args_list[-1].args[0]

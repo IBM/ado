@@ -358,11 +358,15 @@ class ScriptOperatorConf(pydantic.BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: Annotated[str, pydantic.Field(description="Human-readable script name")]
     version: Annotated[str, pydantic.Field()] = "0.1.0"
-
-    @property
-    def operationType(self) -> DiscoveryOperationEnum:
-        """Return the script operation type."""
-        return DiscoveryOperationEnum.SCRIPT
+    operationType: Annotated[
+        DiscoveryOperationEnum,
+        pydantic.Field(
+            description=(
+                "Semantic operation type (e.g. search, characterize). "
+                "Script provenance is recorded separately via operation metadata labels."
+            ),
+        ),
+    ] = DiscoveryOperationEnum.SEARCH
 
     @property
     def operatorIdentifier(self) -> str:

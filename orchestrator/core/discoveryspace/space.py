@@ -22,6 +22,7 @@ from orchestrator.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
     DiscoverySpaceProperties,
 )
+from orchestrator.core.operation.config import DiscoveryOperationEnum
 from orchestrator.core.operation.resource import OperationResource
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
@@ -48,6 +49,9 @@ LOGLEVEL = os.environ.get("LOGLEVEL", "WARNING").upper()
 logging.basicConfig(level=LOGLEVEL, format=FORMAT)
 
 moduleLogger = logging.getLogger("discoveryspace")
+
+SCRIPT_OPERATION_EXECUTION_LABEL = "script"
+SCRIPT_OPERATION_LABEL_KEY = "execution"
 
 
 def _perform_preflight_checks_for_sample_store_methods(
@@ -892,6 +896,7 @@ class DiscoverySpace:
         name: str,
         description: str | None = None,
         metadata: dict | None = None,
+        operation_type: DiscoveryOperationEnum = DiscoveryOperationEnum.SEARCH,
     ) -> Iterator[str]:
         """Context manager that registers a script operation and manages its lifecycle.
 
@@ -904,6 +909,9 @@ class DiscoverySpace:
             name: Human-readable script name stored in the operation configuration.
             description: Optional description for the operation metadata.
             metadata: Optional extra metadata fields merged into ConfigurationMetadata.
+            operation_type: Semantic type for the operation (e.g. SEARCH for explore scripts).
+                Script provenance is always recorded on metadata labels under
+                ``execution: script``.
 
         Yields:
             The operation resource identifier.
@@ -920,7 +928,6 @@ class DiscoverySpace:
         from orchestrator.core.metadata import ConfigurationMetadata
         from orchestrator.core.operation.config import (
             DiscoveryOperationConfiguration,
-            DiscoveryOperationEnum,
             DiscoveryOperationResourceConfiguration,
             ScriptOperatorConf,
         )
@@ -931,11 +938,19 @@ class DiscoverySpace:
             OperationResourceStatus,
         )
 
-        script_module = ScriptOperatorConf(name=name)
-        config_metadata = ConfigurationMetadata(name=name, description=description)
-        if metadata:
-            for key, value in metadata.items():
-                setattr(config_metadata, key, value)
+        script_module = ScriptOperatorConf(name=name, operationType=operation_type)
+        extra_metadata = dict(metadata or {})
+        user_labels = extra_metadata.pop("labels", None) or {}
+        config_metadata = ConfigurationMetadata(
+            name=name,
+            description=description,
+            labels={
+                SCRIPT_OPERATION_LABEL_KEY: SCRIPT_OPERATION_EXECUTION_LABEL,
+                **user_labels,
+            },
+        )
+        for key, value in extra_metadata.items():
+            setattr(config_metadata, key, value)
 
         operation_payload = DiscoveryOperationResourceConfiguration(
             operation=DiscoveryOperationConfiguration(
@@ -947,7 +962,7 @@ class DiscoverySpace:
         )
 
         operation = OperationResource(
-            operationType=DiscoveryOperationEnum.SCRIPT,
+            operationType=script_module.operationType,
             operatorIdentifier=script_module.operatorIdentifier,
             config=operation_payload,
         )

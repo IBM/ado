@@ -2,146 +2,94 @@
 # SPDX-License-Identifier: MIT
 import logging
 import os
-from importlib.metadata import requires
 
 import ray
+from packaging.requirements import Requirement
 
 logger = logging.getLogger(__name__)
 
 
-def _get_dependency_from_package_metadata(
-    package_name: str, extra_name: str
-) -> str | None:
+def extract_package_specs_from_job_env(
+    package_names: list[str],
+) -> dict[str, dict[str, str | None]]:
     """
-    Extract dependency specification from installed package metadata.
+    Parse package specifications from the Ray job's uv environment.
+
+    Given a list of package names, returns information about those packages
+    if they are present in the worker job's uv venv.
 
     Args:
-        package_name: Name of the package to query (e.g., 'ado-vllm-performance')
-        extra_name: Name of the optional dependency group (e.g., 'vllm', 'guidellm')
+        package_names: List of package names to look for (e.g., ['ado-vllm-performance', 'numpy'])
 
     Returns:
-        Dependency specification from the package's optional-dependencies, or None if not found
-    """
-    try:
-        # Get the package requirements
-        # The requires() function returns a list of requirement strings
-        # Format: "package>=version; extra == 'extra_name'"
-        package_requires = requires(package_name) or []
-        for req in package_requires:
-            # Parse requirements that match our extra
-            if f'extra == "{extra_name}"' in req or f"extra == '{extra_name}'" in req:
-                # Extract just the package specification (before the semicolon)
-                dep_spec = req.split(";")[0].strip()
-                logger.debug(
-                    f"Extracted dependency for '{extra_name}' from {package_name} metadata: {dep_spec}"
-                )
-                return dep_spec
-    except Exception as e:
-        logger.debug(f"Could not read metadata for package '{package_name}': {e}")
-
-    return None
-
-
-def inherit_ray_job_env_and_add_extra(base_package_name: str, extra: str) -> dict:
-    """
-    Build a Ray runtime environment that inherits packages from the job's runtime
-    environment and adds an extra dependency by extracting its version from the
-    base package's metadata.
-
-    This is useful for actuators that need to add experiment-specific dependencies
-    (e.g., 'vllm', 'guidellm') that are defined as extras in the base package.
-
-    The function handles two cases:
-    1. Base package in job uv: Reinstalls base package + ado-core + extra
-    2. Base package in base env only: Just installs the extra
-
-    Args:
-        base_package_name: Name of the base package that defines the extra
-                          (e.g., 'ado-vllm-performance')
-        extra: Name of the extra package to install (e.g., 'vllm', 'guidellm')
-
-    Returns:
-        Runtime environment dict with uv packages list
-
-    Raises:
-        RuntimeError: If base package is not found in either job uv or base environment
+        Dictionary mapping package names to their specifications:
+        {
+            "package-name": {
+                "source": "package-name" or "/path/to/wheel.whl" (no version or extras),
+                "version": "==1.2.3" or None,
+                "extras": "extra1,extra2" or None
+            }
+        }
+        Only includes packages that are found in the job uv environment.
 
     Example:
-        >>> # If job uv has: ["numpy", "pandas", "ado-vllm-performance==1.2.3"]
-        >>> env = inherit_ray_job_env_and_add_extra('ado-vllm-performance', 'vllm')
-        >>> # Returns: {"uv": ["numpy", "pandas", "ado-vllm-performance==1.2.3", "vllm>=0.6.0"]}
-        >>>
-        >>> # If job uv has: ["numpy", "pandas"] (base package in base image)
-        >>> env = inherit_ray_job_env_and_add_extra('ado-vllm-performance', 'vllm')
-        >>> # Returns: {"uv": ["numpy", "pandas", "vllm>=0.6.0"]}
+        >>> # If job uv has: ["numpy>=1.20", "ado-vllm-performance[vllm]==1.2.3", "/path/to/custom.whl"]
+        >>> result = parse_job_uv_packages(['numpy', 'ado-vllm-performance', 'custom'])
+        >>> # Returns: {
+        >>> #     "numpy": {"source": "numpy", "version": ">=1.20", "extras": None},
+        >>> #     "ado-vllm-performance": {"source": "ado-vllm-performance", "version": "==1.2.3", "extras": "vllm"},
+        >>> #     "custom": {"source": "/path/to/custom.whl", "version": None, "extras": None}
+        >>> # }
     """
-    # Get the job's runtime environment to inherit its packages
+    # Get the job's runtime environment
     job_runtime_env = ray.get_runtime_context().runtime_env
     job_uv_config = job_runtime_env.get("uv", {}) if job_runtime_env else {}
-
-    # Extract packages from the uv config
-    # Ray normalizes the uv config to a dict with a "packages" key:
-    # {"packages": ["pkg1", "pkg2"], "uv_check": false, "uv_pip_install_options": [...]}
     job_uv_packages = job_uv_config.get("packages", []) if job_uv_config else []
 
-    logger.debug(f"Job runtime environment uv packages: {job_uv_packages}")
+    logger.debug(f"Parsing job uv packages: {job_uv_packages}")
 
-    # Check if base package is in the job environment
-    base_package_in_job = None
-    other_packages = []
+    result = {}
 
-    # Normalize base package name for comparison (handle both - and _)
-    normalized_base = base_package_name.lower().replace("-", "_")
+    # Iterate over requested package names
+    for requested_name in package_names:
+        # Search for this package in the job uv packages
+        for pkg_spec in job_uv_packages:
+            # Quick check: does the requested package name appear in this spec?
+            # Check the name as-is and with all dashes replaced by underscores
+            pkg_spec_lower = pkg_spec.lower()
+            name_with_underscores = requested_name.replace("-", "_").lower()
+            if (
+                requested_name.lower() not in pkg_spec_lower
+                and name_with_underscores not in pkg_spec_lower
+            ):
+                continue  # Not a match, skip to next package
 
-    for pkg in job_uv_packages:
-        # Check if this is the base package
-        pkg_lower = pkg.lower().replace("-", "_")
-        if normalized_base in pkg_lower:
-            # Keep the package exactly as specified (with version and extras if any)
-            base_package_in_job = pkg
-        else:
-            other_packages.append(pkg)
+            # Found a match - now parse using packaging.requirements.Requirement
+            # Check if it's a wheel file path
+            if pkg_spec.endswith(".whl") or "/" in pkg_spec:
+                # It's a wheel file path - can't use Requirement parser
+                source = pkg_spec.split("[")[0] if "[" in pkg_spec else pkg_spec
+                extras = None
+                if "[" in pkg_spec:
+                    extras = pkg_spec.split("[", 1)[1].split("]")[0]
+                version = None
+            else:
+                # It's a PyPI package - use Requirement parser
+                req = Requirement(pkg_spec)
+                source = req.name
+                extras = ",".join(req.extras) if req.extras else None
+                # Convert specifier to string (e.g., "==1.2.3")
+                version = str(req.specifier) if req.specifier else None
 
-    # Try to extract the dependency specification from the base package
-    extra_dependency = _get_dependency_from_package_metadata(base_package_name, extra)
+            result[requested_name] = {
+                "source": source,
+                "version": version,
+                "extras": extras,
+            }
+            break  # Found the package, move to next requested name
 
-    if not extra_dependency:
-        # If we can't find the dependency in metadata, the base package might not be installed
-        # or the extra doesn't exist
-        raise RuntimeError(
-            f"Base package '{base_package_name}' does not define extra '{extra}'. "
-            f"Ensure the package is installed and the extra is defined in its metadata."
-        )
-
-    logger.debug(
-        f"Extracted dependency for extra '{extra}' from {base_package_name}: {extra_dependency}"
-    )
-
-    # Build the final package list based on whether base package is in job uv
-    if base_package_in_job:
-        # Case 1: Base package is in job uv
-        # Reinstall: other packages + base package (exactly as specified) + extra
-        logger.debug(
-            f"Base package '{base_package_name}' found in job uv as '{base_package_in_job}', "
-            f"reinstalling exactly as specified with extra"
-        )
-        final_packages = [
-            *other_packages,
-            base_package_in_job,  # Keep exact specification (version, extras, etc.)
-            extra_dependency,
-        ]
-    else:
-        # Case 2: Base package is in base env only
-        # Just install: existing packages + extra
-        logger.debug(
-            f"Base package '{base_package_name}' not in job uv (assumed in base env), "
-            f"installing only the extra"
-        )
-        final_packages = [*job_uv_packages, extra_dependency]
-
-    logger.debug(f"Final package list: {final_packages}")
-
-    return {"uv": final_packages}
+    logger.debug(f"Parsed package info: {result}")
+    return result
 
 
 def enable_ray_actor_coverage(identifier: str) -> None:

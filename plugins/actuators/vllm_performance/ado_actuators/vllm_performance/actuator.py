@@ -1,9 +1,12 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+
 import logging
 import uuid
+from importlib.metadata import version
 from pathlib import Path
+from typing import Any
 
 import ray
 import yaml
@@ -31,9 +34,54 @@ from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
-from orchestrator.utilities.environment import inherit_ray_job_env_and_add_extra
+from orchestrator.utilities.environment import extract_package_specs_from_job_env
 
 logger = logging.getLogger(__name__)
+
+
+def _build_ray_runtime_env_with_extra(benchmark_tool: str) -> dict[str, list[Any]]:
+
+    # Check if ado-vllm-performance is in the job venv.
+    worker_deps = []
+    specs_from_job_env = extract_package_specs_from_job_env(
+        ["ado-vllm-performance", "ado-core"]
+    )
+
+    if "ado-core" in specs_from_job_env:
+        ado_source = specs_from_job_env["ado-core"]["source"]
+        ado_version: str | None = specs_from_job_env["ado-core"].get("version") or ""
+        extras = specs_from_job_env["ado-core"].get("extras")
+        ado_extras = f"[{extras}]" if extras else ""
+    else:
+        # If ado-core is not in the job env it means that it comes with the base and we assume
+        # it got installed with pypi.
+        # Just to be sure, we extract the version and make sure we get the same installed
+        # in the Ray task environment.
+        # Say the base image runs on an older version of ado-core, we want to avoid it to
+        # be upgraded to a newer version when starting the Ray task.
+        ado_source = "ado-core"
+        ado_version = f"=={version('ado-core')}"
+        ado_extras = ""
+
+    ado_dep = f"{ado_source}{ado_extras}{ado_version}"
+    worker_deps.append(ado_dep)
+
+    # Here we assume the actuator only has 'vllm' or 'guildellm' as extraw dependencies.
+    if "ado-vllm-performance" in specs_from_job_env:
+        actuator_source = specs_from_job_env["ado-vllm-performance"]["source"]
+        actuator_version: str | None = (
+            specs_from_job_env["ado-vllm-performance"].get("version") or ""
+        )
+    else:
+        # Similarly to what we did with ado-core, we also extract the version of the
+        # actuator package.
+        actuator_source = "ado-vllm-performance"
+        actuator_version = f"=={version('ado-vllm-performance')}"
+
+    actuator_dep = f"{actuator_source}[{benchmark_tool}]{actuator_version}"
+    worker_deps.append(actuator_dep)
+
+    return {"uv": worker_deps}
 
 
 # An Actuator must do three things
@@ -208,9 +256,7 @@ class VLLMPerformanceTest(ActuatorBase):
             required_tool = "guidellm" if "guidellm" in experiment_id_lower else "vllm"
 
             # Build runtime environment that inherits job packages and adds experiment tool
-            experiment_ray_env = inherit_ray_job_env_and_add_extra(
-                "ado-vllm-performance", required_tool
-            )
+            experiment_ray_env = _build_ray_runtime_env_with_extra(required_tool)
             ray_options = {"runtime_env": experiment_ray_env}
             logger.debug(
                 f"Experiment ({experiment.identifier}) - Ray task environment: {experiment_ray_env}"

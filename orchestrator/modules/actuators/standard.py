@@ -28,11 +28,7 @@ import ray
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.measurement_queue import (
-    MeasurementQueue,
-    _NullQueue,
-)
+from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
@@ -188,14 +184,15 @@ def _execute_experiments_parallel(
     return request
 
 
+@ray.remote
 def _run_execute_fn(
     execute_fn: Callable[[], MeasurementRequest],
 ) -> MeasurementRequest:
     """Ray worker: call execute_fn() and return the completed MeasurementRequest.
 
-    ray.remote() requires a named module-level function as its target — it cannot
-    be applied to a functools.partial directly.  This wrapper provides that
-    stable dispatch target so execute(use_ray=True) can send a partial as a Ray task.
+    Dispatched only via Ray (``.remote()``); wraps arbitrary ``execute_fn`` such as
+    ``functools.partial`` targets that cannot themselves be decorated with
+    ``@ray.remote``.
 
     Args:
         execute_fn: Zero-argument callable returning a completed MeasurementRequest.
@@ -206,9 +203,10 @@ def _run_execute_fn(
     return execute_fn()
 
 
+@ray.remote
 def _enqueue_completed(
     execute_fn: Callable[[], MeasurementRequest],
-    queue: MeasurementQueue,
+    queue: MeasurementQueue | NullQueue,
 ) -> None:
     """Ray worker: run execute_fn() and put the completed request on queue.
 
@@ -253,18 +251,18 @@ class StandardActuator(ActuatorBase):
 
     def __init__(
         self,
-        queue: MeasurementQueue | None = None,
+        queue: MeasurementQueue | NullQueue | None = None,
         params: dict | GenericActuatorParameters | None = None,
     ) -> None:
         """Initialise the actuator.
 
         Args:
             queue: MeasurementQueue for submit()-based async operation.
-                   If None, a _NullQueue is used — suitable for execute()-only use.
+                   If None, a NullQueue is used — suitable for execute()-only use.
             params: Actuator configuration parameters.
         """
         super().__init__(
-            queue=queue if queue is not None else _NullQueue(), params=params
+            queue=queue if queue is not None else NullQueue(), params=params
         )
 
     # ------------------------------------------------------------------
@@ -413,7 +411,12 @@ class StandardActuator(ActuatorBase):
         execute_fn = self._get_request_executor(request, use_ray=use_ray)
         if not use_ray:
             return execute_fn()
-        return ray.get(ray.remote(_run_execute_fn).remote(execute_fn))
+        # When use_ray=True we always wrap execution in an outer Ray task. For the
+        # default path this adds one hop before per-entity parallel tasks; that hop is
+        # required so overrides of _get_request_executor may return an arbitrary
+        # picklable zero-arg callable (including functools.partial), which Ray cannot
+        # decorate directly at definition time.
+        return ray.get(_run_execute_fn.remote(execute_fn))
 
     def submit(
         self,
@@ -444,21 +447,5 @@ class StandardActuator(ActuatorBase):
             requestid=str(uuid.uuid4())[:6],
         )
         execute_fn = self._get_request_executor(request, use_ray=True)
-        ray.remote(_enqueue_completed).remote(execute_fn, self._stateUpdateQueue)
+        _enqueue_completed.remote(execute_fn, self._stateUpdateQueue)
         return [request.requestid]
-
-    @classmethod
-    def catalog(
-        cls, actuator_configuration: GenericActuatorParameters | None = None
-    ) -> ExperimentCatalog:
-        """Return the actuator's ExperimentCatalog.
-
-        Subclasses must override this method.
-
-        Args:
-            actuator_configuration: Optional actuator configuration parameters.
-
-        Returns:
-            The ExperimentCatalog for this actuator.
-        """
-        raise NotImplementedError(f"{cls.__name__} must implement catalog()")

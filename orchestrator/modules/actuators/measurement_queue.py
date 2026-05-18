@@ -4,8 +4,8 @@
 import ray.util.queue
 
 
-class _NullQueue:
-    """A no-op queue used by StandardActuator when no real MeasurementQueue is provided.
+class NullQueue:
+    """No-op queue when no real MeasurementQueue is provided.
 
     Satisfies the put/put_nowait interface of MeasurementQueue without requiring
     Ray to be initialised. Intended for use with StandardActuator.execute() when

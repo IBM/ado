@@ -19,7 +19,6 @@ from pydantic import Field
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.actuators.standard import StandardActuator
 from orchestrator.schema.experiment import Experiment
 
@@ -62,20 +61,6 @@ class RoboticLab(StandardActuator):
 
     identifier = "robotic_lab"
     parameters_class = RoboticLabParameters
-
-    def __init__(
-        self,
-        queue: MeasurementQueue | None = None,
-        params: dict | GenericActuatorParameters | None = None,
-    ) -> None:
-        """Initialise the actuator.
-
-        Args:
-            queue: MeasurementQueue for submit()-based async operation.
-                   If None a _NullQueue is used — suitable for execute()-only use.
-            params: Actuator configuration parameters.
-        """
-        super().__init__(queue=queue, params=params)
 
     @classmethod
     def catalog(

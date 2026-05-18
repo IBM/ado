@@ -153,7 +153,7 @@ class TrimParameters(BaseModel):
     # ] = False
 
     @classmethod
-    def defaultOperationParameters(cls) -> "TrimParameters":
+    def example_configuration(cls) -> "TrimParameters":
         return cls(targetOutput="TO_BE_SET")
 
     @model_validator(mode="after")

@@ -31,75 +31,9 @@ from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
 from orchestrator.schema.request import MeasurementRequest
+from orchestrator.utilities.environment import inherit_ray_job_env_and_add_extra
 
 logger = logging.getLogger(__name__)
-
-
-def _build_experiment_runtime_env(required_tool: str) -> dict:
-    """
-    Build a runtime environment for an experiment task that inherits packages
-    from the job's runtime environment and adds the experiment-specific tool.
-
-    Args:
-        required_tool: Name of the tool to install (e.g., 'vllm', 'guidellm')
-
-    Returns:
-        Runtime environment dict with uv packages list
-    """
-    # Get the job's runtime environment to inherit its packages
-    job_runtime_env = ray.get_runtime_context().runtime_env
-    job_uv_config = job_runtime_env.get("uv", {}) if job_runtime_env else {}
-
-    # Extract packages from the uv config
-    # Ray normalizes the uv config to a dict with a "packages" key:
-    # {"packages": ["pkg1", "pkg2"], "uv_check": false, "uv_pip_install_options": [...]}
-    job_uv_packages = job_uv_config.get("packages", []) if job_uv_config else []
-
-    logger.debug(f"Job runtime environment uv packages: {job_uv_packages}")
-
-    # Check if ado-vllm-performance is already in the job packages
-    vllm_perf_package = None
-    other_packages = []
-
-    for pkg in job_uv_packages:
-        # Check if this is the ado-vllm-performance package
-        # Handle various formats: "ado-vllm-performance", "ado-vllm-performance==1.0.0",
-        # "/path/to/ado_vllm_performance-1.2.3.whl", etc.
-        pkg_lower = pkg.lower()
-        if "ado-vllm-performance" in pkg_lower or "ado_vllm_performance" in pkg_lower:
-            vllm_perf_package = pkg
-        else:
-            other_packages.append(pkg)
-
-    # Build the final package list
-    if vllm_perf_package:
-        # ado-vllm-performance is in job env - reinstall with the required tool extra
-        # Extract the base package spec and any existing extras
-        if "[" in vllm_perf_package:
-            base_pkg, extras_part = vllm_perf_package.split("[", 1)
-            # Remove the closing bracket and split by comma to get individual extras
-            existing_extras = extras_part.rstrip("]").split(",")
-            # Add the required tool if not already present
-            if required_tool not in existing_extras:
-                existing_extras.append(required_tool)
-            tool_pkg = f"{base_pkg}[{','.join(existing_extras)}]"
-        else:
-            # No existing extras, just add the required tool
-            tool_pkg = f"{vllm_perf_package}[{required_tool}]"
-
-        logger.debug(
-            f"Found ado-vllm-performance in job env: {vllm_perf_package}, "
-            f"reinstalling with [{required_tool}] extra: {tool_pkg}"
-        )
-        final_packages = [*other_packages, tool_pkg]
-    else:
-        # ado-vllm-performance not in job env - install it with the tool extra
-        # The extra will handle installing the correct version of the tool
-        tool_pkg = f"ado-vllm-performance[{required_tool}]"
-        logger.debug(f"ado-vllm-performance not in job env, installing: {tool_pkg}")
-        final_packages = [*job_uv_packages, "ado-core", tool_pkg]
-
-    return {"uv": final_packages}
 
 
 # An Actuator must do three things
@@ -274,7 +208,9 @@ class VLLMPerformanceTest(ActuatorBase):
             required_tool = "guidellm" if "guidellm" in experiment_id_lower else "vllm"
 
             # Build runtime environment that inherits job packages and adds experiment tool
-            experiment_ray_env = _build_experiment_runtime_env(required_tool)
+            experiment_ray_env = inherit_ray_job_env_and_add_extra(
+                "ado-vllm-performance", required_tool
+            )
             ray_options = {"runtime_env": experiment_ray_env}
             logger.debug(
                 f"Experiment ({experiment.identifier}) - Ray task environment: {experiment_ray_env}"

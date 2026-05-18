@@ -319,3 +319,61 @@ def test_matching_entities_table_virtual_property_with_multiple_values(
     assert virtual_id in df_with_vp.columns
     # Aggregated values should be scalar (not lists or None)
     assert df_with_vp[virtual_id].dropna().apply(lambda x: np.isscalar(x)).all()
+
+
+def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None:
+    """operation_context registers the operation and records STARTED then FINISHED/SUCCESS."""
+    from unittest.mock import MagicMock
+
+    from orchestrator.core.operation.config import ScriptOperatorConf
+    from orchestrator.core.operation.resource import (
+        OperationExitStateEnum,
+        OperationResourceEventEnum,
+    )
+
+    mock_store = MagicMock()
+    pfas_space._metadataStore = mock_store
+
+    with pfas_space.operation_context(
+        name="test-script",
+        description="Script operation for testing",
+        metadata={"labels": {"source": "test"}},
+    ) as operation_id:
+        assert operation_id.startswith("operation-script-test-script-")
+        assert operation_id in pfas_space._verified_operation_ids
+
+    add_call = mock_store.addResourceWithRelationships.call_args
+    operation = add_call.kwargs["resource"]
+    assert add_call.kwargs["relatedIdentifiers"] == [pfas_space.uri]
+    assert isinstance(operation.config.operation.module, ScriptOperatorConf)
+    assert operation.config.metadata.description == "Script operation for testing"
+    assert operation.config.metadata.labels == {"source": "test"}
+
+    assert mock_store.updateResource.call_count == 2
+    finished_operation = mock_store.updateResource.call_args_list[-1].args[0]
+    assert finished_operation.status[-2].event == OperationResourceEventEnum.STARTED
+    assert finished_operation.status[-1].event == OperationResourceEventEnum.FINISHED
+    assert finished_operation.status[-1].exit_state == OperationExitStateEnum.SUCCESS
+
+
+def test_operation_context_failure_lifecycle(pfas_space: DiscoverySpace) -> None:
+    """operation_context records FINISHED/FAIL when the wrapped block raises."""
+    from unittest.mock import MagicMock
+
+    from orchestrator.core.operation.resource import (
+        OperationExitStateEnum,
+        OperationResourceEventEnum,
+    )
+
+    mock_store = MagicMock()
+    pfas_space._metadataStore = mock_store
+
+    with (
+        pytest.raises(RuntimeError, match="boom"),
+        pfas_space.operation_context(name="failing-script"),
+    ):
+        raise RuntimeError("boom")
+
+    finished_operation = mock_store.updateResource.call_args_list[-1].args[0]
+    assert finished_operation.status[-1].event == OperationResourceEventEnum.FINISHED
+    assert finished_operation.status[-1].exit_state == OperationExitStateEnum.FAIL

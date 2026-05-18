@@ -1,10 +1,11 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import contextlib
 import logging
 import os
 import typing
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from functools import wraps
 from typing import Any
 
@@ -884,6 +885,98 @@ class DiscoverySpace:
 
         self.log.info(f"Updating run {operationResource.identifier}")
         return self._metadataStore.updateResource(operationResource)
+
+    @contextlib.contextmanager
+    def operation_context(
+        self,
+        name: str,
+        description: str | None = None,
+        metadata: dict | None = None,
+    ) -> Iterator[str]:
+        """Context manager that registers a script operation and manages its lifecycle.
+
+        Creates an OperationResource linked to this space, appends STARTED before
+        yielding the operation_id, and writes FINISHED/SUCCESS or FINISHED/FAIL on exit.
+        The operation_id should be passed as ``requesterid`` to Actuators execute
+        or submit methods
+
+        Args:
+            name: Human-readable script name stored in the operation configuration.
+            description: Optional description for the operation metadata.
+            metadata: Optional extra metadata fields merged into ConfigurationMetadata.
+
+        Yields:
+            The operation resource identifier.
+
+        Raises:
+            RuntimeError: If the discovery space has no metadata store.
+        """
+        if self._metadataStore is None:
+            raise RuntimeError(
+                "DiscoverySpace.operation_context requires a metadata store; "
+                "load the space from stored configuration first."
+            )
+
+        from orchestrator.core.metadata import ConfigurationMetadata
+        from orchestrator.core.operation.config import (
+            DiscoveryOperationConfiguration,
+            DiscoveryOperationEnum,
+            DiscoveryOperationResourceConfiguration,
+            ScriptOperatorConf,
+        )
+        from orchestrator.core.operation.resource import (
+            OperationExitStateEnum,
+            OperationResource,
+            OperationResourceEventEnum,
+            OperationResourceStatus,
+        )
+
+        script_module = ScriptOperatorConf(name=name)
+        config_metadata = ConfigurationMetadata(name=name, description=description)
+        if metadata:
+            for key, value in metadata.items():
+                setattr(config_metadata, key, value)
+
+        operation_payload = DiscoveryOperationResourceConfiguration(
+            operation=DiscoveryOperationConfiguration(
+                module=script_module,
+                parameters={},
+            ),
+            metadata=config_metadata,
+            spaces=[self.uri],
+        )
+
+        operation = OperationResource(
+            operationType=DiscoveryOperationEnum.SCRIPT,
+            operatorIdentifier=script_module.operatorIdentifier,
+            config=operation_payload,
+        )
+
+        self.addOperation(operation)
+        self._verified_operation_ids.add(operation.identifier)
+
+        try:
+            operation.status.append(
+                OperationResourceStatus(event=OperationResourceEventEnum.STARTED)
+            )
+            self.updateOperation(operation)
+            yield operation.identifier
+            operation.status.append(
+                OperationResourceStatus(
+                    event=OperationResourceEventEnum.FINISHED,
+                    exit_state=OperationExitStateEnum.SUCCESS,
+                )
+            )
+        except Exception:
+            operation.status.append(
+                OperationResourceStatus(
+                    event=OperationResourceEventEnum.FINISHED,
+                    exit_state=OperationExitStateEnum.FAIL,
+                )
+            )
+            raise
+        finally:
+            self.updateOperation(operation)
 
     @_perform_preflight_checks_for_sample_store_methods
     def complete_measurement_request_with_results_timeseries(

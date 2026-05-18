@@ -21,7 +21,7 @@ class ProfileParameters(pydantic.BaseModel):
     name="profile",
     version=version("ado-core"),
     configuration_model=ProfileParameters,
-    configuration_model_default=ProfileParameters(),
+    example_configuration=ProfileParameters(),
     description="Returns a ydata_profiling ProfileReport for the space",
 )
 # operator function can have any name but have similar parameters - see https://ibm.github.io/ado/operators/creating-operators/#operator-function-parameters

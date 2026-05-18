@@ -116,7 +116,7 @@ class ActuatorRegistry:
                 ):
                     actuator_class = member
 
-                if actuator_class:
+                if actuator_class and not inspect.isabstract(actuator_class):
                     self.registerActuator(
                         actuator_class.identifier, actuator_class, is_builtin=True
                     )

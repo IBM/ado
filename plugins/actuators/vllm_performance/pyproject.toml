@@ -27,6 +27,9 @@ Issues = "https://github.com/IBM/ado/issues"
 # Documentation = "https://readthedocs.org"
 Repository = "https://github.com/IBM/ado"
 
+[project.entry-points."ado.actuators"]
+vllm_performance = "ado_actuators.vllm_performance.actuator:VLLMPerformanceTest"
+
 [project.optional-dependencies]
 guidellm = [
   "guidellm>=0.5.3",
@@ -49,7 +52,6 @@ exclude = ["build", "build.*", "yamls", "docker_image"]
 [tool.setuptools.package-data]
 # Note: This is optional. If you don't specify every non python file that's in SCM will be added
 vllm_performance = [
-  "actuator_definitions.yaml",  # Required: The file that describes the actuator classes the plugin provides
   "experiments.yaml",  # Optional file that contains definitions for experiment catalog
 ]
 

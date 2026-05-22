@@ -56,8 +56,8 @@ While the domains of computational science are diverse, spanning machine
 learning (ML), physics simulation, and hardware design, the process of
 experimentation is remarkably uniform. Whether tuning hyperparameters,
 benchmarking foundation models, or sweeping simulation parameters, researchers
-consistently follow a structured pattern: define a configuration space; select
-points; execute experiments; record results; and analyze the outcomes to guide
+consistently follow a structured pattern: define a configuration space, select
+points, execute experiments, record results, and analyze the outcomes to guide
 the next iteration. This workflow, the _experiment campaign_, is central to
 modern research and development, yet it is often managed with tools that fail to
 capture its essential structure.
@@ -70,8 +70,8 @@ experiment campaigns, this forces researchers to implement mechanisms for trial
 submission, parameter handling, and result collation.
 
 ado directly addresses this gap. Instead of orchestrating arbitrary DAGs, ado
-focuses on the generic experiment campaign process. Users define configuration
-spaces and operations on them declaratively. ado then orchestrates the
+focuses on the generic experiment campaign process. Users declaratively define configuration
+spaces and operations on them. ado then orchestrates the
 operations using its own protocols. For example, in sampling workflows, it
 handles reuse of prior measurements, trial execution and monitoring, and
 time-resolved measurement recording, maintaining consistency over a shared
@@ -79,7 +79,7 @@ sample store. This approach mirrors the advantages of declarative systems like
 SQL or Terraform: reduced boilerplate, fewer errors, and greater clarity. It
 also aids code generators in creating experiment definitions and design spaces.
 
-![A schematic overview ado's architecture. \label{fig:ado}](ADOSchematic.pdf)
+![A schematic overview of ado's architecture. \label{fig:ado}](ADOSchematic.pdf)
 
 ado extends its core model with valuable support capabilities. Specifications
 (configuration spaces, operations) and measurements are stored in a database
@@ -104,8 +104,8 @@ lifecycle of a campaign as a primary entity.
 Optimization frameworks like Optuna, Ax, Nevergrad, and Ray Tune are also key
 components for executing experiment campaigns [@Akiba2019; @olson2025ax;
 @10.1145/3460310.3460312; @Liaw2018]. While these tools are beginning to add
-data management features - for example, persistent storage for resuming
-studies - extending them to manage experiment campaigns would lead to duplicated
+data management features—for example, persistent storage for resuming
+studies—extending them to manage experiment campaigns would lead to duplicated
 effort. Furthermore, using these frameworks requires writing glue logic between
 optimizers, objectives, and logging, which leads to bespoke implementations and
 reduced reusability.
@@ -191,7 +191,7 @@ We obtain a **common context** by storing the sample time series in a shared
 sample store with a common schema. Finally, it is **reconcilable** as it
 enforces a strict membership rule for its sample set: only samples in the
 common-context that are associated with an operation conducted on that space are
-included. (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE
+included (see \autoref{fig:ds_interaction}). Hence, it displays the TRACE
 characteristics.
 
 The Discovery Space abstraction effectively decouples workload-specific

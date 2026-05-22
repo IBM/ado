@@ -21,25 +21,25 @@ your analysis method or experiment for free.
 
 ## Key Features
 
-- :computer: _CLI_: Our human-centric CLI follows
+- 💻 _CLI_: Our human-centric CLI follows
   [best practices](https://clig.dev)
-- :handshake: _Projects_: Allow distributed groups of users to
+- 🤝 _Projects_: Allow distributed groups of users to
   [collaborate and share data](https://ibm.github.io/ado/resources/metastore.md)
 - 🔌 _Extendable_: Easily
   [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments.md),
   [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators.md)
-- :gear: _Scalable_: We use [ray](https://ray.io) as our execution engine
+- ⚙️_Scalable_: We use [ray](https://ray.io) as our execution engine
   allowing experiments and tools to easily scale
-- :recycle: _Automatic data-reuse_: Avoid repeating work with
+- ♻️_Automatic data-reuse_: Avoid repeating work with
   [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing.md).
   `ado` internal protocols ensure this happens only when it makes sense
-- :link: _Provenance_: As you work, the relationship between the data you create
+- 🔗 _Provenance_: As you work, the relationship between the data you create
   and operations you perform are
   [automatically tracked](https://ibm.github.io/ado/getting-started/ado.md#ado-show-related)
-- :mag: _Optimization and sampling_: Out-of-the-box, leverage powerful
+- 🔎 _Optimization and sampling_: Out-of-the-box, leverage powerful
   optimization methods [via `raytune`](operators/optimisation-with-ray-tune.md)
   or use our [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk.md)
-- :robot: _Coding agents_: Supercharge your workflow. `ado`'s
+- 🤖 _Coding agents_: Supercharge your workflow. `ado`'s
   typed resources and bundled skills enable AI assistants to autonomously
   formulate, validate, and run experiments. [Learn more](https://ibm.github.io/ado/how-to/index.md).
 

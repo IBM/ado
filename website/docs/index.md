@@ -1,5 +1,7 @@
 # Introduction
 
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.10304/status.svg)](https://doi.org/10.21105/joss.10304)
+
 This is the webpage for the **a**ccelerated **d**iscovery **o**rchestrator
 (**`ado`**).
 

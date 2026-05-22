@@ -79,7 +79,7 @@ sample store. This approach mirrors the advantages of declarative systems like
 SQL or Terraform: reduced boilerplate, fewer errors, and greater clarity. It
 also aids code generators in creating experiment definitions and design spaces.
 
-![A schematic overview ado's architecture. \label{fig:ado}](ADOSchematic.png)
+![A schematic overview ado's architecture. \label{fig:ado}](ADOSchematic.pdf)
 
 ado extends its core model with valuable support capabilities. Specifications
 (configuration spaces, operations) and measurements are stored in a database

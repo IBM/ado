@@ -39,7 +39,7 @@ your analysis method or experiment for free.
 - :mag: _Optimization and sampling_: Out-of-the-box, leverage powerful
   optimization methods [via `raytune`](operators/optimisation-with-ray-tune.md)
   or use our [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk.md)
-- :material-robot-outline: _Coding agents_: Supercharge your workflow. `ado`'s
+- :robot: _Coding agents_: Supercharge your workflow. `ado`'s
   typed resources and bundled skills enable AI assistants to autonomously
   formulate, validate, and run experiments. [Learn more](https://ibm.github.io/ado/how-to/index.md).
 

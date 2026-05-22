@@ -1,5 +1,7 @@
 # Introduction
 
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.010304/status.svg)](https://doi.org/10.21105/joss.10304)
+
 This is the repository for the **a**ccelerated **d**iscovery **o**rchestrator
 (**`ado`**).
 
@@ -19,43 +21,46 @@ your analysis method or experiment for free.
 
 ## Key Features
 
-- 💻 _CLI_: Our human-centric CLI follows [best practices](https://clig.dev)
-- 🤝 _Projects_: Allow distributed groups of users to
-  [collaborate and share data](https://ibm.github.io/ado/resources/metastore)
-- 🔌 _Extendable_: Easily
-  [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments),
-  [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators)
-- ⚙️ _Scalable_: We use [ray](https://ray.io) as our execution engine allowing
-  experiments and tools to easily scale
-- ♻️ _Automatic data-reuse_: Avoid repeating work with
-  [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing).
+- :computer: _CLI_: Our human-centric CLI follows
+  [best practices](https://clig.dev)
+- :handshake: _Projects_: Allow distributed groups of users to
+  [collaborate and share data](https://ibm.github.io/ado/resources/metastore.md)
+- :electric*plug: _Extendable_: Easily
+  [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments.md),
+  [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators.md)
+- :gear: _Scalable_: We use [ray](https://ray.io) as our execution engine
+  allowing experiments and tools to easily scale
+- :recycle: _Automatic data-reuse_: Avoid repeating work with
+  [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing.md).
   `ado` internal protocols ensure this happens only when it makes sense
-- 🔗 _Provenance_: As you work, the relationship between the data you create and
-  operations you perform are
-  [automatically tracked](https://ibm.github.io/ado/getting-started/ado#ado-show-related)
-- 🔎 _Optimization and sampling_: Out-of-the-box, leverage powerful optimization
-  methods
-  [via `raytune`](https://ibm.github.io/ado/operators/optimisation-with-ray-tune)
-  or use our
-  [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk)
+- :link: _Provenance_: As you work, the relationship between the data you create
+  and operations you perform are
+  [automatically tracked](https://ibm.github.io/ado/getting-started/ado.md#ado-show-related)
+- :mag: _Optimization and sampling_: Out-of-the-box, leverage powerful
+  optimization methods [via `raytune`](operators/optimisation-with-ray-tune.md)
+  or use our [flexible in built sampler](https://ibm.github.io/ado/operators/random-walk.md)
+- :material-robot-outline: _Coding agents_: Supercharge your workflow. `ado`'s
+  typed resources and bundled skills enable AI assistants to autonomously
+  formulate, validate, and run experiments. [Learn more](https://ibm.github.io/ado/how-to/index.md).
 
 ### Foundation Model Experimentation
 
-We have developed `ado` plugins providing advanced experiments for testing
-foundation-models:
+We have developed `ado` plugins providing advanced capabilities for performance
+testing of foundation-models:
 
-- ⏱️
-  [fine-tuning performance benchmarking](https://ibm.github.io/ado/actuators/sft-trainer)
-- ⏱️ inference performance benchmarking (using the
-  [vLLM performance benchmark](https://docs.vllm.ai/en/stable/api/vllm/benchmarks/serve.html))
-- **COMING SOON** 🔮 inference and fine-tuning prediction
+- :stopwatch: [fine-tuning performance benchmarking](https://ibm.github.io/ado/actuators/sft-trainer)
+- :stopwatch:
+  [inference performance benchmarking](https://ibm.github.io/ado/examples/vllm-performance-endpoint.md)
+  (using [vLLM bench](https://docs.vllm.ai/en/latest/cli/bench/serve.html) or
+  [guidellm](https://github.com/vllm-project/guidellm))
+- :crystal_ball: [predictive performance models creation](https://ibm.github.io/ado/operators/trim.md)
 
 ## Requirements
 
-A basic installation of `ado` only requires a recent Python version (3.10+).
-This will allow you to run
-[many of our examples](https://ibm.github.io/ado/examples/examples) and explore
-ado features.
+A basic installation of `ado` only requires a recent Python version (3.10 to
+3.13). This will allow you to run
+[many of our examples](https://ibm.github.io/ado/examples/examples)
+and explore ado features.
 
 ### Additional Requirements
 

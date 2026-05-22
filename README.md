@@ -48,12 +48,12 @@ your analysis method or experiment for free.
 We have developed `ado` plugins providing advanced capabilities for performance
 testing of foundation-models:
 
-- :stopwatch: [fine-tuning performance benchmarking](https://ibm.github.io/ado/actuators/sft-trainer)
-- :stopwatch:
+- ⏱️[fine-tuning performance benchmarking](https://ibm.github.io/ado/actuators/sft-trainer)
+- ⏱️
   [inference performance benchmarking](https://ibm.github.io/ado/examples/vllm-performance-endpoint.md)
   (using [vLLM bench](https://docs.vllm.ai/en/latest/cli/bench/serve.html) or
   [guidellm](https://github.com/vllm-project/guidellm))
-- :crystal_ball: [predictive performance models creation](https://ibm.github.io/ado/operators/trim.md)
+- 🔮[predictive performance models creation](https://ibm.github.io/ado/operators/trim.md)
 
 ## Requirements
 

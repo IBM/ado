@@ -184,7 +184,7 @@ membership details from a shared sample store (_common context_).
 In this case both spaces have the same action space and contain point X.
 If point X is measured on Discovery Space A, it will not appear in the sample set
 of Discovery Space B until it is requested to be measured via B (_reconcilable_).
- \label{fig:ds_interaction}](ds_interaction_v2.drawio.png){
+ \label{fig:ds_interaction}](ds_interaction_v2.drawio.pdf){
 width=80% }
 
 We obtain a **common context** by storing the sample time series in a shared

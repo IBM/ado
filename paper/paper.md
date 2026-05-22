@@ -53,7 +53,7 @@ consuming advanced capabilities for defining and executing experiment campaigns.
 # Statement of need
 
 While the domains of computational science are diverse, spanning machine
-learning, physics simulation, and hardware design, the process of
+learning (ML), physics simulation, and hardware design, the process of
 experimentation is remarkably uniform. Whether tuning hyperparameters,
 benchmarking foundation models, or sweeping simulation parameters, researchers
 consistently follow a structured pattern: define a configuration space; select
@@ -127,7 +127,7 @@ leverage frameworks like MLflow for fine-grained, domain-specific tracking.
 
 # Software design
 
-## TRACE Design Requirements
+## TRACE design requirements
 
 We first established TRACE, a set of five requirements for managing the
 artifacts of an experimental campaign or study.
@@ -153,7 +153,7 @@ qualities a digital asset should possess, TRACE defines _how_ to construct
 systems that generate inherently FAIR data from the inception of an experiment
 campaign.
 
-## Discovery Space as a Core Abstraction
+## Discovery Space as a core abstraction
 
 The TRACE characteristics guided our search for a data model. First, we noted
 that configuration search campaigns have well-defined mathematical properties:
@@ -198,7 +198,7 @@ The Discovery Space abstraction effectively decouples workload-specific
 experiments from the search and optimization algorithms, enabling the kind of
 versatile, workload-agnostic capabilities that are a key goal of the program.
 
-## Pydantic-based Core Architecture
+## Pydantic-based core architecture
 
 ado is implemented in Python, chosen for its ubiquity in scientific domains.
 Central to ado is the Pydantic framework, which we use for all data modeling.
@@ -249,7 +249,7 @@ are actively developing ado to accelerate our own research and are frequently
 releasing new features, for example increasing its synergy with AI agents
  to enable more powerful automation of the experiment campaign lifecycle.
 
-# AI Usage Disclosure
+# AI usage disclosure
 
 Generative AI was used for the manuscript and codebase, with human authors
 reviewing and taking responsibility for the final content. For the manuscript,

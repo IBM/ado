@@ -22,7 +22,7 @@ your analysis method or experiment for free.
 ## Key Features
 
 - 💻 _CLI_: Our human-centric CLI follows
-  [best practices](https://clig.dev)
+[best practices](https://clig.dev)
 - 🤝 _Projects_: Allow distributed groups of users to
   [collaborate and share data](https://ibm.github.io/ado/resources/metastore.md)
 - 🔌 _Extendable_: Easily

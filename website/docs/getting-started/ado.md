@@ -388,7 +388,8 @@ you can create. The fastest way to update these metadata is to use the
 The complete syntax of the `ado edit` command is as follows:
 
 ```shell
-ado edit RESOURCE_TYPE RESOURCE_ID [--editor <NAME>]
+ado edit RESOURCE_TYPE RESOURCE_ID [-p | --patch <YAML>] \
+    [--patch-file <FILE>] [--editor <NAME>]
 ```
 
 Where:
@@ -408,19 +409,29 @@ Where:
     <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource to edit.
-- `--editor` is the name of the editor you want to use for editing metadata. It
-  must be one of the supported ones, which currently are:
+- `-p` / `--patch` is an optional inline YAML/JSON string for non-interactive
+  editing (similar to `oc` / `kubectl patch -p`). It is **merged** into the
+  resource's existing stored metadata using a one-level strategic update:
+  `labels` are merged as key–value maps; other top-level fields from the patch
+  replace the previous values. You can use a patch string **or** a file, not
+  both. When using `--patch`, the `--editor` flag is ignored.
+- `--patch-file` is an optional path to a YAML/JSON file with the same merge
+  behaviour as `--patch`. You may not use `--patch` and `--patch-file` together.
+  When using `--patch-file`, the `--editor` flag is ignored.
+- `--editor` is the name of the editor you want to use for **interactive**
+  editing of metadata (ignored when `--patch` or `--patch-file` is specified).
+  It must be one of the supported ones, which currently are:
 
     <!-- prettier-ignore-start -->
 
-    - `vim` (_default_)
+    - `vim`
     - `vi`
-    - `nano`
+    - `nano` (_default_ if `ADO_EDITOR` is not set when using interactive edit)
 
     <!-- prettier-ignore-end -->
 
-Alternatively, you can also set the value for this flag by using the environment
-variable `ADO_EDITOR`.
+For interactive mode, you can set the default editor with the `ADO_EDITOR`
+environment variable.
 
 #### Examples
 
@@ -442,6 +453,18 @@ ado edit space space-abc123-456def --editor nano
 ADO_EDITOR=nano ado edit space space-abc123-456def
 ```
 
+##### Merging metadata with an inline patch (non-interactive, oc-style)
+
+```shell
+ado edit space space-abc123-456def -p "labels: { team: front }"
+```
+
+##### Merging metadata from a file (non-interactive)
+
+```shell
+ado edit space space-abc123-456def --patch-file extra-metadata.yaml
+```
+
 ### ado get
 
 **ado** allows getting resources in a similar way to `kubectl`. Users can choose
@@ -455,6 +478,7 @@ The complete syntax of the `ado get` command is as follows:
 ```shell
 ado get RESOURCE_TYPE [RESOURCE_ID] [--output | -o <default | yaml | json | config | raw>] \
                                     [--output-file <path>] \
+                                    [--use-latest] \
                                     [--exclude-default | --no-exclude-default] \
                                     [--exclude-unset | --no-exclude-unset ] \
                                     [--exclude-none | --no-exclude-none ] \
@@ -491,7 +515,12 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `RESOURCE_ID` is the optional unique identifier of the resource to get.
+- `RESOURCE_ID` is the optional unique identifier of the resource to get. If not
+  specified, all resources of the given type are returned (unless `--use-latest`
+  is used).
+- `--use-latest` retrieves the most recently created resource of the specified
+  type. This flag is ignored if a `RESOURCE_ID` is also provided (the explicit
+  ID takes precedence).
 - `--output` or `-o` determine the type of output that will be displayed:
 
     <!-- prettier-ignore-start -->
@@ -654,6 +683,18 @@ ado get operation randomwalk-0.5.0-123abc -o yaml
 
 ```shell
 ado get operations -o name
+```
+
+##### Getting the latest Discovery Space as YAML
+
+```shell
+ado get space --use-latest -o yaml
+```
+
+##### Getting the latest Operation as YAML
+
+```shell
+ado get operation --use-latest -o yaml
 ```
 
 ##### Displaying all current experiments

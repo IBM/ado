@@ -441,12 +441,19 @@ this is the name of package that contains all `ado` plugins.
 
 The key files are:
 
-- actuator_definitions.yaml
-  - This defines which classes in which modules of your package contain
-    Actuators.
-- actuators.py
+- Entry point registration in `pyproject.toml`
+  - Registers the actuator class with ado using Python entry points.
+  - Example:
+
+    ```toml
+    [project.entry-points."ado.actuators"]
+    vllm_performance = "ado_actuators.vllm_performance.actuator:VLLMPerformanceTest"
+    ```
+
+- actuator.py
   - Implementation of the actuator logic.
-  - It just needs to be the same name as in `actuator_definitions.yaml`
+  - The class must inherit from `ActuatorBase` and define an `identifier`
+    attribute.
 - experiments.yaml
   - This file contains the definitions of the experiments the actuator defines
     as YAML

@@ -1,5 +1,6 @@
 <!-- markdownlint-disable code-block-style -->
-<!-- markdownlint-disable-next-line first-line-h1 -->
+<!-- markdownlint-disable first-line-h1 -->
+
 !!! info end
 
     A complete example operator is provided
@@ -47,7 +48,7 @@ from orchestrator.modules.operators.collections import characterize_operation  #
     name="my_operator",  # The name of your operator.
     description="Example operator",  # What this operator does
     configuration_model=MyOperatorOptions,  # A pydantic model that describes your operators input parameters
-    configuration_model_default=MyOperatorOptions.default_parameters(),  # An example of your operators input parameters
+    example_configuration=MyOperatorOptions.example_configuration(),  # An example of your operators input parameters
     version="1.0",  # Version of the operator
 
 )
@@ -138,7 +139,7 @@ the previous section with the relevant fields called out:
     name="my_operator",
     description="Example operator",
     configuration_model=MyOperatorOptions,  # <- A pydantic model that describes your operators input parameters
-    configuration_model_default=MyOperatorOptions(), # <- An example of your operators input parameters
+    example_configuration=MyOperatorOptions(), # <- An example of your operators input parameters
     version="1.0",
 )
 ```
@@ -154,13 +155,13 @@ inputs = MyOperatorOptions.model_validate(parameters)
 
 ### Providing an example operation configuration
 
-The decorators `configuration_model_default` parameter takes an example of your
+The decorators `example_configuration` parameter takes an example of your
 operators parameters. If your operator's parameter model has defaults for all
 fields then the simplest approach is to use those as the value of
-`configuration_model_default`:
+`example_configuration`:
 
 ```python
-    configuration_model_default=MyOperatorOptions(), # <- This will use the defaults specified for all fields of your operators parameters
+    example_configuration=MyOperatorOptions(), # <- This will use the defaults specified for all fields of your operators parameters
 ```
 
 ### How your Operators input parameters model is stored and output
@@ -512,21 +513,20 @@ except InterruptedOperationError as nested_operation_error:
 ## Creating Explore Operators
 
 Explore operators sample entities from a discovery space and submit them for
-measurement.  Unlike other operator types, the logic runs inside a **Ray
-actor** and requires a class to be implemented.
+measurement. Unlike other operator types, the logic runs inside a **Ray actor**
+and requires a class to be implemented.
 
 ### Implementation
 
-1. Create a class that subclasses
-`orchestrator.modules.operators.base.Explore`
+1. Create a class that subclasses `orchestrator.modules.operators.base.Explore`
 2. Decorate it with `@explore_operation`
 3. Implement, at least, the following methods:
-   - **`operator_metadata()`** — a classmethod returning an
-     `OperatorMetadata` instance that describes your operator.
+   - **`operator_metadata()`** — a classmethod returning an `OperatorMetadata`
+     instance that describes your operator.
    - **`run()`** — an async method containing your operator logic
-   - **`onUpdate()`**, **`onCompleted`** and **`onError`** - methods
-   that handle notifications about completed measurements
-  
+   - **`onUpdate()`**, **`onCompleted`** and **`onError`** - methods that handle
+     notifications about completed measurements
+
 A simple example is show below:
 
 ```python
@@ -576,7 +576,7 @@ class MySearchOperator(Explore):
 
     # --- callbacks from DiscoverySpaceManager --------------------------------
     # onUpdate: called when a measurement completes
-    # onError:  called on an unrecoverable error 
+    # onError:  called on an unrecoverable error
 
     def onUpdate(self, measurementRequest) -> None:
         self.completed_measurements_queue.put_nowait(measurementRequest)
@@ -638,24 +638,23 @@ class MySearchOperator(Explore):
 
 ### Tips
 
-**Submit measurements in batches.**  Submitting a batch at once, then waiting
-for all of them to complete before sampling the next batch, is the simplest
-pattern.  A more advanced approach is to submit the next entity as soon as one
-measurement finishes (continuous batching), which keeps actuators busy and
-reduces idle time.
+**Submit measurements in batches.** Submitting a batch at once, then waiting for
+all of them to complete before sampling the next batch, is the simplest pattern.
+A more advanced approach is to submit the next entity as soon as one measurement
+finishes (continuous batching), which keeps actuators busy and reduces idle
+time.
 
-**Use `measure_or_replay` for all submissions.**  Do not call actuators
-directly.  `measure_or_replay` handles memoisation (reusing a prior
-measurement result when `memoize=True`) and routes the request to the correct
-actuator.
+**Use `measure_or_replay` for all submissions.** Do not call actuators directly.
+`measure_or_replay` handles memoisation (reusing a prior measurement result when
+`memoize=True`) and routes the request to the correct actuator.
 
-**Use `self.operationIdentifier()` as the `requesterid`.**  The update
-notifications you receive via `onUpdate` include the `operation_id` that
-created the request.  Filtering on `measurement_request.operation_id ==
-self.operationIdentifier()` lets you ignore notifications from other
-concurrent operations sharing the same space.
+**Use `self.operationIdentifier()` as the `requesterid`.** The update
+notifications you receive via `onUpdate` include the `operation_id` that created
+the request. Filtering on
+`measurement_request.operation_id == self.operationIdentifier()` lets you ignore
+notifications from other concurrent operations sharing the same space.
 
-**Unsubscribe before returning.**  Call
+**Unsubscribe before returning.** Call
 `self.ds_manager.unsubscribeFromUpdates.remote(subscriberName=self.actorName)`
 at the end of `run()` as a courtesy — it stops the `DiscoverySpaceManager` from
 dispatching further `onUpdate` and `onCompleted` calls to an operator that has
@@ -663,21 +662,21 @@ already finished.
 
 ### Error handling
 
-**Errors from `measure_or_replay`.**  The function raises `KeyError` (no
-actuator can handle the experiment) or `MeasurementError` (experiment is
-deprecated for the actuator version in use). These don't have to be caught
-as they are handled by `ado`. It records the operation with exit state `ERROR` including the full
-exception message.  You only need to catch them explicitly if you want finer
+**Errors from `measure_or_replay`.** The function raises `KeyError` (no actuator
+can handle the experiment) or `MeasurementError` (experiment is deprecated for
+the actuator version in use). These don't have to be caught as they are handled
+by `ado`. It records the operation with exit state `ERROR` including the full
+exception message. You only need to catch them explicitly if you want finer
 control.
 
-**Errors from the discovery space manager.**  If the discovery space manager
-encounters an unrecoverable problem it calls `onError`. This arrives asynchronously
-and without explicit handling run() could wait forever for a new measurement result
-to arrive. A recommended pattern to handle this is shown in the example above: `onError`
-puts the exception onto the same `asyncio.Queue` that `onUpdate` uses for
-completed measurements.  In the wait loop, check whether the item dequeued is an
-`Exception` to detect this sentinel and exit early, then return a failed
-`OperationOutput`.
+**Errors from the discovery space manager.** If the discovery space manager
+encounters an unrecoverable problem it calls `onError`. This arrives
+asynchronously and without explicit handling run() could wait forever for a new
+measurement result to arrive. A recommended pattern to handle this is shown in
+the example above: `onError` puts the exception onto the same `asyncio.Queue`
+that `onUpdate` uses for completed measurements. In the wait loop, check whether
+the item dequeued is an `Exception` to detect this sentinel and exit early, then
+return a failed `OperationOutput`.
 
 ## Operator plugin packages
 

@@ -39,7 +39,6 @@ For `ado get` and `ado show` subcommands:
   stdout. Prefer this over shell redirection for large output so encoding and
   table rendering stay consistent.
 
-
 ## Commands That do not exist
 
 These plausible-sounding commands do not exist in ado. Do not write them:
@@ -97,6 +96,12 @@ uv run ado get space SPACE_ID -o yaml
 
 # Or write the same YAML to a file
 uv run ado get space SPACE_ID -o yaml --output-file space.yaml
+
+# Get the latest space as YAML
+uv run ado get space --use-latest -o yaml
+
+# Get the latest operation as YAML
+uv run ado get operation --use-latest -o yaml
 ```
 
 ### ado create
@@ -112,6 +117,25 @@ uv run ado create operation -f operation.yaml
 ```
 
 **Key point**: `ado create` both defines AND initiates resources.
+
+### ado edit
+
+Updates **metadata** (name, description, labels, etc.) for metastore resources.
+
+```bash
+# Interactive (default editor: nano, or $ADO_EDITOR)
+uv run ado edit space SPACE_ID
+
+# Non-interactive: default is an inline YAML or JSON patch (-p / --patch),
+# like oc
+uv run ado edit space SPACE_ID -p "labels: { team: research }"
+
+# Or merge from a file
+uv run ado edit space SPACE_ID --patch-file meta.yaml
+```
+
+Always prefer a non-interative edit with `-p` / `--patch` or `--patch-file`. Use
+`uv run ado edit --help` for current options.
 
 ### ado show
 
@@ -141,6 +165,33 @@ uv run ado describe space SPACE_ID
 #Output a description of an experiment
 # (input params, output params etc.)
 uv run ado describe experiment EXPERIMENT_ID
+```
+
+## Using --output-file
+
+For `ado get` and `ado show` subcommands, output can be captured with a shell
+redirect (`>`) or with the `--output-file PATH` flag. In many cases a redirect
+(or pipe) is perfectly fine and fits naturally into terminal workflows:
+
+```bash
+uv run ado get space SPACE_ID -o yaml > space.yaml
+uv run ado show entities operation OPERATION_ID -o csv > entities.csv
+```
+
+Prefer `--output-file` in the following situations:
+
+- **Pre-flight checks**: ado validates that the path is writable before starting
+  a potentially long data fetch, avoiding a failure after fetch.
+- **Stdout pollution**: if any log lines or warnings are mixed into stdout (e.g.
+  when another tool in the pipeline writes to stdout), a redirect captures that
+  noise alongside the data. `--output-file` writes only the formatted output to
+  the file; logs continue to go to stderr.
+- **Table Truncation**: when output to terminal the table format (the default
+  for --output) may truncate columns to fit terminal width. This truncation is
+  not removed when the output is redirected, but is if --output-file specified
+
+```bash
+uv run ado show entities operation OPERATION_ID -o csv --output-file entities.csv
 ```
 
 ## Debugging

@@ -12,4 +12,6 @@ def edit_discovery_space(parameters: AdoEditCommandParameters) -> None:
         resource_type=CoreResourceKinds.DISCOVERYSPACE,
         project_context=parameters.ado_configuration.project_context,
         editor=parameters.editor,
+        metadata_path=parameters.metadata_path,
+        metadata_patch=parameters.metadata_patch,
     )

@@ -436,3 +436,301 @@ def test_field_querying(
             )
             == result.output
         ), result.output
+
+
+@requires_sqlite_3_38
+def test_get_space_with_use_latest(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """Test getting the latest space using --use-latest flag"""
+    from orchestrator.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    # Create two spaces explicitly
+    from datetime import datetime, timezone
+
+    # Load file content once
+    space_data = yaml.safe_load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    )
+
+    # Create first space
+    space_1 = DiscoverySpaceResource.model_validate(space_data)
+    space_1.identifier = "space-test-older"
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    sql_store.addResource(space_1)
+
+    # Create second space
+    space_2 = DiscoverySpaceResource.model_validate(space_data)
+    space_2.identifier = "space-test-latest"
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    sql_store.addResource(space_2)
+
+    # Test with YAML output format
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "space",
+            "--use-latest",
+            "-o",
+            "yaml",
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        # Should return the latest space (space_2)
+        assert space_2.identifier in result.output
+        # Verify it's using the correct space
+        assert f"using space {space_2.identifier}" in result.output.lower()
+        # Should NOT return the first space
+        assert space_1.identifier not in result.output
+
+
+@requires_sqlite_3_38
+def test_get_operation_with_use_latest(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+    sample_store_resource: SampleStoreResource,
+) -> None:
+    """Test getting the latest operation using --use-latest flag"""
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    # Create two operations with different identifiers
+    from datetime import datetime, timezone
+
+    # Load file content once
+    operation_data = yaml.safe_load(
+        pathlib.Path(
+            "tests/resources/operation/randomwalk-1.0.2.dev17+5e50632.dirty-d5c036.yaml"
+        ).read_text()
+    )
+
+    # Create first operation
+    operation_1 = OperationResource.model_validate(operation_data)
+    operation_1.identifier = "operation-test-older"
+    operation_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    sql_store.addResource(operation_1)
+
+    # Create second operation
+    operation_2 = OperationResource.model_validate(operation_data)
+    operation_2.identifier = "operation-test-latest"
+    operation_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    sql_store.addResource(operation_2)
+
+    # Test with YAML output format
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "operation",
+            "--use-latest",
+            "-o",
+            "yaml",
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        # Should return the latest operation (operation_2)
+        assert operation_2.identifier in result.output
+        # Verify it's using the correct operation
+        assert f"using operation {operation_2.identifier}" in result.output.lower()
+        # Should NOT return the first operation
+        assert operation_1.identifier not in result.output
+
+
+@requires_sqlite_3_38
+def test_get_with_use_latest_and_explicit_id(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """Test that explicit ID takes precedence over --use-latest"""
+    from orchestrator.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    # Create two spaces with different identifiers
+    from datetime import datetime, timezone
+
+    # Load file content once
+    space_data = yaml.safe_load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    )
+
+    # Create first space
+    space_1 = DiscoverySpaceResource.model_validate(space_data)
+    space_1.identifier = "space-test-older"
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    sql_store.addResource(space_1)
+
+    # Create second space
+    space_2 = DiscoverySpaceResource.model_validate(space_data)
+    space_2.identifier = "space-test-latest"
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    sql_store.addResource(space_2)
+
+    # Test with both explicit ID and --use-latest
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "space",
+            space_1.identifier,
+            "--use-latest",
+            "-o",
+            "yaml",
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        # Verify warning message about precedence
+        assert (
+            "explicitly specified resource ids take precedence" in result.output.lower()
+        )
+        # Verify the correct space is returned (space_1, not space_2)
+        assert space_1.identifier in result.output
+        # Should NOT return the latest space since explicit ID takes precedence
+        assert space_2.identifier not in result.output
+
+
+@requires_sqlite_3_38
+def test_get_with_use_latest_table_format(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """Test --use-latest with table output format (default)"""
+    from orchestrator.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    # Create two spaces with different identifiers
+    from datetime import datetime, timezone
+
+    # Load file content once
+    space_data = yaml.safe_load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    )
+
+    # Create first space
+    space_1 = DiscoverySpaceResource.model_validate(space_data)
+    space_1.identifier = "space-test-older"
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    sql_store.addResource(space_1)
+
+    # Create second space
+    space_2 = DiscoverySpaceResource.model_validate(space_data)
+    space_2.identifier = "space-test-latest"
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    sql_store.addResource(space_2)
+
+    # Test with table format (default)
+    result = runner.invoke(
+        ado, ["--override-ado-app-dir", tmp_path, "get", "space", "--use-latest"]
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        # Should return the latest space (space_2)
+        assert space_2.identifier in result.output
+        # Should NOT return the first space
+        assert space_1.identifier not in result.output
+
+
+@requires_sqlite_3_38
+def test_get_with_use_latest_name_format(
+    tmp_path: pathlib.Path,
+    mysql_test_instance: MySqlContainer,
+    sql_store: SQLStore,
+    valid_ado_project_context: ProjectContext,
+    create_active_ado_context: Callable[
+        [CliRunner, pathlib.Path, ProjectContext], None
+    ],
+) -> None:
+    """Test --use-latest with name output format"""
+    from orchestrator.core import DiscoverySpaceResource
+
+    runner = CliRunner()
+    create_active_ado_context(
+        runner=runner, path=tmp_path, project_context=valid_ado_project_context
+    )
+
+    # Create two spaces with different identifiers
+    from datetime import datetime, timezone
+
+    # Load file content once
+    space_data = yaml.safe_load(
+        pathlib.Path("tests/resources/space/discoveryspace_resource.json").read_text()
+    )
+
+    # Create first space
+    space_1 = DiscoverySpaceResource.model_validate(space_data)
+    space_1.identifier = "space-test-older"
+    space_1.created = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    sql_store.addResource(space_1)
+
+    # Create second space
+    space_2 = DiscoverySpaceResource.model_validate(space_data)
+    space_2.identifier = "space-test-latest"
+    space_2.created = datetime(2024, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    sql_store.addResource(space_2)
+
+    # Test with name format
+    result = runner.invoke(
+        ado,
+        [
+            "--override-ado-app-dir",
+            tmp_path,
+            "get",
+            "space",
+            "--use-latest",
+            "-o",
+            "name",
+        ],
+    )
+    assert result.exit_code == 0
+    if os.environ.get("CI", "false") != "true":
+        # Name format should output just the identifier
+        assert space_2.identifier in result.output
+        # Should NOT return the first space
+        assert space_1.identifier not in result.output
+        # Should not contain table formatting
+        assert "IDENTIFIER" not in result.output

@@ -92,7 +92,7 @@ resolution-helpers = [
 #   due to a new requirement in vllm>=0.11.1 which brings in
 #   cuda dependencies.
 test = [
-  "ado-autoconf",
+  "ado-autoconf; python_version < '3.14'",
   "ado-ray-tune",
   "ado-sfttrainer; python_version < '3.13'",
   "ado-trim; python_version < '3.14'",
@@ -101,7 +101,7 @@ test = [
   "density-test",
   "optimization-test-functions",
   "pfas-custom-functions",
-  "profile-space",
+  "profile-space; python_version < '3.14'",
   "robotic-lab",
   "trim-custom-experiments",
 ]
@@ -141,16 +141,16 @@ members = [
   "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
   "plugins/actuators/vllm_performance",
-  "plugins/custom_experiments/autoconf",
+  # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.14+ (fastai requires spacy with wheels only on GitHub)
   "plugins/operators/anomalous_series",
-  "plugins/operators/profile_space",
+  # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
   "plugins/operators/ray_tune",
   # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
   # "plugins/operators/trim",  # Excluded: incompatible with Python 3.14+ (autogluon==1.5.0 requires pyarrow==20.0.0)
 ]
 
 [tool.uv.sources]
-ado-autoconf = { workspace = true, editable = true }
+ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
 ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
 ado-trim = { path = "plugins/operators/trim", editable = true }
@@ -159,7 +159,7 @@ anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }
 optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
-profile-space = { workspace = true, editable = true }
+profile-space = { path = "plugins/operators/profile_space", editable = true }
 robotic-lab = { workspace = true, editable = true }
 trim-custom-experiments = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }

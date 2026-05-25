@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import inspect
+import sys
 
 import pytest
 
@@ -12,6 +13,13 @@ from orchestrator.modules.operators._general_orchestration import (
 from orchestrator.modules.operators.collections import characterize
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 14),
+    reason=(
+        "TODO: remove this skip once profile_space supports Python 3.14+; "
+        "profile operator plugin is excluded from the workspace on Python 3.14"
+    ),
+)
 @pytest.mark.parametrize(
     "operator_name",
     ["profile"],

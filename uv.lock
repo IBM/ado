@@ -283,7 +283,7 @@ requires-dist = [
     { name = "ado-core", editable = "." },
     { name = "datasets", specifier = ">=2.20.0" },
     { name = "guidellm", marker = "extra == 'guidellm'", specifier = ">=0.5.3" },
-    { name = "kubernetes", specifier = ">=31.0.0" },
+    { name = "kubernetes", specifier = ">=31.0.0,!=36.0.0" },
     { name = "vllm", marker = "sys_platform != 'darwin' and extra == 'vllm'", specifier = ">=0.12.0,!=0.15.*" },
 ]
 provides-extras = ["guidellm", "vllm"]
@@ -7944,6 +7944,12 @@ wheels = [
 [[package]]
 name = "robotic-lab"
 source = { editable = "plugins/actuators/example_actuator" }
+dependencies = [
+    { name = "ado-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "ado-core", editable = "." }]
 
 [[package]]
 name = "rpds-py"

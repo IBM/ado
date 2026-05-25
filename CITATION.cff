@@ -1,0 +1,38 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Johnston
+  given-names: Michael A.
+  orcid: "https://orcid.org/0000-0003-1337-440X"
+- family-names: Pomponio
+  given-names: Alessandro
+  orcid: "https://orcid.org/0000-0003-1655-7500"
+contact:
+- family-names: Johnston
+  given-names: Michael A.
+  orcid: "https://orcid.org/0000-0003-1337-440X"
+doi: 10.5281/zenodo.18957620
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Johnston
+    given-names: Michael A.
+    orcid: "https://orcid.org/0000-0003-1337-440X"
+  - family-names: Pomponio
+    given-names: Alessandro
+    orcid: "https://orcid.org/0000-0003-1655-7500"
+  date-published: 2026-05-22
+  doi: 10.21105/joss.10304
+  issn: 2475-9066
+  issue: 121
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 10304
+  title: "ado: a Python framework for computational experimentation and
+    benchmarking"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.10304"
+  volume: 11
+title: "ado: a Python framework for computational experimentation and
+  benchmarking"

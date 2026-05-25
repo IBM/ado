@@ -1,7 +1,13 @@
 [project]
 name = "robotic_lab"  # Change to your preferred name, along with the actual package
 description = "A template for creating an actuator"  # Change to describing your actuator
+dependencies = [
+  "ado-core",
+]
 dynamic = ["version"]
+
+[project.entry-points."ado.actuators"]
+robotic_lab = "robotic_lab_actuator.actuator:RoboticLab"
 
 [build-system]
 requires = ["setuptools", "setuptools_scm"]
@@ -11,16 +17,20 @@ build-backend = "setuptools.build_meta"
 include-package-data = true  # This is on by default, including it for clarity
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 exclude = ["build", "build.*", "examples"]
 
 [tool.setuptools.package-data]
 # Note: This is optional. If you don't specify every non python file that's in SCM will be added
 robotic_lab_actuator = [
-  "actuator_definitions.yaml",  # Required: The file that describes the actuator classes the plugin provides
   "experiments.yaml",  # Optional file that contains definitions for experiment catalog
 ]
 
 [tool.setuptools_scm]
 root = "../../../"
 local_scheme = "node-and-timestamp"
+
+# Required when added as a workspace package.
+# Do not include it if you're developing an actuator outside of the ado repo
+[tool.uv.sources]
+ado-core = { workspace = true }

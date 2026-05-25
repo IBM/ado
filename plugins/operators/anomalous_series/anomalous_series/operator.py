@@ -90,7 +90,7 @@ class DetectAnomalousSeries(pydantic.BaseModel):
     ] = True
 
     @classmethod
-    def default_parameters(cls) -> "DetectAnomalousSeries":
+    def example_configuration(cls) -> "DetectAnomalousSeries":
         return cls(
             groupby_properties=[
                 "model_name",
@@ -122,7 +122,7 @@ class DetectAnomalousSeries(pydantic.BaseModel):
     properties, other than the selected independent property.
     """,
     configuration_model=DetectAnomalousSeries,
-    configuration_model_default=DetectAnomalousSeries.default_parameters(),
+    example_configuration=DetectAnomalousSeries.example_configuration(),
     version="1.0",
 )
 def detect_anomalous_series(

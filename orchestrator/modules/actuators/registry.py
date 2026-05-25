@@ -5,8 +5,6 @@ import logging
 import typing
 import uuid
 
-import yaml
-
 import orchestrator.modules.module
 import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
@@ -30,7 +28,6 @@ if typing.TYPE_CHECKING:
 
 configure_logging()
 
-ACTUATOR_CONFIGURATION_FILE_NAME = "actuator_definitions.yaml"
 CATALOG_EXTENSIONS_CONFIGURATION_FILE_NAME = "custom_experiments.yaml"
 moduleLogger = logging.getLogger("registry")
 
@@ -75,12 +72,11 @@ class ActuatorRegistry:
         """Detects and loads Actuator plugins"""
 
         import importlib.metadata
-        import importlib.resources
         import inspect
         import pkgutil
 
         import orchestrator.modules.actuators as builtin_actuators
-        from orchestrator.modules.actuators.base import ActuatorBase, ActuatorModuleConf
+        from orchestrator.modules.actuators.base import ActuatorBase
 
         # Maps actuator ids to generic actuator parameter payloads from configuration.
         self.actuatorConfigurationMap: dict[str, GenericActuatorParameters] = {}
@@ -121,87 +117,32 @@ class ActuatorRegistry:
                         actuator_class.identifier, actuator_class, is_builtin=True
                     )
 
-        try:
-            import ado_actuators as plugins
-        except ImportError:
-            return
-
-        from pathlib import Path
-
-        import pydantic
-
-        ActuatorFileModel = pydantic.RootModel[list[ActuatorModuleConf]]
-
-        self.log.debug(f"{plugins.__path__}, {plugins.__name__}")
-
-        # This adds the plugins to the ActuatorRegistry
-        for module in pkgutil.iter_modules(plugins.__path__, f"{plugins.__name__}."):
-            module_contents = {
-                entry.name for entry in importlib.resources.files(module.name).iterdir()
-            }
-            self.log.debug(
-                f"Checking if module {module.name} is an actuator plugin. Contents: {module_contents}"
-            )
-            if ACTUATOR_CONFIGURATION_FILE_NAME in module_contents:
-                self.log.debug(f"Found {ACTUATOR_CONFIGURATION_FILE_NAME}")
-
-                actuator_configuration_file = Path(
-                    str(importlib.resources.files(module.name))
-                ) / Path(ACTUATOR_CONFIGURATION_FILE_NAME)
-
-                try:
-                    actuators = ActuatorFileModel(
-                        yaml.safe_load(actuator_configuration_file.read_text())
-                    ).root
-                except pydantic.ValidationError:
-                    self.log.exception(
-                        f"{module.name}'s {ACTUATOR_CONFIGURATION_FILE_NAME} raised a validation error"
+        # Load actuator plugins via entry points
+        for actuator_entry_point in importlib.metadata.entry_points(
+            group="ado.actuators"
+        ):
+            try:
+                actuator_class = actuator_entry_point.load()
+                if not (
+                    isinstance(actuator_class, type)
+                    and issubclass(actuator_class, ActuatorBase)
+                ):
+                    self.log.error(
+                        f"Entry point {actuator_entry_point.name} does not point to an ActuatorBase subclass"
                     )
-                    raise
-
-                for actuator in actuators:
-
-                    # AP 02/09/2024
-                    # While this is not strictly needed anymore, we keep it
-                    # to validate that all the requirements for the actuator
-                    # are met. If this wasn't the case, we would get an error
-                    # when importing orchestrator.actuators or calling the
-                    # load_module_class method
-                    try:
-                        actuator_class = (
-                            orchestrator.modules.module.load_module_class_or_function(
-                                actuator
-                            )
-                        )
-                    except ModuleNotFoundError as e:
-                        self.log.exception(
-                            f"Skipping actuator {actuator.moduleName}: an exception was raised indicating "
-                            "unmet requirements. Please ensure all the actuators' requirements are installed.\n"
-                            f"Exception was:\n{e}"
-                        )
-                        continue
-                    except ImportError as e:
-                        self.log.exception(
-                            f"Skipping actuator {actuator.moduleName} because of an exception while importing it.\n"
-                            f"Exception was:\n{e}"
-                        )
-                        continue
-                    except AttributeError as e:
-                        self.log.exception(
-                            f"Skipping actuator {actuator.moduleName} because we could not find the actuator class {actuator.moduleClass} in it.\n"
-                            f"Exception was:\n{e}"
-                        )
-                        continue
-
-                    # AP: we are initialising the ActuatorRegistry
-                    # we do not need to check whether we have already
-                    # registered the actuator
-                    self.log.debug(f"Add actuator plugin {actuator}")
-                    self.registerActuator(
-                        actuatorid=actuator_class.identifier,
-                        actuatorClass=actuator_class,
-                        is_builtin=False,
-                    )
+                    continue
+                self.registerActuator(
+                    actuatorid=actuator_class.identifier,
+                    actuatorClass=actuator_class,
+                    is_builtin=False,
+                )
+                self.log.debug(
+                    f"Loaded actuator plugin {actuator_entry_point.name} from entry point: {actuator_entry_point.value}"
+                )
+            except Exception as e:
+                self.log.error(
+                    f"Failed to load actuator entry point {actuator_entry_point.name}: {e}"
+                )
 
     def __str__(self) -> str:
 

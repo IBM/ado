@@ -28,16 +28,15 @@ be executed robustly
 In this release we are making a number of breaking changes in order to
 address known issues we've encountered since 1.0 and provide a stable platform
 
-- Refactoring of the CLI to make it more intuitive for humans and agents
-  - Include ability to get common stats via `ado get`
-  - Simplified `ado show` subcommand structure
-  - Updated naming and harmonized functions
-- Increase performance of stats queries via rewrite of sql sample store
-- Ability to upgrade the schema used for sample store data
-- Update actuators to use entrypoints
-- New StandardActuator baseclass
-  - reduces amount of custom code
-  - enables synchronous/non-ray execution patterns
+- **Refactoring of the CLI** to make it more intuitive for humans and agents
+    - _Include ability to get common stats via `ado get`_
+    - _Simplified `ado show` subcommand structure_
+    - _Updated naming and harmonized functions_
+- **Increased performance of stats** **queries** via rewrite of sql sample store
+- **Enable upgrade of sample store schema**
+- **New StandardActuator baseclass**
+    - _reduces amount of custom code_
+    - _enables synchronous/non-ray execution patterns_
 
 ### **July/August 2026**: Version 2.1.0
 
@@ -49,18 +48,19 @@ our filesystems.
 
 In this release we were adding some features to address these issues:
 
-- New document resource type for storing agent reports, plans etc.
-  - Store reports written for operations or spaces so they can be accessed by collaborators
-  - Associate research plans and todos with projects/contexts
-- Expanded operator interface allowing operations on any resource types, in any
-number and combination
-  - Allow easily package analysis scripts for a project as an operator bundle that
-    can be distributed
-  - Leverage ado provenance and storage for the data produced by these scripts
-- Enhanced actuator,operator and experiment versioning support including skills
-  - Improve ability of Agents to correctly version plugins, manage their life-cycle
-    and identify versioning related issues
-- Agent skill for project maintenance, coupled with enhanced delete functionality
+- **New document resource type** for storing agent reports, plans etc.
+    - _Store reports written for operations or spaces so they can be accessed
+    by collaborators_
+    - _Associate research plans and todos with projects/contexts_
+- **Expanded operator interface** allowing operations on any resource types,
+in any number and combination
+    - _Allow easily package analysis scripts for a project as an operator
+    bundle that can be distributed_
+    - _Leverage ado provenance and storage for the data produced by these scripts_
+- **Enhanced plugin versioning** support including skills
+    - _Improve ability of Agents to correctly version plugins, manage their life-cycle
+    and identify versioning related issues_
+- **Agent skill for project maintenance**, coupled with enhanced delete functionality
 
 ---
 

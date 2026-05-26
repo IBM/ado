@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import sys
 from typing import Any
 
 import pytest
@@ -105,19 +106,7 @@ def test_custom_experiments(
     catalog: ExperimentCatalog = ray.get(catalog)
 
     assert catalog, "custom_experiments returned None for catalog"
-    # AP 18/10/24:
-    # This should work on Travis as we now install
-    #  - examples/pfas-generative-models/custom_actuator_function
-    #  - examples/optimization_test_functions/custom_experiments
-    # Locally this may not work because we might have more or less of these.
-    # SV 7/02/26
-    # This test needs to be updated every time a new custom experiment is added to ado
-    assert (
-        len(catalog.experiments) == 7
-    ), "Expected 7 experiments in the custom_experiments catalog for testing "
-
-    identifiers = {e.identifier for e in catalog.experiments}
-    assert {
+    expected_identifiers = {
         "acid_test",
         "calculate_density",
         "min_gpu_recommender",
@@ -125,7 +114,26 @@ def test_custom_experiments(
         "nevergrad_opt_3d_test_func",
         "calculate_pressure_ideal_gas",
         "calculate_pressure_gas",
-    } == identifiers, f"Expected the experiments to be called - acid_test, calculate_density, min_gpu_recommender, calculate_pressure_ideal_gas, calculate_pressure_gas, and nevergrad_opt_3d_test_func but they are called {identifiers}"
+    }
+    if sys.version_info >= (3, 14):
+        # TODO: add autoconf experiments back once it supports Python 3.14+.
+        expected_identifiers -= {
+            "min_gpu_recommender",
+            "avoid_oom_recommender",
+        }
+
+    # AP 18/10/24:
+    # Locally this may not work because we might have more or less of these.
+    # SV 7/02/26
+    # This test needs to be updated every time a new custom experiment is added to ado
+    assert len(catalog.experiments) == len(
+        expected_identifiers
+    ), "Unexpected number of experiments in the custom_experiments catalog for testing"
+
+    identifiers = {e.identifier for e in catalog.experiments}
+    assert (
+        expected_identifiers == identifiers
+    ), f"Expected experiment identifiers {expected_identifiers} but got {identifiers}"
     loaded = custom_experiments.loadedExperiment.remote(
         orchestrator.schema.reference.ExperimentReference(
             actuatorIdentifier="custom_experiments", experimentIdentifier="acid_test"
@@ -138,7 +146,7 @@ def test_custom_experiments(
         "custom_experiments"
     )
 
-    assert len(c.experiments) == 7
+    assert len(c.experiments) == len(expected_identifiers)
 
     for e in c.experiments:
         assert catalog.experimentForReference(e.reference) is not None

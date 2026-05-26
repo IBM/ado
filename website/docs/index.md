@@ -25,7 +25,7 @@ your analysis method or experiment for free.
   [best practices](https://clig.dev)
 - :handshake: _Projects_: Allow distributed groups of users to
   [collaborate and share data](resources/metastore.md)
-- :electric*plug: _Extendable_: Easily
+- 🔌 _Extendable_: Easily
   [add new experiments](actuators/creating-custom-experiments.md),
   [optimizers or other tools.](operators/creating-operators.md)
 - :gear: _Scalable_: We use [ray](https://ray.io) as our execution engine

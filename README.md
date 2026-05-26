@@ -116,10 +116,30 @@ Check [demo](https://ibm.github.io/ado/getting-started/demo) for more videos.
 
 [![Watch the video](website/docs/getting-started/videos/step1_trimmed_thumbnail.png)](https://github.com/user-attachments/assets/fc4862f3-763b-4967-ab3c-4bd359900a50)
 
-## Technical Report
+## Citation
 
-For more details on the Discovery Spaces concept underlying ado, please refer to
-this [technical report](https://arxiv.org/abs/2506.21467).
+For an overview of the design and architecture of `ado`, see
+[our Journal of Open Source Software paper.](https://doi.org/10.21105/joss.10304)
+
+If `ado` has been helpful in your research, please cite us using:
+
+```bibtex
+@article{Johnston_ado_a_Python_2026,
+author = {Johnston, Michael A. and Pomponio, Alessandro},
+doi = {10.21105/joss.10304},
+journal = {Journal of Open Source Software},
+month = may,
+number = {121},
+pages = {10304},
+title = {{ado: a Python framework for computational experimentation and benchmarking}},
+url = {https://joss.theoj.org/papers/10.21105/joss.10304},
+volume = {11},
+year = {2026}
+}
+```
+
+You can also click "Cite this repository" in the GitHub sidebar
+for alternative formats like APA.
 
 ## Acknowledgement
 

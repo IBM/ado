@@ -8,10 +8,12 @@ regularly as the project evolves.
 
 ## 🚀 Key Goals
 
-- **Production Ready**: Ensure the project robustly executes all core operators,
-  actuators and examples.
+- **Production Ready**: Ensure all core operators, actuators and examples can
+be executed robustly
 - **Performant and Human-Centred CLI**: A CLI that is responsive and provides
   helpful feedback on error
+- **Agent-Driven Automation**: Provide a structured environment for AI agents
+  to seamlessly assist and automate research workflows.
 - **Seamless Scaling**: Make it easy to scale from single-person working on
   their laptop, to a distributed team on executing on remote infrastructure.
 - **Community & Ecosystem Development**: Respond to user needs and empower
@@ -21,30 +23,44 @@ regularly as the project evolves.
 
 ## 📆 Milestones
 
-### **Q3 2025**
+### **June 2026**: Version 2.0.0
 
-#### Version 1.0.0 (Initial Release)
+In this release we are making a number of breaking changes in order to
+address known issues we've encountered since 1.0 and provide a stable platform
 
-- Complete core feature set
-- Production actuator for fine-tuning performance measurement
-- Reference actuators for inference performance measurement and model evaluation
-- Focus on bug fixing, stability, and documentation
-- Initial performance optimizations
+- Refactoring of the CLI to make it more intuitive for humans and agents
+  - Include ability to get common stats via `ado get`
+  - Simplified `ado show` subcommand structure
+  - Updated naming and harmonized functions
+- Increase performance of stats queries via rewrite of sql sample store
+- Ability to upgrade the schema used for sample store data
+- Update actuators to use entrypoints
+- New StandardActuator baseclass
+  - reduces amount of custom code
+  - enables synchronous/non-ray execution patterns
 
-### **Q4 2025**
+### **July/August 2026**: Version 2.1.0
 
-- Property grouping and conditional properties
-- Actuator and operator for building and applying predictive performance models
-- REST API via `ado serve`
+As we use AI agents to drive research via ado more we've noticed we're creating
+far more spaces, operations etc.,
+including many failed experiments and trials which we don't need to keep.
+We're also inundated with agent reports and analysis scripts piling up in
+our filesystems.
 
-### **Q1 2026**
+In this release we were adding some features to address these issues:
 
-- Improved features for interacting (creating and running on) remote ray
-  clusters
-  - `ado create operation --target=$REMOTE_CLUSTER` can spin up a RayCluster,
-    based on selected actuators needs, install code, start operation etc.
-- Database performance improvements
-- Agentic extensions - use natural language to create spaces and operations.
+- New document resource type for storing agent reports, plans etc.
+  - Store reports written for operations or spaces so they can be accessed by collaborators
+  - Associate research plans and todos with projects/contexts
+- Expanded operator interface allowing operations on any resource types, in any
+number and combination
+  - Allow easily package analysis scripts for a project as an operator bundle that
+    can be distributed
+  - Leverage ado provenance and storage for the data produced by these scripts
+- Enhanced actuator,operator and experiment versioning support including skills
+  - Improve ability of Agents to correctly version plugins, manage their life-cycle
+    and identify versioning related issues
+- Agent skill for project maintenance, coupled with enhanced delete functionality
 
 ---
 

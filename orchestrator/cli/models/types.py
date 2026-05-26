@@ -188,7 +188,6 @@ class AdoShowSummarySupportedResourceTypes(Enum):
 
 #################### ado template ####################
 class AdoTemplateSupportedResourceTypes(Enum):
-    ACTUATOR = _ACTUATOR_SINGULAR
     ACTUATOR_CONFIGURATION = _ACTUATOR_CONFIGURATION_SINGULAR
     CONTEXT = _CONTEXT_SINGULAR
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR

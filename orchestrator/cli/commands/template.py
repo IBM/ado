@@ -12,7 +12,6 @@ import orchestrator.metastore.project
 from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
 from orchestrator.cli.models.types import AdoTemplateSupportedResourceTypes
-from orchestrator.cli.resources.actuator.template import template_actuator
 from orchestrator.cli.resources.actuator_configuration.template import (
     template_actuator_configuration,
 )
@@ -170,7 +169,6 @@ def template_resource(
     )
 
     method_mapping = {
-        AdoTemplateSupportedResourceTypes.ACTUATOR: template_actuator,
         AdoTemplateSupportedResourceTypes.ACTUATOR_CONFIGURATION: template_actuator_configuration,
         AdoTemplateSupportedResourceTypes.CONTEXT: template_context,
         AdoTemplateSupportedResourceTypes.DISCOVERY_SPACE: template_discovery_space,

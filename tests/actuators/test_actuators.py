@@ -42,18 +42,6 @@ def objectiveFunctionConfiguration(
 
 
 @pytest.fixture
-def actuatorModuleConfigurationYAML() -> dict[str, Any]:
-
-    y = """
-        moduleName: "myactuator"
-        modulePath: "examples/test-project"   #This is the path relative to where `ado` will be run from to this dir
-        moduleClass: MyActuator
-    """
-
-    return yaml.safe_load(y)
-
-
-@pytest.fixture
 def actuatorCatalogExtensionConfigurationYAML() -> dict[str, Any]:
 
     y = """
@@ -62,16 +50,6 @@ def actuatorCatalogExtensionConfigurationYAML() -> dict[str, Any]:
     """
 
     return yaml.safe_load(y)
-
-
-@pytest.fixture
-def actuatorModuleConfiguration(
-    actuatorModuleConfigurationYAML: dict[str, Any],
-) -> orchestrator.modules.actuators.base.ActuatorModuleConf:
-
-    return orchestrator.modules.actuators.base.ActuatorModuleConf(
-        **actuatorModuleConfigurationYAML
-    )
 
 
 @pytest.fixture

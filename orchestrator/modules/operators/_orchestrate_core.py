@@ -22,7 +22,7 @@ from orchestrator.core.operation.resource import (
     OperationResourceEventEnum,
     OperationResourceStatus,
 )
-from orchestrator.modules.operators._cleanup import shutdown_signal_received
+from orchestrator.modules.operators import _cleanup
 from orchestrator.modules.operators.base import (
     InterruptedOperationError,
     add_operation_output_to_metastore,
@@ -31,6 +31,32 @@ from orchestrator.modules.operators.base import (
 
 # Global variable to track if graceful shutdown was called
 moduleLog = logging.getLogger("orchestrate_core")
+
+_SIGTERM_SHUTDOWN_MESSAGE = (
+    "An external event e.g. SIGTERM, initiated shutdown. "
+    "This may have caused the operation to exit early"
+)
+
+
+def _sigterm_finished_status(
+    *, underlying_error: BaseException | None = None
+) -> OperationResourceStatus:
+    """Return a FINISHED/error status for SIGTERM-initiated shutdown.
+
+    Args:
+        underlying_error: Optional underlying exception to append to the message.
+
+    Returns:
+        OperationResourceStatus with the SIGTERM shutdown message.
+    """
+    message = _SIGTERM_SHUTDOWN_MESSAGE
+    if underlying_error is not None:
+        message = f"{message}. Underlying Ray error: {underlying_error}"
+    return OperationResourceStatus(
+        event=OperationResourceEventEnum.FINISHED,
+        exit_state=OperationExitStateEnum.ERROR,
+        message=message,
+    )
 
 
 def log_space_details(discovery_space: "DiscoverySpace") -> None:
@@ -109,6 +135,25 @@ def _run_operation_harness(
         exit_state=OperationExitStateEnum.ERROR,
         message="Operation exited due to uncaught exception)",
     )
+    sigterm_status_callback_key = f"{operation_resource.identifier}_sigterm_status"
+    sigterm_status_was_recorded = False
+
+    # This updates operation status on SIGTERM
+    # in cases where the finally: block is not executed
+    def record_sigterm_shutdown_status() -> None:
+        nonlocal sigterm_status_was_recorded
+        sigterm_status = _sigterm_finished_status()
+        operation_resource.status.append(sigterm_status)
+        discovery_space.metadataStore.updateResource(operation_resource)
+        sigterm_status_was_recorded = True
+        moduleLog.debug(
+            f"Recorded SIGTERM shutdown status for {operation_resource.identifier}"
+        )
+
+    _cleanup.cleanup_callback_functions[sigterm_status_callback_key] = (
+        record_sigterm_shutdown_status
+    )
+
     try:
         operation_resource.status.append(
             OperationResourceStatus(event=OperationResourceEventEnum.STARTED)
@@ -154,11 +199,15 @@ def _run_operation_harness(
     except RayTaskError as error:
         sys.stdout.flush()
         e = error.as_instanceof_cause()
-        operationStatus = OperationResourceStatus(
-            event=OperationResourceEventEnum.FINISHED,
-            exit_state=OperationExitStateEnum.ERROR,
-            message=f"Operation exited due to the following error from a Ray Task: {e}.",
-        )
+        # This is a fallback in case the SIGTERM callback above failed
+        if _cleanup.shutdown_signal_received:
+            operationStatus = _sigterm_finished_status(underlying_error=e)
+        else:
+            operationStatus = OperationResourceStatus(
+                event=OperationResourceEventEnum.FINISHED,
+                exit_state=OperationExitStateEnum.ERROR,
+                message=f"Operation exited due to the following error from a Ray Task: {e}.",
+            )
         raise OperationException(
             message=f"Error raised while executing operation {operation_resource.identifier}",
             operation=operation_resource,
@@ -167,12 +216,16 @@ def _run_operation_harness(
         import traceback
 
         sys.stdout.flush()
-        operationStatus = OperationResourceStatus(
-            event=OperationResourceEventEnum.FINISHED,
-            exit_state=OperationExitStateEnum.ERROR,
-            message=f"Operation exited due to the following error: {error}.\n\n"
-            f"{''.join(traceback.format_exception(error))}",
-        )
+        # This is a fallback in case the SIGTERM callback above failed
+        if _cleanup.shutdown_signal_received:
+            operationStatus = _sigterm_finished_status()
+        else:
+            operationStatus = OperationResourceStatus(
+                event=OperationResourceEventEnum.FINISHED,
+                exit_state=OperationExitStateEnum.ERROR,
+                message=f"Operation exited due to the following error: {error}.\n\n"
+                f"{''.join(traceback.format_exception(error))}",
+            )
         raise OperationException(
             message=f"Error raised while executing operation {operation_resource.identifier}",
             operation=operation_resource,
@@ -180,19 +233,15 @@ def _run_operation_harness(
     else:
         time.sleep(1)
         sys.stdout.flush()
-        if shutdown_signal_received:
+        # This is a fallback in case the SIGTERM callback above failed
+        if _cleanup.shutdown_signal_received:
             moduleLog.warning(
                 f"Operation {operation_resource.identifier} exited normally but an external event e.g. SIGTERM, has already initiated shutdown"
             )
             if operation_output:
                 moduleLog.info("Operation returned output - will save")
 
-            operationStatus = OperationResourceStatus(
-                event=OperationResourceEventEnum.FINISHED,
-                exit_state=OperationExitStateEnum.ERROR,
-                message="An external event e.g. SIGTERM, initiated shutdown. "
-                "This may have caused the operation to exit early",
-            )
+            operationStatus = _sigterm_finished_status()
         else:
             if not operation_output:
                 moduleLog.info(
@@ -207,6 +256,7 @@ def _run_operation_harness(
                     f"Operation {operation_resource.identifier} exited normally with status {operation_output.exitStatus}"
                 )
     finally:
+        _cleanup.cleanup_callback_functions.pop(sigterm_status_callback_key, None)
         if operation_output:
             # Add the operation resource if not present
             if not operation_output.operation:
@@ -228,13 +278,16 @@ def _run_operation_harness(
                 operation=operation_resource, exitStatus=operationStatus
             )
 
-        # Add the final status to the operation resource
-        moduleLog.info(
-            f"Sending final status for operation {operation_identifier} to metastore"
-        )
-        operation_resource.status.append(operation_output.exitStatus)
+        # If no signal OR sigterm status was not recorded update status
+        # The "not sigterm_status_was_recorded" engages the fallback
+        if not (_cleanup.shutdown_signal_received and sigterm_status_was_recorded):
+            # Add the final status to the operation resource
+            moduleLog.info(
+                f"Sending final status for operation {operation_identifier} to metastore"
+            )
+            operation_resource.status.append(operation_output.exitStatus)
 
-        if not shutdown_signal_received and finalize_callback:
+        if not _cleanup.shutdown_signal_received and finalize_callback:
             finalize_callback(operation_resource)
 
         discovery_space.metadataStore.updateResource(operation_resource)

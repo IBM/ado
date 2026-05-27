@@ -94,50 +94,47 @@ In addition `ado` plugins may have additional requirements for executing
 
 - :material-clock-fast:{ .lg .middle } **Set up in 1 minute**
 
-  ***
+    ---
 
-  You can install **ado** by:
+    You can install **ado** by:
 
-  ```shell
-  pip install ado-core
-  ```
+    ```shell
+    pip install ado-core
+    ```
 
-  Now try:
+    Now try:
 
-  ```commandline
-  ado get contexts
-  ```
+    ```commandline
+    ado get contexts
+    ```
 
-  You will see a **context**, `local`, is listed.
+    You will see a **context**, `local`, is listed.
 
-  A context is like a project. The `local` context links to a local database you
-  can use as a sandbox for testing.
+    A context is like a project.
+    The `local` context links to a local database you can use as a sandbox for testing.
 
-  Try:
+    Try:
 
-  ```commandline
-  ado get operators
-  ```
+    ```commandline
+    ado get operators
+    ```
 
-  to see a list of the in-built operators.
+    to see a list of the in-built operators.  
 
-  Next, we recommend you try our short [tutorial](examples/random-walk.md) which
-  will give an idea of how `ado` works.
+    Next, we recommend you try our short [tutorial](examples/random-walk.md) which will give an idea of how `ado` works.
 
 </div>
 <!-- markdownlint-enable line-length -->
 
 ## Example
 
-This video shows using `ado` to benchmark
-[LLM inference performance on vLLM](examples/vllm-performance-full), including
-creating the required vLLM kubernetes deployments on-the-fly and in parallel.
-
-Check [demos](getting-started/demo.md) for more videos.
+This video shows listing [actuators](actuators/working-with-actuators.md) and
+getting the details of an experiment. Check [demo](getting-started/demo.md) for
+more videos.
 
 <!-- markdownlint-disable no-inline-html -->
-<video controls preload="auto" poster="getting-started/videos/vllm_thumnail.jpg">
-<source src="../videos/vllm_perf_example_final_4k.mp4" type="video/mp4">
+<video controls preload="auto" poster="getting-started/videos/step1_trimmed_thumbnail.png">
+<source src="getting-started/videos/step1_trimmed.mp4" type="video/mp4">
 </video>
 <!-- markdownlint-enable no-inline-html -->
 
@@ -155,18 +152,18 @@ Networks and Services Joint Undertaking (SNS JU) under grant agreement No.
 
 - :octicons-rocket-24:{ .lg .middle } **Let's get started!**
 
-  ***
+    ---
 
-  Jump into our tutorial
+    Jump into our tutorial
 
-  [Taking a random walk :octicons-arrow-right-24:](examples/random-walk.md)
+    [Taking a random walk :octicons-arrow-right-24:](examples/random-walk.md)
 
 - :octicons-terminal-24:{ .lg .middle } **Check out the ADO cli**
 
-  ***
+    ---
 
-  Get familiar with the capabilities of the `ado` command-line interface.
+    Get familiar with the capabilities of the `ado` command-line interface.
 
-  [Dive into the CLI reference docs :octicons-arrow-right-24:](getting-started/ado.md)
+    [Dive into the CLI reference docs :octicons-arrow-right-24:](getting-started/ado.md)
 
 </div>

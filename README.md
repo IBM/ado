@@ -28,9 +28,9 @@ your analysis method or experiment for free.
 - 🔌 _Extendable_: Easily
   [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments.md),
   [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators.md)
-- ⚙️_Scalable_: We use [ray](https://ray.io) as our execution engine
+- ⚙️ _Scalable_: We use [ray](https://ray.io) as our execution engine
   allowing experiments and tools to easily scale
-- ♻️_Automatic data-reuse_: Avoid repeating work with
+- ♻️ _Automatic data-reuse_: Avoid repeating work with
   [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing.md).
   `ado` internal protocols ensure this happens only when it makes sense
 - 🔗 _Provenance_: As you work, the relationship between the data you create

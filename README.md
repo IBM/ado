@@ -5,15 +5,17 @@
 This is the repository for the **a**ccelerated **d**iscovery **o**rchestrator
 (**`ado`**).
 
-**`ado`** is a unified platform for **executing computational experiments at
-scale** and **analysing their results**. It can be extended with new experiments
-or new analysis tools. It allows distributed teams of researchers and engineers
-to collaborate on projects, execute experiments, and share data.
+**`ado`** is a Python platform for **designing experiment campaigns and
+executing them at scale**. Built to address recurring challenges in research
+software development, **`ado`** empowers distributed teams of researchers and
+engineers to seamlessly collaborate, execute experiments, and share data.
 
-You can run the experiments and analysis tools already available in **`ado`** in
-a distributed, shared, environment with your team. You can also use **`ado`** to
-get features like data-tracking, data-sharing, tool integration and a CLI, for
-your analysis method or experiment for free.
+You can extend ado across different domains through its **lightweight
+plugin model**-often as simple as decorating a Python function. By integrating
+your methodology, you gain powerful cross-cutting capabilities—such as
+**parallel execution**, **data provenance**, and a **unified CLI**—alongside a structured
+foundation that allows AI coding agents to **autonomously formulate and run your
+experiments**.
 
 🧑‍💻 Using **`ado`** assumes familiarity with command line tools.
 
@@ -28,11 +30,11 @@ your analysis method or experiment for free.
 - 🔌 _Extendable_: Easily
   [add new experiments](https://ibm.github.io/ado/actuators/creating-custom-experiments.md),
   [optimizers or other tools.](https://ibm.github.io/ado/operators/creating-operators.md)
-- ⚙️_Scalable_: We use [ray](https://ray.io) as our execution engine
+- ⚙️ _Scalable_: We use [ray](https://ray.io) as our execution engine
   allowing experiments and tools to easily scale
-- ♻️_Automatic data-reuse_: Avoid repeating work with
+- ♻️ _Automatic data-reuse_: Avoid repeating work with
   [transparent reuse of experiment results](https://ibm.github.io/ado/core-concepts/data-sharing.md).
-  `ado` internal protocols ensure this happens only when it makes sense
+`ado` internal protocols ensure this happens only when it makes sense
 - 🔗 _Provenance_: As you work, the relationship between the data you create
   and operations you perform are
   [automatically tracked](https://ibm.github.io/ado/getting-started/ado.md#ado-show-related)
@@ -116,10 +118,30 @@ Check [demo](https://ibm.github.io/ado/getting-started/demo) for more videos.
 
 [![Watch the video](website/docs/getting-started/videos/step1_trimmed_thumbnail.png)](https://github.com/user-attachments/assets/fc4862f3-763b-4967-ab3c-4bd359900a50)
 
-## Technical Report
+## Citation
 
-For more details on the Discovery Spaces concept underlying ado, please refer to
-this [technical report](https://arxiv.org/abs/2506.21467).
+For an overview of the design and architecture of `ado`, see
+[our Journal of Open Source Software paper.](https://doi.org/10.21105/joss.10304)
+
+If `ado` has been helpful in your research, please cite us using:
+
+```bibtex
+@article{Johnston_ado_a_Python_2026,
+author = {Johnston, Michael A. and Pomponio, Alessandro},
+doi = {10.21105/joss.10304},
+journal = {Journal of Open Source Software},
+month = may,
+number = {121},
+pages = {10304},
+title = {{ado: a Python framework for computational experimentation and benchmarking}},
+url = {https://joss.theoj.org/papers/10.21105/joss.10304},
+volume = {11},
+year = {2026}
+}
+```
+
+You can also click "Cite this repository" in the GitHub sidebar
+for alternative formats like APA.
 
 ## Acknowledgement
 

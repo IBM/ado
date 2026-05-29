@@ -33,7 +33,7 @@ def graceful_operation_shutdown_signal_handler() -> (
 
         shutdown_signal_received = True
         moduleLog.info("Calling cleanup callbacks")
-        for entry in cleanup_callback_functions:
+        for entry in reversed(cleanup_callback_functions):
             moduleLog.info(f"Cleaning {entry}")
             cleanup_callback_functions[entry]()
 

@@ -32,13 +32,8 @@ from orchestrator.modules.operators.base import (
 # Global variable to track if graceful shutdown was called
 moduleLog = logging.getLogger("orchestrate_core")
 
-_SIGTERM_SHUTDOWN_MESSAGE = (
-    "An external event e.g. SIGTERM, initiated shutdown. "
-    "This may have caused the operation to exit early"
-)
 
-
-def _sigterm_finished_status(
+def _operation_status_for_sigterm_initiated_shutdown(
     *, underlying_error: BaseException | None = None
 ) -> OperationResourceStatus:
     """Return a FINISHED/error status for SIGTERM-initiated shutdown.
@@ -49,7 +44,10 @@ def _sigterm_finished_status(
     Returns:
         OperationResourceStatus with the SIGTERM shutdown message.
     """
-    message = _SIGTERM_SHUTDOWN_MESSAGE
+    message = (
+        "An external event e.g. SIGTERM, initiated shutdown. "
+        "This may have caused the operation to exit early"
+    )
     if underlying_error is not None:
         message = f"{message}. Underlying Ray error: {underlying_error}"
     return OperationResourceStatus(
@@ -142,7 +140,7 @@ def _run_operation_harness(
     # in cases where the finally: block is not executed
     def record_sigterm_shutdown_status() -> None:
         nonlocal sigterm_status_was_recorded
-        sigterm_status = _sigterm_finished_status()
+        sigterm_status = _operation_status_for_sigterm_initiated_shutdown()
         operation_resource.status.append(sigterm_status)
         discovery_space.metadataStore.updateResource(operation_resource)
         sigterm_status_was_recorded = True
@@ -201,7 +199,9 @@ def _run_operation_harness(
         e = error.as_instanceof_cause()
         # This is a fallback in case the SIGTERM callback above failed
         if _cleanup.shutdown_signal_received:
-            operationStatus = _sigterm_finished_status(underlying_error=e)
+            operationStatus = _operation_status_for_sigterm_initiated_shutdown(
+                underlying_error=e
+            )
         else:
             operationStatus = OperationResourceStatus(
                 event=OperationResourceEventEnum.FINISHED,
@@ -218,7 +218,7 @@ def _run_operation_harness(
         sys.stdout.flush()
         # This is a fallback in case the SIGTERM callback above failed
         if _cleanup.shutdown_signal_received:
-            operationStatus = _sigterm_finished_status()
+            operationStatus = _operation_status_for_sigterm_initiated_shutdown()
         else:
             operationStatus = OperationResourceStatus(
                 event=OperationResourceEventEnum.FINISHED,
@@ -241,7 +241,7 @@ def _run_operation_harness(
             if operation_output:
                 moduleLog.info("Operation returned output - will save")
 
-            operationStatus = _sigterm_finished_status()
+            operationStatus = _operation_status_for_sigterm_initiated_shutdown()
         else:
             if not operation_output:
                 moduleLog.info(

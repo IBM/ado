@@ -22,7 +22,7 @@ class ProfileParameters(pydantic.BaseModel):
     version=version("ado-core"),
     configuration_model=ProfileParameters,
     example_configuration=ProfileParameters(),
-    description="Returns a ydata_profiling ProfileReport for the space",
+    description="Returns a data_profiling ProfileReport for the space",
 )
 # operator function can have any name but have similar parameters - see https://ibm.github.io/ado/operators/creating-operators/#operator-function-parameters
 def profile(
@@ -30,7 +30,7 @@ def profile(
     operationInfo: FunctionOperationInfo | None = None,
     **kwargs: dict,
 ) -> OperationOutput:
-    import ydata_profiling
+    import data_profiling
 
     if discoverySpace.sample_store.numberOfEntities == 0:
         raise ValueError(
@@ -48,4 +48,4 @@ def profile(
 
     # See https://ibm.github.io/ado/operators/creating-operators/#returning-data-from-your-operation
     # for documentation on the return value of an operator function
-    return OperationOutput(other=[ydata_profiling.ProfileReport(df)])
+    return OperationOutput(other=[data_profiling.ProfileReport(df)])

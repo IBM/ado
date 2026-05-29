@@ -16,12 +16,12 @@ from orchestrator.core.operation.config import (
 )
 from orchestrator.core.operation.operation import OperationOutput
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
+from orchestrator.modules.operators import _cleanup
 from orchestrator.modules.operators._cleanup import (
     CLEANER_ACTOR,
     cleanup_callback_functions,
     graceful_operation_shutdown_signal_handler,
     initialize_ray_resource_cleaner,
-    shutdown_signal_received,
 )
 from orchestrator.modules.operators._orchestrate_core import (
     _run_operation_harness,
@@ -337,7 +337,7 @@ def orchestrate_explore_operation(
     finally:
         # Need to ensure shutdown is processed if an exception
         # is raised
-        if not shutdown_signal_received:
+        if not _cleanup.shutdown_signal_received:
             graceful_explore_operation_shutdown(
                 identifier=identifier,
                 operator=operator,

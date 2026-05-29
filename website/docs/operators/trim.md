@@ -62,6 +62,17 @@ TRIM is particularly valuable when:
 
 <!-- markdownlint-enable no-blanks-blockquote -->
 
+<!-- markdownlint-disable no-blanks-blockquote -->
+
+> [!NOTE]
+>
+> **Python Version Compatibility**: The TRIM operator is not available on Python
+> 3.14 due to a dependency on `autogluon==1.5.0`, which requires
+> `pyarrow==20.0.0` (incompatible with Python 3.14). If you need to use TRIM,
+> please use Python 3.10-3.13.
+
+<!-- markdownlint-enable no-blanks-blockquote -->
+
 ## How TRIM Works: The Three-Phase Workflow
 
 Understanding TRIM's internal workflow helps you configure it effectively.

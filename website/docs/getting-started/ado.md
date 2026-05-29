@@ -1233,7 +1233,6 @@ Where:
 
     <!-- prettier-ignore-start -->
 
-    - _actuator_
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _discoveryspace_ (_space_)

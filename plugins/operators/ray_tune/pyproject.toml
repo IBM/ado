@@ -10,9 +10,14 @@ dependencies = [
   # support certain Python versions.
   # ref: https://github.com/numba/numba/releases
   "numba>=0.63.0; python_version > '3.13'",
+  # Scipy's first full release that supports Python 3.14
+  # (1.17.0) requires numpy>=1.26.4
+  # ref: https://github.com/scipy/scipy/releases/tag/v1.17.0
+  "numpy>=1.26.4 ; python_full_version >= '3.14'",
   "paretoset>=1.2.4",
   "ray[tune]>=2.9",
   "scipy>=1.15.3",
+  "scipy>=1.17.0 ; python_full_version >= '3.14'",
 ]
 dynamic = ["version"]
 

@@ -1,6 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 import pathlib
+import sys
 
 import pytest
 import yaml
@@ -16,8 +17,16 @@ from orchestrator.modules.operators.randomwalk import RandomWalk
 
 @pytest.fixture
 def expected_characterize_operators() -> list[str]:
+    """Return characterize operators expected for the current Python version."""
 
-    return ["profile", "detect_anomalous_series", "trim"]
+    operators = ["profile", "detect_anomalous_series", "trim"]
+    if sys.version_info >= (3, 14):
+        # TODO: add profile and trim back once their plugins support Python 3.14+.
+        operators = [
+            operator for operator in operators if operator not in {"profile", "trim"}
+        ]
+
+    return operators
 
 
 @pytest.fixture

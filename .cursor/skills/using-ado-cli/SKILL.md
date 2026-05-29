@@ -137,6 +137,29 @@ uv run ado edit space SPACE_ID --patch-file meta.yaml
 Always prefer a non-interative edit with `-p` / `--patch` or `--patch-file`. Use
 `uv run ado edit --help` for current options.
 
+### ado tree
+
+Displays multi-hop resource relationship trees for the active project context.
+
+```bash
+# Workflow forest from sample store roots
+uv run ado tree
+
+# Scoped subtree or ancestors
+uv run ado tree operation OPERATION_ID
+uv run ado tree operation OPERATION_ID --invert
+
+# Include actuator configuration input edges
+uv run ado tree --all-relationships
+
+# Scripting output
+uv run ado tree -o json --output-file tree.json
+```
+
+Use `ado show related` for a flat one-hop list. By default node labels show
+identifiers only (fast path). Use `--names` for `identifier (name)`, `--sort`
+for created ordering and age, and `--metadata` for description and labels.
+
 ### ado show
 
 Retrieves details and data from resources.

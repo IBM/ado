@@ -18,6 +18,8 @@ from orchestrator.cli.models.types import (
     AdoShowRequestsSupportedOutputFormats,
     AdoShowResultsSupportedOutputFormats,
     AdoShowSummarySupportedOutputFormats,
+    AdoTreeSupportedOutputFormats,
+    AdoTreeSupportedResourceTypes,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.core.operation.config import DiscoveryOperationEnum
@@ -109,6 +111,26 @@ class AdoShowEntitiesCommandParameters(pydantic.BaseModel):
 class AdoShowRelatedCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     resource_id: str
+
+
+class AdoTreeCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    all_relationships: bool
+    dedupe: bool
+    depth: int | None
+    field_selectors: list[dict[str, str]]
+    from_resource_id: str | None
+    include_orphans: bool
+    invert: bool
+    kind_filter: list[str] | None
+    metadata: bool
+    names: bool
+    output_file: Path | None
+    output_format: AdoTreeSupportedOutputFormats
+    resource_id: str | None
+    resource_type: AdoTreeSupportedResourceTypes | None
+    sort: bool
+    use_latest: bool
 
 
 class AdoShowRequestsCommandParameters(pydantic.BaseModel):

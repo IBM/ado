@@ -228,6 +228,23 @@ class ResourceStore(abc.ABC):
         """
 
     @abc.abstractmethod
+    def get_all_resource_relationships(
+        self, kinds: list[CoreResourceKinds] | None = None
+    ) -> "pd.DataFrame":
+        """Return all resource relationship edges in the metastore.
+
+        Args:
+            kinds: Optional list of resource kinds. When provided, only edges
+                where both subject and object resources match one of the kinds
+                are returned.
+
+        Returns:
+            A DataFrame with columns ``SUBJECT``, ``OBJECT``, ``SUBJECT_KIND``,
+            and ``OBJECT_KIND``. Returns an empty DataFrame when no
+            relationships exist.
+        """
+
+    @abc.abstractmethod
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> bool:

@@ -152,6 +152,21 @@ class AdoShowRelatedSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
+#################### ado tree ####################
+class AdoTreeSupportedOutputFormats(Enum):
+    TREE = "tree"
+    JSON = "json"
+    FLAT = "flat"
+
+
+class AdoTreeSupportedResourceTypes(Enum):
+    ACTUATOR_CONFIGURATION = _ACTUATOR_CONFIGURATION_SINGULAR
+    DATA_CONTAINER = _DATA_CONTAINER_SINGULAR
+    DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
+    OPERATION = _OPERATION_SINGULAR
+    SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
+
+
 #################### ado show requests ####################
 class AdoShowRequestsSupportedOutputFormats(Enum):
     CSV = _CSV

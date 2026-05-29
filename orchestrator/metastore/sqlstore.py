@@ -972,6 +972,51 @@ class SQLResourceStore(ResourceStore):
             }
         )
 
+    def get_all_resource_relationships(
+        self, kinds: list[CoreResourceKinds] | None = None
+    ) -> "pd.DataFrame":
+        """Return all resource relationship edges in the metastore.
+
+        Args:
+            kinds: Optional list of resource kinds. When provided, only edges
+                where both subject and object resources match one of the kinds
+                are returned.
+
+        Returns:
+            A DataFrame with columns ``SUBJECT``, ``OBJECT``, ``SUBJECT_KIND``,
+            and ``OBJECT_KIND``.
+        """
+        import pandas as pd
+
+        query_text = """
+            SELECT
+                rr.subject_identifier AS SUBJECT,
+                rr.object_identifier AS OBJECT,
+                subject_resource.kind AS SUBJECT_KIND,
+                object_resource.kind AS OBJECT_KIND
+            FROM resource_relationships rr
+            INNER JOIN resources subject_resource
+                ON rr.subject_identifier = subject_resource.identifier
+            INNER JOIN resources object_resource
+                ON rr.object_identifier = object_resource.identifier
+        """
+        query_parameters: dict[str, str] = {}
+        if kinds is not None:
+            kind_values = [kind.value for kind in kinds]
+            placeholders = ", ".join(
+                f":kind_{index}" for index in range(len(kind_values))
+            )
+            query_text += (
+                f" WHERE subject_resource.kind IN ({placeholders})"
+                f" AND object_resource.kind IN ({placeholders})"
+            )
+            for index, kind_value in enumerate(kind_values):
+                query_parameters[f"kind_{index}"] = kind_value
+
+        query = sqlalchemy.text(query_text).bindparams(**query_parameters)
+        with self.engine.connect() as connectable:
+            return pd.read_sql(query, con=connectable)
+
     def getRelatedResources(
         self, identifier: str, kind: CoreResourceKinds | None = None
     ) -> dict[str, orchestrator.core.resources.ADOResource]:

@@ -15,6 +15,12 @@ from orchestrator.core.discoveryspace.space import (
     DiscoverySpace,
     SpaceInconsistencyError,
 )
+from orchestrator.core.operation.resource import (
+    OperationResource,
+    OperationResourceEventEnum,
+    OperationResourceStatus,
+)
+from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.core.samplestore.base import ActiveSampleStore
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
@@ -321,10 +327,18 @@ def test_matching_entities_table_virtual_property_with_multiple_values(
     assert df_with_vp[virtual_id].dropna().apply(lambda x: np.isscalar(x)).all()
 
 
+def _operation_lifecycle_statuses(
+    operation: OperationResource,
+) -> list[OperationResourceStatus]:
+    return [
+        status
+        for status in operation.status
+        if status.event in OperationResourceEventEnum
+    ]
+
+
 def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None:
     """operation_context registers the operation and records STARTED then FINISHED/SUCCESS."""
-    from unittest.mock import MagicMock
-
     from orchestrator.core.discoveryspace.space import (
         SCRIPT_OPERATION_EXECUTION_LABEL,
         SCRIPT_OPERATION_LABEL_KEY,
@@ -335,11 +349,9 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
     )
     from orchestrator.core.operation.resource import (
         OperationExitStateEnum,
+        OperationResource,
         OperationResourceEventEnum,
     )
-
-    mock_store = MagicMock()
-    pfas_space._metadataStore = mock_store
 
     with pfas_space.operation_context(
         name="test-script",
@@ -349,9 +361,12 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
         assert operation_id.startswith("operation-script-test-script-")
         assert operation_id in pfas_space._verified_operation_ids
 
-    add_call = mock_store.addResourceWithRelationships.call_args
-    operation = add_call.kwargs["resource"]
-    assert add_call.kwargs["relatedIdentifiers"] == [pfas_space.uri]
+    operation = pfas_space.metadataStore.getResource(
+        identifier=operation_id,
+        kind=CoreResourceKinds.OPERATION,
+    )
+    assert isinstance(operation, OperationResource)
+    assert operation_id in pfas_space.operations["IDENTIFIER"].values
     assert isinstance(operation.config.operation.module, ScriptOperatorConf)
     assert (
         operation.config.operation.module.operationType == DiscoveryOperationEnum.SEARCH
@@ -363,31 +378,35 @@ def test_operation_context_success_lifecycle(pfas_space: DiscoverySpace) -> None
         "source": "test",
     }
 
-    assert mock_store.updateResource.call_count == 2
-    finished_operation = mock_store.updateResource.call_args_list[-1].args[0]
-    assert finished_operation.status[-2].event == OperationResourceEventEnum.STARTED
-    assert finished_operation.status[-1].event == OperationResourceEventEnum.FINISHED
-    assert finished_operation.status[-1].exit_state == OperationExitStateEnum.SUCCESS
+    lifecycle_statuses = _operation_lifecycle_statuses(operation)
+    assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
+    assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
+    assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.SUCCESS
 
 
 def test_operation_context_failure_lifecycle(pfas_space: DiscoverySpace) -> None:
     """operation_context records FINISHED/FAIL when the wrapped block raises."""
-    from unittest.mock import MagicMock
-
     from orchestrator.core.operation.resource import (
         OperationExitStateEnum,
+        OperationResource,
         OperationResourceEventEnum,
     )
 
-    mock_store = MagicMock()
-    pfas_space._metadataStore = mock_store
+    failure_message = "Simulated script failure during operation_context lifecycle"
 
     with (
-        pytest.raises(RuntimeError, match="boom"),
-        pfas_space.operation_context(name="failing-script"),
+        pytest.raises(RuntimeError, match=re.escape(failure_message)),
+        pfas_space.operation_context(name="failing-script") as operation_id,
     ):
-        raise RuntimeError("boom")
+        raise RuntimeError(failure_message)
 
-    finished_operation = mock_store.updateResource.call_args_list[-1].args[0]
-    assert finished_operation.status[-1].event == OperationResourceEventEnum.FINISHED
-    assert finished_operation.status[-1].exit_state == OperationExitStateEnum.FAIL
+    operation = pfas_space.metadataStore.getResource(
+        identifier=operation_id,
+        kind=CoreResourceKinds.OPERATION,
+    )
+    assert isinstance(operation, OperationResource)
+
+    lifecycle_statuses = _operation_lifecycle_statuses(operation)
+    assert lifecycle_statuses[0].event == OperationResourceEventEnum.STARTED
+    assert lifecycle_statuses[-1].event == OperationResourceEventEnum.FINISHED
+    assert lifecycle_statuses[-1].exit_state == OperationExitStateEnum.FAIL

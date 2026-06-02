@@ -7,6 +7,7 @@ from .config import (
     PackageConfiguration,
     PortForwardConfiguration,
     RemoteExecutionContext,
+    RuntimeEnvironmentConfiguration,
 )
 
 __all__ = [
@@ -15,4 +16,5 @@ __all__ = [
     "PackageConfiguration",
     "PortForwardConfiguration",
     "RemoteExecutionContext",
+    "RuntimeEnvironmentConfiguration",
 ]

@@ -82,26 +82,18 @@ docs = [
   "pygments>=2.19.1",
   "pymdown-extensions>=10.15",
 ]
-resolution-helpers = [
-  "urllib3>=2.5.0",
-]
-# AP 2025-12-05:
-# ado-sfttrainer is currently incompatible with Python 3.13
-#   due to a dependency on aim/aimrocks
-# ado-vllm-performance is currently incompatible with macOS
-#   due to a new requirement in vllm>=0.11.1 which brings in
-#   cuda dependencies.
+
 test = [
-  "ado-autoconf; python_version < '3.14'",
+  "ado-autoconf ; python_full_version < '3.14'",
   "ado-ray-tune",
-  "ado-sfttrainer; python_version < '3.13'",
-  "ado-trim; python_version < '3.14'",
+  "ado-sfttrainer ; python_full_version < '3.13'",
+  "ado-trim ; python_full_version < '3.14'",
   "ado-vllm-performance",
   "anomalous-series",
   "density-test",
   "optimization-test-functions",
   "pfas-custom-functions",
-  "profile-space; python_version < '3.14'",
+  "profile-space ; python_full_version < '3.14'",
   "robotic-lab",
   "trim-custom-experiments",
 ]

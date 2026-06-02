@@ -171,6 +171,7 @@ class _PendingLaunch:
     executor_ref: ray.ObjectRef
     submitted_at: float
     seen_running: bool = False
+    """True once Ray State API has reported RUNNING for this task."""
 
 
 @dataclass
@@ -212,6 +213,34 @@ def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
     if isinstance(raw_state, str):
         return RayTaskState.from_ray_state(raw_state)
     return RayTaskState.OTHER
+
+
+def notify_launch_supervisor_completed(
+    notifier: object | None,
+    requestid: str,
+) -> None:
+    """Notify launch supervision that a measurement result was queued.
+
+    ``notifier`` is usually the hosting actuator (in-process or as a Ray actor
+    handle). It must expose ``mark_launch_completed``; ``LaunchSupervisor`` may
+    be passed directly with ``mark_completed``.
+
+    Args:
+        notifier: Actuator or supervisor to notify, or None to skip.
+        requestid: Measurement request identifier that now has a queued result.
+    """
+    if notifier is None:
+        return
+    method = getattr(notifier, "mark_launch_completed", None)
+    if method is None:
+        method = getattr(notifier, "mark_completed", None)
+    if method is None:
+        return
+    remote_call = getattr(method, "remote", None)
+    if remote_call is not None:
+        remote_call(requestid)
+    else:
+        method(requestid)
 
 
 def build_launch_failure_measurements(
@@ -291,7 +320,12 @@ class LaunchSupervisor:
             )
 
     def mark_completed(self, requestid: str) -> None:
-        """Record that a requestid has a result (avoids duplicate queue puts)."""
+        """Record that a requestid has a queued result (avoids duplicate invalid puts).
+
+        Called from the executor path via :func:`notify_launch_supervisor_completed`
+        as soon as the measurement queue receives a result, before the Ray executor
+        ref becomes ready.
+        """
         with self._lock:
             self._state.completed_request_ids.add(requestid)
             self._state.pending.pop(requestid, None)
@@ -344,10 +378,7 @@ class LaunchSupervisor:
             )
             return
 
-        if (
-            elapsed >= self._config.launchTimeoutSeconds
-            and task_state != RayTaskState.RUNNING
-        ):
+        if elapsed >= self._config.launchTimeoutSeconds and not pending.seen_running:
             self._emit_launch_failure(
                 pending,
                 reason=(

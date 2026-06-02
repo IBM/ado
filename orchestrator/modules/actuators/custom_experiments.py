@@ -20,6 +20,7 @@ from orchestrator.modules.actuators.base import (
 from orchestrator.modules.actuators.measurement_launch import (
     LaunchSupervisor,
     LaunchSupervisorParameters,
+    notify_launch_supervisor_completed,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import (
@@ -619,6 +620,7 @@ def custom_experiment_executor(
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue,
+    launch_completion_notifier: object | None = None,
 ) -> None:
     """
     :param function: The function to call
@@ -627,6 +629,9 @@ def custom_experiment_executor(
     :param target_experiment: The experiment to execute.
         Required as the measurementRequest only includes an ExperimentReference
     :param queue: The queue to put the result on
+    :param launch_completion_notifier: Optional actuator handle (or supervisor)
+        notified after the result is queued so launch supervision can unregister
+        before the executor Ray ref becomes ready.
     :return:
     """
 
@@ -666,6 +671,10 @@ def custom_experiment_executor(
     measurement_request.status = compute_measurement_status(measurement_results)
 
     queue.put(measurement_request, block=False)
+    notify_launch_supervisor_completed(
+        launch_completion_notifier,
+        measurement_request.requestid,
+    )
 
 
 class CustomExperimentsParameters(LaunchSupervisorParameters):
@@ -692,7 +701,9 @@ class CustomExperiments(ActuatorBase):
         super().__init__(queue=queue, params=params)
 
         params = params or {}
-        self._typed_parameters = self.parameters_class.model_validate(params)
+        self._typed_parameters = self.parameters_class.model_validate(
+            params, from_attributes=True
+        )
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
         self.log.debug(f"Params are {self._typed_parameters}")
 
@@ -732,6 +743,10 @@ class CustomExperiments(ActuatorBase):
                 )
 
         self.log.debug("Completed init")
+
+    def mark_launch_completed(self, requestid: str) -> None:
+        """Record that a measurement result was queued (launch supervision hook)."""
+        self._launch_supervisor.mark_completed(requestid)
 
     def loadedExperiment(
         self,
@@ -823,6 +838,7 @@ class CustomExperiments(ActuatorBase):
                 request,
                 targetExperiment,
                 self._stateUpdateQueue,
+                self,
             )
             self._launch_supervisor.register(request, executor_ref)
         else:

@@ -30,6 +30,7 @@ def show_results_for_resources(
             help="The kind of the resource to show the result timeseries for.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoShowResultsSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowResultsSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

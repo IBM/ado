@@ -34,6 +34,7 @@ def upgrade_resource(
             help="The kind of the resource to upgrade.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoUpgradeSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoUpgradeSupportedResourceTypes)}]",
         ),
     ],
     apply_legacy_migrator: Annotated[

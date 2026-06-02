@@ -63,6 +63,7 @@ def get_resource(
             help="The kind of the resource(s) to get.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoGetSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoGetSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

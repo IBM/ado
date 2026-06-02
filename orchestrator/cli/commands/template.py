@@ -41,6 +41,7 @@ def template_resource(
             help="The kind of the resource to template.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoTemplateSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoTemplateSupportedResourceTypes)}]",
         ),
     ],
     operator_name: Annotated[

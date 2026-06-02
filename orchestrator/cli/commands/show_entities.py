@@ -55,6 +55,7 @@ def show_entities_for_resources(
             parser=enum_choice_with_plural_parser(
                 AdoShowEntitiesSupportedResourceTypes
             ),
+            metavar=f"[{'|'.join(m.value for m in AdoShowEntitiesSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

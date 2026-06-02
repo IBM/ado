@@ -43,6 +43,7 @@ def edit_resource(
             help="The kind of the resource to edit metadata of.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoEditSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoEditSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

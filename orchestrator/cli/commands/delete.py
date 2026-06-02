@@ -99,6 +99,7 @@ def delete_resource(
             help="The kind of the resource to delete.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoDeleteSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoDeleteSupportedResourceTypes)}]",
         ),
     ],
     resource_ids: Annotated[

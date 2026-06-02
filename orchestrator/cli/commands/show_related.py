@@ -48,6 +48,7 @@ def show_related_for_resources(
             help="The kind of the resource to show related resources for.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoShowRelatedSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowRelatedSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

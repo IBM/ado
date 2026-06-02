@@ -90,6 +90,7 @@ def create_resource(
             help="The kind of the resource to create.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoCreateSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoCreateSupportedResourceTypes)}]",
             callback=resource_type_callback,
         ),
     ],
@@ -148,6 +149,7 @@ def create_resource(
         typer.Option(
             show_default=False,
             parser=enum_choice_with_shorthand_parser(CoreResourceKinds),
+            metavar=f"[{'|'.join(m.value for m in CoreResourceKinds)}]",
             help="""
             Reuse the latest identifier of a resource kind. Can be used multiple times.
 

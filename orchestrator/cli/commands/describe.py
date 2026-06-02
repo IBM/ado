@@ -48,6 +48,7 @@ def describe_resource(
             help="The kind of the resource to describe.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoDescribeSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoDescribeSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

@@ -44,6 +44,7 @@ def show_details_for_resources(
             help="The kind of the resource to show details for.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoShowDetailsSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowDetailsSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

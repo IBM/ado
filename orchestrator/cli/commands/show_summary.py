@@ -46,6 +46,7 @@ def show_summary_for_resources(
             help="The kind of the resource to show a summary for.",
             show_default=False,
             parser=enum_choice_with_plural_parser(AdoShowSummarySupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowSummarySupportedResourceTypes)}]",
         ),
     ],
     ids: Annotated[

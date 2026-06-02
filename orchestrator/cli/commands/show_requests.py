@@ -32,6 +32,7 @@ def show_requests_for_resources(
             parser=enum_choice_with_plural_parser(
                 AdoShowRequestsSupportedResourceTypes
             ),
+            metavar=f"[{'|'.join(m.value for m in AdoShowRequestsSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

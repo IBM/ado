@@ -4,7 +4,14 @@ requires-python = ">=3.10,<3.14"
 # fg-data-profiling's latest release (4.19.1)
 # requires numba<0.63 which is incompatible with
 # Python 3.14
-dependencies = ["fg-data-profiling"]
+dependencies = [
+  # AP 02/06/2026:
+  # We help uv perform a forked resolution by adding
+  # a version marker to this dependency. Since this
+  # package is marked as only supporting up to
+  # Python 3.13, this information is redundant.
+  "fg-data-profiling>=4.19.1 ; python_full_version < '3.14'",
+]
 dynamic = ["version"]
 
 [project.entry-points."ado.operators"]

@@ -46,7 +46,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "ado-core", specifier = ">=1.2.3" },
-    { name = "autogluon-tabular", extras = ["catboost", "xgboost"], specifier = "==1.5.0" },
+    { name = "autogluon-tabular", extras = ["catboost", "xgboost"], marker = "python_full_version < '3.14'", specifier = "==1.5.0" },
     { name = "autogluon-tabular", extras = ["lightgbm"], marker = "extra == 'libomp'" },
     { name = "pandas", specifier = "<3.0.0" },
     { name = "pydantic" },
@@ -105,9 +105,6 @@ docs = [
     { name = "mkdocs-minify-plugin" },
     { name = "pygments" },
     { name = "pymdown-extensions" },
-]
-resolution-helpers = [
-    { name = "urllib3" },
 ]
 test = [
     { name = "ado-autoconf", marker = "python_full_version < '3.14'" },
@@ -171,7 +168,6 @@ docs = [
     { name = "pygments", specifier = ">=2.19.1" },
     { name = "pymdown-extensions", specifier = ">=10.15" },
 ]
-resolution-helpers = [{ name = "urllib3", specifier = ">=2.5.0" }]
 test = [
     { name = "ado-autoconf", marker = "python_full_version < '3.14'", editable = "plugins/custom_experiments/autoconf" },
     { name = "ado-ray-tune", editable = "plugins/operators/ray_tune" },
@@ -193,6 +189,7 @@ source = { editable = "plugins/operators/ray_tune" }
 dependencies = [
     { name = "bayesian-optimization" },
     { name = "nevergrad" },
+    { name = "numba", version = "0.65.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
     { name = "paretoset" },
     { name = "ray", extra = ["tune"] },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
@@ -203,9 +200,11 @@ dependencies = [
 requires-dist = [
     { name = "bayesian-optimization", specifier = ">=1.4.0" },
     { name = "nevergrad", specifier = ">=1.0.12" },
+    { name = "numba", marker = "python_full_version >= '3.14'", specifier = ">=0.63.0" },
     { name = "paretoset", specifier = ">=1.2.4" },
     { name = "ray", extras = ["tune"], specifier = ">=2.9" },
     { name = "scipy", specifier = ">=1.15.3" },
+    { name = "scipy", marker = "python_full_version >= '3.14'", specifier = ">=1.17.0" },
 ]
 
 [[package]]
@@ -240,7 +239,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "ado-core" },
-    { name = "autogluon-tabular", extras = ["catboost", "xgboost"], specifier = "==1.5" },
+    { name = "autogluon-tabular", extras = ["catboost", "xgboost"], marker = "python_full_version < '3.14'", specifier = "==1.5.0" },
     { name = "numpy" },
     { name = "pandas", specifier = ">=2.2.0" },
     { name = "scikit-learn" },
@@ -5655,7 +5654,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "fg-data-profiling" }]
+requires-dist = [{ name = "fg-data-profiling", marker = "python_full_version < '3.14'", specifier = ">=4.19.1" }]
 
 [[package]]
 name = "prometheus-client"

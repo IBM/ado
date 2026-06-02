@@ -5,9 +5,11 @@
 
 from __future__ import annotations
 
+import enum
 import logging
 import threading
 import time
+import typing
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Annotated
 
@@ -20,10 +22,78 @@ from orchestrator.schema.result import InvalidMeasurementResult
 from orchestrator.utilities.support import compute_measurement_status
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
     from orchestrator.schema.request import MeasurementRequest
+
+
+_SUPERVISOR_RAY_STATE_NAMES = frozenset({"RUNNING", "FAILED"})
+
+
+def _ray_api_task_state_names() -> frozenset[str]:
+    """Return task state strings declared on Ray's ``TaskState`` schema."""
+    from ray.util.state.common import TaskState as RayTaskStateRecord
+
+    annotation = RayTaskStateRecord.__annotations__["state"]
+    return frozenset(typing.get_args(annotation))
+
+
+def _verify_supervisor_ray_states_supported() -> None:
+    """Fail fast if Ray's State API no longer exposes RUNNING or FAILED."""
+    api_states = _ray_api_task_state_names()
+    missing = _SUPERVISOR_RAY_STATE_NAMES - api_states
+    if missing:
+        raise RuntimeError(
+            "Ray State API task states no longer include "
+            f"{sorted(missing)} (required by LaunchSupervisor). "
+            f"Available states: {sorted(api_states)}. "
+            "Update orchestrator.modules.actuators.measurement_launch."
+        )
+
+
+_verify_supervisor_ray_states_supported()
+
+
+class RayTaskState(str, enum.Enum):
+    """Collapsed task state used by launch supervision.
+
+    Ray's State API exposes many lifecycle states; the supervisor only needs to
+    distinguish running, failed, and everything else (pending, finished, unknown,
+    or lookup failure).
+    """
+
+    RUNNING = "RUNNING"
+    FAILED = "FAILED"
+    OTHER = "OTHER"
+
+    @classmethod
+    def from_ray_state(
+        cls,
+        raw: str | None,
+        logger: logging.Logger | None = None,
+    ) -> RayTaskState:
+        """Map a Ray State API state string to a supervisor ``RayTaskState``.
+
+        Args:
+            raw: ``TaskState.state`` from ``ray.util.state.list_tasks``, or None.
+            logger: Logger for non-running/non-failed values; defaults to module logger.
+
+        Returns:
+            ``RUNNING``, ``FAILED``, or ``OTHER`` (includes unavailable lookup).
+        """
+        if raw == cls.RUNNING.value:
+            return cls.RUNNING
+        if raw == cls.FAILED.value:
+            return cls.FAILED
+        log = logger or logging.getLogger(__name__)
+        if raw is None:
+            log.debug("Ray task state unavailable; treating as %s", cls.OTHER.value)
+        else:
+            log.debug(
+                "Ray task state %r collapsed to %s for launch supervision",
+                raw,
+                cls.OTHER.value,
+            )
+        return cls.OTHER
 
 
 class LaunchSupervisorConfig(pydantic.BaseModel):
@@ -111,12 +181,16 @@ class _SupervisorState:
     completed_request_ids: set[str] = field(default_factory=set)
 
 
-def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> str | None:
-    """Return Ray task state for an executor ObjectRef, or None if unavailable."""
+def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
+    """Return collapsed supervisor state (``RUNNING`` / ``FAILED`` / ``OTHER``).
+
+    Uses ``ray.util.state.list_tasks``. Any non-``RUNNING``/``FAILED`` Ray value,
+    lookup failure, or missing task maps to ``OTHER``.
+    """
     try:
-        task_id = executor_ref.task_id()
+        task_id = executor_ref.task_id().hex()
     except (AttributeError, RuntimeError, ValueError):
-        return None
+        return RayTaskState.OTHER
 
     try:
         from ray.util.state import list_tasks
@@ -127,11 +201,17 @@ def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> str | None:
             raise_on_missing_output=False,
         )
     except Exception:
-        return None
+        return RayTaskState.OTHER
 
     if not tasks:
-        return None
-    return getattr(tasks[0], "state", None) or tasks[0].get("state")
+        return RayTaskState.OTHER
+
+    raw_state = getattr(tasks[0], "state", None) or tasks[0].get("state")
+    if isinstance(raw_state, RayTaskState):
+        return raw_state
+    if isinstance(raw_state, str):
+        return RayTaskState.from_ray_state(raw_state)
+    return RayTaskState.OTHER
 
 
 def build_launch_failure_measurements(
@@ -163,10 +243,6 @@ class LaunchSupervisor:
         queue: MeasurementQueue,
         config: LaunchSupervisorConfig,
         logger: logging.Logger | None = None,
-        *,
-        task_state_lookup: Callable[[ray.ObjectRef], str | None] | None = None,
-        monotonic: Callable[[], float] | None = None,
-        sleep: Callable[[float], None] | None = None,
     ) -> None:
         """Initialize the supervisor.
 
@@ -174,16 +250,10 @@ class LaunchSupervisor:
             queue: Measurement queue for launch-failure invalid results.
             config: Launch supervision timeouts and poll interval.
             logger: Optional logger; defaults to module logger.
-            task_state_lookup: Injectable Ray task state lookup (for tests).
-            monotonic: Injectable monotonic clock (for tests).
-            sleep: Injectable sleep (for tests).
         """
         self._queue = queue
         self._config = config
         self._log = logger or logging.getLogger(__name__)
-        self._task_state_lookup = task_state_lookup or _default_task_state_lookup
-        self._monotonic = monotonic or time.monotonic
-        self._sleep = sleep or time.sleep
         self._state = _SupervisorState()
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -217,7 +287,7 @@ class LaunchSupervisor:
             self._state.pending[request.requestid] = _PendingLaunch(
                 request=request,
                 executor_ref=executor_ref,
-                submitted_at=self._monotonic(),
+                submitted_at=time.monotonic(),
             )
 
     def mark_completed(self, requestid: str) -> None:
@@ -230,7 +300,7 @@ class LaunchSupervisor:
         """Poll pending executor tasks until stopped."""
         while not self._stop.is_set():
             self._poll_once()
-            self._sleep(self._config.launchSupervisorPollIntervalSeconds)
+            time.sleep(self._config.launchSupervisorPollIntervalSeconds)
 
     def _poll_once(self) -> None:
         """Run a single supervision pass over pending launches."""
@@ -253,28 +323,31 @@ class LaunchSupervisor:
             self._handle_ready(pending)
             return
 
-        elapsed = self._monotonic() - pending.submitted_at
-        task_state = self._task_state_lookup(pending.executor_ref)
-        if task_state == "RUNNING":
+        elapsed = time.monotonic() - pending.submitted_at
+        task_state = _default_task_state_lookup(pending.executor_ref)
+        if task_state == RayTaskState.RUNNING:
             with self._lock:
                 if requestid in self._state.pending:
                     self._state.pending[requestid].seen_running = True
             return
 
         if (
-            task_state == "FAILED"
+            task_state == RayTaskState.FAILED
             and elapsed >= self._config.launchSchedulingGraceSeconds
         ):
             self._emit_launch_failure(
                 pending,
                 reason=(
                     "Measurement task failed before completion "
-                    f"(Ray state={task_state})"
+                    f"(Ray state={task_state.value})"
                 ),
             )
             return
 
-        if elapsed >= self._config.launchTimeoutSeconds and task_state != "RUNNING":
+        if (
+            elapsed >= self._config.launchTimeoutSeconds
+            and task_state != RayTaskState.RUNNING
+        ):
             self._emit_launch_failure(
                 pending,
                 reason=(

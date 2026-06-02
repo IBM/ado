@@ -246,6 +246,12 @@ def test_runtime_environment_configuration_defaults() -> None:
     assert config.eagerInstall is True
 
 
+def test_runtime_environment_configuration_rejects_invalid_timeout() -> None:
+    """setupTimeoutSeconds must be positive or -1."""
+    with pytest.raises(ValueError, match="setupTimeoutSeconds"):
+        RuntimeEnvironmentConfiguration(setupTimeoutSeconds=0)
+
+
 def test_remote_execution_context_runtime_env_yaml_round_trip() -> None:
     """runtimeEnv survives YAML round-trip."""
     ctx = RemoteExecutionContext(

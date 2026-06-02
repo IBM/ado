@@ -17,6 +17,10 @@ from orchestrator.modules.actuators.base import (
     ActuatorBase,
     DeprecatedExperimentError,
 )
+from orchestrator.modules.actuators.measurement_launch import (
+    LaunchSupervisor,
+    LaunchSupervisorParameters,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import (
     ModuleConf,
@@ -664,10 +668,17 @@ def custom_experiment_executor(
     queue.put(measurement_request, block=False)
 
 
+class CustomExperimentsParameters(LaunchSupervisorParameters):
+    """Configuration parameters for the CustomExperiments actuator."""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
+
+
 class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments"""
 
     identifier = "custom_experiments"
+    parameters_class = CustomExperimentsParameters
 
     def __init__(self, queue: "MeasurementQueue", params: dict | None = None) -> None:
         """
@@ -681,8 +692,16 @@ class CustomExperiments(ActuatorBase):
         super().__init__(queue=queue, params=params)
 
         params = params or {}
+        self._typed_parameters = self.parameters_class.model_validate(params)
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
-        self.log.debug(f"Params are {params}")
+        self.log.debug(f"Params are {self._typed_parameters}")
+
+        self._launch_supervisor = LaunchSupervisor(
+            queue=self._stateUpdateQueue,
+            config=self._typed_parameters.to_supervisor_config(),
+            logger=self.log,
+        )
+        self._launch_supervisor.start()
 
         # Use the module-level catalog by calling the class method
         self._catalog = type(self).catalog()
@@ -794,7 +813,9 @@ class CustomExperiments(ActuatorBase):
                 else {}
             )
             # Dispatch as Ray task. Pass ray options if present.
-            ray.remote(custom_experiment_executor, **remote_kwargs).remote(
+            executor_ref = ray.remote(
+                custom_experiment_executor, **remote_kwargs
+            ).remote(
                 fn,
                 self._catalog.experimentForReference(
                     request.experimentReference
@@ -803,6 +824,7 @@ class CustomExperiments(ActuatorBase):
                 targetExperiment,
                 self._stateUpdateQueue,
             )
+            self._launch_supervisor.register(request, executor_ref)
         else:
             custom_experiment_executor(
                 fn,

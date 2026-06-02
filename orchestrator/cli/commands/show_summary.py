@@ -7,7 +7,6 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowSummaryCommandParameters
 from orchestrator.cli.models.types import (
     AdoShowSummarySupportedOutputFormats,
@@ -17,6 +16,7 @@ from orchestrator.cli.resources.discovery_space.show_summary import (
     show_discovery_space_summary,
 )
 from orchestrator.cli.utils.input.parsers import (
+    enum_choice_with_plural_parser,
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import (
@@ -45,7 +45,7 @@ def show_summary_for_resources(
             ...,
             help="The kind of the resource to show a summary for.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoShowSummarySupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoShowSummarySupportedResourceTypes),
         ),
     ],
     ids: Annotated[

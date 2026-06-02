@@ -9,7 +9,6 @@ import typer
 
 import orchestrator.core.operation.config
 import orchestrator.metastore.project
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoTemplateCommandParameters
 from orchestrator.cli.models.types import AdoTemplateSupportedResourceTypes
 from orchestrator.cli.resources.actuator_configuration.template import (
@@ -19,7 +18,10 @@ from orchestrator.cli.resources.context.template import template_context
 from orchestrator.cli.resources.discovery_space.template import template_discovery_space
 from orchestrator.cli.resources.operation.template import template_operation
 from orchestrator.cli.resources.sample_store.template import template_sample_store
-from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
+from orchestrator.cli.utils.input.parsers import (
+    enum_choice_with_plural_parser,
+    parse_key_value_pairs,
+)
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
@@ -38,7 +40,7 @@ def template_resource(
             ...,
             help="The kind of the resource to template.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoTemplateSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoTemplateSupportedResourceTypes),
         ),
     ],
     operator_name: Annotated[

@@ -11,7 +11,6 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoEditCommandParameters
 from orchestrator.cli.models.types import (
     AdoEditSupportedEditors,
@@ -24,6 +23,7 @@ from orchestrator.cli.resources.data_container.edit import edit_data_container
 from orchestrator.cli.resources.discovery_space.edit import edit_discovery_space
 from orchestrator.cli.resources.operation.edit import edit_operation
 from orchestrator.cli.resources.sample_store.edit import edit_sample_store
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import ERROR, console_print
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
@@ -42,7 +42,7 @@ def edit_resource(
             ...,
             help="The kind of the resource to edit metadata of.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoEditSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoEditSupportedResourceTypes),
         ),
     ],
     resource_id: Annotated[

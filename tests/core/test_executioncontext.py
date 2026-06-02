@@ -11,6 +11,7 @@ from orchestrator.core.remotecontext.config import (
     PackageConfiguration,
     PortForwardConfiguration,
     RemoteExecutionContext,
+    RuntimeEnvironmentConfiguration,
 )
 from orchestrator.utilities.output import pydantic_model_as_yaml
 
@@ -236,6 +237,29 @@ def test_remote_execution_context_lifecycle_cluster_with_port_forward() -> None:
     reloaded = RemoteExecutionContext.model_validate(dumped)
     assert reloaded == ctx
     assert reloaded.executionType.portForward.namespace == "prod-ns"
+
+
+def test_runtime_environment_configuration_defaults() -> None:
+    """Default field values match Ray RuntimeEnvConfig defaults."""
+    config = RuntimeEnvironmentConfiguration()
+    assert config.setupTimeoutSeconds == 600
+    assert config.eagerInstall is True
+
+
+def test_remote_execution_context_runtime_env_yaml_round_trip() -> None:
+    """runtimeEnv survives YAML round-trip."""
+    ctx = RemoteExecutionContext(
+        executionType=ClusterExecutionType(clusterUrl="http://localhost:8265"),
+        runtimeEnv=RuntimeEnvironmentConfiguration(
+            setupTimeoutSeconds=1200,
+            eagerInstall=False,
+        ),
+    )
+    yaml_str = pydantic_model_as_yaml(ctx)
+    reloaded = RemoteExecutionContext.model_validate(yaml.safe_load(yaml_str))
+    assert reloaded.runtimeEnv is not None
+    assert reloaded.runtimeEnv.setupTimeoutSeconds == 1200
+    assert reloaded.runtimeEnv.eagerInstall is False
 
 
 def test_remote_execution_context_yaml_round_trip() -> None:

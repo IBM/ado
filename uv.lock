@@ -193,10 +193,6 @@ source = { editable = "plugins/operators/ray_tune" }
 dependencies = [
     { name = "bayesian-optimization" },
     { name = "nevergrad" },
-    { name = "numba", version = "0.61.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'darwin'" },
-    { name = "numba", version = "0.62.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform == 'darwin'" },
-    { name = "numba", version = "0.65.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
-    { name = "numpy", marker = "python_full_version >= '3.14'" },
     { name = "paretoset" },
     { name = "ray", extra = ["tune"] },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.14'" },
@@ -207,15 +203,9 @@ dependencies = [
 requires-dist = [
     { name = "bayesian-optimization", specifier = ">=1.4.0" },
     { name = "nevergrad", specifier = ">=1.0.12" },
-    { name = "numba", marker = "python_full_version >= '3.11'", specifier = ">=0.57.0" },
-    { name = "numba", marker = "python_full_version >= '3.12'", specifier = ">=0.59.0" },
-    { name = "numba", marker = "python_full_version >= '3.13'", specifier = ">=0.61.0" },
-    { name = "numba", marker = "python_full_version >= '3.14'", specifier = ">=0.63.0" },
-    { name = "numpy", marker = "python_full_version >= '3.14'", specifier = ">=1.26.4" },
     { name = "paretoset", specifier = ">=1.2.4" },
     { name = "ray", extras = ["tune"], specifier = ">=2.9" },
     { name = "scipy", specifier = ">=1.15.3" },
-    { name = "scipy", marker = "python_full_version >= '3.14'", specifier = ">=1.17.0" },
 ]
 
 [[package]]

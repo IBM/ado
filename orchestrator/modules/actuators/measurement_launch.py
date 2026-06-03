@@ -96,33 +96,34 @@ class RayTaskState(str, enum.Enum):
         return cls.OTHER
 
 
-class LaunchSupervisorConfig(pydantic.BaseModel):
-    """Infrastructure timeouts for Ray executor launch supervision."""
+class ExperimentExecutorSupervisorConfig(pydantic.BaseModel):
+    """Configuration for Ray experiment executor supervision."""
 
     model_config = ConfigDict(extra="forbid")
 
-    launchSchedulingGraceSeconds: Annotated[
+    taskFailedGraceSeconds: Annotated[
         float,
         pydantic.Field(
             gt=0,
             description=(
-                "Grace period while a Ray task is pending (cluster scaling, runtime env)."
+                "Grace period after Ray State API reports FAILED before emitting "
+                "an InvalidMeasurementResult for the MeasurementRequest an executor was processing."
             ),
         ),
     ] = 600.0
 
-    launchTimeoutSeconds: Annotated[
+    taskRunningTimeoutSeconds: Annotated[
         float,
         pydantic.Field(
             gt=0,
             description=(
-                "Hard cap for an executor task that never reaches RUNNING "
+                "Timeout for an experiment executor task to reach RUNNING state after being started "
                 "(scheduling/runtime_env failure)."
             ),
         ),
     ] = 900.0
 
-    launchSupervisorPollIntervalSeconds: Annotated[
+    supervisorPollIntervalSeconds: Annotated[
         float,
         pydantic.Field(
             gt=0,
@@ -131,40 +132,40 @@ class LaunchSupervisorConfig(pydantic.BaseModel):
     ] = 5.0
 
 
-class LaunchSupervisorParameters(GenericActuatorParameters):
-    """Actuator configuration parameters for launch supervision.
+class ExperimentExecutorSupervisorParameters(GenericActuatorParameters):
+    """Actuator configuration parameters for experiment executor supervsions
 
     Inherit in an actuator class to add these parameters if you
-    want to use LaunchSupervisor"""
+    want to use ExperimentExecutorSupervisor"""
 
     model_config = ConfigDict(extra="allow")
 
-    launchSchedulingGraceSeconds: Annotated[
+    taskFailedGraceSeconds: Annotated[
         float,
         pydantic.Field(gt=0),
     ] = 600.0
 
-    launchTimeoutSeconds: Annotated[
+    taskRunningTimeoutSeconds: Annotated[
         float,
         pydantic.Field(gt=0),
     ] = 900.0
 
-    launchSupervisorPollIntervalSeconds: Annotated[
+    supervisorPollIntervalSeconds: Annotated[
         float,
         pydantic.Field(gt=0),
     ] = 5.0
 
-    def to_supervisor_config(self) -> LaunchSupervisorConfig:
+    def to_supervisor_config(self) -> ExperimentExecutorSupervisorConfig:
         """Build a supervisor config from actuator parameters."""
-        return LaunchSupervisorConfig(
-            launchSchedulingGraceSeconds=self.launchSchedulingGraceSeconds,
-            launchTimeoutSeconds=self.launchTimeoutSeconds,
-            launchSupervisorPollIntervalSeconds=self.launchSupervisorPollIntervalSeconds,
+        return ExperimentExecutorSupervisorConfig(
+            taskFailedGraceSeconds=self.taskFailedGraceSeconds,
+            taskRunningTimeoutSeconds=self.taskRunningTimeoutSeconds,
+            supervisorPollIntervalSeconds=self.supervisorPollIntervalSeconds,
         )
 
 
 @dataclass
-class _PendingLaunch:
+class _MonitoredExecutor:
     """An in-flight executor Ray task registered with the supervisor."""
 
     request: MeasurementRequest
@@ -178,7 +179,7 @@ class _PendingLaunch:
 class _SupervisorState:
     """Mutable supervisor state guarded by a lock."""
 
-    pending: dict[str, _PendingLaunch] = field(default_factory=dict)
+    monitored_executors: dict[str, _MonitoredExecutor] = field(default_factory=dict)
     completed_request_ids: set[str] = field(default_factory=set)
 
 
@@ -215,19 +216,18 @@ def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
     return RayTaskState.OTHER
 
 
-def notify_launch_supervisor_completed(
+def notify_executor_supervisor_completed(
     notifier: object | None,
     requestid: str,
 ) -> None:
-    """Notify launch supervision that a measurement result was queued.
+    """Notify executor supervisor that an executor queue a measurement result.
 
     ``notifier`` is usually the hosting actuator (in-process or as a Ray actor
-    handle). It must expose ``mark_launch_completed``; ``LaunchSupervisor`` may
-    be passed directly with ``mark_completed``.
+    handle). It must expose ``mark_launch_completed``;
 
     Args:
         notifier: Actuator or supervisor to notify, or None to skip.
-        requestid: Measurement request identifier that now has a queued result.
+        requestid: MeasurementRequest identifier that now has a queued result.
     """
     if notifier is None:
         return
@@ -243,11 +243,11 @@ def notify_launch_supervisor_completed(
         method(requestid)
 
 
-def build_launch_failure_measurements(
+def add_invalid_measurement_results(
     request: MeasurementRequest,
     reason: str,
 ) -> MeasurementRequest:
-    """Attach per-entity InvalidMeasurementResult values for a launch failure."""
+    """Attach per-entity InvalidMeasurementResult values when task fails."""
     measurements = [
         InvalidMeasurementResult(
             entityIdentifier=entity.identifier,
@@ -261,8 +261,8 @@ def build_launch_failure_measurements(
     return request
 
 
-class LaunchSupervisor:
-    """Monitors Ray executor ObjectRefs and emits Invalid results on launch failure.
+class ExperimentExecutorSupervisor:
+    """Monitors Ray executor ObjectRefs and emits Invalid results on unexpected failures.
 
     Intended for reuse by any actuator that fire-and-forgets Ray measurement tasks.
     """
@@ -270,14 +270,14 @@ class LaunchSupervisor:
     def __init__(
         self,
         queue: MeasurementQueue,
-        config: LaunchSupervisorConfig,
+        config: ExperimentExecutorSupervisorConfig,
         logger: logging.Logger | None = None,
     ) -> None:
         """Initialize the supervisor.
 
         Args:
             queue: Measurement queue for launch-failure invalid results.
-            config: Launch supervision timeouts and poll interval.
+            config: Executor supervision timeouts and poll interval.
             logger: Optional logger; defaults to module logger.
         """
         self._queue = queue
@@ -295,7 +295,7 @@ class LaunchSupervisor:
         self._stop.clear()
         self._thread = threading.Thread(
             target=self._run_loop,
-            name="LaunchSupervisor",
+            name="ExperimentExecutorSupervisor",
             daemon=True,
         )
         self._thread.start()
@@ -309,47 +309,51 @@ class LaunchSupervisor:
         request: MeasurementRequest,
         executor_ref: ray.ObjectRef,
     ) -> None:
-        """Register an executor task for launch supervision."""
+        """Register an executor task for supervision."""
         with self._lock:
             if request.requestid in self._state.completed_request_ids:
                 return
-            self._state.pending[request.requestid] = _PendingLaunch(
+            self._state.monitored_executors[request.requestid] = _MonitoredExecutor(
                 request=request,
                 executor_ref=executor_ref,
                 submitted_at=time.monotonic(),
             )
 
     def mark_completed(self, requestid: str) -> None:
-        """Record that a requestid has a queued result (avoids duplicate invalid puts).
+        """Record that a requestid has a queued result.
 
-        Called from the executor path via :func:`notify_launch_supervisor_completed`
+        This is to avoid sending duplicate results for a request in the case
+        an external problem causes the task to FAIL with no associated exception
+        e.g. raylet failure, node failure, some issue with ray ref retrieval.
+
+        Called from the executor path via :func:`notify_executor_supervisor_completed`
         as soon as the measurement queue receives a result, before the Ray executor
         ref becomes ready.
         """
         with self._lock:
             self._state.completed_request_ids.add(requestid)
-            self._state.pending.pop(requestid, None)
+            self._state.monitored_executors.pop(requestid, None)
 
     def _run_loop(self) -> None:
         """Poll pending executor tasks until stopped."""
         while not self._stop.is_set():
             self._poll_once()
-            time.sleep(self._config.launchSupervisorPollIntervalSeconds)
+            time.sleep(self._config.supervisorPollIntervalSeconds)
 
     def _poll_once(self) -> None:
         """Run a single supervision pass over pending launches."""
         with self._lock:
-            pending_snapshot = list(self._state.pending.values())
+            pending_snapshot = list(self._state.monitored_executors.values())
 
         for pending in pending_snapshot:
             self._check_pending(pending)
 
-    def _check_pending(self, pending: _PendingLaunch) -> None:
+    def _check_pending(self, pending: _MonitoredExecutor) -> None:
         """Evaluate one pending executor task."""
         requestid = pending.request.requestid
         with self._lock:
             if requestid in self._state.completed_request_ids:
-                self._state.pending.pop(requestid, None)
+                self._state.monitored_executors.pop(requestid, None)
                 return
 
         ready_refs, _ = ray.wait([pending.executor_ref], timeout=0)
@@ -361,13 +365,13 @@ class LaunchSupervisor:
         task_state = _default_task_state_lookup(pending.executor_ref)
         if task_state == RayTaskState.RUNNING:
             with self._lock:
-                if requestid in self._state.pending:
-                    self._state.pending[requestid].seen_running = True
+                if requestid in self._state.monitored_executors:
+                    self._state.monitored_executors[requestid].seen_running = True
             return
 
         if (
             task_state == RayTaskState.FAILED
-            and elapsed >= self._config.launchSchedulingGraceSeconds
+            and elapsed >= self._config.taskFailedGraceSeconds
         ):
             self._emit_launch_failure(
                 pending,
@@ -378,47 +382,50 @@ class LaunchSupervisor:
             )
             return
 
-        if elapsed >= self._config.launchTimeoutSeconds and not pending.seen_running:
+        if (
+            elapsed >= self._config.taskRunningTimeoutSeconds
+            and not pending.seen_running
+        ):
             self._emit_launch_failure(
                 pending,
                 reason=(
                     "Measurement task did not start within "
-                    f"{int(self._config.launchTimeoutSeconds)}s "
+                    f"{int(self._config.taskRunningTimeoutSeconds)}s "
                     "(scheduling/runtime_env)"
                 ),
             )
 
-    def _handle_ready(self, pending: _PendingLaunch) -> None:
-        """Executor finished; surface errors and unregister."""
-        requestid = pending.request.requestid
+    def _handle_ready(self, pending: _MonitoredExecutor) -> None:
+        """Executor finished; queue invalid on ``ray.get`` failure and unregister."""
         try:
             ray.get(pending.executor_ref)
         except Exception as error:
-            self._log.warning(
-                "Executor task for request %s raised: %s",
-                requestid,
-                error,
+            self._record_executor_failure(
+                pending,
+                reason=f"Executor task raised: {error}",
             )
-        finally:
+        else:
             with self._lock:
-                self._state.completed_request_ids.add(requestid)
-                self._state.pending.pop(requestid, None)
+                self._state.completed_request_ids.add(pending.request.requestid)
+                self._state.monitored_executors.pop(pending.request.requestid, None)
 
-    def _emit_launch_failure(self, pending: _PendingLaunch, reason: str) -> None:
-        """Queue an invalid measurement for a launch/scheduling failure."""
-        ready_refs, _ = ray.wait([pending.executor_ref], timeout=0)
-        if ready_refs:
-            self._handle_ready(pending)
-            return
-
+    def _record_executor_failure(
+        self, pending: _MonitoredExecutor, reason: str
+    ) -> None:
+        """Queue an invalid measurement unless a result was already marked completed."""
         requestid = pending.request.requestid
         with self._lock:
             if requestid in self._state.completed_request_ids:
-                self._state.pending.pop(requestid, None)
+                self._log.warning(
+                    "Executor failure for request %s after result queued; ignoring: %s",
+                    requestid,
+                    reason,
+                )
+                self._state.monitored_executors.pop(requestid, None)
                 return
             self._state.completed_request_ids.add(requestid)
 
-        failed_request = build_launch_failure_measurements(
+        failed_request = add_invalid_measurement_results(
             pending.request.model_copy(deep=True),
             reason=reason,
         )
@@ -429,9 +436,18 @@ class LaunchSupervisor:
             pending.request.requestIndex,
             reason,
         )
-        self._cancel_executor(pending.executor_ref)
         with self._lock:
-            self._state.pending.pop(requestid, None)
+            self._state.monitored_executors.pop(requestid, None)
+
+    def _emit_launch_failure(self, pending: _MonitoredExecutor, reason: str) -> None:
+        """Queue an invalid measurement for a launch/scheduling failure."""
+        ready_refs, _ = ray.wait([pending.executor_ref], timeout=0)
+        if ready_refs:
+            self._handle_ready(pending)
+            return
+
+        self._record_executor_failure(pending, reason=reason)
+        self._cancel_executor(pending.executor_ref)
 
     def _cancel_executor(self, executor_ref: ray.ObjectRef) -> None:
         """Best-effort cancellation of a stuck executor task."""

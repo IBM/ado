@@ -18,9 +18,9 @@ from orchestrator.modules.actuators.base import (
     DeprecatedExperimentError,
 )
 from orchestrator.modules.actuators.measurement_launch import (
-    LaunchSupervisor,
-    LaunchSupervisorParameters,
-    notify_launch_supervisor_completed,
+    ExperimentExecutorSupervisor,
+    ExperimentExecutorSupervisorParameters,
+    notify_executor_supervisor_completed,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import (
@@ -671,13 +671,13 @@ def custom_experiment_executor(
     measurement_request.status = compute_measurement_status(measurement_results)
 
     queue.put(measurement_request, block=False)
-    notify_launch_supervisor_completed(
+    notify_executor_supervisor_completed(
         launch_completion_notifier,
         measurement_request.requestid,
     )
 
 
-class CustomExperimentsParameters(LaunchSupervisorParameters):
+class CustomExperimentsParameters(ExperimentExecutorSupervisorParameters):
     """Configuration parameters for the CustomExperiments actuator."""
 
     model_config = pydantic.ConfigDict(extra="forbid")
@@ -707,7 +707,7 @@ class CustomExperiments(ActuatorBase):
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
         self.log.debug(f"Params are {self._typed_parameters}")
 
-        self._launch_supervisor = LaunchSupervisor(
+        self._launch_supervisor = ExperimentExecutorSupervisor(
             queue=self._stateUpdateQueue,
             config=self._typed_parameters.to_supervisor_config(),
             logger=self.log,

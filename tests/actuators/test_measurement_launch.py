@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from orchestrator.modules.actuators import measurement_launch
 from orchestrator.modules.actuators.measurement_launch import (
-    LaunchSupervisorParameters,
+    ExperimentExecutorSupervisorParameters,
     RayTaskState,
-    build_launch_failure_measurements,
+    add_invalid_measurement_results,
 )
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.reference import ExperimentReference
@@ -38,7 +38,7 @@ def _sample_request(requestid: str = "abc123") -> MeasurementRequest:
 def test_build_launch_failure_measurements() -> None:
     """Launch failure builds invalid results for every entity."""
     request = _sample_request()
-    failed = build_launch_failure_measurements(request, reason="timeout")
+    failed = add_invalid_measurement_results(request, reason="timeout")
     assert failed.status == MeasurementRequestStateEnum.FAILED
     assert failed.measurements is not None
     assert len(failed.measurements) == 1
@@ -63,12 +63,12 @@ def test_ray_task_state_from_ray_state_collapses() -> None:
 
 def test_launch_supervisor_parameters_to_config() -> None:
     """Actuator parameters map to supervisor config."""
-    params = LaunchSupervisorParameters(
-        launchSchedulingGraceSeconds=120.0,
-        launchTimeoutSeconds=300.0,
-        launchSupervisorPollIntervalSeconds=2.0,
+    params = ExperimentExecutorSupervisorParameters(
+        taskFailedGraceSeconds=120.0,
+        taskRunningTimeoutSeconds=300.0,
+        supervisorPollIntervalSeconds=2.0,
     )
     config = params.to_supervisor_config()
-    assert config.launchSchedulingGraceSeconds == 120.0
-    assert config.launchTimeoutSeconds == 300.0
-    assert config.launchSupervisorPollIntervalSeconds == 2.0
+    assert config.taskFailedGraceSeconds == 120.0
+    assert config.taskRunningTimeoutSeconds == 300.0
+    assert config.supervisorPollIntervalSeconds == 2.0

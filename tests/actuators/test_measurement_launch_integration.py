@@ -22,8 +22,8 @@ import ray
 from ray.util.queue import Empty as RayQueueEmpty
 
 from orchestrator.modules.actuators.measurement_launch import (
-    LaunchSupervisor,
-    LaunchSupervisorConfig,
+    ExperimentExecutorSupervisor,
+    ExperimentExecutorSupervisorConfig,
     RayTaskState,
     _default_task_state_lookup,
 )
@@ -47,6 +47,12 @@ def return_immediately() -> int:
     return 1
 
 
+@ray.remote
+def raise_before_return() -> None:
+    """Task that fails with an uncaught exception (ref becomes ready)."""
+    raise RuntimeError("executor boom")
+
+
 @ray.remote(resources={UNSCHEDULABLE_RESOURCE: 1})
 def never_scheduled() -> None:
     """Task that cannot schedule on the default pytest Ray cluster."""
@@ -60,22 +66,22 @@ def measurement_queue() -> MeasurementQueue:
 
 
 @pytest.fixture
-def supervisor_config() -> LaunchSupervisorConfig:
+def supervisor_config() -> ExperimentExecutorSupervisorConfig:
     """Short timeouts for wall-clock integration tests."""
-    return LaunchSupervisorConfig(
-        launchSchedulingGraceSeconds=0.5,
-        launchTimeoutSeconds=1.0,
-        launchSupervisorPollIntervalSeconds=0.1,
+    return ExperimentExecutorSupervisorConfig(
+        taskFailedGraceSeconds=0.5,
+        taskRunningTimeoutSeconds=1.0,
+        supervisorPollIntervalSeconds=0.1,
     )
 
 
 @pytest.fixture
-def supervisor_config_long_launch_timeout() -> LaunchSupervisorConfig:
+def supervisor_config_long_launch_timeout() -> ExperimentExecutorSupervisorConfig:
     """Grace/launch timeouts for tasks that stay pending before RUNNING."""
-    return LaunchSupervisorConfig(
-        launchSchedulingGraceSeconds=0.5,
-        launchTimeoutSeconds=60.0,
-        launchSupervisorPollIntervalSeconds=0.1,
+    return ExperimentExecutorSupervisorConfig(
+        taskFailedGraceSeconds=0.5,
+        taskRunningTimeoutSeconds=60.0,
+        supervisorPollIntervalSeconds=0.1,
     )
 
 
@@ -90,10 +96,10 @@ def drain_queue(queue: MeasurementQueue, timeout: float) -> MeasurementRequest |
 @pytest.mark.timeout(30)
 def test_supervisor_launch_timeout_emits_invalid(
     measurement_queue: MeasurementQueue,
-    supervisor_config: LaunchSupervisorConfig,
+    supervisor_config: ExperimentExecutorSupervisorConfig,
 ) -> None:
     """Unschedulable custom-resource task triggers launch-timeout invalid result."""
-    supervisor = LaunchSupervisor(measurement_queue, supervisor_config)
+    supervisor = ExperimentExecutorSupervisor(measurement_queue, supervisor_config)
     supervisor.start()
     try:
         request = _sample_request("timeout1")
@@ -111,10 +117,10 @@ def test_supervisor_launch_timeout_emits_invalid(
 @pytest.mark.timeout(30)
 def test_supervisor_running_task_not_timed_out(
     measurement_queue: MeasurementQueue,
-    supervisor_config_long_launch_timeout: LaunchSupervisorConfig,
+    supervisor_config_long_launch_timeout: ExperimentExecutorSupervisorConfig,
 ) -> None:
     """Pending/RUNNING tasks are not subject to launch timeout before it elapses."""
-    supervisor = LaunchSupervisor(
+    supervisor = ExperimentExecutorSupervisor(
         measurement_queue,
         supervisor_config_long_launch_timeout,
     )
@@ -134,10 +140,10 @@ def test_supervisor_running_task_not_timed_out(
 @pytest.mark.timeout(30)
 def test_supervisor_completed_task_no_supervisor_put(
     measurement_queue: MeasurementQueue,
-    supervisor_config: LaunchSupervisorConfig,
+    supervisor_config: ExperimentExecutorSupervisorConfig,
 ) -> None:
     """When the executor completes, the supervisor unregisters without queueing."""
-    supervisor = LaunchSupervisor(measurement_queue, supervisor_config)
+    supervisor = ExperimentExecutorSupervisor(measurement_queue, supervisor_config)
     supervisor.start()
     try:
         request = _sample_request("done1")
@@ -164,16 +170,39 @@ def test_default_task_state_lookup_unschedulable_task_returns_other() -> None:
 
 
 @pytest.mark.timeout(30)
+def test_supervisor_executor_exception_emits_invalid(
+    measurement_queue: MeasurementQueue,
+    supervisor_config: ExperimentExecutorSupervisorConfig,
+) -> None:
+    """Uncaught executor exception surfaces as invalid on the measurement queue."""
+    supervisor = ExperimentExecutorSupervisor(measurement_queue, supervisor_config)
+    supervisor.start()
+    try:
+        request = _sample_request("exc1")
+        ref = raise_before_return.remote()
+        supervisor.register(request, ref)
+        result = drain_queue(measurement_queue, timeout=5.0)
+        assert result is not None
+        assert result.requestid == "exc1"
+        assert result.status == MeasurementRequestStateEnum.FAILED
+        assert result.measurements is not None
+        assert "Executor task raised" in result.measurements[0].reason  # type: ignore[union-attr]
+        assert "executor boom" in result.measurements[0].reason  # type: ignore[union-attr]
+    finally:
+        supervisor.stop()
+
+
+@pytest.mark.timeout(30)
 def test_mark_completed_prevents_duplicate_launch_failure(
     measurement_queue: MeasurementQueue,
 ) -> None:
     """mark_completed prevents launch-timeout invalid when a result was already queued."""
-    config = LaunchSupervisorConfig(
-        launchSchedulingGraceSeconds=0.2,
-        launchTimeoutSeconds=0.5,
-        launchSupervisorPollIntervalSeconds=0.05,
+    config = ExperimentExecutorSupervisorConfig(
+        taskFailedGraceSeconds=0.2,
+        taskRunningTimeoutSeconds=0.5,
+        supervisorPollIntervalSeconds=0.05,
     )
-    supervisor = LaunchSupervisor(measurement_queue, config)
+    supervisor = ExperimentExecutorSupervisor(measurement_queue, config)
     supervisor.start()
     stuck_ref = never_scheduled.remote()
     try:
@@ -187,7 +216,7 @@ def test_mark_completed_prevents_duplicate_launch_failure(
         assert result.requestid == "mc1"
         assert result.status == MeasurementRequestStateEnum.SUCCESS
         time.sleep(
-            config.launchTimeoutSeconds + config.launchSupervisorPollIntervalSeconds * 3
+            config.taskRunningTimeoutSeconds + config.supervisorPollIntervalSeconds * 3
         )
         duplicate = drain_queue(measurement_queue, timeout=0.5)
         assert duplicate is None

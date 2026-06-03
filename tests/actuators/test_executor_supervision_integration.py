@@ -85,6 +85,39 @@ def supervisor_config_long_launch_timeout() -> ExperimentExecutorSupervisorConfi
     )
 
 
+@pytest.fixture
+def supervisor_config_with_pending_resource_timeout() -> (
+    ExperimentExecutorSupervisorConfig
+):
+    """Config with taskPendingResourceTimeoutSeconds enabled.
+
+    taskRunningTimeoutSeconds is long enough to outlast Ray State API visibility
+    lag (~1s on a local cluster), so the task can transition from OTHER to
+    PENDING_NODE_ASSIGNMENT before the general running timeout fires.
+    """
+    return ExperimentExecutorSupervisorConfig(
+        taskFailedGraceSeconds=0.5,
+        taskRunningTimeoutSeconds=30.0,
+        taskPendingResourceTimeoutSeconds=2.0,
+        supervisorPollIntervalSeconds=0.1,
+    )
+
+
+@pytest.fixture
+def supervisor_config_long_running_timeout() -> ExperimentExecutorSupervisorConfig:
+    """Long running timeout; no pending resource timeout.
+
+    taskRunningTimeoutSeconds is long enough to outlast Ray State API visibility
+    lag, allowing PENDING_NODE_ASSIGNMENT tasks to be identified before the
+    general running timeout fires.
+    """
+    return ExperimentExecutorSupervisorConfig(
+        taskFailedGraceSeconds=0.5,
+        taskRunningTimeoutSeconds=30.0,
+        supervisorPollIntervalSeconds=0.1,
+    )
+
+
 def drain_queue(queue: MeasurementQueue, timeout: float) -> MeasurementRequest | None:
     """Return the next queued request or None if the queue is empty within ``timeout``."""
     try:
@@ -93,25 +126,54 @@ def drain_queue(queue: MeasurementQueue, timeout: float) -> MeasurementRequest |
         return None
 
 
-@pytest.mark.timeout(30)
-def test_supervisor_launch_timeout_emits_invalid(
+@pytest.mark.timeout(60)
+def test_supervisor_pending_resource_timeout_emits_invalid(
     measurement_queue: MeasurementQueue,
-    supervisor_config: ExperimentExecutorSupervisorConfig,
+    supervisor_config_with_pending_resource_timeout: ExperimentExecutorSupervisorConfig,
 ) -> None:
-    """Unschedulable custom-resource task triggers launch-timeout invalid result."""
-    supervisor = ExperimentExecutorSupervisor(measurement_queue, supervisor_config)
+    """Unschedulable task triggers invalid result when taskPendingResourceTimeoutSeconds is set."""
+    supervisor = ExperimentExecutorSupervisor(
+        measurement_queue, supervisor_config_with_pending_resource_timeout
+    )
     supervisor.start()
     try:
         request = _sample_request("timeout1")
         ref = never_scheduled.remote()
         supervisor.register(request, ref)
-        result = drain_queue(measurement_queue, timeout=5.0)
+        # Allow enough time for: State API visibility lag (~1s) + pending resource timeout (2s)
+        result = drain_queue(measurement_queue, timeout=10.0)
         assert result is not None
         assert result.status == MeasurementRequestStateEnum.FAILED
         assert result.measurements is not None
-        assert "did not start" in result.measurements[0].reason  # type: ignore[union-attr]
+        assert (
+            "pending resource allocation" in result.measurements[0].reason  # type: ignore[union-attr]
+        )
     finally:
         supervisor.stop()
+
+
+@pytest.mark.timeout(60)
+def test_supervisor_pending_node_assignment_not_timed_out_by_default(
+    measurement_queue: MeasurementQueue,
+    supervisor_config_long_running_timeout: ExperimentExecutorSupervisorConfig,
+) -> None:
+    """PENDING_NODE_ASSIGNMENT task is not killed when taskPendingResourceTimeoutSeconds is None."""
+    supervisor = ExperimentExecutorSupervisor(
+        measurement_queue, supervisor_config_long_running_timeout
+    )
+    supervisor.start()
+    ref = never_scheduled.remote()
+    try:
+        request = _sample_request("pending1")
+        supervisor.register(request, ref)
+        # Wait long enough for the task to be visible in the State API and several
+        # poll cycles to confirm the supervisor does not emit an invalid result.
+        time.sleep(5.0)
+        result = drain_queue(measurement_queue, timeout=0.5)
+        assert result is None
+    finally:
+        supervisor.stop()
+        ray.cancel(ref, force=True, recursive=True)
 
 
 @pytest.mark.timeout(30)
@@ -158,13 +220,17 @@ def test_supervisor_completed_task_no_supervisor_put(
 
 
 @pytest.mark.timeout(30)
-def test_default_task_state_lookup_unschedulable_task_returns_other() -> None:
-    """Custom-resource task that cannot schedule maps to OTHER via State API."""
+def test_default_task_state_lookup_unschedulable_task_returns_pending_node_assignment() -> (
+    None
+):
+    """Custom-resource task that cannot schedule maps to PENDING_NODE_ASSIGNMENT via State API."""
     ref = never_scheduled.remote()
     try:
-        time.sleep(0.3)
+        # Ray State API takes ~1s to expose a newly submitted pending task; wait
+        # long enough to be past that lag before asserting on the state.
+        time.sleep(1.5)
         state = _default_task_state_lookup(ref)
-        assert state == RayTaskState.OTHER
+        assert state == RayTaskState.PENDING_NODE_ASSIGNMENT
     finally:
         ray.cancel(ref, force=True, recursive=True)
 

@@ -47,18 +47,32 @@ def test_build_launch_failure_measurements() -> None:
 
 
 def test_ray_api_includes_supervisor_states() -> None:
-    """Ray State API literal must still include RUNNING and FAILED."""
+    """Ray State API literal must still include all states used by the supervisor."""
     api_states = _ray_api_task_state_names()
     assert "RUNNING" in api_states
     assert "FAILED" in api_states
+    assert "RUNNING_IN_RAY_GET" in api_states
+    assert "RUNNING_IN_RAY_WAIT" in api_states
+    assert "PENDING_NODE_ASSIGNMENT" in api_states
+    assert "PENDING_OBJ_STORE_MEM_AVAIL" in api_states
 
 
 def test_ray_task_state_from_ray_state_collapses() -> None:
-    """Ray state strings collapse to RUNNING, FAILED, or OTHER."""
+    """Ray state strings collapse to RUNNING, FAILED, resource-wait, or OTHER."""
     assert RayTaskState.from_ray_state("RUNNING") == RayTaskState.RUNNING
+    assert RayTaskState.from_ray_state("RUNNING_IN_RAY_GET") == RayTaskState.RUNNING
+    assert RayTaskState.from_ray_state("RUNNING_IN_RAY_WAIT") == RayTaskState.RUNNING
     assert RayTaskState.from_ray_state("FAILED") == RayTaskState.FAILED
+    assert (
+        RayTaskState.from_ray_state("PENDING_NODE_ASSIGNMENT")
+        == RayTaskState.PENDING_NODE_ASSIGNMENT
+    )
+    assert (
+        RayTaskState.from_ray_state("PENDING_OBJ_STORE_MEM_AVAIL")
+        == RayTaskState.PENDING_OBJ_STORE_MEM_AVAIL
+    )
     assert RayTaskState.from_ray_state(None) == RayTaskState.OTHER
-    assert RayTaskState.from_ray_state("PENDING_NODE_ASSIGNMENT") == RayTaskState.OTHER
+    assert RayTaskState.from_ray_state("NIL") == RayTaskState.OTHER
 
 
 def test_launch_supervisor_parameters_to_config() -> None:
@@ -72,3 +86,16 @@ def test_launch_supervisor_parameters_to_config() -> None:
     assert config.taskFailedGraceSeconds == 120.0
     assert config.taskRunningTimeoutSeconds == 300.0
     assert config.supervisorPollIntervalSeconds == 2.0
+    assert config.taskPendingResourceTimeoutSeconds is None
+
+
+def test_launch_supervisor_parameters_pending_resource_timeout() -> None:
+    """taskPendingResourceTimeoutSeconds round-trips through parameters to config."""
+    params = ExperimentExecutorSupervisorParameters(
+        taskFailedGraceSeconds=60.0,
+        taskRunningTimeoutSeconds=300.0,
+        supervisorPollIntervalSeconds=5.0,
+        taskPendingResourceTimeoutSeconds=1800.0,
+    )
+    config = params.to_supervisor_config()
+    assert config.taskPendingResourceTimeoutSeconds == 1800.0

@@ -39,6 +39,7 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_guidellm_bench
     execute_guidellm_benchmark,
     execute_guidellm_geospatial_benchmark,
 )
+from packaging import version
 from ray.actor import ActorHandle
 
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
@@ -51,6 +52,86 @@ from orchestrator.utilities.support import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _get_vllm_version_from_metadata(
+    experiment: Experiment, image_name: str
+) -> str | None:
+    """
+    Extract vLLM version from experiment metadata for a given image.
+
+    Args:
+        experiment: The experiment object containing metadata
+        image_name: The image name to look up version for
+
+    Returns:
+        Version string if found in metadata, None otherwise
+    """
+    # Look for image property in experiment's optional or required properties
+    for prop in experiment.optionalProperties + experiment.requiredProperties:
+        if prop.identifier == "image" and prop.metadata:
+            vllm_version_map = prop.metadata.get("vllm_version", {})
+            if isinstance(vllm_version_map, dict):
+                return vllm_version_map.get(image_name)
+    return None
+
+
+def _should_enable_threadpool(
+    experiment: Experiment, image_name: str, threadpool_value: int
+) -> bool:
+    """
+    Determine if threadpool should be enabled based on vLLM version and user preference.
+
+    Threadpool is only supported in vLLM >= 0.20.0. This function checks:
+    1. If user explicitly disabled threadpool (threadpool=0), return False
+    2. If vLLM version metadata exists and version < 0.20.0, return False
+    3. Otherwise, return True (user wants it and version supports it or no version info)
+
+    Args:
+        experiment: The experiment object containing metadata
+        image_name: The image name to check version for
+        threadpool_value: User's threadpool preference (0 or 1)
+
+    Returns:
+        True if threadpool should be enabled, False otherwise
+    """
+    # If user explicitly disabled, respect that
+    if threadpool_value == 0:
+        return False
+
+    # Get version from metadata
+    vllm_version_str = _get_vllm_version_from_metadata(experiment, image_name)
+
+    # If no version metadata, assume it's supported (backward compatible)
+    if vllm_version_str is None:
+        logger.warning(
+            f"No vLLM version metadata found for image {image_name}. "
+            "Assuming threadpool is supported."
+        )
+        return True
+
+    # Parse and compare version
+    try:
+        vllm_ver = version.parse(vllm_version_str)
+        min_version = version.parse("0.20.0")
+
+        if vllm_ver < min_version:
+            logger.info(
+                f"Threadpool disabled: vLLM version {vllm_version_str} < 0.20.0 "
+                f"for image {image_name}"
+            )
+            return False
+
+        logger.info(
+            f"Threadpool enabled: vLLM version {vllm_version_str} >= 0.20.0 "
+            f"for image {image_name}"
+        )
+        return True
+    except Exception as e:
+        logger.error(
+            f"Failed to parse vLLM version '{vllm_version_str}' for image {image_name}: {e}. "
+        )
+        return True
 
 
 def _build_entity_env(values: dict[str, str]) -> str:
@@ -83,6 +164,8 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "dtype": values.get("dtype"),
         "cpu_offload": values.get("cpu_offload"),
         "max_num_seq": values.get("max_num_seq"),
+        "threadpool": values.get("threadpool", 1),
+        "renderer_num_workers": values.get("renderer_num_workers", 32),
     }
     return json.dumps(env_values)
 
@@ -93,11 +176,12 @@ def _create_environment(
     node_selector: dict[str, str],
     request_id: str,
     env_manager: ActorHandle[EnvironmentManager],
+    experiment: Experiment | ParameterizedExperiment,
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> tuple[str, str]:
     """
-     Create environment
+     Create environment with version-aware threadpool support.
 
      Important: This function will block until env_manager.get_environment
      returns an environment.
@@ -109,6 +193,7 @@ def _create_environment(
      :param node_selector: node selector
      :param request_id the request associated with this environment
      :param env_manager: environment manager
+     :param experiment: experiment definition (used for version checking)
      :param check_interval: wait interval
      :param timeout: timeout
     :return: kubernetes environment name
@@ -190,12 +275,22 @@ def _create_environment(
                     )
                 )
                 try:
+                    # Determine if threadpool should be enabled based on version
+                    image_name = values.get("image", "")
+                    threadpool_requested = int(values.get("threadpool", 1))
+                    enable_threadpool = _should_enable_threadpool(
+                        experiment, image_name, threadpool_requested
+                    )
+
+                    # Convert boolean back to int for consistency with existing code
+                    threadpool_value = 1 if enable_threadpool else 0
+
                     create_test_environment(
                         k8s_name=env.k8s_name,
                         model=model,
                         in_cluster=actuator.in_cluster,
                         verify_ssl=actuator.verify_ssl,
-                        image=values.get("image"),
+                        image=image_name,
                         image_pull_secret_name=actuator.image_pull_secret_name,
                         deployment_template=actuator.deployment_template,
                         service_template=actuator.service_template,
@@ -218,6 +313,10 @@ def _create_environment(
                         enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
+                        threadpool=threadpool_value,
+                        renderer_num_workers=int(
+                            values.get("renderer_num_workers", 32)
+                        ),
                         check_interval=check_interval,
                         timeout=timeout,
                     )
@@ -396,6 +495,7 @@ def run_resource_and_workload_experiment(
                 actuator=actuator_parameters,
                 node_selector=node_selector,
                 env_manager=env_manager,
+                experiment=experiment,
                 request_id=request.requestid,
             )
 

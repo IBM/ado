@@ -6,7 +6,6 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoDeleteCommandParameters
 from orchestrator.cli.models.types import AdoDeleteSupportedResourceTypes
 from orchestrator.cli.resources.actuator_configuration.delete import (
@@ -17,6 +16,7 @@ from orchestrator.cli.resources.data_container.delete import delete_data_contain
 from orchestrator.cli.resources.discovery_space.delete import delete_discovery_space
 from orchestrator.cli.resources.operation.delete import delete_operation
 from orchestrator.cli.resources.sample_store.delete import delete_sample_store
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import console_print
 from orchestrator.metastore.base import (
     DeleteFromDatabaseError,
@@ -98,7 +98,8 @@ def delete_resource(
             ...,
             help="The kind of the resource to delete.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoDeleteSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoDeleteSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoDeleteSupportedResourceTypes)}]",
         ),
     ],
     resource_ids: Annotated[

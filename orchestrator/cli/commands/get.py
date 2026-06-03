@@ -11,7 +11,6 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoGetCommandParameters
 from orchestrator.cli.models.types import (
     AdoGetSupportedOutputFormats,
@@ -29,7 +28,10 @@ from orchestrator.cli.resources.measurement_request.get import get_measurement_r
 from orchestrator.cli.resources.operation.get import get_operation
 from orchestrator.cli.resources.operator.get import get_operator
 from orchestrator.cli.resources.sample_store.get import get_sample_store
-from orchestrator.cli.utils.input.parsers import parse_key_value_pairs
+from orchestrator.cli.utils.input.parsers import (
+    enum_choice_with_plural_parser,
+    parse_key_value_pairs,
+)
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     INFO,
@@ -60,7 +62,8 @@ def get_resource(
         typer.Argument(
             help="The kind of the resource(s) to get.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoGetSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoGetSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoGetSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

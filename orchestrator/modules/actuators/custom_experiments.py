@@ -828,6 +828,13 @@ class CustomExperiments(ActuatorBase):
                 else {}
             )
             # Dispatch as Ray task. Pass ray options if present.
+            # Pass the actor handle (not self) so the executor can call
+            # mark_launch_completed.remote() without pickling the actor object.
+            # self is not serialisable (contains threading.Lock from the supervisor).
+            try:
+                _notifier = ray.get_runtime_context().current_actor
+            except Exception:
+                _notifier = None
             executor_ref = ray.remote(
                 custom_experiment_executor, **remote_kwargs
             ).remote(
@@ -838,7 +845,7 @@ class CustomExperiments(ActuatorBase):
                 request,
                 targetExperiment,
                 self._stateUpdateQueue,
-                self,
+                _notifier,
             )
             self._launch_supervisor.register(request, executor_ref)
         else:

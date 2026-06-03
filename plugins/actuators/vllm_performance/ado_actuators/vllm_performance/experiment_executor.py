@@ -67,12 +67,25 @@ def _get_vllm_version_from_metadata(
     Returns:
         Version string if found in metadata, None otherwise
     """
+    logger.debug(
+        f"_get_vllm_version_from_metadata called for experiment={experiment.identifier}, "
+        f"optionalProperties={experiment.optionalProperties},"
+        f"requiredProperties={experiment.requiredProperties}"
+    )
+
     # Look for image property in experiment's optional or required properties
     for prop in experiment.optionalProperties + experiment.requiredProperties:
-        if prop.identifier == "image" and prop.metadata:
-            vllm_version_map = prop.metadata.get("vllm_version", {})
-            if isinstance(vllm_version_map, dict):
-                return vllm_version_map.get(image_name)
+        if prop.identifier == "image":
+            logger.debug(f"Found image property with metadata: {prop.metadata}")
+            if prop.metadata:
+                vllm_version_map = prop.metadata.get("vllm_version", {})
+                logger.debug(f"vllm_version_map: {vllm_version_map}")
+                if isinstance(vllm_version_map, dict):
+                    version = vllm_version_map.get(image_name)
+                    logger.debug(f"Version lookup for {image_name}: {version}")
+                    return version
+
+    logger.debug(f"No vLLM version found in metadata for image {image_name}")
     return None
 
 
@@ -95,12 +108,19 @@ def _should_enable_threadpool(
     Returns:
         True if threadpool should be enabled, False otherwise
     """
+    logger.debug(
+        f"_should_enable_threadpool called with: image_name={image_name}, "
+        f"threadpool_value={threadpool_value}, experiment_id={experiment.identifier}"
+    )
+
     # If user explicitly disabled, respect that
     if threadpool_value == 0:
+        logger.debug("Threadpool explicitly disabled by user (threadpool_value=0)")
         return False
 
     # Get version from metadata
     vllm_version_str = _get_vllm_version_from_metadata(experiment, image_name)
+    logger.debug(f"Retrieved vLLM version from metadata: {vllm_version_str}")
 
     # If no version metadata, assume it's supported (backward compatible)
     if vllm_version_str is None:
@@ -114,6 +134,9 @@ def _should_enable_threadpool(
     try:
         vllm_ver = version.parse(vllm_version_str)
         min_version = version.parse("0.20.0")
+        logger.debug(
+            f"Parsed versions - vLLM: {vllm_ver}, minimum required: {min_version}"
+        )
 
         if vllm_ver < min_version:
             logger.info(
@@ -130,6 +153,7 @@ def _should_enable_threadpool(
     except Exception as e:
         logger.error(
             f"Failed to parse vLLM version '{vllm_version_str}' for image {image_name}: {e}. "
+            "Assuming threadpool is supported."
         )
         return True
 
@@ -278,12 +302,22 @@ def _create_environment(
                     # Determine if threadpool should be enabled based on version
                     image_name = values.get("image", "")
                     threadpool_requested = int(values.get("threadpool", 1))
+                    logger.debug(
+                        f"Before _should_enable_threadpool: image_name={image_name}, "
+                        f"threadpool_requested={threadpool_requested}"
+                    )
                     enable_threadpool = _should_enable_threadpool(
                         experiment, image_name, threadpool_requested
+                    )
+                    logger.debug(
+                        f"After _should_enable_threadpool: enable_threadpool={enable_threadpool}"
                     )
 
                     # Convert boolean back to int for consistency with existing code
                     threadpool_value = 1 if enable_threadpool else 0
+                    logger.debug(
+                        f"Final threadpool_value to be used: {threadpool_value}"
+                    )
 
                     create_test_environment(
                         k8s_name=env.k8s_name,

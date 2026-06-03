@@ -1,0 +1,29 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+# Test discoveryspace for geospatial experiments with threadpool properties
+entitySpace:
+  - identifier: model
+    propertyDomain:
+      values:
+        - ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11
+  - identifier: endpoint
+    propertyDomain:
+      values:
+        - http://localhost:8000
+  - identifier: request_rate
+    propertyDomain:
+      values: [10]
+  - identifier: threadpool
+    propertyDomain:
+      values: [0, 1]
+  - identifier: renderer_num_workers
+    propertyDomain:
+      values: [16, 32, 64]
+experiments:
+  - actuatorIdentifier: vllm_performance
+    experimentIdentifier: test-geospatial-endpoint-v1
+metadata:
+  description: Test space for geospatial experiments with threadpool configuration
+  name: geospatial_threadpool_test
+
+# Made with Bob

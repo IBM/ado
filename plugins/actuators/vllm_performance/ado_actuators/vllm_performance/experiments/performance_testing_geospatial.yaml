@@ -53,6 +53,19 @@ performance_testing-geospatial-endpoint:
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: ['india_url_in_b64_out', 'valencia_url_in_b64_out', 'terramind_flood_url_in_b64_out']
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - value: 100
       property:
@@ -66,6 +79,12 @@ performance_testing-geospatial-endpoint:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -128,6 +147,8 @@ performance_testing-geospatial-full:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
+        vllm_version:
+          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["your/image/with/vllm/and/terratorch:0.1"]
@@ -207,6 +228,19 @@ performance_testing-geospatial-full:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -259,6 +293,12 @@ performance_testing-geospatial-full:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -321,6 +361,8 @@ performance_testing-geospatial-full-custom-dataset:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
+        vllm_version:
+          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["your/image/with/vllm/and/terratorch:0.1"]
@@ -400,6 +442,19 @@ performance_testing-geospatial-full-custom-dataset:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["terratorch_segmentation"]
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -449,6 +504,12 @@ performance_testing-geospatial-full-custom-dataset:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -514,6 +575,19 @@ performance_testing-geospatial-endpoint-custom-dataset:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [-1, 500] # -1 means no concurrency control
         interval: 1
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - value: 100
       property:
@@ -524,6 +598,12 @@ performance_testing-geospatial-endpoint-custom-dataset:
     - value: 1.0
       property:
         identifier: 'burstiness'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -588,6 +668,19 @@ performance_testing-geospatial-endpoint-guidellm:
       propertyDomain:
         variableType: "CATEGORICAL_VARIABLE_TYPE"
         values: ['india_url_in_b64_out', 'valencia_url_in_b64_out']
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - value: 100
       property:
@@ -601,6 +694,12 @@ performance_testing-geospatial-endpoint-guidellm:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -661,6 +760,8 @@ performance_testing-geospatial-full-guidellm:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
+        vllm_version:
+          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["your/image/with/vllm/and/terratorch:0.1"]
@@ -740,6 +841,19 @@ performance_testing-geospatial-full-guidellm:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -792,6 +906,12 @@ performance_testing-geospatial-full-guidellm:
     - property:
         identifier: 'dataset'
       value: 'india_url_in_b64_out'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -852,6 +972,8 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
+        vllm_version:
+          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["your/image/with/vllm/and/terratorch:0.1"]
@@ -933,6 +1055,19 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: [None, "terratorch_segmentation"]
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -982,6 +1117,12 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
     - property:
         identifier: 'io_processor_plugin'
       value: "terratorch_segmentation"
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -1045,6 +1186,19 @@ performance_testing-geospatial-guidellm-endpoint-custom-dataset:
         variableType: 'DISCRETE_VARIABLE_TYPE'
         domainRange: [-1, 500] # -1 means no concurrency control
         interval: 1
+    - identifier: 'threadpool'
+      metadata:
+        description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."
+      propertyDomain:
+        variableType: 'CATEGORICAL_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - value: 100
       property:
@@ -1055,6 +1209,12 @@ performance_testing-geospatial-guidellm-endpoint-custom-dataset:
     - value: 1.0
       property:
         identifier: 'burstiness'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"

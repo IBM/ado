@@ -1,7 +1,7 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Integration tests for LaunchSupervisor with a real Ray cluster.
+"""Integration tests for ExperimentExecutorSupervisor with a real Ray cluster.
 
 Requires session ``initialize_ray`` (plain ``ray.init()`` with no custom resources).
 The unschedulable-task scenario uses ``UNSCHEDULABLE_RESOURCE``; tests fail if the
@@ -21,7 +21,7 @@ import pytest
 import ray
 from ray.util.queue import Empty as RayQueueEmpty
 
-from orchestrator.modules.actuators.measurement_launch import (
+from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorConfig,
     RayTaskState,
@@ -29,10 +29,10 @@ from orchestrator.modules.actuators.measurement_launch import (
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
-from tests.actuators.test_measurement_launch import _sample_request
+from tests.actuators.test_executor_supervision import _sample_request
 
 # Must not be advertised on the test cluster (see module docstring).
-UNSCHEDULABLE_RESOURCE = "ado_launch_supervisor_unschedulable"
+UNSCHEDULABLE_RESOURCE = "ado_executor_supervisor_unschedulable"
 
 
 @ray.remote

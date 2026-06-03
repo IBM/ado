@@ -17,7 +17,7 @@ from orchestrator.modules.actuators.base import (
     ActuatorBase,
     DeprecatedExperimentError,
 )
-from orchestrator.modules.actuators.measurement_launch import (
+from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorParameters,
     notify_executor_supervisor_completed,

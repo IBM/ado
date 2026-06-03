@@ -1,14 +1,14 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-"""Unit tests for measurement launch supervision helpers (no Ray cluster)."""
+"""Unit tests for measurement executor supervision helpers (no Ray cluster)."""
 
 from __future__ import annotations
 
-from orchestrator.modules.actuators import measurement_launch
-from orchestrator.modules.actuators.measurement_launch import (
+from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisorParameters,
     RayTaskState,
+    _ray_api_task_state_names,
     add_invalid_measurement_results,
 )
 from orchestrator.schema.entity import Entity
@@ -48,7 +48,7 @@ def test_build_launch_failure_measurements() -> None:
 
 def test_ray_api_includes_supervisor_states() -> None:
     """Ray State API literal must still include RUNNING and FAILED."""
-    api_states = measurement_launch._ray_api_task_state_names()
+    api_states = _ray_api_task_state_names()
     assert "RUNNING" in api_states
     assert "FAILED" in api_states
 

@@ -26,7 +26,16 @@ if TYPE_CHECKING:
     from orchestrator.schema.request import MeasurementRequest
 
 
-_SUPERVISOR_RAY_STATE_NAMES = frozenset({"RUNNING", "FAILED"})
+_SUPERVISOR_RAY_STATE_NAMES = frozenset(
+    {
+        "RUNNING",
+        "RUNNING_IN_RAY_GET",
+        "RUNNING_IN_RAY_WAIT",
+        "FAILED",
+        "PENDING_NODE_ASSIGNMENT",
+        "PENDING_OBJ_STORE_MEM_AVAIL",
+    }
+)
 
 
 def _ray_api_task_state_names() -> frozenset[str]:
@@ -56,13 +65,15 @@ _verify_supervisor_ray_states_supported()
 class RayTaskState(str, enum.Enum):
     """Collapsed task state used by launch supervision.
 
-    Ray's State API exposes many lifecycle states; the supervisor only needs to
-    distinguish running, failed, and everything else (pending, finished, unknown,
-    or lookup failure).
+    Ray's State API exposes many lifecycle states; the supervisor collapses them
+    into five buckets: running, failed, resource-wait pending, and everything
+    else (other transient pending, finished, unknown, or lookup failure).
     """
 
     RUNNING = "RUNNING"
     FAILED = "FAILED"
+    PENDING_NODE_ASSIGNMENT = "PENDING_NODE_ASSIGNMENT"
+    PENDING_OBJ_STORE_MEM_AVAIL = "PENDING_OBJ_STORE_MEM_AVAIL"
     OTHER = "OTHER"
 
     @classmethod
@@ -75,15 +86,21 @@ class RayTaskState(str, enum.Enum):
 
         Args:
             raw: ``TaskState.state`` from ``ray.util.state.list_tasks``, or None.
-            logger: Logger for non-running/non-failed values; defaults to module logger.
+            logger: Logger for unmapped values; defaults to module logger.
 
         Returns:
-            ``RUNNING``, ``FAILED``, or ``OTHER`` (includes unavailable lookup).
+            ``RUNNING`` (including ``RUNNING_IN_RAY_GET``/``RUNNING_IN_RAY_WAIT``),
+            ``FAILED``, ``PENDING_NODE_ASSIGNMENT``, ``PENDING_OBJ_STORE_MEM_AVAIL``,
+            or ``OTHER`` (all other states and unavailable lookups).
         """
-        if raw == cls.RUNNING.value:
+        if raw in (cls.RUNNING.value, "RUNNING_IN_RAY_GET", "RUNNING_IN_RAY_WAIT"):
             return cls.RUNNING
         if raw == cls.FAILED.value:
             return cls.FAILED
+        if raw == cls.PENDING_NODE_ASSIGNMENT.value:
+            return cls.PENDING_NODE_ASSIGNMENT
+        if raw == cls.PENDING_OBJ_STORE_MEM_AVAIL.value:
+            return cls.PENDING_OBJ_STORE_MEM_AVAIL
         log = logger or logging.getLogger(__name__)
         if raw is None:
             log.debug("Ray task state unavailable; treating as %s", cls.OTHER.value)
@@ -94,6 +111,11 @@ class RayTaskState(str, enum.Enum):
                 cls.OTHER.value,
             )
         return cls.OTHER
+
+
+_RESOURCE_WAIT_STATES: frozenset[RayTaskState] = frozenset(
+    {RayTaskState.PENDING_NODE_ASSIGNMENT, RayTaskState.PENDING_OBJ_STORE_MEM_AVAIL}
+)
 
 
 class ExperimentExecutorSupervisorConfig(pydantic.BaseModel):
@@ -131,6 +153,21 @@ class ExperimentExecutorSupervisorConfig(pydantic.BaseModel):
         ),
     ] = 5.0
 
+    taskPendingResourceTimeoutSeconds: Annotated[
+        float | None,
+        pydantic.Field(
+            gt=0,
+            description=(
+                "Timeout for a task stuck in PENDING_NODE_ASSIGNMENT or "
+                "PENDING_OBJ_STORE_MEM_AVAIL before emitting an InvalidMeasurementResult. "
+                "None (default) disables this guard, which is safe for fixed or shared "
+                "clusters where resource contention is expected. Set a value on "
+                "autoscaling clusters where the scheduler should eventually provision "
+                "sufficient resources."
+            ),
+        ),
+    ] = None
+
 
 class ExperimentExecutorSupervisorParameters(GenericActuatorParameters):
     """Actuator configuration parameters for experiment executor supervsions
@@ -155,12 +192,18 @@ class ExperimentExecutorSupervisorParameters(GenericActuatorParameters):
         pydantic.Field(gt=0),
     ] = 5.0
 
+    taskPendingResourceTimeoutSeconds: Annotated[
+        float | None,
+        pydantic.Field(gt=0),
+    ] = None
+
     def to_supervisor_config(self) -> ExperimentExecutorSupervisorConfig:
         """Build a supervisor config from actuator parameters."""
         return ExperimentExecutorSupervisorConfig(
             taskFailedGraceSeconds=self.taskFailedGraceSeconds,
             taskRunningTimeoutSeconds=self.taskRunningTimeoutSeconds,
             supervisorPollIntervalSeconds=self.supervisorPollIntervalSeconds,
+            taskPendingResourceTimeoutSeconds=self.taskPendingResourceTimeoutSeconds,
         )
 
 
@@ -184,10 +227,11 @@ class _SupervisorState:
 
 
 def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
-    """Return collapsed supervisor state (``RUNNING`` / ``FAILED`` / ``OTHER``).
+    """Return collapsed supervisor state for an executor ref.
 
-    Uses ``ray.util.state.list_tasks``. Any non-``RUNNING``/``FAILED`` Ray value,
-    lookup failure, or missing task maps to ``OTHER``.
+    Uses ``ray.util.state.list_tasks``.  Returns ``RUNNING``, ``FAILED``,
+    ``PENDING_NODE_ASSIGNMENT``, ``PENDING_OBJ_STORE_MEM_AVAIL``, or ``OTHER``
+    (lookup failure, missing task, or any other Ray state).
     """
     try:
         task_id = executor_ref.task_id().hex()
@@ -380,6 +424,23 @@ class ExperimentExecutorSupervisor:
                     f"(Ray state={task_state.value})"
                 ),
             )
+            return
+
+        if task_state in _RESOURCE_WAIT_STATES:
+            resource_timeout = self._config.taskPendingResourceTimeoutSeconds
+            if (
+                resource_timeout is not None
+                and not pending.seen_running
+                and elapsed >= resource_timeout
+            ):
+                self._emit_launch_failure(
+                    pending,
+                    reason=(
+                        "Measurement task pending resource allocation for "
+                        f"{int(resource_timeout)}s "
+                        f"(Ray state={task_state.value})"
+                    ),
+                )
             return
 
         if (

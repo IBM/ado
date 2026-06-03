@@ -7,6 +7,7 @@ dependencies = [
   # version 0.63.0. By adding this requirement explicitly
   # we help uv perform a forked resolution for the lockfile.
   "numba>=0.63.0 ; python_full_version >= '3.14'",
+  "pandas<3",
   "paretoset>=1.2.4",
   "ray[tune]>=2.9",
   "scipy>=1.15.3",

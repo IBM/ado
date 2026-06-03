@@ -148,6 +148,7 @@ performance_testing-geospatial-full:
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
         vllm_version:
+          "icr.io/drl-nextgen/mgazz/vllm:v0.18.0-tt.v1.2.5": "0.18.0"
           "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"

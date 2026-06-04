@@ -10,6 +10,7 @@ import pydantic
 
 import orchestrator.core.operation.config
 from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
@@ -26,8 +27,30 @@ from orchestrator.modules.operators.orchestrate import (
     orchestrate_explore_operation,
     orchestrate_general_operation,
 )
+from orchestrator.utilities.distribution import distribution_from_module
 
 moduleLog = logging.getLogger("operation_collections")
+
+
+def _resolve_distribution_name(module_name: str) -> str | None:
+    """Resolve the PyPI distribution name for a Python module.
+
+    Modules under the ``orchestrator`` namespace package are always resolved to
+    ``ado-core``.  For all other modules, :func:`distribution_from_module` is
+    used.
+
+    Args:
+        module_name: Fully qualified module name (e.g. ``"ado_ray_tune.operator"``).
+
+    Returns:
+        The distribution name, or ``None`` if it could not be resolved.
+    """
+    if module_name.startswith("orchestrator.") or module_name == "orchestrator":
+        return "ado-core"
+    try:
+        return distribution_from_module(module_name)
+    except Exception:
+        return None
 
 
 def _warn_if_operator_name_reused(
@@ -168,6 +191,7 @@ def characterize_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.CHARACTERIZE,
+            distributionName=_resolve_distribution_name(func.__module__),
         )
         return wrapper
 
@@ -266,6 +290,7 @@ def explore_operation(
         update={
             "function": _generated,
             "cls": cls,
+            "distributionName": _resolve_distribution_name(cls.__module__),
         }
     )
     return cls
@@ -316,6 +341,7 @@ def modify_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.MODIFY,
+            distributionName=_resolve_distribution_name(func.__module__),
         )
         return wrapper
 
@@ -367,13 +393,46 @@ def export_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.EXPORT,
+            distributionName=_resolve_distribution_name(func.__module__),
         )
         return wrapper
 
     return _register
 
 
+def provenance_for_operator(
+    name: str, op_type: DiscoveryOperationEnum
+) -> PackageProvenance | None:
+    """Return the package provenance for a registered operator.
+
+    Looks up the operator in the collection for ``op_type`` and constructs a
+    :class:`~orchestrator.core.metadata.PackageProvenance` from its
+    ``distributionName`` and ``version``.  Returns ``None`` when the operator
+    is not registered, its distribution could not be resolved, or either field
+    is missing.
+
+    Args:
+        name: Canonical operator name.
+        op_type: The discovery operation type the operator belongs to.
+
+    Returns:
+        A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+        or ``None`` if provenance is unavailable.
+    """
+    collection = operationCollectionMap.get(op_type)
+    if collection is None:
+        return None
+    metadata = collection.operators.get(name)
+    if metadata is None or metadata.distributionName is None:
+        return None
+    return PackageProvenance(
+        distributionName=metadata.distributionName,
+        distributionVersion=metadata.version,
+    )
+
+
 def load_operators() -> None:
+    """Load all operator plugins via ``ado.operators`` entry points."""
     from importlib.metadata import entry_points
 
     for operator_plugin in entry_points(group="ado.operators"):

@@ -10,6 +10,7 @@ import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
 )
@@ -87,7 +88,7 @@ class ActuatorRegistry:
         self.actuatorIdentifierMap: dict[str, type[ActuatorBase]] = {}
         # Maps actuator ids to ExperimentCatalog instances
         self.catalogIdentifierMap: dict[str, ExperimentCatalog] = {}
-        # Maps actuator ids to metadata (version and description)
+        # Maps actuator ids to metadata (version, description, and distributionName)
         self.actuatorMetadataMap: dict[str, dict[str, str | None]] = {}
         self.log = logging.getLogger("registry")
         self.id = uuid.uuid4()
@@ -186,7 +187,11 @@ class ActuatorRegistry:
         except (AttributeError, IndexError):
             pass
 
-        return {"version": version, "description": description}
+        return {
+            "version": version,
+            "description": description,
+            "distributionName": "ado-core",
+        }
 
     def _get_plugin_actuator_metadata(
         self, actuator_class: "type[ActuatorBase]"
@@ -203,6 +208,7 @@ class ActuatorRegistry:
 
         version = None
         description = None
+        distribution_name = None
 
         try:
             # Get the module name from the actuator class
@@ -216,12 +222,17 @@ class ActuatorRegistry:
                 dist = importlib.metadata.distribution(dist_name)
                 version = dist.metadata.get("Version", None)
                 description = dist.metadata.get("Summary", None)
+                distribution_name = dist_name
         except Exception as e:
             self.log.debug(
                 f"Could not extract metadata for plugin actuator {actuator_class}: {e}"
             )
 
-        return {"version": version, "description": description}
+        return {
+            "version": version,
+            "description": description,
+            "distributionName": distribution_name,
+        }
 
     def registerActuator(
         self,
@@ -249,6 +260,31 @@ class ActuatorRegistry:
                 metadata = self._get_plugin_actuator_metadata(actuatorClass)
 
             self.actuatorMetadataMap[actuatorid] = metadata
+
+    def provenance_for_actuator(self, identifier: str) -> PackageProvenance | None:
+        """Return the package provenance for a registered actuator.
+
+        Returns ``None`` if the actuator is not registered or its distribution
+        could not be resolved (e.g. the actuator was loaded from an unpackaged
+        local path).
+
+        Args:
+            identifier: The actuator identifier.
+
+        Returns:
+            A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+            or ``None`` if provenance is unavailable.
+        """
+        metadata = self.actuatorMetadataMap.get(identifier)
+        if metadata is None:
+            return None
+        dist_name = metadata.get("distributionName")
+        version = metadata.get("version")
+        if dist_name is None or version is None:
+            return None
+        return PackageProvenance(
+            distributionName=dist_name, distributionVersion=version
+        )
 
     def catalogForActuatorIdentifier(self, actuatorid: str) -> ExperimentCatalog:
         """Returns the catalog for a given actuator via its identifier

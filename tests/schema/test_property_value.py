@@ -24,11 +24,10 @@ def python_type_value_examples() -> dict[type, tuple[ValueTypeEnum, typing.Any]]
         str: (ValueTypeEnum.STRING_VALUE_TYPE, "string"),
         list: (ValueTypeEnum.VECTOR_VALUE_TYPE, [0, "a", 10]),
         bytes: (ValueTypeEnum.BLOB_VALUE_TYPE, b"PNG\r89\n\x1a\n\x00\x00"),
-        dict: (ValueTypeEnum.STRING_VALUE_TYPE, {"key": "value", "number": 42}),
     }
 
 
-@pytest.fixture(params=[int, float, str, bytes, list, dict, type(None)])
+@pytest.fixture(params=[int, float, str, bytes, list, type(None)])
 def value_example(
     python_type_value_examples: dict[type, tuple[ValueTypeEnum, typing.Any]],
     request: pytest.FixtureRequest,
@@ -37,7 +36,7 @@ def value_example(
     return python_type_value_examples[request.param]
 
 
-@pytest.fixture(params=[int, float, str, bytes, list, dict, type(None)])
+@pytest.fixture(params=[int, float, str, bytes, list, type(None)])
 def test_value_example(
     python_type_value_examples: dict[type, tuple[ValueTypeEnum, typing.Any]],
     request: pytest.FixtureRequest,
@@ -46,7 +45,7 @@ def test_value_example(
     return python_type_value_examples[request.param]
 
 
-@pytest.fixture(params=[int, float, str, bytes, list, dict, type(None)])
+@pytest.fixture(params=[int, float, str, bytes, list, type(None)])
 def property_value(
     request: pytest.FixtureRequest,
 ) -> tuple[ConstitutivePropertyValue, type]:
@@ -69,10 +68,6 @@ def property_value(
         )
     elif request.param is list:
         val = ConstitutivePropertyValue(value=[0, "a", 10], property=prop.descriptor())
-    elif request.param is dict:
-        val = ConstitutivePropertyValue(
-            value={"key": "value", "number": 42}, property=prop.descriptor()
-        )
     elif request.param is type(None):
         val = ConstitutivePropertyValue(value=None, property=prop.descriptor())
     else:
@@ -214,9 +209,6 @@ def test_type_detection(property_value: tuple[PropertyValue, type]) -> None:
         assert val.valueType == ValueTypeEnum.VECTOR_VALUE_TYPE
     elif value_type is bytes:
         assert val.valueType == ValueTypeEnum.BLOB_VALUE_TYPE
-    elif value_type is dict:
-        # Dict values are treated as STRING_VALUE_TYPE (they're serialized as strings)
-        assert val.valueType == ValueTypeEnum.STRING_VALUE_TYPE
     elif value_type is type(None):
         # Treating None as a Numeric type currently
         assert val.valueType == ValueTypeEnum.NUMERIC_VALUE_TYPE

@@ -54,41 +54,44 @@ from orchestrator.utilities.support import (
 logger = logging.getLogger(__name__)
 
 
-def _get_vllm_version_from_image_value(image_value: dict | str) -> str | None:
+def _get_vllm_version_from_image_value(image_value: list | str) -> str | None:
     """
     Extract vLLM version from image property value.
 
     Args:
-        image_value: The image property value, either a dict with 'image' and 'vllm_version' keys,
+        image_value: The image property value, either a list [image_url, vllm_version],
                     or a string (for backward compatibility)
 
     Returns:
-        Version string if found in dict, None otherwise
+        Version string if found in list, None otherwise
     """
     logger.debug(f"_get_vllm_version_from_image_value called with: {image_value}")
 
-    # If image_value is a dict with vllm_version, extract it
-    if isinstance(image_value, dict):
-        version = image_value.get("vllm_version")
-        logger.debug(f"Extracted vLLM version from dict: {version}")
-        return version
+    # If image_value is a list with vllm_version, extract it
+    if isinstance(image_value, list):
+        if len(image_value) > 1:
+            version = image_value[1]
+            logger.debug(f"Extracted vLLM version from list: {version}")
+            return version
+        logger.debug("List has only one element, no version info available")
+        return None
 
     # For backward compatibility: if it's a string, we don't have version info
     logger.debug("Image value is a string, no version info available")
     return None
 
 
-def _should_enable_threadpool(image_value: dict | str, threadpool_value: int) -> bool:
+def _should_enable_threadpool(image_value: list | str, threadpool_value: int) -> bool:
     """
     Determine if threadpool should be enabled based on vLLM version and user preference.
 
     Threadpool is only supported in vLLM >= 0.20.0. This function checks:
     1. If user explicitly disabled threadpool (threadpool=0), return False
-    2. If vLLM version exists in image_value dict and version < 0.20.0, return False
+    2. If vLLM version exists in image_value list and version < 0.20.0, return False
     3. Otherwise, return True (user wants it and version supports it or no version info)
 
     Args:
-        image_value: The image property value (dict with 'image' and 'vllm_version' or string)
+        image_value: The image property value (list [image_url, vllm_version] or string)
         threadpool_value: User's threadpool preference (0 or 1)
 
     Returns:
@@ -162,10 +165,10 @@ def _build_entity_env(values: dict[str, str]) -> str:
     :param values: experiment values
     :return: definition
     """
-    # Extract image string from dict if needed
+    # Extract image string from list if needed
     image_value = values.get("image")
-    if isinstance(image_value, dict):
-        image_str = image_value.get("image")
+    if isinstance(image_value, list):
+        image_str = image_value[0] if len(image_value) > 0 else image_value
     else:
         image_str = image_value
 
@@ -312,9 +315,9 @@ def _create_environment(
                         f"Final threadpool_value to be used: {threadpool_value}"
                     )
 
-                    # Extract image string from dict if needed
-                    if isinstance(image_value, dict):
-                        image_name = image_value.get("image", "")
+                    # Extract image string from list if needed
+                    if isinstance(image_value, list):
+                        image_name = image_value[0] if len(image_value) > 0 else ""
                     else:
                         image_name = image_value
 

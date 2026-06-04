@@ -253,6 +253,16 @@ class OperatorMetadata(pydantic.BaseModel):
             description="The discovery operation type this operator belongs to."
         ),
     ]
+    distributionName: Annotated[
+        str | None,
+        pydantic.Field(
+            description=(
+                "PyPI distribution name that provides this operator "
+                "(e.g. 'ado-ray-tune', 'ado-core'). Resolved at registration time; "
+                "None when the module is not installed as a distribution package."
+            ),
+        ),
+    ] = None
 
     @pydantic.field_validator("version", mode="after")
     @classmethod

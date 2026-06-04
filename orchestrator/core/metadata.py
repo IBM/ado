@@ -30,3 +30,31 @@ class ConfigurationMetadata(pydantic.BaseModel):
             description="Optional labels to allow for quick filtering of this resource"
         ),
     ] = None
+
+
+class PackageProvenance(pydantic.BaseModel):
+    """Records the Python distribution package that provided a plugin at resource creation time.
+
+    Captures the PyPI distribution name and installed version so that the exact
+    package used when a resource was created can be identified later for
+    replication or debugging.
+
+    Attributes:
+        distributionName: The PyPI distribution name (e.g. ``"ado-ray-tune"``).
+        distributionVersion: The installed version of the distribution (e.g. ``"1.7.1"``).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    distributionName: Annotated[
+        str,
+        pydantic.Field(
+            description="PyPI distribution name (e.g. 'ado-ray-tune', 'ado-core')."
+        ),
+    ]
+    distributionVersion: Annotated[
+        str,
+        pydantic.Field(
+            description="Installed version of the distribution (e.g. '1.7.1')."
+        ),
+    ]

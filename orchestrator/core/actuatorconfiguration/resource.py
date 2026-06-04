@@ -7,6 +7,7 @@ from typing import Annotated, Any
 import pydantic
 
 from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.utilities.pydantic import Defaultable
 
@@ -24,5 +25,17 @@ class ActuatorConfigurationResource(ADOResource):
         Defaultable[str],
         pydantic.Field(
             default_factory=_identifier_from_data,
+        ),
+    ]
+    actuatorProvenance: Annotated[
+        PackageProvenance | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Python distribution that provided the actuator at the time this "
+                "configuration was created. None for resources created before "
+                "provenance tracking was introduced, or when the distribution could "
+                "not be resolved."
+            ),
         ),
     ]

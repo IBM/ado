@@ -8,6 +8,7 @@ from typing import Annotated
 
 import pydantic
 
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
@@ -84,6 +85,17 @@ class OperationResource(ADOResource):
                 OperationResourceStatus(event=ADOResourceEventEnum.CREATED)
             ],
             description="A list of status objects",
+        ),
+    ]
+    operatorProvenance: Annotated[
+        PackageProvenance | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Python distribution that provided the operator at the time this "
+                "operation was created. None for operations created before provenance "
+                "tracking was introduced, or when the distribution could not be resolved."
+            ),
         ),
     ]
 

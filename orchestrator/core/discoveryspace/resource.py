@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: MIT
 import typing
 import uuid
+from typing import Annotated
 
 import pydantic
 import rich.box
 
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
 from orchestrator.utilities.pydantic import Defaultable
@@ -21,10 +23,36 @@ class DiscoverySpaceResource(ADOResource):
     kind: CoreResourceKinds = CoreResourceKinds.DISCOVERYSPACE
     config: DiscoverySpaceConfiguration
 
-    identifier: typing.Annotated[
+    identifier: Annotated[
         Defaultable[str],
         pydantic.Field(
             default_factory=lambda: f"space-{str(uuid.uuid4())[:8]}",
+        ),
+    ]
+
+    actuatorProvenance: Annotated[
+        dict[str, PackageProvenance],
+        pydantic.Field(
+            default_factory=dict,
+            description=(
+                "Mapping of actuator identifier to the Python distribution that "
+                "provided it at the time this space was created. Populated automatically "
+                "from the installed environment; empty for resources created before "
+                "provenance tracking was introduced."
+            ),
+        ),
+    ]
+
+    customExperimentProvenance: Annotated[
+        dict[str, PackageProvenance],
+        pydantic.Field(
+            default_factory=dict,
+            description=(
+                "Mapping of custom experiment identifier to the Python distribution "
+                "that provided it at the time this space was created. Only populated "
+                "for experiments registered via the ``ado.custom_experiments`` entry "
+                "point whose source module can be resolved to a distribution."
+            ),
         ),
     ]
 

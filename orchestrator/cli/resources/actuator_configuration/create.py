@@ -46,8 +46,16 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters) -> str
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
         return None
 
+    from orchestrator.modules.actuators.registry import ActuatorRegistry
+
+    registry = ActuatorRegistry.globalRegistry()
+    actuator_provenance = registry.provenance_for_actuator(
+        actuatorconfig_configuration.actuatorIdentifier
+    )
+
     resource_to_be_created = ActuatorConfigurationResource(
-        config=actuatorconfig_configuration
+        config=actuatorconfig_configuration,
+        actuatorProvenance=actuator_provenance,
     )
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)

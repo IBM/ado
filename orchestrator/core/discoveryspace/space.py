@@ -532,13 +532,79 @@ class DiscoverySpace:
             metadata=metadata,
         )
 
+    def _build_provenance(
+        self,
+    ) -> tuple[
+        dict[str, "orchestrator.core.metadata.PackageProvenance"],
+        dict[str, "orchestrator.core.metadata.PackageProvenance"],
+    ]:
+        """Resolve package provenance for all actuators and custom experiments.
+
+        Returns:
+            A tuple of (actuatorProvenance, customExperimentProvenance) where:
+            - *actuatorProvenance* maps each unique actuator identifier used in the
+              measurement space to the distribution that provides it.
+            - *customExperimentProvenance* maps each custom experiment identifier
+              (from the ``custom_experiments`` actuator) to the distribution that
+              provides the experiment function.
+        """
+        from orchestrator.core.metadata import PackageProvenance
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+        from orchestrator.utilities.distribution import distribution_from_module
+
+        registry = ActuatorRegistry.globalRegistry()
+        actuator_provenance: dict[str, PackageProvenance] = {}
+        custom_experiment_provenance: dict[str, PackageProvenance] = {}
+
+        for experiment in self.measurementSpace.experiments:
+            actuator_id = experiment.actuatorIdentifier
+
+            # Per-actuator provenance (deduplicated)
+            if actuator_id not in actuator_provenance:
+                provenance = registry.provenance_for_actuator(actuator_id)
+                if provenance is not None:
+                    actuator_provenance[actuator_id] = provenance
+
+            # Per-custom-experiment provenance
+            if actuator_id == "custom_experiments":
+                module_conf = experiment.metadata.get("module")
+                if module_conf is not None:
+                    import importlib.metadata
+
+                    module_name = (
+                        module_conf.get("moduleName")
+                        if isinstance(module_conf, dict)
+                        else getattr(module_conf, "moduleName", None)
+                    )
+                    if module_name is not None:
+                        try:
+                            dist_name = distribution_from_module(module_name)
+                            if dist_name is not None:
+                                dist = importlib.metadata.distribution(dist_name)
+                                version = dist.metadata.get("Version")
+                                if version is not None:
+                                    custom_experiment_provenance[
+                                        experiment.identifier
+                                    ] = PackageProvenance(
+                                        distributionName=dist_name,
+                                        distributionVersion=version,
+                                    )
+                        except Exception:  # noqa: S110
+                            pass
+
+        return actuator_provenance, custom_experiment_provenance
+
     @property
     def resource(
         self,
     ) -> orchestrator.core.discoveryspace.resource.DiscoverySpaceResource:
 
+        actuator_provenance, custom_experiment_provenance = self._build_provenance()
         return orchestrator.core.discoveryspace.resource.DiscoverySpaceResource(
-            identifier=self._identifier, config=self.config
+            identifier=self._identifier,
+            config=self.config,
+            actuatorProvenance=actuator_provenance,
+            customExperimentProvenance=custom_experiment_provenance,
         )
 
     def saveSpace(self) -> None:

@@ -59,7 +59,7 @@ class PropertyValue(pydantic.BaseModel):
         ),
     ] = None
     value: Annotated[
-        int | float | list | str | CustomBytes | dict | None,
+        int | float | list | str | CustomBytes | None,
         pydantic.Field(description="The measured value."),
     ]
     property: Annotated[
@@ -86,9 +86,9 @@ class PropertyValue(pydantic.BaseModel):
     @pydantic.field_validator("value")
     def check_value_type(
         cls,
-        value: float | list | str | CustomBytes | dict | None,
+        value: float | list | str | CustomBytes | None,
         context: pydantic.ValidationInfo,
-    ) -> int | float | list | str | CustomBytes | dict | None:
+    ) -> int | float | list | str | CustomBytes | None:
 
         valueType = context.data.get("valueType")
         if valueType:
@@ -111,7 +111,7 @@ class PropertyValue(pydantic.BaseModel):
                     if type(value) not in {float, int} and value is not None:
                         raise ValueError("Validation failed for NUMERIC_VALUE_TYPE")
             elif valueType == ValueTypeEnum.STRING_VALUE_TYPE:
-                if not isinstance(value, (str, dict)):
+                if not isinstance(value, str):
                     raise ValueError(
                         f"ValueType was string but Value was of type {type(value)}"
                     )
@@ -155,8 +155,6 @@ class PropertyValue(pydantic.BaseModel):
                 self.valueType = ValueTypeEnum.BLOB_VALUE_TYPE
             elif isinstance(self.value, list):
                 self.valueType = ValueTypeEnum.VECTOR_VALUE_TYPE
-            elif isinstance(self.value, dict):
-                self.valueType = ValueTypeEnum.STRING_VALUE_TYPE
         elif self.valueType == ValueTypeEnum.NUMERIC_VALUE_TYPE and isinstance(
             self.value, str
         ):

@@ -10,7 +10,6 @@ from orchestrator.core.discoveryspace.group_samplers import (
     RandomGroupSampleSelector,
     SequentialGroupSampleSelector,
     _build_groups_dict,
-    _build_point_group_values,
     _get_space_matching_points,
 )
 from orchestrator.core.discoveryspace.samplers import (
@@ -311,111 +310,6 @@ async def test_group_sampler_sequential_remote(
         assert count == len(
             space.matchingEntities()
         ), "Expected for selectors that the number of entities iterated is equal to number matching entities in source"
-
-
-def test_build_point_group_values_with_unhashable_types() -> None:
-    """Test that _build_point_group_values handles dict and list values correctly."""
-
-    # Test with dictionary values (like the image property in the geospatial case)
-    point_with_dict = {
-        "model": "test-model",
-        "image": {"image": "icr.io/test:v1", "vllm_version": "0.18.0"},
-        "n_gpus": 1,
-        "memory": "128Gi",
-    }
-
-    group = ["model", "image", "n_gpus"]
-
-    # This should not raise TypeError: unhashable type: 'dict'
-    result = _build_point_group_values(point=point_with_dict, group=group)
-
-    # Verify the result is a frozenset
-    assert isinstance(result, frozenset)
-
-    # Verify the dict was converted to a tuple of sorted items
-    assert ("model", "test-model") in result
-    assert ("n_gpus", 1) in result
-
-    # The dict should be converted to a tuple of sorted items
-    image_tuple = tuple(
-        sorted({"image": "icr.io/test:v1", "vllm_version": "0.18.0"}.items())
-    )
-    assert ("image", image_tuple) in result
-
-    # Test with list values
-    point_with_list = {
-        "model": "test-model",
-        "tags": ["tag1", "tag2", "tag3"],
-        "n_gpus": 1,
-    }
-
-    group_with_list = ["model", "tags"]
-    result_with_list = _build_point_group_values(
-        point=point_with_list, group=group_with_list
-    )
-
-    assert isinstance(result_with_list, frozenset)
-    assert ("model", "test-model") in result_with_list
-    # The list should be converted to a tuple
-    assert ("tags", ("tag1", "tag2", "tag3")) in result_with_list
-
-    # Test that the same dict values produce the same hash
-    point_with_dict2 = {
-        "model": "test-model",
-        "image": {
-            "vllm_version": "0.18.0",
-            "image": "icr.io/test:v1",
-        },  # Different order
-        "n_gpus": 1,
-        "memory": "128Gi",
-    }
-
-    result2 = _build_point_group_values(point=point_with_dict2, group=group)
-
-    # Should be equal because dict items are sorted
-    assert result == result2
-
-
-def test_build_groups_dict_with_unhashable_values() -> None:
-    """Test that _build_groups_dict correctly groups points with dict values."""
-
-    points = [
-        {
-            "model": "model-a",
-            "image": {"image": "icr.io/test:v1", "vllm_version": "0.18.0"},
-            "n_gpus": 1,
-        },
-        {
-            "model": "model-a",
-            "image": {"image": "icr.io/test:v1", "vllm_version": "0.18.0"},
-            "n_gpus": 2,
-        },
-        {
-            "model": "model-a",
-            "image": {"image": "icr.io/test:v2", "vllm_version": "0.20.1"},
-            "n_gpus": 1,
-        },
-    ]
-
-    group = ["model", "image"]
-
-    # This should not raise TypeError
-    groups = _build_groups_dict(points=points, group=group)
-
-    # Should have 2 groups (model-a with v1 image, and model-a with v2 image)
-    assert len(groups) == 2
-
-    # Each group should contain the correct points
-    for group_key, group_points in groups.items():
-        if (
-            "image",
-            tuple(
-                sorted({"image": "icr.io/test:v1", "vllm_version": "0.18.0"}.items())
-            ),
-        ) in group_key:
-            assert len(group_points) == 2  # Two points with v1 image
-        else:
-            assert len(group_points) == 1  # One point with v2 image
 
 
 @pytest.mark.asyncio

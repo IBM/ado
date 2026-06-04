@@ -61,8 +61,8 @@ test-deployment-v1:
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values:
-          - {image: "vllm/vllm-openai:v0.14.0", vllm_version: "0.14.0"}
-          - {image: "vllm/vllm-openai:latest", vllm_version: "0.21.0"}
+          - ["vllm/vllm-openai:v0.14.0", "0.14.0"]
+          - ["vllm/vllm-openai:latest", "0.21.0"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -130,7 +130,7 @@ test-deployment-v1:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: {image: "vllm/vllm-openai:v0.14.0", vllm_version: "0.14.0"}
+      value: ["vllm/vllm-openai:v0.14.0", "0.14.0"]
     - property:
         identifier: n_cpus
       value: 8
@@ -463,7 +463,7 @@ test-deployment-guidellm-v1:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: {image: "vllm/vllm-openai:v0.14.0", vllm_version: "0.14.0"}
+      value: ["vllm/vllm-openai:v0.14.0", "0.14.0"]
     - property:
         identifier: n_cpus
       value: 8

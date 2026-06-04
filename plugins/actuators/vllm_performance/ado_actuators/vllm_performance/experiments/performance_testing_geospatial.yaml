@@ -147,12 +147,11 @@ performance_testing-geospatial-full:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
-        vllm_version:
-          "icr.io/drl-nextgen/mgazz/vllm:v0.18.0-tt.v1.2.5": "0.18.0"
-          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["your/image/with/vllm/and/terratorch:0.1"]
+        values:
+          - {image: "your/image/with/vllm/and/terratorch:0.1", vllm_version: "0.20.0"}
+          - {image: "icr.io/drl-nextgen/mgazz/vllm:v0.18.0-tt.v1.2.5", vllm_version: "0.18.0"}
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"
@@ -245,7 +244,7 @@ performance_testing-geospatial-full:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: {image: "your/image/with/vllm/and/terratorch:0.1", vllm_version: "0.20.0"}
     - property:
         identifier: n_cpus
       value: 8
@@ -362,8 +361,6 @@ performance_testing-geospatial-full-custom-dataset:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
-        vllm_version:
-          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["your/image/with/vllm/and/terratorch:0.1"]
@@ -459,7 +456,7 @@ performance_testing-geospatial-full-custom-dataset:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: {image: "your/image/with/vllm/and/terratorch:0.1", vllm_version: "0.20.0"}
     - property:
         identifier: n_cpus
       value: 8
@@ -761,8 +758,6 @@ performance_testing-geospatial-full-guidellm:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
-        vllm_version:
-          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["your/image/with/vllm/and/terratorch:0.1"]
@@ -858,7 +853,7 @@ performance_testing-geospatial-full-guidellm:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: {image: "your/image/with/vllm/and/terratorch:0.1", vllm_version: "0.20.0"}
     - property:
         identifier: n_cpus
       value: 8
@@ -973,8 +968,6 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
     - identifier: image
       metadata:
         description: "(deployment) Docker image to use to create vllm deployments"
-        vllm_version:
-          "your/image/with/vllm/and/terratorch:0.1": "0.20.0"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
         values: ["your/image/with/vllm/and/terratorch:0.1"]
@@ -1072,7 +1065,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
   defaultParameterization:
     - property:
         identifier: 'image'
-      value: "your/image/with/vllm/and/terratorch:0.1"
+      value: {image: "your/image/with/vllm/and/terratorch:0.1", vllm_version: "0.20.0"}
     - property:
         identifier: n_cpus
       value: 8

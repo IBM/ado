@@ -54,63 +54,49 @@ from orchestrator.utilities.support import (
 logger = logging.getLogger(__name__)
 
 
-def _get_vllm_version_from_metadata(
-    experiment: Experiment, image_name: str
-) -> str | None:
+def _get_vllm_version_from_image_value(image_value: dict | str) -> str | None:
     """
-    Extract vLLM version from experiment metadata for a given image.
+    Extract vLLM version from image property value.
 
     Args:
-        experiment: The experiment object containing metadata
-        image_name: The image name to look up version for
+        image_value: The image property value, either a dict with 'image' and 'vllm_version' keys,
+                    or a string (for backward compatibility)
 
     Returns:
-        Version string if found in metadata, None otherwise
+        Version string if found in dict, None otherwise
     """
-    logger.debug(
-        f"_get_vllm_version_from_metadata called for experiment={experiment.identifier}, "
-        f"optionalProperties={experiment.optionalProperties},"
-        f"requiredProperties={experiment.requiredProperties}"
-    )
+    logger.debug(f"_get_vllm_version_from_image_value called with: {image_value}")
 
-    # Look for image property in experiment's optional or required properties
-    for prop in experiment.optionalProperties + experiment.requiredProperties:
-        if prop.identifier == "image":
-            logger.debug(f"Found image property with metadata: {prop.metadata}")
-            if prop.metadata:
-                vllm_version_map = prop.metadata.get("vllm_version", {})
-                logger.debug(f"vllm_version_map: {vllm_version_map}")
-                if isinstance(vllm_version_map, dict):
-                    version = vllm_version_map.get(image_name)
-                    logger.debug(f"Version lookup for {image_name}: {version}")
-                    return version
+    # If image_value is a dict with vllm_version, extract it
+    if isinstance(image_value, dict):
+        version = image_value.get("vllm_version")
+        logger.debug(f"Extracted vLLM version from dict: {version}")
+        return version
 
-    logger.debug(f"No vLLM version found in metadata for image {image_name}")
+    # For backward compatibility: if it's a string, we don't have version info
+    logger.debug("Image value is a string, no version info available")
     return None
 
 
-def _should_enable_threadpool(
-    experiment: Experiment, image_name: str, threadpool_value: int
-) -> bool:
+def _should_enable_threadpool(image_value: dict | str, threadpool_value: int) -> bool:
     """
     Determine if threadpool should be enabled based on vLLM version and user preference.
 
     Threadpool is only supported in vLLM >= 0.20.0. This function checks:
     1. If user explicitly disabled threadpool (threadpool=0), return False
-    2. If vLLM version metadata exists and version < 0.20.0, return False
+    2. If vLLM version exists in image_value dict and version < 0.20.0, return False
     3. Otherwise, return True (user wants it and version supports it or no version info)
 
     Args:
-        experiment: The experiment object containing metadata
-        image_name: The image name to check version for
+        image_value: The image property value (dict with 'image' and 'vllm_version' or string)
         threadpool_value: User's threadpool preference (0 or 1)
 
     Returns:
         True if threadpool should be enabled, False otherwise
     """
     logger.debug(
-        f"_should_enable_threadpool called with: image_name={image_name}, "
-        f"threadpool_value={threadpool_value}, experiment_id={experiment.identifier}"
+        f"_should_enable_threadpool called with: image_value={image_value}, "
+        f"threadpool_value={threadpool_value}"
     )
 
     # If user explicitly disabled, respect that
@@ -118,14 +104,14 @@ def _should_enable_threadpool(
         logger.debug("Threadpool explicitly disabled by user (threadpool_value=0)")
         return False
 
-    # Get version from metadata
-    vllm_version_str = _get_vllm_version_from_metadata(experiment, image_name)
-    logger.debug(f"Retrieved vLLM version from metadata: {vllm_version_str}")
+    # Get version from image value
+    vllm_version_str = _get_vllm_version_from_image_value(image_value)
+    logger.debug(f"Retrieved vLLM version: {vllm_version_str}")
 
-    # If no version metadata, assume it's supported (backward compatible)
+    # If no version info, assume it's supported (backward compatible)
     if vllm_version_str is None:
         logger.warning(
-            f"No vLLM version metadata found for image {image_name}. "
+            f"No vLLM version info found for image {image_value}. "
             "Assuming threadpool is supported."
         )
         return True
@@ -141,18 +127,18 @@ def _should_enable_threadpool(
         if vllm_ver < min_version:
             logger.info(
                 f"Threadpool disabled: vLLM version {vllm_version_str} < 0.20.0 "
-                f"for image {image_name}"
+                f"for image {image_value}"
             )
             return False
 
         logger.info(
             f"Threadpool enabled: vLLM version {vllm_version_str} >= 0.20.0 "
-            f"for image {image_name}"
+            f"for image {image_value}"
         )
         return True
     except Exception as e:
         logger.error(
-            f"Failed to parse vLLM version '{vllm_version_str}' for image {image_name}: {e}. "
+            f"Failed to parse vLLM version '{vllm_version_str}' for image {image_value}: {e}. "
             "Assuming threadpool is supported."
         )
         return True
@@ -176,9 +162,16 @@ def _build_entity_env(values: dict[str, str]) -> str:
     :param values: experiment values
     :return: definition
     """
+    # Extract image string from dict if needed
+    image_value = values.get("image")
+    if isinstance(image_value, dict):
+        image_str = image_value.get("image")
+    else:
+        image_str = image_value
+
     env_values = {
         "model": values.get("model"),
-        "image": values.get("image"),
+        "image": image_str,
         "n_gpus": values.get("n_gpus"),
         "gpu_type": values.get("gpu_type"),
         "n_cpus": values.get("n_cpus"),
@@ -300,14 +293,14 @@ def _create_environment(
                 )
                 try:
                     # Determine if threadpool should be enabled based on version
-                    image_name = values.get("image", "")
+                    image_value = values.get("image", "")
                     threadpool_requested = int(values.get("threadpool", 1))
                     logger.debug(
-                        f"Before _should_enable_threadpool: image_name={image_name}, "
+                        f"Before _should_enable_threadpool: image_value={image_value}, "
                         f"threadpool_requested={threadpool_requested}"
                     )
                     enable_threadpool = _should_enable_threadpool(
-                        experiment, image_name, threadpool_requested
+                        image_value, threadpool_requested
                     )
                     logger.debug(
                         f"After _should_enable_threadpool: enable_threadpool={enable_threadpool}"
@@ -318,6 +311,12 @@ def _create_environment(
                     logger.debug(
                         f"Final threadpool_value to be used: {threadpool_value}"
                     )
+
+                    # Extract image string from dict if needed
+                    if isinstance(image_value, dict):
+                        image_name = image_value.get("image", "")
+                    else:
+                        image_name = image_value
 
                     create_test_environment(
                         k8s_name=env.k8s_name,

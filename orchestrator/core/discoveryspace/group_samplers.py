@@ -55,9 +55,24 @@ def _build_point_group_values(
 ) -> frozenset[tuple[str, Any]]:
     """
     :return: A frozen set of (key,value) pairs
+
+    Note: Converts unhashable values (dict, list) to hashable representations
     """
 
-    return frozenset({(k, v) for k, v in point.items() if k in group})
+    def make_hashable(
+        value: float | list | str | dict | None,
+    ) -> int | float | tuple | str | None:
+        """Convert unhashable types to hashable equivalents"""
+        if isinstance(value, dict):
+            # Convert dict to sorted tuple of items
+            return tuple(sorted(value.items()))
+        if isinstance(value, list):
+            # Convert list to tuple
+            return tuple(value)
+        # Return value as-is if already hashable
+        return value  # type: ignore[return-value]
+
+    return frozenset({(k, make_hashable(v)) for k, v in point.items() if k in group})
 
 
 def _build_groups_dict(

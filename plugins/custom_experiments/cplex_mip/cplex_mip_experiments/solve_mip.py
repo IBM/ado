@@ -394,6 +394,35 @@ def _append_terminal_progress_sample(
     )
 
 
+def _estimate_memory_bytes(mps_file: str) -> int:
+    """Estimate the Ray memory resource hint for a single CPLEX seed task.
+
+    Uses the MPS/LP file size on disk as a proxy for problem complexity.
+    CPLEX working memory (LP matrix + B&B tree) is typically ~1 000x the
+    compressed file size for hard MIP instances.  A 2x safety margin is
+    applied on top of that estimate.
+
+    The minimum returned is 4 GiB (suitable for trivial instances); there is
+    no enforced ceiling so very large files receive proportionally larger
+    hints.
+
+    Calibration note: index_tracking LP files of ~23 MB produce a hint of
+    ~46 GB (= 23 MB x 1 000 x 2), matching observed peak RSS for that class
+    of problem.
+
+    Args:
+        mps_file: Path to the MPS/LP instance file.
+
+    Returns:
+        Memory hint in bytes for ``ray.remote(memory=...)``.
+    """
+    import os
+
+    file_size_bytes = os.path.getsize(mps_file)
+    estimated_peak_bytes = max(4 * 1024**3, file_size_bytes * 1000)
+    return estimated_peak_bytes * 2
+
+
 def _run_single_seed(
     *,
     mps_file: str,
@@ -675,7 +704,8 @@ def solve_mip(
                 "parallel=True requires the experiment to run with ray_remote "
                 "(use_ray=True). Ray is not initialized."
             )
-        remote_fn = ray.remote(num_cpus=n_threads)(_run_one)
+        mem_bytes = _estimate_memory_bytes(mps_file)
+        remote_fn = ray.remote(num_cpus=n_threads, memory=mem_bytes)(_run_one)
         refs = [remote_fn.remote(seed) for seed in range(n_seeds)]
         results = ray.get(refs)
     else:

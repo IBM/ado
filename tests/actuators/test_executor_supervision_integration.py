@@ -7,7 +7,9 @@ Requires session ``initialize_ray`` (plain ``ray.init()`` with no custom resourc
 The unschedulable-task scenario uses ``UNSCHEDULABLE_RESOURCE``; tests fail if the
 session fixture registers that key with non-zero capacity.
 
-Run this module serially (not under pytest-xdist) to avoid Ray init timeouts.
+These tests start a dedicated Ray cluster per xdist worker and query the Ray State
+API; run them in one xdist group so they are not interleaved with other Ray-heavy
+tests on different workers (which causes State API ``ConnectionError`` flakes).
 
 The FAILED-state supervision branch is not covered here: Ray on CI typically
 reports task completion before the State API exposes ``FAILED``.
@@ -31,6 +33,9 @@ from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
 from tests.actuators.test_executor_supervision import _sample_request
 
+pytestmark = pytest.mark.xdist_group(name="executor_supervision_ray")
+
+
 # Must not be advertised on the test cluster (see module docstring).
 UNSCHEDULABLE_RESOURCE = "ado_executor_supervisor_unschedulable"
 
@@ -50,7 +55,7 @@ def return_immediately() -> int:
 @ray.remote
 def raise_before_return() -> None:
     """Task that fails with an uncaught exception (ref becomes ready)."""
-    raise RuntimeError("executor boom")
+    raise RuntimeError("simulated uncaught executor failure")
 
 
 @ray.remote(resources={UNSCHEDULABLE_RESOURCE: 1})
@@ -226,10 +231,13 @@ def test_default_task_state_lookup_unschedulable_task_returns_pending_node_assig
     """Custom-resource task that cannot schedule maps to PENDING_NODE_ASSIGNMENT via State API."""
     ref = never_scheduled.remote()
     try:
-        # Ray State API takes ~1s to expose a newly submitted pending task; wait
-        # long enough to be past that lag before asserting on the state.
-        time.sleep(1.5)
-        state = _default_task_state_lookup(ref)
+        deadline = time.monotonic() + 5.0
+        state = RayTaskState.OTHER
+        while time.monotonic() < deadline:
+            state = _default_task_state_lookup(ref)
+            if state != RayTaskState.OTHER:
+                break
+            time.sleep(0.2)
         assert state == RayTaskState.PENDING_NODE_ASSIGNMENT
     finally:
         ray.cancel(ref, force=True, recursive=True)
@@ -253,7 +261,7 @@ def test_supervisor_executor_exception_emits_invalid(
         assert result.status == MeasurementRequestStateEnum.FAILED
         assert result.measurements is not None
         assert "Executor task raised" in result.measurements[0].reason  # type: ignore[union-attr]
-        assert "executor boom" in result.measurements[0].reason  # type: ignore[union-attr]
+        assert "simulated uncaught executor failure" in result.measurements[0].reason  # type: ignore[union-attr]
     finally:
         supervisor.stop()
 

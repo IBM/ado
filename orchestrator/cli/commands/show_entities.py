@@ -11,7 +11,6 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowEntitiesCommandParameters
 from orchestrator.cli.models.types import (
     AdoShowEntitiesSupportedEntityTypes,
@@ -24,6 +23,7 @@ from orchestrator.cli.resources.discovery_space.show_entities import (
 )
 from orchestrator.cli.resources.operation.show_entities import show_operation_entities
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
@@ -52,7 +52,10 @@ def show_entities_for_resources(
             ...,
             help="The kind of the resource to show entities for.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoShowEntitiesSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(
+                AdoShowEntitiesSupportedResourceTypes
+            ),
+            metavar=f"[{'|'.join(m.value for m in AdoShowEntitiesSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

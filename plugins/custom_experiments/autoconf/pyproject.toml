@@ -1,11 +1,10 @@
 [project]
 name = "ado-autoconf"
 description = "An AutoConf plugin that suggests the minimum number of gpus necessary to execute a Tuning job"
+requires-python = ">=3.10,<3.14"
 dependencies = [
   "ado-core>=1.2.3",
-  "autogluon.tabular[catboost,xgboost]==1.5.0",
-  "cloudpickle",
-  "fastai",
+  "autogluon-tabular[catboost,xgboost]==1.5.0 ; python_full_version < '3.14'",
   "pandas<3.0.0",
   "pydantic",
   "torch",
@@ -36,9 +35,6 @@ source = "uv-dynamic-versioning"
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["build", "build.*", "yamls"]
-
-[tool.uv.sources]
-ado-core = { workspace = true }
 
 [tool.uv-dynamic-versioning]
 vcs = "git"

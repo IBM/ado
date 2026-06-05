@@ -5,15 +5,17 @@
 This is the webpage for the **a**ccelerated **d**iscovery **o**rchestrator
 (**`ado`**).
 
-**`ado`** is a unified platform for **executing computational experiments at
-scale** and **analysing their results**. It can be extended with new experiments
-or new analysis tools. It allows distributed teams of researchers and engineers
-to collaborate on projects, execute experiments, and share data.
+**`ado`** is a Python platform for **designing experiment campaigns and
+executing them at scale**. Built to address recurring challenges in research
+software development, **`ado`** empowers distributed teams of researchers and
+engineers to seamlessly collaborate, execute experiments, and share data.
 
-You can run the experiments and analysis tools already available in **`ado`** in
-a distributed, shared, environment with your team. You can also use **`ado`** to
-get features like data-tracking, data-sharing, tool integration and a CLI, for
-your analysis method or experiment for free.
+You can extend ado across different domains through its **lightweight
+plugin model**-often as simple as decorating a Python function. By integrating
+your methodology, you gain powerful cross-cutting capabilities—such as
+**parallel execution**, **data provenance**, and a **unified CLI**—alongside a structured
+foundation that allows AI coding agents to **autonomously formulate and run your
+experiments**.
 
 🧑‍💻 Using **`ado`** assumes familiarity with command line tools.
 
@@ -25,7 +27,7 @@ your analysis method or experiment for free.
   [best practices](https://clig.dev)
 - :handshake: _Projects_: Allow distributed groups of users to
   [collaborate and share data](resources/metastore.md)
-- :electric*plug: _Extendable_: Easily
+- 🔌 _Extendable_: Easily
   [add new experiments](actuators/creating-custom-experiments.md),
   [optimizers or other tools.](operators/creating-operators.md)
 - :gear: _Scalable_: We use [ray](https://ray.io) as our execution engine

@@ -172,6 +172,27 @@ def _build_entity_env(values: dict[str, str]) -> str:
     else:
         image_str = image_value
 
+    # Determine effective threadpool and renderer_num_workers values
+    threadpool_requested = int(values.get("threadpool", 1))
+    renderer_num_workers_requested = int(values.get("renderer_num_workers", 32))
+
+    # Check if threadpool will actually be enabled based on version
+    # Use empty string as fallback if image_value is None
+    enable_threadpool = _should_enable_threadpool(
+        image_value if image_value is not None else "", threadpool_requested
+    )
+
+    # Normalize values for environment definition:
+    # - If threadpool is disabled (version < 0.20.0 or user disabled it),
+    #   set both to 0 so different renderer_num_workers values don't create
+    #   different environments when they would behave identically
+    if enable_threadpool:
+        threadpool_value = 1
+        renderer_num_workers_value = renderer_num_workers_requested
+    else:
+        threadpool_value = 0
+        renderer_num_workers_value = 0  # Normalize to 0 when not used
+
     env_values = {
         "model": values.get("model"),
         "image": image_str,
@@ -184,10 +205,59 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "dtype": values.get("dtype"),
         "cpu_offload": values.get("cpu_offload"),
         "max_num_seq": values.get("max_num_seq"),
-        "threadpool": values.get("threadpool", 1),
-        "renderer_num_workers": values.get("renderer_num_workers", 32),
+        "threadpool": threadpool_value,
+        "renderer_num_workers": renderer_num_workers_value,
     }
     return json.dumps(env_values)
+
+
+def _build_benchmark_params_key(values: dict[str, str]) -> str:
+    """
+    Build a cache key from benchmark parameters that affect measurement results.
+
+    These parameters define the workload characteristics and must be included
+    in the cache key to ensure measurements are only reused for identical tests.
+
+    Args:
+        values: experiment values
+
+    Returns:
+        JSON string of benchmark parameters
+    """
+    benchmark_params = {
+        "num_prompts": values.get("num_prompts"),
+        "request_rate": values.get("request_rate"),
+        "max_concurrency": values.get("max_concurrency"),
+        "number_input_tokens": values.get("number_input_tokens"),
+        "max_output_tokens": values.get("max_output_tokens"),
+        "burstiness": values.get("burstiness"),
+        "dataset": values.get("dataset"),
+    }
+    return json.dumps(benchmark_params, sort_keys=True)
+
+
+def _build_cache_key(values: dict[str, str]) -> str:
+    """
+    Build a composite cache key from both environment and benchmark parameters.
+
+    Cache hits should only occur when both the deployment environment AND
+    the benchmark workload parameters are identical.
+
+    Args:
+        values: experiment values
+
+    Returns:
+        composite cache key as JSON string
+    """
+    env_key = _build_entity_env(values)
+    benchmark_key = _build_benchmark_params_key(values)
+
+    # Combine both keys into a single cache key
+    composite = {
+        "environment": json.loads(env_key),
+        "benchmark": json.loads(benchmark_key),
+    }
+    return json.dumps(composite, sort_keys=True)
 
 
 def _create_environment(
@@ -523,6 +593,30 @@ def run_resource_and_workload_experiment(
         try:
             values = experiment.propertyValuesFromEntity(entity=entity)
 
+            # Check if we've already measured an entity with the same environment and benchmark parameters
+            # Cache key includes both environment (model, GPUs, etc.) and benchmark params (num_prompts, request_rate, etc.)
+            cache_key = _build_cache_key(values)
+            logger.info("cache_key: %s", cache_key)
+
+            # Check actor's cache for this measurement
+            cached_result = ray.get(
+                env_manager.get_cached_measurement.remote(cache_key)
+            )
+            if cached_result is not None:
+                logger.info(
+                    f"Reusing cached measurement for entity {entity.identifier} "
+                    f"(identical environment and benchmark parameters)"
+                )
+                measurements.append(
+                    create_measurement_result(
+                        identifier=entity.identifier,
+                        measurements=cached_result["measurements"],
+                        error=cached_result["error"],
+                        reference=request.experimentReference,
+                    )
+                )
+                continue
+
             logger.info(f"Creating K8s environment for {entity.identifier}")
 
             # Will raise an K8sEnvironmentCreationError if the environment could not be created
@@ -653,14 +747,17 @@ def run_resource_and_workload_experiment(
             )
         else:
             measured_values = result.to_observed_property_values(experiment=experiment)
-            measurements.append(
-                create_measurement_result(
-                    identifier=entity.identifier,
-                    measurements=measured_values,
-                    error=None,
-                    reference=request.experimentReference,
-                )
+            measurement_result = create_measurement_result(
+                identifier=entity.identifier,
+                measurements=measured_values,
+                error=None,
+                reference=request.experimentReference,
             )
+            measurements.append(measurement_result)
+
+            # Cache the measurement in the actor for potential reuse by subsequent entities
+            # with the same environment and benchmark parameters
+            env_manager.cache_measurement.remote(cache_key, measured_values, None)
         finally:
             if started_benchmarking:
                 console.put.remote(

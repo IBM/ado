@@ -134,6 +134,10 @@ class EnvironmentManager:
         self.verify_ssl = verify_ssl
         self.otlp_traces_endpoint = otlp_traces_endpoint
 
+        # Measurement cache for reusing results across entities with identical
+        # environment and benchmark parameters
+        self.measurement_cache: dict[str, dict] = {}
+
         # component manager for cleanup
         self.manager = ComponentsManager(
             namespace=self.namespace,
@@ -143,6 +147,35 @@ class EnvironmentManager:
             pvc_name=pvc_name,
             pvc_template=pvc_template,
         )
+
+    def get_cached_measurement(self, cache_key: str) -> dict | None:
+        """
+        Get a cached measurement result for the given cache key.
+
+        Args:
+            cache_key: Composite key containing environment and benchmark parameters
+
+        Returns:
+            Cached measurement dict with 'measurements' and 'error' keys, or None if not cached
+        """
+        return self.measurement_cache.get(cache_key)
+
+    def cache_measurement(
+        self, cache_key: str, measurements: list, error: str | None
+    ) -> None:
+        """
+        Cache a measurement result for reuse by subsequent entities with identical parameters.
+
+        Args:
+            cache_key: Composite key containing environment and benchmark parameters
+            measurements: List of measured property values
+            error: Error message if measurement failed, None otherwise
+        """
+        self.measurement_cache[cache_key] = {
+            "measurements": measurements,
+            "error": error,
+        }
+        logger.debug(f"Cached measurement for key: {cache_key}")
 
     def _delete_environment_k8s_resources(self, k8s_name: str) -> None:
         """

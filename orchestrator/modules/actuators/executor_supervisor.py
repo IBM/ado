@@ -238,15 +238,25 @@ def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
     except (AttributeError, RuntimeError, ValueError):
         return RayTaskState.OTHER
 
-    try:
-        from ray.util.state import list_tasks
+    from ray.util.state import list_tasks
 
-        tasks = list_tasks(
-            filters=[("task_id", "=", task_id)],
-            limit=1,
-            raise_on_missing_output=False,
-        )
-    except Exception:
+    last_error: Exception | None = None
+    tasks: list[object] = []
+    for attempt in range(3):
+        try:
+            tasks = list_tasks(
+                filters=[("task_id", "=", task_id)],
+                limit=1,
+                raise_on_missing_output=False,
+            )
+            last_error = None
+            break
+        except Exception as error:
+            last_error = error
+            if attempt < 2:
+                time.sleep(0.05 * (attempt + 1))
+
+    if last_error is not None:
         return RayTaskState.OTHER
 
     if not tasks:
@@ -443,10 +453,27 @@ class ExperimentExecutorSupervisor:
                 )
             return
 
-        if (
-            elapsed >= self._config.taskRunningTimeoutSeconds
-            and not pending.seen_running
-        ):
+        if task_state == RayTaskState.OTHER:
+            resource_timeout = self._config.taskPendingResourceTimeoutSeconds
+            if (
+                resource_timeout is not None
+                and not pending.seen_running
+                and elapsed >= resource_timeout
+            ):
+                self._emit_launch_failure(
+                    pending,
+                    reason=(
+                        "Measurement task pending resource allocation for "
+                        f"{int(resource_timeout)}s "
+                        "(Ray state unavailable or pending scheduling)"
+                    ),
+                )
+            return
+
+        if pending.seen_running:
+            return
+
+        if elapsed >= self._config.taskRunningTimeoutSeconds:
             self._emit_launch_failure(
                 pending,
                 reason=(
@@ -506,6 +533,12 @@ class ExperimentExecutorSupervisor:
         if ready_refs:
             self._handle_ready(pending)
             return
+
+        requestid = pending.request.requestid
+        with self._lock:
+            if requestid in self._state.completed_request_ids:
+                self._state.monitored_executors.pop(requestid, None)
+                return
 
         self._record_executor_failure(pending, reason=reason)
         self._cancel_executor(pending.executor_ref)

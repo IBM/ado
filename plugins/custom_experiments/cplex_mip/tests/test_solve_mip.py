@@ -384,6 +384,39 @@ class TestSolveMipVectorOutput:
         ):
             solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2, parallel=True)
 
+    def test_parallel_ray_seed_failure_returns_partial_results(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """parallel=True must return full vectors when some Ray seed tasks fail."""
+        refs = [object(), object(), object()]
+
+        def fake_ray_get(ref: object) -> dict[str, Any]:
+            index = refs.index(ref)
+            if index == 1:
+                raise RuntimeError("Failed to set up runtime environment")
+            return self._make_seed_result(index)
+
+        with (
+            patch("ray.is_initialized", return_value=True),
+            patch(
+                "cplex_mip_experiments.solve_mip._estimate_memory_bytes",
+                return_value=4096,
+            ),
+            patch("ray.remote") as mock_remote,
+            patch("ray.get", side_effect=fake_ray_get),
+        ):
+            mock_remote.return_value = lambda fn: type(
+                "RemoteFn", (), {"remote": lambda _self, seed: refs[seed]}
+            )()
+            result = solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=3, parallel=True)
+
+        assert len(result["solve_times"]) == 3
+        assert result["solve_statuses"][0] == "optimal"
+        assert result["solve_statuses"][1].startswith("ray_task_failed:")
+        assert result["solve_statuses"][2] == "optimal"
+        assert result["objective_values"][1] is None
+        assert result["nodes_explored"][1] == 0
+
     def test_progress_interval_produces_aligned_time_series(
         self, solve_mip_func: Callable[..., Any]
     ) -> None:
@@ -429,6 +462,65 @@ class TestSolveMipVectorOutput:
         assert result["objective_over_time"][0][0] == -100.0
         assert result["objective_over_time"][0][1] == -105.0
         assert result["objective_over_time"][0][2] == -105.0  # forward-fill
+
+
+class TestCollectParallelSeedResults:
+    """``_collect_parallel_seed_results`` applies partial-OK policy for Ray tasks."""
+
+    def _success(self, seed: int) -> dict[str, Any]:
+        """Return a minimal successful single-seed result."""
+        return {
+            "solve_time_s": float(seed + 1),
+            "objective_value": -1.0,
+            "mip_gap": 0.01,
+            "nodes_explored": 10,
+            "solve_status": "optimal",
+            "progress_samples": [],
+        }
+
+    def test_all_seeds_succeed(self) -> None:
+        """All Ray refs returning results must be collected in order."""
+        from cplex_mip_experiments.solve_mip import _collect_parallel_seed_results
+
+        refs = ["ref-0", "ref-1"]
+        with patch("ray.get", side_effect=[self._success(0), self._success(1)]):
+            results = _collect_parallel_seed_results(refs)
+
+        assert len(results) == 2
+        assert results[0]["solve_status"] == "optimal"
+        assert results[1]["solve_status"] == "optimal"
+
+    def test_one_seed_ray_failure_substitutes_structured_failure(self) -> None:
+        """A failed Ray ref must not prevent collecting other seed results."""
+        from cplex_mip_experiments.solve_mip import _collect_parallel_seed_results
+
+        refs = ["ref-0", "ref-1", "ref-2"]
+
+        def fake_get(ref: str) -> dict[str, Any]:
+            if ref == "ref-1":
+                raise RuntimeError("runtime env timeout")
+            return self._success(refs.index(ref))
+
+        with patch("ray.get", side_effect=fake_get):
+            results = _collect_parallel_seed_results(refs)
+
+        assert len(results) == 3
+        assert results[0]["solve_status"] == "optimal"
+        assert results[1]["solve_status"] == "ray_task_failed: runtime env timeout"
+        assert results[1]["objective_value"] is None
+        assert results[2]["solve_status"] == "optimal"
+
+    def test_all_seeds_ray_failure_returns_failure_vectors(self) -> None:
+        """When every Ray ref fails, output vectors still match n_seeds."""
+        from cplex_mip_experiments.solve_mip import _collect_parallel_seed_results
+
+        refs = ["ref-0", "ref-1"]
+        with patch("ray.get", side_effect=RuntimeError("worker died")):
+            results = _collect_parallel_seed_results(refs)
+
+        assert len(results) == 2
+        assert all(r["solve_status"] == "ray_task_failed: worker died" for r in results)
+        assert all(r["objective_value"] is None for r in results)
 
 
 class TestApplyCutPassesAll:
@@ -498,6 +590,36 @@ class TestBuildTimeGridAndAlign:
         aligned = _align_to_grid(samples, grid)
         assert aligned["best_bound"][-1] == -16.0
         assert aligned["best_objective"][-1] == -16.0
+
+    def test_align_preserves_bound_when_terminal_sample_has_none_bound(self) -> None:
+        """Terminal sample with None best_bound must not erase the last known bound."""
+        from cplex_mip_experiments.solve_mip import _align_to_grid, _build_time_grid
+
+        last_callback_bound = 0.0036462444963870537
+        samples = [
+            {
+                "elapsed": 7140.0,
+                "best_objective": 0.005212002548830863,
+                "best_bound": last_callback_bound,
+                "nodes_explored": 100,
+                "mip_gap": 0.01,
+            },
+            {
+                "elapsed": 7208.16956991516,
+                "best_objective": 0.005212002548830863,
+                "best_bound": None,
+                "nodes_explored": 200,
+                "mip_gap": None,
+            },
+        ]
+        grid = _build_time_grid(60.0, 7200.0, 7208.16956991516)
+        aligned = _align_to_grid(samples, grid)
+        assert aligned["best_bound"][-3:] == [
+            last_callback_bound,
+            last_callback_bound,
+            last_callback_bound,
+        ]
+        assert aligned["best_objective"][-1] == 0.005212002548830863
 
 
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")

@@ -187,7 +187,9 @@ Parallel = ConstitutiveProperty(
     metadata={
         "description": (
             "If True, run each of the n_seeds solver instances as a Ray remote task. "
-            "If False, run all seeds in serial."
+            "If False, run all seeds in serial. Ray failures on individual seeds "
+            "produce null metrics and a ray_task_failed solve_status for that seed "
+            "without failing the whole measurement (partial-OK policy)."
         )
     },
     propertyDomain=PropertyDomain(
@@ -434,6 +436,53 @@ def _estimate_memory_bytes(mps_file: str) -> int:
     return estimated_peak_bytes * 2
 
 
+def _structured_seed_failure(
+    *,
+    solve_time: float,
+    solve_status: str,
+    progress_samples: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a single-seed result dict for a failed or aborted run."""
+    return {
+        "solve_time_s": solve_time,
+        "objective_value": None,
+        "mip_gap": None,
+        "nodes_explored": 0,
+        "solve_status": solve_status,
+        "progress_samples": progress_samples or [],
+    }
+
+
+def _collect_parallel_seed_results(refs: list[object]) -> list[dict[str, Any]]:
+    """Collect per-seed Ray task results with partial-OK failure handling.
+
+    If an individual seed task fails (for example runtime environment setup on a
+    worker node), a structured failure entry is returned for that seed index and
+    collection continues for the remaining refs.
+
+    Args:
+        refs: Ray object refs returned by ``remote_fn.remote(seed)``.
+
+    Returns:
+        One single-seed result dict per ref, in seed order.
+    """
+    import ray
+
+    results: list[dict[str, Any]] = []
+    for seed_index, ref in enumerate(refs):
+        try:
+            results.append(ray.get(ref))
+        except Exception as exc:  # noqa: PERF203
+            logger.warning("Ray seed task %d failed: %s", seed_index, exc)
+            results.append(
+                _structured_seed_failure(
+                    solve_time=0.0,
+                    solve_status=f"ray_task_failed: {exc}",
+                )
+            )
+    return results
+
+
 def _run_single_seed(
     *,
     mps_file: str,
@@ -541,14 +590,7 @@ def _run_single_seed(
         status = f"cplex_error_{error_code}" if error_code else f"cplex_error: {exc}"
         logger.warning("CPLEX solver error on seed %d: %s", seed, exc)
         logger.info("End solver %d of %d", solver_n, n_seeds)
-        return {
-            "solve_time_s": solve_time,
-            "objective_value": None,
-            "mip_gap": None,
-            "nodes_explored": 0,
-            "solve_status": status,
-            "progress_samples": [],
-        }
+        return _structured_seed_failure(solve_time=solve_time, solve_status=status)
     solve_time = time.perf_counter() - t0
 
     status = model.solution.get_status_string()
@@ -670,7 +712,10 @@ def solve_mip(
             per family; ``cplex_default`` leaves CPLEX defaults unchanged.
         mip_emphasis: CPLEX MIP emphasis (0=balanced through 5=heuristic); default 0.
         parallel: If True, run each seed as a Ray remote task (requires ray_remote).
-            If False, run seeds in serial.
+            If False, run seeds in serial. With parallel=True, Ray task failures on
+            individual seeds are recorded as ``ray_task_failed: ...`` in
+            solve_statuses with null metrics for that seed; successful seeds are
+            still returned (partial-OK policy).
         progress_interval_s: If > 0, capture intermediate progress at this interval
             (seconds). Outputs progress_time_grid and aligned time-series.
 
@@ -718,7 +763,7 @@ def solve_mip(
         mem_bytes = _estimate_memory_bytes(mps_file)
         remote_fn = ray.remote(num_cpus=n_threads, memory=mem_bytes)(_run_one)
         refs = [remote_fn.remote(seed) for seed in range(n_seeds)]
-        results = ray.get(refs)
+        results = _collect_parallel_seed_results(refs)
     else:
         results = []
         for seed in range(n_seeds):

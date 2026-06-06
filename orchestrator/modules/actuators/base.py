@@ -4,9 +4,6 @@
 import abc
 import logging
 import typing
-from typing import Annotated
-
-import pydantic
 
 import orchestrator.modules.actuators.catalog
 from orchestrator.core.actuatorconfiguration.config import (
@@ -18,6 +15,7 @@ from orchestrator.modules.module import (
     ModuleConf,
     ModuleTypeEnum,
 )
+
 from orchestrator.schema.entity import (
     Entity,
 )
@@ -165,10 +163,6 @@ class ActuatorBase(abc.ABC):
         Validates parameters provided by an actuator configuration.
         """
         return cls.parameters_class.model_validate(parameters, from_attributes=True)
-
-
-class ActuatorModuleConf(ModuleConf):
-    moduleType: Annotated[ModuleTypeEnum, pydantic.Field()] = ModuleTypeEnum.ACTUATOR
 
 
 if typing.TYPE_CHECKING:

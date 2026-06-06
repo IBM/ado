@@ -6,7 +6,6 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import (
     AdoUpgradeCommandParameters,
 )
@@ -20,6 +19,7 @@ from orchestrator.cli.resources.data_container.upgrade import upgrade_data_conta
 from orchestrator.cli.resources.discovery_space.upgrade import upgrade_discovery_space
 from orchestrator.cli.resources.operation.upgrade import upgrade_operation
 from orchestrator.cli.resources.sample_store.upgrade import upgrade_sample_store
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
@@ -33,7 +33,8 @@ def upgrade_resource(
             ...,
             help="The kind of the resource to upgrade.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoUpgradeSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoUpgradeSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoUpgradeSupportedResourceTypes)}]",
         ),
     ],
     apply_legacy_migrator: Annotated[

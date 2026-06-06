@@ -10,7 +10,6 @@ from orchestrator.cli.exceptions.handlers import (
     handle_no_related_resource,
     handle_resource_does_not_exist,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowRelatedCommandParameters
 from orchestrator.cli.models.types import AdoShowRelatedSupportedResourceTypes
 from orchestrator.cli.resources.actuator_configuration.show_related import (
@@ -29,6 +28,7 @@ from orchestrator.cli.resources.sample_store.show_related import (
     show_resources_related_to_sample_store,
 )
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import ERROR, console_print
 from orchestrator.metastore.base import (
     NoRelatedResourcesError,
@@ -47,7 +47,8 @@ def show_related_for_resources(
             ...,
             help="The kind of the resource to show related resources for.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoShowRelatedSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoShowRelatedSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowRelatedSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

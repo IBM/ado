@@ -38,6 +38,7 @@ class DiscoveryOperationEnum(enum.Enum):
     LEARN = "learn"
     QUERY = "query"
     EXPORT = "export"
+    SCRIPT = "script"
 
 
 def get_actuator_configurations(
@@ -351,6 +352,28 @@ class OperatorReference(pydantic.BaseModel):
         return operator.operatorIdentifier if operator else f"{self.operatorName}-None"
 
 
+class ScriptOperatorConf(pydantic.BaseModel):
+    """Identifies an inline script or custom operator not registered in any collection."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: Annotated[str, pydantic.Field(description="Human-readable script name")]
+    version: Annotated[str, pydantic.Field()] = "0.1.0"
+    operationType: Annotated[
+        DiscoveryOperationEnum,
+        pydantic.Field(
+            description=(
+                "Semantic operation type (e.g. search, characterize). "
+                "Script provenance is recorded separately via operation metadata labels."
+            ),
+        ),
+    ] = DiscoveryOperationEnum.SEARCH
+
+    @property
+    def operatorIdentifier(self) -> str:
+        """Return the canonical script operator identifier."""
+        return f"script-{self.name}-{self.version}"
+
+
 # ---------------------------------------------------------------------------
 # Backwards-compatibility alias — use OperatorReference in new code
 # ---------------------------------------------------------------------------
@@ -396,7 +419,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     module: Annotated[
-        OperatorModuleConf | OperatorReference,
+        OperatorModuleConf | OperatorReference | ScriptOperatorConf,
         pydantic.Field(
             description="The module or function providing the discovery operation"
         ),
@@ -412,8 +435,9 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     @pydantic.field_validator("module", mode="after")
     @classmethod
     def ensure_module_is_installed(
-        cls, module: OperatorModuleConf | OperatorReference
-    ) -> OperatorModuleConf | OperatorReference:
+        cls,
+        module: OperatorModuleConf | OperatorReference | ScriptOperatorConf,
+    ) -> OperatorModuleConf | OperatorReference | ScriptOperatorConf:
         """Validates that the operator module is installed and accessible.
 
         Args:
@@ -425,7 +449,7 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         Raises:
             ValueError: If the operator module is not installed or cannot be imported.
         """
-        if isinstance(module, OperatorReference):
+        if isinstance(module, OperatorReference | ScriptOperatorConf):
             return module
 
         import importlib
@@ -462,6 +486,8 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
             self.parameters = operator_metadata.configuration_model.model_validate(
                 self.parameters
             )
+        elif isinstance(self.module, ScriptOperatorConf):
+            self.parameters = {}
         else:
             from orchestrator.modules.operators.collections import (
                 operationCollectionMap,

@@ -97,6 +97,7 @@ test = [
   "ado-trim",
   "ado-vllm-performance",
   "anomalous-series",
+  "cloudpickle>=3.1.2",
   "density-test",
   "optimization-test-functions",
   "pfas-custom-functions",

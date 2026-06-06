@@ -242,7 +242,8 @@ def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
 
     last_error: Exception | None = None
     tasks: list[object] = []
-    for attempt in range(3):
+    max_attempts = 8
+    for attempt in range(max_attempts):
         try:
             tasks = list_tasks(
                 filters=[("task_id", "=", task_id)],
@@ -253,8 +254,11 @@ def _default_task_state_lookup(executor_ref: ray.ObjectRef) -> RayTaskState:
             break
         except Exception as error:
             last_error = error
-            if attempt < 2:
-                time.sleep(0.05 * (attempt + 1))
+            if attempt < max_attempts - 1:
+                delay = 0.15 * (attempt + 1)
+                if type(error).__name__ == "ServerUnavailable":
+                    delay = max(delay, 0.5)
+                time.sleep(delay)
 
     if last_error is not None:
         return RayTaskState.OTHER
@@ -423,26 +427,20 @@ class ExperimentExecutorSupervisor:
                     self._state.monitored_executors[requestid].seen_running = True
             return
 
-        if (
-            task_state == RayTaskState.FAILED
-            and elapsed >= self._config.taskFailedGraceSeconds
-        ):
-            self._emit_launch_failure(
-                pending,
-                reason=(
-                    "Measurement task failed before completion "
-                    f"(Ray state={task_state.value})"
-                ),
-            )
+        if task_state == RayTaskState.FAILED:
+            if elapsed >= self._config.taskFailedGraceSeconds:
+                self._emit_launch_failure(
+                    pending,
+                    reason=(
+                        "Measurement task failed before completion "
+                        f"(Ray state={task_state.value})"
+                    ),
+                )
             return
 
         if task_state in _RESOURCE_WAIT_STATES:
             resource_timeout = self._config.taskPendingResourceTimeoutSeconds
-            if (
-                resource_timeout is not None
-                and not pending.seen_running
-                and elapsed >= resource_timeout
-            ):
+            if resource_timeout is not None and elapsed >= resource_timeout:
                 self._emit_launch_failure(
                     pending,
                     reason=(
@@ -455,11 +453,7 @@ class ExperimentExecutorSupervisor:
 
         if task_state == RayTaskState.OTHER:
             resource_timeout = self._config.taskPendingResourceTimeoutSeconds
-            if (
-                resource_timeout is not None
-                and not pending.seen_running
-                and elapsed >= resource_timeout
-            ):
+            if resource_timeout is not None and elapsed >= resource_timeout:
                 self._emit_launch_failure(
                     pending,
                     reason=(
@@ -474,6 +468,10 @@ class ExperimentExecutorSupervisor:
             return
 
         if elapsed >= self._config.taskRunningTimeoutSeconds:
+            with self._lock:
+                if requestid in self._state.completed_request_ids:
+                    self._state.monitored_executors.pop(requestid, None)
+                    return
             self._emit_launch_failure(
                 pending,
                 reason=(

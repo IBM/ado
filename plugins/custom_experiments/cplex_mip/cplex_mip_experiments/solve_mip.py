@@ -407,33 +407,37 @@ def _append_terminal_progress_sample(
     )
 
 
-def _estimate_memory_bytes(mps_file: str) -> int:
-    """Estimate the Ray memory resource hint for a single CPLEX seed task.
+def estimate_mip_memory_bytes(mps_file_path: str) -> int:
+    """Estimate the Ray memory resource request for a single CPLEX seed task.
 
-    Uses the MPS/LP file size on disk as a proxy for problem complexity.
-    CPLEX working memory (LP matrix + B&B tree) is typically ~1 000x the
-    compressed file size for hard MIP instances.  A 2x safety margin is
-    applied on top of that estimate.
+    Uses a power-law formula to scale the estimate with MPS file size while
+    dampening growth for large instances.  The result is used both as the Ray
+    task memory reservation and as the basis for the CPLEX WorkMem limit.
 
-    The minimum returned is 4 GiB (suitable for trivial instances); there is
-    no enforced ceiling so very large files receive proportionally larger
-    hints.
+    Formula:
+        estimated_peak_gb = floor_gb + (file_size_mb ** 0.75) * 0.5
+        total_requested_gb = estimated_peak_gb * 1.20  (20% OS/Python headroom)
 
-    Calibration note: index_tracking LP files of ~23 MB produce a hint of
-    ~46 GB (= 23 MB x 1 000 x 2), matching observed peak RSS for that class
-    of problem.
+    The exponent 0.75 reflects that peak B&B memory grows sub-linearly with
+    model size: larger models have deeper trees but also more pruning.  The
+    floor of 4 GB covers solver initialisation overhead for trivial instances.
 
     Args:
-        mps_file: Path to the MPS/LP instance file.
+        mps_file_path: Path to the MPS/LP instance file.
 
     Returns:
-        Memory hint in bytes for ``ray.remote(memory=...)``.
+        Memory request in bytes for ``ray.remote(memory=...)``.
     """
     import os
 
-    file_size_bytes = os.path.getsize(mps_file)
-    estimated_peak_bytes = max(4 * 1024**3, file_size_bytes * 1000)
-    return estimated_peak_bytes * 2
+    file_size_bytes = os.path.getsize(mps_file_path)
+    file_size_mb = file_size_bytes / (1024**2)
+    floor_gb = 4.0
+    scale_factor = 0.5
+    exponent = 0.75
+    estimated_peak_gb = floor_gb + (file_size_mb**exponent) * scale_factor
+    total_requested_gb = estimated_peak_gb * 1.20
+    return int(total_requested_gb * (1024**3))
 
 
 def _structured_seed_failure(
@@ -499,6 +503,7 @@ def _run_single_seed(
     cut_passes_all: CutPassesAllLevel = "cplex_default",
     mip_emphasis: int = 0,
     progress_interval_s: float = 0,
+    workmem_mb: int = 0,
 ) -> dict[str, Any]:
     """Run CPLEX on a single MPS instance with the given random seed and parameters.
 
@@ -516,6 +521,10 @@ def _run_single_seed(
         mip_emphasis: MIP emphasis (CPX_PARAM_MIPEMPHASIS): 0-5, see property
             metadata; default 0 matches CPLEX balanced emphasis.
         progress_interval_s: If > 0, capture progress at this interval (seconds).
+        workmem_mb: When > 0, sets CPLEX WorkMem (CPX_PARAM_WORKMEM) to this
+            value in MB and enables compressed on-disk node files
+            (CPX_PARAM_NODEFILEIND=3) so the solver spills to disk rather than
+            crashing OOM.  Should be ~80% of the Ray task memory reservation.
 
     Returns:
         Dictionary with keys: solve_time_s, objective_value, mip_gap,
@@ -544,6 +553,9 @@ def _run_single_seed(
     model.parameters.timelimit.set(time_limit_s)
     model.parameters.mip.display.set(4)
     model.parameters.mip.interval.set(100)
+    if workmem_mb > 0:
+        model.parameters.workmem.set(float(workmem_mb))
+        model.parameters.mip.strategy.file.set(3)
     if cut_passes_all != "cplex_default":
         _apply_cut_passes_all(model, int(cut_passes_all))
 
@@ -736,6 +748,11 @@ def solve_mip(
     """
     import ray
 
+    mem_bytes = estimate_mip_memory_bytes(mps_file)
+    # 80% of the Ray task reservation: CPLEX WorkMem budget in MB, leaving 20%
+    # headroom for the Python interpreter and Ray worker overhead.
+    workmem_mb = int(mem_bytes / (1024**2) * 0.80)
+
     def _run_one(seed: int) -> dict[str, Any]:
         return _run_single_seed(
             mps_file=mps_file,
@@ -752,6 +769,7 @@ def solve_mip(
             cut_passes_all=cut_passes_all,
             mip_emphasis=mip_emphasis,
             progress_interval_s=progress_interval_s,
+            workmem_mb=workmem_mb,
         )
 
     if parallel:
@@ -760,7 +778,6 @@ def solve_mip(
                 "parallel=True requires the experiment to run with ray_remote "
                 "(use_ray=True). Ray is not initialized."
             )
-        mem_bytes = _estimate_memory_bytes(mps_file)
         remote_fn = ray.remote(num_cpus=n_threads, memory=mem_bytes)(_run_one)
         refs = [remote_fn.remote(seed) for seed in range(n_seeds)]
         results = _collect_parallel_seed_results(refs)

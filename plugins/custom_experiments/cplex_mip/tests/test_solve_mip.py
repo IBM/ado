@@ -4,7 +4,7 @@
 import pathlib
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -399,7 +399,7 @@ class TestSolveMipVectorOutput:
         with (
             patch("ray.is_initialized", return_value=True),
             patch(
-                "cplex_mip_experiments.solve_mip._estimate_memory_bytes",
+                "cplex_mip_experiments.solve_mip.estimate_mip_memory_bytes",
                 return_value=4096,
             ),
             patch("ray.remote") as mock_remote,
@@ -761,3 +761,180 @@ class TestRunSingleSeedIntegration:
         )
         assert isinstance(result["solve_time_s"], float)
         assert result["solve_time_s"] > 0.0
+
+
+class TestEstimateMemoryBytes:
+    """``estimate_mip_memory_bytes`` implements the power-law formula."""
+
+    def _call(self, file_size_bytes: int) -> int:
+        from cplex_mip_experiments.solve_mip import estimate_mip_memory_bytes
+
+        with patch("os.path.getsize", return_value=file_size_bytes):
+            return estimate_mip_memory_bytes("/fake/file.mps")
+
+    def test_returns_int(self) -> None:
+        """Return value must be an int."""
+        result = self._call(0)
+        assert isinstance(result, int)
+
+    def test_floor_applied_for_zero_byte_file(self) -> None:
+        """A zero-byte file must still return at least floor_gb * 1.20 bytes."""
+        floor_gb = 4.0
+        safety = 1.20
+        min_expected = int(floor_gb * safety * (1024**3))
+        assert self._call(0) >= min_expected
+
+    def test_floor_applied_for_tiny_file(self) -> None:
+        """A 1-byte file is dominated by the floor; result is within 1% of zero-byte case."""
+        zero_byte = self._call(0)
+        one_byte = self._call(1)
+        assert abs(one_byte - zero_byte) / zero_byte < 0.01
+
+    def test_monotonic_larger_file_larger_estimate(self) -> None:
+        """A 100 MB file must produce a larger estimate than a 1 MB file."""
+        small = self._call(1 * 1024**2)
+        large = self._call(100 * 1024**2)
+        assert large > small
+
+    def test_sub_linear_growth(self) -> None:
+        """Doubling the file size must not double the estimate (power-law damping)."""
+        base = self._call(10 * 1024**2)
+        doubled = self._call(20 * 1024**2)
+        assert doubled < base * 2
+
+    def test_known_value_23mb(self) -> None:
+        """23 MB file: estimate must be substantially less than the old linear ~46 GB."""
+        result_bytes = self._call(23 * 1024**2)
+        result_gb = result_bytes / (1024**3)
+        # Old formula gave ~46 GB; new formula should be well below 30 GB
+        assert result_gb < 30.0
+        # Must still be above the 4 GB floor
+        assert result_gb > 4.0
+
+
+class TestRunSingleSeedCplexMemoryParams:
+    """``_run_single_seed`` sets WorkMem and NodeFileInd when workmem_mb > 0."""
+
+    def _make_mock_model(self) -> MagicMock:
+        """Return a MagicMock that stands in for a cplex.Cplex() model."""
+        model = MagicMock()
+        model.solution.get_status_string.return_value = "optimal"
+        model.solution.progress.get_num_nodes_processed.return_value = 10
+        model.solution.get_objective_value.return_value = -1.0
+        model.solution.MIP.get_mip_relative_gap.return_value = 0.0
+        return model
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    def test_workmem_set_when_workmem_mb_positive(self) -> None:
+        """model.parameters.workmem.set must be called with float(workmem_mb)."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mock_model = self._make_mock_model()
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                workmem_mb=8192,
+            )
+        mock_model.parameters.workmem.set.assert_called_once_with(float(8192))
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    def test_nodefile_set_when_workmem_mb_positive(self) -> None:
+        """model.parameters.mip.strategy.file.set must be called with 3."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mock_model = self._make_mock_model()
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                workmem_mb=8192,
+            )
+        mock_model.parameters.mip.strategy.file.set.assert_called_once_with(3)
+
+    @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
+    def test_workmem_not_set_when_workmem_mb_zero(self) -> None:
+        """Neither workmem nor nodefile must be set when workmem_mb=0 (default)."""
+        import cplex
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        mock_model = self._make_mock_model()
+        with patch.object(cplex, "Cplex", return_value=mock_model):
+            _run_single_seed(
+                mps_file=DEFAULT_MPS,
+                seed=0,
+                seed_index=0,
+                n_seeds=1,
+                node_selection=1,
+                variable_selection=0,
+                heuristic_frequency=0,
+                time_limit_s=10.0,
+                n_threads=1,
+                rins_frequency=0,
+                cut_passes=0,
+                workmem_mb=0,
+            )
+        mock_model.parameters.workmem.set.assert_not_called()
+        mock_model.parameters.mip.strategy.file.set.assert_not_called()
+
+
+class TestSolveMipWorkmemPropagation:
+    """``solve_mip`` derives workmem_mb from estimate and passes it to _run_single_seed."""
+
+    def _make_seed_result(self) -> dict[str, Any]:
+        return {
+            "solve_time_s": 1.0,
+            "objective_value": -1.0,
+            "mip_gap": 0.0,
+            "nodes_explored": 10,
+            "solve_status": "optimal",
+            "progress_samples": [],
+        }
+
+    def test_serial_path_passes_workmem_mb_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """Serial solve_mip must pass workmem_mb=80% of estimate to _run_single_seed."""
+        captured_workmem: list[int] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            captured_workmem.append(kw.get("workmem_mb", -1))
+            return self._make_seed_result()
+
+        fake_mem_bytes = 10 * 1024**3  # 10 GB
+
+        with (
+            patch(
+                "cplex_mip_experiments.solve_mip.estimate_mip_memory_bytes",
+                return_value=fake_mem_bytes,
+            ),
+            patch(
+                "cplex_mip_experiments.solve_mip._run_single_seed",
+                side_effect=capture,
+            ),
+        ):
+            solve_mip_func(mps_file=DEFAULT_MPS, n_seeds=2, parallel=False)
+
+        expected_workmem_mb = int(fake_mem_bytes / (1024**2) * 0.80)
+        assert len(captured_workmem) == 2
+        assert all(w == expected_workmem_mb for w in captured_workmem)

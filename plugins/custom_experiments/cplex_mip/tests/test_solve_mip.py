@@ -61,7 +61,7 @@ class TestRequiredProperties:
 
 class TestOptionalProperties:
     def test_all_optional_properties_present(self, experiment: Experiment) -> None:
-        """All twelve optional properties must be defined."""
+        """All fourteen optional properties must be defined."""
         optional_ids = {p.identifier for p in experiment.optionalProperties}
         expected = {
             "n_seeds",
@@ -76,6 +76,8 @@ class TestOptionalProperties:
             "mip_emphasis",
             "parallel",
             "progress_interval_s",
+            "warm_start_file",
+            "export_solution",
         }
         assert expected == optional_ids
 
@@ -167,11 +169,12 @@ class TestOptionalProperties:
         assert sorted(prop.propertyDomain.values) == [-1, 0, 5, 25, 100]
 
     def test_cut_passes_domain_values(self, experiment: Experiment) -> None:
-        """cut_passes domain must contain exactly [-1, 0, 1, 5]."""
+        """cut_passes domain must span integers -1 through 100 (exclusive upper 101)."""
         prop = next(
             p for p in experiment.optionalProperties if p.identifier == "cut_passes"
         )
-        assert sorted(prop.propertyDomain.values) == [-1, 0, 1, 5]
+        assert prop.propertyDomain.domainRange == [-1, 101]
+        assert prop.propertyDomain.interval == 1
 
 
 class TestDefaultParameterization:
@@ -259,6 +262,20 @@ class TestDefaultParameterization:
         }
         assert param_map["progress_interval_s"] == 0
 
+    def test_warm_start_file_default(self, experiment: Experiment) -> None:
+        """Default warm_start_file must be empty string (disabled)."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert param_map["warm_start_file"] == ""
+
+    def test_export_solution_default(self, experiment: Experiment) -> None:
+        """Default export_solution must be False."""
+        param_map = {
+            p.property.identifier: p.value for p in experiment.defaultParameterization
+        }
+        assert not param_map["export_solution"]
+
 
 class TestTargetProperties:
     def test_all_target_properties_present(self, experiment: Experiment) -> None:
@@ -270,6 +287,8 @@ class TestTargetProperties:
             "mip_gaps",
             "nodes_explored",
             "solve_statuses",
+            "best_bounds",
+            "best_solution_mst",
             "progress_time_grid",
             "objective_over_time",
             "best_bound_over_time",
@@ -297,9 +316,11 @@ class TestSolveMipVectorOutput:
         return {
             "solve_time_s": float(seed + 1),
             "objective_value": -100.0 - seed,
+            "best_bound": -90.0 - seed,
             "mip_gap": 0.01 * seed,
             "nodes_explored": 100 * (seed + 1),
             "solve_status": "optimal",
+            "best_solution_mst": "",
             "progress_samples": [],
         }
 
@@ -318,6 +339,8 @@ class TestSolveMipVectorOutput:
         assert len(result["mip_gaps"]) == 3
         assert len(result["nodes_explored"]) == 3
         assert len(result["solve_statuses"]) == 3
+        assert len(result["best_bounds"]) == 3
+        assert len(result["best_solution_mst"]) == 3
 
     def test_output_keys_match_target_properties(
         self, solve_mip_func: Callable[..., Any]
@@ -335,12 +358,61 @@ class TestSolveMipVectorOutput:
             "mip_gaps",
             "nodes_explored",
             "solve_statuses",
+            "best_bounds",
+            "best_solution_mst",
             "progress_time_grid",
             "objective_over_time",
             "best_bound_over_time",
             "nodes_explored_over_time",
             "mip_gap_over_time",
         }
+
+    def test_export_solution_false_returns_empty_mst_strings(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """With export_solution=False, aggregated best_solution_mst must be empty strings."""
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            assert kw["export_solution"] is False
+            return self._make_seed_result(kw["seed"])
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            result = solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                export_solution=False,
+                parallel=False,
+            )
+
+        assert result["best_solution_mst"] == ["", ""]
+
+    def test_export_solution_true_passes_flag_to_run_single_seed(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """export_solution=True must be forwarded to _run_single_seed."""
+        seen: list[bool] = []
+
+        def capture(**kw: Any) -> dict[str, Any]:  # noqa: ANN401
+            seen.append(kw["export_solution"])
+            result = self._make_seed_result(kw["seed"])
+            result["best_solution_mst"] = "<CPLEXSolution/>"
+            return result
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=capture,
+        ):
+            solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                export_solution=True,
+                parallel=False,
+            )
+
+        assert seen == [True, True]
 
     def test_seeds_are_zero_indexed_and_sequential(
         self, solve_mip_func: Callable[..., Any]
@@ -712,6 +784,19 @@ class TestCommunityEditionLimits:
         assert result["solve_status"] == "cplex_error_1234"
         assert result["objective_value"] is None
         assert result["mip_gap"] is None
+        assert result["best_bound"] is None
+        assert result["best_solution_mst"] == ""
+
+
+class TestBestBoundSentinel:
+    def test_normalize_sentinel_values(self) -> None:
+        """CPLEX sentinel magnitudes must be treated as missing bounds/objectives."""
+        from cplex_mip_experiments.solve_mip import _normalize_cplex_value
+
+        assert _normalize_cplex_value(1e75) is None
+        assert _normalize_cplex_value(-1e75) is None
+        assert _normalize_cplex_value(-16.0) == -16.0
+        assert _normalize_cplex_value(None) is None
 
 
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")
@@ -736,9 +821,11 @@ class TestRunSingleSeedIntegration:
         assert set(result.keys()) == {
             "solve_time_s",
             "objective_value",
+            "best_bound",
             "mip_gap",
             "nodes_explored",
             "solve_status",
+            "best_solution_mst",
             "progress_samples",
         }
 
@@ -761,6 +848,109 @@ class TestRunSingleSeedIntegration:
         )
         assert isinstance(result["solve_time_s"], float)
         assert result["solve_time_s"] > 0.0
+
+    def test_run_single_seed_populates_best_bound(self) -> None:
+        """_run_single_seed must return a numeric best_bound on successful solve."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        result = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+        )
+        assert result["best_bound"] is not None
+        assert isinstance(result["best_bound"], float)
+
+    def test_export_solution_false_yields_empty_mst(self) -> None:
+        """export_solution=False must not populate best_solution_mst."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        result = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            export_solution=False,
+        )
+        assert result["best_solution_mst"] == ""
+
+    def test_export_solution_true_yields_mst_xml(self) -> None:
+        """export_solution=True must export warm-start-ready MST XML."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        result = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            export_solution=True,
+        )
+        assert result["best_solution_mst"]
+        assert "CPLEXSolution" in result["best_solution_mst"]
+
+    def test_warm_start_round_trip(self, tmp_path: pathlib.Path) -> None:
+        """Exported MST must be loadable as a warm start for a second solve."""
+        from cplex_mip_experiments.solve_mip import _run_single_seed
+
+        first = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=0,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            export_solution=True,
+        )
+        mst_path = tmp_path / "warm.mst"
+        mst_path.write_text(first["best_solution_mst"], encoding="utf-8")
+
+        second = _run_single_seed(
+            mps_file=DEFAULT_MPS,
+            seed=1,
+            seed_index=0,
+            n_seeds=1,
+            node_selection=1,
+            variable_selection=0,
+            heuristic_frequency=0,
+            time_limit_s=10.0,
+            n_threads=1,
+            rins_frequency=0,
+            cut_passes=0,
+            warm_start_file=str(mst_path),
+        )
+        assert second["solve_status"] in {
+            "optimal",
+            "optimal_tolerance",
+            "integer optimal solution",
+        }
+        assert second["objective_value"] == first["objective_value"]
 
 
 class TestEstimateMemoryBytes:
@@ -905,9 +1095,11 @@ class TestSolveMipWorkmemPropagation:
         return {
             "solve_time_s": 1.0,
             "objective_value": -1.0,
+            "best_bound": -1.0,
             "mip_gap": 0.0,
             "nodes_explored": 10,
             "solve_status": "optimal",
+            "best_solution_mst": "",
             "progress_samples": [],
         }
 

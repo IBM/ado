@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: MIT
 
 import logging
+import os
+import pathlib
 import sys
+import tempfile
 import time
 from typing import Any, Literal
 
@@ -145,7 +148,8 @@ CutPasses = ConstitutiveProperty(
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        values=[-1, 0, 1, 5],
+        domainRange=[-1, 101],
+        interval=1,
     ),
 )
 
@@ -190,6 +194,37 @@ Parallel = ConstitutiveProperty(
             "If False, run all seeds in serial. Ray failures on individual seeds "
             "produce null metrics and a ray_task_failed solve_status for that seed "
             "without failing the whole measurement (partial-OK policy)."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.BINARY_VARIABLE_TYPE,
+        values=[False, True],
+    ),
+)
+
+WarmStartFile = ConstitutiveProperty(
+    identifier="warm_start_file",
+    metadata={
+        "description": (
+            "Path to a CPLEX MIP-start file (.mst, or .sol with the same XML structure). "
+            "Empty string disables warm start. Applied before solve on every seed run. "
+            "For remote execution, use a bare filename and ship the file via "
+            "execution context additionalFiles."
+        )
+    },
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.OPEN_CATEGORICAL_VARIABLE_TYPE,
+        values=["", "/path/to/warm_start.mst"],
+    ),
+)
+
+ExportSolution = ConstitutiveProperty(
+    identifier="export_solution",
+    metadata={
+        "description": (
+            "If True, export the incumbent as MST XML in best_solution_mst. "
+            "If False (default), best_solution_mst is still returned but each "
+            "seed element is an empty string (no export work, no storage bloat)."
         )
     },
     propertyDomain=PropertyDomain(
@@ -245,6 +280,100 @@ def _apply_cut_passes_all(model: object, level: int) -> None:
 
 # Sentinel for "no incumbent" from CPLEX (e.g. 1e75).
 _NO_INCUMBENT_SENTINEL = 1e70
+
+
+def _normalize_cplex_value(value: float | None) -> float | None:
+    """Return ``None`` when CPLEX uses a large sentinel for a missing value."""
+    if value is None:
+        return None
+    if abs(value) >= _NO_INCUMBENT_SENTINEL:
+        return None
+    return float(value)
+
+
+def _load_warm_start(model: object, warm_start_file: str) -> str | None:
+    """Load a MIP start from disk. Return an error status string on failure."""
+    if not warm_start_file:
+        return None
+    if not pathlib.Path(warm_start_file).is_file():
+        return f"warm_start_file_not_found: {warm_start_file}"
+    try:
+        model.MIP_starts.read(warm_start_file)
+        model.parameters.advance.set(1)
+    except Exception as exc:  # noqa: BLE001
+        return f"warm_start_read_error: {exc}"
+    return None
+
+
+def _extract_best_bound(model: object) -> float | None:
+    """Return the final MIP best bound, or ``None`` when unavailable."""
+    import cplex
+
+    try:
+        best_bound = float(model.solution.MIP.get_best_objective_value())
+    except (cplex.exceptions.CplexSolverError, AttributeError, TypeError, ValueError):
+        return None
+    return _normalize_cplex_value(best_bound)
+
+
+def _export_incumbent_mst(model: object, objective_value: float | None) -> str:
+    """Export the incumbent as warm-start-ready MST XML, with SOL fallback."""
+    import cplex
+
+    if _normalize_cplex_value(objective_value) is None:
+        return ""
+
+    try:
+        values = model.solution.get_values()
+    except cplex.exceptions.CplexSolverError:
+        return ""
+
+    if not values:
+        return ""
+
+    try:
+        model.MIP_starts.delete()
+        model.MIP_starts.add(values)
+        with tempfile.NamedTemporaryFile(suffix=".mst", delete=False) as handle:
+            temp_path = handle.name
+        try:
+            model.MIP_starts.write(temp_path)
+            return pathlib.Path(temp_path).read_text(encoding="utf-8")
+        finally:
+            os.unlink(temp_path)
+    except Exception:  # noqa: BLE001
+        logger.debug("MST export failed; falling back to SOL format", exc_info=True)
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".sol", delete=False) as handle:
+            temp_path = handle.name
+        try:
+            model.solution.write(temp_path)
+            return pathlib.Path(temp_path).read_text(encoding="utf-8")
+        finally:
+            os.unlink(temp_path)
+    except Exception:  # noqa: BLE001
+        logger.debug("SOL export fallback failed", exc_info=True)
+        return ""
+
+
+def _structured_seed_failure(
+    *,
+    solve_time: float,
+    solve_status: str,
+    progress_samples: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build a single-seed result dict for a failed or aborted run."""
+    return {
+        "solve_time_s": solve_time,
+        "objective_value": None,
+        "best_bound": None,
+        "mip_gap": None,
+        "nodes_explored": 0,
+        "solve_status": solve_status,
+        "best_solution_mst": "",
+        "progress_samples": progress_samples or [],
+    }
 
 
 def _make_progress_callback(
@@ -450,9 +579,11 @@ def _structured_seed_failure(
     return {
         "solve_time_s": solve_time,
         "objective_value": None,
+        "best_bound": None,
         "mip_gap": None,
         "nodes_explored": 0,
         "solve_status": solve_status,
+        "best_solution_mst": "",
         "progress_samples": progress_samples or [],
     }
 
@@ -504,6 +635,8 @@ def _run_single_seed(
     mip_emphasis: int = 0,
     progress_interval_s: float = 0,
     workmem_mb: int = 0,
+    warm_start_file: str = "",
+    export_solution: bool = False,
 ) -> dict[str, Any]:
     """Run CPLEX on a single MPS instance with the given random seed and parameters.
 
@@ -525,10 +658,13 @@ def _run_single_seed(
             value in MB and enables compressed on-disk node files
             (CPX_PARAM_NODEFILEIND=3) so the solver spills to disk rather than
             crashing OOM.  Should be ~80% of the Ray task memory reservation.
+        warm_start_file: Optional CPLEX MIP-start file path; empty disables warm start.
+        export_solution: If True, populate best_solution_mst with MST XML.
 
     Returns:
-        Dictionary with keys: solve_time_s, objective_value, mip_gap,
-        nodes_explored, solve_status, and progress_samples when progress_interval_s > 0.
+        Dictionary with keys: solve_time_s, objective_value, best_bound, mip_gap,
+        nodes_explored, solve_status, best_solution_mst, and progress_samples when
+        progress_interval_s > 0.
     """
     import cplex
 
@@ -542,6 +678,19 @@ def _run_single_seed(
     model.set_results_stream(sys.stdout)
 
     model.read(mps_file)
+    warm_start_error = _load_warm_start(model, warm_start_file)
+    if warm_start_error is not None:
+        logger.warning(
+            "Warm start failed on seed %d: %s",
+            seed,
+            warm_start_error,
+        )
+        logger.info("End solver %d of %d", solver_n, n_seeds)
+        return _structured_seed_failure(
+            solve_time=0.0,
+            solve_status=warm_start_error,
+        )
+
     model.parameters.randomseed.set(seed)
     model.parameters.threads.set(n_threads)
     model.parameters.emphasis.mip.set(mip_emphasis)
@@ -602,21 +751,33 @@ def _run_single_seed(
         status = f"cplex_error_{error_code}" if error_code else f"cplex_error: {exc}"
         logger.warning("CPLEX solver error on seed %d: %s", seed, exc)
         logger.info("End solver %d of %d", solver_n, n_seeds)
-        return _structured_seed_failure(solve_time=solve_time, solve_status=status)
+        return _structured_seed_failure(
+            solve_time=solve_time,
+            solve_status=status,
+        )
     solve_time = time.perf_counter() - t0
 
     status = model.solution.get_status_string()
     nodes = model.solution.progress.get_num_nodes_processed()
 
     try:
-        obj = model.solution.get_objective_value()
+        obj = _normalize_cplex_value(model.solution.get_objective_value())
     except cplex.exceptions.CplexSolverError:
         obj = None
+
+    best_bound = _extract_best_bound(model)
+    # When CPLEX solves trivially at the root node (e.g. incumbent found before
+    # branching) the dual bound API may not be populated.  At optimality the
+    # best bound equals the objective value, so use it as a fallback.
+    if best_bound is None and obj is not None:
+        best_bound = obj
 
     try:
         gap = model.solution.MIP.get_mip_relative_gap()
     except cplex.exceptions.CplexSolverError:
         gap = None
+
+    best_solution_mst = _export_incumbent_mst(model, obj) if export_solution else ""
 
     logger.debug(
         "Seed %d finished: status=%s, time=%.2fs, obj=%s, gap=%s, nodes=%d",
@@ -643,9 +804,11 @@ def _run_single_seed(
     return {
         "solve_time_s": solve_time,
         "objective_value": obj,
+        "best_bound": best_bound,
         "mip_gap": gap,
         "nodes_explored": nodes,
         "solve_status": status,
+        "best_solution_mst": best_solution_mst,
         "progress_samples": progress_samples,
     }
 
@@ -665,6 +828,8 @@ def _run_single_seed(
         MipEmphasis,
         Parallel,
         ProgressInterval,
+        WarmStartFile,
+        ExportSolution,
     ],
     output_property_identifiers=[
         "solve_times",
@@ -672,6 +837,8 @@ def _run_single_seed(
         "mip_gaps",
         "nodes_explored",
         "solve_statuses",
+        "best_bounds",
+        "best_solution_mst",
         "progress_time_grid",
         "objective_over_time",
         "best_bound_over_time",
@@ -703,6 +870,8 @@ def solve_mip(
     mip_emphasis: int = 0,
     parallel: bool = True,
     progress_interval_s: float = 0,
+    warm_start_file: str = "",
+    export_solution: bool = False,
 ) -> dict[str, list]:
     """Solve a MIP instance with CPLEX across multiple random seeds.
 
@@ -730,11 +899,15 @@ def solve_mip(
             still returned (partial-OK policy).
         progress_interval_s: If > 0, capture intermediate progress at this interval
             (seconds). Outputs progress_time_grid and aligned time-series.
+        warm_start_file: Optional CPLEX MIP-start file applied before each seed solve.
+        export_solution: If True, populate best_solution_mst with MST XML per seed.
 
     Returns:
         Dictionary with vector-valued outputs (one element per seed):
         - solve_times: Wall-clock solve times in seconds.
         - objective_values: Best objective values found.
+        - best_bounds: Final MIP best bounds.
+        - best_solution_mst: MST XML strings for warm-start round-trip, or ``""``.
         - mip_gaps: Final relative MIP gaps.
         - nodes_explored: B&B nodes processed.
         - solve_statuses: CPLEX status strings.
@@ -769,6 +942,8 @@ def solve_mip(
             cut_passes_all=cut_passes_all,
             mip_emphasis=mip_emphasis,
             progress_interval_s=progress_interval_s,
+            warm_start_file=warm_start_file,
+            export_solution=export_solution,
             workmem_mb=workmem_mb,
         )
 
@@ -790,6 +965,8 @@ def solve_mip(
     out: dict[str, list] = {
         "solve_times": [r["solve_time_s"] for r in results],
         "objective_values": [r["objective_value"] for r in results],
+        "best_bounds": [r["best_bound"] for r in results],
+        "best_solution_mst": [r["best_solution_mst"] for r in results],
         "mip_gaps": [r["mip_gap"] for r in results],
         "nodes_explored": [r["nodes_explored"] for r in results],
         "solve_statuses": [r["solve_status"] for r in results],

@@ -312,11 +312,16 @@ def _align_to_grid(
     for t in time_grid:
         while sample_idx < len(samples) and samples[sample_idx]["elapsed"] <= t:
             s = samples[sample_idx]
-            last["best_objective"] = s["best_objective"]
-            last["best_bound"] = s["best_bound"]
+            # None means "not updated at this sample"; forward-fill prior values.
+            if s["best_objective"] is not None:
+                last["best_objective"] = s["best_objective"]
+            if s["best_bound"] is not None:
+                last["best_bound"] = s["best_bound"]
             nodes = s["nodes_explored"]
-            last["nodes_explored"] = float(nodes) if nodes is not None else None
-            last["mip_gap"] = s["mip_gap"]
+            if nodes is not None:
+                last["nodes_explored"] = float(nodes)
+            if s["mip_gap"] is not None:
+                last["mip_gap"] = s["mip_gap"]
             sample_idx += 1
         aligned["best_objective"].append(last["best_objective"])
         aligned["best_bound"].append(last["best_bound"])
@@ -382,6 +387,12 @@ def _append_terminal_progress_sample(
         best_bound = None
     if best_bound is not None and abs(best_bound) >= _NO_INCUMBENT_SENTINEL:
         best_bound = None
+    if best_bound is None and progress_samples:
+        for prev in reversed(progress_samples):
+            prev_bound = prev.get("best_bound")
+            if prev_bound is not None:
+                best_bound = prev_bound
+                break
 
     progress_samples.append(
         {

@@ -11,11 +11,6 @@ from orchestrator.core.actuatorconfiguration.config import (
 )
 from orchestrator.modules.actuators.catalog import CatalogConfigurationRequirementEnum
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
-from orchestrator.modules.module import (
-    ModuleConf,
-    ModuleTypeEnum,
-)
-
 from orchestrator.schema.entity import (
     Entity,
 )

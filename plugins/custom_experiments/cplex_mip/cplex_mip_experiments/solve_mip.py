@@ -148,7 +148,7 @@ CutPasses = ConstitutiveProperty(
     },
     propertyDomain=PropertyDomain(
         variableType=VariableTypeEnum.DISCRETE_VARIABLE_TYPE,
-        domainRange=[-1, 101],
+        domainRange=[-1, 201],
         interval=1,
     ),
 )
@@ -303,17 +303,6 @@ def _load_warm_start(model: object, warm_start_file: str) -> str | None:
     except Exception as exc:  # noqa: BLE001
         return f"warm_start_read_error: {exc}"
     return None
-
-
-def _extract_best_bound(model: object) -> float | None:
-    """Return the final MIP best bound, or ``None`` when unavailable."""
-    import cplex
-
-    try:
-        best_bound = float(model.solution.MIP.get_best_objective_value())
-    except (cplex.exceptions.CplexSolverError, AttributeError, TypeError, ValueError):
-        return None
-    return _normalize_cplex_value(best_bound)
 
 
 def _export_incumbent_mst(model: object, objective_value: float | None) -> str:
@@ -505,25 +494,42 @@ def _append_terminal_progress_sample(
     """Append one sample at solve end so the aligned grid includes the final MIP state.
 
     Periodic MIPInfoCallback samples can omit the last jump to optimality if the
-    solver finishes between two callback ticks; ``objective_values`` then reflect
-    the optimum while ``best_bound_over_time`` would otherwise forward-fill a
-    stale bound.
-    """
-    import cplex
+    solver finishes between two callback ticks.  This terminal sample ensures
+    the aligned grid always reflects the final incumbent and best bound.
 
-    best_bound: float | None = None
-    try:
-        best_bound = float(model.solution.MIP.get_best_objective_value())
-    except (cplex.exceptions.CplexSolverError, AttributeError, TypeError, ValueError):
+    Best bound selection:
+    - ``mip_gap == 0`` (proven optimal): best bound converges to ``objective_value``.
+    - Non-optimal (e.g. time limit): forward-fill the last callback-recorded bound.
+      The post-solve CPLEX solution API may return the incumbent rather than the
+      LP-relaxation dual bound, so it is only used as a fallback when no callback
+      samples exist (``progress_interval_s == 0``).
+    """
+    if mip_gap is not None and mip_gap == 0.0 and objective_value is not None:
+        best_bound: float | None = objective_value
+    else:
         best_bound = None
-    if best_bound is not None and abs(best_bound) >= _NO_INCUMBENT_SENTINEL:
-        best_bound = None
-    if best_bound is None and progress_samples:
         for prev in reversed(progress_samples):
             prev_bound = prev.get("best_bound")
             if prev_bound is not None:
                 best_bound = prev_bound
                 break
+        if best_bound is None:
+            # No callback samples available (progress_interval_s == 0).
+            # The post-solve API may return the incumbent for non-optimal solves,
+            # so this is a best-effort fallback only.
+            import cplex
+
+            try:
+                api_bound = float(model.solution.MIP.get_best_objective_value())
+                if abs(api_bound) < _NO_INCUMBENT_SENTINEL:
+                    best_bound = api_bound
+            except (
+                cplex.exceptions.CplexSolverError,
+                AttributeError,
+                TypeError,
+                ValueError,
+            ):
+                pass
 
     progress_samples.append(
         {
@@ -569,26 +575,9 @@ def estimate_mip_memory_bytes(mps_file_path: str) -> int:
     return int(total_requested_gb * (1024**3))
 
 
-def _structured_seed_failure(
-    *,
-    solve_time: float,
-    solve_status: str,
-    progress_samples: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    """Build a single-seed result dict for a failed or aborted run."""
-    return {
-        "solve_time_s": solve_time,
-        "objective_value": None,
-        "best_bound": None,
-        "mip_gap": None,
-        "nodes_explored": 0,
-        "solve_status": solve_status,
-        "best_solution_mst": "",
-        "progress_samples": progress_samples or [],
-    }
-
-
-def _collect_parallel_seed_results(refs: list[object]) -> list[dict[str, Any]]:
+def _collect_parallel_seed_results(
+    refs: list[object],
+) -> list[dict[str, Any]]:
     """Collect per-seed Ray task results with partial-OK failure handling.
 
     If an individual seed task fails (for example runtime environment setup on a
@@ -765,13 +754,6 @@ def _run_single_seed(
     except cplex.exceptions.CplexSolverError:
         obj = None
 
-    best_bound = _extract_best_bound(model)
-    # When CPLEX solves trivially at the root node (e.g. incumbent found before
-    # branching) the dual bound API may not be populated.  At optimality the
-    # best bound equals the objective value, so use it as a fallback.
-    if best_bound is None and obj is not None:
-        best_bound = obj
-
     try:
         gap = model.solution.MIP.get_mip_relative_gap()
     except cplex.exceptions.CplexSolverError:
@@ -791,15 +773,27 @@ def _run_single_seed(
 
     logger.info("End solver %d of %d", solver_n, n_seeds)
 
-    if progress_interval_s > 0:
-        _append_terminal_progress_sample(
-            model=model,
-            progress_samples=progress_samples,
-            solve_time=solve_time,
-            objective_value=obj,
-            mip_gap=gap,
-            nodes_explored=nodes,
-        )
+    # Always append the terminal sample.  When progress_interval_s > 0 it is
+    # included in time-series alignment; in all cases it is the canonical source
+    # for the scalar best_bound derived below.
+    _append_terminal_progress_sample(
+        model=model,
+        progress_samples=progress_samples,
+        solve_time=solve_time,
+        objective_value=obj,
+        mip_gap=gap,
+        nodes_explored=nodes,
+    )
+
+    # Scalar best_bound: last non-None best_bound in progress_samples.
+    # The terminal sample sets this to objective_value at optimality (mip_gap == 0)
+    # and forward-fills the last callback-recorded LP-relaxation bound otherwise,
+    # avoiding the post-solve CPLEX API which may return the incumbent.
+    best_bound: float | None = None
+    for prev in reversed(progress_samples):
+        if prev.get("best_bound") is not None:
+            best_bound = prev["best_bound"]
+            break
 
     return {
         "solve_time_s": solve_time,

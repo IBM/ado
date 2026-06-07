@@ -169,11 +169,11 @@ class TestOptionalProperties:
         assert sorted(prop.propertyDomain.values) == [-1, 0, 5, 25, 100]
 
     def test_cut_passes_domain_values(self, experiment: Experiment) -> None:
-        """cut_passes domain must span integers -1 through 100 (exclusive upper 101)."""
+        """cut_passes domain must span integers -1 through 200 (exclusive upper 201)."""
         prop = next(
             p for p in experiment.optionalProperties if p.identifier == "cut_passes"
         )
-        assert prop.propertyDomain.domainRange == [-1, 101]
+        assert prop.propertyDomain.domainRange == [-1, 201]
         assert prop.propertyDomain.interval == 1
 
 
@@ -797,6 +797,180 @@ class TestBestBoundSentinel:
         assert _normalize_cplex_value(-1e75) is None
         assert _normalize_cplex_value(-16.0) == -16.0
         assert _normalize_cplex_value(None) is None
+
+
+class TestAppendTerminalProgressSample:
+    """``_append_terminal_progress_sample`` must set best_bound correctly."""
+
+    def test_optimal_uses_objective_value(self) -> None:
+        """When mip_gap == 0.0, best_bound must be set to objective_value."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        samples: list[dict] = []
+        _append_terminal_progress_sample(
+            model=MagicMock(),
+            progress_samples=samples,
+            solve_time=12.5,
+            objective_value=0.005212,
+            mip_gap=0.0,
+            nodes_explored=500,
+        )
+        assert len(samples) == 1
+        assert samples[-1]["best_bound"] == 0.005212
+        assert samples[-1]["best_objective"] == 0.005212
+
+    def test_non_optimal_forward_fills_last_callback_bound(self) -> None:
+        """When mip_gap != 0.0, best_bound must be the last callback-recorded bound."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        last_callback_bound = 0.003623
+        samples: list[dict] = [
+            {
+                "elapsed": 60.0,
+                "best_objective": 0.005212,
+                "best_bound": last_callback_bound,
+                "nodes_explored": 100,
+                "mip_gap": 0.305,
+            }
+        ]
+        _append_terminal_progress_sample(
+            model=MagicMock(),
+            progress_samples=samples,
+            solve_time=120.0,
+            objective_value=0.005212,
+            mip_gap=0.305,
+            nodes_explored=200,
+        )
+        assert samples[-1]["best_bound"] == last_callback_bound
+
+    def test_non_optimal_does_not_use_post_solve_api_when_callback_samples_exist(
+        self,
+    ) -> None:
+        """When callback samples are present, post-solve API must not be called."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        model = MagicMock()
+        samples: list[dict] = [
+            {
+                "elapsed": 60.0,
+                "best_objective": 0.005212,
+                "best_bound": 0.003623,
+                "nodes_explored": 100,
+                "mip_gap": 0.3,
+            }
+        ]
+        _append_terminal_progress_sample(
+            model=model,
+            progress_samples=samples,
+            solve_time=120.0,
+            objective_value=0.005212,
+            mip_gap=0.3,
+            nodes_explored=200,
+        )
+        model.solution.MIP.get_best_objective_value.assert_not_called()
+
+    def test_non_optimal_no_callback_samples_uses_api_fallback(self) -> None:
+        """Without callback samples, post-solve API is used as best-effort fallback."""
+        import sys
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        model = MagicMock()
+        model.solution.MIP.get_best_objective_value.return_value = 0.003800
+
+        # Provide a stub cplex module so the lazy import inside the fallback path
+        # succeeds even when the real CPLEX package is not installed.
+        mock_cplex = MagicMock()
+        mock_cplex.exceptions.CplexSolverError = Exception
+        samples: list[dict] = []
+        with patch.dict(sys.modules, {"cplex": mock_cplex}):
+            _append_terminal_progress_sample(
+                model=model,
+                progress_samples=samples,
+                solve_time=120.0,
+                objective_value=0.005212,
+                mip_gap=0.27,
+                nodes_explored=50,
+            )
+        assert samples[-1]["best_bound"] == 0.003800
+
+    def test_non_optimal_none_mip_gap_forward_fills(self) -> None:
+        """None mip_gap must not trigger the optimality branch."""
+        from unittest.mock import MagicMock
+
+        from cplex_mip_experiments.solve_mip import _append_terminal_progress_sample
+
+        last_bound = 0.0036
+        samples: list[dict] = [
+            {
+                "elapsed": 60.0,
+                "best_objective": 0.005212,
+                "best_bound": last_bound,
+                "nodes_explored": 100,
+                "mip_gap": None,
+            }
+        ]
+        _append_terminal_progress_sample(
+            model=MagicMock(),
+            progress_samples=samples,
+            solve_time=120.0,
+            objective_value=0.005212,
+            mip_gap=None,
+            nodes_explored=200,
+        )
+        assert samples[-1]["best_bound"] == last_bound
+
+    def test_scalar_best_bound_from_time_limited_solve(
+        self, solve_mip_func: Callable[..., Any]
+    ) -> None:
+        """For a time-limited run, best_bounds must reflect the LP-relaxation bound
+        from the last callback sample, not the incumbent objective value."""
+        last_callback_bound = 0.003623
+
+        def make_time_limited_result(**kw: object) -> dict[str, Any]:
+            return {
+                "solve_time_s": 120.0,
+                "objective_value": 0.005212,
+                "best_bound": last_callback_bound,
+                "mip_gap": 0.305,
+                "nodes_explored": 500,
+                "solve_status": "time limit exceeded",
+                "best_solution_mst": "",
+                "progress_samples": [
+                    {
+                        "elapsed": 60.0,
+                        "best_objective": 0.005212,
+                        "best_bound": last_callback_bound,
+                        "nodes_explored": 300,
+                        "mip_gap": 0.305,
+                    }
+                ],
+            }
+
+        with patch(
+            "cplex_mip_experiments.solve_mip._run_single_seed",
+            side_effect=make_time_limited_result,
+        ):
+            result = solve_mip_func(
+                mps_file=DEFAULT_MPS,
+                n_seeds=2,
+                progress_interval_s=60.0,
+                time_limit_s=120.0,
+                parallel=False,
+            )
+
+        for bound, obj in zip(
+            result["best_bounds"], result["objective_values"], strict=True
+        ):
+            assert bound == last_callback_bound
+            assert bound != obj
 
 
 @pytest.mark.skipif(not HAS_CPLEX, reason="CPLEX Python API not installed")

@@ -8,6 +8,10 @@ entitySpace:
     propertyDomain:
       values:
         - "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11"
+  - identifier: image
+    propertyDomain:
+      values:
+        - ["vllm/vllm-openai:v0.20.1", "0.20.1"]
   - identifier: n_gpus
     propertyDomain:
       values: [1]

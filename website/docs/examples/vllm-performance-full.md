@@ -127,6 +127,13 @@ deployment parameters, including `max_num_seq` and `max_batch_tokens`, for a
 scenario where requests arrive between 1 and 10 per second with sizes around
 2000 tokens.
 
+> [!NOTE] Image format with version information
+>
+> The `image` property uses the list format `[image_url, version]` to enable
+> version-aware features like automatic threadpool configuration for vLLM >= 0.20.0.
+> See the [vLLM performance actuator documentation](../actuators/vllm_performance.md#image-format-and-version-support)
+> for more details.
+
 <!-- prettier-ignore-start -->
 
 ```yaml

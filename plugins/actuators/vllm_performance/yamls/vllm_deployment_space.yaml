@@ -8,7 +8,7 @@ entitySpace:
   - identifier: image
     propertyDomain:
       values:
-        - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
+        - ["quay.io/dataprep1/data-prep-kit/vllm_image:0.1", "0.20.1"]
   - identifier: "number_input_tokens"
     propertyDomain:
       values: [1024, 2048, 4096]

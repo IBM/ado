@@ -100,6 +100,13 @@ ado create actuatorconfiguration -f vllm_actuator_configuration.yaml
 
 ## Define the geospatial configurations to test
 
+> [!NOTE] Image format with version information
+>
+> The `image` property uses the list format `[image_url, version]` to enable
+> version-aware features like automatic threadpool configuration for vLLM >= 0.20.0.
+> See the [vLLM performance actuator documentation](../actuators/vllm_performance.md#image-format-and-version-support)
+> for more details.
+
 For geospatial models, we focus on deployment parameters that affect inference
 latency since these models output classification results rather than generating
 tokens. Key parameters include:

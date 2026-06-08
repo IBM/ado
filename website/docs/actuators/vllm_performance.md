@@ -44,6 +44,65 @@
 - **Endpoint benchmarking:** Can also be used to benchmark existing OpenAI
   compatible endpoints
 
+### Image Format and Version Support
+
+The `image` property accepts two formats for specifying vLLM container images:
+
+**List format (recommended for vLLM >= 0.20.0):**
+
+```yaml
+- identifier: image
+  propertyDomain:
+    values:
+      - ["vllm/vllm-openai:v0.20.1", "0.20.1"]
+```
+
+The list format `[image_url, version]` enables version-aware features like automatic threadpool configuration and measurement caching based on vLLM version capabilities.
+
+**String format (backward compatible):**
+
+```yaml
+- identifier: image
+  propertyDomain:
+    values:
+      - "vllm/vllm-openai:v0.20.1"
+```
+
+The string format continues to work for backward compatibility but does not enable version-aware optimizations.
+
+### Threadpool Configuration (vLLM >= 0.20.0)
+
+For vLLM versions 0.20.0 and above, the actuator supports threadpool rendering which can improve inference performance:
+
+- `threadpool`: Enable/disable threadpool (0 or 1, default: 1)
+- `renderer_num_workers`: Number of renderer workers when threadpool is enabled (1-128, default: 32)
+
+When using the list image format with version information, these parameters are automatically configured based on the vLLM version. For versions below 0.20.0, threadpool is automatically disabled regardless of the `threadpool` parameter value.
+
+**Example with threadpool configuration:**
+
+```yaml
+entitySpace:
+  - identifier: image
+    propertyDomain:
+      values:
+        - ["vllm/vllm-openai:v0.20.1", "0.20.1"]
+  - identifier: threadpool
+    propertyDomain:
+      values: [0, 1]  # Test with threadpool disabled and enabled
+  - identifier: renderer_num_workers
+    propertyDomain:
+      values: [32, 64]  # Test different worker counts
+```
+
+### Measurement Caching
+
+The actuator implements intelligent measurement caching to avoid redundant benchmarks. When multiple entities share identical environment parameters (model, GPUs, vLLM configuration) and benchmark parameters (request rate, token counts, etc.), the actuator reuses previous measurement results. This significantly speeds up experiments that explore parameter spaces with repeated configurations.
+
+Cache keys are automatically generated based on:
+- Environment parameters: model, image, GPUs, memory, vLLM settings, threadpool configuration
+- Benchmark parameters: num_prompts, request_rate, token counts, dataset
+
 ### Available experiments
 
 The `vllm_performance` actuator implements twelve experiments:

@@ -21,6 +21,7 @@ from orchestrator.cli.resources.actuator_configuration.edit import (
 )
 from orchestrator.cli.resources.data_container.edit import edit_data_container
 from orchestrator.cli.resources.discovery_space.edit import edit_discovery_space
+from orchestrator.cli.resources.document.edit import edit_document
 from orchestrator.cli.resources.operation.edit import edit_operation
 from orchestrator.cli.resources.sample_store.edit import edit_sample_store
 from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
@@ -132,6 +133,7 @@ def edit_resource(
         AdoEditSupportedResourceTypes.ACTUATOR_CONFIGURATION: edit_actuator_configuration,
         AdoEditSupportedResourceTypes.DATA_CONTAINER: edit_data_container,
         AdoEditSupportedResourceTypes.DISCOVERY_SPACE: edit_discovery_space,
+        AdoEditSupportedResourceTypes.DOCUMENT: edit_document,
         AdoEditSupportedResourceTypes.SAMPLE_STORE: edit_sample_store,
         AdoEditSupportedResourceTypes.OPERATION: edit_operation,
     }

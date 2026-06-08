@@ -23,6 +23,7 @@ from orchestrator.cli.resources.actuator_configuration.get import (
 from orchestrator.cli.resources.context.get import get_context
 from orchestrator.cli.resources.data_container.get import get_data_container
 from orchestrator.cli.resources.discovery_space.get import get_discovery_space
+from orchestrator.cli.resources.document.get import get_document
 from orchestrator.cli.resources.experiment.get import get_experiment
 from orchestrator.cli.resources.measurement_request.get import get_measurement_request
 from orchestrator.cli.resources.operation.get import get_operation
@@ -412,6 +413,7 @@ def get_resource(
         AdoGetSupportedResourceTypes.CONTEXT: get_context,
         AdoGetSupportedResourceTypes.DATA_CONTAINER: get_data_container,
         AdoGetSupportedResourceTypes.DISCOVERY_SPACE: get_discovery_space,
+        AdoGetSupportedResourceTypes.DOCUMENT: get_document,
         AdoGetSupportedResourceTypes.EXPERIMENT: get_experiment,
         AdoGetSupportedResourceTypes.SAMPLE_STORE: get_sample_store,
         AdoGetSupportedResourceTypes.MEASUREMENT_REQUEST: get_measurement_request,

@@ -4,6 +4,7 @@
 from .actuatorconfiguration.resource import ActuatorConfigurationResource
 from .datacontainer.resource import DataContainerResource
 from .discoveryspace.resource import DiscoverySpaceResource
+from .document.resource import DocumentResource
 from .operation.resource import OperationResource
 from .resources import ADOResource as ADOResource
 from .resources import CoreResourceKinds
@@ -15,4 +16,5 @@ kindmap = {
     CoreResourceKinds.SAMPLESTORE.value: SampleStoreResource,
     CoreResourceKinds.ACTUATORCONFIGURATION.value: ActuatorConfigurationResource,
     CoreResourceKinds.DATACONTAINER.value: DataContainerResource,
+    CoreResourceKinds.DOCUMENT.value: DocumentResource,
 }

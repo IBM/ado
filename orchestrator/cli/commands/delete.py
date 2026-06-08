@@ -14,6 +14,7 @@ from orchestrator.cli.resources.actuator_configuration.delete import (
 from orchestrator.cli.resources.context.delete import delete_context
 from orchestrator.cli.resources.data_container.delete import delete_data_container
 from orchestrator.cli.resources.discovery_space.delete import delete_discovery_space
+from orchestrator.cli.resources.document.delete import delete_document
 from orchestrator.cli.resources.operation.delete import delete_operation
 from orchestrator.cli.resources.sample_store.delete import delete_sample_store
 from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
@@ -165,6 +166,7 @@ def delete_resource(
         AdoDeleteSupportedResourceTypes.CONTEXT: delete_context,
         AdoDeleteSupportedResourceTypes.DATA_CONTAINER: delete_data_container,
         AdoDeleteSupportedResourceTypes.DISCOVERY_SPACE: delete_discovery_space,
+        AdoDeleteSupportedResourceTypes.DOCUMENT: delete_document,
         AdoDeleteSupportedResourceTypes.SAMPLE_STORE: delete_sample_store,
         AdoDeleteSupportedResourceTypes.OPERATION: delete_operation,
     }

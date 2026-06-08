@@ -1540,3 +1540,34 @@ class SQLResourceStore(ResourceStore):
                     resource_kind=CoreResourceKinds.ACTUATORCONFIGURATION,
                     rollback_occurred=True,
                 ) from e
+
+    def delete_document(self, identifier: str) -> None:
+        import sqlalchemy.orm
+
+        with sqlalchemy.orm.Session(self.engine) as session:
+            try:
+                with session.begin():
+
+                    session.execute(
+                        sqlalchemy.text(
+                            r"DELETE FROM resource_relationships WHERE object_identifier=:identifier"
+                        ).bindparams(identifier=identifier)
+                    )
+
+                    session.execute(
+                        sqlalchemy.text(
+                            r"DELETE FROM resources "
+                            r"WHERE identifier=:identifier AND kind=:kind"
+                        ).bindparams(
+                            identifier=identifier,
+                            kind=CoreResourceKinds.DOCUMENT.value,
+                        )
+                    )
+
+            except Exception as e:
+                session.rollback()
+                raise DeleteFromDatabaseError(
+                    resource_id=identifier,
+                    resource_kind=CoreResourceKinds.DOCUMENT,
+                    rollback_occurred=True,
+                ) from e

@@ -22,6 +22,7 @@ from orchestrator.cli.resources.actuator_configuration.create import (
 )
 from orchestrator.cli.resources.context.create import create_context
 from orchestrator.cli.resources.discovery_space.create import create_discovery_space
+from orchestrator.cli.resources.document.create import create_document
 from orchestrator.cli.resources.operation.create import create_operation
 from orchestrator.cli.resources.sample_store.create import create_sample_store
 from orchestrator.cli.utils.input.parsers import (
@@ -239,6 +240,7 @@ def create_resource(
         AdoCreateSupportedResourceTypes.ACTUATOR_CONFIGURATION: create_actuator_configuration,
         AdoCreateSupportedResourceTypes.CONTEXT: create_context,
         AdoCreateSupportedResourceTypes.DISCOVERY_SPACE: create_discovery_space,
+        AdoCreateSupportedResourceTypes.DOCUMENT: create_document,
         AdoCreateSupportedResourceTypes.SAMPLE_STORE: create_sample_store,
         AdoCreateSupportedResourceTypes.OPERATION: create_operation,
     }

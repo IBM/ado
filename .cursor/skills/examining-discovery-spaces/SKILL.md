@@ -151,6 +151,14 @@ overlapping spaces exist.
 
 ### Step 3: Check for existing report
 
+- Query the metastore for an existing document linked to this space:
+
+  ```bash
+  uv run ado get document -q config.relatedResources[*]=SPACE_ID
+  ```
+
+  If a document is found, retrieve its metadata (name, created timestamp) and
+  ask the user whether to replace it with a new report.
 - Check if there is an existing report for this space in
   `reports/<ado_context_name>/`
 - If yes, check if either of the following are true:
@@ -219,3 +227,25 @@ Structure the report as:
 4. **Data summary** – distributions of measured properties, notable performers,
    outliers, correlations
 5. **Related operations** – which operations ran on this space and their status
+
+After writing the local report file, persist it as a document resource:
+
+```yaml
+# <SPACE_ID>_<YYYY-MM-DD>_document.yaml  (temp file, not committed)
+metadata:
+  name: "<descriptive name>"
+  description: "<one-line summary>"
+content: |
+  <full markdown report text>
+relatedResources:
+  - <space id>
+  - <related operation ids from step 2>
+```
+
+Any charts or images generated during analysis should be base64-encoded and
+included in the `attachments` section, with the markdown referencing them by
+filename.
+
+```bash
+uv run ado create document -f <SPACE_ID>_<YYYY-MM-DD>_document.yaml
+```

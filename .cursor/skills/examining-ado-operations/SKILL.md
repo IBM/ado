@@ -125,6 +125,14 @@ failure. In this case:
 
 If the operation is finished,
 
+- Query the metastore for an existing document linked to this operation:
+
+  ```bash
+  uv run ado get document -q config.relatedResources[*]=OPERATION_ID
+  ```
+
+  If a document is found, retrieve its metadata (name, created timestamp) and ask
+  the user whether to replace it with a new report.
 - Check if there is an existing report for this operation in
   `reports/<ado_context_name>/`
 - If yes, check if that report indicated the operation was finished
@@ -309,6 +317,28 @@ Structure the report as:
 4. **Unusual behaviour** – failures, timeouts, invalid results, unexpected
    distributions
 5. **Next Steps**: A plan for the next research steps to take using ado.
+
+After writing the local report file, persist it as a document resource:
+
+```yaml
+# <OPERATION_ID>_<YYYY-MM-DD>_document.yaml  (temp file, not committed)
+metadata:
+  name: "<descriptive name>"
+  description: "<one-line summary>"
+content: |
+  <full markdown report text>
+relatedResources:
+  - <operation id>
+  - <input space ids from step 1>
+```
+
+Any charts or images generated during analysis should be base64-encoded and
+included in the `attachments` section, with the markdown referencing them by
+filename (for example `![Performance chart](perf_chart.png)`).
+
+```bash
+uv run ado create document -f <OPERATION_ID>_<YYYY-MM-DD>_document.yaml
+```
 
 ## Troubleshooting
 

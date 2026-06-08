@@ -312,6 +312,10 @@ class ResourceStore(abc.ABC):
     def delete_actuator_configuration(self, identifier: str) -> None:
         pass
 
+    @abc.abstractmethod
+    def delete_document(self, identifier: str) -> None:
+        pass
+
 
 def sample_store_dump(
     sample_store_resource: SampleStoreResource,

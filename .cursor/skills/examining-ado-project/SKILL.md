@@ -163,6 +163,13 @@ Write a concise markdown report
   needed), where `ado_context_name` is the **active ado metastore context**
   (`uv run ado context`).
 - Write the report as `project_<YYYY-MM-DD>_report.md`.
+- Query the metastore for an existing project report document:
+
+  ```bash
+  uv run ado get document -q metadata.name=project_<YYYY-MM-DD>_report
+  ```
+
+  If a matching document is found, ask the user whether to replace it.
 - If a report already exists, check whether there has been meaningful activity
   since it was written before replacing it:
   1. Run `uv run ado get spaces --details` and
@@ -199,3 +206,28 @@ Write a concise markdown report
 - Which operations **submitted** the most entities (from operation YAML/config).
 - What **analysis**-style operations ran (infer from operator names and
   parameters).
+
+After writing the local report file, persist it as a document resource. Since a
+project report spans many resources, set `relatedResources` to the identifiers
+of the most recently active spaces and operations (for example the five most
+recently created of each):
+
+```yaml
+# project_<YYYY-MM-DD>_document.yaml  (temp file, not committed)
+metadata:
+  name: "project_<YYYY-MM-DD>_report"
+  description: "<one-line summary>"
+content: |
+  <full markdown report text>
+relatedResources:
+  - <recent space ids>
+  - <recent operation ids>
+```
+
+Any charts or images generated during analysis should be base64-encoded and
+included in the `attachments` section, with the markdown referencing them by
+filename.
+
+```bash
+uv run ado create document -f project_<YYYY-MM-DD>_document.yaml
+```

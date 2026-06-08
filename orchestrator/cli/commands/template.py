@@ -16,6 +16,7 @@ from orchestrator.cli.resources.actuator_configuration.template import (
 )
 from orchestrator.cli.resources.context.template import template_context
 from orchestrator.cli.resources.discovery_space.template import template_discovery_space
+from orchestrator.cli.resources.document.template import template_document
 from orchestrator.cli.resources.operation.template import template_operation
 from orchestrator.cli.resources.sample_store.template import template_sample_store
 from orchestrator.cli.utils.input.parsers import (
@@ -175,6 +176,7 @@ def template_resource(
         AdoTemplateSupportedResourceTypes.ACTUATOR_CONFIGURATION: template_actuator_configuration,
         AdoTemplateSupportedResourceTypes.CONTEXT: template_context,
         AdoTemplateSupportedResourceTypes.DISCOVERY_SPACE: template_discovery_space,
+        AdoTemplateSupportedResourceTypes.DOCUMENT: template_document,
         AdoTemplateSupportedResourceTypes.SAMPLE_STORE: template_sample_store,
         AdoTemplateSupportedResourceTypes.OPERATION: template_operation,
     }

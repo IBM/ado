@@ -4,6 +4,7 @@
 """Utilities for building cache keys for vLLM performance measurements."""
 
 import json
+from typing import Any, ClassVar
 
 from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 
@@ -17,7 +18,7 @@ class CacheKeyBuilder:
     """
 
     # Environment parameters that define the deployment
-    ENV_PARAMS = [
+    ENV_PARAMS: ClassVar[list[str]] = [
         "model",
         "image",
         "n_gpus",
@@ -33,7 +34,7 @@ class CacheKeyBuilder:
         "renderer_num_workers",
     ]
 
-    BENCHMARK_PARAMS: list[str] = [
+    BENCHMARK_PARAMS: ClassVar[list[str]] = [
         "num_prompts",
         "request_rate",
         "max_concurrency",
@@ -44,10 +45,12 @@ class CacheKeyBuilder:
     ]
 
     # All parameters used in cache key
-    ALL_PARAMS = ENV_PARAMS + BENCHMARK_PARAMS
+    ALL_PARAMS: ClassVar[list[str]] = ENV_PARAMS + BENCHMARK_PARAMS
 
     @classmethod
-    def _normalize_and_extract_env_params(cls, values: dict[str, str]) -> dict:
+    def _normalize_and_extract_env_params(
+        cls, values: dict[str, Any]
+    ) -> dict[str, Any]:
         """Extract and normalize environment parameters."""
         # Extract and normalize image value
         image_value = values.get("image")
@@ -88,13 +91,13 @@ class CacheKeyBuilder:
         }
 
     @classmethod
-    def build_env_definition(cls, values: dict[str, str]) -> str:
+    def build_env_definition(cls, values: dict[str, Any]) -> str:
         """Build environment definition JSON string."""
         env_values = cls._normalize_and_extract_env_params(values)
         return json.dumps(env_values)
 
     @classmethod
-    def build(cls, values: dict[str, str]) -> str:
+    def build(cls, values: dict[str, Any]) -> str:
         """Build composite cache key from environment and benchmark parameters."""
         env_values = cls._normalize_and_extract_env_params(values)
 

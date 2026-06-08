@@ -4,6 +4,7 @@
 """Tests for cache key building utilities."""
 
 import json
+from typing import Any
 
 import pytest
 from ado_actuators.vllm_performance.cache_utils import CacheKeyBuilder
@@ -13,7 +14,7 @@ class TestCacheKeyBuilder:
     """Tests for CacheKeyBuilder class."""
 
     @pytest.fixture
-    def base_values(self):
+    def base_values(self) -> dict[str, Any]:
         """Base values for testing."""
         return {
             "model": "meta-llama/Llama-2-7b-hf",
@@ -38,7 +39,7 @@ class TestCacheKeyBuilder:
             "dataset": "random",
         }
 
-    def test_build_returns_json_string(self, base_values):
+    def test_build_returns_json_string(self, base_values: dict[str, Any]) -> None:
         """Test that build returns a valid JSON string."""
         cache_key = CacheKeyBuilder.build(base_values)
         assert isinstance(cache_key, str)
@@ -46,13 +47,15 @@ class TestCacheKeyBuilder:
         assert "environment" in parsed
         assert "benchmark" in parsed
 
-    def test_same_values_produce_same_key(self, base_values):
+    def test_same_values_produce_same_key(self, base_values: dict[str, Any]) -> None:
         """Test that identical values produce identical cache keys."""
         key1 = CacheKeyBuilder.build(base_values)
         key2 = CacheKeyBuilder.build(base_values.copy())
         assert key1 == key2
 
-    def test_different_env_params_produce_different_keys(self, base_values):
+    def test_different_env_params_produce_different_keys(
+        self, base_values: dict[str, Any]
+    ) -> None:
         """Test that different environment parameters produce different keys."""
         key1 = CacheKeyBuilder.build(base_values)
 
@@ -62,7 +65,9 @@ class TestCacheKeyBuilder:
 
         assert key1 != key2
 
-    def test_different_benchmark_params_produce_different_keys(self, base_values):
+    def test_different_benchmark_params_produce_different_keys(
+        self, base_values: dict[str, Any]
+    ) -> None:
         """Test that different benchmark parameters produce different keys."""
         key1 = CacheKeyBuilder.build(base_values)
 
@@ -72,7 +77,9 @@ class TestCacheKeyBuilder:
 
         assert key1 != key2
 
-    def test_threadpool_normalization_vllm_0_18(self, base_values):
+    def test_threadpool_normalization_vllm_0_18(
+        self, base_values: dict[str, Any]
+    ) -> None:
         """Test threadpool normalization for vLLM < 0.20.0."""
         base_values["image"] = ["vllm/vllm-openai:v0.18.0", "0.18.0"]
         base_values["threadpool"] = "1"
@@ -84,7 +91,9 @@ class TestCacheKeyBuilder:
         assert parsed["environment"]["threadpool"] == 0
         assert parsed["environment"]["renderer_num_workers"] == 0
 
-    def test_threadpool_normalization_vllm_0_20(self, base_values):
+    def test_threadpool_normalization_vllm_0_20(
+        self, base_values: dict[str, Any]
+    ) -> None:
         """Test threadpool normalization for vLLM >= 0.20.0."""
         base_values["image"] = ["vllm/vllm-openai:v0.20.1", "0.20.1"]
         base_values["threadpool"] = "1"
@@ -96,7 +105,9 @@ class TestCacheKeyBuilder:
         assert parsed["environment"]["threadpool"] == 1
         assert parsed["environment"]["renderer_num_workers"] == 32
 
-    def test_different_renderer_num_workers_same_key_when_disabled(self, base_values):
+    def test_different_renderer_num_workers_same_key_when_disabled(
+        self, base_values: dict[str, Any]
+    ) -> None:
         """Test that different renderer_num_workers produce same key when threadpool disabled."""
         base_values["image"] = ["vllm/vllm-openai:v0.18.0", "0.18.0"]
         base_values["threadpool"] = "1"
@@ -109,8 +120,8 @@ class TestCacheKeyBuilder:
         assert key1 == key2
 
     def test_different_renderer_num_workers_different_key_when_enabled(
-        self, base_values
-    ):
+        self, base_values: dict[str, Any]
+    ) -> None:
         """Test that different renderer_num_workers produce different keys when threadpool enabled."""
         base_values["image"] = ["vllm/vllm-openai:v0.20.1", "0.20.1"]
         base_values["threadpool"] = "1"
@@ -122,7 +133,7 @@ class TestCacheKeyBuilder:
 
         assert key1 != key2
 
-    def test_image_list_extraction(self, base_values):
+    def test_image_list_extraction(self, base_values: dict[str, Any]) -> None:
         """Test that image URL is correctly extracted from list."""
         base_values["image"] = ["vllm/vllm-openai:v0.20.1", "0.20.1"]
         cache_key = CacheKeyBuilder.build(base_values)
@@ -130,7 +141,9 @@ class TestCacheKeyBuilder:
 
         assert parsed["environment"]["image"] == "vllm/vllm-openai:v0.20.1"
 
-    def test_image_string_backward_compatibility(self, base_values):
+    def test_image_string_backward_compatibility(
+        self, base_values: dict[str, Any]
+    ) -> None:
         """Test backward compatibility with string image values."""
         base_values["image"] = "vllm/vllm-openai:v0.20.1"
         cache_key = CacheKeyBuilder.build(base_values)

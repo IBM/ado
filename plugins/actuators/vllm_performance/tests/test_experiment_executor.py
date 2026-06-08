@@ -11,7 +11,7 @@ from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 
 
 @pytest.fixture
-def base_env_values():
+def base_env_values() -> dict[str, str]:
     """Base environment values for testing."""
     return {
         "model": "test-model",
@@ -28,7 +28,7 @@ def base_env_values():
 
 
 @pytest.fixture
-def base_benchmark_values():
+def base_benchmark_values() -> dict[str, str]:
     """Base benchmark values for testing."""
     return {
         "num_prompts": "200",
@@ -41,7 +41,7 @@ class TestGetVllmVersionFromImageValue:
     """Test suite for version extraction from image values."""
 
     @pytest.mark.parametrize(
-        "image_value,expected",
+        ("image_value", "expected"),
         [
             (["icr.io/drl-nextgen/mgazz/vllm:v0.18.0-tt.v1.2.5", "0.18.0"], "0.18.0"),
             (["vllm/vllm-openai:v0.14.0", "0.14.0"], "0.14.0"),
@@ -50,7 +50,9 @@ class TestGetVllmVersionFromImageValue:
             (["icr.io/drl-nextgen/mgazz/vllm:v0.18.0-tt.v1.2.5"], None),
         ],
     )
-    def test_version_extraction(self, image_value, expected) -> None:
+    def test_version_extraction(
+        self, image_value: str | list[str], expected: str | None
+    ) -> None:
         """Test version extraction from various image value formats."""
         version = VLLMVersionChecker.parse_version(image_value)
         assert version == expected
@@ -60,7 +62,13 @@ class TestBuildEntityEnv:
     """Test suite for environment definition building."""
 
     @pytest.mark.parametrize(
-        "image,threadpool,renderer_workers,expected_threadpool,expected_workers",
+        (
+            "image",
+            "threadpool",
+            "renderer_workers",
+            "expected_threadpool",
+            "expected_workers",
+        ),
         [
             (["icr.io/test/vllm:v0.18.0", "0.18.0"], "1", "64", 0, 0),
             (["icr.io/test/vllm:v0.21.0", "0.21.0"], "1", "64", 1, 64),
@@ -70,12 +78,12 @@ class TestBuildEntityEnv:
     )
     def test_threadpool_normalization(
         self,
-        base_env_values,
-        image,
-        threadpool,
-        renderer_workers,
-        expected_threadpool,
-        expected_workers,
+        base_env_values: dict[str, str],
+        image: str | list[str],
+        threadpool: str,
+        renderer_workers: str,
+        expected_threadpool: int,
+        expected_workers: int,
     ) -> None:
         """Test threadpool and renderer_num_workers normalization."""
         values = {
@@ -92,7 +100,7 @@ class TestBuildEntityEnv:
         assert result_dict["renderer_num_workers"] == expected_workers
 
     def test_different_renderer_workers_same_env_vllm_0_18(
-        self, base_env_values
+        self, base_env_values: dict[str, str]
     ) -> None:
         """Test different renderer_num_workers produce same env for vLLM < 0.20.0."""
         base = {
@@ -164,7 +172,7 @@ class TestBuildCacheKey:
     """Test suite for complete cache key building."""
 
     def test_combines_environment_and_benchmark_params(
-        self, base_env_values, base_benchmark_values
+        self, base_env_values: dict[str, str], base_benchmark_values: dict[str, str]
     ) -> None:
         """Test cache key includes both environment and benchmark sections."""
         values = {
@@ -183,14 +191,19 @@ class TestBuildCacheKey:
         assert result_dict["benchmark"]["num_prompts"] == "200"
 
     @pytest.mark.parametrize(
-        "param,value1,value2",
+        ("param", "value1", "value2"),
         [
             ("num_prompts", "100", "200"),
             ("request_rate", "32", "64"),
         ],
     )
     def test_different_params_produce_different_keys(
-        self, base_env_values, base_benchmark_values, param, value1, value2
+        self,
+        base_env_values: dict[str, str],
+        base_benchmark_values: dict[str, str],
+        param: str,
+        value1: str,
+        value2: str,
     ) -> None:
         """Test different parameter values produce different cache keys."""
         base = {
@@ -207,7 +220,7 @@ class TestBuildCacheKey:
         assert key1 != key2
 
     def test_same_params_produce_same_key(
-        self, base_env_values, base_benchmark_values
+        self, base_env_values: dict[str, str], base_benchmark_values: dict[str, str]
     ) -> None:
         """Test identical parameters produce identical cache keys."""
         values = {
@@ -221,7 +234,7 @@ class TestBuildCacheKey:
         assert CacheKeyBuilder.build(values) == CacheKeyBuilder.build(values)
 
     def test_vllm_0_18_same_key_different_renderer_workers(
-        self, base_env_values, base_benchmark_values
+        self, base_env_values: dict[str, str], base_benchmark_values: dict[str, str]
     ) -> None:
         """Test vLLM 0.18.0 produces same key for different renderer_num_workers."""
         base = {
@@ -238,7 +251,7 @@ class TestBuildCacheKey:
         assert json.loads(key_32)["environment"]["renderer_num_workers"] == 0
 
     def test_vllm_0_20_different_key_different_renderer_workers(
-        self, base_env_values, base_benchmark_values
+        self, base_env_values: dict[str, str], base_benchmark_values: dict[str, str]
     ) -> None:
         """Test vLLM 0.20.1 produces different keys for different renderer_num_workers."""
         base = {

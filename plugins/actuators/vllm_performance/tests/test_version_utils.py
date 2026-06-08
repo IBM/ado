@@ -3,7 +3,6 @@
 
 """Tests for vLLM version utilities."""
 
-
 from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 
 

@@ -234,11 +234,27 @@ def _connect_to_vllm_server(
     actuator_parameters: VLLMPerformanceTestParameters,
     port: int,
 ) -> tuple[str, subprocess.Popen | None]:
-    """Returns vLLM server URL and optional port-forward process.
+    """Returns the URL of the vLLM inference server
 
-    Creates port-forward if not running in-cluster.
-    Raises K8sConnectionError if port-forward fails.
+    Creates a port forward for the inference server if test
+    is not running on the cluster with the service
+
+    Parameters:
+        k8s_name: The name of the vLLM service
+        actuator_parameters: VLLMPerformanceTestParameters instance containing
+            namespace and test location (in_cluster or not) information
+
+    Returns:
+        A tuple containing
+        - The URL of the created vLLM server
+        - If a port-forward is created the POpen object for the port-forward
+          Otherwise None
+
+    Raise:
+        K8ConnectionError if a port-forward could not be created
     """
+
+    # create environment
     if not actuator_parameters.in_cluster:
         logger.info("We are running locally connecting to remote cluster")
         logger.info("please make sure that you have executed `oc login`")
@@ -248,11 +264,13 @@ def _connect_to_vllm_server(
         )
 
     if actuator_parameters.in_cluster:
+        # we are running in cluster, connect to service directly
         base_url = (
             f"http://{k8s_name}.{actuator_parameters.namespace}.svc.cluster.local:80"
         )
         pf = None
     else:
+        # we are running locally. need to do port-forward and connect to the local one
         pf_command_args = [
             "kubectl",
             "port-forward",
@@ -267,7 +285,9 @@ def _connect_to_vllm_server(
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+            # make sure that port forwarding is up
             time.sleep(5)
+            # Check if there is a returncode- if there is it means port-forward exited
             if pf.returncode:
                 raise K8sConnectionError(
                     f"failed to start port forward to service {k8s_name} - port-forward command exited for unknown reason. Check logs."
@@ -293,11 +313,32 @@ def run_resource_and_workload_experiment(
     env_manager: ActorHandle,
     local_port: int,
 ) -> None:
-    """Run experiment on specific compute resource and workload configuration."""
+    """
+    Runs an experiment on a specific compute resource and inference workload configuration.
+
+    This requires spinning up a vLLM instance with the given compute resources
+
+    :param request: measurement request
+    :param experiment: definition of experiment
+    :param state_update_queue: update queue
+    :param actuator_parameters: actuator parameters
+    :param node_selector: node selector
+    :param env_manager: environment manager
+    :param local_port: local port to use
+    :return:
+    """
+
+    # This function
+    # 1. Performs the measurement represented by MeasurementRequest
+    # 2. Updates MeasurementRequest with the results of the measurement and status
+    # 3. Puts it in the stateUpdateQueue
+
+    # placeholder for measurements
     measurements = []
     current_port = local_port - 1
     console = ray.get_actor(name="RichConsoleQueue")
 
+    # For every entity
     for entity in request.entities:
         port_forward = None
         definition = None
@@ -328,6 +369,7 @@ def run_resource_and_workload_experiment(
 
             logger.info(f"Creating K8s environment for {entity.identifier}")
 
+            # Will raise an K8sEnvironmentCreationError if the environment could not be created
             k8s_name, definition = _create_environment(
                 values=values,
                 actuator=actuator_parameters,
@@ -337,6 +379,8 @@ def run_resource_and_workload_experiment(
                 request_id=request.requestid,
             )
 
+            # Will raise an K8sConnectionError if a port-forward was required
+            # but could not be created
             current_port += 1
             base_url, port_forward = _connect_to_vllm_server(
                 k8s_name, actuator_parameters, current_port
@@ -345,6 +389,8 @@ def run_resource_and_workload_experiment(
             logger.info(f"Will use vllm server at {base_url}")
 
             benchmark_parameters = BenchmarkParameters.model_validate(values)
+            # In this case the endpoint does not come through the property values and is generated
+            # when creating the vLLM deployment
             benchmark_parameters.endpoint = base_url
 
             started_benchmarking = True
@@ -473,6 +519,7 @@ def run_resource_and_workload_experiment(
             if definition is not None:
                 env_manager.done_using.remote(identifier=k8s_name)
 
+    # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
     if len(measurements) > 0:
         request.measurements = measurements
     request.status = compute_measurement_status(measurements=measurements)
@@ -488,8 +535,26 @@ def run_workload_experiment(
     state_update_queue: MeasurementQueue,
     actuator_parameters: VLLMPerformanceTestParameters,
 ) -> None:
-    """Run experiment with specific workload configuration on given endpoint."""
+    """
+    Runs an experiment with a specific inference workload configuration on a given endpoint.
+
+    The compute resource associated with the end-point is not known.
+
+    :param request: measurement request
+    :param experiment: definition of experiment
+    :param state_update_queue: update queue
+    :param actuator_parameters: actuator parameters
+    :return:
+    """
+
+    # This function
+    # 1. Performs the measurement represented by MeasurementRequest
+    # 2. Updates MeasurementRequest with the results of the measurement and status
+    # 3. Puts it in the stateUpdateQueue
+
+    # placeholder for measurements
     measurements = []
+    # For every entity
     for entity in request.entities:
         measured_values = []
         error = None
@@ -502,6 +567,7 @@ def run_workload_experiment(
 
             benchmark_parameters = BenchmarkParameters.model_validate(values)
 
+            # Will raise VLLMBenchmarkError if there is a problem
             logger.info(f"Executing experiment: {experiment.identifier}")
             result: BenchmarkResult
             if experiment.identifier in [
@@ -589,6 +655,7 @@ def run_workload_experiment(
                 )
             )
 
+    # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
     if len(measurements) > 0:
         request.measurements = measurements
     request.status = compute_measurement_status(measurements=measurements)

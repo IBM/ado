@@ -3,6 +3,7 @@
 
 import asyncio
 import logging
+from dataclasses import dataclass
 from enum import Enum
 from typing import Annotated
 
@@ -24,6 +25,14 @@ from pydantic import AfterValidator
 from orchestrator.utilities.pydantic import validate_rfc_1123
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class CachedMeasurement:
+    """Cached measurement result."""
+
+    measurements: list
+    error: str | None
 
 
 class EnvironmentState(Enum):
@@ -136,7 +145,7 @@ class EnvironmentManager:
 
         # Measurement cache for reusing results across entities with identical
         # environment and benchmark parameters
-        self.measurement_cache: dict[str, dict] = {}
+        self.measurement_cache: dict[str, CachedMeasurement] = {}
 
         # component manager for cleanup
         self.manager = ComponentsManager(
@@ -148,33 +157,17 @@ class EnvironmentManager:
             pvc_template=pvc_template,
         )
 
-    def get_cached_measurement(self, cache_key: str) -> dict | None:
-        """
-        Get a cached measurement result for the given cache key.
-
-        Args:
-            cache_key: Composite key containing environment and benchmark parameters
-
-        Returns:
-            Cached measurement dict with 'measurements' and 'error' keys, or None if not cached
-        """
+    def get_cached_measurement(self, cache_key: str) -> CachedMeasurement | None:
+        """Get cached measurement result."""
         return self.measurement_cache.get(cache_key)
 
     def cache_measurement(
         self, cache_key: str, measurements: list, error: str | None
     ) -> None:
-        """
-        Cache a measurement result for reuse by subsequent entities with identical parameters.
-
-        Args:
-            cache_key: Composite key containing environment and benchmark parameters
-            measurements: List of measured property values
-            error: Error message if measurement failed, None otherwise
-        """
-        self.measurement_cache[cache_key] = {
-            "measurements": measurements,
-            "error": error,
-        }
+        """Cache measurement result for reuse."""
+        self.measurement_cache[cache_key] = CachedMeasurement(
+            measurements=measurements, error=error
+        )
         logger.debug(f"Cached measurement for key: {cache_key}")
 
     def _delete_environment_k8s_resources(self, k8s_name: str) -> None:

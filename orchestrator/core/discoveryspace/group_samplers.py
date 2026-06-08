@@ -63,14 +63,13 @@ def _build_point_group_values(
         value: float | list | str | dict | None,
     ) -> int | float | tuple | str | None:
         """Convert unhashable types to hashable equivalents"""
-        if isinstance(value, dict):
-            # Convert dict to sorted tuple of items
-            return tuple(sorted(value.items()))
-        if isinstance(value, list):
-            # Convert list to tuple
-            return tuple(value)
-        # Return value as-is if already hashable
-        return value  # type: ignore[return-value]
+        match value:
+            case dict():
+                return tuple(sorted(value.items()))
+            case list():
+                return tuple(value)
+            case _:
+                return value  # type: ignore[return-value]
 
     return frozenset({(k, make_hashable(v)) for k, v in point.items() if k in group})
 

@@ -180,9 +180,7 @@ def _create_environment(
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
                         threadpool=threadpool_value,
-                        renderer_num_workers=int(
-                            values.get("renderer_num_workers", 32)
-                        ),
+                        renderer_num_workers=int(values.get("renderer_num_workers")),
                         check_interval=check_interval,
                         timeout=timeout,
                     )

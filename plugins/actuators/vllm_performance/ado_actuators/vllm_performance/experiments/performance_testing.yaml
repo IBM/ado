@@ -127,6 +127,19 @@ test-deployment-v1:
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
         values: ['random']
+    - identifier: 'threadpool'
+      metadata:
+        description: "(deployment) Enable threadpool for vLLM renderer (0=disabled, 1=enabled)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "(deployment) Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -176,6 +189,12 @@ test-deployment-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -460,6 +479,19 @@ test-deployment-guidellm-v1:
       propertyDomain:
         variableType: 'CATEGORICAL_VARIABLE_TYPE'
         values: ['random']
+    - identifier: 'threadpool'
+      metadata:
+        description: "(deployment) Enable threadpool for vLLM renderer (0=disabled, 1=enabled)"
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        values: [0, 1]
+    - identifier: 'renderer_num_workers'
+      metadata:
+        description: "(deployment) Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+      propertyDomain:
+        variableType: 'DISCRETE_VARIABLE_TYPE'
+        domainRange: [1, 128]
+        interval: 1
   defaultParameterization:
     - property:
         identifier: 'image'
@@ -509,6 +541,12 @@ test-deployment-guidellm-v1:
     - property:
         identifier: 'gpu_type'
       value: 'NVIDIA-A100-80GB-PCIe'
+    - property:
+        identifier: 'threadpool'
+      value: 1
+    - property:
+        identifier: 'renderer_num_workers'
+      value: 32
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"

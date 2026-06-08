@@ -11,6 +11,7 @@ import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
     VLLMPerformanceTestParameters,
 )
+from ado_actuators.vllm_performance.cache_utils import CacheKeyBuilder
 from ado_actuators.vllm_performance.env_manager import (
     Environment,
     EnvironmentManager,
@@ -26,6 +27,7 @@ from ado_actuators.vllm_performance.k8s.create_environment import (
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     VLLMDtype,
 )
+from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
     BenchmarkParameters,
     BenchmarkResult,
@@ -39,7 +41,6 @@ from ado_actuators.vllm_performance.vllm_performance_test.execute_guidellm_bench
     execute_guidellm_benchmark,
     execute_guidellm_geospatial_benchmark,
 )
-from packaging import version
 from ray.actor import ActorHandle
 
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
@@ -54,212 +55,6 @@ from orchestrator.utilities.support import (
 logger = logging.getLogger(__name__)
 
 
-def _get_vllm_version_from_image_value(image_value: list | str) -> str | None:
-    """
-    Extract vLLM version from image property value.
-
-    Args:
-        image_value: The image property value, either a list [image_url, vllm_version],
-                    or a string (for backward compatibility)
-
-    Returns:
-        Version string if found in list, None otherwise
-    """
-    logger.debug(f"_get_vllm_version_from_image_value called with: {image_value}")
-
-    # If image_value is a list with vllm_version, extract it
-    if isinstance(image_value, list):
-        if len(image_value) > 1:
-            version = image_value[1]
-            logger.debug(f"Extracted vLLM version from list: {version}")
-            return version
-        logger.debug("List has only one element, no version info available")
-        return None
-
-    # For backward compatibility: if it's a string, we don't have version info
-    logger.debug("Image value is a string, no version info available")
-    return None
-
-
-def _should_enable_threadpool(image_value: list | str, threadpool_value: int) -> bool:
-    """
-    Determine if threadpool should be enabled based on vLLM version and user preference.
-
-    Threadpool is only supported in vLLM >= 0.20.0. This function checks:
-    1. If user explicitly disabled threadpool (threadpool=0), return False
-    2. If vLLM version exists in image_value list and version < 0.20.0, return False
-    3. Otherwise, return True (user wants it and version supports it or no version info)
-
-    Args:
-        image_value: The image property value (list [image_url, vllm_version] or string)
-        threadpool_value: User's threadpool preference (0 or 1)
-
-    Returns:
-        True if threadpool should be enabled, False otherwise
-    """
-    logger.debug(
-        f"_should_enable_threadpool called with: image_value={image_value}, "
-        f"threadpool_value={threadpool_value}"
-    )
-
-    # If user explicitly disabled, respect that
-    if threadpool_value == 0:
-        logger.debug("Threadpool explicitly disabled by user (threadpool_value=0)")
-        return False
-
-    # Get version from image value
-    vllm_version_str = _get_vllm_version_from_image_value(image_value)
-    logger.debug(f"Retrieved vLLM version: {vllm_version_str}")
-
-    # If no version info, assume it's supported (backward compatible)
-    if vllm_version_str is None:
-        logger.warning(
-            f"No vLLM version info found for image {image_value}. "
-            "Assuming threadpool is supported."
-        )
-        return True
-
-    # Parse and compare version
-    try:
-        vllm_ver = version.parse(vllm_version_str)
-        min_version = version.parse("0.20.0")
-        logger.debug(
-            f"Parsed versions - vLLM: {vllm_ver}, minimum required: {min_version}"
-        )
-
-        if vllm_ver < min_version:
-            logger.info(
-                f"Threadpool disabled: vLLM version {vllm_version_str} < 0.20.0 "
-                f"for image {image_value}"
-            )
-            return False
-
-        logger.info(
-            f"Threadpool enabled: vLLM version {vllm_version_str} >= 0.20.0 "
-            f"for image {image_value}"
-        )
-        return True
-    except Exception as e:
-        logger.error(
-            f"Failed to parse vLLM version '{vllm_version_str}' for image {image_value}: {e}. "
-            "Assuming threadpool is supported."
-        )
-        return True
-
-
-def _build_entity_env(values: dict[str, str]) -> str:
-    """
-    This is the list of entity parameters that define the environment:
-        * model name
-        * image name
-        * number of gpus
-        * gpu type
-        * number of cpus
-        * memory
-        * max batch tokens
-        * max number of sequences
-        * gpu memory utilization
-        * data type
-        * cpu offload
-    Build entity based environment parameters
-    :param values: experiment values
-    :return: definition
-    """
-    # Extract image string from list if needed
-    image_value = values.get("image")
-    if isinstance(image_value, list):
-        image_str = image_value[0] if len(image_value) > 0 else image_value
-    else:
-        image_str = image_value
-
-    # Determine effective threadpool and renderer_num_workers values
-    threadpool_requested = int(values.get("threadpool", 1))
-    renderer_num_workers_requested = int(values.get("renderer_num_workers", 32))
-
-    # Check if threadpool will actually be enabled based on version
-    # Use empty string as fallback if image_value is None
-    enable_threadpool = _should_enable_threadpool(
-        image_value if image_value is not None else "", threadpool_requested
-    )
-
-    # Normalize values for environment definition:
-    # - If threadpool is disabled (version < 0.20.0 or user disabled it),
-    #   set both to 0 so different renderer_num_workers values don't create
-    #   different environments when they would behave identically
-    if enable_threadpool:
-        threadpool_value = 1
-        renderer_num_workers_value = renderer_num_workers_requested
-    else:
-        threadpool_value = 0
-        renderer_num_workers_value = 0  # Normalize to 0 when not used
-
-    env_values = {
-        "model": values.get("model"),
-        "image": image_str,
-        "n_gpus": values.get("n_gpus"),
-        "gpu_type": values.get("gpu_type"),
-        "n_cpus": values.get("n_cpus"),
-        "memory": values.get("memory"),
-        "max_batch_tokens": values.get("max_batch_tokens"),
-        "gpu_memory_utilization": values.get("gpu_memory_utilization"),
-        "dtype": values.get("dtype"),
-        "cpu_offload": values.get("cpu_offload"),
-        "max_num_seq": values.get("max_num_seq"),
-        "threadpool": threadpool_value,
-        "renderer_num_workers": renderer_num_workers_value,
-    }
-    return json.dumps(env_values)
-
-
-def _build_benchmark_params_key(values: dict[str, str]) -> str:
-    """
-    Build a cache key from benchmark parameters that affect measurement results.
-
-    These parameters define the workload characteristics and must be included
-    in the cache key to ensure measurements are only reused for identical tests.
-
-    Args:
-        values: experiment values
-
-    Returns:
-        JSON string of benchmark parameters
-    """
-    benchmark_params = {
-        "num_prompts": values.get("num_prompts"),
-        "request_rate": values.get("request_rate"),
-        "max_concurrency": values.get("max_concurrency"),
-        "number_input_tokens": values.get("number_input_tokens"),
-        "max_output_tokens": values.get("max_output_tokens"),
-        "burstiness": values.get("burstiness"),
-        "dataset": values.get("dataset"),
-    }
-    return json.dumps(benchmark_params, sort_keys=True)
-
-
-def _build_cache_key(values: dict[str, str]) -> str:
-    """
-    Build a composite cache key from both environment and benchmark parameters.
-
-    Cache hits should only occur when both the deployment environment AND
-    the benchmark workload parameters are identical.
-
-    Args:
-        values: experiment values
-
-    Returns:
-        composite cache key as JSON string
-    """
-    env_key = _build_entity_env(values)
-    benchmark_key = _build_benchmark_params_key(values)
-
-    # Combine both keys into a single cache key
-    composite = {
-        "environment": json.loads(env_key),
-        "benchmark": json.loads(benchmark_key),
-    }
-    return json.dumps(composite, sort_keys=True)
-
-
 def _create_environment(
     values: dict[str, str],
     actuator: VLLMPerformanceTestParameters,
@@ -270,28 +65,10 @@ def _create_environment(
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> tuple[str, str]:
-    """
-     Create environment with version-aware threadpool support.
+    """Create environment with version-aware threadpool support.
 
-     Important: This function will block until env_manager.get_environment
-     returns an environment.
-     The env_manager will not return an environment until there is one free
-     to be used
-
-     :param values: experiment values
-     :param actuator: actuator parameters
-     :param node_selector: node selector
-     :param request_id the request associated with this environment
-     :param env_manager: environment manager
-     :param experiment: experiment definition (used for version checking)
-     :param check_interval: wait interval
-     :param timeout: timeout
-    :return: kubernetes environment name
-
-    :raises K8sEnvironmentCreationError if there was an issue
-    - If the creation step fails after three attempts
-    - If after creation the environment was not in ready state after timeout seconds (1200 default)
-
+    Blocks until env_manager returns an available environment.
+    Raises K8sEnvironmentCreationError if creation fails after 3 attempts or timeout.
     """
     from orchestrator.modules.operators.console_output import (
         RichConsoleSpinnerMessage,
@@ -304,7 +81,7 @@ def _create_environment(
     model = values.get("model")
 
     # create environment definition
-    definition = _build_entity_env(values=values)
+    definition = CacheKeyBuilder.build_env_definition(values=values)
     console.put.remote(
         message=RichConsoleSpinnerMessage(
             id=request_id,
@@ -329,7 +106,6 @@ def _create_environment(
             )
             break
 
-        # This is to guarantee that the request is next in line as soon as an environment is available
         ray.get(env_manager.wait_for_env.remote())
 
     error = None
@@ -348,8 +124,6 @@ def _create_environment(
             # Environment does not exist, create it
             logger.debug(f"Environment {env.k8s_name} does not exist. Creating it")
             tmout = 1
-
-            # To avoid data corruption we wait if another environment is concurrently downloading the same model for the first time
             ray.get(
                 env_manager.wait_deployment_before_starting.remote(
                     env=env, request_id=request_id
@@ -365,27 +139,13 @@ def _create_environment(
                     )
                 )
                 try:
-                    # Determine if threadpool should be enabled based on version
                     image_value = values.get("image", "")
                     threadpool_requested = int(values.get("threadpool", 1))
-                    logger.debug(
-                        f"Before _should_enable_threadpool: image_value={image_value}, "
-                        f"threadpool_requested={threadpool_requested}"
-                    )
-                    enable_threadpool = _should_enable_threadpool(
+                    enable_threadpool = VLLMVersionChecker.supports_threadpool(
                         image_value, threadpool_requested
                     )
-                    logger.debug(
-                        f"After _should_enable_threadpool: enable_threadpool={enable_threadpool}"
-                    )
-
-                    # Convert boolean back to int for consistency with existing code
                     threadpool_value = 1 if enable_threadpool else 0
-                    logger.debug(
-                        f"Final threadpool_value to be used: {threadpool_value}"
-                    )
 
-                    # Extract image string from list if needed
                     if isinstance(image_value, list):
                         image_name = image_value[0] if len(image_value) > 0 else ""
                     else:
@@ -426,7 +186,6 @@ def _create_environment(
                         check_interval=check_interval,
                         timeout=timeout,
                     )
-                    # Update manager
                     env_manager.done_creating.remote(identifier=env.k8s_name)
                     error = None
                     break
@@ -439,7 +198,6 @@ def _create_environment(
                     time.sleep(tmout)
                     tmout *= 2
 
-            # Check if error after three attempts
             if error is None:
                 console.put.remote(
                     message=RichConsoleSpinnerMessage(
@@ -460,9 +218,6 @@ def _create_environment(
                     )
                 )
 
-                # In case of failure creating the environment deployment we must release any
-                # other request with a deployment conflicting with this request's deployment
-                # We also need to release the slot for this environment
                 ray.get(
                     env_manager.cleanup_failed_deployment.remote(
                         identifier=env.k8s_name
@@ -481,27 +236,11 @@ def _connect_to_vllm_server(
     actuator_parameters: VLLMPerformanceTestParameters,
     port: int,
 ) -> tuple[str, subprocess.Popen | None]:
-    """Returns the URL of the vLLM inference server
+    """Returns vLLM server URL and optional port-forward process.
 
-    Creates a port forward for the inference server if test
-    is not running on the cluster with the service
-
-    Parameters:
-        k8s_name: The name of the vLLM service
-        actuator_parameters: VLLMPerformanceTestParameters instance containing
-            namespace and test location (in_cluster or not) information
-
-    Returns:
-        A tuple containing
-        - The URL of the created vLLM server
-        - If a port-forward is created the POpen object for the port-forward
-          Otherwise None
-
-    Raise:
-        K8ConnectionError if a port-forward could not be created
+    Creates port-forward if not running in-cluster.
+    Raises K8sConnectionError if port-forward fails.
     """
-
-    # create environment
     if not actuator_parameters.in_cluster:
         logger.info("We are running locally connecting to remote cluster")
         logger.info("please make sure that you have executed `oc login`")
@@ -511,13 +250,11 @@ def _connect_to_vllm_server(
         )
 
     if actuator_parameters.in_cluster:
-        # we are running in cluster, connect to service directly
         base_url = (
             f"http://{k8s_name}.{actuator_parameters.namespace}.svc.cluster.local:80"
         )
         pf = None
     else:
-        # we are running locally. need to do port-forward and connect to the local one
         pf_command_args = [
             "kubectl",
             "port-forward",
@@ -532,9 +269,7 @@ def _connect_to_vllm_server(
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-            # make sure that port forwarding is up
             time.sleep(5)
-            # Check if there is a returncode- if there is it means port-forward exited
             if pf.returncode:
                 raise K8sConnectionError(
                     f"failed to start port forward to service {k8s_name} - port-forward command exited for unknown reason. Check logs."
@@ -560,32 +295,11 @@ def run_resource_and_workload_experiment(
     env_manager: ActorHandle,
     local_port: int,
 ) -> None:
-    """
-    Runs an experiment on a specific compute resource and inference workload configuration.
-
-    This requires spinning up a vLLM instance with the given compute resources
-
-    :param request: measurement request
-    :param experiment: definition of experiment
-    :param state_update_queue: update queue
-    :param actuator_parameters: actuator parameters
-    :param node_selector: node selector
-    :param env_manager: environment manager
-    :param local_port: local port to use
-    :return:
-    """
-
-    # This function
-    # 1. Performs the measurement represented by MeasurementRequest
-    # 2. Updates MeasurementRequest with the results of the measurement and status
-    # 3. Puts it in the stateUpdateQueue
-
-    # placeholder for measurements
+    """Run experiment on specific compute resource and workload configuration."""
     measurements = []
     current_port = local_port - 1
     console = ray.get_actor(name="RichConsoleQueue")
 
-    # For every entity
     for entity in request.entities:
         port_forward = None
         definition = None
@@ -593,12 +307,9 @@ def run_resource_and_workload_experiment(
         try:
             values = experiment.propertyValuesFromEntity(entity=entity)
 
-            # Check if we've already measured an entity with the same environment and benchmark parameters
-            # Cache key includes both environment (model, GPUs, etc.) and benchmark params (num_prompts, request_rate, etc.)
-            cache_key = _build_cache_key(values)
+            cache_key = CacheKeyBuilder.build(values)
             logger.info("cache_key: %s", cache_key)
 
-            # Check actor's cache for this measurement
             cached_result = ray.get(
                 env_manager.get_cached_measurement.remote(cache_key)
             )
@@ -610,8 +321,8 @@ def run_resource_and_workload_experiment(
                 measurements.append(
                     create_measurement_result(
                         identifier=entity.identifier,
-                        measurements=cached_result["measurements"],
-                        error=cached_result["error"],
+                        measurements=cached_result.measurements,
+                        error=cached_result.error,
                         reference=request.experimentReference,
                     )
                 )
@@ -619,7 +330,6 @@ def run_resource_and_workload_experiment(
 
             logger.info(f"Creating K8s environment for {entity.identifier}")
 
-            # Will raise an K8sEnvironmentCreationError if the environment could not be created
             k8s_name, definition = _create_environment(
                 values=values,
                 actuator=actuator_parameters,
@@ -629,8 +339,6 @@ def run_resource_and_workload_experiment(
                 request_id=request.requestid,
             )
 
-            # Will raise an K8sConnectionError if a port-forward was required
-            # but could not be created
             current_port += 1
             base_url, port_forward = _connect_to_vllm_server(
                 k8s_name, actuator_parameters, current_port
@@ -639,8 +347,6 @@ def run_resource_and_workload_experiment(
             logger.info(f"Will use vllm server at {base_url}")
 
             benchmark_parameters = BenchmarkParameters.model_validate(values)
-            # In this case the endpoint does not come through the property values and is generated
-            # when creating the vLLM deployment
             benchmark_parameters.endpoint = base_url
 
             started_benchmarking = True
@@ -754,9 +460,6 @@ def run_resource_and_workload_experiment(
                 reference=request.experimentReference,
             )
             measurements.append(measurement_result)
-
-            # Cache the measurement in the actor for potential reuse by subsequent entities
-            # with the same environment and benchmark parameters
             env_manager.cache_measurement.remote(cache_key, measured_values, None)
         finally:
             if started_benchmarking:
@@ -772,7 +475,6 @@ def run_resource_and_workload_experiment(
             if definition is not None:
                 env_manager.done_using.remote(identifier=k8s_name)
 
-    # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
     if len(measurements) > 0:
         request.measurements = measurements
     request.status = compute_measurement_status(measurements=measurements)
@@ -788,26 +490,8 @@ def run_workload_experiment(
     state_update_queue: MeasurementQueue,
     actuator_parameters: VLLMPerformanceTestParameters,
 ) -> None:
-    """
-    Runs an experiment with a specific inference workload configuration on a given endpoint.
-
-    The compute resource associated with the end-point is not known.
-
-    :param request: measurement request
-    :param experiment: definition of experiment
-    :param state_update_queue: update queue
-    :param actuator_parameters: actuator parameters
-    :return:
-    """
-
-    # This function
-    # 1. Performs the measurement represented by MeasurementRequest
-    # 2. Updates MeasurementRequest with the results of the measurement and status
-    # 3. Puts it in the stateUpdateQueue
-
-    # placeholder for measurements
+    """Run experiment with specific workload configuration on given endpoint."""
     measurements = []
-    # For every entity
     for entity in request.entities:
         measured_values = []
         error = None
@@ -820,7 +504,6 @@ def run_workload_experiment(
 
             benchmark_parameters = BenchmarkParameters.model_validate(values)
 
-            # Will raise VLLMBenchmarkError if there is a problem
             logger.info(f"Executing experiment: {experiment.identifier}")
             result: BenchmarkResult
             if experiment.identifier in [
@@ -908,7 +591,6 @@ def run_workload_experiment(
                 )
             )
 
-    # For multi entity experiments if ONE entity had ValidResults the status must be SUCCESS
     if len(measurements) > 0:
         request.measurements = measurements
     request.status = compute_measurement_status(measurements=measurements)

@@ -60,12 +60,10 @@ def _build_point_group_values(
     """
 
     def make_hashable(
-        value: float | list | str | dict | None,
+        value: float | list | str | None,
     ) -> int | float | tuple | str | None:
         """Convert unhashable types to hashable equivalents"""
         match value:
-            case dict():
-                return tuple(sorted(value.items()))
             case list():
                 return tuple(value)
             case _:

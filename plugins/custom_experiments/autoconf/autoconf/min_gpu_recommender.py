@@ -319,15 +319,15 @@ def avoid_oom_recommender(
         # Step 1: Check if the original number_gpus would work without OOM
         original_batch_size = per_device_train_batch_size * number_gpus
         configuration["batch_size"] = original_batch_size
+        configuration["number_gpus"] = number_gpus
         moduleLog.debug(
             f"Step 1: Checking if original number_gpus={number_gpus} works with batch_size={original_batch_size}"
         )
-        config = JobConfig.model_validate(configuration)
-        min_gpus_for_original, _ = recommend_min_gpu(
-            job_config=config, predictor=predictor, valid_n_gpu_list=[number_gpus]
+        gpus_can_support_run, _ = get_model_prediction_and_metadata(
+            configuration, predictor=predictor
         )
 
-        if min_gpus_for_original != -1 and min_gpus_for_original <= number_gpus:
+        if gpus_can_support_run == 1:
             # Original number_gpus works without OOM, preserve it
             workers = math.ceil(number_gpus / gpus_per_worker)
             gpus = math.ceil(number_gpus / workers)

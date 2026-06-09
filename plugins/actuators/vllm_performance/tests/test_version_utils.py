@@ -53,6 +53,3 @@ class TestVLLMVersionChecker:
         """Test threadpool enabled at exact minimum version."""
         image_value = ["vllm/vllm-openai:v0.20.0", "0.20.0"]
         assert VLLMVersionChecker.supports_threadpool(image_value, 1)
-
-
-# Made with Bob

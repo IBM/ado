@@ -36,7 +36,8 @@ must already include the appropriate version of `torch`:
 
 <!-- markdownlint-disable line-length -->
 
-**We recommend using the [`ordered_pip`](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md)
+**We recommend using the
+[`ordered_pip`](https://github.com/IBM/ado/blob/main/orchestrator/utilities/ray_env/README.md)
 RayRuntimeEnv plugin** for all versions of `fms-hf-tuning`. It ensures the
 correct `torch` version is installed before packages that depend on it during
 their build phase. The plugin is included in ado-core and its images (e.g.,
@@ -57,7 +58,8 @@ or use one of the following tested images:
 
 - **`fms-hf-tuning > 2.8.2`**
 
-  - Use the tested image `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
+  - Use the tested image
+    `quay.io/ado/ado:c6ba952ad79a2d86d1174fd9aaebddd8953c78cf-py311-cu121-ofed2410v1140`
     (tested with `fms-hf-tuning==3.0.0`, not guaranteed for future versions)
 
   <!-- markdownlint-enable line-length -->
@@ -1953,7 +1955,7 @@ properties on the space you created like so:
 <!-- markdownlint-disable MD046 -->
 
 ```commandline
-ado show entities space --output csv $DISCOVERY_SPACE_ID > entities.csv
+ado show measurements space --output csv $DISCOVERY_SPACE_ID > entities.csv
 ```
 
 <!-- markdownlint-enable MD046 -->

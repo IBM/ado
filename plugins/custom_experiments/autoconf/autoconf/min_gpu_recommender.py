@@ -344,9 +344,7 @@ def avoid_oom_recommender(
             f"Step 2: Original number_gpus={number_gpus} would cause OOM, searching for minimum"
         )
         num_gpu_list = [2**i for i in range(int(math.log2(max_gpus)) + 1)]
-        result["can_recommend"] = False
-        result["gpus"] = -1
-        result["workers"] = -1
+        result = {"can_recommend": False}
 
         for min_gpus in num_gpu_list:
             configuration["batch_size"] = per_device_train_batch_size * min_gpus

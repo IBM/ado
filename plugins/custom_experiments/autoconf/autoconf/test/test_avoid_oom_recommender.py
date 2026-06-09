@@ -97,5 +97,5 @@ def test_avoid_oom_recommender_no_valid_config_exists() -> None:
 
     # Should not be able to recommend
     assert result["can_recommend"] is False
-    assert result["gpus"] == -1
-    assert result["workers"] == -1
+    assert "gpus" not in result
+    assert "workers" not in result

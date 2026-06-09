@@ -57,7 +57,9 @@ The `image` property accepts two formats for specifying vLLM container images:
       - ["vllm/vllm-openai:v0.20.1", "0.20.1"]
 ```
 
-The list format `[image_url, version]` enables version-aware features like automatic threadpool configuration and measurement caching based on vLLM version capabilities.
+The list format `[image_url, version]` enables version-aware features like
+automatic threadpool configuration and measurement caching based on vLLM
+version capabilities.
 
 **String format (backward compatible):**
 
@@ -68,16 +70,22 @@ The list format `[image_url, version]` enables version-aware features like autom
       - "vllm/vllm-openai:v0.20.1"
 ```
 
-The string format continues to work for backward compatibility but does not enable version-aware optimizations.
+The string format continues to work for backward compatibility but does not
+enable version-aware optimizations.
 
 ### Threadpool Configuration (vLLM >= 0.20.0)
 
-For vLLM versions 0.20.0 and above, the actuator supports threadpool rendering which can improve inference performance:
+For vLLM versions 0.20.0 and above, the actuator supports threadpool
+rendering which can improve inference performance:
 
 - `threadpool`: Enable/disable threadpool (0 or 1, default: 1)
-- `renderer_num_workers`: Number of renderer workers when threadpool is enabled (1-128, default: 32)
+- `renderer_num_workers`: Number of renderer workers when threadpool is
+  enabled (1-128, default: 32)
 
-When using the list image format with version information, these parameters are automatically configured based on the vLLM version. For versions below 0.20.0, threadpool is automatically disabled regardless of the `threadpool` parameter value.
+When using the list image format with version information, these parameters
+are automatically configured based on the vLLM version. For versions below
+0.20.0, threadpool is automatically disabled regardless of the `threadpool`
+parameter value.
 
 **Example with threadpool configuration:**
 
@@ -97,11 +105,19 @@ entitySpace:
 
 ### Measurement Caching
 
-The actuator implements intelligent measurement caching to avoid redundant benchmarks. When multiple entities share identical environment parameters (model, GPUs, vLLM configuration) and benchmark parameters (request rate, token counts, etc.), the actuator reuses previous measurement results. This significantly speeds up experiments that explore parameter spaces with repeated configurations.
+The actuator implements intelligent measurement caching to avoid redundant
+benchmarks. When multiple entities share identical environment parameters
+(model, GPUs, vLLM configuration) and benchmark parameters (request rate,
+token counts, etc.), the actuator reuses previous measurement results. This
+significantly speeds up experiments that explore parameter spaces with
+repeated configurations.
 
 Cache keys are automatically generated based on:
-- Environment parameters: model, image, GPUs, memory, vLLM settings, threadpool configuration
-- Benchmark parameters: num_prompts, request_rate, token counts, dataset
+
+- Environment parameters: model, image, GPUs, memory, vLLM settings,
+  threadpool configuration
+- Benchmark parameters: num_prompts, request_rate, token counts,
+  dataset
 
 ### Available experiments
 
@@ -323,7 +339,6 @@ OpenTelemetry-compatible observability platforms.
 **Configuration:**
 
 Add the `otlp_traces_endpoint` parameter to your actuatorconfiguration:
-
 
 ### Multiple configurations
 

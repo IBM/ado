@@ -20,8 +20,8 @@ from orchestrator.schema.result import (
 logger = logging.getLogger(__name__)
 
 
-# convert a dictionary of measurements to AD measurements
-def dict_to_measurements(
+# Convert a dictionary of measurements to ObservedPropertyValue instances
+def observed_property_values_from_dicts(
     results: dict[str, Any],
     experiment: Experiment | ParameterizedExperiment,
 ) -> list[ObservedPropertyValue]:

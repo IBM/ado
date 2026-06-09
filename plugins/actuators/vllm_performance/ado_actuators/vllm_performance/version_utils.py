@@ -36,6 +36,3 @@ class VLLMVersionChecker:
             return vllm_ver >= min_ver
         except Exception:
             return True
-
-
-# Made with Bob

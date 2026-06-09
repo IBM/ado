@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 # Convert a dictionary of measurements to ObservedPropertyValue instances
-def observed_property_values_from_dicts(
+def observed_property_values_from_dict(
     results: dict[str, Any],
     experiment: Experiment | ParameterizedExperiment,
 ) -> list[ObservedPropertyValue]:

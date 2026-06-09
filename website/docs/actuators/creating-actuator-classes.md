@@ -834,7 +834,7 @@ functions and methods:
 
 - `Experiment.propertyValuesFromEntity` - Get the input values for the
   experiment based on the entity and the experiment definition
-- `orchestrator.utilities.support.observed_property_values_from_dicts` - Extract
+- `orchestrator.utilities.support.observed_property_values_from_dict` - Extract
   the values related to an experiment from a dictionary of measurements and
   convert to PropertyValues
 - `orchestrator.utilities.support.create_measurement_result` - Create

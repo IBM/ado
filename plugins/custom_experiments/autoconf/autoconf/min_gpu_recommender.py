@@ -168,6 +168,14 @@ MaxGPUs = ConstitutiveProperty(
     ),
 )
 
+NumberGPUS = ConstitutiveProperty(
+    identifier="number_gpus",
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[1, 1024 + 1],  # VV: Arbitrary cutoff at 1024 GPUs
+    ),
+)
+
 
 @custom_experiment(
     required_properties=[
@@ -269,6 +277,7 @@ def min_gpu_recommender(
         GPUModel,
         TokensPerSample,
         PerDeviceBatchSize,
+        NumberGPUS,
     ],
     optional_properties=[GPUsPerWorker, MaxGPUs, ModelVersion],
     output_property_identifiers=["can_recommend", "gpus", "workers"],
@@ -285,6 +294,7 @@ def avoid_oom_recommender(
     gpu_model: str,
     tokens_per_sample: int,
     per_device_train_batch_size: int,
+    number_gpus: int,
     gpus_per_worker: int = 8,
     max_gpus: int = 64,
     model_version: str = "3.1.0",

@@ -520,7 +520,7 @@ class ExperimentExecutorSupervisor:
         )
         self._queue.put(failed_request, block=False)
         self._log.warning(
-            "Launch supervision failure for request %s (index=%s): %s",
+            "Launch failure for request %s (index=%s): %s",
             requestid,
             experiment_executor.request.requestIndex,
             reason,

@@ -344,6 +344,9 @@ def avoid_oom_recommender(
             f"Step 2: Original number_gpus={number_gpus} would cause OOM, searching for minimum"
         )
         num_gpu_list = [2**i for i in range(int(math.log2(max_gpus)) + 1)]
+
+        # Do not check for GPUs that are fewer than the original GPUs
+        num_gpu_list = [x for x in num_gpu_list if x > number_gpus]
         result = {"can_recommend": False}
 
         for min_gpus in num_gpu_list:

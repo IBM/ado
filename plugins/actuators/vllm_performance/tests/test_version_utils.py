@@ -9,47 +9,70 @@ from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 class TestVLLMVersionChecker:
     """Tests for VLLMVersionChecker class."""
 
-    def test_parse_version_from_list(self) -> None:
-        """Test version parsing from list format."""
-        image_value = ["vllm/vllm-openai:v0.20.1", "0.20.1"]
-        assert VLLMVersionChecker.parse_version(image_value) == "0.20.1"
+    def test_extract_version_from_image_with_v_prefix(self) -> None:
+        """Test version extraction from image with 'v' prefix in tag."""
+        image = "vllm/vllm-openai:v0.20.1"
+        assert VLLMVersionChecker.extract_version_from_image(image) == "0.20.1"
 
-    def test_parse_version_from_list_single_element(self) -> None:
-        """Test version parsing from list with single element."""
-        image_value = ["vllm/vllm-openai:v0.20.1"]
-        assert VLLMVersionChecker.parse_version(image_value) is None
+    def test_extract_version_from_image_without_v_prefix(self) -> None:
+        """Test version extraction from image without 'v' prefix in tag."""
+        image = "vllm/vllm-openai:0.20.1"
+        assert VLLMVersionChecker.extract_version_from_image(image) == "0.20.1"
 
-    def test_parse_version_from_string(self) -> None:
-        """Test version parsing from string format (backward compatibility)."""
-        image_value = "vllm/vllm-openai:v0.20.1"
-        assert VLLMVersionChecker.parse_version(image_value) is None
+    def test_extract_version_from_plain_version_string(self) -> None:
+        """Test that plain version strings are returned as-is."""
+        version_str = "0.20.1"
+        assert VLLMVersionChecker.extract_version_from_image(version_str) == "0.20.1"
 
-    def test_supports_threadpool_disabled_by_user(self) -> None:
-        """Test threadpool disabled when user sets threadpool=0."""
-        image_value = ["vllm/vllm-openai:v0.20.1", "0.20.1"]
-        assert not VLLMVersionChecker.supports_threadpool(image_value, 0)
+    def test_extract_version_from_plain_version_with_v(self) -> None:
+        """Test that plain version strings with 'v' prefix have it removed."""
+        version_str = "v0.20.1"
+        assert VLLMVersionChecker.extract_version_from_image(version_str) == "0.20.1"
+
+    def test_extract_version_from_image_latest_tag(self) -> None:
+        """Test version extraction from image with 'latest' tag."""
+        image = "vllm/vllm-openai:latest"
+        assert VLLMVersionChecker.extract_version_from_image(image) == "latest"
+
+    def test_extract_version_from_empty_string(self) -> None:
+        """Test that empty string returns None."""
+        assert VLLMVersionChecker.extract_version_from_image("") is None
+
+    def test_extract_version_from_none(self) -> None:
+        """Test that None returns None."""
+        # Type ignore needed for testing edge case
+        assert VLLMVersionChecker.extract_version_from_image(None) is None  # type: ignore[arg-type]
 
     def test_supports_threadpool_version_supported(self) -> None:
         """Test threadpool enabled for vLLM >= 0.20.0."""
-        image_value = ["vllm/vllm-openai:v0.20.1", "0.20.1"]
-        assert VLLMVersionChecker.supports_threadpool(image_value, 1)
+        version_str = "0.20.1"
+        assert VLLMVersionChecker.supports_threadpool(version_str)
 
     def test_supports_threadpool_version_not_supported(self) -> None:
         """Test threadpool disabled for vLLM < 0.20.0."""
-        image_value = ["vllm/vllm-openai:v0.18.0", "0.18.0"]
-        assert not VLLMVersionChecker.supports_threadpool(image_value, 1)
-
-    def test_supports_threadpool_no_version_info(self) -> None:
-        """Test threadpool enabled when no version info (backward compatible)."""
-        image_value = "vllm/vllm-openai:v0.20.1"
-        assert VLLMVersionChecker.supports_threadpool(image_value, 1)
+        version_str = "0.18.0"
+        assert not VLLMVersionChecker.supports_threadpool(version_str)
 
     def test_supports_threadpool_invalid_version(self) -> None:
         """Test threadpool enabled for invalid version (fail-safe)."""
-        image_value = ["vllm/vllm-openai:latest", "invalid-version"]
-        assert VLLMVersionChecker.supports_threadpool(image_value, 1)
+        version_str = "invalid-version"
+        assert VLLMVersionChecker.supports_threadpool(version_str)
 
     def test_supports_threadpool_edge_version(self) -> None:
         """Test threadpool enabled at exact minimum version."""
-        image_value = ["vllm/vllm-openai:v0.20.0", "0.20.0"]
-        assert VLLMVersionChecker.supports_threadpool(image_value, 1)
+        version_str = "0.20.0"
+        assert VLLMVersionChecker.supports_threadpool(version_str)
+
+    def test_supports_threadpool_with_image_extraction(self) -> None:
+        """Test full workflow: extract version from image then check threadpool support."""
+        image = "vllm/vllm-openai:v0.20.1"
+        version_str = VLLMVersionChecker.extract_version_from_image(image)
+        assert version_str is not None
+        assert VLLMVersionChecker.supports_threadpool(version_str)
+
+    def test_supports_threadpool_with_old_image_extraction(self) -> None:
+        """Test full workflow with old version: extract then check threadpool support."""
+        image = "vllm/vllm-openai:v0.18.0"
+        version_str = VLLMVersionChecker.extract_version_from_image(image)
+        assert version_str is not None
+        assert not VLLMVersionChecker.supports_threadpool(version_str)

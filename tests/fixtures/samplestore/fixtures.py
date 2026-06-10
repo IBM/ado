@@ -10,7 +10,7 @@ from orchestrator.core import (
     OperationResource,
     SampleStoreResource,
 )
-from orchestrator.core.samplestore.base import ActiveSampleStore, SampleStore
+from orchestrator.core.samplestore.base import ActiveSampleStore
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
@@ -88,4 +88,4 @@ def empty_sample_store(
             ),
         )
     )
-    return SampleStore.from_configuration(sample_store_configuration)
+    return create_sample_store(sample_store_configuration)

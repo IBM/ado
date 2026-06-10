@@ -98,7 +98,8 @@ ExecutionTypeUnion = Annotated[
 ]
 
 
-# Ray RuntimeEnvConfig defaults (see Ray handling-dependencies docs).
+# Ray RuntimeEnvironmentConfiguration defaults
+# Used in next class
 RAY_DEFAULT_SETUP_TIMEOUT_SECONDS = 600
 RAY_DEFAULT_EAGER_INSTALL = True
 

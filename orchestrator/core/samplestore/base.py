@@ -154,22 +154,22 @@ class SampleStore(abc.ABC):
     def from_specification(
         cls,
         identifier: str | None,
-        spec: "SampleStoreSpecification",
+        specification: "SampleStoreSpecification",
     ) -> "SampleStore":
         """Load an existing SampleStore or create a new one from specification.
 
         Args:
             identifier: The identifier of the SampleStore to initialize.
                        If None, a new SampleStore will be created.
-            spec: The specification of the SampleStore. Defines where it is stored,
+            specification: The specification of the SampleStore. Defines where it is stored,
                   how to access it, and what class to use.
 
         Returns:
             A SampleStore instance of the appropriate subclass.
 
         Example:
-            >>> spec = SampleStoreSpecification(...)
-            >>> store = SampleStore.from_specification(identifier="my-store", spec=spec)
+            >>> specification = SampleStoreSpecification(...)
+            >>> store = SampleStore.from_specification(identifier="my-store", specification=specification)
         """
         import logging
 
@@ -178,19 +178,21 @@ class SampleStore(abc.ABC):
         logger = logging.getLogger("SampleStore.from_specification")
 
         source_class = orchestrator.modules.module.load_module_class_or_function(
-            spec.module
+            specification.module
         )
-        logger.debug(f"Class: {source_class}, Params: {spec.parameters}")
+        logger.debug(f"Class: {source_class}, Params: {specification.parameters}")
 
         # Convert dict parameters back to model object if needed
-        if isinstance(spec.parameters, dict):
-            parameters = source_class.validate_parameters(parameters=spec.parameters)
+        if isinstance(specification.parameters, dict):
+            parameters = source_class.validate_parameters(
+                parameters=specification.parameters
+            )
         else:
-            parameters = spec.parameters
+            parameters = specification.parameters
 
         return source_class(
             identifier=identifier,
-            storageLocation=spec.storageLocation,
+            storageLocation=specification.storageLocation,
             parameters=parameters,
         )
 
@@ -264,7 +266,7 @@ class SampleStore(abc.ABC):
         """
         return cls.from_specification(
             identifier=sample_store_resource.identifier,
-            spec=sample_store_resource.config.specification,
+            specification=sample_store_resource.config.specification,
         )
 
     @classmethod
@@ -301,7 +303,7 @@ class SampleStore(abc.ABC):
             )
 
         sample_store = cls.from_specification(
-            identifier=None, spec=configuration.specification
+            identifier=None, specification=configuration.specification
         )
 
         # Copy in data from additional sample stores

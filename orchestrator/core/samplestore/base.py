@@ -346,6 +346,7 @@ class SampleStore(abc.ABC):
         resource = metastore.getResource(
             kind=CoreResourceKinds.SAMPLESTORE,
             identifier=identifier,
+            raise_error_if_no_resource=True,
         )
         return cls.from_resource(resource)
 

@@ -403,21 +403,24 @@ def add_operation_and_output_to_metastore(
     metastore: SQLStore,
 ) -> OperationResource:
     """Creates an operation resource from the given configuration and adds it and its outputs to the resource store"""
+    from orchestrator.core.operation.resource import OperationProvenanceInfo
     from orchestrator.modules.operators.collections import provenance_for_operator
 
     operator_module = operation_resource_configuration.operation.module
-    operator_provenance = None
+    operators = {}
     if isinstance(operator_module, OperatorReference):
         operator_provenance = provenance_for_operator(
             operator_module.operatorName, operator_module.operationType
         )
+        if operator_provenance is not None:
+            operators[operator_module.operatorIdentifier] = operator_provenance
 
     operation = OperationResource(
         operationType=operator_module.operationType,
         operatorIdentifier=operator_module.operatorIdentifier,
         config=operation_resource_configuration,
         status=[output.exitStatus],
-        operatorProvenance=operator_provenance,
+        provenance=OperationProvenanceInfo(operators=operators),
     )
 
     # ValueError means the resource has already been added
@@ -461,6 +464,7 @@ def create_operation_and_add_to_metastore(
     """
 
     from orchestrator.core.operation.config import DiscoveryOperationConfiguration
+    from orchestrator.core.operation.resource import OperationProvenanceInfo
     from orchestrator.modules.operators.collections import provenance_for_operator
 
     operation_resource_configuration = DiscoveryOperationResourceConfiguration(
@@ -474,18 +478,20 @@ def create_operation_and_add_to_metastore(
     )
 
     op_module = operation_resource_configuration.operation.module
-    operator_provenance = None
+    operators = {}
     if isinstance(op_module, OperatorReference):
         operator_provenance = provenance_for_operator(
             op_module.operatorName, op_module.operationType
         )
+        if operator_provenance is not None:
+            operators[op_module.operatorIdentifier] = operator_provenance
 
     operation = OperationResource(
         identifier=operation_identifier,
         operationType=op_module.operationType,
         operatorIdentifier=op_module.operatorIdentifier,
         config=operation_resource_configuration,
-        operatorProvenance=operator_provenance,
+        provenance=OperationProvenanceInfo(operators=operators),
     )
 
     related_identifiers = [

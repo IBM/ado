@@ -8,13 +8,38 @@ import pydantic
 import rich.box
 
 from orchestrator.core.discoveryspace.config import DiscoverySpaceConfiguration
-from orchestrator.core.metadata import PackageProvenance
+from orchestrator.core.metadata import PackageProvenance, ProvenanceInfo
 from orchestrator.core.resources import ADOResource, CoreResourceKinds
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
 from orchestrator.utilities.pydantic import Defaultable
 
 if typing.TYPE_CHECKING:
     from rich.console import RenderableType
+
+
+class DiscoverySpaceProvenanceInfo(ProvenanceInfo):
+    """Plugin provenance for a discovery space resource."""
+
+    actuators: Annotated[
+        dict[str, PackageProvenance],
+        pydantic.Field(
+            default_factory=dict,
+            description=(
+                "Mapping of actuator identifier to the Python distribution that "
+                "provided it at the time this space was created."
+            ),
+        ),
+    ]
+    customExperiments: Annotated[
+        dict[str, PackageProvenance],
+        pydantic.Field(
+            default_factory=dict,
+            description=(
+                "Mapping of custom experiment identifier to the Python distribution "
+                "that provided it at the time this space was created."
+            ),
+        ),
+    ]
 
 
 class DiscoverySpaceResource(ADOResource):
@@ -29,30 +54,11 @@ class DiscoverySpaceResource(ADOResource):
             default_factory=lambda: f"space-{str(uuid.uuid4())[:8]}",
         ),
     ]
-
-    actuatorProvenance: Annotated[
-        dict[str, PackageProvenance],
+    provenance: Annotated[
+        DiscoverySpaceProvenanceInfo,
         pydantic.Field(
-            default_factory=dict,
-            description=(
-                "Mapping of actuator identifier to the Python distribution that "
-                "provided it at the time this space was created. Populated automatically "
-                "from the installed environment; empty for resources created before "
-                "provenance tracking was introduced."
-            ),
-        ),
-    ]
-
-    customExperimentProvenance: Annotated[
-        dict[str, PackageProvenance],
-        pydantic.Field(
-            default_factory=dict,
-            description=(
-                "Mapping of custom experiment identifier to the Python distribution "
-                "that provided it at the time this space was created. Only populated "
-                "for experiments registered via the ``ado.custom_experiments`` entry "
-                "point whose source module can be resolved to a distribution."
-            ),
+            default_factory=DiscoverySpaceProvenanceInfo,
+            description="Plugin package provenance frozen at resource creation time.",
         ),
     ]
 

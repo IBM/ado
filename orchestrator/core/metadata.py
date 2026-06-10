@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 
-from typing import Annotated
+from typing import Annotated, Self
 
 import pydantic
 from pydantic import ConfigDict
@@ -58,3 +58,32 @@ class PackageProvenance(pydantic.BaseModel):
             description="Installed version of the distribution (e.g. '1.7.1')."
         ),
     ]
+
+
+class ProvenanceInfo(pydantic.BaseModel):
+    """Base model for plugin provenance stored on ADO resources.
+
+    Subclasses declare named maps of plugin identifiers to the distribution
+    that provided each plugin at resource creation time. All declared fields
+    must be ``dict[str, PackageProvenance]``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    @pydantic.model_validator(mode="after")
+    def validate_provenance_field_values(self) -> Self:
+        """Ensure every declared field is a dict of PackageProvenance instances."""
+        for field_name in type(self).model_fields:
+            value = getattr(self, field_name)
+            if not isinstance(value, dict):
+                raise ValueError(
+                    f"{field_name} must be a dict[str, PackageProvenance], "
+                    f"got {type(value)}"
+                )
+            for key, item in value.items():
+                if not isinstance(item, PackageProvenance):
+                    raise ValueError(
+                        f"{field_name}[{key!r}] must be PackageProvenance, "
+                        f"got {type(item)}"
+                    )
+        return self

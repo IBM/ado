@@ -534,36 +534,32 @@ class DiscoverySpace:
 
     def _build_provenance(
         self,
-    ) -> tuple[
-        dict[str, "orchestrator.core.metadata.PackageProvenance"],
-        dict[str, "orchestrator.core.metadata.PackageProvenance"],
-    ]:
+    ) -> "orchestrator.core.discoveryspace.resource.DiscoverySpaceProvenanceInfo":
         """Resolve package provenance for all actuators and custom experiments.
 
         Returns:
-            A tuple of (actuatorProvenance, customExperimentProvenance) where:
-            - *actuatorProvenance* maps each unique actuator identifier used in the
-              measurement space to the distribution that provides it.
-            - *customExperimentProvenance* maps each custom experiment identifier
-              (from the ``custom_experiments`` actuator) to the distribution that
-              provides the experiment function.
+            DiscoverySpaceProvenanceInfo mapping actuators and custom experiments
+            to the distributions that provided them at space creation time.
         """
+        from orchestrator.core.discoveryspace.resource import (
+            DiscoverySpaceProvenanceInfo,
+        )
         from orchestrator.core.metadata import PackageProvenance
         from orchestrator.modules.actuators.registry import ActuatorRegistry
         from orchestrator.utilities.distribution import distribution_from_module
 
         registry = ActuatorRegistry.globalRegistry()
-        actuator_provenance: dict[str, PackageProvenance] = {}
-        custom_experiment_provenance: dict[str, PackageProvenance] = {}
+        actuators: dict[str, PackageProvenance] = {}
+        custom_experiments: dict[str, PackageProvenance] = {}
 
         for experiment in self.measurementSpace.experiments:
             actuator_id = experiment.actuatorIdentifier
 
             # Per-actuator provenance (deduplicated)
-            if actuator_id not in actuator_provenance:
+            if actuator_id not in actuators:
                 provenance = registry.provenance_for_actuator(actuator_id)
                 if provenance is not None:
-                    actuator_provenance[actuator_id] = provenance
+                    actuators[actuator_id] = provenance
 
             # Per-custom-experiment provenance
             if actuator_id == "custom_experiments":
@@ -583,28 +579,29 @@ class DiscoverySpace:
                                 dist = importlib.metadata.distribution(dist_name)
                                 version = dist.metadata.get("Version")
                                 if version is not None:
-                                    custom_experiment_provenance[
-                                        experiment.identifier
-                                    ] = PackageProvenance(
-                                        distributionName=dist_name,
-                                        distributionVersion=version,
+                                    custom_experiments[experiment.identifier] = (
+                                        PackageProvenance(
+                                            distributionName=dist_name,
+                                            distributionVersion=version,
+                                        )
                                     )
                         except Exception:  # noqa: S110
                             pass
 
-        return actuator_provenance, custom_experiment_provenance
+        return DiscoverySpaceProvenanceInfo(
+            actuators=actuators,
+            customExperiments=custom_experiments,
+        )
 
     @property
     def resource(
         self,
     ) -> orchestrator.core.discoveryspace.resource.DiscoverySpaceResource:
 
-        actuator_provenance, custom_experiment_provenance = self._build_provenance()
         return orchestrator.core.discoveryspace.resource.DiscoverySpaceResource(
             identifier=self._identifier,
             config=self.config,
-            actuatorProvenance=actuator_provenance,
-            customExperimentProvenance=custom_experiment_provenance,
+            provenance=self._build_provenance(),
         )
 
     def saveSpace(self) -> None:

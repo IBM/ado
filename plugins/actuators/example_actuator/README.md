@@ -71,9 +71,9 @@ can be reused with multiple `discoveryspaces`.
    ado create operation -f yamls/random_walk_operation.yaml --use-latest space
    ```
 
-At this point, you can try `ado show entities` to get sampled entities or apply
-other operators. The actuator is already fully integrated with `ado`: all you
-need to do is have it perform "real" experiments.
+At this point, you can try `ado show measurements` to get sampled entities or
+apply other operators. The actuator is already fully integrated with `ado`: all
+you need to do is have it perform "real" experiments.
 
 ## Parameterizable Experiments
 

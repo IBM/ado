@@ -619,7 +619,7 @@ def custom_experiment_executor(
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue,
-    custom_experiments_actuator: typing.Optional["CustomExperimentsActor", None] = None,
+    custom_experiments_actuator: typing.Optional["CustomExperimentsActor"] = None,
 ) -> None:
     """
     :param function: The function to call

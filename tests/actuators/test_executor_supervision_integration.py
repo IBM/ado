@@ -24,10 +24,10 @@ import ray
 from ray.util.queue import Empty as RayQueueEmpty
 
 from orchestrator.modules.actuators.executor_supervisor import (
+    ExperimentExecutorState,
     ExperimentExecutorSupervisor,
     ExperimentExecutorSupervisorConfig,
-    RayTaskState,
-    _default_task_state_lookup,
+    _experiment_executor_state_lookup,
 )
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.schema.request import MeasurementRequest, MeasurementRequestStateEnum
@@ -144,7 +144,7 @@ def test_supervisor_pending_resource_timeout_emits_invalid(
     try:
         request = _sample_request("timeout1")
         ref = never_scheduled.remote()
-        supervisor.register(request, ref)
+        supervisor.supervise_experiment_executor(request, ref)
         # Allow enough time for: State API visibility lag (~1s) + pending resource timeout (2s)
         result = drain_queue(measurement_queue, timeout=10.0)
         assert result is not None
@@ -170,7 +170,7 @@ def test_supervisor_pending_node_assignment_not_timed_out_by_default(
     ref = never_scheduled.remote()
     try:
         request = _sample_request("pending1")
-        supervisor.register(request, ref)
+        supervisor.supervise_experiment_executor(request, ref)
         # Wait long enough for the task to be visible in the State API and several
         # poll cycles to confirm the supervisor does not emit an invalid result.
         time.sleep(5.0)
@@ -195,7 +195,7 @@ def test_supervisor_running_task_not_timed_out(
     try:
         request = _sample_request("running1")
         ref = sleep_forever.remote()
-        supervisor.register(request, ref)
+        supervisor.supervise_experiment_executor(request, ref)
         time.sleep(0.5)
         result = drain_queue(measurement_queue, timeout=1.0)
         assert result is None
@@ -215,7 +215,7 @@ def test_supervisor_completed_task_no_supervisor_put(
     try:
         request = _sample_request("done1")
         ref = return_immediately.remote()
-        supervisor.register(request, ref)
+        supervisor.supervise_experiment_executor(request, ref)
         ray.get(ref)
         time.sleep(0.5)
         result = drain_queue(measurement_queue, timeout=1.0)
@@ -232,13 +232,13 @@ def test_default_task_state_lookup_unschedulable_task_returns_pending_node_assig
     ref = never_scheduled.remote()
     try:
         deadline = time.monotonic() + 15.0
-        state = RayTaskState.OTHER
+        state = ExperimentExecutorState.OTHER
         while time.monotonic() < deadline:
-            state = _default_task_state_lookup(ref)
-            if state == RayTaskState.PENDING_NODE_ASSIGNMENT:
+            state = _experiment_executor_state_lookup(ref)
+            if state == ExperimentExecutorState.PENDING_NODE_ASSIGNMENT:
                 break
             time.sleep(0.2)
-        if state != RayTaskState.PENDING_NODE_ASSIGNMENT:
+        if state != ExperimentExecutorState.PENDING_NODE_ASSIGNMENT:
             pytest.skip(
                 "Ray State API did not expose PENDING_NODE_ASSIGNMENT within 15s "
                 f"(last collapsed state={state.value}); skipping due to transient "
@@ -259,7 +259,7 @@ def test_supervisor_executor_exception_emits_invalid(
     try:
         request = _sample_request("exc1")
         ref = raise_before_return.remote()
-        supervisor.register(request, ref)
+        supervisor.supervise_experiment_executor(request, ref)
         result = drain_queue(measurement_queue, timeout=5.0)
         assert result is not None
         assert result.requestid == "exc1"
@@ -275,7 +275,7 @@ def test_supervisor_executor_exception_emits_invalid(
 def test_mark_completed_prevents_duplicate_launch_failure(
     measurement_queue: MeasurementQueue,
 ) -> None:
-    """mark_completed prevents launch-timeout invalid when a result was already queued."""
+    """mark_measurement_request_completed prevents launch-timeout invalid when a result was already queued."""
     config = ExperimentExecutorSupervisorConfig(
         taskFailedGraceSeconds=0.2,
         taskRunningTimeoutSeconds=0.5,
@@ -287,9 +287,9 @@ def test_mark_completed_prevents_duplicate_launch_failure(
     try:
         request = _sample_request("mc1")
         request.status = MeasurementRequestStateEnum.SUCCESS
-        supervisor.register(request, stuck_ref)
+        supervisor.supervise_experiment_executor(request, stuck_ref)
         measurement_queue.put(request, block=False)
-        supervisor.mark_completed(request.requestid)
+        supervisor.mark_measurement_request_completed(request.requestid)
         result = drain_queue(measurement_queue, timeout=5.0)
         assert result is not None
         assert result.requestid == "mc1"

@@ -355,7 +355,7 @@ ray job submit --address http://localhost:8265 --runtime-env ray_runtime_env.yam
 <span class=w>      </span><span class=nt>samplerType</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">generator</span>
 <span class=w>    </span><span class=nt>singleMeasurement</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class=w> </span><span class=c1># Disable memoization</span>
 <span class=w>    </span><span class=nt>maxRetries</span><span class=p>:</span><span class=w> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-</code></pre></div> <p>Then after all five operations finish, obtain a CSV file containing the observed properties on the space you created like so:</p> <div class=highlight><pre><span></span><code>ado show entities space --output csv $DISCOVERY_SPACE_ID &gt; entities.csv
+</code></pre></div> <p>Then after all five operations finish, obtain a CSV file containing the observed properties on the space you created like so:</p> <div class=highlight><pre><span></span><code>ado show measurements space --output csv $DISCOVERY_SPACE_ID &gt; entities.csv
 </code></pre></div> <p>Finally, use the script <code>sfttrainer_check_metrics_stability</code> that you get by installing the <code>ado-sfttrainer</code> package:</p> <div class=highlight><pre><span></span><code>sfttrainer_check_metrics_stability $pathTotheCSVFileFromAbove
 </code></pre></div> <p>You should see an output similar to this:</p> <div class=highlight><pre><span></span><code>Total benchmarks analyzed: 63
 

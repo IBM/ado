@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 
-from typing import Annotated, Self
+from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
+from typing_extensions import Self
 
 
 class ConfigurationMetadata(pydantic.BaseModel):

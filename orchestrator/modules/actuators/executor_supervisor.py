@@ -93,24 +93,21 @@ class ExperimentExecutorState(str, enum.Enum):
             ``FAILED``, ``PENDING_NODE_ASSIGNMENT``, ``PENDING_OBJ_STORE_MEM_AVAIL``,
             or ``OTHER`` (all other states and unavailable lookups).
         """
-        if raw in (cls.RUNNING.value, "RUNNING_IN_RAY_GET", "RUNNING_IN_RAY_WAIT"):
-            return cls.RUNNING
-        if raw == cls.FAILED.value:
-            return cls.FAILED
-        if raw == cls.PENDING_NODE_ASSIGNMENT.value:
-            return cls.PENDING_NODE_ASSIGNMENT
-        if raw == cls.PENDING_OBJ_STORE_MEM_AVAIL.value:
-            return cls.PENDING_OBJ_STORE_MEM_AVAIL
-        log = logger or logging.getLogger(__name__)
-        if raw is None:
-            log.debug("Ray task state unavailable; treating as %s", cls.OTHER.value)
-        else:
-            log.debug(
-                "Ray task state %r collapsed to %s for launch supervision",
-                raw,
-                cls.OTHER.value,
-            )
-        return cls.OTHER
+        match raw:
+            case cls.RUNNING.value | "RUNNING_IN_RAY_GET" | "RUNNING_IN_RAY_WAIT":
+                return cls.RUNNING
+            case cls.FAILED.value:
+                return cls.FAILED
+            case cls.PENDING_NODE_ASSIGNMENT.value:
+                return cls.PENDING_NODE_ASSIGNMENT
+            case cls.PENDING_OBJ_STORE_MEM_AVAIL.value:
+                return cls.PENDING_OBJ_STORE_MEM_AVAIL
+            case None:
+                log = logger or logging.getLogger(__name__)
+                log.debug("Ray task state unavailable; treating as %s", cls.OTHER.value)
+                return cls.OTHER
+            case _:
+                return cls.OTHER
 
 
 _RESOURCE_WAIT_STATES: frozenset[ExperimentExecutorState] = frozenset(

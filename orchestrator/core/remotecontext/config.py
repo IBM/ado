@@ -117,6 +117,7 @@ class RuntimeEnvironmentConfiguration(pydantic.BaseModel):
     setupTimeoutSeconds: Annotated[
         int,
         pydantic.Field(
+            ge=-1,
             description=(
                 "Maximum seconds to create the job runtime environment on a worker. "
                 "Use -1 to disable the timeout."
@@ -133,18 +134,6 @@ class RuntimeEnvironmentConfiguration(pydantic.BaseModel):
             ),
         ),
     ] = RAY_DEFAULT_EAGER_INSTALL
-
-    @pydantic.field_validator("setupTimeoutSeconds")
-    @classmethod
-    def validate_setup_timeout_seconds(cls, value: int) -> int:
-        """Validate setup timeout matches Ray rules."""
-        if value == -1:
-            return value
-        if value <= 0:
-            raise ValueError(
-                "setupTimeoutSeconds must be greater than zero or -1 to disable timeout"
-            )
-        return value
 
 
 class PackageConfiguration(pydantic.BaseModel):
@@ -222,7 +211,6 @@ class RemoteExecutionContext(pydantic.BaseModel):
     runtimeEnv: Annotated[
         RuntimeEnvironmentConfiguration | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Optional Ray runtime environment configuration (setup timeout, "
                 "eager install). Written to the ``config`` section of runtime_env.yaml."

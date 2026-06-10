@@ -165,9 +165,7 @@ class DiscoverySpace:
 
         """
 
-        from orchestrator.core.samplestore.utils import (
-            load_sample_store_from_resource,
-        )
+        from orchestrator.core.samplestore.base import SampleStore
 
         if metadata_store is None:
             metadata_store = orchestrator.metastore.sqlstore.SQLResourceStore(
@@ -176,13 +174,13 @@ class DiscoverySpace:
 
         entitySpace = None
 
-        if samplestore_resource is None:
-            samplestore_resource = metadata_store.getResource(
-                identifier=conf.sampleStoreIdentifier,
-                kind=CoreResourceKinds.SAMPLESTORE,
-                raise_error_if_no_resource=True,
+        sample_store = (
+            SampleStore.from_resource(samplestore_resource)
+            if samplestore_resource is not None
+            else SampleStore.from_identifier(
+                identifier=conf.sampleStoreIdentifier, metastore=metadata_store
             )
-        sample_store = load_sample_store_from_resource(samplestore_resource)
+        )
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(

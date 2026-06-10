@@ -119,26 +119,26 @@ class AdoShowDetailsSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
 
 
-#################### ado show entities ####################
-class AdoShowEntitiesSupportedEntityTypes(Enum):
+#################### ado show measurements ####################
+class AdoShowMeasurementsSupportedEntityTypes(Enum):
     MEASURED = "measured"
     MATCHING = "matching"
     MISSING = "missing"
     UNMEASURED = "unmeasured"
 
 
-class AdoShowEntitiesSupportedOutputFormats(Enum):
+class AdoShowMeasurementsSupportedOutputFormats(Enum):
     CSV = _CSV
     JSON = _JSON
     TABLE = _TABLE
 
 
-class AdoShowEntitiesSupportedPropertyFormats(Enum):
+class AdoShowMeasurementsSupportedPropertyFormats(Enum):
     OBSERVED = "observed"
     TARGET = "target"
 
 
-class AdoShowEntitiesSupportedResourceTypes(Enum):
+class AdoShowMeasurementsSupportedResourceTypes(Enum):
     DISCOVERY_SPACE = _DISCOVERY_SPACE_SINGULAR
     OPERATION = _OPERATION_SINGULAR
 

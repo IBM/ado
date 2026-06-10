@@ -271,7 +271,7 @@ additional information related to the dependent experiment.
 When it completes, you can get a table of the points visited with:
 
 ```commandline
-ado show entities operation --use-latest
+ado show measurements operation --use-latest
 ```
 
 You will see a table similar to the following - note the extra column for the

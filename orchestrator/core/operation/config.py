@@ -44,10 +44,12 @@ class DiscoveryOperationEnum(enum.Enum):
 def get_actuator_configurations(
     project_context: ProjectContext, actuator_configuration_identifiers: list[str]
 ) -> list[ActuatorConfiguration]:
-    """Retrieves actuator configurations from the metastore
+    """Retrieves and validates actuator configurations from the metastore for use.
 
     Fetches ActuatorConfiguration resources from the metastore using the provided
-    identifiers and validates that each actuator has at most one configuration.
+    identifiers, validates parameters against actuator plugins, and checks that
+    each actuator has at most one configuration. This is the use-path fetch;
+    ``ado get`` and ``getResource`` do not call this function.
 
     Params:
         project_context: Project context for connecting to the metastore
@@ -55,10 +57,11 @@ def get_actuator_configurations(
             configuration resources to retrieve
 
     Returns:
-        List of ActuatorConfiguration instances retrieved from the metastore
+        List of ActuatorConfiguration instances validated for use
 
     Raises:
-        ValueError: If more than one ActuatorConfiguration references the same actuator
+        ValueError: If more than one ActuatorConfiguration references the same actuator,
+            or if actuator plugin validation fails
         ResourceDoesNotExistError: If any of the identifiers is not found in the project.
     """
     import orchestrator.metastore.sqlstore
@@ -72,6 +75,10 @@ def get_actuator_configurations(
             raise_error_if_no_resource=True,
         ).config
         for identifier in actuator_configuration_identifiers
+    ]
+
+    actuator_configurations = [
+        conf.validate_actuator_parameters() for conf in actuator_configurations
     ]
 
     actuator_identifiers = {conf.actuatorIdentifier for conf in actuator_configurations}
@@ -432,56 +439,31 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         ),
     ]
 
-    @pydantic.field_validator("module", mode="after")
-    @classmethod
-    def ensure_module_is_installed(
-        cls,
-        module: OperatorModuleConf | OperatorReference | ScriptOperatorConf,
-    ) -> OperatorModuleConf | OperatorReference | ScriptOperatorConf:
-        """Validates that the operator module is installed and accessible.
+    def validate_operator_parameters(self) -> Self:
+        """Validate operator module availability and downcast operation parameters.
 
-        Args:
-            module: The operator module or function configuration to validate.
+        Call explicitly at operation create (including dry-run). Metastore reads
+        and orchestration via registered operators do not invoke this method.
 
         Returns:
-            The validated module configuration.
+            Self with parameters validated and downcast to the operator model.
 
         Raises:
-            ValueError: If the operator module is not installed or cannot be imported.
-        """
-        if isinstance(module, OperatorReference | ScriptOperatorConf):
-            return module
-
-        import importlib
-
-        try:
-            getattr(importlib.import_module(module.moduleName), module.moduleClass)
-        except ModuleNotFoundError as e:
-            raise ValueError(
-                f"Operator {module.moduleName}.{module.moduleClass} is not installed"
-            ) from e
-
-        return module
-
-    @pydantic.model_validator(mode="after")
-    def validate_and_downcast_parameters(self) -> Self:
-        """Validates and downcasts operation parameters.
-
-        For OperatorModuleConf modules, validates parameters using the operation's
-        validateOperationParameters method. For OperatorReference modules,
-        validates parameters against the configuration model if available.
-
-        Returns:
-            Self: The validated instance with downcast parameters.
-
-        Raises:
+            ValueError: If the operator module is not installed.
             ValidationError: If parameter validation fails.
         """
         if isinstance(self.module, OperatorModuleConf):
-            # This is guaranteed to not raise an error thanks to ensure_module_is_installed
-            operator_class = getattr(
-                importlib.import_module(self.module.moduleName), self.module.moduleClass
-            )
+            import importlib
+
+            try:
+                operator_class = getattr(
+                    importlib.import_module(self.module.moduleName),
+                    self.module.moduleClass,
+                )
+            except ModuleNotFoundError as e:
+                raise ValueError(
+                    f"Operator {self.module.moduleName}.{self.module.moduleClass} is not installed"
+                ) from e
             operator_metadata = operator_class.operator_metadata()
             self.parameters = operator_metadata.configuration_model.model_validate(
                 self.parameters

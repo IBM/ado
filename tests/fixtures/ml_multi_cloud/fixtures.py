@@ -149,7 +149,7 @@ def ml_multi_cloud_correct_actuatorconfiguration(
                 "tests/resources/replay_actuatorconfiguration.yaml"
             ).read_text()
         )
-    )
+    ).validate_actuator_parameters()
     return create_actuatorconfiguration(actuator_configuration)
 
 
@@ -164,7 +164,7 @@ def ml_multi_cloud_invalid_actuatorconfiguration(
         yaml.safe_load(
             pathlib.Path("tests/resources/mock_actuatorconfiguration.yaml").read_text()
         )
-    )
+    ).validate_actuator_parameters()
     return create_actuatorconfiguration(actuator_configuration)
 
 

@@ -123,6 +123,15 @@ def create_operation(parameters: AdoCreateCommandParameters) -> str | None:
         )
         raise typer.Exit(1)
 
+    try:
+        op_resource_configuration.operation.validate_operator_parameters()
+    except (pydantic.ValidationError, ValueError) as e:
+        console_print(
+            f"{ERROR}The operation configuration provided was not valid:\n{e}",
+            stderr=True,
+        )
+        raise typer.Exit(1) from e
+
     if parameters.dry_run:
         console_print(f"{INFO}The operation YAML is syntactically valid.", stderr=True)
 

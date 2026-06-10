@@ -40,8 +40,18 @@ class ActuatorConfiguration(pydantic.BaseModel):
         ),
     ] = ConfigurationMetadata()
 
-    @pydantic.model_validator(mode="after")
-    def validate_model(self) -> "ActuatorConfiguration":
+    def validate_actuator_parameters(self) -> "ActuatorConfiguration":
+        """Validate actuatorIdentifier and parameters against the actuator registry.
+
+        Call explicitly at resource create and when fetching configs for use.
+        Metastore reads do not invoke this method.
+
+        Returns:
+            Self with parameters validated and downcast to the actuator model.
+
+        Raises:
+            ValueError: If the actuator is not registered or parameters are invalid.
+        """
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
             UnknownActuatorError,

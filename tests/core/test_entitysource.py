@@ -11,6 +11,7 @@ import orchestrator.core
 import orchestrator.utilities
 import orchestrator.utilities.location
 from orchestrator.core import SampleStoreResource
+from orchestrator.core.samplestore.base import SampleStore
 from orchestrator.core.samplestore.config import (
     SampleStoreConfiguration,
     SampleStoreModuleConf,
@@ -21,7 +22,6 @@ from orchestrator.core.samplestore.csv import (
     CSVSampleStoreDescription,
 )
 from orchestrator.core.samplestore.sql import SQLSampleStore
-from orchestrator.core.samplestore.utils import initialize_sample_store_from_reference
 from orchestrator.schema.observed_property import ObservedProperty
 from orchestrator.schema.property import (
     AbstractPropertyDescriptor,
@@ -173,7 +173,7 @@ def test_sample_store_resource(sample_store_resource: SampleStoreResource) -> No
 def csv_sample_store_from_reference(
     csv_sample_store_reference: SampleStoreReference,
 ) -> orchestrator.core.samplestore.csv.CSVSampleStore:
-    return initialize_sample_store_from_reference(reference=csv_sample_store_reference)
+    return SampleStore.from_reference(reference=csv_sample_store_reference)
 
 
 def test_csv_sample_store_from_reference(

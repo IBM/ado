@@ -167,7 +167,7 @@ ado show requests operation --use-latest
 and the results (this outputs the entities in sampled order):
 
 ```commandline
-ado show entities operation --use-latest
+ado show measurements operation --use-latest
 ```
 
 Instead of `--use-latest` you can also supply the operation id directly if you

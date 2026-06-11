@@ -43,14 +43,16 @@ so, the result can be reused.
 
 ## Data retrieval modes
 
-When retrieving data from a Discovery Space (e.g. via `ado show entities`),
+When retrieving data from a Discovery Space (e.g. via `ado show measurements`),
 there are two modes that control whether shared data is included:
 
 <!-- markdownlint-disable line-length -->
-| Mode | What is returned |
-| --- | --- |
-| **measured** | Only Entities and measurements recorded by operations run directly on *this* Discovery Space. Compatible data from other spaces is excluded. |
-| **matching** | All Entities and measurements in the Sample Store that are compatible with this Discovery Space, regardless of which space produced them. |
+
+| Mode         | What is returned                                                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **measured** | Only Entities and measurements recorded by operations run directly on _this_ Discovery Space. Compatible data from other spaces is excluded. |
+| **matching** | All Entities and measurements in the Sample Store that are compatible with this Discovery Space, regardless of which space produced them.    |
+
 <!-- markdownlint-enable line-length -->
 
 Use **measured** when you want to see only the results your operations have
@@ -66,12 +68,12 @@ compatible data from other spaces.
 > [ray tune](../operators/optimisation-with-ray-tune.md) operator documentation
 > for examples of how this setting is controlled.
 
-*Memoization* is the name for data reuse that happens automatically during an
+_Memoization_ is the name for data reuse that happens automatically during an
 explore operation. When an operation samples an Entity it proceeds as follows:
 
 - The Entity is sampled from the Entity Space
-- The Entity's record is retrieved from the Sample Store if present (*matching
-  on constitutive property values*).
+- The Entity's record is retrieved from the Sample Store if present (_matching
+  on constitutive property values_).
 - If **memoization is on**, `ado` checks for existing results for each
   Experiment in the Measurement Space using the Experiment’s unique identifier
   and reuses all matching results if any are found.
@@ -79,7 +81,8 @@ explore operation. When an operation samples an Entity it proceeds as follows:
   Experiment in the Measurement Space to the Entity. The new results are added
   to any that already exist.
 
-See [explore operators](../operators/explore_operators.md#memoization-replaying-measurements)
+See
+[explore operators](../operators/explore_operators.md#memoization-replaying-measurements)
 for how memoization fits into the explore execution loop, and
 [Discovery Spaces](discovery-spaces.md#sampling-and-measurement) for how
 operations and spaces relate.

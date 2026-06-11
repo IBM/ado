@@ -11,6 +11,7 @@ from orchestrator.core.operation.config import (
     DiscoveryOperationConfiguration,
     DiscoveryOperationEnum,
     DiscoveryOperationResourceConfiguration,
+    ScriptOperatorConf,
 )
 from orchestrator.core.operation.resource import (
     OperationExitStateEnum,
@@ -186,3 +187,54 @@ def test_add_operation_result(
 ) -> None:
 
     pass
+
+
+def test_script_operator_conf_round_trip() -> None:
+    """ScriptOperatorConf serialises and validates through operation configuration."""
+    script_module = ScriptOperatorConf(
+        name="grid-sweep",
+        version="1.0.0",
+        operationType=DiscoveryOperationEnum.SEARCH,
+    )
+    assert script_module.operationType == DiscoveryOperationEnum.SEARCH
+    assert script_module.operatorIdentifier == "script-grid-sweep-1.0.0"
+
+    operation_configuration = DiscoveryOperationConfiguration(
+        module=script_module,
+        parameters={"ignored": "value"},
+    )
+    assert operation_configuration.parameters == {}
+
+    resource_configuration = DiscoveryOperationResourceConfiguration(
+        operation=operation_configuration,
+        spaces=["space-test123"],
+    )
+
+    dumped = resource_configuration.model_dump()
+    restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
+    assert isinstance(restored.operation.module, ScriptOperatorConf)
+    assert restored.operation.module.name == "grid-sweep"
+    assert restored.operation.module.version == "1.0.0"
+    assert restored.operation.module.operationType == DiscoveryOperationEnum.SEARCH
+    assert restored.operation.parameters == {}
+
+
+def test_script_operation_resource_identifier() -> None:
+    """OperationResource built from ScriptOperatorConf uses script operator id."""
+    script_module = ScriptOperatorConf(
+        name="inline-script",
+        operationType=DiscoveryOperationEnum.CHARACTERIZE,
+    )
+    operation_configuration = DiscoveryOperationResourceConfiguration(
+        operation=DiscoveryOperationConfiguration(module=script_module),
+        spaces=["space-test123"],
+    )
+    operation = OperationResource(
+        operationType=script_module.operationType,
+        operatorIdentifier=script_module.operatorIdentifier,
+        config=operation_configuration,
+    )
+
+    assert operation.operationType == DiscoveryOperationEnum.CHARACTERIZE
+    assert operation.operatorIdentifier == "script-inline-script-0.1.0"
+    assert operation.identifier.startswith("operation-script-inline-script-0.1.0-")

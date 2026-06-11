@@ -9,7 +9,9 @@
 > 2. Performing optimizations with `ray_tune`
 >
 > 3. Parameterizable and parameterized experiments
+
 <!-- markdownlint-disable-next-line no-blanks-blockquote -->
+
 > [!NOTE]
 >
 > We recommend trying the
@@ -79,6 +81,7 @@ pip install custom_experiments/
 after this running `ado get experiments` should show the following line:
 
 <!-- markdownlint-disable line-length -->
+
 ```commandline
 ┌────────────────────┬────────────────────────────┐
 │ ACTUATOR ID        │ EXPERIMENT ID              │
@@ -88,6 +91,7 @@ after this running `ado get experiments` should show the following line:
 │ mock               │ test-experiment-two        │
 └────────────────────┴────────────────────────────┘
 ```
+
 <!-- markdownlint-enable line-length -->
 
 and `ado describe experiment nevergrad_opt_3d_test_func` should output
@@ -96,62 +100,62 @@ and `ado describe experiment nevergrad_opt_3d_test_func` should output
 Identifier: custom_experiments.nevergrad_opt_3d_test_func
 
 Required Inputs:
-                                                                             
-   Constitutive Properties:                                                  
-    ─────────────────────────────────────────────────────────────────────    
-     Identifier: x0                                                          
-     Domain:                                                                 
-                                                                             
-        Type: CONTINUOUS_VARIABLE_TYPE                                       
-                                                                             
-    ─────────────────────────────────────────────────────────────────────    
-    ─────────────────────────────────────────────────────────────────────    
-     Identifier: x1                                                          
-     Domain:                                                                 
-                                                                             
-        Type: CONTINUOUS_VARIABLE_TYPE                                       
-                                                                             
-    ─────────────────────────────────────────────────────────────────────    
-    ─────────────────────────────────────────────────────────────────────    
-     Identifier: x2                                                          
-     Domain:                                                                 
-                                                                             
-        Type: CONTINUOUS_VARIABLE_TYPE                                       
-                                                                             
-    ─────────────────────────────────────────────────────────────────────    
-                                                                             
+
+   Constitutive Properties:
+    ─────────────────────────────────────────────────────────────────────
+     Identifier: x0
+     Domain:
+
+        Type: CONTINUOUS_VARIABLE_TYPE
+
+    ─────────────────────────────────────────────────────────────────────
+    ─────────────────────────────────────────────────────────────────────
+     Identifier: x1
+     Domain:
+
+        Type: CONTINUOUS_VARIABLE_TYPE
+
+    ─────────────────────────────────────────────────────────────────────
+    ─────────────────────────────────────────────────────────────────────
+     Identifier: x2
+     Domain:
+
+        Type: CONTINUOUS_VARIABLE_TYPE
+
+    ─────────────────────────────────────────────────────────────────────
+
 Optional Inputs and Default Values:
-                                                                             
-    ─────────────────────────────────────────────────────────────────────    
-     Identifier: num_blocks                                                  
-     Domain:                                                                 
-                                                                             
-        Type: DISCRETE_VARIABLE_TYPE                                         
-        Interval: 1                                                          
-        Range: [1, 10]                                                       
-                                                                             
-     Default value: 1                                                        
-    ─────────────────────────────────────────────────────────────────────    
-    ─────────────────────────────────────────────────────────────────────    
-     Identifier: name                                                        
-     Domain:                                                                 
-                                                                             
-        Type: CATEGORICAL_VARIABLE_TYPE                                      
-        Values: [                                                            
-            'discus',                                                        
-            'sphere',                                                        
-            'cigar',                                                         
-            'griewank',                                                      
-            'rosenbrock',                                                    
-            'st1'                                                            
-        ]                                                                    
-                                                                             
-     Default value: 'rosenbrock'                                             
-    ─────────────────────────────────────────────────────────────────────    
-                                                                             
+
+    ─────────────────────────────────────────────────────────────────────
+     Identifier: num_blocks
+     Domain:
+
+        Type: DISCRETE_VARIABLE_TYPE
+        Interval: 1
+        Range: [1, 10]
+
+     Default value: 1
+    ─────────────────────────────────────────────────────────────────────
+    ─────────────────────────────────────────────────────────────────────
+     Identifier: name
+     Domain:
+
+        Type: CATEGORICAL_VARIABLE_TYPE
+        Values: [
+            'discus',
+            'sphere',
+            'cigar',
+            'griewank',
+            'rosenbrock',
+            'st1'
+        ]
+
+     Default value: 'rosenbrock'
+    ─────────────────────────────────────────────────────────────────────
+
 Outputs:
- ─────────────────────────────────────────────────────────────────────────── 
-   nevergrad_opt_3d_test_func-function_value                                 
+ ───────────────────────────────────────────────────────────────────────────
+   nevergrad_opt_3d_test_func-function_value
  ───────────────────────────────────────────────────────────────────────────
 ```
 
@@ -190,46 +194,46 @@ be different):
 Identifier: 'space-5420a8-default'
 
 Entity Space:
-                                                                             
-   Space with non-discrete dimensions. Cannot count entities                 
-                                                                             
-   Continuous properties:                                                    
-                                                                             
-      name   range                                                           
-     ──────────────────                                                      
-      x2     [-10, 10]                                                       
-      x1     [-10, 10]                                                       
-      x0     [-10, 10]                                                       
-                                                                             
-                                                                             
+
+   Space with non-discrete dimensions. Cannot count entities
+
+   Continuous properties:
+
+      name   range
+     ──────────────────
+      x2     [-10, 10]
+      x1     [-10, 10]
+      x0     [-10, 10]
+
+
 Measurement Space:
-                                                                             
-   Experiments:                                                              
-                                                                             
-      experiment                                      supported              
-     ───────────────────────────────────────────────────────────             
-      custom_experiments.nevergrad_opt_3d_test_func   True                   
-                                                                             
-    ─────────── custom_experiments.nevergrad_opt_3d_test_func ───────────    
-     Inputs:                                                                 
-                                                                             
-        parameter    type       value        parameterized                   
-       ────────────────────────────────────────────────────                  
-        x0           required   None         na                              
-        x1           required   None         na                              
-        x2           required   None         na                              
-        num_blocks   optional   1            False                           
-        name         optional   rosenbrock   False                           
-                                                                             
-     Outputs:                                                                
-                                                                             
-        target property                                                      
-       ─────────────────                                                     
-        function_value                                                       
-                                                                             
-    ─────────────────────────────────────────────────────────────────────    
-                                                                             
-                                                                             
+
+   Experiments:
+
+      experiment                                      supported
+     ───────────────────────────────────────────────────────────
+      custom_experiments.nevergrad_opt_3d_test_func   True
+
+    ─────────── custom_experiments.nevergrad_opt_3d_test_func ───────────
+     Inputs:
+
+        parameter    type       value        parameterized
+       ────────────────────────────────────────────────────
+        x0           required   None         na
+        x1           required   None         na
+        x2           required   None         na
+        num_blocks   optional   1            False
+        name         optional   rosenbrock   False
+
+     Outputs:
+
+        target property
+       ─────────────────
+        function_value
+
+    ─────────────────────────────────────────────────────────────────────
+
+
 Sample Store identifier: default
 ```
 
@@ -253,9 +257,9 @@ Also try:
 ado get spaces
 ```
 
-This will output a list of the spaces created. If this is the first time you
-are following this example it will contain one entry, the identifier of the
-space you just created above.
+This will output a list of the spaces created. If this is the first time you are
+following this example it will contain one entry, the identifier of the space
+you just created above.
 
 ### Run an optimization
 
@@ -273,26 +277,26 @@ of the operation like below:
 
 ```yaml
 Space ID: space-5420a8-default
-Sample Store ID:  default
+Sample Store ID: default
 Operation:
- config:
-  actuatorConfigurationIdentifiers: []
-  metadata: {}
-  operation:
-    module:
-      operatorName: ray_tune
-      operationType: search
-    parameters:
-      tuneConfig:
-        max_concurrent_trials: 2
-        metric: function_value
-        mode: min
-        num_samples: 40
-        search_alg:
-          name: bayesopt
-  spaces:
-  - space-5420a8-default
-created: '2026-01-29T09:52:50.562791Z'
+  config:
+    actuatorConfigurationIdentifiers: []
+    metadata: {}
+    operation:
+      module:
+        operatorName: ray_tune
+        operationType: search
+      parameters:
+        tuneConfig:
+          max_concurrent_trials: 2
+          metric: function_value
+          mode: min
+          num_samples: 40
+          search_alg:
+            name: bayesopt
+    spaces:
+      - space-5420a8-default
+created: "2026-01-29T09:52:50.562791Z"
 identifier: raytune-1.4.1.dev6+b30c6f74-bayesopt-a605a7
 kind: operation
 metadata:
@@ -301,20 +305,20 @@ metadata:
 operationType: search
 operatorIdentifier: raytune-1.4.1.dev6+b30c6f74
 status:
-- event: created
-  recorded_at: '2026-01-29T09:52:50.562796Z'
-- event: added
-  recorded_at: '2026-01-29T09:52:50.576672Z'
-- event: started
-  recorded_at: '2026-01-29T09:52:50.594038Z'
-- event: updated
-  recorded_at: '2026-01-29T09:52:50.594069Z'
-- event: finished
-  exit_state: success
-  message: Ray Tune operation completed successfully
-  recorded_at: '2026-01-29T09:53:55.100673Z'
-- event: updated
-  recorded_at: '2026-01-29T09:53:56.202542Z'
+  - event: created
+    recorded_at: "2026-01-29T09:52:50.562796Z"
+  - event: added
+    recorded_at: "2026-01-29T09:52:50.576672Z"
+  - event: started
+    recorded_at: "2026-01-29T09:52:50.594038Z"
+  - event: updated
+    recorded_at: "2026-01-29T09:52:50.594069Z"
+  - event: finished
+    exit_state: success
+    message: Ray Tune operation completed successfully
+    recorded_at: "2026-01-29T09:53:55.100673Z"
+  - event: updated
+    recorded_at: "2026-01-29T09:53:56.202542Z"
 version: v1
 ```
 
@@ -329,6 +333,7 @@ The target property to optimize against is set by the `metric` field, under the
 operations `parameters` field.
 
 <!-- markdownlint-disable line-length -->
+
 ```yaml
 parameters:
   tuneConfig:
@@ -341,6 +346,7 @@ parameters:
       params:
         optimizer: "CMA"
 ```
+
 <!-- markdownlint-enable line-length -->
 
 ## See the optimization results
@@ -376,42 +382,42 @@ In this case the output will be something like:
 
 ```terminaloutput
 Identifier: datacontainer-a5a33316
-                                                                             
- ─────────────────────────────── Basic Data ──────────────────────────────── 
-                                                                             
-    Label: 'best_result'                                                     
-    {                                                                        
-        'config': {                                                          
-            'x2': -0.6739656478980461,                                       
-            'x1': 0.8532760228340539,                                        
-            'x0': -2.5705928842344696                                        
-        },                                                                   
-        'metrics': {                                                         
-            'function_value': 1106.8717468085306,                            
-            'timestamp': 1769680394,                                         
-            'checkpoint_dir_name': None,                                     
-            'done': True,                                                    
-            'training_iteration': 1,                                         
-            'trial_id': 'e07dd2f6',                                          
-            'date': '2026-01-29_09-53-14',                                   
-            'time_this_iter_s': 1.0830578804016113,                          
-            'time_total_s': 1.0830578804016113,                              
-            'pid': 34110,                                                    
-            'hostname': 'MacBook-Pro-di-Alessandro.local',                   
-            'node_ip': '127.0.0.1',                                          
-            'config': {                                                      
-                'x2': -0.6739656478980461,                                   
-                'x1': 0.8532760228340539,                                    
-                'x0': -2.5705928842344696                                    
-            },                                                               
-            'time_since_restore': 1.0830578804016113,                        
-            'iterations_since_restore': 1,                                   
-            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'           
-        },                                                                   
-        'error': None                                                        
-    }                                                                        
-                                                                             
- ─────────────────────────────────────────────────────────────────────────── 
+
+ ─────────────────────────────── Basic Data ────────────────────────────────
+
+    Label: 'best_result'
+    {
+        'config': {
+            'x2': -0.6739656478980461,
+            'x1': 0.8532760228340539,
+            'x0': -2.5705928842344696
+        },
+        'metrics': {
+            'function_value': 1106.8717468085306,
+            'timestamp': 1769680394,
+            'checkpoint_dir_name': None,
+            'done': True,
+            'training_iteration': 1,
+            'trial_id': 'e07dd2f6',
+            'date': '2026-01-29_09-53-14',
+            'time_this_iter_s': 1.0830578804016113,
+            'time_total_s': 1.0830578804016113,
+            'pid': 34110,
+            'hostname': 'MacBook-Pro-di-Alessandro.local',
+            'node_ip': '127.0.0.1',
+            'config': {
+                'x2': -0.6739656478980461,
+                'x1': 0.8532760228340539,
+                'x0': -2.5705928842344696
+            },
+            'time_since_restore': 1.0830578804016113,
+            'iterations_since_restore': 1,
+            'experiment_tag': '11_x0=-2.5706,x1=0.8533,x2=-0.6740'
+        },
+        'error': None
+    }
+
+ ───────────────────────────────────────────────────────────────────────────
 ```
 
 We can see here that the point found is
@@ -431,7 +437,7 @@ where `function_value` was ~1106.87.
 To see the configurations visited during the optimization you just ran, execute:
 
 ```commandline
-ado show entities operation --use-latest
+ado show measurements operation --use-latest
 ```
 
 This will output a dataframe containing the results of that operation.
@@ -452,6 +458,7 @@ same YAML as shown in the previous section.
 ## Parameterizable experiments
 
 <!-- markdownlint-disable descriptive-link-text -->
+
 The `nevergrad_opt_3d_test_func` is an example of a **parameterizable
 experiment**. A parameterizable experiment has optional inputs that have default
 values. In this case the optional inputs are `name` and `num_blocks` which you
@@ -459,6 +466,7 @@ can see are listed in the output of `ado describe experiment`
 [here](#install-the-custom-nevergrad_opt_3d_test_func-experiment). In particular
 the "name" parameter defines the optimization test function the experiment will
 use and its default value is 'rosenbrock'.
+
 <!-- markdownlint-enable descriptive-link-text -->
 
 If you want to set a different value for an optional parameter of an experiment
@@ -490,19 +498,18 @@ Try the following:
 
 - _change optimizer_: The file `optimization_nevergrad.yaml` shows using the CMA
   optimizer from nevergrad. Modify and run in the same way as the Ax example
-- _different results views_: Use `ado show entities space $SPACE_ID` where
+- _different results views_: Use `ado show measurements space $SPACE_ID` where
   `SPACE_ID` is the identifier of the space the operations run on. Compare to
-  the output of `ado show entities operation`
+  the output of `ado show measurements operation`
 - _modify the entity space_: Extending or limiting the dimensions of the entity
   space considered
 - _change optimizer options_: Change the optimization options and run another
   optimization. See
   [the ray tune operator documentation](/ado/operators/optimisation-with-ray-tune/)
   for details and further examples on what can be configured.
-<!-- markdownlint-disable-next-line line-length -->
-- _parameterize the experiment_: Perform an optimization on the `discus` <!-- codespell:ignore discus -->
-  function - this involves parameterizing the
-  `nevergrad_opt_3d_test_func`.
+  <!-- codespell:ignore discus -->
+- _parameterize the experiment_: Perform an optimization on the `discus`
+  function - this involves parameterizing the `nevergrad_opt_3d_test_func`.
   - See how this changes the description of `discoveryspace`.
 - _discretize the space_: Run the optimization on a discretized version of one
   of the functions and see if memoization works. **Hint**: change the entity

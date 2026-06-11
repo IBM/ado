@@ -8,6 +8,8 @@ import pydantic
 from pydantic import ConfigDict
 from typing_extensions import Self
 
+from orchestrator.utilities.pydantic import Pep440VersionStr
+
 
 class ConfigurationMetadata(pydantic.BaseModel):
 
@@ -54,7 +56,7 @@ class PackageProvenance(pydantic.BaseModel):
         ),
     ]
     distributionVersion: Annotated[
-        str,
+        Pep440VersionStr,
         pydantic.Field(
             description="Installed version of the distribution (e.g. '1.7.1')."
         ),

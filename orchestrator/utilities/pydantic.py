@@ -5,7 +5,7 @@ import typing
 from typing import Annotated, TypeVar
 
 import pydantic
-from pydantic import BeforeValidator
+from pydantic import AfterValidator, BeforeValidator
 from pydantic_core import PydanticUseDefault
 
 
@@ -78,3 +78,29 @@ def validate_rfc_1123(value: str | None) -> str | None:
         )
 
     return value
+
+
+def validate_pep440_version(value: str) -> str:
+    """Validate that *value* is a valid PEP 440 version string.
+
+    Args:
+        value: The version string to validate.
+
+    Returns:
+        The original version string unchanged.
+
+    Raises:
+        ValueError: If *value* is not a valid PEP 440 version string.
+    """
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        Version(value)
+    except InvalidVersion as exc:
+        raise ValueError(
+            f"Version {value!r} is not a valid PEP 440 version string: {exc}"
+        ) from exc
+    return value
+
+
+Pep440VersionStr = Annotated[str, AfterValidator(validate_pep440_version)]

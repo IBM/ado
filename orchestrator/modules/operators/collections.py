@@ -27,48 +27,8 @@ from orchestrator.modules.operators.orchestrate import (
     orchestrate_explore_operation,
     orchestrate_general_operation,
 )
-from orchestrator.utilities.distribution import distribution_from_module
 
 moduleLog = logging.getLogger("operation_collections")
-
-
-def _resolve_package_provenance(module_name: str) -> PackageProvenance | None:
-    """Resolve installed package provenance for a Python module.
-
-    Modules under the ``orchestrator`` namespace package are always resolved to
-    ``ado-core``.  For all other modules, :func:`distribution_from_module` is
-    used to find the containing distribution.
-
-    Args:
-        module_name: Fully qualified module name (e.g. ``"ado_ray_tune.operator"``).
-
-    Returns:
-        Package provenance for the installed distribution, or ``None`` if it
-        could not be resolved.
-    """
-    import importlib.metadata
-
-    if module_name.startswith("orchestrator.") or module_name == "orchestrator":
-        dist_name = "ado-core"
-    else:
-        try:
-            dist_name = distribution_from_module(module_name)
-        except Exception:
-            return None
-        if dist_name is None:
-            return None
-
-    try:
-        dist = importlib.metadata.distribution(dist_name)
-        version = dist.metadata.get("Version")
-        if version is None:
-            return None
-        return PackageProvenance(
-            distributionName=dist_name,
-            distributionVersion=version,
-        )
-    except Exception:
-        return None
 
 
 def _warn_if_operator_name_reused(
@@ -209,7 +169,7 @@ def characterize_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.CHARACTERIZE,
-            provenance=_resolve_package_provenance(func.__module__),
+            provenance=PackageProvenance.from_module_name(func.__module__),
         )
         return wrapper
 
@@ -308,7 +268,7 @@ def explore_operation(
         update={
             "function": _generated,
             "cls": cls,
-            "provenance": _resolve_package_provenance(cls.__module__),
+            "provenance": PackageProvenance.from_module_name(cls.__module__),
         }
     )
     return cls
@@ -359,7 +319,7 @@ def modify_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.MODIFY,
-            provenance=_resolve_package_provenance(func.__module__),
+            provenance=PackageProvenance.from_module_name(func.__module__),
         )
         return wrapper
 
@@ -411,7 +371,7 @@ def export_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.EXPORT,
-            provenance=_resolve_package_provenance(func.__module__),
+            provenance=PackageProvenance.from_module_name(func.__module__),
         )
         return wrapper
 

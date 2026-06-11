@@ -60,6 +60,81 @@ class PackageProvenance(pydantic.BaseModel):
         ),
     ]
 
+    @classmethod
+    def from_distribution_name(cls, distribution_name: str) -> Self | None:
+        """Look up installed package provenance for a PyPI distribution name.
+
+        Args:
+            distribution_name: The PyPI distribution name (e.g. ``"ado-core"``).
+
+        Returns:
+            Package provenance for the installed distribution, or ``None`` if the
+            distribution is not installed or its version could not be resolved.
+        """
+        import importlib.metadata
+
+        try:
+            dist = importlib.metadata.distribution(distribution_name)
+            version = dist.metadata.get("Version")
+            if version is None:
+                return None
+            return cls(
+                distributionName=distribution_name,
+                distributionVersion=version,
+            )
+        except Exception:
+            return None
+
+    @classmethod
+    def from_module_name(cls, module_name: str) -> Self | None:
+        """Resolve installed package provenance from a fully qualified module name.
+
+        Modules under the ``orchestrator`` namespace package are resolved to
+        ``ado-core``. For all other modules, the containing distribution is
+        resolved via :func:`~orchestrator.utilities.distribution.distribution_from_module`.
+
+        Args:
+            module_name: Fully qualified module name (e.g. ``"ado_ray_tune.operator"``).
+
+        Returns:
+            Package provenance for the installed distribution, or ``None`` if it
+            could not be resolved.
+        """
+        from orchestrator.utilities.distribution import distribution_from_module
+
+        if module_name.startswith("orchestrator.") or module_name == "orchestrator":
+            return cls.from_distribution_name("ado-core")
+
+        try:
+            dist_name = distribution_from_module(module_name)
+        except Exception:
+            return None
+        if dist_name is None:
+            return None
+        return cls.from_distribution_name(dist_name)
+
+    @classmethod
+    def from_module_conf(cls, module_conf: object) -> Self | None:
+        """Resolve provenance from a module configuration object or dict.
+
+        Accepts a :class:`~orchestrator.modules.module.ModuleConf` instance or a
+        dict containing ``moduleName``.
+
+        Args:
+            module_conf: Module configuration carrying ``moduleName``.
+
+        Returns:
+            Package provenance for the installed distribution, or ``None`` if
+            ``moduleName`` is missing or could not be resolved.
+        """
+        if isinstance(module_conf, dict):
+            module_name = module_conf.get("moduleName")
+        else:
+            module_name = getattr(module_conf, "moduleName", None)
+        if not isinstance(module_name, str):
+            return None
+        return cls.from_module_name(module_name)
+
 
 class ProvenanceInfo(pydantic.BaseModel):
     """Base model for plugin provenance stored on ADO resources.

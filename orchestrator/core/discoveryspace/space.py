@@ -546,7 +546,6 @@ class DiscoverySpace:
         )
         from orchestrator.core.metadata import PackageProvenance
         from orchestrator.modules.actuators.registry import ActuatorRegistry
-        from orchestrator.utilities.distribution import distribution_from_module
 
         registry = ActuatorRegistry.globalRegistry()
         actuators: dict[str, PackageProvenance] = {}
@@ -565,28 +564,9 @@ class DiscoverySpace:
             if actuator_id == "custom_experiments":
                 module_conf = experiment.metadata.get("module")
                 if module_conf is not None:
-                    import importlib.metadata
-
-                    module_name = (
-                        module_conf.get("moduleName")
-                        if isinstance(module_conf, dict)
-                        else getattr(module_conf, "moduleName", None)
-                    )
-                    if module_name is not None:
-                        try:
-                            dist_name = distribution_from_module(module_name)
-                            if dist_name is not None:
-                                dist = importlib.metadata.distribution(dist_name)
-                                version = dist.metadata.get("Version")
-                                if version is not None:
-                                    custom_experiments[experiment.identifier] = (
-                                        PackageProvenance(
-                                            distributionName=dist_name,
-                                            distributionVersion=version,
-                                        )
-                                    )
-                        except Exception:  # noqa: S110
-                            pass
+                    provenance = PackageProvenance.from_module_conf(module_conf)
+                    if provenance is not None:
+                        custom_experiments[experiment.identifier] = provenance
 
         return DiscoverySpaceProvenanceInfo(
             actuators=actuators,

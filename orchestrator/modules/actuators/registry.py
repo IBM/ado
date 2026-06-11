@@ -19,7 +19,6 @@ from orchestrator.modules.actuators.catalog import (
 )
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
-from orchestrator.utilities.distribution import distribution_from_module
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
@@ -204,34 +203,31 @@ class ActuatorRegistry:
         Returns:
             Dictionary with 'version' and 'description' keys
         """
-        import importlib.metadata
+        from orchestrator.core.metadata import PackageProvenance
 
-        version = None
         description = None
-        distribution_name = None
+        provenance = PackageProvenance.from_module_name(actuator_class.__module__)
+        if provenance is not None:
+            try:
+                import importlib.metadata
 
-        try:
-            # Get the module name from the actuator class
-            module_name = actuator_class.__module__
-
-            # Find the distribution that contains this module
-            dist_name = distribution_from_module(module_name)
-
-            if dist_name:
-                # Get distribution metadata
-                dist = importlib.metadata.distribution(dist_name)
-                version = dist.metadata.get("Version", None)
+                dist = importlib.metadata.distribution(provenance.distributionName)
                 description = dist.metadata.get("Summary", None)
-                distribution_name = dist_name
-        except Exception as e:
-            self.log.debug(
-                f"Could not extract metadata for plugin actuator {actuator_class}: {e}"
-            )
+            except Exception as e:
+                self.log.debug(
+                    f"Could not extract description for plugin actuator "
+                    f"{actuator_class}: {e}"
+                )
+            return {
+                "version": provenance.distributionVersion,
+                "description": description,
+                "distributionName": provenance.distributionName,
+            }
 
         return {
-            "version": version,
-            "description": description,
-            "distributionName": distribution_name,
+            "version": None,
+            "description": None,
+            "distributionName": None,
         }
 
     def registerActuator(

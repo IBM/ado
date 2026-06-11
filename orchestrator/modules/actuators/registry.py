@@ -10,6 +10,7 @@ import orchestrator.schema
 from orchestrator.core.actuatorconfiguration.config import (
     GenericActuatorParameters,
 )
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.modules.actuators.base import (
     ActuatorBase,
 )
@@ -18,7 +19,6 @@ from orchestrator.modules.actuators.catalog import (
 )
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
-from orchestrator.utilities.distribution import distribution_from_module
 from orchestrator.utilities.logging import configure_logging
 
 if typing.TYPE_CHECKING:
@@ -87,7 +87,7 @@ class ActuatorRegistry:
         self.actuatorIdentifierMap: dict[str, type[ActuatorBase]] = {}
         # Maps actuator ids to ExperimentCatalog instances
         self.catalogIdentifierMap: dict[str, ExperimentCatalog] = {}
-        # Maps actuator ids to metadata (version and description)
+        # Maps actuator ids to metadata (version, description, and distributionName)
         self.actuatorMetadataMap: dict[str, dict[str, str | None]] = {}
         self.log = logging.getLogger("registry")
         self.id = uuid.uuid4()
@@ -186,7 +186,11 @@ class ActuatorRegistry:
         except (AttributeError, IndexError):
             pass
 
-        return {"version": version, "description": description}
+        return {
+            "version": version,
+            "description": description,
+            "distributionName": "ado-core",
+        }
 
     def _get_plugin_actuator_metadata(
         self, actuator_class: "type[ActuatorBase]"
@@ -199,29 +203,32 @@ class ActuatorRegistry:
         Returns:
             Dictionary with 'version' and 'description' keys
         """
-        import importlib.metadata
+        from orchestrator.core.metadata import PackageProvenance
 
-        version = None
         description = None
+        provenance = PackageProvenance.from_module_name(actuator_class.__module__)
+        if provenance is not None:
+            try:
+                import importlib.metadata
 
-        try:
-            # Get the module name from the actuator class
-            module_name = actuator_class.__module__
-
-            # Find the distribution that contains this module
-            dist_name = distribution_from_module(module_name)
-
-            if dist_name:
-                # Get distribution metadata
-                dist = importlib.metadata.distribution(dist_name)
-                version = dist.metadata.get("Version", None)
+                dist = importlib.metadata.distribution(provenance.distributionName)
                 description = dist.metadata.get("Summary", None)
-        except Exception as e:
-            self.log.debug(
-                f"Could not extract metadata for plugin actuator {actuator_class}: {e}"
-            )
+            except Exception as e:
+                self.log.debug(
+                    f"Could not extract description for plugin actuator "
+                    f"{actuator_class}: {e}"
+                )
+            return {
+                "version": provenance.distributionVersion,
+                "description": description,
+                "distributionName": provenance.distributionName,
+            }
 
-        return {"version": version, "description": description}
+        return {
+            "version": None,
+            "description": None,
+            "distributionName": None,
+        }
 
     def registerActuator(
         self,
@@ -249,6 +256,31 @@ class ActuatorRegistry:
                 metadata = self._get_plugin_actuator_metadata(actuatorClass)
 
             self.actuatorMetadataMap[actuatorid] = metadata
+
+    def provenance_for_actuator(self, identifier: str) -> PackageProvenance | None:
+        """Return the package provenance for a registered actuator.
+
+        Returns ``None`` if the actuator is not registered or its distribution
+        could not be resolved (e.g. the actuator was loaded from an unpackaged
+        local path).
+
+        Args:
+            identifier: The actuator identifier.
+
+        Returns:
+            A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+            or ``None`` if provenance is unavailable.
+        """
+        metadata = self.actuatorMetadataMap.get(identifier)
+        if metadata is None:
+            return None
+        dist_name = metadata.get("distributionName")
+        version = metadata.get("version")
+        if dist_name is None or version is None:
+            return None
+        return PackageProvenance(
+            distributionName=dist_name, distributionVersion=version
+        )
 
     def catalogForActuatorIdentifier(self, actuatorid: str) -> ExperimentCatalog:
         """Returns the catalog for a given actuator via its identifier

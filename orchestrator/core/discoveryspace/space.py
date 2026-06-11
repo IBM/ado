@@ -535,13 +535,56 @@ class DiscoverySpace:
             metadata=metadata,
         )
 
+    def _build_provenance(
+        self,
+    ) -> "orchestrator.core.discoveryspace.resource.DiscoverySpaceProvenanceInfo":
+        """Resolve package provenance for all actuators and custom experiments.
+
+        Returns:
+            DiscoverySpaceProvenanceInfo mapping actuators and custom experiments
+            to the distributions that provided them at space creation time.
+        """
+        from orchestrator.core.discoveryspace.resource import (
+            DiscoverySpaceProvenanceInfo,
+        )
+        from orchestrator.core.metadata import PackageProvenance
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+
+        registry = ActuatorRegistry.globalRegistry()
+        actuators: dict[str, PackageProvenance] = {}
+        custom_experiments: dict[str, PackageProvenance] = {}
+
+        for experiment in self.measurementSpace.experiments:
+            actuator_id = experiment.actuatorIdentifier
+
+            # Per-actuator provenance (deduplicated)
+            if actuator_id not in actuators:
+                provenance = registry.provenance_for_actuator(actuator_id)
+                if provenance is not None:
+                    actuators[actuator_id] = provenance
+
+            # Per-custom-experiment provenance
+            if actuator_id == "custom_experiments":
+                module_conf = experiment.metadata.get("module")
+                if module_conf is not None:
+                    provenance = PackageProvenance.from_module_conf(module_conf)
+                    if provenance is not None:
+                        custom_experiments[experiment.identifier] = provenance
+
+        return DiscoverySpaceProvenanceInfo(
+            actuators=actuators,
+            customExperiments=custom_experiments,
+        )
+
     @property
     def resource(
         self,
     ) -> orchestrator.core.discoveryspace.resource.DiscoverySpaceResource:
 
         return orchestrator.core.discoveryspace.resource.DiscoverySpaceResource(
-            identifier=self._identifier, config=self.config
+            identifier=self._identifier,
+            config=self.config,
+            provenance=self._build_provenance(),
         )
 
     def saveSpace(self) -> None:

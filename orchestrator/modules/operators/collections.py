@@ -32,23 +32,41 @@ from orchestrator.utilities.distribution import distribution_from_module
 moduleLog = logging.getLogger("operation_collections")
 
 
-def _resolve_distribution_name(module_name: str) -> str | None:
-    """Resolve the PyPI distribution name for a Python module.
+def _resolve_package_provenance(module_name: str) -> PackageProvenance | None:
+    """Resolve installed package provenance for a Python module.
 
     Modules under the ``orchestrator`` namespace package are always resolved to
     ``ado-core``.  For all other modules, :func:`distribution_from_module` is
-    used.
+    used to find the containing distribution.
 
     Args:
         module_name: Fully qualified module name (e.g. ``"ado_ray_tune.operator"``).
 
     Returns:
-        The distribution name, or ``None`` if it could not be resolved.
+        Package provenance for the installed distribution, or ``None`` if it
+        could not be resolved.
     """
+    import importlib.metadata
+
     if module_name.startswith("orchestrator.") or module_name == "orchestrator":
-        return "ado-core"
+        dist_name = "ado-core"
+    else:
+        try:
+            dist_name = distribution_from_module(module_name)
+        except Exception:
+            return None
+        if dist_name is None:
+            return None
+
     try:
-        return distribution_from_module(module_name)
+        dist = importlib.metadata.distribution(dist_name)
+        version = dist.metadata.get("Version")
+        if version is None:
+            return None
+        return PackageProvenance(
+            distributionName=dist_name,
+            distributionVersion=version,
+        )
     except Exception:
         return None
 
@@ -191,7 +209,7 @@ def characterize_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.CHARACTERIZE,
-            distributionName=_resolve_distribution_name(func.__module__),
+            provenance=_resolve_package_provenance(func.__module__),
         )
         return wrapper
 
@@ -290,7 +308,7 @@ def explore_operation(
         update={
             "function": _generated,
             "cls": cls,
-            "distributionName": _resolve_distribution_name(cls.__module__),
+            "provenance": _resolve_package_provenance(cls.__module__),
         }
     )
     return cls
@@ -341,7 +359,7 @@ def modify_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.MODIFY,
-            distributionName=_resolve_distribution_name(func.__module__),
+            provenance=_resolve_package_provenance(func.__module__),
         )
         return wrapper
 
@@ -393,7 +411,7 @@ def export_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.EXPORT,
-            distributionName=_resolve_distribution_name(func.__module__),
+            provenance=_resolve_package_provenance(func.__module__),
         )
         return wrapper
 
@@ -405,11 +423,9 @@ def provenance_for_operator(
 ) -> PackageProvenance | None:
     """Return the package provenance for a registered operator.
 
-    Looks up the operator in the collection for ``op_type`` and constructs a
-    :class:`~orchestrator.core.metadata.PackageProvenance` from its
-    ``distributionName`` and ``version``.  Returns ``None`` when the operator
-    is not registered, its distribution could not be resolved, or either field
-    is missing.
+    Looks up the operator in the collection for ``op_type`` and returns the
+    :class:`~orchestrator.core.metadata.PackageProvenance` recorded on its
+    registry metadata at registration time.
 
     Args:
         name: Canonical operator name.
@@ -423,12 +439,9 @@ def provenance_for_operator(
     if collection is None:
         return None
     metadata = collection.operators.get(name)
-    if metadata is None or metadata.distributionName is None:
+    if metadata is None:
         return None
-    return PackageProvenance(
-        distributionName=metadata.distributionName,
-        distributionVersion=metadata.version,
-    )
+    return metadata.provenance
 
 
 def load_operators() -> None:

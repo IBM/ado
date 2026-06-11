@@ -14,7 +14,7 @@ from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
-from orchestrator.core.metadata import ConfigurationMetadata
+from orchestrator.core.metadata import ConfigurationMetadata, PackageProvenance
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.module import (
@@ -253,16 +253,17 @@ class OperatorMetadata(pydantic.BaseModel):
             description="The discovery operation type this operator belongs to."
         ),
     ]
-    distributionName: Annotated[
-        str | None,
+    provenance: Annotated[
+        PackageProvenance | None,
         pydantic.Field(
+            default=None,
             description=(
-                "PyPI distribution name that provides this operator "
-                "(e.g. 'ado-ray-tune', 'ado-core'). Resolved at registration time; "
-                "None when the module is not installed as a distribution package."
+                "Python distribution that provides this operator, resolved from the "
+                "installed environment at registration time. None when the operator "
+                "module is not installed as a distribution package."
             ),
         ),
-    ] = None
+    ]
 
     @pydantic.field_validator("version", mode="after")
     @classmethod

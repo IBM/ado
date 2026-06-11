@@ -14,7 +14,7 @@ from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
-from orchestrator.core.metadata import ConfigurationMetadata
+from orchestrator.core.metadata import ConfigurationMetadata, PackageProvenance
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.module import (
@@ -23,7 +23,8 @@ from orchestrator.modules.module import (
     load_module_class_or_function,
 )
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
-from orchestrator.utilities.pydantic import ignore_plugin_validation
+from orchestrator.utilities.pydantic import ignore_plugin_validation, Pep440VersionStr
+
 
 if typing.TYPE_CHECKING:
     import orchestrator.modules.operators.base
@@ -215,7 +216,7 @@ class OperatorMetadata(pydantic.BaseModel):
         ),
     ] = None
     version: Annotated[
-        str,
+        Pep440VersionStr,
         pydantic.Field(
             description=(
                 "PEP 440 version string for the operator (e.g. '0.1.0', "
@@ -259,30 +260,17 @@ class OperatorMetadata(pydantic.BaseModel):
             description="The discovery operation type this operator belongs to."
         ),
     ]
-
-    @pydantic.field_validator("version", mode="after")
-    @classmethod
-    def validate_version_is_pep440(cls, value: str) -> str:
-        """Validate that *version* is a valid PEP 440 version string.
-
-        Args:
-            value: The version string to validate.
-
-        Returns:
-            The original version string unchanged.
-
-        Raises:
-            ValueError: If *value* is not a valid PEP 440 version string.
-        """
-        from packaging.version import InvalidVersion, Version
-
-        try:
-            Version(value)
-        except InvalidVersion as exc:
-            raise ValueError(
-                f"Operator version {value!r} is not a valid PEP 440 version string: {exc}"
-            ) from exc
-        return value
+    provenance: Annotated[
+        PackageProvenance | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Python distribution that provides this operator, resolved from the "
+                "installed environment at registration time. None when the operator "
+                "module is not installed as a distribution package."
+            ),
+        ),
+    ]
 
     @property
     def operatorIdentifier(self) -> str:

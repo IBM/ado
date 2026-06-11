@@ -628,7 +628,7 @@ def custom_experiment_executor(
     :param target_experiment: The experiment to execute.
         Required as the measurementRequest only includes an ExperimentReference
     :param queue: The queue to put the result on
-    :param custom_experiments_actuator: Optional handle to CustomExperiments actuator
+    :param custom_experiments_actor: Optional handle to CustomExperiments actuator
         to notify after the result is queued
     :return:
     """

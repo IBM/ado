@@ -23,6 +23,7 @@ from orchestrator.modules.module import (
     load_module_class_or_function,
 )
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
+from orchestrator.utilities.pydantic import ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
     import orchestrator.modules.operators.base
@@ -73,12 +74,9 @@ def get_actuator_configurations(
             identifier=identifier,
             kind=CoreResourceKinds.ACTUATORCONFIGURATION,
             raise_error_if_no_resource=True,
+            ignore_plugin_validation=False,
         ).config
         for identifier in actuator_configuration_identifiers
-    ]
-
-    actuator_configurations = [
-        conf.validate_actuator_parameters() for conf in actuator_configurations
     ]
 
     actuator_identifiers = {conf.actuatorIdentifier for conf in actuator_configurations}
@@ -439,31 +437,67 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         ),
     ]
 
-    def validate_operator_parameters(self) -> Self:
-        """Validate operator module availability and downcast operation parameters.
+    @pydantic.field_validator("module", mode="after")
+    @classmethod
+    def ensure_module_is_installed(
+        cls,
+        module: OperatorModuleConf | OperatorReference | ScriptOperatorConf,
+        info: pydantic.ValidationInfo,
+    ) -> OperatorModuleConf | OperatorReference | ScriptOperatorConf:
+        """Validates that the operator module is installed and accessible.
 
-        Call explicitly at operation create (including dry-run). Metastore reads
-        and orchestration via registered operators do not invoke this method.
+        Args:
+            module: The operator module or function configuration to validate.
+            info: Pydantic validation info for the current validation step.
 
         Returns:
-            Self with parameters validated and downcast to the operator model.
+            The validated module configuration.
 
         Raises:
-            ValueError: If the operator module is not installed.
+            ValueError: If the operator module is not installed or cannot be imported.
+        """
+        if ignore_plugin_validation(info):
+            return module
+
+        if isinstance(module, OperatorReference | ScriptOperatorConf):
+            return module
+
+        import importlib
+
+        try:
+            getattr(importlib.import_module(module.moduleName), module.moduleClass)
+        except ModuleNotFoundError as e:
+            raise ValueError(
+                f"Operator {module.moduleName}.{module.moduleClass} is not installed"
+            ) from e
+
+        return module
+
+    @pydantic.model_validator(mode="after")
+    def validate_and_downcast_parameters(self, info: pydantic.ValidationInfo) -> Self:
+        """Validates and downcasts operation parameters.
+
+        For OperatorModuleConf modules, validates parameters using the operation's
+        validateOperationParameters method. For OperatorReference modules,
+        validates parameters against the configuration model if available.
+
+        Args:
+            info: Pydantic validation info for the current validation step.
+
+        Returns:
+            Self: The validated instance with downcast parameters.
+
+        Raises:
             ValidationError: If parameter validation fails.
         """
-        if isinstance(self.module, OperatorModuleConf):
-            import importlib
+        if ignore_plugin_validation(info):
+            return self
 
-            try:
-                operator_class = getattr(
-                    importlib.import_module(self.module.moduleName),
-                    self.module.moduleClass,
-                )
-            except ModuleNotFoundError as e:
-                raise ValueError(
-                    f"Operator {self.module.moduleName}.{self.module.moduleClass} is not installed"
-                ) from e
+        if isinstance(self.module, OperatorModuleConf):
+            # This is guaranteed to not raise an error thanks to ensure_module_is_installed
+            operator_class = getattr(
+                importlib.import_module(self.module.moduleName), self.module.moduleClass
+            )
             operator_metadata = operator_class.operator_metadata()
             self.parameters = operator_metadata.configuration_model.model_validate(
                 self.parameters

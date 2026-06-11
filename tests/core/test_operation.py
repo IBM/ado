@@ -203,7 +203,6 @@ def test_script_operator_conf_round_trip() -> None:
         module=script_module,
         parameters={"ignored": "value"},
     )
-    operation_configuration.validate_operator_parameters()
     assert operation_configuration.parameters == {}
 
     resource_configuration = DiscoveryOperationResourceConfiguration(
@@ -213,7 +212,6 @@ def test_script_operator_conf_round_trip() -> None:
 
     dumped = resource_configuration.model_dump()
     restored = DiscoveryOperationResourceConfiguration.model_validate(dumped)
-    restored.operation.validate_operator_parameters()
     assert isinstance(restored.operation.module, ScriptOperatorConf)
     assert restored.operation.module.name == "grid-sweep"
     assert restored.operation.module.version == "1.0.0"

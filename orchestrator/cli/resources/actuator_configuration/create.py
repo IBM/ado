@@ -42,16 +42,6 @@ def create_actuator_configuration(parameters: AdoCreateCommandParameters) -> str
             override_values=parameters.override_values,
         )
 
-    try:
-        actuatorconfig_configuration.validate_actuator_parameters()
-    except (pydantic.ValidationError, ValueError) as error:
-        console_print(
-            f"{ERROR}The actuatorconfiguration provided was not valid:",
-            stderr=True,
-        )
-        console_print(error, stderr=True, use_markup=False)
-        raise typer.Exit(1) from error
-
     if parameters.dry_run:
         console_print(ADO_CREATE_DRY_RUN_CONFIG_VALID, stderr=True)
         return None

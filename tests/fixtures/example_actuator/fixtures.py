@@ -43,6 +43,5 @@ def peptide_mineralization_basic_operation_configuration(
             ).read_text()
         )
     )
-    operation_configuration.operation.validate_operator_parameters()
     operation_configuration.spaces = [peptide_mineralization_basic_space.uri]
     return operation_configuration

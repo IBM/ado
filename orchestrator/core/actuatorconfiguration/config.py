@@ -8,6 +8,7 @@ import pydantic
 from pydantic import ConfigDict
 
 from orchestrator.core.metadata import ConfigurationMetadata
+from orchestrator.utilities.pydantic import ignore_plugin_validation
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from orchestrator.modules.actuators.base import ActuatorBase
@@ -40,18 +41,11 @@ class ActuatorConfiguration(pydantic.BaseModel):
         ),
     ] = ConfigurationMetadata()
 
-    def validate_actuator_parameters(self) -> "ActuatorConfiguration":
-        """Validate actuatorIdentifier and parameters against the actuator registry.
+    @pydantic.model_validator(mode="after")
+    def validate_model(self, info: pydantic.ValidationInfo) -> "ActuatorConfiguration":
+        if ignore_plugin_validation(info):
+            return self
 
-        Call explicitly at resource create and when fetching configs for use.
-        Metastore reads do not invoke this method.
-
-        Returns:
-            Self with parameters validated and downcast to the actuator model.
-
-        Raises:
-            ValueError: If the actuator is not registered or parameters are invalid.
-        """
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
             UnknownActuatorError,

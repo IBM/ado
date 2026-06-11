@@ -62,6 +62,17 @@ TRIM is particularly valuable when:
 
 <!-- markdownlint-enable no-blanks-blockquote -->
 
+<!-- markdownlint-disable no-blanks-blockquote -->
+
+> [!NOTE]
+>
+> **Python Version Compatibility**: The TRIM operator is not available on Python
+> 3.14 due to a dependency on `autogluon==1.5.0`, which requires
+> `pyarrow==20.0.0` (incompatible with Python 3.14). If you need to use TRIM,
+> please use Python 3.10-3.13.
+
+<!-- markdownlint-enable no-blanks-blockquote -->
+
 ## How TRIM Works: The Three-Phase Workflow
 
 Understanding TRIM's internal workflow helps you configure it effectively.
@@ -488,7 +499,7 @@ Balanced approach for production use:
 To see the entities sampled during a TRIM operation:
 
 ```bash
-ado show entities operation $OPERATION_IDENTIFIER
+ado show measurements operation $OPERATION_IDENTIFIER
 ```
 
 This displays entities in the order they were sampled, showing the progression
@@ -564,7 +575,7 @@ target output property, if this is not the case TRIM raises
 the space with the following command
 
 ```terminal
-ado show entities --use-latest space
+ado show measurements --use-latest space
 ```
 
 Looking at the output you will find out if the target output property
@@ -586,7 +597,7 @@ you see on your terminal. To facilitate the detection of the column, you can run
 the same command with a property filter:
 
 ```terminal
-ado show entities --use-latest space --property [targetOutput]
+ado show measurements --use-latest space --property [targetOutput]
 ```
 
 Here, remember to replace `"[targetOutput]"` with `targetOutput`.

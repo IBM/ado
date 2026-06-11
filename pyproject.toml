@@ -5,7 +5,7 @@ It can be easily extended with new experiments or new analysis tools. It allows 
 researchers and engineers to collaborate on projects, execute experiments, and share data.
 """
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 license-files = ["AUTHORS.md", "LICEN[CS]E*", "vendored/licenses/*.txt"]
 authors = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
 maintainers = [{ name = "Michael A. Johnston", email = "michaelj@ie.ibm.com" }]
@@ -17,6 +17,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Build Tools",
 ]
 dependencies = [
@@ -81,26 +82,18 @@ docs = [
   "pygments>=2.19.1",
   "pymdown-extensions>=10.15",
 ]
-resolution-helpers = [
-  "urllib3>=2.5.0",
-]
-# AP 2025-12-05:
-# ado-sfttrainer is currently incompatible with Python 3.13
-#   due to a dependency on aim/aimrocks
-# ado-vllm-performance is currently incompatible with macOS
-#   due to a new requirement in vllm>=0.11.1 which brings in
-#   cuda dependencies.
+
 test = [
-  "ado-autoconf",
+  "ado-autoconf ; python_full_version < '3.14'",
   "ado-ray-tune",
-  "ado-sfttrainer; python_version < '3.13'",
-  "ado-trim",
+  "ado-sfttrainer ; python_full_version < '3.13'",
+  "ado-trim ; python_full_version < '3.14'",
   "ado-vllm-performance",
   "anomalous-series",
   "density-test",
   "optimization-test-functions",
   "pfas-custom-functions",
-  "profile-space",
+  "profile-space ; python_full_version < '3.14'",
   "robotic-lab",
   "trim-custom-experiments",
 ]
@@ -140,25 +133,25 @@ members = [
   "examples/trim/custom_experiments",
   "plugins/actuators/example_actuator",
   "plugins/actuators/vllm_performance",
-  "plugins/custom_experiments/autoconf",
+  # "plugins/custom_experiments/autoconf",  # Excluded: incompatible with Python 3.14+ (fastai requires spacy with wheels only on GitHub)
   "plugins/operators/anomalous_series",
-  "plugins/operators/profile_space",
+  # "plugins/operators/profile_space",  # Excluded: incompatible with Python 3.14+ (fg-data-profiling requires numba<0.63)
   "plugins/operators/ray_tune",
-  # "plugins/actuators/sfttrainer",
-  "plugins/operators/trim"
+  # "plugins/actuators/sfttrainer",  # Excluded: incompatible with Python 3.13+ (aim dependency)
+  # "plugins/operators/trim",  # Excluded: incompatible with Python 3.14+ (autogluon==1.5.0 requires pyarrow==20.0.0)
 ]
 
 [tool.uv.sources]
-ado-autoconf = { workspace = true, editable = true }
+ado-autoconf = { path = "plugins/custom_experiments/autoconf", editable = true }
 ado-ray-tune = { workspace = true, editable = true }
 ado-sfttrainer = { path = "plugins/actuators/sfttrainer", editable = true }
-ado-trim = { workspace = true, editable = true }
+ado-trim = { path = "plugins/operators/trim", editable = true }
 ado-vllm-performance = { workspace = true, editable = true }
 anomalous-series = { workspace = true, editable = true }
 density-test = { workspace = true, editable = true }
 optimization-test-functions = { workspace = true, editable = true }
 pfas-custom-functions = { workspace = true, editable = true }
-profile-space = { workspace = true, editable = true }
+profile-space = { path = "plugins/operators/profile_space", editable = true }
 robotic-lab = { workspace = true, editable = true }
 trim-custom-experiments = { workspace = true, editable = true }
 detect-secrets = { git = "https://github.com/ibm/detect-secrets.git", rev = "master" }

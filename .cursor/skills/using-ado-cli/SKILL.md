@@ -45,7 +45,7 @@ Shell redirects (`>`) work for simple cases. Prefer `--output-file` when:
 
 ```bash
 uv run ado get space SPACE_ID -o yaml > space.yaml
-uv run ado show entities operation OPERATION_ID -o csv --output-file entities.csv
+uv run ado show measurements operation OPERATION_ID -o csv --output-file measurements.csv
 ```
 
 ## Commands That do not exist
@@ -158,8 +158,8 @@ uv run ado show details space SPACE_ID
 uv run ado show results operation OPERATION_ID
 
 # Get entities and measurements
-uv run ado show entities space SPACE_ID
-uv run ado show entities operation OPERATION_ID
+uv run ado show measurements space SPACE_ID
+uv run ado show measurements operation OPERATION_ID
 ```
 
 ### ado describe
@@ -194,17 +194,17 @@ plus measured properties (outputs).
 
 <!-- markdownlint-disable line-length -->
 
-| Command                   | What It Shows                                                            |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `show entities operation` | Entities (inputs) and their measurements (outputs) from this operation   |
-| `show entities space`     | All entities and measurements collected in this space                    |
-| `show results operation`  | Results **metadata** from this operation (not the full measurement data) |
+| Command                       | What It Shows                                                            |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation   |
+| `show measurements space`     | All entities and measurements collected in this space                    |
+| `show results operation`      | Results **metadata** from this operation (not the full measurement data) |
 
 <!-- markdownlint-enable line-length -->
 
 ```bash
-# Measurement data for entities
-uv run ado show entities operation op-123
+# Measurement data
+uv run ado show measurements operation op-123
 
 # Metadata about the operation's results (not measurements)
 uv run ado show results operation op-123
@@ -304,7 +304,7 @@ uv run ado get operations
 uv run ado get operation op-123 -o yaml --output-file op-123.yaml
 
 # Get the entities and measurements
-uv run ado show entities operation op-123
+uv run ado show measurements operation op-123
 ```
 
 ### Create with dependencies

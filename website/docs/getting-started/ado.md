@@ -787,21 +787,21 @@ ado show details space space-abc123-456def
 ado show details space --use-latest
 ```
 
-#### ado show entities
+#### ado show measurements
 
-_show entities_ supports displaying entities that belong to a space or an
-operation.
+_show measurements_ supports displaying measurement data (entities with their
+measured properties) that belong to a space or an operation.
 
-The complete syntax of the `ado show entities` command is as follows:
+The complete syntax of the `ado show measurements` command is as follows:
 
 ```shell
-ado show entities RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
-                  [--property-format {observed | target}] \
-                  [--output | -o {table | csv | json}] \
-                  [--output-file <path>] \
-                  [--property <property-name>] \
-                  [--include {sampled | matching | missing | unsampled}] \
-                  [--aggregate {mean | median | variance | std | min | max}]
+ado show measurements RESOURCE_TYPE [RESOURCE_ID] [--use-latest] [--file | -f <file.yaml>]\
+                      [--property-format {observed | target}] \
+                      [--output | -o {table | csv | json}] \
+                      [--output-file <path>] \
+                      [--property <property-name>] \
+                      [--include {sampled | matching | missing | unsampled}] \
+                      [--aggregate {mean | median | variance | std | min | max}]
 ```
 
 Where:
@@ -818,12 +818,12 @@ Where:
     <!-- prettier-ignore-end -->
 
 - `RESOURCE_ID` is the unique identifier of the resource you want to see
-  entities for.
+  measurements for.
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
   resource of RESOURCE_TYPE from the current context. It is ignored if a
   RESOURCE_ID is provided.
 - The `--file` (or `-f`) flag is **currently only available for spaces** and
-  enables showing entities that match the space defined in the configuration
+  enables showing measurements that match the space defined in the configuration
   file. **NOTE**: using this flag forces `--include matching`.
 - `--property-format` defines the naming format used for measured properties in
   the output, one of:
@@ -837,8 +837,8 @@ Where:
 
     <!-- prettier-ignore-end -->
 
-- `--output` (or `-o`) is the format in which to display the entity data. One
-  of:
+- `--output` (or `-o`) is the format in which to display the measurement data.
+  One of:
 
     <!-- prettier-ignore-start -->
 
@@ -885,41 +885,45 @@ Where:
 
 ##### Examples
 
-###### Show matching entities in a Space with target format and output them as CSV
+<!-- markdownlint-disable line-length -->
+
+###### Show matching measurements in a Space with target format and output them as CSV
+
+<!-- markdownlint-enable line-length -->
 
 Recommended approach using `--output-file` (ensures columns aren't truncated and
 handles file write errors):
 
 ```shell
- ado show entities space space-abc123-456def --include matching \
-                                             --property-format target \
-                                             -o csv --output-file entities.csv
+ ado show measurements space space-abc123-456def --include matching \
+                                                 --property-format target \
+                                                 -o csv --output-file entities.csv
 ```
 
 Or to write CSV to stdout for piping:
 
 ```shell
- ado show entities space space-abc123-456def --include matching \
-                                             --property-format target \
-                                             -o csv > entities.csv
+ ado show measurements space space-abc123-456def --include matching \
+                                                 --property-format target \
+                                                 -o csv > entities.csv
 ```
 
 <!-- markdownlint-disable line-length -->
 
-###### Show a subset of the properties of entities that are part of an operation and output them as JSON
+###### Show a subset of the properties of measurements that are part of an operation and output them as JSON
+
+```shell
+ado show measurements operation randomwalk-0.5.0-123abc -o json \
+                                                        --property my-property-1 \
+                                                        --property my-property-2
+```
 
 <!-- markdownlint-enable line-length -->
 
-```shell
-ado show entities operation randomwalk-0.5.0-123abc -o json \
-                                                    --property my-property-1 \
-                                                    --property my-property-2
-```
-
-###### Save table output of entities to a file
+###### Save table output of measurements to a file
 
 ```shell
-ado show entities space space-abc123-456def --output-file entities-table.txt
+ado show measurements space space-abc123-456def --output-file entities-table.txt
 ```
 
 #### ado show requests
@@ -1233,7 +1237,6 @@ Where:
 
     <!-- prettier-ignore-start -->
 
-    - _actuator_
     - _actuatorconfiguration_ (_ac_)
     - _context_ (_ctx_)
     - _discoveryspace_ (_space_)

@@ -12,9 +12,9 @@ from orchestrator.cli.models.types import (
     AdoEditSupportedEditors,
     AdoGetSupportedOutputFormats,
     AdoGetSupportedResourceTypes,
-    AdoShowEntitiesSupportedEntityTypes,
-    AdoShowEntitiesSupportedOutputFormats,
-    AdoShowEntitiesSupportedPropertyFormats,
+    AdoShowMeasurementsSupportedEntityTypes,
+    AdoShowMeasurementsSupportedOutputFormats,
+    AdoShowMeasurementsSupportedPropertyFormats,
     AdoShowRequestsSupportedOutputFormats,
     AdoShowResultsSupportedOutputFormats,
     AdoShowSummarySupportedOutputFormats,
@@ -93,12 +93,12 @@ class AdoShowDetailsCommandParameters(pydantic.BaseModel):
     resource_id: str
 
 
-class AdoShowEntitiesCommandParameters(pydantic.BaseModel):
+class AdoShowMeasurementsCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     aggregation_method: PropertyAggregationMethodEnum | None
-    entities_output_format: AdoShowEntitiesSupportedOutputFormats
-    entities_property_format: AdoShowEntitiesSupportedPropertyFormats
-    entities_type: AdoShowEntitiesSupportedEntityTypes
+    measurements_output_format: AdoShowMeasurementsSupportedOutputFormats
+    measurements_property_format: AdoShowMeasurementsSupportedPropertyFormats
+    measurements_type: AdoShowMeasurementsSupportedEntityTypes
     no_trunc: bool
     output_file: Path | None
     properties: list[str] | None

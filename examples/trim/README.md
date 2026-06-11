@@ -29,6 +29,13 @@
 > pip install -e examples/trim/custom_experiments/
 > ```
 
+> [!NOTE]
+>
+> **Python Version Compatibility**: The TRIM operator is not available on Python
+> 3.14 due to a dependency on `autogluon==1.5.0`, which requires
+> `pyarrow==20.0.0` (incompatible with Python 3.14). If you need to use TRIM,
+> please use Python 3.10-3.13.
+
 > [!CAUTION]
 >
 > All commands below assume you are running them from the **top-level of the
@@ -245,7 +252,7 @@ the entities of the space that have been measured, you can run:
 <!-- markdownlint-disable line-length -->
 
 ```commandline
-ado show entities space --use-latest
+ado show measurements space --use-latest
 ```
 
 <!-- markdownlint-enable line-length -->

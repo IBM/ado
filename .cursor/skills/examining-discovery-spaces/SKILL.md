@@ -15,10 +15,10 @@ Structured workflow for understanding what a discoveryspace contains, how
 covered its entity space is, and what data has been collected.
 
 - Run all commands from the **repository root** with `uv run`.
-- Write the report to `reports/<ado_context_name>/` (create the
-directory if needed)
-  - where `ado_context_name` is the
-    **active ado metastore context** (`uv run ado context`)
+- Write the report to `reports/<ado_context_name>/` (create the directory if
+  needed)
+  - where `ado_context_name` is the **active ado metastore context**
+    (`uv run ado context`)
 - Write the report as `<SPACEID>_<YYYY-MM-DD>_report.md`
 
 **Related skills**:
@@ -62,9 +62,9 @@ Why is it useful to work with matching data?
 
 1. Allows using the discoveryspace as a view to fetch particular data without
    having to perform operations on it
-   - Concrete example: You create a discoveryspace that is a subspace of
-     another sampled spaced to analyze it. You can perform analysis on existing
-     data even though no operation has been run on the new discoveryspace.
+   - Concrete example: You create a discoveryspace that is a subspace of another
+     sampled spaced to analyze it. You can perform analysis on existing data
+     even though no operation has been run on the new discoveryspace.
 2. Memoization: You can understand if there are
    [memoization opportunities](website/docs/core-concepts/data-sharing.md) that
    would speed up a operation on the space.
@@ -85,15 +85,15 @@ uv run ado show related space --use-latest
 
 ### Avoiding refetching YAML
 
-`ado get … -o yaml` writes YAML to stdout by default. Prefer `--output-file
-PATH` (with the same `-o yaml`) to save it once and reuse the file instead of
-calling `ado get` repeatedly for the same resource.
+`ado get … -o yaml` writes YAML to stdout by default. Prefer
+`--output-file PATH` (with the same `-o yaml`) to save it once and reuse the
+file instead of calling `ado get` repeatedly for the same resource.
 
 ### Large output files
 
 The output produced for a given `-o`/`--output` **format** can be very large
-(for example from `show entities`). Use `--output-file` with the path where the
-output should be saved, and when inspecting these files:
+(for example from `show measurements`). Use `--output-file` with the path where
+the output should be saved, and when inspecting these files:
 
 - Use wc to count the file size first before using head/tail/cat etc. on it.
 - Use head -n1 to get column headers, this will not be large
@@ -104,8 +104,7 @@ output should be saved, and when inspecting these files:
 
 ## Workflow
 
-Run Step 2 and 3 first.
-Then steps 4,5 and 6 can be run in parallel.
+Run Step 2 and 3 first. Then steps 4,5 and 6 can be run in parallel.
 
 ### Step 1: Get Space YAML
 
@@ -156,8 +155,8 @@ overlapping spaces exist.
 - If yes, check if either of the following are true:
   - New operations have been run on space since report
   - The number of measured entities has increased
-- If neither of above are true, ask the user if they want to write a
-  new report or use existing
+- If neither of above are true, ask the user if they want to write a new report
+  or use existing
   - As nothing has changed, the only purpose of creating a new report is if a
     different agent is being used
 
@@ -177,22 +176,21 @@ Note: Keep in mind the [guidelines on large output files](#large-output-files)
 for the following.
 
 ```bash
-uv run ado show entities space SPACE_ID \
+uv run ado show measurements space SPACE_ID \
   --include measured \
   --property-format target \
   -o csv --output-file SPACE_ID_entities.csv
 ```
 
-This writes the data to `SPACE_ID_entities.csv`. If you find `SPACE_ID_entities.csv`
-already exists do not use it, as data may be stale
+This writes the data to `SPACE_ID_entities.csv`. If you find
+`SPACE_ID_entities.csv` already exists do not use it, as data may be stale
 
 You can also get lists of all unmeasured or missing entities, though this is not
 typically required unless you want to analyse the unsampled portion.
 
-Perform an analysis of the measurements, checking e.g. distributions of
-metrics, metric outliers, correlations between metrics.
-Take into account the domain of the experiment and meaning of metrics
-when looking for patterns.
+Perform an analysis of the measurements, checking e.g. distributions of metrics,
+metric outliers, correlations between metrics. Take into account the domain of
+the experiment and meaning of metrics when looking for patterns.
 
 ### Step 6: Examine Related Operations
 

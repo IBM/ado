@@ -127,7 +127,7 @@ def characterize_operation(
     name: str,
     version: str,
     configuration_model: type[pydantic.BaseModel],
-    configuration_model_default: pydantic.BaseModel,
+    example_configuration: pydantic.BaseModel,
     description: str | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as a characterize operation.
@@ -136,7 +136,7 @@ def characterize_operation(
         name: Canonical operator name used in the registry.
         version: Version string included in the operator identifier.
         configuration_model: Pydantic model used to validate operation parameters.
-        configuration_model_default: Default parameter model instance.
+        example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
 
     Returns:
@@ -166,7 +166,7 @@ def characterize_operation(
             version=version,
             description=description,
             configuration_model=configuration_model,
-            example_configuration=configuration_model_default,
+            example_configuration=example_configuration,
             type=DiscoveryOperationEnum.CHARACTERIZE,
         )
         return wrapper
@@ -275,7 +275,7 @@ def modify_operation(
     name: str,
     version: str,
     configuration_model: type[pydantic.BaseModel],
-    configuration_model_default: pydantic.BaseModel,
+    example_configuration: pydantic.BaseModel,
     description: str | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as a modify operation.
@@ -284,7 +284,7 @@ def modify_operation(
         name: Canonical operator name used in the registry.
         version: Version string included in the operator identifier.
         configuration_model: Pydantic model used to validate operation parameters.
-        configuration_model_default: Default parameter model instance.
+        example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
 
     Returns:
@@ -314,7 +314,7 @@ def modify_operation(
             version=version,
             description=description,
             configuration_model=configuration_model,
-            example_configuration=configuration_model_default,
+            example_configuration=example_configuration,
             type=DiscoveryOperationEnum.MODIFY,
         )
         return wrapper
@@ -326,7 +326,7 @@ def export_operation(
     name: str,
     version: str,
     configuration_model: type[pydantic.BaseModel],
-    configuration_model_default: pydantic.BaseModel,
+    example_configuration: pydantic.BaseModel,
     description: str | None = None,
 ) -> typing.Callable[[OperatorFunction], OperatorFunction]:
     """Decorator that registers a function as an export operation.
@@ -335,7 +335,7 @@ def export_operation(
         name: Canonical operator name used in the registry.
         version: Version string included in the operator identifier.
         configuration_model: Pydantic model used to validate operation parameters.
-        configuration_model_default: Default parameter model instance.
+        example_configuration: Example parameter model instance for templating.
         description: Human-readable description shown in the registry.
 
     Returns:
@@ -365,7 +365,7 @@ def export_operation(
             version=version,
             description=description,
             configuration_model=configuration_model,
-            example_configuration=configuration_model_default,
+            example_configuration=example_configuration,
             type=DiscoveryOperationEnum.EXPORT,
         )
         return wrapper

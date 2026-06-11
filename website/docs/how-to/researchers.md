@@ -63,15 +63,16 @@ your behalf.
 
 !!! info
 
-  `uv sync` installs `ado` in editable mode along with all its
-  development and testing dependencies, creating the perfect environment for both
-  research and future plugin development.
+`uv sync` installs `ado` in editable mode along with all its development and
+testing dependencies, creating the perfect environment for both research and
+future plugin development.
 
 ### 2. Activate the Agent
 
 Simply open the cloned `ado` folder as the workspace root in your agent-enabled
-IDE. Many coding agents, include Claude, Cursor and Bob, should  automatically detect
-and load the skills. If your IDE doesn't create a link to `.cursor` for it.
+IDE. Many coding agents, include Claude, Cursor and Bob, should automatically
+detect and load the skills. If your IDE doesn't create a link to `.cursor` for
+it.
 
 ### 3. What Your Agent Can Do For You
 
@@ -110,8 +111,8 @@ Whether you choose the CLI path or the agent path, the core research process in
 4. **Execute:** Run the operation locally or on a
    [remote cluster](../getting-started/remote_run.md) with
    `ado create operation ...`
-5. **Analyze:** Examine data with `ado show entities`, run analysis `operators`
-   to get deeper insights, then refine and explore further
+5. **Analyze:** Examine data with `ado show measurements`, run analysis
+   `operators` to get deeper insights, then refine and explore further
 
 See [Core Concepts](../core-concepts/concepts.md) for a full explanation and our
 [Examples](../examples/examples.md) for end-to-end case studies.

@@ -265,7 +265,6 @@ OpenTelemetry-compatible observability platforms.
 
 Add the `otlp_traces_endpoint` parameter to your actuatorconfiguration:
 
-
 ### Multiple configurations
 
 You can create multiple `actuatorconfiguration`s for the `vllm_performance`

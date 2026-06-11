@@ -7,7 +7,6 @@ from typing import Annotated
 
 import typer
 
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoShowRequestsCommandParameters
 from orchestrator.cli.models.types import (
     AdoShowRequestsSupportedOutputFormats,
@@ -15,6 +14,7 @@ from orchestrator.cli.models.types import (
 )
 from orchestrator.cli.resources.operation.show_requests import show_operation_requests
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import ERROR, console_print
 
 if typing.TYPE_CHECKING:
@@ -29,7 +29,10 @@ def show_requests_for_resources(
             ...,
             help="The kind of the resource to show the request timeseries for.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoShowRequestsSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(
+                AdoShowRequestsSupportedResourceTypes
+            ),
+            metavar=f"[{'|'.join(m.value for m in AdoShowRequestsSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

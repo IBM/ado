@@ -12,13 +12,13 @@ from orchestrator.cli.exceptions.handlers import (
     handle_resource_does_not_exist,
     handle_unknown_experiment_error,
 )
-from orchestrator.cli.models.choice import HiddenPluralChoice
 from orchestrator.cli.models.parameters import AdoDescribeCommandParameters
 from orchestrator.cli.models.types import AdoDescribeSupportedResourceTypes
 from orchestrator.cli.resources.data_container.describe import describe_data_container
 from orchestrator.cli.resources.discovery_space.describe import describe_discovery_space
 from orchestrator.cli.resources.experiment.describe import describe_experiment
 from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import enum_choice_with_plural_parser
 from orchestrator.cli.utils.output.prints import (
     ERROR,
     console_print,
@@ -47,7 +47,8 @@ def describe_resource(
         typer.Argument(
             help="The kind of the resource to describe.",
             show_default=False,
-            click_type=HiddenPluralChoice(AdoDescribeSupportedResourceTypes),
+            parser=enum_choice_with_plural_parser(AdoDescribeSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoDescribeSupportedResourceTypes)}]",
         ),
     ],
     resource_id: Annotated[

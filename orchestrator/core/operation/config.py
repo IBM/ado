@@ -23,8 +23,7 @@ from orchestrator.modules.module import (
     load_module_class_or_function,
 )
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
-from orchestrator.utilities.pydantic import ignore_plugin_validation, Pep440VersionStr
-
+from orchestrator.utilities.pydantic import Pep440VersionStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
     import orchestrator.modules.operators.base

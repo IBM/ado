@@ -58,11 +58,12 @@ def randomWalkConf(
 
     with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
         d = yaml.safe_load(f)
-        config = DiscoveryOperationResourceConfiguration(**d)
+        config = DiscoveryOperationResourceConfiguration.model_validate(d)
 
     if request.param == "all":
-        config.operation.parameters.numberEntities = "all"
+        config.operation.parameters["numberEntities"] = "all"
 
+    config.operation.validate_operator_parameters()
     return config
 
 
@@ -76,7 +77,7 @@ def invalidRandomWalkConf() -> DiscoveryOperationResourceConfiguration:
             ).read_text()
         )
     )
-
+    config.operation.validate_operator_parameters()
     config.operation.parameters.numberEntities = 62
 
     return config
@@ -89,7 +90,10 @@ def raytuneConf() -> DiscoveryOperationResourceConfiguration:
 
     with open("examples/ml-multi-cloud/raytune_ml_multicloud_operation.yaml") as f:
         d = yaml.safe_load(f)
-        return DiscoveryOperationResourceConfiguration(**d)
+        config = DiscoveryOperationResourceConfiguration.model_validate(d)
+
+    config.operation.validate_operator_parameters()
+    return config
 
 
 @pytest.fixture(params=[RandomWalk, RayTune])

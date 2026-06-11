@@ -132,6 +132,7 @@ def ml_multi_cloud_operation_configuration(
             ).read_text()
         )
     )
+    operation_configuration.operation.validate_operator_parameters()
     operation_configuration.spaces = [ml_multi_cloud_space.uri]
     return operation_configuration
 

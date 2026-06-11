@@ -116,6 +116,7 @@ def random_walk_multicloud_operation_configuration() -> (
     with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
         conf = DiscoveryOperationResourceConfiguration.model_validate(yaml.safe_load(f))
 
+    conf.operation.validate_operator_parameters()
     # Remove values for the spaces
     conf.spaces = []
     return conf

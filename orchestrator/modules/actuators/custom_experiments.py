@@ -619,7 +619,7 @@ def custom_experiment_executor(
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue,
-    custom_experiments_actuator: typing.Optional["CustomExperimentsActor"] = None,
+    custom_experiments_actor: "CustomExperimentsActor | None" = None,
 ) -> None:
     """
     :param function: The function to call
@@ -669,8 +669,8 @@ def custom_experiment_executor(
     measurement_request.status = compute_measurement_status(measurement_results)
 
     queue.put(measurement_request, block=False)
-    if custom_experiments_actuator:
-        custom_experiments_actuator.mark_measurement_request_completed.remote(
+    if custom_experiments_actor:
+        custom_experiments_actor.mark_measurement_request_completed.remote(
             measurement_request.requestid
         )
 

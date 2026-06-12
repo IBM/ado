@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 import pydantic
 import sqlalchemy
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import InvalidRequestError, SQLAlchemyError
 
 import orchestrator.core.samplestore.config
 import orchestrator.core.samplestore.csv
@@ -20,7 +20,7 @@ from orchestrator.core.samplestore.base import (
     FailedToDecodeStoredEntityError,
     FailedToDecodeStoredMeasurementResultForEntityError,
 )
-from orchestrator.metastore.sql.utils import check_table_exists, engine_for_sql_store
+from orchestrator.metastore.sql.utils import engine_for_sql_store
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment
@@ -58,11 +58,13 @@ if TYPE_CHECKING:
     from rich.console import RenderableType
 
 # Process-level cache of (db_url, tablename) pairs for which the four DDL tables
-# have already been verified to exist.  Skips the four `CREATE TABLE IF NOT EXISTS`
-# round-trips on every subsequent SQLSampleStore construction for the same store.
+# have already been verified to exist, along with their reflected metadata.
+# Skips the four `CREATE TABLE IF NOT EXISTS` round-trips and metadata reflection
+# on every subsequent SQLSampleStore construction for the same store.
 # The db_url is included so that two stores with the same identifier but pointing
 # to different databases are treated independently.
 _source_tables_verified: set[tuple[str, str]] = set()
+_reflected_metadata_cache: dict[tuple[str, str], sqlalchemy.MetaData] = {}
 
 
 class SQLSampleStoreConfiguration(pydantic.BaseModel):
@@ -265,7 +267,7 @@ class SQLSampleStore(ActiveSampleStore):
             experiments=experiments, catalogIdentifier="sqlstore_catalog"
         )
 
-    def _create_source_table(self) -> None:
+    def _create_source_table(self) -> sqlalchemy.MetaData:
 
         from sqlalchemy import CHAR, JSON, DateTime, Integer, String, Text
 
@@ -341,6 +343,7 @@ class SQLSampleStore(ActiveSampleStore):
         )
 
         meta.create_all(self.engine, checkfirst=True)
+        return meta
 
     def __init__(
         self,
@@ -394,24 +397,40 @@ class SQLSampleStore(ActiveSampleStore):
         # Create the four backing tables only when they do not yet exist.
         # The module level _source_tables_verified cache enables skipping
         # table creation checks for subsequent constructions within the same process.
+        # The _reflected_metadata_cache stores the reflected metadata to avoid
+        # repeated reflection operations.
         _cache_key = (str(self._engine.url), self._tablename)
         if _cache_key not in _source_tables_verified:
-            table_exists = check_table_exists(self.engine, self._tablename)
+            # Reflect only the 4 tables related to this sample store
+            metadata = sqlalchemy.MetaData()
+            table_names = [
+                self._tablename,
+                f"{self._tablename}_measurement_requests",
+                f"{self._tablename}_measurement_results",
+                f"{self._tablename}_measurement_requests_results",
+            ]
 
-            if not table_exists:
-                self._create_source_table()
+            try:
+                metadata.reflect(bind=self.engine, only=table_names)
+
+                # Check if all 4 tables exist by looking in reflected tables
+                all_tables_exist = all(
+                    table_name in metadata.tables for table_name in table_names
+                )
+
+                if not all_tables_exist:
+                    # Create tables and use the returned metadata which already has table definitions
+                    metadata = self._create_source_table()
+            except InvalidRequestError:
+                # Tables don't exist yet, create them
+                metadata = self._create_source_table()
+
+            # Cache the metadata (already contains all tables including measurement tables)
+            _reflected_metadata_cache[_cache_key] = metadata
             _source_tables_verified.add(_cache_key)
 
-        # Reflect table metadata once during initialization for query building
-        self._metadata = sqlalchemy.MetaData()
-        self._metadata.reflect(
-            bind=self.engine,
-            only=[
-                f"{self._tablename}_measurement_requests",
-                f"{self._tablename}_measurement_requests_results",
-                f"{self._tablename}_measurement_results",
-            ],
-        )
+        # Use cached metadata
+        self._metadata = _reflected_metadata_cache[_cache_key]
         self._request_table = self._metadata.tables[
             f"{self._tablename}_measurement_requests"
         ]

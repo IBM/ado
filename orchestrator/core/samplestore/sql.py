@@ -1511,7 +1511,7 @@ class SQLSampleStore(ActiveSampleStore):
         """
         from sqlalchemy import and_, select
 
-        from orchestrator.core.samplestore.filter_builder import (
+        from orchestrator.core.samplestore.orm.measurements_filtering import (
             MeasurementFilterBuilder,
         )
 
@@ -1622,7 +1622,7 @@ class SQLSampleStore(ActiveSampleStore):
         """
         from sqlalchemy import and_, select
 
-        from orchestrator.core.samplestore.filter_builder import (
+        from orchestrator.core.samplestore.orm.measurements_filtering import (
             MeasurementFilterBuilder,
         )
 

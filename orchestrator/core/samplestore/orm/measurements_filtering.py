@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 # Direct column mappings for measurement requests
 # Maps field names to actual database column names
 MEASUREMENT_REQUEST_COLUMN_MAPPINGS = {
-    "requestid": "request_id",  # Schema field: requestid (lowercase)
-    "requestIndex": "request_index",  # Schema field: requestIndex (camelCase)
+    "requestid": "request_id",
+    "requestIndex": "request_index",
     "status": "status",
-    "operation_id": "operation_id",  # Schema field: operation_id (snake_case)
+    "operation_id": "operation_id",
     "timestamp": "timestamp",
     "type": "type",
-    "experimentReference": "experiment_reference",  # Stored as stringified text
+    "experimentReference": "experiment_reference",
 }
 
 # Direct column mappings for measurement results

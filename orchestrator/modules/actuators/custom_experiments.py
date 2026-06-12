@@ -17,6 +17,10 @@ from orchestrator.modules.actuators.base import (
     ActuatorBase,
     DeprecatedExperimentError,
 )
+from orchestrator.modules.actuators.executor_supervisor import (
+    ExperimentExecutorSupervisor,
+    ExperimentExecutorSupervisorParameters,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue
 from orchestrator.modules.module import (
     ModuleConf,
@@ -615,6 +619,7 @@ def custom_experiment_executor(
     measurement_request: MeasurementRequest,
     target_experiment: Experiment,
     queue: MeasurementQueue,
+    custom_experiments_actor: "CustomExperimentsActor | None" = None,
 ) -> None:
     """
     :param function: The function to call
@@ -623,6 +628,8 @@ def custom_experiment_executor(
     :param target_experiment: The experiment to execute.
         Required as the measurementRequest only includes an ExperimentReference
     :param queue: The queue to put the result on
+    :param custom_experiments_actor: Optional handle to CustomExperiments actuator
+        to notify after the result is queued
     :return:
     """
 
@@ -662,12 +669,23 @@ def custom_experiment_executor(
     measurement_request.status = compute_measurement_status(measurement_results)
 
     queue.put(measurement_request, block=False)
+    if custom_experiments_actor:
+        custom_experiments_actor.mark_measurement_request_completed.remote(
+            measurement_request.requestid
+        )
+
+
+class CustomExperimentsParameters(ExperimentExecutorSupervisorParameters):
+    """Configuration parameters for the CustomExperiments actuator."""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
 
 
 class CustomExperiments(ActuatorBase):
     """Actuator for applying user supplied custom experiments"""
 
     identifier = "custom_experiments"
+    parameters_class = CustomExperimentsParameters
 
     def __init__(self, queue: "MeasurementQueue", params: dict | None = None) -> None:
         """
@@ -681,8 +699,18 @@ class CustomExperiments(ActuatorBase):
         super().__init__(queue=queue, params=params)
 
         params = params or {}
+        self._typed_parameters = self.parameters_class.model_validate(
+            params, from_attributes=True
+        )
         self.log.debug(f"Queue is {self._stateUpdateQueue}")
-        self.log.debug(f"Params are {params}")
+        self.log.debug(f"Params are {self._typed_parameters}")
+
+        self._launch_supervisor = ExperimentExecutorSupervisor(
+            queue=self._stateUpdateQueue,
+            config=self._typed_parameters.to_supervisor_config(),
+            logger=self.log,
+        )
+        self._launch_supervisor.start()
 
         # Use the module-level catalog by calling the class method
         self._catalog = type(self).catalog()
@@ -713,6 +741,10 @@ class CustomExperiments(ActuatorBase):
                 )
 
         self.log.debug("Completed init")
+
+    def mark_measurement_request_completed(self, requestid: str) -> None:
+        """Record that a measurement result was queued."""
+        self._launch_supervisor.mark_measurement_request_completed(requestid)
 
     def loadedExperiment(
         self,
@@ -794,7 +826,16 @@ class CustomExperiments(ActuatorBase):
                 else {}
             )
             # Dispatch as Ray task. Pass ray options if present.
-            ray.remote(custom_experiment_executor, **remote_kwargs).remote(
+            # Pass the actor handle (not self) so the executor can call
+            # mark_measurement_request_completed.remote() without pickling the actor object.
+            # self is not serialisable (contains threading.Lock from the supervisor).
+            try:
+                _notifier = ray.get_runtime_context().current_actor
+            except Exception:
+                _notifier = None
+            executor_ref = ray.remote(
+                custom_experiment_executor, **remote_kwargs
+            ).remote(
                 fn,
                 self._catalog.experimentForReference(
                     request.experimentReference
@@ -802,7 +843,9 @@ class CustomExperiments(ActuatorBase):
                 request,
                 targetExperiment,
                 self._stateUpdateQueue,
+                _notifier,
             )
+            self._launch_supervisor.supervise_experiment_executor(request, executor_ref)
         else:
             custom_experiment_executor(
                 fn,
@@ -829,3 +872,9 @@ class CustomExperiments(ActuatorBase):
         self,
     ) -> orchestrator.modules.actuators.catalog.ExperimentCatalog:
         return self._catalog
+
+
+if typing.TYPE_CHECKING:
+    from ray.actor import ActorHandle
+
+    CustomExperimentsActor = type[ActorHandle[CustomExperiments]]

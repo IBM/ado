@@ -19,6 +19,7 @@ from orchestrator.cli.utils.input.parsers import (
     parse_key_value_pairs,
 )
 from orchestrator.cli.utils.output.prints import ERROR, console_print
+from orchestrator.cli.utils.queries.parser import prepare_query_filters_for_db
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
@@ -164,18 +165,23 @@ def show_trace_for_resources(
             project_context=ado_configuration.project_context,  # type: ignore[arg-type]
         )
 
-    # Parse filters
+    # Parse filters and prepare for DB
     field_selectors = []
     if filters:
-        parsed_filters = parse_key_value_pairs(filters)
-        field_selectors = parsed_filters
+        try:
+            parsed_filters = parse_key_value_pairs(filters)
+            field_selectors = prepare_query_filters_for_db(parsed_filters)
 
-        # Auto-enable --include-results for result-level filters
-        include_results = any(
-            "measurements[" in key
-            for filter_dict in parsed_filters
-            for key in filter_dict
-        )
+            # Auto-enable --include-results for result-level filters
+            # Check the original parsed filters before DB transformation
+            include_results = include_results or any(
+                "measurements[" in key
+                for filter_dict in parsed_filters
+                for key in filter_dict
+            )
+        except ValueError as e:
+            console_print(f"{ERROR}{e}", stderr=True)
+            raise typer.Exit(1) from e
 
     parameters = AdoShowTraceCommandParameters(
         ado_configuration=ado_configuration,

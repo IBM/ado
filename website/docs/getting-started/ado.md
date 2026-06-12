@@ -1040,6 +1040,148 @@ ado show results operation randomwalk-0.5.0-123abc --hide uid
 ado show results operation randomwalk-0.5.0-123abc --output-file results-table.txt
 ```
 
+#### ado show trace
+
+_show trace_ provides a detailed view of measurement requests and results for
+debugging purposes. For normal data analysis and visualization, use
+`ado show measurements` instead, which provides a cleaner view of the measured
+data.
+
+The complete syntax of the `ado show trace` command is as follows:
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+ado show trace operation [RESOURCE_ID] [--use-latest] \
+                         [--include-results] \
+                         [--filter <key=value>] \
+                         [--output | -o <table | csv | json | yaml>] \
+                         [--output-file <path>] \
+                         [--hide <field>] \
+                         [--no-trunc]
+```
+
+<!-- markdownlint-enable line-length -->
+
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation from the current context. It is ignored if a RESOURCE_ID is
+  provided.
+- `--include-results` switches to result-level view, unrolling entities to show
+  individual measurement results with both request and result metadata.
+- `--filter` filters using JSON path syntax (e.g., `requestIndex=5`,
+  `status=Success`). Can be used multiple times for AND logic. Result-level
+  filters (e.g., `measurements[0].uid=...`) automatically enable
+  `--include-results`.
+- `--output` (or `-o`) determines the output format. Supports `table`, `csv`,
+  `json`, and `yaml`. Output is written to stdout by default, or to a file if
+  `--output-file` is specified.
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
+- `--hide` can be specified multiple times and allows hiding fields from the
+  output.
+- `--no-trunc` prevents truncation of table content (console output only).
+
+##### Request-Level View (Default)
+
+The default view shows measurement requests with the following columns:
+
+- Index (auto-generated row number)
+- Request ID
+- Request Index
+- Request type (measured/replayed)
+- Timestamp
+- Experiment ID
+- Entity IDs (list)
+- Status
+- Measurements (count)
+- Valid Measurements (count)
+- Invalid Measurements (count)
+- Metadata (request metadata)
+
+##### Result-Level View (--include-results)
+
+The result-level view unrolls entities to show individual results:
+
+- Index (auto-generated row number)
+- Request ID
+- Request Index
+- Request type (measured/replayed)
+- Timestamp
+- Experiment ID
+- Result Index (per-request, 0-based)
+- Result UID
+- Entity ID (single, unrolled)
+- Valid (boolean)
+- Number of Properties
+- Request Metadata
+- Result Metadata
+
+##### Examples
+
+###### Show request-level trace for an operation
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc
+```
+
+###### Show result-level trace with unrolled entities
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --include-results
+```
+
+###### Filter by request status
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter status=Success
+```
+
+###### Filter by request index
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter requestIndex=5
+```
+
+###### Multiple filters (AND logic)
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter status=Success --filter requestIndex=5
+```
+
+<!-- markdownlint-enable line-length -->
+
+###### Filter by result UID (automatically enables --include-results)
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter 'measurements[0].uid=result-uuid'
+```
+
+###### Output as YAML
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc -o yaml
+```
+
+###### Save as CSV
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc -o csv --output-file trace.csv
+```
+
+###### Hide specific columns
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --hide metadata --hide timestamp
+```
+
+###### Use latest operation
+
+```shell
+ado show trace operation --use-latest
+```
+
 #### ado show related
 
 _show related_ supports displaying resources that are related to the one whose

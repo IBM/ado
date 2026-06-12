@@ -413,6 +413,7 @@ class SQLSampleStore(ActiveSampleStore):
             try:
                 metadata.reflect(bind=self.engine, only=table_names)
             except InvalidRequestError:
+                # metadata.reflect raises an InvalidRequestError if one of the tables in only does not exist
                 # Create tables and use the returned metadata which already has table definitions
                 metadata = self._create_source_table()
 

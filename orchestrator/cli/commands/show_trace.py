@@ -1,0 +1,206 @@
+# Copyright IBM Corporation 2025, 2026
+# SPDX-License-Identifier: MIT
+
+import pathlib
+import typing
+from typing import Annotated
+
+import typer
+
+from orchestrator.cli.models.parameters import AdoShowTraceCommandParameters
+from orchestrator.cli.models.types import (
+    AdoShowTraceSupportedOutputFormats,
+    AdoShowTraceSupportedResourceTypes,
+)
+from orchestrator.cli.resources.operation.show_trace import show_operation_trace
+from orchestrator.cli.utils.generic.common import get_effective_resource_id
+from orchestrator.cli.utils.input.parsers import (
+    enum_choice_with_plural_parser,
+    parse_key_value_pairs,
+)
+from orchestrator.cli.utils.output.prints import ERROR, console_print
+
+if typing.TYPE_CHECKING:
+    from orchestrator.cli.core.config import AdoConfiguration
+
+
+def show_trace_for_resources(
+    ctx: typer.Context,
+    resource_type: Annotated[
+        AdoShowTraceSupportedResourceTypes,
+        typer.Argument(
+            ...,
+            help="The kind of the resource to show the measurement trace for.",
+            show_default=False,
+            parser=enum_choice_with_plural_parser(AdoShowTraceSupportedResourceTypes),
+            metavar=f"[{'|'.join(m.value for m in AdoShowTraceSupportedResourceTypes)}]",
+        ),
+    ],
+    resource_id: Annotated[
+        str | None,
+        typer.Argument(
+            ...,
+            help="The id of the resource to show the measurement trace for.",
+            show_default=False,
+        ),
+    ] = None,
+    use_latest: Annotated[
+        bool,
+        typer.Option(
+            "--use-latest",
+            help="Show the measurement trace for the latest identifier of the selected resource type. "
+            "Ignored if a resource identifier is also specified.",
+            show_default=False,
+        ),
+    ] = False,
+    include_results: Annotated[
+        bool,
+        typer.Option(
+            "--include-results",
+            help="Show result-level view with unrolled entities instead of request-level view.",
+            show_default=False,
+        ),
+    ] = False,
+    filters: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--filter",
+            help="Filter using JSON path syntax (e.g., 'requestIndex=5', 'status=Success'). "
+            "Can be used multiple times for AND logic. "
+            "Result-level filters (e.g., 'measurements[0].uid=...') automatically enable --include-results.",
+            show_default=False,
+        ),
+    ] = None,
+    output_format: Annotated[
+        AdoShowTraceSupportedOutputFormats,
+        typer.Option(
+            "--output",
+            "-o",
+            help="The format in which to output the trace.",
+        ),
+    ] = AdoShowTraceSupportedOutputFormats.TABLE,
+    output_file: Annotated[
+        pathlib.Path | None,
+        typer.Option(
+            "--output-file",
+            help="Write output to the specified file instead of stdout.",
+            file_okay=True,
+            dir_okay=False,
+            writable=True,
+            resolve_path=True,
+            show_default=False,
+        ),
+    ] = None,
+    hide_fields: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--hide",
+            show_default=False,
+            help="""
+            Hide columns (fields) from the output. Can be used multiple times.
+
+            Different resource types might support different fields.
+            """,
+        ),
+    ] = None,
+    no_trunc: Annotated[
+        bool,
+        typer.Option(
+            "--no-trunc",
+            help="""
+            Prevent truncation of table content. When enabled, columns will be sized to fit all content
+            without truncation. Only applies to console output format.
+            """,
+        ),
+    ] = False,
+) -> None:
+    """
+    Show the measurement trace (requests and results) for an operation.
+
+    This command provides a unified view of measurement requests and results.
+
+    See https://ibm.github.io/ado/getting-started/ado/#ado-show-trace
+    for detailed documentation and examples.
+
+    Examples:
+
+    # Show request-level trace for an operation
+    ado show trace operation <operation-id>
+
+    # Show request-level trace for the latest operation
+    ado show trace operation --use-latest
+
+    # Show result-level trace with unrolled entities
+    ado show trace operation <operation-id> --include-results
+
+    # Filter by request status
+    ado show trace operation <operation-id> --filter status=Success
+
+    # Filter by request index
+    ado show trace operation <operation-id> --filter requestIndex=5
+
+    # Multiple filters (AND logic)
+    ado show trace operation <operation-id> --filter status=Success --filter requestIndex=5
+
+    # Output as YAML
+    ado show trace operation <operation-id> --output yaml
+
+    # Hide specific columns
+    ado show trace operation <operation-id> --hide metadata --hide timestamp
+    """
+    ado_configuration: AdoConfiguration = ctx.obj
+
+    if not resource_id and not use_latest:
+        console_print(
+            f"{ERROR}You must specify either a resource id or the --use-latest flag",
+            stderr=True,
+        )
+        raise typer.Exit(1)
+
+    if use_latest:
+        resource_id = get_effective_resource_id(
+            explicit_resource_id=resource_id,
+            resource_type=resource_type.value,
+            project_context=ado_configuration.project_context,  # type: ignore[arg-type]
+        )
+
+    # Parse filters
+    field_selectors = []
+    if filters:
+        parsed_filters = parse_key_value_pairs(filters)
+        field_selectors = parsed_filters
+
+        # Auto-enable --include-results for result-level filters
+        include_results = any(
+            "measurements[" in key
+            for filter_dict in parsed_filters
+            for key in filter_dict
+        )
+
+    parameters = AdoShowTraceCommandParameters(
+        ado_configuration=ado_configuration,
+        field_selectors=field_selectors,  # type: ignore[arg-type]
+        hide_fields=hide_fields,
+        include_results=include_results,
+        no_trunc=no_trunc,
+        output_file=output_file,
+        output_format=output_format,
+        resource_id=resource_id,  # type: ignore[arg-type]
+    )
+
+    method_mapping = {
+        AdoShowTraceSupportedResourceTypes.OPERATION: show_operation_trace
+    }
+
+    method_mapping[resource_type](parameters=parameters)
+
+
+def register_show_trace_command(app: typer.Typer) -> None:
+    app.command(
+        name="trace",
+        no_args_is_help=True,
+        options_metavar="[--include-results] [--filter <key=value>] [-o | --output <format>] [--output-file <path>] [--hide <column>]",
+    )(show_trace_for_resources)
+
+
+# Made with Bob

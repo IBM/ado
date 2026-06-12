@@ -21,6 +21,9 @@ from orchestrator.cli.commands.show_results import (
 from orchestrator.cli.commands.show_summary import (
     register_show_summary_command,
 )
+from orchestrator.cli.commands.show_trace import (
+    register_show_trace_command,
+)
 
 show_command = typer.Typer(
     no_args_is_help=True,
@@ -39,6 +42,7 @@ register_show_related_command(show_command)
 register_show_requests_command(show_command)
 register_show_results_command(show_command)
 register_show_summary_command(show_command)
+register_show_trace_command(show_command)
 
 
 def register_show_command(app: typer.Typer) -> None:

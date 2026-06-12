@@ -1,11 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
-from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
-
 from ado_actuators.vllm_performance.k8s import UnsupportedThreadpoolConfigurationError
 
 

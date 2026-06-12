@@ -3,7 +3,6 @@
 
 import json
 import logging
-from operator import is_
 import subprocess
 import time
 import traceback
@@ -17,7 +16,6 @@ from ado_actuators.vllm_performance.env_manager import (
     EnvironmentManager,
     EnvironmentState,
 )
-from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 from ado_actuators.vllm_performance.k8s import (
     K8sConnectionError,
     K8sEnvironmentCreationError,
@@ -29,6 +27,7 @@ from ado_actuators.vllm_performance.k8s.create_environment import (
 from ado_actuators.vllm_performance.k8s.yaml_support.build_components import (
     VLLMDtype,
 )
+from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 from ado_actuators.vllm_performance.vllm_performance_test.benchmark_models import (
     BenchmarkParameters,
     BenchmarkResult,
@@ -194,20 +193,24 @@ def _create_environment(
                 )
                 try:
                     image_value = values.get("image", "")
-                    logger.info(f"Image value: {image_value}")
+                    logger.info(f"Evaluating image value: {image_value}")
                     if type(image_value) is str:
-                        vllm_version_str = VLLMVersionChecker.extract_version_from_image(image_value)
-                        is_threadpool_allowed= VLLMVersionChecker.supports_threadpool(vllm_version_str)
+                        vllm_version_str = (
+                            VLLMVersionChecker.extract_version_from_image(image_value)
+                        )
+                        is_threadpool_allowed = VLLMVersionChecker.supports_threadpool(
+                            vllm_version_str
+                        )
                         image_name = image_value
                     elif type(image_value) is list:
-                        is_threadpool_allowed= VLLMVersionChecker.supports_threadpool(image_value[1])
+                        is_threadpool_allowed = VLLMVersionChecker.supports_threadpool(
+                            image_value[1]
+                        )
                         image_name = image_value[0] if len(image_value) > 0 else ""
                     else:
                         raise ValueError(f"Invalid type for image: {type(image_value)}")
 
                     threadpool_requested = int(values.get("threadpool", 1))
-                    logger.info(f"threapool_requested: {threadpool_requested} - "
-                                 f"is_threadpool_allowed: {is_threadpool_allowed}")
                     if threadpool_requested and not is_threadpool_allowed:
                         raise UnsupportedThreadpoolConfigurationError(
                             f"Threadpool requested but not supported by image {image_name}"

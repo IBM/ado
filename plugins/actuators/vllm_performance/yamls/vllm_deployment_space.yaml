@@ -6,9 +6,12 @@ entitySpace:
       values:
         - ibm-granite/granite-3.3-8b-instruct
   - identifier: image
+    metadata:
+      description: Docker image with vLLM. Specify as [image, version] for threadpool validation
     propertyDomain:
       values:
-        - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
+        - - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
+          - "0.20.1"
   - identifier: 'threadpool'
     metadata:
       description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."

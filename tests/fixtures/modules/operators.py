@@ -58,7 +58,7 @@ def randomWalkConf(
 
     with open("examples/ml-multi-cloud/randomwalk_ml_multicloud_operation.yaml") as f:
         d = yaml.safe_load(f)
-        config = DiscoveryOperationResourceConfiguration(**d)
+        config = DiscoveryOperationResourceConfiguration.model_validate(d)
 
     if request.param == "all":
         config.operation.parameters.numberEntities = "all"

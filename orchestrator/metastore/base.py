@@ -101,6 +101,7 @@ class ResourceStore(abc.ABC):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
+        ignore_plugin_validation: bool = True,
     ) -> ADOResource | None:
         """Returns the resource object with the given identifier
 
@@ -108,6 +109,8 @@ class ResourceStore(abc.ABC):
 
          Parameters:
             identifier: A string. Identifier of a resource object
+            ignore_plugin_validation: When True (default), skip plugin registry
+                validation on nested operation and actuator configuration fields.
 
         Returns:
             A resource instance corresponding to the identifier

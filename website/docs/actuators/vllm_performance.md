@@ -85,6 +85,34 @@ The `vllm_performance` actuator implements twelve experiments:
 - `test-geospatial-endpoint-guidellm-custom-dataset-v1`: Benchmark existing
   geospatial model endpoints with custom datasets using GuideLLM.
 
+> [!NOTE] Threadpool Support for Geospatial Models
+>
+> Geospatial experiments support threadpool pre/post processing for improved
+> performance when processing satellite imagery. The `threadpool` and
+> `renderer_num_workers` parameters control this feature:
+>
+> - **threadpool**: Enable (1) or disable (0) threadpool pre/post processing
+> - **renderer_num_workers**: Number of threads available when threadpool
+> is enabled
+>
+> **Version Requirements:** Threadpool support requires vLLM version 0.20.0 or
+> later. The actuator automatically validates version compatibility when you
+> specify an `image` parameter. If you request threadpool with an incompatible
+> vLLM version, the experiment will fail with an
+> `UnsupportedThreadpoolConfigurationError`.
+>
+> **Image Format:** To enable version validation, specify the image as a list
+> with the image name and version:
+>
+> ```yaml
+> image:
+>   - ["your-registry/vllm:v0.20.1-custom", "0.20.1"]
+> ```
+>
+> Alternatively, if using standard vLLM image naming (e.g.,
+> `vllm/vllm-openai:v0.20.1`), the actuator will automatically extract the
+> version from the image tag.
+
 ---
 
 ## Running single experiments: Quick endpoint and deployment tests
@@ -264,7 +292,6 @@ OpenTelemetry-compatible observability platforms.
 **Configuration:**
 
 Add the `otlp_traces_endpoint` parameter to your actuatorconfiguration:
-
 
 ### Multiple configurations
 

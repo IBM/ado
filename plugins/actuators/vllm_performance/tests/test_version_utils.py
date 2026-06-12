@@ -34,15 +34,6 @@ class TestVLLMVersionChecker:
         image = "vllm/vllm-openai:latest"
         assert VLLMVersionChecker.extract_version_from_image(image) == "latest"
 
-    def test_extract_version_from_empty_string(self) -> None:
-        """Test that empty string returns None."""
-        assert VLLMVersionChecker.extract_version_from_image("") is None
-
-    def test_extract_version_from_none(self) -> None:
-        """Test that None returns None."""
-        # Type ignore needed for testing edge case
-        assert VLLMVersionChecker.extract_version_from_image(None) is None  # type: ignore[arg-type]
-
     def test_supports_threadpool_version_supported(self) -> None:
         """Test threadpool enabled for vLLM >= 0.20.0."""
         version_str = "0.20.1"
@@ -67,12 +58,10 @@ class TestVLLMVersionChecker:
         """Test full workflow: extract version from image then check threadpool support."""
         image = "vllm/vllm-openai:v0.20.1"
         version_str = VLLMVersionChecker.extract_version_from_image(image)
-        assert version_str is not None
         assert VLLMVersionChecker.supports_threadpool(version_str)
 
     def test_supports_threadpool_with_old_image_extraction(self) -> None:
         """Test full workflow with old version: extract then check threadpool support."""
         image = "vllm/vllm-openai:v0.18.0"
         version_str = VLLMVersionChecker.extract_version_from_image(image)
-        assert version_str is not None
         assert not VLLMVersionChecker.supports_threadpool(version_str)

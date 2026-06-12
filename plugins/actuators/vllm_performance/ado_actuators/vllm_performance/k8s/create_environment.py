@@ -41,6 +41,8 @@ def create_test_environment(
     skip_tokenizer_init: bool = False,
     io_processor_plugin: str | None = None,
     otlp_traces_endpoint: pydantic.AnyUrl | None = None,
+    threadpool: int = 1,
+    renderer_num_workers: int = 32,
     check_interval: int = 5,
     timeout: int = 1200,
 ) -> None:
@@ -70,6 +72,8 @@ def create_test_environment(
     :param enforce_eager: flag to enforce using Pytorch eager mode
     :param skip_tokenizer_init: flag to skip tokenizer initialization in vLLM
     :param io_processor_plugin: name of the IO processor plugin to be used by vLLM
+    :param threadpool: enable threadpool for vLLM renderer (0=disabled, 1=enabled)
+    :param renderer_num_workers: number of renderer workers when threadpool is enabled
     :param otlp_traces_endpoint: OpenTelemetry traces endpoint URL
     :param check_interval: wait interval in seconds
     :param timeout: timeout in seconds
@@ -119,6 +123,8 @@ def create_test_environment(
         skip_tokenizer_init=skip_tokenizer_init,
         io_processor_plugin=io_processor_plugin,
         otlp_traces_endpoint=otlp_traces_endpoint,
+        threadpool=threadpool,
+        renderer_num_workers=renderer_num_workers,
     )
     logger.debug("deployment created")
     c_manager.wait_deployment_ready(

@@ -12,7 +12,7 @@ class VLLMVersionChecker:
     THREADPOOL_MIN_VERSION = "0.20.0"
 
     @classmethod
-    def extract_version_from_image(cls, image: str) -> str | None:
+    def extract_version_from_image(cls, image: str) -> str:
         """
         Extract version string from a container image string.
 

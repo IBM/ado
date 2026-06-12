@@ -3,6 +3,7 @@
 
 import json
 import logging
+from operator import is_
 import subprocess
 import time
 import traceback
@@ -16,9 +17,11 @@ from ado_actuators.vllm_performance.env_manager import (
     EnvironmentManager,
     EnvironmentState,
 )
+from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 from ado_actuators.vllm_performance.k8s import (
     K8sConnectionError,
     K8sEnvironmentCreationError,
+    UnsupportedThreadpoolConfigurationError,
 )
 from ado_actuators.vllm_performance.k8s.create_environment import (
     create_test_environment,
@@ -190,12 +193,32 @@ def _create_environment(
                     )
                 )
                 try:
+                    image_value = values.get("image", "")
+                    logger.info(f"Image value: {image_value}")
+                    if type(image_value) is str:
+                        vllm_version_str = VLLMVersionChecker.extract_version_from_image(image_value)
+                        is_threadpool_allowed= VLLMVersionChecker.supports_threadpool(vllm_version_str)
+                        image_name = image_value
+                    elif type(image_value) is list:
+                        is_threadpool_allowed= VLLMVersionChecker.supports_threadpool(image_value[1])
+                        image_name = image_value[0] if len(image_value) > 0 else ""
+                    else:
+                        raise ValueError(f"Invalid type for image: {type(image_value)}")
+
+                    threadpool_requested = int(values.get("threadpool", 1))
+                    logger.info(f"threapool_requested: {threadpool_requested} - "
+                                 f"is_threadpool_allowed: {is_threadpool_allowed}")
+                    if threadpool_requested and not is_threadpool_allowed:
+                        raise UnsupportedThreadpoolConfigurationError(
+                            f"Threadpool requested but not supported by image {image_name}"
+                        )
+
                     create_test_environment(
                         k8s_name=env.k8s_name,
                         model=model,
                         in_cluster=actuator.in_cluster,
                         verify_ssl=actuator.verify_ssl,
-                        image=values.get("image"),
+                        image=image_name,
                         image_pull_secret_name=actuator.image_pull_secret_name,
                         deployment_template=actuator.deployment_template,
                         service_template=actuator.service_template,
@@ -218,6 +241,8 @@ def _create_environment(
                         enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
+                        threadpool=threadpool_requested,
+                        renderer_num_workers=int(values.get("renderer_num_workers")),
                         check_interval=check_interval,
                         timeout=timeout,
                     )
@@ -494,6 +519,7 @@ def run_resource_and_workload_experiment(
         except (
             K8sEnvironmentCreationError,
             K8sConnectionError,
+            UnsupportedThreadpoolConfigurationError,
             VLLMBenchmarkError,
         ) as error:
             logger.error(f"Error running tests for entity {entity.identifier}: {error}")

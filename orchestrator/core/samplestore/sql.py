@@ -412,17 +412,8 @@ class SQLSampleStore(ActiveSampleStore):
 
             try:
                 metadata.reflect(bind=self.engine, only=table_names)
-
-                # Check if all 4 tables exist by looking in reflected tables
-                all_tables_exist = all(
-                    table_name in metadata.tables for table_name in table_names
-                )
-
-                if not all_tables_exist:
-                    # Create tables and use the returned metadata which already has table definitions
-                    metadata = self._create_source_table()
             except InvalidRequestError:
-                # Tables don't exist yet, create them
+                # Create tables and use the returned metadata which already has table definitions
                 metadata = self._create_source_table()
 
             # Cache the metadata (already contains all tables including measurement tables)

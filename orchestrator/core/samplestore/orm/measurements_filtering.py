@@ -181,7 +181,7 @@ class MeasurementFilterBuilder:
         path = path.removeprefix("$.")
 
         # Check if path maps to a direct column (top-level field)
-        column_name = MEASUREMENT_RESULT_COLUMN_MAPPINGS.get(path):
+        column_name = MEASUREMENT_RESULT_COLUMN_MAPPINGS.get(path)
         if column_name:
             value = self._parse_filter_value(json_encoded_value)
             return result_table.c[column_name] == value

@@ -35,6 +35,7 @@ from orchestrator.schema.virtual_property import (
     PropertyAggregationMethodEnum,
     VirtualObservedProperty,
 )
+from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
 
 if typing.TYPE_CHECKING:  # pragma: nocover
     from rich.console import RenderableType
@@ -113,6 +114,73 @@ class Experiment(pydantic.BaseModel):
             description="Default values for the optional properties",
         ),
     ]
+    version: Annotated[
+        StrictSemVerStr | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Algorithm version for this experiment following strict SemVer "
+                "(MAJOR.MINOR.PATCH). MAJOR identifies the memoisation boundary: "
+                "results from different major versions are never reused. MINOR covers "
+                "backward-compatible extensions (new outputs/inputs). PATCH covers "
+                "bug fixes and refactoring that do not change observable outputs."
+            ),
+        ),
+    ]
+
+    @property
+    def semantic_identifier(self) -> str:
+        """Return the semantic identifier encoding major version.
+
+        For versioned experiments this is ``'{identifier}@v{major}'``,
+        e.g. ``'solve_mip@v1'``.  For unversioned experiments (legacy) this
+        is identical to :attr:`identifier`.
+
+        Two experiments with the same semantic identifier perform the same
+        science — their results are interchangeable.
+
+        Returns:
+            The semantic identifier string.
+        """
+        if self.version is not None:
+            return f"{self.identifier}@v{semver_major(self.version)}"
+        return self.identifier
+
+    @property
+    def fully_qualified_identifier(self) -> str:
+        """Return the fully-qualified identifier encoding the exact version.
+
+        For versioned experiments this is ``'{identifier}@{version}'``,
+        e.g. ``'solve_mip@1.0.3'``.  For unversioned experiments this is
+        identical to :attr:`identifier`.
+
+        Returns:
+            The fully-qualified identifier string.
+        """
+        if self.version is not None:
+            return f"{self.identifier}@{self.version}"
+        return self.identifier
+
+    def __eq__(self, other: object) -> bool:  # noqa: ANN401
+        """Two experiments are equal when they share the same semantic identifier.
+
+        Experiments with the same base name and same major version are
+        considered to perform the same science regardless of minor/patch
+        version differences.
+
+        Returns:
+            True if both experiments have the same actuator and semantic
+            identifier.
+        """
+        if not isinstance(other, Experiment):
+            return False
+        return (
+            self.actuatorIdentifier == other.actuatorIdentifier
+            and self.semantic_identifier == other.semantic_identifier
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.actuatorIdentifier, self.semantic_identifier))
 
     @classmethod
     def experimentWithAbstractPropertyIdentifiers(
@@ -244,27 +312,12 @@ class Experiment(pydantic.BaseModel):
 
         return value
 
-    def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """Experiments are equal if they have the same identifier"""
-
-        if isinstance(other, Experiment):
-            return (
-                (self.actuatorIdentifier == other.actuatorIdentifier)
-                and (self.identifier == other.identifier)
-                and (self.identifier == other.identifier)
-            )
-        return False
-
     def __str__(self) -> str:
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
             experiment_identifier=self.identifier,
         )
-
-    def __hash__(self) -> int:
-
-        return hash(str(self))
 
     def __rich__(self) -> "RenderableType":
         """Render this experiment using rich."""
@@ -278,10 +331,22 @@ class Experiment(pydantic.BaseModel):
         content = [
             Text.assemble(
                 ("Identifier: ", "bold"),
-                (f"{self.actuatorIdentifier}.{self.identifier}", "bold green"),
+                (
+                    f"{self.actuatorIdentifier}.{self.fully_qualified_identifier}",
+                    "bold green",
+                ),
                 overflow="fold",
             )
         ]
+
+        if self.version is not None:
+            content.append(
+                Text.assemble(
+                    ("Version: ", "bold"),
+                    (self.version, "green"),
+                    overflow="fold",
+                )
+            )
 
         if self.metadata.get("description"):
             content.extend(
@@ -410,11 +475,18 @@ class Experiment(pydantic.BaseModel):
 
     @property
     def reference(self) -> ExperimentReference:
-        """Returns an ExperimentReference for the receiver"""
+        """Return an ExperimentReference for the receiver.
 
+        The reference carries the experiment's algorithm version so that
+        memoisation and comparison use the semantic identifier automatically.
+
+        Returns:
+            An ExperimentReference for this experiment.
+        """
         return ExperimentReference(
             experimentIdentifier=self.identifier,
             actuatorIdentifier=self.actuatorIdentifier,
+            experimentVersion=self.version,
         )
 
     @property
@@ -489,7 +561,8 @@ class Experiment(pydantic.BaseModel):
         params:
             experiment: The experiment to check against
             exactMath: If True `experiment` must provide exactly the same property i.e. matching parameterization.
-                If False `experiment` must have the same base experiment.
+                If False `experiment` must measure the same base experiment as each required
+                input (any algorithm version satisfies — the target metric is unchanged).
         """
 
         retval = True
@@ -503,10 +576,9 @@ class Experiment(pydantic.BaseModel):
                         break
             else:
                 for input_ref in self.references_of_required_input_experiments:
-                    # Compare the supplied experiment to the input ref
-                    # If it is not equal to all required input refs then it doesn't provide all requirements
-                    if not experiment.reference.compareWithoutParameterization(
-                        input_ref
+                    if not (
+                        experiment.actuatorIdentifier == input_ref.actuatorIdentifier
+                        and experiment.identifier == input_ref.experimentIdentifier
                     ):
                         retval = False
                         break
@@ -833,10 +905,17 @@ class ParameterizedExperiment(Experiment):
 
     @property
     def parameterizedIdentifier(self) -> str:
-        """
-        The identifier for the parameterized version of the experiment.
-        Different parameterized versions of an experiment have a different parameterized identifier.
-        Their experimentIdentifier field, which identifies the base experiment, will be the same.
+        """Return the semantic parameterized identifier.
+
+        Uses the base experiment's :attr:`~Experiment.semantic_identifier`
+        as the prefix so that the memoisation key encodes the major algorithm
+        version.  For example: ``'solve_mip@v1-time_limit_s.3600'``.
+
+        Returns:
+            Semantic parameterized identifier string.
+
+        Raises:
+            ValueError: If parameterization is empty.
         """
         if not self.parameterization:
             raise ValueError(
@@ -844,16 +923,18 @@ class ParameterizedExperiment(Experiment):
             )
 
         return identifier_for_parameterized_experiment(
-            self.identifier, self.parameterization
+            self.semantic_identifier, self.parameterization
         )
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """ParameterizedExperiments are equal if they have the same parameterizedIdentifier
+        """ParameterizedExperiments are equal when they share the same parameterizedIdentifier.
 
-        A ParameterizedExperiment can only be equal to another ParameterizedExperiment
-        A ParameterizedExperiment is not equal to its parent Experiment.
+        A ParameterizedExperiment can only be equal to another
+        ParameterizedExperiment; it is never equal to its parent Experiment.
+
+        Returns:
+            True if both share the same actuator and parameterized identifier.
         """
-
         retval = False
         if isinstance(other, ParameterizedExperiment):
             retval = (self.actuatorIdentifier == other.actuatorIdentifier) and (
@@ -973,11 +1054,17 @@ class ParameterizedExperiment(Experiment):
 
     @property
     def reference(self) -> ExperimentReference:
+        """Return an ExperimentReference for this parameterized experiment.
 
+        Returns:
+            An ExperimentReference carrying the parameterization and
+            algorithm version.
+        """
         return ExperimentReference(
             experimentIdentifier=self.identifier,
             actuatorIdentifier=self.actuatorIdentifier,
             parameterization=self.parameterization,
+            experimentVersion=self.version,
         )
 
     def valueForOptionalProperty(

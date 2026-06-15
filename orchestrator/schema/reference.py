@@ -1,15 +1,24 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 
+import re
 import typing
 from typing import Annotated
 
 import pydantic
 from pydantic import ConfigDict
 
-from orchestrator.schema.property import ConstitutiveProperty
+from orchestrator.schema.property import (
+    ConstitutiveProperty,
+    ConstitutivePropertyDescriptor,
+)
 from orchestrator.schema.property_value import (
     ConstitutivePropertyValue,
+)
+from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
+
+_FQ_VERSION_WITH_PARAMS_PATTERN = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(.*))?$"
 )
 
 
@@ -19,6 +28,91 @@ def reference_string_from_fields(
     """This method defines the identifier string used by ExperimentReference and Experiment"""
 
     return f"{actuator_identifier}.{experiment_identifier}"
+
+
+def _coerce_parameter_value(value_str: str) -> typing.Any:  # noqa: ANN401
+    """Coerce a parameterization value string to a Python scalar."""
+    if value_str == "True":
+        return True
+    if value_str == "False":
+        return False
+    try:
+        return int(value_str)
+    except ValueError:
+        pass
+    try:
+        return float(value_str)
+    except ValueError:
+        pass
+    return value_str
+
+
+def _parameterization_from_suffix(
+    parameterization_suffix: str,
+) -> list[ConstitutivePropertyValue]:
+    """Parse a ``prop.val-prop2.val2`` suffix into property values."""
+    parameterization: list[ConstitutivePropertyValue] = []
+    for segment in parameterization_suffix.split("-"):
+        if "." not in segment:
+            raise ValueError(
+                f"Invalid parameterization segment {segment!r} in experiment reference string. "
+                "Expected 'propertyIdentifier.value'."
+            )
+        property_identifier, value_str = segment.split(".", maxsplit=1)
+        parameterization.append(
+            ConstitutivePropertyValue(
+                property=ConstitutivePropertyDescriptor(identifier=property_identifier),
+                value=_coerce_parameter_value(value_str),
+            )
+        )
+    return parameterization
+
+
+def _parse_experiment_part_from_string(
+    experiment_part: str,
+) -> tuple[str, StrictSemVerStr | None, list[ConstitutivePropertyValue] | None]:
+    """Parse the experiment portion of a reference string.
+
+    Args:
+        experiment_part: The substring after ``actuatorIdentifier.`` in a
+            reference string representation.
+
+    Returns:
+        A tuple of base experiment identifier, optional strict SemVer version,
+        and optional parameterization values.
+    """
+    if "@" in experiment_part:
+        base_identifier, version_and_params = experiment_part.split("@", maxsplit=1)
+        version_match = _FQ_VERSION_WITH_PARAMS_PATTERN.match(version_and_params)
+        if version_match is not None:
+            version: StrictSemVerStr = (
+                f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
+            )
+            parameterization_suffix = version_match.group(4)
+            parameterization = (
+                _parameterization_from_suffix(parameterization_suffix)
+                if parameterization_suffix
+                else None
+            )
+            return base_identifier, version, parameterization
+        raise ValueError(
+            f"Cannot parse version suffix in {experiment_part!r}. "
+            "Version must be strict SemVer MAJOR.MINOR.PATCH (e.g. @1.0.0). "
+            "Legacy forms like @v1 are not supported."
+        )
+
+    if "-" in experiment_part:
+        base_identifier, parameterization_suffix = experiment_part.split(
+            "-", maxsplit=1
+        )
+        if parameterization_suffix and "." in parameterization_suffix.split("-")[0]:
+            return (
+                base_identifier,
+                None,
+                _parameterization_from_suffix(parameterization_suffix),
+            )
+
+    return experiment_part, None, None
 
 
 class ExperimentReference(pydantic.BaseModel):
@@ -40,20 +134,90 @@ class ExperimentReference(pydantic.BaseModel):
             description="A list of values for optional properties of the experiment"
         ),
     ] = None
+    experimentVersion: Annotated[
+        StrictSemVerStr | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Algorithm version of the referenced experiment (strict SemVer "
+                "MAJOR.MINOR.PATCH). When set, memoisation keys and equality checks "
+                "encode only the MAJOR component so that minor/patch changes do not "
+                "invalidate cached results."
+            ),
+        ),
+    ]
 
     model_config = ConfigDict(frozen=True)
 
+    @pydantic.field_validator("experimentIdentifier")
+    @classmethod
+    def experiment_identifier_must_not_contain_at(cls, value: str) -> str:
+        """Reject version suffixes embedded in experimentIdentifier."""
+        if "@" in value:
+            raise ValueError(
+                "experimentIdentifier must not contain '@'. "
+                "Use experimentVersion for algorithm versioning."
+            )
+        return value
+
+    @property
+    def semantic_experiment_identifier(self) -> str:
+        """Return the semantic experiment identifier encoding the major version.
+
+        For versioned references this is ``'{base_name}@v{MAJOR}'``, e.g.
+        ``'solve_mip@v1'``.  For unversioned references this is identical to
+        :attr:`experimentIdentifier`.
+
+        Returns:
+            Semantic experiment identifier string.
+        """
+        if self.experimentVersion is not None:
+            return (
+                f"{self.experimentIdentifier}@v{semver_major(self.experimentVersion)}"
+            )
+        return self.experimentIdentifier
+
+    @property
+    def fully_qualified_experiment_identifier(self) -> str:
+        """Return the fully-qualified experiment identifier encoding the exact version.
+
+        For versioned references this is ``'{base_name}@{version}'``, e.g.
+        ``'solve_mip@1.0.3'``.  For unversioned references this is identical to
+        :attr:`experimentIdentifier`.
+
+        Returns:
+            Fully-qualified experiment identifier string.
+        """
+        if self.experimentVersion is not None:
+            return f"{self.experimentIdentifier}@{self.experimentVersion}"
+        return self.experimentIdentifier
+
     @classmethod
     def referenceFromString(cls, stringRepresentation: str) -> "ExperimentReference":
-        """Convert a string representation of a reference into a ExperimentReference instance, if possible
+        """Convert a string representation into an ExperimentReference.
 
-        This method relied on the actuator id not containing any periods as this is the separator
-        in the string representation of an ExperimentReference between the actuator and the experiment
+        Parses strings of the form ``'{actuatorId}.{experimentId}'``, where
+        ``experimentId`` may include an ``@MAJOR.MINOR.PATCH`` suffix and
+        optional parameterization produced by :meth:`__str__` (e.g.
+        ``'my_actuator.solve_mip@1.0.3'`` or
+        ``'my_actuator.solve_mip@1.0.3-timeout.120'``).
 
-        Raises ValueError if the string contains no periods"""
+        When no ``@MAJOR.MINOR.PATCH`` suffix is present, ``experimentVersion``
+        is set to ``None``.
 
+        The ``actuatorId`` must not contain periods.
+
+        Args:
+            stringRepresentation: The string to parse.
+
+        Returns:
+            A new ExperimentReference.
+
+        Raises:
+            ValueError: If the string contains no period separator.
+        """
         try:
-            actuatorIdentifier, experimentIdentifier = stringRepresentation.split(
+            actuator_identifier, experiment_part = stringRepresentation.split(
                 ".", maxsplit=1
             )
         except Exception as error:
@@ -63,39 +227,46 @@ class ExperimentReference(pydantic.BaseModel):
                 f"If actuator id contains a period this method will not be able to parse the id from the reference string representation"
                 f"Underlying error: {error}"
             ) from error
-        else:
-            return cls(
-                experimentIdentifier=experimentIdentifier,
-                actuatorIdentifier=actuatorIdentifier,
-            )
 
-    def compareWithoutParameterization(self, other: "ExperimentReference") -> bool:
-        """Compares to other using actuator id and base experiment id, no parameterization
+        (
+            experiment_identifier,
+            experiment_version,
+            parameterization,
+        ) = _parse_experiment_part_from_string(experiment_part)
 
-        If this method returns true if the two references refer to the same experiment in the same actuator,
-        although they may be parameterized differently"""
-
-        return (
-            self.actuatorIdentifier == other.actuatorIdentifier
-            and self.experimentIdentifier == other.experimentIdentifier
+        return cls(
+            experimentIdentifier=experiment_identifier,
+            actuatorIdentifier=actuator_identifier,
+            experimentVersion=experiment_version,
+            parameterization=parameterization,
         )
 
     def __str__(self) -> str:
         return reference_string_from_fields(
-            self.actuatorIdentifier, self.parameterizedExperimentIdentifier
+            self.actuatorIdentifier,
+            self.fully_qualified_parameterized_experiment_identifier,
         )
 
     def __repr__(self) -> str:
         return reference_string_from_fields(
-            self.actuatorIdentifier, self.parameterizedExperimentIdentifier
+            self.actuatorIdentifier,
+            self.fully_qualified_parameterized_experiment_identifier,
         )
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """Two references, refer to same experiment if they have same parameterizedExperimentIdentifier
+        """Two references are equal when they have the same parameterizedExperimentIdentifier.
 
-                Note: when the references have no parameterization this is equivalent to comparing the experimentIdentifier
-        ="""
+        Equality is based on the semantic parameterized identifier, so references
+        with the same base name, same major version, and same parameterization are
+        equal regardless of minor/patch version differences.
 
+        Note: when the references have no parameterization this is equivalent to
+        comparing the semantic experiment identifier.
+
+        Returns:
+            True if both references are for the same actuator and have the same
+            parameterized experiment identifier.
+        """
         retval = False
         if isinstance(other, ExperimentReference):
             retval = (self.actuatorIdentifier == other.actuatorIdentifier) and (
@@ -106,10 +277,15 @@ class ExperimentReference(pydantic.BaseModel):
         return retval
 
     def __hash__(self) -> int:
-        return hash(str(self))
+        return hash((self.actuatorIdentifier, self.parameterizedExperimentIdentifier))
 
     def validate_parameterization(self) -> None:
+        """Validate the parameterization of this reference against the actuator catalog.
 
+        Raises:
+            ValueError: If the referenced experiment cannot be found or the
+                parameterization is invalid.
+        """
         from orchestrator.modules.actuators.registry import (
             ActuatorRegistry,
             UnknownExperimentError,
@@ -123,6 +299,7 @@ class ExperimentReference(pydantic.BaseModel):
                 ExperimentReference(
                     experimentIdentifier=self.experimentIdentifier,
                     actuatorIdentifier=self.actuatorIdentifier,
+                    experimentVersion=self.experimentVersion,
                 )
             )
         except UnknownExperimentError as error:
@@ -145,17 +322,43 @@ class ExperimentReference(pydantic.BaseModel):
 
     @property
     def parameterizedExperimentIdentifier(self) -> str:
-        """
-        If a parameterization is given, this will be the identifier of the
-        parameterized version of the experiment, otherwise it is
-        identical to experimentIdentifier.
+        """Return the semantic parameterized experiment identifier.
+
+        Uses :attr:`semantic_experiment_identifier` as the prefix so that the
+        memoisation key encodes the major algorithm version.
+
+        * No version, no params: ``'solve_mip'`` (backward-compatible)
+        * Version ``1.0.0``, no params: ``'solve_mip@v1'``
+        * No version, with params: ``'solve_mip-time_limit_s.3600'`` (backward-compatible)
+        * Version ``1.0.0``, with params: ``'solve_mip@v1-time_limit_s.3600'``
+
+        Returns:
+            Semantic parameterized identifier string.
         """
         return (
             identifier_for_parameterized_experiment(
-                self.experimentIdentifier, self.parameterization
+                self.semantic_experiment_identifier, self.parameterization
             )
             if self.parameterization
-            else self.experimentIdentifier
+            else self.semantic_experiment_identifier
+        )
+
+    @property
+    def fully_qualified_parameterized_experiment_identifier(self) -> str:
+        """Return the fully-qualified parameterized experiment identifier.
+
+        Uses :attr:`fully_qualified_experiment_identifier` as the prefix.  This
+        form is used by :meth:`__str__` for storage and display.
+
+        Returns:
+            Fully-qualified parameterized identifier string.
+        """
+        return (
+            identifier_for_parameterized_experiment(
+                self.fully_qualified_experiment_identifier, self.parameterization
+            )
+            if self.parameterization
+            else self.fully_qualified_experiment_identifier
         )
 
 

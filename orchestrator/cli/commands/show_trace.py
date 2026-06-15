@@ -66,9 +66,10 @@ def show_trace_for_resources(
         list[str] | None,
         typer.Option(
             "--filter",
-            help="Filter using JSON path syntax (e.g., 'requestIndex=5', 'status=Success'). "
+            help="Filter using YAML field names from the data model (e.g., 'requestIndex=5', 'status=Success'). "
             "Can be used multiple times for AND logic. "
-            "Result-level filters (e.g., 'measurements[0].uid=...') automatically enable --include-results.",
+            "Result-level filters (e.g., 'measurements[0].uid=...') automatically enable --include-results. "
+            "See documentation for available field names.",
             show_default=False,
         ),
     ] = None,
@@ -134,20 +135,14 @@ def show_trace_for_resources(
     # Show result-level trace with unrolled entities
     ado show trace operation <operation-id> --include-results
 
-    # Filter by request status
-    ado show trace operation <operation-id> --filter status=Success
-
-    # Filter by request index
-    ado show trace operation <operation-id> --filter requestIndex=5
-
-    # Multiple filters (AND logic)
+    # Multiple filters with AND logic (YAML fields)
     ado show trace operation <operation-id> --filter status=Success --filter requestIndex=5
+
+    # Filter by result UID (auto-enables --include-results)
+    ado show trace operation <operation-id> --filter 'measurements[0].uid=result-uuid'
 
     # Output as YAML
     ado show trace operation <operation-id> --output yaml
-
-    # Hide specific columns
-    ado show trace operation <operation-id> --hide metadata --hide timestamp
     """
     ado_configuration: AdoConfiguration = ctx.obj
 

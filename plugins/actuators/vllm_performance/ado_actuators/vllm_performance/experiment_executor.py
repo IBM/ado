@@ -69,6 +69,8 @@ def _build_entity_env(values: dict[str, str]) -> str:
         * gpu memory utilization
         * data type
         * cpu offload
+        * use threadpool
+        * renderer num workers
     Build entity based environment parameters
     :param values: experiment values
     :return: definition
@@ -85,6 +87,8 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "dtype": values.get("dtype"),
         "cpu_offload": values.get("cpu_offload"),
         "max_num_seq": values.get("max_num_seq"),
+        "use_threadpool": values.get("use_threadpool"),
+        "renderer_num_workers": values.get("renderer_num_workers"),
     }
     return json.dumps(env_values)
 

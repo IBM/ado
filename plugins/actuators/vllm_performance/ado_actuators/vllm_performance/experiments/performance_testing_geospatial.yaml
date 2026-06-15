@@ -342,7 +342,9 @@ performance_testing-geospatial-full-custom-dataset:
         description: "(deployment) Docker image to use to create vllm deployments"
       propertyDomain:
         variableType: "OPEN_CATEGORICAL_VARIABLE_TYPE"
-        values: ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7"]
+        values:
+          - ["quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5", "0.18.0"]
+          - ["quay.io/mgazzetti/vllm-performance/vllm:vllm.v0.20.1-tt.v1.2.7", "0.20.1"]
     - identifier: n_cpus
       metadata:
         description: "(deployment) the number of CPUs to use"

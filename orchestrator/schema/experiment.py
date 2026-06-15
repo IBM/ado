@@ -332,7 +332,7 @@ class Experiment(pydantic.BaseModel):
             Text.assemble(
                 ("Identifier: ", "bold"),
                 (
-                    f"{self.actuatorIdentifier}.{self.fully_qualified_identifier}",
+                    f"{self.actuatorIdentifier}.{self.identifier}",
                     "bold green",
                 ),
                 overflow="fold",

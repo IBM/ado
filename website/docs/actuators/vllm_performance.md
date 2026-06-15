@@ -88,10 +88,10 @@ The `vllm_performance` actuator implements twelve experiments:
 > [!NOTE] Threadpool Support for Geospatial Models
 >
 > Geospatial experiments support threadpool pre/post processing for improved
-> performance when processing satellite imagery. The `threadpool` and
+> performance when processing satellite imagery. The `use_threadpool` and
 > `renderer_num_workers` parameters control this feature:
 >
-> - **threadpool**: Enable (1) or disable (0) threadpool pre/post processing
+> - **use_threadpool**: Enable (1) or disable (0) threadpool pre/post processing
 > - **renderer_num_workers**: Number of threads available when threadpool
 > is enabled
 >

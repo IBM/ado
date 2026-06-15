@@ -108,7 +108,7 @@ tokens. Key parameters include:
 - **Memory allocation**: CPU and GPU memory
 - **Batch processing**: `max_num_seq` for concurrent requests
 - **Workload pattern**: Request rate and concurrency
-- **Threadpool rendering**: Enable parallel rendering with `threadpool` and
+- **Threadpool rendering**: Enable parallel rendering with `use_threadpool` and
   `renderer_num_workers` (requires vLLM 0.20.0+)
 
 Save the following as `geospatial_space.yaml`:
@@ -271,7 +271,7 @@ improve performance when processing satellite imagery:
 
 ```yaml
 entitySpace:
-  - identifier: threadpool
+  - identifier: use_threadpool
     propertyDomain:
       values: [0, 1]  # 0=disabled, 1=enabled
   - identifier: renderer_num_workers

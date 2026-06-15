@@ -210,7 +210,7 @@ def _create_environment(
                     else:
                         raise ValueError(f"Invalid type for image: {type(image_value)}")
 
-                    threadpool_requested = int(values.get("threadpool", 1))
+                    threadpool_requested = int(values.get("use_threadpool", 1))
                     if threadpool_requested and not is_threadpool_allowed:
                         raise UnsupportedThreadpoolConfigurationError(
                             f"Threadpool requested but not supported by image {image_name}"

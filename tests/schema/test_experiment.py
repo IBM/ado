@@ -425,6 +425,26 @@ def test_experiment_rich_print(experiment: Experiment) -> None:
     Console().print(experiment)
 
 
+def test_experiment_rich_print_includes_fully_qualified_identifier() -> None:
+    """__rich__ displays actuator.FQ identifier and version when set."""
+    from io import StringIO
+
+    from rich.console import Console
+
+    experiment = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="solve_mip",
+        targetProperties=[],
+        version="1.2.3",
+    )
+    output = StringIO()
+    Console(file=output, width=120).print(experiment)
+    rendered = output.getvalue()
+    assert "test_actuator.solve_mip@1.2.3" in rendered
+    assert "Version:" in rendered
+    assert "1.2.3" in rendered
+
+
 def test_measurement_types(experiment: Experiment) -> None:
     """Test that created experiments have the correct measurements types"""
 
@@ -845,6 +865,32 @@ def test_experiment_provides_requirements(
             mock_parameterizable_experiment
         )
     )
+
+
+def test_experiment_provides_requirements_ignores_version() -> None:
+    """exactMatch=False matches on base experiment name regardless of version."""
+    from orchestrator.schema.property import AbstractPropertyDescriptor
+
+    prerequisite = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="solve_mip",
+        targetProperties=[AbstractPropertyDescriptor(identifier="bound")],
+        version="1.0.0",
+    )
+    dependent = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="analyze_mip",
+        requiredProperties=(prerequisite.observedProperties[0],),
+        targetProperties=[AbstractPropertyDescriptor(identifier="analysis")],
+        version="1.0.0",
+    )
+    candidate = Experiment(
+        actuatorIdentifier="test_actuator",
+        identifier="solve_mip",
+        targetProperties=[AbstractPropertyDescriptor(identifier="bound")],
+        version="2.0.0",
+    )
+    assert dependent.experimentProvidesRequirements(candidate, exactMatch=False)
 
 
 @pytest.fixture(scope="module")

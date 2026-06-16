@@ -58,7 +58,7 @@ def _build_point_group_values(
     """
 
     def make_hashable(
-        value: list | tuple | str | float | bool,
+        value: list | tuple | str | int | float | bool,
     ) -> tuple | str | int | float | bool:
         """
         Normalize data structures so they can be used in frozenset creation.

@@ -19,6 +19,7 @@ def test_get_experiments_basic() -> None:
     if os.environ.get("CI", "false") != "true":
         assert "ACTUATOR ID" in result.output
         assert "EXPERIMENT ID" in result.output
+        assert "VERSION" in result.output
         assert "SUPPORTED" not in result.output
 
 
@@ -32,6 +33,7 @@ def test_get_experiments_basic_show_deprecated() -> None:
     if os.environ.get("CI", "false") != "true":
         assert "ACTUATOR ID" in result.output
         assert "EXPERIMENT ID" in result.output
+        assert "VERSION" in result.output
         assert "SUPPORTED" in result.output
 
 
@@ -43,6 +45,7 @@ def test_get_experiments_with_details() -> None:
     if os.environ.get("CI", "false") != "true":
         assert "ACTUATOR ID" in result.output
         assert "EXPERIMENT ID" in result.output
+        assert "VERSION" in result.output
         assert "DESCRIPTION" in result.output
         assert "SUPPORTED" not in result.output
 
@@ -57,6 +60,7 @@ def test_get_experiments_with_details_show_deprecated() -> None:
     if os.environ.get("CI", "false") != "true":
         assert "ACTUATOR ID" in result.output
         assert "EXPERIMENT ID" in result.output
+        assert "VERSION" in result.output
         assert "DESCRIPTION" in result.output
         assert "SUPPORTED" in result.output
 

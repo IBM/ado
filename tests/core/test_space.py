@@ -281,6 +281,64 @@ def test_discovery_space_config_experiment_field_conversion(
     assert config_copy.convert_experiments_to_reference_list() == ds_config
 
 
+def test_convert_experiments_to_reference_list_preserves_version() -> None:
+    """Stored experiment version is included when exporting reference list."""
+    from orchestrator.schema.experiment import Experiment
+    from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
+    from orchestrator.schema.property import AbstractPropertyDescriptor
+
+    experiment = Experiment(
+        actuatorIdentifier="mock",
+        identifier="versioned_exp",
+        targetProperties=[AbstractPropertyDescriptor(identifier="output")],
+        version="1.0.0",
+    )
+    config = DiscoverySpaceConfiguration(
+        sampleStoreIdentifier="default",
+        experiments=MeasurementSpaceConfiguration(experiments=[experiment]),
+    )
+    refs = config.convert_experiments_to_reference_list().experiments
+    assert len(refs) == 1
+    assert refs[0].experimentVersion == "1.0.0"
+    assert refs[0].experimentIdentifier == "versioned_exp"
+
+
+def test_convert_experiments_to_measurement_space_config_version_mismatch(
+    global_registry: ActuatorRegistry,
+) -> None:
+    """convert_experiments_to_measurement_space_config fails on FQ version mismatch."""
+    import warnings
+
+    from orchestrator.modules.actuators.catalog import AlgorithmVersionMismatchError
+    from orchestrator.schema.experiment import Experiment
+    from orchestrator.schema.property import AbstractPropertyDescriptor
+    from orchestrator.schema.reference import ExperimentReference
+
+    catalog = global_registry.catalogForActuatorIdentifier("mock")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        catalog.addExperiment(
+            Experiment(
+                actuatorIdentifier="mock",
+                identifier="fq_config_exp",
+                targetProperties=[AbstractPropertyDescriptor(identifier="output")],
+                version="1.0.0",
+            )
+        )
+    config = DiscoverySpaceConfiguration(
+        sampleStoreIdentifier="default",
+        experiments=[
+            ExperimentReference(
+                experimentIdentifier="fq_config_exp",
+                actuatorIdentifier="mock",
+                experimentVersion="1.1.0",
+            )
+        ],
+    )
+    with pytest.raises(AlgorithmVersionMismatchError):
+        config.convert_experiments_to_measurement_space_config()
+
+
 def test_sampled_entities(ml_multi_cloud_space: DiscoverySpace) -> None:
 
     assert (len(ml_multi_cloud_space.sampledEntities())) == 0

@@ -20,6 +20,9 @@ from orchestrator.utilities.pydantic import StrictSemVerStr, semver_major
 _FQ_VERSION_WITH_PARAMS_PATTERN = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(.*))?$"
 )
+# Split parameterization segments on '-' only before the next prop.value pair,
+# not on '-' that begins a negative numeric value (e.g. test_opt2.-1).
+_PARAMETERIZATION_SEGMENT_SPLIT = re.compile(r"-(?=[^.-][^.]*\.)")
 
 
 def reference_string_from_fields(
@@ -52,7 +55,8 @@ def _parameterization_from_suffix(
 ) -> list[ConstitutivePropertyValue]:
     """Parse a ``prop.val-prop2.val2`` suffix into property values."""
     parameterization: list[ConstitutivePropertyValue] = []
-    for segment in parameterization_suffix.split("-"):
+    segments = _PARAMETERIZATION_SEGMENT_SPLIT.split(parameterization_suffix)
+    for segment in segments:
         if "." not in segment:
             raise ValueError(
                 f"Invalid parameterization segment {segment!r} in experiment reference string. "
@@ -105,7 +109,10 @@ def _parse_experiment_part_from_string(
         base_identifier, parameterization_suffix = experiment_part.split(
             "-", maxsplit=1
         )
-        if parameterization_suffix and "." in parameterization_suffix.split("-")[0]:
+        if (
+            parameterization_suffix
+            and "." in _PARAMETERIZATION_SEGMENT_SPLIT.split(parameterization_suffix)[0]
+        ):
             return (
                 base_identifier,
                 None,

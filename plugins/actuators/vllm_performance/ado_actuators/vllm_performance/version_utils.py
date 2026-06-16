@@ -50,8 +50,8 @@ class VLLMVersionChecker:
         Check if threadpool is supported. If version cannot be parsed we return True
         to avoid halting test campaigns when we don't have version info.
 
-        New versions of vLLM will have threadpool support enabled by default therefore
-        is more likely that the version is supported than not supported.
+        Starting from 0.20.0, vLLM versions have threadpool support enabled by default.
+        We optimistically return True unless we clearly have an unsupported version.
 
         If the image has a custom tag and threadpool is not supported,
         the evaluation will fail when the actuator will

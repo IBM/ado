@@ -449,7 +449,7 @@ class ActuatorRegistry:
             )
             message = (
                 f"The {reference.actuatorIdentifier} actuator was found but it did not "
-                f"contain the {reference.experimentIdentifier} experiment."
+                f"contain the {reference} experiment."
             )
             if reference.experimentVersion is None and actuator_catalog:
                 candidates = actuator_catalog.experiments_matching_identifier(reference)

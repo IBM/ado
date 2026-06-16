@@ -1144,6 +1144,12 @@ ado show trace operation randomwalk-0.5.0-123abc
 ado show trace operation randomwalk-0.5.0-123abc --include-results
 ```
 
+###### Show the YAML of a request
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter requestid=abcdef -o yaml
+```
+
 ###### Filter trace on multiple request fields
 
 <!-- markdownlint-disable line-length -->

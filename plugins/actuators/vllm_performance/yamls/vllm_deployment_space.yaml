@@ -11,7 +11,7 @@ entitySpace:
     propertyDomain:
       values:
         - - quay.io/dataprep1/data-prep-kit/vllm_image:0.1
-          - "0.20.1"
+          - "0.6.3"
   - identifier: 'use_threadpool'
     metadata:
       description: "Enable threadpool for vLLM renderer (0=disabled, 1=enabled). When enabled, uses multiple workers for rendering."

@@ -328,11 +328,12 @@ class Experiment(pydantic.BaseModel):
 
         from orchestrator.utilities.rich import get_rich_repr
 
+        fq_identifier = f"{self.actuatorIdentifier}.{self.fully_qualified_identifier}"
         content = [
             Text.assemble(
                 ("Identifier: ", "bold"),
                 (
-                    f"{self.actuatorIdentifier}.{self.identifier}",
+                    fq_identifier,
                     "bold green",
                 ),
                 overflow="fold",

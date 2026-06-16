@@ -3,6 +3,7 @@
 
 """Utilities for vLLM version checking and threadpool support detection."""
 
+from ado_actuators.vllm_performance.k8s import VLLMVersionExtractionError
 from packaging import version
 
 
@@ -25,24 +26,28 @@ class VLLMVersionChecker:
             image: Container image string or version string
 
         Returns:
-            Extracted version string, or None if version cannot be extracted
+            Extracted version string
+
+        Raises:
+            VLLMVersionExtractionError: If version cannot be extracted from image string
         """
         if not image or not isinstance(image, str):
-            return None
+            raise VLLMVersionExtractionError(
+                f"Invalid image value: {image}. Must be a non-empty string."
+            )
 
         # If there's a colon, extract the tag part
         if ":" in image:
             tag = image.split(":")[-1]
-            # Remove leading 'v' if present
-            tag = tag.removeprefix("v")
-            return tag or None
+            try:
+                return version.parse(tag).base_version
+            except version.InvalidVersion:
+                return tag
 
-        # If no colon, assume it's already a version string
-        # Remove leading 'v' if present
-        if image.startswith("v"):
-            return image[1:]
-
-        return image
+        try:
+            return version.parse(image).base_version
+        except version.InvalidVersion:
+            return None
 
     @classmethod
     def supports_threadpool(cls, vllm_version_str: str) -> bool:

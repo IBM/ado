@@ -20,6 +20,7 @@ from ado_actuators.vllm_performance.k8s import (
     K8sConnectionError,
     K8sEnvironmentCreationError,
     UnsupportedThreadpoolConfigurationError,
+    VLLMVersionExtractionError,
 )
 from ado_actuators.vllm_performance.k8s.create_environment import (
     create_test_environment,
@@ -199,18 +200,29 @@ def _create_environment(
                     image_value = values.get("image", "")
                     logger.info(f"Evaluating image value: {image_value}")
                     if type(image_value) is str:
-                        vllm_version_str = (
-                            VLLMVersionChecker.extract_version_from_image(image_value)
-                        )
-                        is_threadpool_allowed = VLLMVersionChecker.supports_threadpool(
-                            vllm_version_str
-                        )
+                        try:
+                            vllm_version_str = (
+                                VLLMVersionChecker.extract_version_from_image(
+                                    image_value
+                                )
+                            )
+                        except VLLMVersionExtractionError as e:
+                            logger.error(f"Failed to extract version from image: {e}")
+                            vllm_version_str = image_value
+
+                        if vllm_version_str is not None:
+                            is_threadpool_allowed = (
+                                VLLMVersionChecker.supports_threadpool(vllm_version_str)
+                            )
+                        else:
+                            # Assume threadpool is allowed if cannot infer vllm version
+                            is_threadpool_allowed = True
                         image_name = image_value
                     elif type(image_value) is list:
                         is_threadpool_allowed = VLLMVersionChecker.supports_threadpool(
                             image_value[1]
                         )
-                        image_name = image_value[0] 
+                        image_name = image_value[0]
                     else:
                         raise ValueError(f"Invalid type for image: {type(image_value)}")
 

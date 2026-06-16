@@ -3,6 +3,8 @@
 
 """Tests for vLLM version utilities."""
 
+import pytest
+from ado_actuators.vllm_performance.k8s import VLLMVersionExtractionError
 from ado_actuators.vllm_performance.version_utils import VLLMVersionChecker
 
 
@@ -65,3 +67,40 @@ class TestVLLMVersionChecker:
         image = "vllm/vllm-openai:v0.18.0"
         version_str = VLLMVersionChecker.extract_version_from_image(image)
         assert not VLLMVersionChecker.supports_threadpool(version_str)
+
+    def test_extract_version_from_empty_string(self) -> None:
+        """Test that empty string raises VLLMVersionExtractionError."""
+        with pytest.raises(VLLMVersionExtractionError, match="Invalid image value"):
+            VLLMVersionChecker.extract_version_from_image("")
+
+    def test_extract_version_from_none(self) -> None:
+        """Test that None raises VLLMVersionExtractionError."""
+        with pytest.raises(VLLMVersionExtractionError, match="Invalid image value"):
+            VLLMVersionChecker.extract_version_from_image(None)  # type: ignore[arg-type]
+
+    def test_extract_version_from_non_string(self) -> None:
+        """Test that non-string input raises VLLMVersionExtractionError."""
+        with pytest.raises(VLLMVersionExtractionError, match="Invalid image value"):
+            VLLMVersionChecker.extract_version_from_image(123)  # type: ignore[arg-type]
+
+    def test_extract_version_from_empty_tag(self) -> None:
+        """Test that image with empty tag after colon returns empty string."""
+        image = "vllm/vllm-openai:"
+        assert VLLMVersionChecker.extract_version_from_image(image) == ""
+
+    def test_extract_version_from_only_v_tag(self) -> None:
+        """Test that image with only 'v' as tag returns 'v'."""
+        image = "vllm/vllm-openai:v"
+        assert VLLMVersionChecker.extract_version_from_image(image) == "v"
+
+    def test_extract_version_from_vllm_image_without_tag(self) -> None:
+        """Test that image without tag (no colon) removes leading 'v' if present."""
+        image = "vllm/vllm-openai"
+        assert (
+            VLLMVersionChecker.extract_version_from_image(image) == "vllm/vllm-openai"
+        )
+
+    def test_extract_version_from_image_without_tag(self) -> None:
+        """Test that image without tag (no colon) removes leading 'v' if present."""
+        image = "custom-image"
+        assert VLLMVersionChecker.extract_version_from_image(image) is None

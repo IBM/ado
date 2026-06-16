@@ -162,10 +162,10 @@ def test_get_experiments_with_yaml_output_format() -> None:
 def test_get_experiments_output_contains_actuator_info() -> None:
     """Test that output contains actuator information"""
     runner = CliRunner()
-    result = runner.invoke(ado, ["get", "experiments"])
+    result = runner.invoke(ado, ["get", "experiments", "--no-trunc"])
     assert result.exit_code == 0
     if os.environ.get("CI", "false") != "true":
-        # Should contain at least one actuator
+        # Should contain at least one actuator (full id requires --no-trunc)
         assert "robotic_lab" in result.output or "gt4sd" in result.output
 
 

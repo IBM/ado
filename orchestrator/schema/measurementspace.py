@@ -6,7 +6,10 @@ import typing
 
 import pydantic
 
-from orchestrator.modules.actuators.catalog import ExperimentCatalog
+from orchestrator.modules.actuators.catalog import (
+    AlgorithmVersionMismatchError,
+    ExperimentCatalog,
+)
 from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
     Entity,
@@ -101,20 +104,16 @@ class MeasurementSpace:
         for ref in selectedExperiments:
             log.debug(f"looking for experiment {ref}")
             try:
-                experiment = globalRegistry.experimentForReference(
-                    ref, experimentCatalogs
-                )  # type: Experiment
+                experiment = globalRegistry.resolve_reference(
+                    ref, experimentCatalogs, mode="fully_qualified"
+                )
             except (
                 orchestrator.modules.actuators.registry.UnknownExperimentError,
                 orchestrator.modules.actuators.registry.UnknownActuatorError,
+                AlgorithmVersionMismatchError,
             ):
                 raise
             else:
-                if ref.parameterization:
-                    experiment = ParameterizedExperiment(
-                        parameterization=ref.parameterization, **experiment.model_dump()
-                    )
-
                 experiments.append(experiment)
                 processedReferences.append(ref)
 

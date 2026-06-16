@@ -147,7 +147,7 @@ class ExperimentReference(pydantic.BaseModel):
         ),
     ]
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     @pydantic.field_validator("experimentIdentifier")
     @classmethod

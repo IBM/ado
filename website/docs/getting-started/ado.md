@@ -1110,9 +1110,10 @@ ado show trace operation [RESOURCE_ID] [--use-latest] \
   output.
 - `--no-trunc` prevents truncation of table content (console output only).
 
-##### Request-Level View (Default)
+##### Default Trace Output Table
 
-The default view shows measurement requests with the following columns:
+The default output table shows the time-series of measurement requests with the
+following columns:
 
 - Index (auto-generated row number)
 - Request ID
@@ -1127,9 +1128,10 @@ The default view shows measurement requests with the following columns:
 - Invalid Measurements (count)
 - Metadata (request metadata)
 
-##### Result-Level View (--include-results)
+##### Expanded Trace Output Table
 
-The result-level view unrolls entities to show individual results:
+Specifying `--include-results` unrolls each request so each entity with a
+request processed has its own row with greater detail:
 
 - Index (auto-generated row number)
 - Request ID
@@ -1147,19 +1149,19 @@ The result-level view unrolls entities to show individual results:
 
 ##### Examples
 
-###### Show request-level trace for an operation
+###### Show the  trace for an operation
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc
 ```
 
-###### Show result-level trace with unrolled entities
+###### Show result level information in the trace
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc --include-results
 ```
 
-###### Multiple filters with AND logic (YAML fields)
+###### Filter trace on multiple request fields
 
 <!-- markdownlint-disable line-length -->
 

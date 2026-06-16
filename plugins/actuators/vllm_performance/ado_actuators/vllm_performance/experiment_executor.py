@@ -210,7 +210,7 @@ def _create_environment(
                         is_threadpool_allowed = VLLMVersionChecker.supports_threadpool(
                             image_value[1]
                         )
-                        image_name = image_value[0] if len(image_value) > 0 else ""
+                        image_name = image_value[0] 
                     else:
                         raise ValueError(f"Invalid type for image: {type(image_value)}")
 

@@ -1069,37 +1069,20 @@ ado show trace operation [RESOURCE_ID] [--use-latest] \
   individual measurement results with both request and result metadata.
 - `--filter` filters using JSON path syntax based on **YAML field names** from
   the underlying data model, not table column names (e.g., `requestIndex=5`,
-  `status=Success`). Can be used multiple times for AND logic. Result-level
-  filters (e.g., `measurements[0].uid=...`) automatically enable
-  `--include-results`.
+  `status=Success`). Can be used multiple times for AND logic. Only
+  request-level filters are supported.
 
   **Available filter fields:**
 
   Request-level fields (from MeasurementRequest):
 
-  - `operation_id` - The operation ID
   - `requestIndex` - Request index number
   - `requestid` - Request UUID
   - `status` - Request status (Unknown, Success, Failed)
   - `timestamp` - Request timestamp
   - `metadata` - Request metadata (use dot notation for nested fields, e.g.,
     `metadata.key=value`)
-  - `experimentReference.experimentIdentifier` - Experiment ID
-  - `experimentReference.actuatorIdentifier` - Actuator ID
-  - `entities[N].identifier` - Entity identifier at index N
-
-  Result-level fields (from MeasurementResult, requires `--include-results` or
-  auto-enabled):
-
-  - `measurements[N].uid` - Result UUID at index N
-  - `measurements[N].entityIdentifier` - Entity identifier for result at index N
-  - `measurements[N].metadata` - Result metadata (use dot notation for nested
-    fields)
-  - `measurements[N].experimentReference.experimentIdentifier` - Experiment ID
-    for result
-  - `measurements[N].reason` - Failure reason (for invalid results)
-  - `measurements[N].measurements[M].property.identifier` - Property identifier
-    (for valid results)
+  - `experimentReference` - Stringified experiment reference
 
 - `--output` (or `-o`) determines the output format. Supports `table`, `csv`,
   `json`, and `yaml`. Output is written to stdout by default, or to a file if
@@ -1149,7 +1132,7 @@ request processed has its own row with greater detail:
 
 ##### Examples
 
-###### Show the  trace for an operation
+###### Show the trace for an operation
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc
@@ -1167,16 +1150,6 @@ ado show trace operation randomwalk-0.5.0-123abc --include-results
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc --filter status=Success --filter requestIndex=5
-```
-
-<!-- markdownlint-enable line-length -->
-
-###### Filter by result UID (auto-enables --include-results)
-
-<!-- markdownlint-disable line-length -->
-
-```shell
-ado show trace operation randomwalk-0.5.0-123abc --filter 'measurements[0].uid=result-uuid'
 ```
 
 <!-- markdownlint-enable line-length -->

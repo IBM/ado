@@ -66,10 +66,10 @@ def show_trace_for_resources(
         list[str] | None,
         typer.Option(
             "--filter",
-            help="Filter using YAML field names from the data model (e.g., 'requestIndex=5', 'status=Success'). "
+            help="Filter using YAML field names from the data model. "
             "Can be used multiple times for AND logic. "
-            "Result-level filters (e.g., 'measurements[0].uid=...') automatically enable --include-results. "
-            "See documentation for available field names.",
+            "Only request-level filters are supported. "
+            "Available fields: requestIndex, requestid, status, timestamp, metadata (use dot notation for nested fields, e.g., metadata.key=value), experimentReference.",
             show_default=False,
         ),
     ] = None,
@@ -138,9 +138,6 @@ def show_trace_for_resources(
     # Multiple filters with AND logic (YAML fields)
     ado show trace operation <operation-id> --filter status=Success --filter requestIndex=5
 
-    # Filter by result UID (auto-enables --include-results)
-    ado show trace operation <operation-id> --filter 'measurements[0].uid=result-uuid'
-
     # Output as YAML
     ado show trace operation <operation-id> --output yaml
     """
@@ -166,14 +163,6 @@ def show_trace_for_resources(
         try:
             parsed_filters = parse_key_value_pairs(filters)
             field_selectors = prepare_query_filters_for_db(parsed_filters)
-
-            # Auto-enable --include-results for result-level filters
-            # Check the original parsed filters before DB transformation
-            include_results = include_results or any(
-                "measurements[" in key
-                for filter_dict in parsed_filters
-                for key in filter_dict
-            )
         except ValueError as e:
             console_print(f"{ERROR}{e}", stderr=True)
             raise typer.Exit(1) from e

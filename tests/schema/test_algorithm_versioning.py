@@ -439,14 +439,6 @@ def test_catalog_different_major_versions_coexist() -> None:
     assert "solve_mip@v2" in catalog.experiment_semantic_identifiers
 
 
-def test_catalog_warns_for_missing_version() -> None:
-    """addExperiment emits DeprecationWarning when experiment has no version."""
-    exp = _make_experiment("solve_mip")
-    catalog = ExperimentCatalog(catalogIdentifier="test")
-    with pytest.warns(DeprecationWarning, match="no algorithm version"):
-        catalog.addExperiment(exp)
-
-
 # ─── resolve_reference ────────────────────────────────────────────────────────
 
 

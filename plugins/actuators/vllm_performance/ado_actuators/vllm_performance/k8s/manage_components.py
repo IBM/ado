@@ -262,7 +262,7 @@ class ComponentsManager:
         skip_tokenizer_init: bool = False,
         io_processor_plugin: str | None = None,
         otlp_traces_endpoint: pydantic.AnyUrl | None = None,
-        threadpool: int = 1,
+        use_threadpool: bool = True,
         renderer_num_workers: int = 32,
     ) -> None:
         """
@@ -316,7 +316,7 @@ class ComponentsManager:
             io_processor_plugin=io_processor_plugin,
             enforce_eager=enforce_eager,
             otlp_traces_endpoint=otlp_traces_endpoint,
-            threadpool=threadpool,
+            use_threadpool=use_threadpool,
             renderer_num_workers=renderer_num_workers,
         )
         logger.debug(json.dumps(deployment_yaml, indent=2))

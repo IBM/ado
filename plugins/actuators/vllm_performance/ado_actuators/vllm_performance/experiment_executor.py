@@ -69,8 +69,8 @@ def _build_entity_env(values: dict[str, str]) -> str:
         * gpu memory utilization
         * data type
         * cpu offload
-        * use threadpool
-        * renderer num workers
+        * use_threadpool
+        * renderer_num_workers
     Build entity based environment parameters
     :param values: experiment values
     :return: definition
@@ -214,7 +214,7 @@ def _create_environment(
                     else:
                         raise ValueError(f"Invalid type for image: {type(image_value)}")
 
-                    threadpool_requested = int(values.get("use_threadpool", 1))
+                    threadpool_requested = bool(values.get("use_threadpool", True))
                     if threadpool_requested and not is_threadpool_allowed:
                         raise UnsupportedThreadpoolConfigurationError(
                             f"Threadpool requested but not supported by image {image_name}"
@@ -248,7 +248,7 @@ def _create_environment(
                         enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
-                        threadpool=threadpool_requested,
+                        use_threadpool=threadpool_requested,
                         renderer_num_workers=int(values.get("renderer_num_workers")),
                         check_interval=check_interval,
                         timeout=timeout,

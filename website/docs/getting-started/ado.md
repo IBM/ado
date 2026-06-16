@@ -1042,10 +1042,9 @@ ado show results operation randomwalk-0.5.0-123abc --output-file results-table.t
 
 #### ado show trace
 
-_show trace_ provides a detailed view of measurement requests and results for
-debugging purposes. For normal data analysis and visualization, use
-`ado show measurements` instead, which provides a cleaner view of the measured
-data.
+_show trace_ allows inspecting in detail the trace of requests made during
+explore operations. It can provide crucial information for debugging operation
+behaviour e.g. failed experiments or requests.
 
 The complete syntax of the `ado show trace` command is as follows:
 

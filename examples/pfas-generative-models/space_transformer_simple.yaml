@@ -6,8 +6,3 @@ entitySpace:
 experiments:
   - experimentIdentifier: 'transformer-toxicity-inference-experiment'
     actuatorIdentifier: 'replay'
-    targetProperties:
-      - logws
-      - ld50
-      - "biodegradation halflife"
-      - "pka"

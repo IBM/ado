@@ -466,7 +466,7 @@ class ActuatorRegistry:
         self,
         reference: ExperimentReference,
         additional_catalogs: list[ExperimentCatalog] | None = None,
-        mode: typing.Literal["semantic", "fully_qualified"] = "semantic",
+        match_on: typing.Literal["semantic", "fully_qualified"] = "semantic",
     ) -> "Experiment | ParameterizedExperiment":
         """Resolve an experiment reference when building a measurement space.
 
@@ -476,7 +476,7 @@ class ActuatorRegistry:
             reference: ExperimentReference instance
             additional_catalogs: Optional external catalogs to search after the
                 actuator's primary catalog.
-            mode: If "fully_qualified" reference is compared to registry contents
+            match_on: If "fully_qualified" reference is compared to registry contents
             using full_qualified identifiers. If "semantic" (default) its compared
             using semantic identifiers
 
@@ -511,9 +511,11 @@ class ActuatorRegistry:
         catalogs_to_try.extend(additional_catalogs)
 
         for catalog in catalogs_to_try:
-            log.debug(f"Resolving {reference} from catalog {catalog} with {mode} mode")
+            log.debug(
+                f"Resolving {reference} from catalog {catalog} with {match_on} mode"
+            )
             try:
-                return catalog.resolve_reference(reference, mode=mode)
+                return catalog.resolve_reference(reference, match_on=match_on)
             except ExperimentVersionMismatchError:
                 raise
             except UnknownExperimentError:
@@ -522,7 +524,7 @@ class ActuatorRegistry:
 
         message = (
             f"The {reference.actuatorIdentifier} actuator was found but a match to "
-            f"{reference} was not found using mode {mode}."
+            f"{reference} was not found using mode {match_on}."
         )
         if actuator_catalog is not None:
             candidates = actuator_catalog.experiments_matching_identifier(reference)

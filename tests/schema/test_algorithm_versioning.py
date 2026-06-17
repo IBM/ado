@@ -475,7 +475,7 @@ def test_resolve_reference_fully_qualified_mode_exact_match() -> None:
         actuatorIdentifier="test_actuator",
         experimentVersion="1.0.0",
     )
-    result = catalog.resolve_reference(ref, mode="fully_qualified")
+    result = catalog.resolve_reference(ref, match_on="fully_qualified")
     assert isinstance(result, Experiment)
 
 
@@ -488,7 +488,7 @@ def test_resolve_reference_fully_qualified_mode_minor_mismatch_raises() -> None:
         experimentVersion="1.2.0",
     )
     with pytest.raises(ExperimentVersionMismatchError):
-        catalog.resolve_reference(ref, mode="fully_qualified")
+        catalog.resolve_reference(ref, match_on="fully_qualified")
 
 
 def test_resolve_reference_unversioned_reference_raises_for_versioned_catalog() -> None:
@@ -686,7 +686,7 @@ def test_resolve_experiment_for_measurement_space_fq_exact_match(
         actuatorIdentifier="mock",
         experimentVersion="1.0.0",
     )
-    result = global_registry.resolve_reference(ref, mode="fully_qualified")
+    result = global_registry.resolve_reference(ref, match_on="fully_qualified")
     assert result.identifier == "fq_pin_exp"
     assert result.version == "1.0.0"
 
@@ -702,7 +702,7 @@ def test_resolve_experiment_for_measurement_space_fq_mismatch(
         experimentVersion="1.1.0",
     )
     with pytest.raises(ExperimentVersionMismatchError):
-        global_registry.resolve_reference(ref, mode="fully_qualified")
+        global_registry.resolve_reference(ref, match_on="fully_qualified")
 
 
 def test_measurement_space_from_selection_fq_mismatch(

@@ -74,7 +74,7 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         raise typer.Exit(1) from error
 
     if reference.experimentVersion is not None:
-        experiment = registry.resolve_reference(reference, mode="fully_qualified")
+        experiment = registry.resolve_reference(reference, match_on="fully_qualified")
     else:
         catalog = registry.catalogForActuatorIdentifier(reference.actuatorIdentifier)
         matches = catalog.experiments_matching_identifier(reference)

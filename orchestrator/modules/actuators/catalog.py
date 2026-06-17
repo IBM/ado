@@ -181,7 +181,7 @@ class ExperimentCatalog(BaseCatalog):
     def resolve_reference(
         self,
         reference: ExperimentReference,
-        mode: Literal["semantic", "fully_qualified"] = "semantic",
+        match_on: Literal["semantic", "fully_qualified"] = "semantic",
     ) -> Experiment | ParameterizedExperiment:
         """Resolve a reference to an experiment, including parameterization if any
 
@@ -201,7 +201,7 @@ class ExperimentCatalog(BaseCatalog):
 
         Args:
             reference: The experiment reference to resolve.
-            mode: ``"semantic"`` (default) — Match on MAJOR version
+            match_on: ``"semantic"`` (default) — Match on MAJOR version
                 ``"fully_qualified"`` — additionally requires the exact version
                 (MAJOR.MINOR.PATCH) to match.
 
@@ -228,7 +228,7 @@ class ExperimentCatalog(BaseCatalog):
             )
 
         if (
-            mode == "fully_qualified"
+            match_on == "fully_qualified"
             and experiment.fully_qualified_identifier
             != reference.fully_qualified_experiment_identifier
         ):

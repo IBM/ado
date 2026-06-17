@@ -106,7 +106,7 @@ class ExperimentCatalog(BaseCatalog):
         """Return the semantic identifiers of the experiments in the catalog
 
         Returns:
-            Dict keyed by each experiment's semantic identifier.
+            A list of semantic identifiers.
         """
         return [e.semantic_identifier for e in self.experiments]
 

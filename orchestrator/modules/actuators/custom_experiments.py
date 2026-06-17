@@ -776,15 +776,15 @@ class CustomExperiments(ActuatorBase):
 
         try:
             targetExperiment = self._catalog.resolve_reference(experimentReference)
-        except Exception:
+        except Exception as error:
             if self._catalog.experiments:
                 raise ValueError(
                     f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog. "
                     f"Known experiments are {self._catalog.experiment_semantic_identifiers}"
-                ) from None
+                ) from error
             raise ValueError(
                 f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog (which is empty). "
-            ) from None
+            ) from error
 
         # Check all required property values are present to actuate on
         for entity in entities:

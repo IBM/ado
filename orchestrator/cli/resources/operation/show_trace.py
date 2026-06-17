@@ -53,6 +53,7 @@ class _RESULT_COLUMN(enum.Enum):
     ENTITY_ID = "Entity ID"
     VALID = "Valid"
     NUMBER_OF_PROPERTIES = "Number of Properties"
+    INVALID_REASON = "Invalid Reason"
     REQUEST_METADATA = "Request Metadata"
     RESULT_METADATA = "Result Metadata"
 
@@ -97,6 +98,10 @@ _RESULT_HIDABLE_FIELDS = {
     **dict.fromkeys(
         ["number of properties", "properties"],
         _RESULT_COLUMN.NUMBER_OF_PROPERTIES.value,
+    ),
+    **dict.fromkeys(
+        ["invalid reason", "reason", "invalid"],
+        _RESULT_COLUMN.INVALID_REASON.value,
     ),
     **dict.fromkeys(
         ["request metadata", "request meta"],
@@ -176,6 +181,8 @@ def _build_result_level_rows(
                 row[_RESULT_COLUMN.NUMBER_OF_PROPERTIES.value] = len(
                     {m.property.identifier for m in result.measurements}
                 )
+            elif isinstance(result, InvalidMeasurementResult):
+                row[_RESULT_COLUMN.INVALID_REASON.value] = result.reason
 
             rows.append(row)
     return rows
@@ -269,6 +276,7 @@ def show_operation_trace(parameters: AdoShowTraceCommandParameters) -> None:
             df=df,
             move_to_start=[],
             move_to_end=[
+                _RESULT_COLUMN.INVALID_REASON.value,
                 _RESULT_COLUMN.REQUEST_METADATA.value,
                 _RESULT_COLUMN.RESULT_METADATA.value,
             ],

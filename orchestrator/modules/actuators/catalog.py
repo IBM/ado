@@ -12,22 +12,6 @@ from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
 from orchestrator.schema.reference import ExperimentReference
 
 
-def _catalog_reference_match(
-    catalog_reference: ExperimentReference,
-    lookup_reference: ExperimentReference,
-) -> bool:
-    """Return True when lookup_reference matches catalog reference.
-
-    Compares actuator and semantic experiment identifier.
-    """
-    if catalog_reference.actuatorIdentifier != lookup_reference.actuatorIdentifier:
-        return False
-    return (
-        catalog_reference.semantic_experiment_identifier
-        == lookup_reference.semantic_experiment_identifier
-    )
-
-
 class ActuatorCatalogExtensionConf(pydantic.BaseModel):
     """Represents a dynamically loadable set of experiments for an actuator"""
 
@@ -144,7 +128,11 @@ class ExperimentCatalog(BaseCatalog):
             The matching Experiment, or None if no match is found.
         """
         for experiment in self.experiments:
-            if _catalog_reference_match(experiment.reference, reference):
+            if (
+                experiment.reference.actuatorIdentifier == reference.actuatorIdentifier
+                and experiment.reference.semantic_experiment_identifier
+                == reference.semantic_experiment_identifier
+            ):
                 return experiment
         return None
 

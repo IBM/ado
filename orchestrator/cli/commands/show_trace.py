@@ -54,10 +54,10 @@ def show_trace_for_resources(
             show_default=False,
         ),
     ] = False,
-    include_results: Annotated[
+    unroll_entities: Annotated[
         bool,
         typer.Option(
-            "--include-results",
+            "--unroll-entities",
             help="Show result-level view with unrolled entities instead of request-level view.",
             show_default=False,
         ),
@@ -133,7 +133,7 @@ def show_trace_for_resources(
     ado show trace operation --use-latest
 
     # Show result-level trace with unrolled entities
-    ado show trace operation <operation-id> --include-results
+    ado show trace operation <operation-id> --unroll-entities
 
     # Multiple filters with AND logic (YAML fields)
     ado show trace operation <operation-id> --filter status=Success --filter requestIndex=5
@@ -171,7 +171,7 @@ def show_trace_for_resources(
         ado_configuration=ado_configuration,
         field_selectors=field_selectors,  # type: ignore[arg-type]
         hide_fields=hide_fields,
-        include_results=include_results,
+        unroll_entities=unroll_entities,
         no_trunc=no_trunc,
         output_file=output_file,
         output_format=output_format,
@@ -189,7 +189,7 @@ def register_show_trace_command(app: typer.Typer) -> None:
     app.command(
         name="trace",
         no_args_is_help=True,
-        options_metavar="[--include-results] [--filter <key=value>] [-o | --output <format>] [--output-file <path>] [--hide <column>]",
+        options_metavar="[--unroll-entities] [--filter <key=value>] [-o | --output <format>] [--output-file <path>] [--hide <column>]",
     )(show_trace_for_resources)
 
 

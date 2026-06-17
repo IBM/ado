@@ -1054,7 +1054,7 @@ The complete syntax of the `ado show trace` command is as follows:
 
 ```shell
 ado show trace operation [RESOURCE_ID] [--use-latest] \
-                         [--include-results] \
+                         [--unroll-entities] \
                          [--filter <key=value>] \
                          [--output | -o <table | csv | json | yaml>] \
                          [--output-file <path>] \
@@ -1067,8 +1067,9 @@ ado show trace operation [RESOURCE_ID] [--use-latest] \
 - `--use-latest` will use the identifier of the latest (i.e. most recent)
   operation from the current context. It is ignored if a RESOURCE_ID is
   provided.
-- `--include-results` switches to result-level view, unrolling entities to show
-  individual measurement results with both request and result metadata.
+- `--unroll-entities` expands the table for output mode `table` or `csv` so each
+  entity has its own row containing additional metadata on the result of
+  applying the requested experiment to it.
 - `--filter` filters based on field names from the underlying data model, not
   table column names. Can be used multiple times for AND logic.
 - `--output` (or `-o`) determines the output format. Supports `table`, `csv`,
@@ -1100,8 +1101,9 @@ following columns:
 
 ##### Expanded Trace Output Table
 
-Specifying `--include-results` unrolls each request so each entity with a
-request processed has its own row with greater detail:
+Specifying `--unroll-entities` unrolls each request so each entity with a
+request processed has its own row containing additional metadata on the result
+of applying the requested experiment to it:
 
 - Index (auto-generated row number)
 - Request ID
@@ -1142,7 +1144,7 @@ ado show trace operation randomwalk-0.5.0-123abc
 ###### Show result level information in the trace
 
 ```shell
-ado show trace operation randomwalk-0.5.0-123abc --include-results
+ado show trace operation randomwalk-0.5.0-123abc --unroll-entities
 ```
 
 ###### Show the YAML of a request

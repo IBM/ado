@@ -191,7 +191,7 @@ def show_operation_trace(parameters: AdoShowTraceCommandParameters) -> None:
     # Select appropriate hidable fields based on view mode
     hidable_fields = (
         _RESULT_HIDABLE_FIELDS
-        if parameters.include_results
+        if parameters.unroll_entities
         else _REQUEST_HIDABLE_FIELDS
     )
 
@@ -251,7 +251,7 @@ def show_operation_trace(parameters: AdoShowTraceCommandParameters) -> None:
         return
 
     # Build rows based on view mode
-    if parameters.include_results:
+    if parameters.unroll_entities:
         rows = _build_result_level_rows(measurement_requests)
     else:
         rows = _build_request_level_rows(measurement_requests)
@@ -264,7 +264,7 @@ def show_operation_trace(parameters: AdoShowTraceCommandParameters) -> None:
     df = pd.DataFrame(rows)
 
     # Reorder columns to move metadata to the end
-    if parameters.include_results:
+    if parameters.unroll_entities:
         df = reorder_dataframe_columns(
             df=df,
             move_to_start=[],

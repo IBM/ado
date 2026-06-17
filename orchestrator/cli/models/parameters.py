@@ -134,7 +134,7 @@ class AdoShowTraceCommandParameters(pydantic.BaseModel):
     ado_configuration: AdoConfiguration
     field_selectors: list[dict[str, str]]
     hide_fields: list[str] | None
-    include_results: bool
+    unroll_entities: bool
     no_trunc: bool
     output_file: Path | None
     output_format: AdoShowTraceSupportedOutputFormats

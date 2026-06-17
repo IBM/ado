@@ -26,8 +26,8 @@ from typing import Any
 
 import pydantic
 import ray
+from ray.actor import ActorHandle
 
-from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
 from orchestrator.modules.actuators.executor_supervisor import (
     ExperimentExecutorSupervisor,
@@ -212,7 +212,7 @@ def _run_execute_fn(
 def _enqueue_completed(
     execute_fn: Callable[[], MeasurementRequest],
     queue: MeasurementQueue | NullQueue,
-    actuator_actor: ray.ActorHandle | None,
+    actuator_actor: ActorHandle["StandardActuator"] | None,
 ) -> None:
     """Ray worker: run execute_fn() and put the completed request on queue.
 
@@ -269,7 +269,7 @@ class StandardActuator(ActuatorBase):
     def __init__(
         self,
         queue: MeasurementQueue | NullQueue | None = None,
-        params: dict | GenericActuatorParameters | None = None,
+        params: dict | StandardActuatorParameters | None = None,
     ) -> None:
         """Initialise the actuator.
 
@@ -279,19 +279,24 @@ class StandardActuator(ActuatorBase):
             params: Actuator configuration parameters.
         """
 
-        self._parameters = self.parameters_class.model_validate(
-            params, from_attributes=True
+        # This does not convert params from dict or None
+        super().__init__(
+            queue=queue if queue is not None else NullQueue(), params=params
         )
+
+        if self._parameters:
+            self._parameters = self.parameters_class.model_validate(
+                params, from_attributes=True
+            )
+        else:
+            self._parameters = self.parameters_class()
+
         self._launch_supervisor = ExperimentExecutorSupervisor(
             queue=self._stateUpdateQueue,
             config=self._parameters.to_supervisor_config(),
             logger=self.log,
         )
         self._launch_supervisor.start()
-
-        super().__init__(
-            queue=queue if queue is not None else NullQueue(), params=params
-        )
 
     # ------------------------------------------------------------------
     # Hooks for subclasses

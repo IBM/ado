@@ -206,7 +206,7 @@ def register_show_trace_command(app: typer.Typer) -> None:
     app.command(
         name="trace",
         no_args_is_help=True,
-        options_metavar="[--unroll-entities] [--filter <key=value>] [-o | --output <format>] [--output-file <path>] [--hide <column>]",
+        options_metavar="[--unroll-entities] [--filter <key=value>] [-o | --output <format>] [--output-file <path>] [--hide <column>] [--no-trunc]",
     )(show_trace_for_resources)
 
 

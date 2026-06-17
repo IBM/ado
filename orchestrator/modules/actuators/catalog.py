@@ -244,7 +244,7 @@ class ExperimentCatalog(BaseCatalog):
             and experiment.fully_qualified_identifier
             != reference.fully_qualified_experiment_identifier
         ):
-            raise AlgorithmVersionMismatchError(
+            raise ExperimentVersionMismatchError(
                 f"Algorithm version mismatch for experiment "
                 f"{reference.experimentIdentifier!r} in catalog {self._identifier!r}. "
                 f"Reference requires version "
@@ -264,8 +264,8 @@ class ExperimentCatalog(BaseCatalog):
         return experiment
 
 
-class AlgorithmVersionMismatchError(Exception):
-    """Raised when the algorithm version of a resolved experiment does not match the reference.
+class ExperimentVersionMismatchError(Exception):
+    """Raised when the  version of a resolved experiment does not match the reference.
 
     This error is only raised when :meth:`ExperimentCatalog.resolve_reference` is
     called with ``mode='fully_qualified'`` and the exact version in the catalog

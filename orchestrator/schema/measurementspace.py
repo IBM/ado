@@ -7,8 +7,8 @@ import typing
 import pydantic
 
 from orchestrator.modules.actuators.catalog import (
-    AlgorithmVersionMismatchError,
     ExperimentCatalog,
+    ExperimentVersionMismatchError,
 )
 from orchestrator.schema.entity import (
     CheckRequiredObservedPropertyValuesPresent,
@@ -110,7 +110,7 @@ class MeasurementSpace:
             except (
                 orchestrator.modules.actuators.registry.UnknownExperimentError,
                 orchestrator.modules.actuators.registry.UnknownActuatorError,
-                AlgorithmVersionMismatchError,
+                ExperimentVersionMismatchError,
             ):
                 raise
             else:

@@ -15,8 +15,8 @@ from orchestrator.modules.actuators.base import (
     ActuatorBase,
 )
 from orchestrator.modules.actuators.catalog import (
-    AlgorithmVersionMismatchError,
     ExperimentCatalog,
+    ExperimentVersionMismatchError,
 )
 from orchestrator.schema.measurementspace import MeasurementSpace
 from orchestrator.schema.reference import ExperimentReference
@@ -514,7 +514,7 @@ class ActuatorRegistry:
             log.debug(f"Resolving {reference} from catalog {catalog} with {mode} mode")
             try:
                 return catalog.resolve_reference(reference, mode=mode)
-            except AlgorithmVersionMismatchError:
+            except ExperimentVersionMismatchError:
                 raise
             except UnknownExperimentError:
                 actuator_catalog = catalog
@@ -627,7 +627,7 @@ class ActuatorRegistry:
             try:
                 catalog = self.catalogForActuatorIdentifier(ref.actuatorIdentifier)
                 catalog.resolve_reference(ref)
-            except AlgorithmVersionMismatchError as error:  # noqa: PERF203
+            except ExperimentVersionMismatchError as error:  # noqa: PERF203
                 issues.append(f"AlgorithmVersionMismatchError: {error!s}")
             except UnknownExperimentError as error:
                 issues.append(f"UnknownExperimentError: {error!s}")

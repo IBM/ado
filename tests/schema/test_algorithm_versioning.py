@@ -8,8 +8,8 @@ import warnings
 import pytest
 
 from orchestrator.modules.actuators.catalog import (
-    AlgorithmVersionMismatchError,
     ExperimentCatalog,
+    ExperimentVersionMismatchError,
 )
 from orchestrator.modules.actuators.registry import (
     ActuatorRegistry,
@@ -487,7 +487,7 @@ def test_resolve_reference_fully_qualified_mode_minor_mismatch_raises() -> None:
         actuatorIdentifier="test_actuator",
         experimentVersion="1.2.0",
     )
-    with pytest.raises(AlgorithmVersionMismatchError):
+    with pytest.raises(ExperimentVersionMismatchError):
         catalog.resolve_reference(ref, mode="fully_qualified")
 
 
@@ -701,7 +701,7 @@ def test_resolve_experiment_for_measurement_space_fq_mismatch(
         actuatorIdentifier="mock",
         experimentVersion="1.1.0",
     )
-    with pytest.raises(AlgorithmVersionMismatchError):
+    with pytest.raises(ExperimentVersionMismatchError):
         global_registry.resolve_reference(ref, mode="fully_qualified")
 
 
@@ -717,7 +717,7 @@ def test_measurement_space_from_selection_fq_mismatch(
         actuatorIdentifier="mock",
         experimentVersion="1.1.0",
     )
-    with pytest.raises(AlgorithmVersionMismatchError):
+    with pytest.raises(ExperimentVersionMismatchError):
         MeasurementSpace.measurementSpaceFromSelection(selectedExperiments=[ref])
 
 

@@ -12,16 +12,7 @@ import yaml
 app = typer.Typer(rich_markup_mode="markdown")
 
 
-@ray.remote(
-    runtime_env={
-        "pip": ["accelerate", "transformers>=4.40.0"],
-        "env_vars": {
-            "LOG_LEVEL": "debug",
-            "LOGLEVEL": "debug",
-            "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
-        },
-    },
-)
+@ray.remote
 def download_weights(path_model: str, hf_home: pathlib.Path) -> None:
     if os.path.isabs(path_model):
         print("Skipping download - model is stored locally")

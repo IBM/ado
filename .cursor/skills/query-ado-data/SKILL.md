@@ -146,19 +146,43 @@ exclusive to spaces and override `--query` and `--label`.
 
 ### Related Resources
 
-Get IDs of resources related to another resource (parent or child):
+Get IDs of resources directly related to another resource (one hop):
 
 ```bash
 uv run ado show related $RESOURCETYPE [RESOURCE_ID] [--use-latest]
 ```
 
 **Supported types**: `operation` (`op`), `samplestore` (`store`),
-`discoveryspace` (`space`)
+`discoveryspace` (`space`), `actuatorconfiguration` (`ac`), `datacontainer` (`dcr`)
+
+### Resource relationship trees
+
+Display multi-hop workflow trees for the active project context:
+
+```bash
+# Full workflow forest from sample store roots
+uv run ado tree
+
+# Scoped subtree or ancestors
+uv run ado tree operation OP_ID
+uv run ado tree operation OP_ID --invert
+
+# Include actuator configuration input edges
+uv run ado tree --all-relationships
+
+# JSON output for scripting
+uv run ado tree -o json
+```
+
+Node labels show identifiers only by default (fast path). Use `--names` for
+`{identifier} ({name})`, `--sort` for created ordering and age, and
+`--metadata` for description and labels.
 
 **Example:**
 
 ```bash
 uv run ado show related space space-abc123-456def
+uv run ado tree space space-abc123-456def
 ```
 
 ### Get Resource Details

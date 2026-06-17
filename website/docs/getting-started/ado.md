@@ -1079,6 +1079,93 @@ ado show related RESOURCE_TYPE [RESOURCE_ID] [--use-latest]
  ado show related space space-abc123-456def
 ```
 
+#### ado tree
+
+_tree_ displays resource relationship trees for the active project context. By
+default it shows workflow lineage from sample stores downward, including nested
+operations and operation outputs such as discovery spaces and datacontainers.
+
+Use `ado show related` for a flat one-hop list; use `ado tree` for multi-hop
+structure. `ado tree --depth 1` is the closest structured equivalent to
+`ado show related`.
+
+The complete syntax of the `ado tree` command is as follows:
+
+```shell
+ado tree [RESOURCE_TYPE [RESOURCE_ID]] [--from RESOURCE_ID] [--use-latest] \
+         [--invert | --reverse] [--depth N] [--all-relationships] [--dedupe] \
+         [--include-orphans] [--kind KINDS] [--query | -q <path=value>] \
+         [--label <key=value>] [--sort] [--names] [--metadata] \
+         [--output | -o tree | json | flat] [--output-file <path>]
+```
+
+- With no arguments, shows workflow trees rooted at all sample stores in the
+  context. By default only resource identifiers are shown (fast path; no full
+  resource loads).
+- `RESOURCE_TYPE` and `RESOURCE_ID` scope the tree to one resource (descendants
+  by default, ancestors with `--invert`). See
+  [Resource Type Shorthands](#resource-type-shorthands) for shorthand aliases.
+- `--from` scopes the tree to a resource identifier without specifying its type.
+- `--all-relationships` includes input-reference edges (for example
+  `actuatorconfiguration → operation`) and shows unreferenced actuator
+  configurations as additional roots.
+- `--sort` orders siblings by created timestamp and shows age in node labels.
+- `--names` shows `config.metadata.name` in brackets when set.
+- `--metadata` includes description and labels in node labels.
+- `-q` and `--label` filter nodes while retaining ancestor paths to matches (same
+  semantics as `ado get`).
+
+##### Examples
+
+###### Show the workflow tree for the active project
+
+```shell
+ado tree
+```
+
+###### Show the workflow tree with names and age
+
+```shell
+ado tree --sort --names
+```
+
+###### Show ancestors of an operation
+
+```shell
+ado tree operation operation-raytune-abc12345 --invert
+```
+
+###### Include actuator configuration input edges
+
+```shell
+ado tree --all-relationships
+```
+
+##### Performance
+
+By default, `ado tree` uses only relationship and identifier queries and does
+not load full resource objects. Opt-in flags (`--sort`, `--names`, `--metadata`)
+trigger full `getResources` loads and can dominate wall time on large contexts.
+
+Example profile for the `cplex_mip` project context (171 tree nodes, 167
+relationship edges, May 2026; MySQL metastore):
+
+| Phase | Default | With `--sort --names` |
+| --- | ---: | ---: |
+| Relationship bulk fetch | ~1 s | ~1 s |
+| Sample-store root lookup | ~1 s | ~1 s |
+| In-memory graph build | ~3 s | ~3 s (+ sort fetch) |
+| `getResources` enrichment | 0 | ~23 s |
+| Text render | ~10 ms | ~10 ms |
+| **Measured total** | **~4–5 s** | **~50 s** |
+
+Reproduce or profile your own context:
+
+```shell
+uv run python benchmarks/bench_ado_tree.py --subprocess
+uv run python benchmarks/bench_ado_tree.py --opt-in --subprocess
+```
+
 #### ado show summary
 
 _show summary_ supports generating overviews about discovery spaces. The content

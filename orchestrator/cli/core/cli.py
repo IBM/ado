@@ -30,6 +30,7 @@ from orchestrator.cli.commands.edit import register_edit_command
 from orchestrator.cli.commands.get import register_get_command
 from orchestrator.cli.commands.show import register_show_command
 from orchestrator.cli.commands.template import register_template_command
+from orchestrator.cli.commands.tree import register_tree_command
 from orchestrator.cli.commands.upgrade import register_upgrade_command
 from orchestrator.cli.commands.version import register_version_command
 from orchestrator.cli.core.config import AdoConfiguration
@@ -73,6 +74,7 @@ register_describe_command(app)
 register_edit_command(app)
 register_get_command(app)
 register_show_command(app)
+register_tree_command(app)
 register_template_command(app)
 register_upgrade_command(app)
 register_version_command(app)

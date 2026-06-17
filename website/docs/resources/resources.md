@@ -74,6 +74,8 @@ the [ado CLI guide](../getting-started/ado.md) for more details
     - Outputs a human-readable description of resource `$identifier`
 - `ado show related [resource type] [$identifier]`
     - List ids of resources related to resource `$identifier`
+- `ado tree [resource type] [$identifier]`
+    - Display multi-hop resource relationship trees for the project context
 - `ado show details [resource type] [$identifier]`
     - Outputs some details on the resource. Usually these are quantities that have
       to be computed.

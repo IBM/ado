@@ -117,7 +117,6 @@ class Experiment(pydantic.BaseModel):
     version: Annotated[
         StrictSemVerStr | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Algorithm version for this experiment following strict SemVer "
                 "(MAJOR.MINOR.PATCH). MAJOR identifies the memoisation boundary: "
@@ -126,7 +125,7 @@ class Experiment(pydantic.BaseModel):
                 "bug fixes and refactoring that do not change observable outputs."
             ),
         ),
-    ]
+    ] = None
 
     @property
     def semantic_identifier(self) -> str:

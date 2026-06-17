@@ -127,7 +127,6 @@ class ExperimentReference(pydantic.BaseModel):
     experimentVersion: Annotated[
         StrictSemVerStr | None,
         pydantic.Field(
-            default=None,
             description=(
                 "Algorithm version of the referenced experiment (strict SemVer "
                 "MAJOR.MINOR.PATCH). When set, memoisation keys and equality checks "
@@ -135,7 +134,7 @@ class ExperimentReference(pydantic.BaseModel):
                 "invalidate cached results."
             ),
         ),
-    ]
+    ] = None
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

@@ -7,7 +7,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pydantic
-import pytest
 
 from orchestrator.core.legacy.registry import LegacyMigratorRegistry, legacy_migrator
 from orchestrator.core.resources import CoreResourceKinds
@@ -182,12 +181,11 @@ class TestLegacyMigratorWithPydantic:
 class TestUpgradeHandlerIntegration:
     """Integration tests for ado upgrade with legacy migrators via CLI"""
 
-    @pytest.mark.parametrize("valid_ado_project_context", ["mysql"], indirect=True)
     def test_upgrade_applies_legacy_migrator_via_cli(
         self,
         legacy_migrators_loaded: None,
         tmp_path: Path,
-        valid_ado_project_context: ProjectContext,
+        valid_ado_mysql_project_context: ProjectContext,
         create_active_ado_context: Callable,
     ) -> None:
         """Test that ado upgrade applies legacy migrators correctly via CLI"""
@@ -206,7 +204,7 @@ class TestUpgradeHandlerIntegration:
         from orchestrator.core.samplestore.resource import SampleStoreResource
 
         # Step 1: Setup active context
-        create_active_ado_context(runner, tmp_path, valid_ado_project_context)
+        create_active_ado_context(runner, tmp_path, valid_ado_mysql_project_context)
 
         # Step 2: Register a test validator
         @legacy_migrator(
@@ -232,13 +230,13 @@ class TestUpgradeHandlerIntegration:
                         moduleClass="SQLSampleStore",
                         moduleName="orchestrator.core.samplestore.sql",
                     ),
-                    storageLocation=valid_ado_project_context.metadataStore,
+                    storageLocation=valid_ado_mysql_project_context.metadataStore,
                 )
             ),
         )
 
         # Step 4: Save resource to database
-        sql_store = get_sql_store(project_context=valid_ado_project_context)
+        sql_store = get_sql_store(project_context=valid_ado_mysql_project_context)
         sql_store.updateResource(resource=test_resource)
 
         # Step 5: Execute upgrade via CLI

@@ -118,21 +118,37 @@ def valid_ado_sqlite_context_yaml(random_identifier: Callable[[], str]) -> str:
     pathlib.Path(f"{project_id}.db").unlink(missing_ok=True)
 
 
-@pytest.fixture(params=["mysql", "sqlite"])
-def valid_ado_project_context(
+@pytest.fixture
+def valid_ado_mysql_project_context(
     valid_ado_mysql_context_yaml: str,
-    valid_ado_sqlite_context_yaml: str,
-    request: pytest.FixtureRequest,
 ) -> orchestrator.metastore.project.ProjectContext:
-
-    context = (
-        valid_ado_sqlite_context_yaml
-        if request.param == "sqlite"
-        else valid_ado_mysql_context_yaml
+    """Fixture that provides MySQL project context"""
+    return orchestrator.metastore.project.ProjectContext.model_validate(
+        yaml.safe_load(valid_ado_mysql_context_yaml)
     )
 
+
+@pytest.fixture
+def valid_ado_sqlite_project_context(
+    valid_ado_sqlite_context_yaml: str,
+) -> orchestrator.metastore.project.ProjectContext:
+    """Fixture that provides SQLite project context"""
     return orchestrator.metastore.project.ProjectContext.model_validate(
-        yaml.safe_load(context)
+        yaml.safe_load(valid_ado_sqlite_context_yaml)
+    )
+
+
+@pytest.fixture(params=["mysql", "sqlite"])
+def valid_ado_project_context(
+    valid_ado_mysql_project_context: orchestrator.metastore.project.ProjectContext,
+    valid_ado_sqlite_project_context: orchestrator.metastore.project.ProjectContext,
+    request: pytest.FixtureRequest,
+) -> orchestrator.metastore.project.ProjectContext:
+    """Fixture that provides both MySQL and SQLite project contexts via parametrization"""
+    return (
+        valid_ado_sqlite_project_context
+        if request.param == "sqlite"
+        else valid_ado_mysql_project_context
     )
 
 

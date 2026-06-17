@@ -19,11 +19,14 @@ from pydantic import Field
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.catalog import ExperimentCatalog
-from orchestrator.modules.actuators.standard import StandardActuator
+from orchestrator.modules.actuators.standard import (
+    StandardActuator,
+    StandardActuatorParameters,
+)
 from orchestrator.schema.experiment import Experiment
 
 
-class RoboticLabParameters(GenericActuatorParameters):
+class RoboticLabParameters(StandardActuatorParameters):
     """Configuration parameters for the RoboticLab actuator."""
 
     my_parameter: Annotated[str, Field()] = "hello world"

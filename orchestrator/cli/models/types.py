@@ -174,6 +174,18 @@ class AdoShowResultsSupportedResourceTypes(Enum):
     OPERATION = _OPERATION_SINGULAR
 
 
+#################### ado show trace ####################
+class AdoShowTraceSupportedOutputFormats(Enum):
+    CSV = _CSV
+    JSON = _JSON
+    TABLE = _TABLE
+    YAML = _YAML
+
+
+class AdoShowTraceSupportedResourceTypes(Enum):
+    OPERATION = _OPERATION_SINGULAR
+
+
 #################### ado show summary ####################
 class AdoShowSummarySupportedOutputFormats(enum.Enum):
     TABLE = _TABLE

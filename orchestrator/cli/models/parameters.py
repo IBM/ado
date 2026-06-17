@@ -18,6 +18,7 @@ from orchestrator.cli.models.types import (
     AdoShowRequestsSupportedOutputFormats,
     AdoShowResultsSupportedOutputFormats,
     AdoShowSummarySupportedOutputFormats,
+    AdoShowTraceSupportedOutputFormats,
 )
 from orchestrator.core import CoreResourceKinds
 from orchestrator.core.operation.config import DiscoveryOperationEnum
@@ -126,6 +127,17 @@ class AdoShowResultsCommandParameters(pydantic.BaseModel):
     no_trunc: bool
     output_file: Path | None
     output_format: AdoShowResultsSupportedOutputFormats
+    resource_id: str
+
+
+class AdoShowTraceCommandParameters(pydantic.BaseModel):
+    ado_configuration: AdoConfiguration
+    field_selectors: list[dict[str, str]]
+    hide_fields: list[str] | None
+    unroll_entities: bool
+    no_trunc: bool
+    output_file: Path | None
+    output_format: AdoShowTraceSupportedOutputFormats
     resource_id: str
 
 

@@ -1040,6 +1040,135 @@ ado show results operation randomwalk-0.5.0-123abc --hide uid
 ado show results operation randomwalk-0.5.0-123abc --output-file results-table.txt
 ```
 
+#### ado show trace
+
+_show trace_ allows inspecting in detail the trace of entity measurement
+requests made during explore operations. It can provide crucial information for
+debugging operation behaviour e.g. failed experiments or requests. Note,
+multiple entities can be contained in a single measurement request depending on
+the sampler used to explore and its settings.
+
+The complete syntax of the `ado show trace` command is as follows:
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+ado show trace operation [RESOURCE_ID] [--use-latest] \
+                         [--unroll-entities] \
+                         [--filter <key=value>] \
+                         [--output | -o <table | csv | json | yaml>] \
+                         [--output-file <path>] \
+                         [--hide <field>] \
+                         [--no-trunc]
+```
+
+<!-- markdownlint-enable line-length -->
+
+- `--use-latest` will use the identifier of the latest (i.e. most recent)
+  operation from the current context. It is ignored if a RESOURCE_ID is
+  provided.
+- `--unroll-entities` expands the table for output mode `table` or `csv` so each
+  entity has its own row containing additional metadata on the result of
+  applying the requested experiment to it.
+- `--filter` filters based on field names from the underlying data model, not
+  table column names. Can be used multiple times for AND logic.
+- `--output` (or `-o`) determines the output format. Supports `table`, `csv`,
+  `json`, and `yaml`. Output is written to stdout by default, or to a file if
+  `--output-file` is specified.
+- `--output-file` specifies a file path to write the output to. If not provided,
+  output is written to stdout.
+- `--hide` can be specified multiple times and allows hiding fields from the
+  output.
+- `--no-trunc` prevents truncation of table content (console output only).
+
+##### Default Trace Output Table
+
+The default output table shows the time-series of measurement requests with the
+following columns:
+
+- Index (auto-generated row number)
+- Request ID
+- Request Index
+- Request type (measured/replayed)
+- Timestamp
+- Experiment ID
+- Entity IDs (list)
+- Status
+- Measurements (count)
+- Valid Measurements (count)
+- Invalid Measurements (count)
+- Metadata (request metadata)
+
+##### Expanded Trace Output Table
+
+Specifying `--unroll-entities` unrolls each request so each entity with a
+request processed has its own row containing additional metadata on the result
+of applying the requested experiment to it:
+
+- Index (auto-generated row number)
+- Request ID
+- Request Index
+- Request type (measured/replayed)
+- Timestamp
+- Experiment ID
+- Result Index (per-request, 0-based)
+- Result UID
+- Entity ID (single, unrolled)
+- Valid (boolean)
+- Number of Properties
+- Request Metadata
+- Result Metadata
+
+#### Filtering Output
+
+The output of show trace can be filtered using the following fields:
+
+- `requestIndex` - Request index number
+- `requestid` - Request UUID
+- `status` - Request status (Unknown, Success, Failed)
+- `timestamp` - Request timestamp
+- `metadata` - Request metadata (use dot notation for nested fields, e.g.,
+  `metadata.key=value`)
+- `experimentReference` - Stringified experiment reference
+
+Filtering reduces the output to the requests matching the filters.
+
+##### Examples
+
+###### Show the trace for an operation as a table
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc
+```
+
+###### Show entity level information in the trace table
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --unroll-entities
+```
+
+###### Show the YAML of a request
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter requestid=abcdef -o yaml
+```
+
+###### Filter trace on multiple request fields
+
+<!-- markdownlint-disable line-length -->
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --filter status=Success --filter requestIndex=5
+```
+
+<!-- markdownlint-enable line-length -->
+
+###### Hide specific columns
+
+```shell
+ado show trace operation randomwalk-0.5.0-123abc --hide metadata --hide timestamp
+```
+
 #### ado show related
 
 _show related_ supports displaying resources that are related to the one whose

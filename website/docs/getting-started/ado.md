@@ -1135,13 +1135,13 @@ Filtering reduces the output to the requests matching the filters.
 
 ##### Examples
 
-###### Show the trace for an operation
+###### Show the trace for an operation as a table
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc
 ```
 
-###### Show result level information in the trace
+###### Show entity level information in the trace table
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc --unroll-entities

@@ -24,10 +24,15 @@ import uuid
 from collections.abc import Callable
 from typing import Any
 
+import pydantic
 import ray
 
 from orchestrator.core.actuatorconfiguration.config import GenericActuatorParameters
 from orchestrator.modules.actuators.base import ActuatorBase, DeprecatedExperimentError
+from orchestrator.modules.actuators.executor_supervisor import (
+    ExperimentExecutorSupervisor,
+    ExperimentExecutorSupervisorParameters,
+)
 from orchestrator.modules.actuators.measurement_queue import MeasurementQueue, NullQueue
 from orchestrator.schema.entity import Entity
 from orchestrator.schema.experiment import Experiment, ParameterizedExperiment
@@ -207,6 +212,7 @@ def _run_execute_fn(
 def _enqueue_completed(
     execute_fn: Callable[[], MeasurementRequest],
     queue: MeasurementQueue | NullQueue,
+    actuator_actor: ray.ActorHandle | None,
 ) -> None:
     """Ray worker: run execute_fn() and put the completed request on queue.
 
@@ -225,11 +231,20 @@ def _enqueue_completed(
             "_enqueue_completed: execute_fn or queue.put raised an exception"
         )
         raise
+    else:
+        if actuator_actor:
+            actuator_actor.mark_measurement_request_completed.remote(result.requestid)
 
 
 # ---------------------------------------------------------------------------
 # StandardActuator
 # ---------------------------------------------------------------------------
+
+
+class StandardActuatorParameters(ExperimentExecutorSupervisorParameters):
+    """Configuration parameters for the CustomExperiments actuator."""
+
+    model_config = pydantic.ConfigDict(extra="forbid")
 
 
 class StandardActuator(ActuatorBase):
@@ -249,6 +264,8 @@ class StandardActuator(ActuatorBase):
     provided through one of two hooks (see module docstring).
     """
 
+    parameters_class = StandardActuatorParameters
+
     def __init__(
         self,
         queue: MeasurementQueue | NullQueue | None = None,
@@ -261,6 +278,17 @@ class StandardActuator(ActuatorBase):
                    If None, a NullQueue is used — suitable for execute()-only use.
             params: Actuator configuration parameters.
         """
+
+        self._parameters = self.parameters_class.model_validate(
+            params, from_attributes=True
+        )
+        self._launch_supervisor = ExperimentExecutorSupervisor(
+            queue=self._stateUpdateQueue,
+            config=self._parameters.to_supervisor_config(),
+            logger=self.log,
+        )
+        self._launch_supervisor.start()
+
         super().__init__(
             queue=queue if queue is not None else NullQueue(), params=params
         )
@@ -375,6 +403,10 @@ class StandardActuator(ActuatorBase):
 
         return implementations[experiment_id], experiment
 
+    def mark_measurement_request_completed(self, requestid: str) -> None:
+        """Record that a measurement result was queued."""
+        self._launch_supervisor.mark_measurement_request_completed(requestid)
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -446,6 +478,15 @@ class StandardActuator(ActuatorBase):
             entities=entities,
             requestid=str(uuid.uuid4())[:6],
         )
+
+        try:
+            actuator_actor = ray.get_runtime_context().current_actor
+        except Exception:
+            actuator_actor = None
+
         execute_fn = self._get_request_executor(request, use_ray=True)
-        _enqueue_completed.remote(execute_fn, self._stateUpdateQueue)
+        executor_ref = _enqueue_completed.remote(
+            execute_fn, self._stateUpdateQueue, actuator_actor
+        )
+        self._launch_supervisor.supervise_experiment_executor(request, executor_ref)
         return [request.requestid]

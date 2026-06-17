@@ -305,14 +305,13 @@ class StandardActuator(ActuatorBase):
     def _experiment_implementations(self) -> dict[str, Callable[..., dict[str, Any]]]:
         """Return a mapping from experiment identifier to experiment callable.
 
-        The callable receives the entity's constitutive property values as
-        keyword arguments and must return a dict mapping observed property
-        identifiers to their measured values — the same contract as
-        custom_experiments functions.
+        The keys are the identifiers of the Experiment instance in the catalog()
 
-        Closures or ``functools.partial`` objects are the recommended way to
-        capture actuator state (e.g. API clients, config) that the function
-        requires beyond the property values.
+        The parameters of the callable for an experiment identifier
+        must be the same as the constitutive property names of the
+        related Experiment instance.
+        The callable must return a dict mapping target property
+        identifiers of the Experiment to their measured values.
 
         Returns:
             Dict mapping experiment identifier → callable.

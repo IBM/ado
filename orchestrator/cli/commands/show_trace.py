@@ -7,6 +7,10 @@ from typing import Annotated
 
 import typer
 
+from orchestrator.cli.exceptions.handlers import (
+    handle_no_related_resource,
+    handle_resource_does_not_exist,
+)
 from orchestrator.cli.models.parameters import AdoShowTraceCommandParameters
 from orchestrator.cli.models.types import (
     AdoShowTraceSupportedOutputFormats,
@@ -20,6 +24,10 @@ from orchestrator.cli.utils.input.parsers import (
 )
 from orchestrator.cli.utils.output.prints import ERROR, console_print
 from orchestrator.cli.utils.queries.parser import prepare_query_filters_for_db
+from orchestrator.metastore.base import (
+    NoRelatedResourcesError,
+    ResourceDoesNotExistError,
+)
 
 if typing.TYPE_CHECKING:
     from orchestrator.cli.core.config import AdoConfiguration
@@ -182,7 +190,16 @@ def show_trace_for_resources(
         AdoShowTraceSupportedResourceTypes.OPERATION: show_operation_trace
     }
 
-    method_mapping[resource_type](parameters=parameters)
+    try:
+        method_mapping[resource_type](parameters=parameters)
+    except ResourceDoesNotExistError as e:
+        handle_resource_does_not_exist(
+            error=e, project_context=ado_configuration.project_context
+        )
+    except NoRelatedResourcesError as e:
+        handle_no_related_resource(
+            error=e, project_context=ado_configuration.project_context
+        )
 
 
 def register_show_trace_command(app: typer.Typer) -> None:

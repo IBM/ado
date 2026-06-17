@@ -73,5 +73,5 @@ class VLLMVersionChecker:
             min_ver = version.parse(cls.THREADPOOL_MIN_VERSION)
             return vllm_ver >= min_ver
 
-        except Exception:
+        except version.InvalidVersion:
             return True

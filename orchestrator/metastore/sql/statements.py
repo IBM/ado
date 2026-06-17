@@ -10,47 +10,89 @@ import sqlalchemy
 from orchestrator.core.resources import ADOResource
 
 
-def simulate_json_contains_on_sqlite(path: str, candidate: str) -> str:
+def _quote_sql_identifier(identifier: str) -> str:
+    """
+    Quote a SQL identifier to prevent SQL injection.
+
+    Uses double quotes and escapes any double quotes in the identifier by doubling them,
+    which is the standard SQL way to escape quotes in identifiers.
+
+    Args:
+        identifier: The identifier to quote
+
+    Returns:
+        The quoted identifier safe for use in SQL
+    """
+    # Escape any double quotes by doubling them, then wrap in double quotes
+    escaped = identifier.replace('"', '""')
+    return f'"{escaped}"'
+
+
+def simulate_json_contains_on_sqlite(
+    path: str,
+    candidate: str,
+    table_name: str = "resources",
+    json_column: str = "data",
+    id_column: str = "identifier",
+) -> str:
     """
     Simulate MySQL's JSON_CONTAINS on SQLite.
+
     On MySQL, JSON_CONTAINS allows searching for a JSON document within a JSON field.
     It matches all documents that contains at least the provided JSON document.
 
     In our simulated version, we prepare a subquery that can be used in a WHERE statement
-    that filters resources making sure their identifier is one that has all the fields
+    that filters rows making sure their ID is one that has all the fields
     from the candidate document.
 
     Args:
         path (str): The path to the JSON field to check.
         candidate (str): The JSON document to check.
+        table_name (str): Name of the table to query (default: "resources").
+        json_column (str): Name of the JSON column to search (default: "data").
+        id_column (str): Name of the ID column to return (default: "identifier").
 
     Returns:
         str: The SQLite query that checks whether the provided document exists.
+
+    Raises:
+        ValueError: If table_name, json_column, or id_column contain invalid characters.
     """
+    # Quote SQL identifiers to prevent SQL injection
+    quoted_table_name = _quote_sql_identifier(table_name)
+    quoted_json_column = _quote_sql_identifier(json_column)
+    quoted_id_column = _quote_sql_identifier(id_column)
 
     # The subqueries produced by check_field_in_sqlite_json_document need to be
     # INTERSECT-ed to make sure we only retrieve the identifiers that match all
     # the subqueries.
-    subqueries = check_field_in_sqlite_json_document(json.loads(candidate), path)
+    subqueries = check_field_in_sqlite_json_document(
+        json.loads(candidate), path, id_column=quoted_id_column
+    )
 
     return ("""
-        identifier IN (
+        {id_column} IN (
             WITH F AS (
-                SELECT r.identifier, jt.key, jt.value, jt.path
+                SELECT t.{id_column}, jt.key, jt.value, jt.path
                 FROM
-                    resources r,
-                    json_tree(r.data, '{path}') jt
+                    {table_name} t,
+                    json_tree(t.{json_column}, '{path}') jt
             )
             {subqueries}
         )
-        """).format(  # noqa: S608 - we don't care about local sql injection
+        """).format(  # noqa: S608 - identifiers are quoted to prevent injection
         path=path,
+        table_name=quoted_table_name,
+        json_column=quoted_json_column,
+        id_column=quoted_id_column,
         subqueries="\n            INTERSECT ".join(subqueries),
     )
 
 
 def check_field_in_sqlite_json_document(
-    candidate: dict | list | str | float, path: str
+    candidate: dict | list | str | float,
+    path: str,
+    id_column: str = "identifier",
 ) -> list[str]:
     """
     Generate SQLite-compatible SQL fragments to check for the presence of specific fields or values
@@ -70,11 +112,17 @@ def check_field_in_sqlite_json_document(
             - If a scalar (str, int, float), generates a simple query checking for value presence.
             - If a dict or list, recursively builds queries for nested fields and values.
         path (str): The JSON path (e.g., '$.config.spaces') used to locate the field within the document.
+        id_column (str): Name of the ID column to select (default: "identifier").
 
     Returns:
         list[str]: A list of SQL SELECT statements that can be combined via INTERSECT
         to filter rows whose JSON documents contain the specified structure or values.
+
+    Raises:
+        ValueError: If id_column contains invalid characters.
     """
+    # Note: id_column is expected to already be quoted by the caller
+    # (simulate_json_contains_on_sqlite) to prevent SQL injection
     _ScalarType = str | int | float | bool | None
 
     def _searchable_scalar_value_for_query_string(value: _ScalarType) -> str:
@@ -89,7 +137,7 @@ def check_field_in_sqlite_json_document(
         raise ValueError(f"Unexpected type {type(value)}")
 
     fragments = []
-    preamble = "SELECT identifier FROM F WHERE "
+    preamble = f"SELECT {id_column} FROM F WHERE "  # noqa: S608 - id_column is quoted by caller
 
     # The user has provided a scalar candidate.
     # There are two options:
@@ -178,13 +226,17 @@ def check_field_in_sqlite_json_document(
         # Example:
         #   - ado get operation -q 'status=[{"event": "finished", "exit_state": "success"}]'
         if isinstance(field, list | dict):
-            fragments.extend(check_field_in_sqlite_json_document(field, path))
+            fragments.extend(
+                check_field_in_sqlite_json_document(field, path, id_column)
+            )
             continue
 
         # When dealing with lists we use recursion to ensure we process
         # their contents.
         if isinstance(candidate, list):
-            fragments.extend(check_field_in_sqlite_json_document(field, path))
+            fragments.extend(
+                check_field_in_sqlite_json_document(field, path, id_column)
+            )
             continue
 
         # We now know that:
@@ -208,7 +260,7 @@ def check_field_in_sqlite_json_document(
 
             fragments.extend(
                 check_field_in_sqlite_json_document(
-                    candidate[field], f"{path}%.{field_pattern}"
+                    candidate[field], f"{path}%.{field_pattern}", id_column
                 )
             )
             continue

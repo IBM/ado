@@ -14,7 +14,7 @@ from orchestrator.core.actuatorconfiguration.config import ActuatorConfiguration
 from orchestrator.core.discoveryspace.config import (
     DiscoverySpaceConfiguration,
 )
-from orchestrator.core.metadata import ConfigurationMetadata
+from orchestrator.core.metadata import ConfigurationMetadata, PackageProvenance
 from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.project import ProjectContext
 from orchestrator.modules.module import (
@@ -23,6 +23,7 @@ from orchestrator.modules.module import (
     load_module_class_or_function,
 )
 from orchestrator.schema.measurementspace import MeasurementSpaceConfiguration
+from orchestrator.utilities.pydantic import Pep440VersionStr, ignore_plugin_validation
 
 if typing.TYPE_CHECKING:
     import orchestrator.modules.operators.base
@@ -44,10 +45,12 @@ class DiscoveryOperationEnum(enum.Enum):
 def get_actuator_configurations(
     project_context: ProjectContext, actuator_configuration_identifiers: list[str]
 ) -> list[ActuatorConfiguration]:
-    """Retrieves actuator configurations from the metastore
+    """Retrieves and validates actuator configurations from the metastore for use.
 
     Fetches ActuatorConfiguration resources from the metastore using the provided
-    identifiers and validates that each actuator has at most one configuration.
+    identifiers, validates parameters against actuator plugins, and checks that
+    each actuator has at most one configuration. This is the use-path fetch;
+    ``ado get`` and ``getResource`` do not call this function.
 
     Params:
         project_context: Project context for connecting to the metastore
@@ -55,10 +58,11 @@ def get_actuator_configurations(
             configuration resources to retrieve
 
     Returns:
-        List of ActuatorConfiguration instances retrieved from the metastore
+        List of ActuatorConfiguration instances validated for use
 
     Raises:
-        ValueError: If more than one ActuatorConfiguration references the same actuator
+        ValueError: If more than one ActuatorConfiguration references the same actuator,
+            or if actuator plugin validation fails
         ResourceDoesNotExistError: If any of the identifiers is not found in the project.
     """
     import orchestrator.metastore.sqlstore
@@ -70,6 +74,7 @@ def get_actuator_configurations(
             identifier=identifier,
             kind=CoreResourceKinds.ACTUATORCONFIGURATION,
             raise_error_if_no_resource=True,
+            ignore_plugin_validation=False,
         ).config
         for identifier in actuator_configuration_identifiers
     ]
@@ -210,7 +215,7 @@ class OperatorMetadata(pydantic.BaseModel):
         ),
     ] = None
     version: Annotated[
-        str,
+        Pep440VersionStr,
         pydantic.Field(
             description=(
                 "PEP 440 version string for the operator (e.g. '0.1.0', "
@@ -254,30 +259,17 @@ class OperatorMetadata(pydantic.BaseModel):
             description="The discovery operation type this operator belongs to."
         ),
     ]
-
-    @pydantic.field_validator("version", mode="after")
-    @classmethod
-    def validate_version_is_pep440(cls, value: str) -> str:
-        """Validate that *version* is a valid PEP 440 version string.
-
-        Args:
-            value: The version string to validate.
-
-        Returns:
-            The original version string unchanged.
-
-        Raises:
-            ValueError: If *value* is not a valid PEP 440 version string.
-        """
-        from packaging.version import InvalidVersion, Version
-
-        try:
-            Version(value)
-        except InvalidVersion as exc:
-            raise ValueError(
-                f"Operator version {value!r} is not a valid PEP 440 version string: {exc}"
-            ) from exc
-        return value
+    provenance: Annotated[
+        PackageProvenance | None,
+        pydantic.Field(
+            default=None,
+            description=(
+                "Python distribution that provides this operator, resolved from the "
+                "installed environment at registration time. None when the operator "
+                "module is not installed as a distribution package."
+            ),
+        ),
+    ]
 
     @property
     def operatorIdentifier(self) -> str:
@@ -437,11 +429,13 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
     def ensure_module_is_installed(
         cls,
         module: OperatorModuleConf | OperatorReference | ScriptOperatorConf,
+        info: pydantic.ValidationInfo,
     ) -> OperatorModuleConf | OperatorReference | ScriptOperatorConf:
         """Validates that the operator module is installed and accessible.
 
         Args:
             module: The operator module or function configuration to validate.
+            info: Pydantic validation info for the current validation step.
 
         Returns:
             The validated module configuration.
@@ -449,6 +443,9 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         Raises:
             ValueError: If the operator module is not installed or cannot be imported.
         """
+        if ignore_plugin_validation(info):
+            return module
+
         if isinstance(module, OperatorReference | ScriptOperatorConf):
             return module
 
@@ -464,12 +461,15 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         return module
 
     @pydantic.model_validator(mode="after")
-    def validate_and_downcast_parameters(self) -> Self:
+    def validate_and_downcast_parameters(self, info: pydantic.ValidationInfo) -> Self:
         """Validates and downcasts operation parameters.
 
         For OperatorModuleConf modules, validates parameters using the operation's
         validateOperationParameters method. For OperatorReference modules,
         validates parameters against the configuration model if available.
+
+        Args:
+            info: Pydantic validation info for the current validation step.
 
         Returns:
             Self: The validated instance with downcast parameters.
@@ -477,6 +477,9 @@ class DiscoveryOperationConfiguration(pydantic.BaseModel):
         Raises:
             ValidationError: If parameter validation fails.
         """
+        if ignore_plugin_validation(info):
+            return self
+
         if isinstance(self.module, OperatorModuleConf):
             # This is guaranteed to not raise an error thanks to ensure_module_is_installed
             operator_class = getattr(

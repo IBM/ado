@@ -20,8 +20,6 @@ from orchestrator.cli.utils.output.prints import (
     console_print,
     cyan,
 )
-from orchestrator.core.discoveryspace.space import DiscoverySpace
-from orchestrator.core.resources import CoreResourceKinds
 from orchestrator.metastore.base import (
     ResourceDoesNotExistError,
 )
@@ -64,36 +62,26 @@ def get_measurement_request(parameters: AdoGetCommandParameters) -> None:
 
     sql = get_sql_store(project_context=parameters.ado_configuration.project_context)
     with Status(ADO_SPINNER_QUERYING_DB) as status:
+        from orchestrator.core.samplestore.base import SampleStore
+
         sample_store: SQLSampleStore
 
-        if parameters.from_sample_store:
-            from orchestrator.core.samplestore.utils import (
-                load_sample_store_from_resource,
-            )
-
-            resource = sql.getResource(
-                identifier=parameters.from_sample_store,
-                kind=CoreResourceKinds.SAMPLESTORE,
-            )
-            if not resource:
-                status.stop()
-                raise ResourceDoesNotExistError(
-                    resource_id=parameters.from_sample_store,
-                    kind=CoreResourceKinds.SAMPLESTORE,
+        try:
+            if parameters.from_sample_store:
+                sample_store = SampleStore.from_identifier(
+                    identifier=parameters.from_sample_store, metastore=sql
                 )
-            sample_store = load_sample_store_from_resource(resource)
-
-        elif parameters.from_space:
-            sample_store = DiscoverySpace.from_stored_configuration(
-                project_context=parameters.ado_configuration.project_context,
-                space_identifier=parameters.from_space,
-            ).sample_store
-
-        else:
-            sample_store = DiscoverySpace.from_operation_id(
-                operation_id=parameters.from_operation,
-                project_context=parameters.ado_configuration.project_context,
-            ).sample_store
+            elif parameters.from_space:
+                sample_store = SampleStore.from_space_identifier(
+                    space_id=parameters.from_space, metastore=sql
+                )
+            else:
+                sample_store = SampleStore.from_operation_identifier(
+                    operation_id=parameters.from_operation, metastore=sql
+                )
+        except ResourceDoesNotExistError:
+            status.stop()
+            raise
 
         status.update("Retrieving your measurement")
         measurement_request = sample_store.measurement_request_by_id(

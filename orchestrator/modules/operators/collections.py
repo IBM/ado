@@ -10,6 +10,7 @@ import pydantic
 
 import orchestrator.core.operation.config
 from orchestrator.core.discoveryspace.space import DiscoverySpace
+from orchestrator.core.metadata import PackageProvenance
 from orchestrator.core.operation.config import (
     DiscoveryOperationEnum,
     FunctionOperationInfo,
@@ -168,6 +169,7 @@ def characterize_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.CHARACTERIZE,
+            provenance=PackageProvenance.from_module_name(func.__module__),
         )
         return wrapper
 
@@ -266,6 +268,7 @@ def explore_operation(
         update={
             "function": _generated,
             "cls": cls,
+            "provenance": PackageProvenance.from_module_name(cls.__module__),
         }
     )
     return cls
@@ -316,6 +319,7 @@ def modify_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.MODIFY,
+            provenance=PackageProvenance.from_module_name(func.__module__),
         )
         return wrapper
 
@@ -367,13 +371,41 @@ def export_operation(
             configuration_model=configuration_model,
             example_configuration=example_configuration,
             type=DiscoveryOperationEnum.EXPORT,
+            provenance=PackageProvenance.from_module_name(func.__module__),
         )
         return wrapper
 
     return _register
 
 
+def provenance_for_operator(
+    name: str, op_type: DiscoveryOperationEnum
+) -> PackageProvenance | None:
+    """Return the package provenance for a registered operator.
+
+    Looks up the operator in the collection for ``op_type`` and returns the
+    :class:`~orchestrator.core.metadata.PackageProvenance` recorded on its
+    registry metadata at registration time.
+
+    Args:
+        name: Canonical operator name.
+        op_type: The discovery operation type the operator belongs to.
+
+    Returns:
+        A :class:`~orchestrator.core.metadata.PackageProvenance` instance,
+        or ``None`` if provenance is unavailable.
+    """
+    collection = operationCollectionMap.get(op_type)
+    if collection is None:
+        return None
+    metadata = collection.operators.get(name)
+    if metadata is None:
+        return None
+    return metadata.provenance
+
+
 def load_operators() -> None:
+    """Load all operator plugins via ``ado.operators`` entry points."""
     from importlib.metadata import entry_points
 
     for operator_plugin in entry_points(group="ado.operators"):

@@ -30,6 +30,7 @@ from orchestrator.metastore.sql.utils import (
     create_sql_resource_store,
     engine_for_sql_store,
 )
+from orchestrator.utilities.pydantic import ignore_plugin_validation_context
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -160,6 +161,31 @@ class SQLResourceStore(ResourceStore):
     def engine(self) -> sqlalchemy.Engine:
         return self._engine
 
+    def _deserialize_resource(
+        self,
+        kind: str,
+        data: dict,
+        *,
+        ignore_plugin_validation: bool = True,
+    ) -> orchestrator.core.resources.ADOResource:
+        """Deserialize stored JSON into a typed resource model.
+
+        Args:
+            kind: Resource kind string from the metastore.
+            data: Parsed JSON resource payload.
+            ignore_plugin_validation: When True, skip plugin registry validation
+                on nested operation and actuator configuration fields.
+
+        Returns:
+            Deserialized resource instance.
+        """
+        custom_model_loader = kind_custom_model_load.get(kind)
+        if custom_model_loader:
+            return custom_model_loader(data, self.configuration)
+
+        context = ignore_plugin_validation_context if ignore_plugin_validation else None
+        return orchestrator.core.kindmap[kind].model_validate(data, context=context)
+
     def get_resource_and_producers(
         self,
         identifier: str,
@@ -240,11 +266,7 @@ class SQLResourceStore(ResourceStore):
             data_raw = mapping[f"r{i}_data"]
             kind_val = mapping[f"r{i}_kind"]
             d = json.loads(data_raw) if isinstance(data_raw, str) else data_raw
-            custom_loader = kind_custom_model_load.get(kind_val)
-            if custom_loader:
-                resource = custom_loader(d, self.configuration)
-            else:
-                resource = orchestrator.core.kindmap[kind_val](**d)
+            resource = self._deserialize_resource(kind_val, d)
 
             if orchestrator.core.resources.VersionIsGreaterThan(
                 resource.version, d.get("version", "v0")
@@ -298,6 +320,7 @@ class SQLResourceStore(ResourceStore):
         identifier: str,
         kind: CoreResourceKinds,
         raise_error_if_no_resource: bool = False,
+        ignore_plugin_validation: bool = True,
     ) -> orchestrator.core.resources.ADOResource | None:
         """Retrieve a resource from the SQL store.
 
@@ -318,6 +341,10 @@ class SQLResourceStore(ResourceStore):
                 :class:`~orchestrator.metastore.base.ResourceDoesNotExistError`
                 is raised when the resource cannot be found.  When ``False``
                 (default) the method simply returns ``None``.
+            ignore_plugin_validation: When ``True`` (default), nested operation
+                and actuator configuration fields skip plugin registry
+                validation during deserialization. Set to ``False`` when
+                loading resources for runtime use.
 
         Returns:
             An instance of the appropriate
@@ -354,11 +381,11 @@ class SQLResourceStore(ResourceStore):
         resource = None
         if table.shape[0] > 0:
             d = json.loads(table.data[0])
-            custom_model_loader = kind_custom_model_load.get(table.kind[0])
-            if custom_model_loader:
-                resource = custom_model_loader(d, self.configuration)
-            else:
-                resource = orchestrator.core.kindmap[table.kind[0]](**d)
+            resource = self._deserialize_resource(
+                table.kind[0],
+                d,
+                ignore_plugin_validation=ignore_plugin_validation,
+            )
 
             # The stored resource should always have a version - if somehow it doesn't we want this to fail
             if orchestrator.core.resources.VersionIsGreaterThan(
@@ -372,7 +399,10 @@ class SQLResourceStore(ResourceStore):
         return resource
 
     def getResources(
-        self, identifiers: list[str], ignore_validation_errors: bool = True
+        self,
+        identifiers: list[str],
+        ignore_validation_errors: bool = True,
+        ignore_plugin_validation: bool = True,
     ) -> dict[str, orchestrator.core.resources.ADOResource]:
         """Retrieve multiple resources by identifier.
 
@@ -437,12 +467,12 @@ class SQLResourceStore(ResourceStore):
                     table.identifier, table.data, table.kind, strict=True
                 ):
                     d = json.loads(data)
-                    custom_model_loader = kind_custom_model_load.get(kind)
                     try:
-                        if custom_model_loader:
-                            resource = custom_model_loader(d, self.configuration)
-                        else:
-                            resource = orchestrator.core.kindmap[kind].model_validate(d)
+                        resource = self._deserialize_resource(
+                            kind,
+                            d,
+                            ignore_plugin_validation=ignore_plugin_validation,
+                        )
                     except Exception as error:
                         msg = f"Unable to create pydantic model for resource with id: {identifier} with data: {data}. {error}"
                         if ignore_validation_errors:

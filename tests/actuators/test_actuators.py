@@ -76,7 +76,7 @@ def test_custom_experiments(
     # noinspection PyUnresolvedReferences
     custom_experiments = ray.remote(
         orchestrator.modules.actuators.custom_experiments.CustomExperiments
-    ).remote(queue=None, params=objectiveFunctionConfiguration)
+    ).remote(queue=None, params=objectiveFunctionConfiguration.parameters)
 
     # This is to test that the ObjectiveFunction instance has got the extended catalog
     # from the registry

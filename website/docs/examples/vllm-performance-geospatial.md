@@ -184,7 +184,7 @@ oc get deployments --watch -n vllm-testing
 You can also get the results table by executing (in another terminal):
 
 ```commandline
-ado show entities operation --use-latest
+ado show measurements operation --use-latest
 ```
 
 ### Check final results
@@ -192,7 +192,7 @@ ado show entities operation --use-latest
 When the experiment finishes, inspect all results with:
 
 ```commandline
-ado show entities space --output csv --use-latest > entities.csv
+ado show measurements space --output csv --use-latest > entities.csv
 ```
 
 ## Pre-packaged Datasets

@@ -14,6 +14,7 @@ from autogluon.tabular import TabularPredictor
 from autoconf.utils.pydantic_models import JobConfig
 from autoconf.utils.recommender import (
     NoRecommendationError,
+    get_model_prediction_and_metadata,
     recommend_min_gpu,
 )
 from orchestrator.modules.actuators.custom_experiments import custom_experiment
@@ -168,6 +169,14 @@ MaxGPUs = ConstitutiveProperty(
     ),
 )
 
+NumberGPUs = ConstitutiveProperty(
+    identifier="number_gpus",
+    propertyDomain=PropertyDomain(
+        variableType=VariableTypeEnum.CONTINUOUS_VARIABLE_TYPE,
+        domainRange=[1, 1024 + 1],  # VV: Arbitrary cutoff at 1024 GPUs
+    ),
+)
+
 
 @custom_experiment(
     required_properties=[
@@ -269,13 +278,14 @@ def min_gpu_recommender(
         GPUModel,
         TokensPerSample,
         PerDeviceBatchSize,
+        NumberGPUs,
     ],
     optional_properties=[GPUsPerWorker, MaxGPUs, ModelVersion],
     output_property_identifiers=["can_recommend", "gpus", "workers"],
     metadata={
-        "description": "An AutoConf recommender that suggests the minimum number of "
-        "gpus per worker and number of workers necessary to execute a Tuning job while"
-        "keeping the per GPU batch size constant"
+        "description": "An AutoConf recommender that preserves the requested number of GPUs "
+        "if it won't cause GPU OOM, otherwise recommends the minimum number of GPUs needed. "
+        "Keeps the per-device batch size constant."
     },
     parameterization={},
 )
@@ -285,6 +295,7 @@ def avoid_oom_recommender(
     gpu_model: str,
     tokens_per_sample: int,
     per_device_train_batch_size: int,
+    number_gpus: int,
     gpus_per_worker: int = 8,
     max_gpus: int = 64,
     model_version: str = "3.1.0",
@@ -297,7 +308,6 @@ def avoid_oom_recommender(
     }
     try:
         # First, load the model
-        # In this case, we are going to ask for the latest version of the model available
         predictor: TabularPredictor = load_model(model_version)
         configuration: dict = {
             "model_name": model_name,
@@ -306,20 +316,53 @@ def avoid_oom_recommender(
             "tokens_per_sample": int(tokens_per_sample),
         }
 
-        num_gpu_list = [2**i for i in range(int(math.log2(max_gpus)) + 1)]
-        for r_num_gpu in num_gpu_list:
-            configuration["batch_size"] = per_device_train_batch_size * r_num_gpu
+        # Step 1: Check if the original number_gpus would work without OOM
+        original_batch_size = per_device_train_batch_size * number_gpus
+        configuration["batch_size"] = original_batch_size
+        configuration["number_gpus"] = number_gpus
+        moduleLog.debug(
+            f"Step 1: Checking if original number_gpus={number_gpus} works with batch_size={original_batch_size}"
+        )
+        gpus_can_support_run, _ = get_model_prediction_and_metadata(
+            configuration, predictor=predictor
+        )
+
+        if gpus_can_support_run == 1:
+            # Original number_gpus works without OOM, preserve it
+            workers = math.ceil(number_gpus / gpus_per_worker)
+            gpus = math.ceil(number_gpus / workers)
+            result["can_recommend"] = True
+            result["gpus"] = gpus
+            result["workers"] = workers
             moduleLog.debug(
-                f"Sending this configuration to min gpu recommender: {configuration}"
+                f"Original number_gpus={number_gpus} is valid (no OOM), returning workers:{workers} gpus:{gpus}"
             )
-            config = JobConfig.model_validate(configuration)
-            moduleLog.debug(f"Validated configuration: {config}")
-            min_gpus, _ = recommend_min_gpu(
-                job_config=config, predictor=predictor, valid_n_gpu_list=[r_num_gpu]
+            return result
+
+        # Step 2: Original number_gpus would cause OOM, find minimum GPUs needed
+        moduleLog.debug(
+            f"Step 2: Original number_gpus={number_gpus} would cause OOM, searching for minimum"
+        )
+        num_gpu_list = [2**i for i in range(int(math.log2(max_gpus)) + 1)]
+
+        # Do not check for GPUs that are fewer than the original GPUs
+        num_gpu_list = [x for x in num_gpu_list if x > number_gpus]
+        result = {"can_recommend": False}
+
+        for min_gpus in num_gpu_list:
+            configuration["batch_size"] = per_device_train_batch_size * min_gpus
+            configuration["number_gpus"] = min_gpus
+
+            moduleLog.debug(
+                f"Trying configuration with {min_gpus} GPUs, batch_size={configuration['batch_size']}"
             )
-            if min_gpus < 1:
+            gpus_can_support_run, _ = get_model_prediction_and_metadata(
+                configuration, predictor=predictor
+            )
+
+            if gpus_can_support_run < 1:
                 moduleLog.debug(
-                    f"Recommender was not able to issue recommender for {configuration}.. trying next"
+                    f"Configuration with {min_gpus} GPUs would cause OOM, trying next"
                 )
                 continue
 
@@ -329,7 +372,7 @@ def avoid_oom_recommender(
             result["gpus"] = gpus
             result["workers"] = workers
             moduleLog.debug(
-                f"recommender returned configuration workers:{workers} gpus:{gpus}"
+                f"Found minimum configuration: workers:{workers} gpus:{gpus}"
             )
             break
 

@@ -165,9 +165,7 @@ class DiscoverySpace:
 
         """
 
-        from orchestrator.core.samplestore.utils import (
-            load_sample_store_from_resource,
-        )
+        from orchestrator.core.samplestore.base import SampleStore
 
         if metadata_store is None:
             metadata_store = orchestrator.metastore.sqlstore.SQLResourceStore(
@@ -176,13 +174,13 @@ class DiscoverySpace:
 
         entitySpace = None
 
-        if samplestore_resource is None:
-            samplestore_resource = metadata_store.getResource(
-                identifier=conf.sampleStoreIdentifier,
-                kind=CoreResourceKinds.SAMPLESTORE,
-                raise_error_if_no_resource=True,
+        sample_store = (
+            SampleStore.from_resource(samplestore_resource)
+            if samplestore_resource is not None
+            else SampleStore.from_identifier(
+                identifier=conf.sampleStoreIdentifier, metastore=metadata_store
             )
-        sample_store = load_sample_store_from_resource(samplestore_resource)
+        )
 
         if conf.entitySpace is not None:
             entitySpace = EntitySpaceRepresentation.representationFromConfiguration(
@@ -537,13 +535,56 @@ class DiscoverySpace:
             metadata=metadata,
         )
 
+    def _build_provenance(
+        self,
+    ) -> "orchestrator.core.discoveryspace.resource.DiscoverySpaceProvenanceInfo":
+        """Resolve package provenance for all actuators and custom experiments.
+
+        Returns:
+            DiscoverySpaceProvenanceInfo mapping actuators and custom experiments
+            to the distributions that provided them at space creation time.
+        """
+        from orchestrator.core.discoveryspace.resource import (
+            DiscoverySpaceProvenanceInfo,
+        )
+        from orchestrator.core.metadata import PackageProvenance
+        from orchestrator.modules.actuators.registry import ActuatorRegistry
+
+        registry = ActuatorRegistry.globalRegistry()
+        actuators: dict[str, PackageProvenance] = {}
+        custom_experiments: dict[str, PackageProvenance] = {}
+
+        for experiment in self.measurementSpace.experiments:
+            actuator_id = experiment.actuatorIdentifier
+
+            # Per-actuator provenance (deduplicated)
+            if actuator_id not in actuators:
+                provenance = registry.provenance_for_actuator(actuator_id)
+                if provenance is not None:
+                    actuators[actuator_id] = provenance
+
+            # Per-custom-experiment provenance
+            if actuator_id == "custom_experiments":
+                module_conf = experiment.metadata.get("module")
+                if module_conf is not None:
+                    provenance = PackageProvenance.from_module_conf(module_conf)
+                    if provenance is not None:
+                        custom_experiments[experiment.identifier] = provenance
+
+        return DiscoverySpaceProvenanceInfo(
+            actuators=actuators,
+            customExperiments=custom_experiments,
+        )
+
     @property
     def resource(
         self,
     ) -> orchestrator.core.discoveryspace.resource.DiscoverySpaceResource:
 
         return orchestrator.core.discoveryspace.resource.DiscoverySpaceResource(
-            identifier=self._identifier, config=self.config
+            identifier=self._identifier,
+            config=self.config,
+            provenance=self._build_provenance(),
         )
 
     def saveSpace(self) -> None:

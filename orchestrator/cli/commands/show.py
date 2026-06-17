@@ -6,8 +6,8 @@ import typer
 from orchestrator.cli.commands.show_details import (
     register_show_details_command,
 )
-from orchestrator.cli.commands.show_entities import (
-    register_show_entities_command,
+from orchestrator.cli.commands.show_measurements import (
+    register_show_measurements_command,
 )
 from orchestrator.cli.commands.show_related import (
     register_show_related_command,
@@ -34,7 +34,7 @@ show_command = typer.Typer(
 )
 
 register_show_details_command(show_command)
-register_show_entities_command(show_command)
+register_show_measurements_command(show_command)
 register_show_related_command(show_command)
 register_show_requests_command(show_command)
 register_show_results_command(show_command)

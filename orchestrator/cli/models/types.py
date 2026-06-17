@@ -152,28 +152,6 @@ class AdoShowRelatedSupportedResourceTypes(Enum):
     SAMPLE_STORE = _SAMPLE_STORE_SINGULAR
 
 
-#################### ado show requests ####################
-class AdoShowRequestsSupportedOutputFormats(Enum):
-    CSV = _CSV
-    JSON = _JSON
-    TABLE = _TABLE
-
-
-class AdoShowRequestsSupportedResourceTypes(Enum):
-    OPERATION = _OPERATION_SINGULAR
-
-
-#################### ado show results ####################
-class AdoShowResultsSupportedOutputFormats(Enum):
-    CSV = _CSV
-    JSON = _JSON
-    TABLE = _TABLE
-
-
-class AdoShowResultsSupportedResourceTypes(Enum):
-    OPERATION = _OPERATION_SINGULAR
-
-
 #################### ado show trace ####################
 class AdoShowTraceSupportedOutputFormats(Enum):
     CSV = _CSV

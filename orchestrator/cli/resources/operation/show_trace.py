@@ -279,7 +279,7 @@ def show_operation_trace(parameters: AdoShowTraceCommandParameters) -> None:
         )
 
     if parameters.hide_fields:
-        df = df.drop(parameters.hide_fields, axis="columns")
+        df = df.drop(parameters.hide_fields, axis="columns", errors="ignore")
 
     # Output the dataframe
     df_to_output(

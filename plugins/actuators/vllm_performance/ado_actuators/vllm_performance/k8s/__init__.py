@@ -16,3 +16,7 @@ class K8sConnectionError(Exception):
 
 class VLLMVersionExtractionError(Exception):
     """Error raised when vLLM version cannot be extracted from image string"""
+
+
+class InvalidImageStructureError(Exception):
+    """Error raised when image value has invalid structure"""

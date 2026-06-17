@@ -17,6 +17,7 @@ from ado_actuators.vllm_performance.env_manager import (
     EnvironmentState,
 )
 from ado_actuators.vllm_performance.k8s import (
+    InvalidImageStructureError,
     K8sConnectionError,
     K8sEnvironmentCreationError,
     UnsupportedThreadpoolConfigurationError,
@@ -199,7 +200,7 @@ def _create_environment(
                 try:
                     image_value = values.get("image", "")
                     logger.info(f"Evaluating image value: {image_value}")
-                    if type(image_value) is str:
+                    if isinstance(image_value, str):
                         try:
                             vllm_version_str = (
                                 VLLMVersionChecker.extract_version_from_image(
@@ -218,13 +219,20 @@ def _create_environment(
                             # Assume threadpool is allowed if cannot infer vllm version
                             is_threadpool_allowed = True
                         image_name = image_value
-                    elif type(image_value) is list:
+                    elif isinstance(image_value, list):
+                        if len(image_value) != 2:
+                            raise InvalidImageStructureError(
+                                f"Image value as list must have exactly 2 elements "
+                                f"[image_name, version], got {len(image_value)} in {image_value}"
+                            )
                         is_threadpool_allowed = VLLMVersionChecker.supports_threadpool(
                             image_value[1]
                         )
                         image_name = image_value[0]
                     else:
-                        raise ValueError(f"Invalid type for image: {type(image_value)}")
+                        raise InvalidImageStructureError(
+                            f"Invalid type for image: {type(image_value)}"
+                        )
 
                     threadpool_requested = bool(values.get("use_threadpool", True))
                     if threadpool_requested and not is_threadpool_allowed:
@@ -539,6 +547,7 @@ def run_resource_and_workload_experiment(
             K8sEnvironmentCreationError,
             K8sConnectionError,
             UnsupportedThreadpoolConfigurationError,
+            InvalidImageStructureError,
             VLLMBenchmarkError,
         ) as error:
             logger.error(f"Error running tests for entity {entity.identifier}: {error}")

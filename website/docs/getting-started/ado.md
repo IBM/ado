@@ -1042,9 +1042,11 @@ ado show results operation randomwalk-0.5.0-123abc --output-file results-table.t
 
 #### ado show trace
 
-_show trace_ allows inspecting in detail the trace of requests made during
-explore operations. It can provide crucial information for debugging operation
-behaviour e.g. failed experiments or requests.
+_show trace_ allows inspecting in detail the trace of entity measurement
+requests made during explore operations. It can provide crucial information for
+debugging operation behaviour e.g. failed experiments or requests. Note,
+multiple entities can be contained in a single measurement request depending on
+the sampler used to explore and its settings.
 
 The complete syntax of the `ado show trace` command is as follows:
 
@@ -1067,23 +1069,8 @@ ado show trace operation [RESOURCE_ID] [--use-latest] \
   provided.
 - `--include-results` switches to result-level view, unrolling entities to show
   individual measurement results with both request and result metadata.
-- `--filter` filters using JSON path syntax based on **YAML field names** from
-  the underlying data model, not table column names (e.g., `requestIndex=5`,
-  `status=Success`). Can be used multiple times for AND logic. Only
-  request-level filters are supported.
-
-  **Available filter fields:**
-
-  Request-level fields (from MeasurementRequest):
-
-  - `requestIndex` - Request index number
-  - `requestid` - Request UUID
-  - `status` - Request status (Unknown, Success, Failed)
-  - `timestamp` - Request timestamp
-  - `metadata` - Request metadata (use dot notation for nested fields, e.g.,
-    `metadata.key=value`)
-  - `experimentReference` - Stringified experiment reference
-
+- `--filter` filters based on field names from the underlying data model, not
+  table column names. Can be used multiple times for AND logic.
 - `--output` (or `-o`) determines the output format. Supports `table`, `csv`,
   `json`, and `yaml`. Output is written to stdout by default, or to a file if
   `--output-file` is specified.
@@ -1129,6 +1116,20 @@ request processed has its own row with greater detail:
 - Number of Properties
 - Request Metadata
 - Result Metadata
+
+#### Filtering Output
+
+The output of show trace can be filtered using the following fields:
+
+- `requestIndex` - Request index number
+- `requestid` - Request UUID
+- `status` - Request status (Unknown, Success, Failed)
+- `timestamp` - Request timestamp
+- `metadata` - Request metadata (use dot notation for nested fields, e.g.,
+  `metadata.key=value`)
+- `experimentReference` - Stringified experiment reference
+
+Filtering reduces the output to the requests matching the filters.
 
 ##### Examples
 

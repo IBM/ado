@@ -6,6 +6,7 @@ import logging
 import subprocess
 import time
 import traceback
+from typing import Any
 
 import ray
 from ado_actuators.vllm_performance.actuator_parameters import (
@@ -55,6 +56,60 @@ from orchestrator.utilities.support import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _determine_threadpool_usage(values: dict[str, Any]) -> bool:
+    """
+    Determine whether to enable threadpool based on use_threadpool and renderer_num_workers.
+
+    Logic:
+    - If use_threadpool is explicitly set, honor that value regardless of renderer_num_workers
+    - If use_threadpool is not set, default to True only if renderer_num_workers is set and non-zero
+
+    :param values: experiment values dictionary
+    :return: True if threadpool should be enabled, False otherwise
+    :raises ValueError: if use_threadpool has an invalid value
+    """
+    if "use_threadpool" in values:
+        # Explicit value provided - always honor it
+        use_tp = values.get("use_threadpool")
+        # Handle string representations
+        if isinstance(use_tp, str):
+            lower_val = use_tp.lower()
+            if lower_val in ("0", "false"):
+                return False
+            elif lower_val in ("1", "true"):
+                return True
+            else:
+                raise ValueError(
+                    f"Invalid value for use_threadpool: '{use_tp}'. "
+                    f"If set via string, Expected 'true' or 'false'."
+                )
+        # Handle integer representations
+        if isinstance(use_tp, int):
+            if use_tp in (0, 1):
+                return bool(use_tp)
+            else:
+                raise ValueError(
+                    f"Invalid integer value for use_threadpool: {use_tp}. "
+                    f"If set via integer, expected 1 or 0."
+                )
+        if use_tp is None:
+            return False
+
+        raise ValueError(
+            f"Invalid integer value for use_threadpool: {use_tp}. "
+            f"Expected 1, 0,'true', or 'false'."
+        )
+    else:
+        # Not set - infer from renderer_num_workers
+        renderer_workers = values.get("renderer_num_workers")
+        if renderer_workers is None:
+            return False
+        # Handle string representations
+        if isinstance(renderer_workers, str):
+            return renderer_workers not in ("", "0")
+        return bool(renderer_workers)
 
 
 def _build_entity_env(values: dict[str, str]) -> str:
@@ -234,7 +289,7 @@ def _create_environment(
                             f"Invalid type for image: {type(image_value)}"
                         )
 
-                    threadpool_requested = bool(values.get("use_threadpool", True))
+                    threadpool_requested = _determine_threadpool_usage(values)
                     if threadpool_requested and not is_threadpool_allowed:
                         raise UnsupportedThreadpoolConfigurationError(
                             f"Threadpool requested but not supported by image {image_name}"

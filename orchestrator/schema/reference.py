@@ -33,6 +33,23 @@ def reference_string_from_fields(
     return f"{actuator_identifier}.{experiment_identifier}"
 
 
+def _coerce_parameter_value(value_str: str) -> typing.Any:  # noqa: ANN401
+    """Coerce a parameterization value string to a Python scalar."""
+    if value_str == "True":
+        return True
+    if value_str == "False":
+        return False
+    try:
+        return int(value_str)
+    except ValueError:
+        pass
+    try:
+        return float(value_str)
+    except ValueError:
+        pass
+    return value_str
+
+
 def _parameterization_from_suffix(
     parameterization_suffix: str,
 ) -> list[ConstitutivePropertyValue]:
@@ -49,7 +66,7 @@ def _parameterization_from_suffix(
         parameterization.append(
             ConstitutivePropertyValue(
                 property=ConstitutivePropertyDescriptor(identifier=property_identifier),
-                value=value_str,
+                value=_coerce_parameter_value(value_str),
             )
         )
     return parameterization

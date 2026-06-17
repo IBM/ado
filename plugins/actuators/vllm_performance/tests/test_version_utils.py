@@ -94,13 +94,13 @@ class TestVLLMVersionChecker:
         assert VLLMVersionChecker.extract_version_from_image(image) == "v"
 
     def test_extract_version_from_vllm_image_without_tag(self) -> None:
-        """Test that image without tag (no colon) removes leading 'v' if present."""
+        """Test that image without tag returns the image name"""
         image = "vllm/vllm-openai"
         assert (
             VLLMVersionChecker.extract_version_from_image(image) == "vllm/vllm-openai"
         )
 
     def test_extract_version_from_image_without_tag(self) -> None:
-        """Test that image without tag (no colon) removes leading 'v' if present."""
+        """Test that image without tag (no colon) returns None"""
         image = "custom-image"
         assert VLLMVersionChecker.extract_version_from_image(image) is None

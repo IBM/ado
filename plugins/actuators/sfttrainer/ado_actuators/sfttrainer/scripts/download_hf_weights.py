@@ -5,14 +5,12 @@ import os
 import pathlib
 from typing import Annotated
 
-import ray
 import typer
 import yaml
 
 app = typer.Typer(rich_markup_mode="markdown")
 
 
-@ray.remote
 def download_weights(path_model: str, hf_home: pathlib.Path) -> None:
     if os.path.isabs(path_model):
         print("Skipping download - model is stored locally")
@@ -52,8 +50,6 @@ def main(
         ),
     ] = pathlib.Path(__file__),
 ) -> None:
-    ray.init()
-
     """Keys are the names of models, values are dictionaries with keys indicating the type of the model weight,
     and values the HuggingFace identifier strings.
 
@@ -70,7 +66,7 @@ def main(
         for _model_type, model_path in items.items():  # noqa: PERF102
             print("Downloading", model_path)
             try:
-                ray.get(download_weights.remote(model_path, hf_home))
+                download_weights(model_path, hf_home)
                 print("Success")
             except Exception as e:
                 print(f"Unable to download weights due to {e} - ignoring error")

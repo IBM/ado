@@ -279,6 +279,60 @@ def calculate_density(mass, volume, round_result: bool = False):
 The above registers `round_result` as an optional properties of the experiment,
 with its value in the function signature as the default parameterization.
 
+### Declaring an algorithm version
+
+Use the `version` parameter of `@custom_experiment` to declare the algorithm
+version of your experiment as a strict `MAJOR.MINOR.PATCH` SemVer string:
+
+```python
+@custom_experiment(
+    output_property_identifiers=["density"],
+    version="1.0.0",
+)
+def calculate_density(mass: float, volume: float):
+    return {"density": mass / volume}
+```
+
+**Version bump rules:**
+
+| Change type | Rule | Example |
+| --- | --- | --- |
+| Bug fix, refactoring, logging | No bump (PATCH is fine) | `1.0.0 → 1.0.1` |
+| New output / input, same core behaviour | Minor bump | `1.0.0 → 1.1.0` |
+| Mathematical / algorithmic change | **Major bump** | `1.0.0 → 2.0.0` |
+
+<!-- markdownlint-disable no-blanks-blockquote -->
+
+> [!IMPORTANT]
+> Only the MAJOR version is encoded into the memoisation key
+> (e.g. `calculate_density@v1-mass.5.0-volume.2.0`).  A major version bump
+> means ado treats all previously cached results as belonging to a **different**
+> experiment — they will not be reused.  Minor and patch bumps are transparent
+> to the cache: results from `1.0.0` and `1.2.0` share the same cache key.
+
+> [!NOTE]
+> Experiments without a declared version emit a `DeprecationWarning` at
+> registration time.  Adding `version` is strongly recommended for any
+> experiment whose results will be persisted in a samplestore.
+
+<!-- markdownlint-enable no-blanks-blockquote -->
+
+#### Mixed-version sampleStores
+
+When a sampleStore accumulates results from **both** `v1` and `v2` of the same
+experiment (e.g. after a major bump), the observed property identifiers differ:
+
+- `calculate_density@v1` results are stored under `calculate_density@v1-density`
+- `calculate_density@v2` results are stored under `calculate_density@v2-density`
+
+In CSV exports produced by `ado show samplestore`, these appear as **separate
+columns**.  Entities measured under only one version will have `NaN` in the
+other version's column.  This is intentional and correct — the two versions
+represent different scientific definitions and their results are not
+interchangeable.
+
+---
+
 ### Supplying metadata
 
 You can also supply a `metadata` dictionary to the "metadata" parameter of the

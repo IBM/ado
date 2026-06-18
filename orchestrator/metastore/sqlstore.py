@@ -1737,6 +1737,8 @@ class SQLResourceStore(ResourceStore):
         #    both structures so they never appear in the result.
         # ------------------------------------------------------------------
         related_by_origin: dict[str, dict[CoreResourceKinds, list[str]]] = {}
+        # seen_by_origin tracks per-(origin, kind) seen sets for O(1) dedup
+        seen_by_origin: dict[str, dict[CoreResourceKinds, set[str]]] = {}
         identifiers_to_fetch: list[str] = []
         seen_identifiers: set[str] = set()
 
@@ -1750,11 +1752,14 @@ class SQLResourceStore(ResourceStore):
                 continue
 
             resource_kind = CoreResourceKinds(identifier_to_kind)
-            kind_list = related_by_origin.setdefault(identifier_from, {}).setdefault(
-                resource_kind, []
-            )
-            if identifier_to not in kind_list:
-                kind_list.append(identifier_to)
+
+            origin_seen = seen_by_origin.setdefault(identifier_from, {})
+            kind_seen = origin_seen.setdefault(resource_kind, set())
+            if identifier_to not in kind_seen:
+                kind_seen.add(identifier_to)
+                related_by_origin.setdefault(identifier_from, {}).setdefault(
+                    resource_kind, []
+                ).append(identifier_to)
 
             if identifier_to not in seen_identifiers:
                 identifiers_to_fetch.append(identifier_to)
@@ -1774,11 +1779,9 @@ class SQLResourceStore(ResourceStore):
         # so they can be merged into each origin's result under their own kind.
         all_identifiers_to_fetch = list(identifiers_to_fetch)
         if include_start_resources:
-            all_identifiers_to_fetch.extend(
-                start_id
-                for start_id in _identifiers_requested
-                if start_id not in seen_identifiers
-            )
+            # Start identifiers are always excluded from seen_identifiers (filtered
+            # out in the loop above), so extend unconditionally.
+            all_identifiers_to_fetch.extend(_identifiers_requested - seen_identifiers)
 
         resources_by_identifier = self.getResources(
             identifiers=all_identifiers_to_fetch

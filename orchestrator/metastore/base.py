@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import abc
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pydantic
 
@@ -314,6 +314,48 @@ class ResourceStore(abc.ABC):
     @abc.abstractmethod
     def delete_actuator_configuration(self, identifier: str) -> None:
         pass
+
+    @abc.abstractmethod
+    def get_resources_by_relationship(
+        self,
+        kind: CoreResourceKinds,
+        identifier: str | set[str] | None,
+        hierarchy_direction: Literal["up", "down", "both"],
+        max_hops: int | None = None,
+        identifiers_only: bool = False,
+        include_start_resources: bool = False,
+    ) -> (
+        dict[CoreResourceKinds, list[str]]
+        | dict[str, dict[CoreResourceKinds, list[str]]]
+        | dict[CoreResourceKinds, dict[str, ADOResource]]
+        | dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]
+    ):
+        """Walk the resource hierarchy and return related resources.
+
+        Args:
+            kind: The :class:`~orchestrator.core.resources.CoreResourceKinds` of
+                the starting resources.
+            identifier: Controls which resources are used as traversal origins.
+                ``str`` for a single start resource, ``set[str]`` for multiple,
+                or ``None`` to seed from all resources of ``kind``.
+            hierarchy_direction: ``'up'`` (child → parent), ``'down'``
+                (parent → child), or ``'both'``.
+            max_hops: Maximum number of relationship hops to follow. ``None``
+                traverses to the full depth of the hierarchy.
+            identifiers_only: When ``True`` return only discovered identifiers;
+                when ``False`` (default) return hydrated
+                :class:`~orchestrator.core.resources.ADOResource` objects.
+            include_start_resources: When ``True`` include the start resource(s)
+                in the result. Requires ``identifiers_only=False`` and
+                ``identifier`` to be a ``str`` or ``set[str]``.
+
+        Returns:
+            A nested dict whose shape depends on whether a single or multiple
+            identifiers were requested and whether ``identifiers_only`` is set.
+
+        Raises:
+            ValueError: If arguments are invalid or incompatible.
+        """
 
 
 def sample_store_dump(

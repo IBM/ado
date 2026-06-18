@@ -12,6 +12,11 @@ from orchestrator.core.resources import ADOResource
 if TYPE_CHECKING:
     from orchestrator.core.resources import CoreResourceKinds
 
+# The resource hierarchy has 4 levels (samplestore → discoveryspace →
+# operation → {datacontainer, actuatorconfiguration}), so the maximum
+# meaningful hop count between any two levels is 3.
+_MAX_HIERARCHY_HOPS = 3
+
 
 def _quote_sql_identifier(identifier: str) -> str:
     """
@@ -590,15 +595,12 @@ def graph_traversal_query(
             f"got {hierarchy_direction!r}"
         )
 
-    # The resource hierarchy has 4 levels (samplestore → discoveryspace →
-    # operation → {datacontainer, actuatorconfiguration}), so the maximum
-    # meaningful hop count between any two levels is 3.
-    #
-    # If the hierarchy ever gains a new level, update this constant and the
-    # corresponding cap in get_resources_by_relationship().
-    _MAX_HOPS = 3
+    if max_hops is not None and max_hops < 1:
+        raise ValueError(f"max_hops must be a positive integer, got {max_hops!r}")
 
-    effective_max_hops = _MAX_HOPS if max_hops is None else min(max_hops, _MAX_HOPS)
+    effective_max_hops = (
+        _MAX_HIERARCHY_HOPS if max_hops is None else min(max_hops, _MAX_HIERARCHY_HOPS)
+    )
 
     # logical_edges is a non-recursive CTE; WITH RECURSIVE is required at the
     # clause level by SQLite because the subsequent traversal CTEs are recursive.

@@ -105,7 +105,7 @@ class MeasurementSpace:
             log.debug(f"looking for experiment {ref}")
             try:
                 experiment = globalRegistry.resolve_reference(
-                    ref, experimentCatalogs, match_on="fully_qualified"
+                    ref, experimentCatalogs, match_on="fully_qualified_version"
                 )
             except (
                 orchestrator.modules.actuators.registry.UnknownExperimentError,

@@ -174,7 +174,7 @@ class DiscoverySpaceConfiguration(pydantic.BaseModel):
         gr = ActuatorRegistry.globalRegistry()
 
         experiments = [
-            gr.resolve_reference(ref, match_on="fully_qualified")
+            gr.resolve_reference(ref, match_on="fully_qualified_version")
             for ref in self.experiments
         ]
 

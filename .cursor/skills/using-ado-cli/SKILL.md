@@ -154,7 +154,7 @@ Retrieves details and data from resources.
 # Get a summary of what has been sampled from the space
 uv run ado show details space SPACE_ID
 
-# Inspect request/result trace for an operation
+# Inspect the trace of measurement requests for an operation
 uv run ado show trace operation OPERATION_ID
 
 # Get entities and measurements
@@ -198,7 +198,7 @@ plus measured properties (outputs).
 | ----------------------------- | ---------------------------------------------------------------------- |
 | `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation |
 | `show measurements space`     | All entities and measurements collected in this space                  |
-| `show trace operation`        | Measurement requests and results trace for an operation (metadata)     |
+| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata    |
 
 <!-- markdownlint-enable line-length -->
 
@@ -206,7 +206,7 @@ plus measured properties (outputs).
 # Measurement data
 uv run ado show measurements operation op-123
 
-# Request/result trace (metadata)
+# Inspect the trace of measurement requests for an operation
 uv run ado show trace operation op-123
 ```
 

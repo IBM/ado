@@ -10,10 +10,10 @@ breaking change and shows how to update your workflows.
 ### Removed: `ado show requests` and `ado show results`
 
 The `ado show requests` and `ado show results` commands have been removed.
-They displayed `MeasurementRequest` and `MeasurementResult` metadata for an
+They displayed `MeasurementRequest` and `MeasurementResult` metadata for an explore
 operation in separate views. The `ado show trace` command supersedes both: it
 provides the same information in a single, unified view with additional
-capabilities such as entity unrolling, field filtering, and YAML output.
+capabilities such as field filtering, and YAML output.
 
 #### Before (ado 1.x)
 
@@ -23,7 +23,7 @@ Inspect measurement requests for an operation:
 ado show requests operation randomwalk-0.5.0-123abc -o csv --output-file requests.csv
 ```
 
-Inspect measurement results for an operation:
+Inspect measurement results metadata for an operation:
 
 ```shell
 ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.csv
@@ -31,7 +31,7 @@ ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.
 
 #### After (ado 2.x)
 
-Use `ado show trace` to inspect both requests and results in a single command:
+Use `ado show trace` to inspect the trace of measurement requests and optionally metadata about the individual entity measurements made (the result metadata)
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc -o csv --output-file trace.csv

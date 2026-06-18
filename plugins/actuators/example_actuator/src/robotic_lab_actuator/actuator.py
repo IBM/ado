@@ -124,8 +124,8 @@ class RoboticLab(ActuatorBase):
         )
 
         ## Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
-        experiment = self.__class__.catalog().resolve_reference(
-            request.experimentReference
+        experiment = self.__class__.catalog().experimentForReference(
+            request.experimentReference, resolve=True
         )
 
         ## Execute experiment

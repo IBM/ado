@@ -227,8 +227,8 @@ class VLLMPerformanceTest(ActuatorBase):
         )
 
         # Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
-        experiment = self.__class__.catalog().resolve_reference(
-            request.experimentReference
+        experiment = self.__class__.catalog().experimentForReference(
+            request.experimentReference, resolve=True
         )
 
         # We make sure the tool required for this experiments gets installed in the Ray worker python environment

@@ -1,7 +1,8 @@
 # Copyright IBM Corporation 2025, 2026
 # SPDX-License-Identifier: MIT
 """Tests for algorithm versioning: StrictSemVerStr, semver_major, Experiment identifiers,
-ExperimentReference identifiers, ExperimentCatalog behaviour, and resolve_reference."""
+ExperimentReference identifiers, ExperimentCatalog behaviour, and experimentForReference with resolve.
+"""
 
 import warnings
 
@@ -444,24 +445,26 @@ def test_catalog_different_major_versions_coexist() -> None:
     assert "solve_mip@v2" in catalog.experiment_major_version_identifiers
 
 
-# ─── resolve_reference ────────────────────────────────────────────────────────
+# ─── experimentForReference with resolve=True ─────────────────────────────────
 
 
-def test_resolve_reference_semantic_mode_same_major() -> None:
-    """resolve_reference succeeds when reference major matches catalog major."""
+def test_experiment_for_reference_resolve_semantic_mode_same_major() -> None:
+    """experimentForReference with resolve=True succeeds when major matches."""
     catalog = _catalog_with_versioned_experiment(version="1.0.0")
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="test_actuator",
         experimentVersion="1.2.0",
     )
-    result = catalog.resolve_reference(ref)
+    result = catalog.experimentForReference(ref, resolve=True)
     assert isinstance(result, Experiment)
     assert result.identifier == "solve_mip"
 
 
-def test_resolve_reference_semantic_mode_different_major_raises() -> None:
-    """resolve_reference raises UnknownExperimentError when major version mismatches."""
+def test_experiment_for_reference_resolve_semantic_mode_different_major_raises() -> (
+    None
+):
+    """experimentForReference with resolve=True raises when major mismatches."""
     catalog = _catalog_with_versioned_experiment(version="1.0.0")
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
@@ -469,23 +472,25 @@ def test_resolve_reference_semantic_mode_different_major_raises() -> None:
         experimentVersion="2.0.0",
     )
     with pytest.raises(UnknownExperimentError):
-        catalog.resolve_reference(ref)
+        catalog.experimentForReference(ref, resolve=True)
 
 
-def test_resolve_reference_fully_qualified_mode_exact_match() -> None:
-    """resolve_reference with mode='fully_qualified' succeeds on exact version match."""
+def test_experiment_for_reference_fully_qualified_mode_exact_match() -> None:
+    """experimentForReference with fully_qualified_version succeeds on exact match."""
     catalog = _catalog_with_versioned_experiment(version="1.0.0")
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="test_actuator",
         experimentVersion="1.0.0",
     )
-    result = catalog.resolve_reference(ref, match_on="fully_qualified")
+    result = catalog.experimentForReference(
+        ref, match_on="fully_qualified_version", resolve=True
+    )
     assert isinstance(result, Experiment)
 
 
-def test_resolve_reference_fully_qualified_mode_minor_mismatch_raises() -> None:
-    """resolve_reference with mode='fully_qualified' raises on minor version mismatch."""
+def test_experiment_for_reference_fully_qualified_mode_minor_mismatch_raises() -> None:
+    """experimentForReference with fully_qualified_version raises on minor mismatch."""
     catalog = _catalog_with_versioned_experiment(version="1.0.0")
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
@@ -493,10 +498,32 @@ def test_resolve_reference_fully_qualified_mode_minor_mismatch_raises() -> None:
         experimentVersion="1.2.0",
     )
     with pytest.raises(ExperimentVersionMismatchError):
-        catalog.resolve_reference(ref, match_on="fully_qualified")
+        catalog.experimentForReference(
+            ref, match_on="fully_qualified_version", resolve=True
+        )
 
 
-def test_resolve_reference_unversioned_reference_raises_for_versioned_catalog() -> None:
+def test_experiment_for_reference_fully_qualified_mode_minor_mismatch_returns_none() -> (
+    None
+):
+    """experimentForReference with fully_qualified_version returns None when resolve=False."""
+    catalog = _catalog_with_versioned_experiment(version="1.0.0")
+    ref = ExperimentReference(
+        experimentIdentifier="solve_mip",
+        actuatorIdentifier="test_actuator",
+        experimentVersion="1.2.0",
+    )
+    assert (
+        catalog.experimentForReference(
+            ref, match_on="fully_qualified_version", resolve=False
+        )
+        is None
+    )
+
+
+def test_experiment_for_reference_resolve_unversioned_raises_for_versioned_catalog() -> (
+    None
+):
     """Unversioned reference does not resolve against a versioned catalog experiment."""
     catalog = _catalog_with_versioned_experiment(version="1.0.0")
     ref = ExperimentReference(
@@ -504,11 +531,13 @@ def test_resolve_reference_unversioned_reference_raises_for_versioned_catalog() 
         actuatorIdentifier="test_actuator",
     )
     with pytest.raises(UnknownExperimentError):
-        catalog.resolve_reference(ref)
+        catalog.experimentForReference(ref, resolve=True)
 
 
-def test_resolve_reference_with_parameterization_returns_parameterized() -> None:
-    """resolve_reference returns ParameterizedExperiment when reference has parameterization."""
+def test_experiment_for_reference_resolve_with_parameterization_returns_parameterized() -> (
+    None
+):
+    """experimentForReference with resolve=True returns ParameterizedExperiment."""
     base = _make_parameterizable_experiment("solve_mip", version="1.0.0")
     catalog = ExperimentCatalog(catalogIdentifier="test")
     with warnings.catch_warnings():
@@ -524,7 +553,7 @@ def test_resolve_reference_with_parameterization_returns_parameterized() -> None
             )
         ],
     )
-    result = catalog.resolve_reference(ref)
+    result = catalog.experimentForReference(ref, resolve=True)
     assert isinstance(result, ParameterizedExperiment)
     assert result.major_version_parameterized_identifier == "solve_mip@v1-timeout.120"
 
@@ -691,7 +720,9 @@ def test_resolve_experiment_for_measurement_space_fq_exact_match(
         actuatorIdentifier="mock",
         experimentVersion="1.0.0",
     )
-    result = global_registry.resolve_reference(ref, match_on="fully_qualified")
+    result = global_registry.experimentForReference(
+        ref, match_on="fully_qualified_version", resolve=True
+    )
     assert result.identifier == "fq_pin_exp"
     assert result.version == "1.0.0"
 
@@ -707,7 +738,9 @@ def test_resolve_experiment_for_measurement_space_fq_mismatch(
         experimentVersion="1.1.0",
     )
     with pytest.raises(ExperimentVersionMismatchError):
-        global_registry.resolve_reference(ref, match_on="fully_qualified")
+        global_registry.experimentForReference(
+            ref, match_on="fully_qualified_version", resolve=True
+        )
 
 
 def test_measurement_space_from_selection_fq_mismatch(

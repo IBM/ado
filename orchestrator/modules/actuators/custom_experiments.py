@@ -775,7 +775,9 @@ class CustomExperiments(ActuatorBase):
         )
 
         try:
-            targetExperiment = self._catalog.resolve_reference(experimentReference)
+            targetExperiment = self._catalog.experimentForReference(
+                experimentReference, resolve=True
+            )
         except Exception as error:
             if self._catalog.experiments:
                 raise ValueError(

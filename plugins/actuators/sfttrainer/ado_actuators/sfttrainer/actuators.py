@@ -1191,7 +1191,9 @@ class SFTTrainer(ActuatorBase):
 
             try:
                 # Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
-                exp = catalog.resolve_reference(request.experimentReference)
+                exp = catalog.experimentForReference(
+                    request.experimentReference, resolve=True
+                )
             except Exception as e:
                 self.log.debug(f"Exception while discovering experiment: {e}")
                 raise InternalInconsistencyError(e) from e
@@ -1387,7 +1389,7 @@ class SFTTrainer(ActuatorBase):
         requests = []
 
         # Resolve the experiment from the catalog (validates version, deprecation, and parameterization)
-        catalog.resolve_reference(experimentReference)
+        catalog.experimentForReference(experimentReference, resolve=True)
 
         for index in range(len(entities)):
             entity = entities[index]

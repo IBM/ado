@@ -325,8 +325,8 @@ class ResourceStore(abc.ABC):
         identifiers_only: bool = False,
         include_start_resources: bool = False,
     ) -> (
-        dict[CoreResourceKinds, list[str]]
-        | dict[str, dict[CoreResourceKinds, list[str]]]
+        dict[CoreResourceKinds, set[str]]
+        | dict[str, dict[CoreResourceKinds, set[str]]]
         | dict[CoreResourceKinds, dict[str, ADOResource]]
         | dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]
     ):

@@ -1584,8 +1584,8 @@ class SQLResourceStore(ResourceStore):
         identifiers_only: bool = False,
         include_start_resources: bool = False,
     ) -> (
-        dict[CoreResourceKinds, list[str]]
-        | dict[str, dict[CoreResourceKinds, list[str]]]
+        dict[CoreResourceKinds, set[str]]
+        | dict[str, dict[CoreResourceKinds, set[str]]]
         | dict[CoreResourceKinds, dict[str, "orchestrator.core.resources.ADOResource"]]
         | dict[
             str,
@@ -1647,8 +1647,8 @@ class SQLResourceStore(ResourceStore):
 
             * single identifier, hydrated    → ``dict[CoreResourceKinds, dict[str, ADOResource]]``
             * multiple identifiers, hydrated → ``dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]``
-            * single identifier, ids only    → ``dict[CoreResourceKinds, list[str]]``
-            * multiple identifiers, ids only → ``dict[str, dict[CoreResourceKinds, list[str]]]``
+            * single identifier, ids only    → ``dict[CoreResourceKinds, set[str]]``
+            * multiple identifiers, ids only → ``dict[str, dict[CoreResourceKinds, set[str]]]``
 
             By default start identifiers are **excluded** from the returned
             results. Pass ``include_start_resources=True`` to include them.
@@ -1723,32 +1723,28 @@ class SQLResourceStore(ResourceStore):
             raw_rows = connectable.execute(query).fetchall()
 
         # ------------------------------------------------------------------
-        # 3. Process raw rows into two parallel data structures:
+        # 3. Process raw rows into:
         #
         #    related_by_origin
         #        Maps each origin identifier to the related identifiers it
         #        reached, grouped by kind.  This is the final return value
-        #        for identifier mode, and the skeleton used to build the
-        #        hydrated return value.
-        #            { origin_id -> { CoreResourceKinds -> [related_id, ...] } }
+        #        for identifiers_only mode, and the skeleton used to build
+        #        the hydrated return value.
+        #            { origin_id -> { CoreResourceKinds -> {related_id, ...} } }
         #
-        #    identifiers_to_fetch / seen_identifiers
-        #        A deduplication-paired list+set of every discovered identifier
-        #        across all origins, in first-seen row order.  Used in hydrated
-        #        mode to fetch all resources in a single batched query while
-        #        preserving a stable ordering.
+        #    identifiers_to_fetch
+        #        The set of every discovered identifier across all origins.
+        #        Used in hydrated mode to fetch all resources in one batched
+        #        query.
         #
         #    Start identifiers (_identifiers_requested) are excluded from
         #    both structures so they never appear in the result.
         # ------------------------------------------------------------------
-        related_by_origin: dict[str, dict[CoreResourceKinds, list[str]]] = {}
-        # seen_by_origin tracks per-(origin, kind) seen sets for O(1) dedup
-        seen_by_origin: dict[str, dict[CoreResourceKinds, set[str]]] = {}
-        identifiers_to_fetch: list[str] = []
-        seen_identifiers: set[str] = set()
+        related_by_origin: dict[str, dict[CoreResourceKinds, set[str]]] = {}
+        identifiers_to_fetch: set[str] = set()
 
         for row in raw_rows:
-            identifier_from = row.origin_identifier
+            origin_identifier = row.origin_identifier
             identifier_to = row.identifier
             identifier_to_kind = row.kind
 
@@ -1757,19 +1753,11 @@ class SQLResourceStore(ResourceStore):
             if identifier_to in _identifiers_requested:
                 continue
 
+            identifiers_to_fetch.add(identifier_to)
             resource_kind = CoreResourceKinds(identifier_to_kind)
-            origin_seen = seen_by_origin.setdefault(identifier_from, {})
-            kind_seen = origin_seen.setdefault(resource_kind, set())
-
-            if identifier_to not in kind_seen:
-                kind_seen.add(identifier_to)
-                related_by_origin.setdefault(identifier_from, {}).setdefault(
-                    resource_kind, []
-                ).append(identifier_to)
-
-            if identifier_to not in seen_identifiers:
-                identifiers_to_fetch.append(identifier_to)
-                seen_identifiers.add(identifier_to)
+            related_by_origin.setdefault(origin_identifier, {}).setdefault(
+                resource_kind, set()
+            ).add(identifier_to)
 
         # ------------------------------------------------------------------
         # 4. Shape the result
@@ -1781,22 +1769,18 @@ class SQLResourceStore(ResourceStore):
 
         # Hydrated mode: fetch all discovered identifiers in one query,
         # then rebuild the graph with full resources.
-        # When include_start_resources is True, also fetch the start resources
-        # so they can be merged into each origin's result under their own kind.
-        all_identifiers_to_fetch = list(identifiers_to_fetch)
+        # When include_start_resources is True, also fetch the start resources.
         if include_start_resources:
-            all_identifiers_to_fetch.extend(_identifiers_requested)
+            identifiers_to_fetch = identifiers_to_fetch.union(_identifiers_requested)
 
-        resources_by_identifier = self.getResources(
-            identifiers=all_identifiers_to_fetch
-        )
+        resources = self.getResources(identifiers=list(identifiers_to_fetch))
 
         hydrated: dict[
             str,
             dict[CoreResourceKinds, dict[str, orchestrator.core.resources.ADOResource]],
         ] = {}
 
-        for identifier_from, related_identifiers_by_kind in related_by_origin.items():
+        for origin_identifier, related_identifiers_by_kind in related_by_origin.items():
 
             hydrated_related_resources_by_kind: dict[
                 CoreResourceKinds,
@@ -1807,30 +1791,29 @@ class SQLResourceStore(ResourceStore):
                 resource_kind,
                 related_identifiers,
             ) in related_identifiers_by_kind.items():
+
                 hydrated_related_resources_by_kind[resource_kind] = {
-                    identifier_to: resources_by_identifier[identifier_to]
-                    for identifier_to in related_identifiers
-                    if identifier_to in resources_by_identifier
+                    identifier: resources[identifier]
+                    for identifier in related_identifiers
+                    if identifier in resources
                 }
 
-            if include_start_resources and identifier_from in resources_by_identifier:
-                start_resource = resources_by_identifier[identifier_from]
+            if include_start_resources and origin_identifier in resources:
+                start_resource = resources[origin_identifier]
                 hydrated_related_resources_by_kind.setdefault(kind, {})[
-                    identifier_from
+                    origin_identifier
                 ] = start_resource
 
             if hydrated_related_resources_by_kind:
-                hydrated[identifier_from] = hydrated_related_resources_by_kind
+                hydrated[origin_identifier] = hydrated_related_resources_by_kind
 
         # When include_start_resources is True but a start identifier had no
         # related resources, it won't appear in related_by_origin yet — ensure
         # it still gets an entry in hydrated.
         if include_start_resources:
             for start_id in _identifiers_requested:
-                if start_id not in hydrated and start_id in resources_by_identifier:
-                    hydrated[start_id] = {
-                        kind: {start_id: resources_by_identifier[start_id]}
-                    }
+                if start_id not in hydrated and start_id in resources:
+                    hydrated[start_id] = {kind: {start_id: resources[start_id]}}
 
         if _single_identifier_requested:
             return hydrated.get(next(iter(_identifiers_requested)), {})

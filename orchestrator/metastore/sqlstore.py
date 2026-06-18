@@ -1673,9 +1673,15 @@ class SQLResourceStore(ResourceStore):
             raise ValueError(
                 "include_start_resources=True requires identifiers_only=False"
             )
+
         if include_start_resources and identifier is None:
             raise ValueError(
                 "include_start_resources=True requires identifier to be a str or set[str], not None"
+            )
+
+        if identifier is None and hierarchy_direction == "both":
+            raise ValueError(
+                "identifier=None is not supported for hierarchy_direction='both'"
             )
 
         # ------------------------------------------------------------------
@@ -1685,17 +1691,13 @@ class SQLResourceStore(ResourceStore):
         _single_identifier_requested: bool
         _identifiers_requested: set[str]
 
-        if isinstance(identifier, str):
-            _single_identifier_requested = True
-            _identifiers_requested = {identifier}
-        elif identifier is None:
-            if hierarchy_direction == "both":
-                raise ValueError(
-                    "identifier=None is not supported for hierarchy_direction='both'"
-                )
+        if identifier is None:
             _single_identifier_requested = False
             df = self.getResourceIdentifiersOfKind(kind=kind.value)
             _identifiers_requested = set(df["IDENTIFIER"].tolist())
+        elif isinstance(identifier, str):
+            _single_identifier_requested = True
+            _identifiers_requested = {identifier}
         else:
             # set[str]
             _single_identifier_requested = False

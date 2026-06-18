@@ -719,7 +719,9 @@ def resource_hierarchy(
         relatedIdentifiers=[operation_resource.identifier],
     )
 
-    # 5. actuatorconfiguration (child of operation)
+    # 5. actuatorconfiguration — stored as subject, operation as object,
+    #    matching the production path in addResourceWithRelationships(operation,
+    #    relatedIdentifiers=[..., actconf_id]).
     import yaml
 
     ac_config = orchestrator.core.actuatorconfiguration.config.ActuatorConfiguration.model_validate(
@@ -732,8 +734,10 @@ def resource_hierarchy(
         )
     )
     ac = ActuatorConfigurationResource(config=ac_config)
-    sql_store.addResourceWithRelationships(
-        ac, relatedIdentifiers=[operation_resource.identifier]
+    sql_store.addResource(ac)
+    sql_store.addRelationship(
+        subjectIdentifier=ac.identifier,
+        objectIdentifier=operation_resource.identifier,
     )
 
     return {

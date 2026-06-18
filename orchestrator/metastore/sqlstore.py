@@ -1606,21 +1606,25 @@ class SQLResourceStore(ResourceStore):
         ``set[str]`` only the latter two queries (or one, if
         ``identifiers_only=True``) are issued.
 
-        Hierarchy
-        ---------
-        The supported resource hierarchy is::
+        Resource relationships
+        ----------------------
+        ::
 
             samplestore
               └── discoveryspace
                     └── operation
-                          ├── datacontainer
-                          └── actuatorconfiguration
+                          └── datacontainer
 
-        Parent resources are stored as ``subject_identifier`` and child
-        resources as ``object_identifier`` in the ``resource_relationships``
-        table (see :meth:`addResourceWithRelationships`).  Accordingly,
-        ``hierarchy_direction='down'`` follows subject → object, and
-        ``hierarchy_direction='up'`` follows object → subject.
+            actuatorconfiguration ──► operation
+                                   (subject)  (object)
+
+        actuatorconfiguration resources exist independently and are associated
+        with an operation at creation time.  The association is recorded as
+        ``subject_identifier=actconf``, ``object_identifier=operation`` — the
+        opposite direction from the samplestore/discoveryspace/operation/datacontainer
+        chain, where parent resources are ``subject_identifier`` and children
+        are ``object_identifier``
+        (see :meth:`addResourceWithRelationships`).
 
         Allowed traversal families
         --------------------------

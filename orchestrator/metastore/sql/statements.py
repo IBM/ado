@@ -564,16 +564,22 @@ def graph_traversal_query(
     handles deduplication.  The ``origins`` binding is expanded as an
     ``IN``-list by SQLAlchemy.
 
-    Hierarchy::
+    Resource relationships::
 
         samplestore
           └── discoveryspace
                 └── operation
-                      ├── datacontainer
-                      └── actuatorconfiguration
+                      └── datacontainer
 
-    Parent resources are stored as ``subject_identifier``; child resources
-    as ``object_identifier`` (see ``addResourceWithRelationships``).
+        actuatorconfiguration ──► operation
+                               (subject)  (object)
+
+    actuatorconfiguration resources exist independently and are associated with
+    an operation at creation time.  The association is recorded as
+    ``subject_identifier=actconf``, ``object_identifier=operation`` — the
+    opposite direction from the samplestore/discoveryspace/operation/datacontainer
+    chain, where parent resources are ``subject_identifier`` and children are
+    ``object_identifier`` (see ``addResourceWithRelationships``).
 
     Allowed traversal families
     --------------------------
@@ -728,10 +734,11 @@ def graph_traversal_query(
                 """,  # noqa: S608
             ),
             (  # samplestore → discoveryspace → operation → actuatorconfiguration
+                # actconf is subject, operation is object (reverse of other hops)
                 _K.ACTUATORCONFIGURATION,
                 f"""
                 SELECT rr1.subject_identifier AS origin_identifier,
-                       rr3.object_identifier  AS identifier,
+                       rr3.subject_identifier AS identifier,
                        r3.kind                AS kind
                 FROM   resource_relationships rr1
                 JOIN   resources r1
@@ -743,9 +750,9 @@ def graph_traversal_query(
                   ON   r2.identifier = rr2.object_identifier
                  AND   r2.kind = '{_OP}'
                 JOIN   resource_relationships rr3
-                  ON   rr3.subject_identifier = rr2.object_identifier
+                  ON   rr3.object_identifier = rr2.object_identifier
                 JOIN   resources r3
-                  ON   r3.identifier = rr3.object_identifier
+                  ON   r3.identifier = rr3.subject_identifier
                  AND   r3.kind = '{_AC}'
                 WHERE  rr1.subject_identifier IN :origins
                 """,  # noqa: S608
@@ -786,19 +793,20 @@ def graph_traversal_query(
                 """,  # noqa: S608
             ),
             (  # discoveryspace → operation → actuatorconfiguration
+                # actconf is subject, operation is object (reverse of other hops)
                 _K.ACTUATORCONFIGURATION,
                 f"""
                 SELECT rr1.subject_identifier AS origin_identifier,
-                       rr2.object_identifier  AS identifier,
+                       rr2.subject_identifier AS identifier,
                        r2.kind                AS kind
                 FROM   resource_relationships rr1
                 JOIN   resources r1
                   ON   r1.identifier = rr1.object_identifier
                  AND   r1.kind = '{_OP}'
                 JOIN   resource_relationships rr2
-                  ON   rr2.subject_identifier = rr1.object_identifier
+                  ON   rr2.object_identifier = rr1.object_identifier
                 JOIN   resources r2
-                  ON   r2.identifier = rr2.object_identifier
+                  ON   r2.identifier = rr2.subject_identifier
                  AND   r2.kind = '{_AC}'
                 WHERE  rr1.subject_identifier IN :origins
                 """,  # noqa: S608
@@ -821,16 +829,17 @@ def graph_traversal_query(
                 """,  # noqa: S608
             ),
             (  # operation → actuatorconfiguration
+                # actconf is subject, operation is object (reverse of other hops)
                 _K.ACTUATORCONFIGURATION,
                 f"""
-                SELECT rr1.subject_identifier AS origin_identifier,
-                       rr1.object_identifier  AS identifier,
+                SELECT rr1.object_identifier  AS origin_identifier,
+                       rr1.subject_identifier AS identifier,
                        r1.kind                AS kind
                 FROM   resource_relationships rr1
                 JOIN   resources r1
-                  ON   r1.identifier = rr1.object_identifier
+                  ON   r1.identifier = rr1.subject_identifier
                  AND   r1.kind = '{_AC}'
-                WHERE  rr1.subject_identifier IN :origins
+                WHERE  rr1.object_identifier IN :origins
                 """,  # noqa: S608
             ),
         ]

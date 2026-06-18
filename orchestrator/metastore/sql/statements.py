@@ -587,7 +587,7 @@ def graph_traversal_query(
     Raises:
         ValueError: If ``hierarchy_direction`` is invalid.
     """
-    if hierarchy_direction not in ("up", "down", "both"):
+    if hierarchy_direction not in {"up", "down", "both"}:
         raise ValueError(
             "hierarchy_direction must be 'up', 'down' or 'both', "
             f"got {hierarchy_direction!r}"

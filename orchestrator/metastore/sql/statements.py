@@ -687,7 +687,7 @@ def graph_traversal_query(
         # Both directions: up_traversal and down_traversal run independently,
         # each bounded by effective_max_hops, then UNIONed.
         traversal_sql = f"""
-        {_traversal_cte("up", effective_max_hops).strip()},
+        {_traversal_cte("up", effective_max_hops).strip()}
         {_traversal_cte("down", effective_max_hops).strip()}
         SELECT related.origin_identifier AS origin_identifier,
                related.identifier AS identifier,

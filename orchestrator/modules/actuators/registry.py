@@ -378,165 +378,128 @@ class ActuatorRegistry:
         self,
         reference: ExperimentReference,
         additionalCatalogs: list[ExperimentCatalog] | None = None,
-    ) -> "Experiment":
-        """
-        Returns the Experiment object corresponding to reference
+        *,
+        match_on: typing.Literal[
+            "major_version", "fully_qualified_version"
+        ] = "major_version",
+        resolve: bool = False,
+    ) -> "Experiment | ParameterizedExperiment":
+        """Return the experiment corresponding to reference.
 
-        By default, searches all actuator catalogs
+        Searches the actuator's catalog and any additional catalogs. When
+        ``resolve=True``, applies strict version matching, rejects deprecated
+        experiments, and wraps parameterization. The registry always raises on
+        miss; it never returns ``None``.
 
-        Params:
-            reference: A reference to an experiment (ExperimentReference)
-            additionalCatalogs: Additional catalogs to search for the experiment
+        Args:
+            reference: A reference to an experiment.
+            additionalCatalogs: Additional catalogs to search for the experiment.
+            match_on: ``"major_version"`` (default) or ``"fully_qualified_version"``.
+            resolve: When ``True``, apply version checks, deprecated checks, and
+                parameterization.
+
         Returns:
-            The matching experiment
-        Raises:
-            Raises UnknownExperimentError if the experiment cannot be found in any catalog
-            Raises UnknownActuatorError if the actuator cannot be found
+            The matching experiment or parameterized experiment.
 
+        Raises:
+            UnknownExperimentError: If the experiment cannot be found in any catalog.
+            UnknownActuatorError: If the actuator cannot be found.
+            ExperimentVersionMismatchError: When ``resolve=True`` and
+                ``match_on='fully_qualified_version'`` with a version mismatch.
+            DeprecatedExperimentError: When ``resolve=True`` and the experiment
+                is deprecated.
         """
+        from orchestrator.modules.actuators.base import DeprecatedExperimentError
 
         log = logging.getLogger("registry")
         additionalCatalogs = (
             additionalCatalogs if additionalCatalogs is not None else []
         )
 
-        # Get Catalog for Actuator
-        experiment = None
+        catalogs_to_try: list[ExperimentCatalog] = []
         actuator_catalog: ExperimentCatalog | None = None
-        try:
-            log.debug(
-                f"Checking registry for the catalog of actuator {reference.actuatorIdentifier}"
-            )
-            catalog = self.catalogForActuatorIdentifier(
+
+        if resolve:
+            actuator_catalog = self.catalogForActuatorIdentifier(
                 actuatorid=reference.actuatorIdentifier
             )
-            actuator_catalog = catalog
-            experiment = catalog.experimentForReference(reference)
-            if experiment is not None:
-                log.debug(f"Found {experiment}")
-            else:
-                log.debug(f"No experiment matching {reference} found")
-        except KeyError:
+            catalogs_to_try.append(actuator_catalog)
+            catalogs_to_try.extend(additionalCatalogs)
+        else:
             try:
-                self.actuatorForIdentifier(reference.actuatorIdentifier)
-            except UnknownActuatorError:
-                log.warning(
-                    f"No actuator registered called {reference.actuatorIdentifier}"
+                log.debug(
+                    f"Checking registry for the catalog of actuator {reference.actuatorIdentifier}"
                 )
-            else:
-                log.warning(
-                    f"No catalog registered for actuator {reference.actuatorIdentifier}"
+                actuator_catalog = self.catalogForActuatorIdentifier(
+                    actuatorid=reference.actuatorIdentifier
                 )
-
-        if experiment is None:
-            for catalog in additionalCatalogs:
-                log.debug(f"Checking external catalog {catalog} for {reference}")
-                log.debug(f"Known experiments {catalog.experiments}")
-                experiment = catalog.experimentForReference(reference)
-                if experiment is not None:
-                    log.debug(f"Found {experiment}")
-                    break
-                log.warning(f"No experiment matching {reference} found")
-
-        if experiment is None:
-            # AP: we haven't been able to find either the actuator
-            #     or the experiment. We want to raise an accurate error
-            if not self.actuatorForIdentifier(reference.actuatorIdentifier):
-                raise UnknownActuatorError(reference.actuatorIdentifier)
-            log.error(
-                f"The {reference.actuatorIdentifier}  actuator was found but it did not contain "
-                f"the {reference.experimentIdentifier} experiment."
-            )
-            message = (
-                f"The {reference.actuatorIdentifier} actuator was found but it did not "
-                f"contain the {reference} experiment."
-            )
-            if reference.experimentVersion is None and actuator_catalog:
-                candidates = actuator_catalog.experiments_matching_identifier(reference)
-                if candidates:
-                    available_versions = ", ".join(
-                        sorted({e.version for e in candidates if e.version})
+                catalogs_to_try.append(actuator_catalog)
+            except KeyError:
+                try:
+                    self.actuatorForIdentifier(reference.actuatorIdentifier)
+                except UnknownActuatorError:
+                    log.warning(
+                        f"No actuator registered called {reference.actuatorIdentifier}"
                     )
-                    message = f"{message}Available versions: {available_versions}."
-            raise UnknownExperimentError(message)
-
-        return experiment
-
-    def resolve_reference(
-        self,
-        reference: ExperimentReference,
-        additional_catalogs: list[ExperimentCatalog] | None = None,
-        match_on: typing.Literal[
-            "major_version", "fully_qualified_version"
-        ] = "major_version",
-    ) -> "Experiment | ParameterizedExperiment":
-        """Resolve an experiment reference when building a measurement space.
-
-        Resolves an ExperimentReference into a Experiment or ParameterizedExperiment
-
-        Args:
-            reference: ExperimentReference instance
-            additional_catalogs: Optional external catalogs to search after the
-                actuator's primary catalog.
-            match_on: If "fully_qualified_version" reference is compared to registry contents
-            using full_qualified identifiers. If "major_version" (default) its compared
-            using major_version identifiers
-
-        Returns:
-            The resolved :class:`~orchestrator.schema.experiment.Experiment` or
-            :class:`~orchestrator.schema.experiment.ParameterizedExperiment`.
-
-        Raises:
-            UnknownExperimentError: If no matching experiment is found.
-            UnknownActuatorError: If the actuator is not registered.
-            UnexpectedCatalogRetrievalError: If no actuator catalog could be found
-            UnconfiguredActuatorCatalogError: If the actuator catalog requires
-            configuration and none was found
-            AlgorithmVersionMismatchError: If ``experimentVersion`` is set but
-                does not exactly match the catalog experiment version.
-        """
-
-        log = logging.getLogger("registry")
-        additional_catalogs = (
-            additional_catalogs if additional_catalogs is not None else []
-        )
-        catalogs_to_try: list[ExperimentCatalog] = []
-
-        # Will raise one of the following if an issue is found
-        # UnknownActuatorError
-        # UnexpectedCatalogRetrievalError
-        # UnconfiguredActuatorCatalogError
-        actuator_catalog = self.catalogForActuatorIdentifier(
-            actuatorid=reference.actuatorIdentifier
-        )
-        catalogs_to_try.append(actuator_catalog)
-        catalogs_to_try.extend(additional_catalogs)
+                else:
+                    log.warning(
+                        f"No catalog registered for actuator {reference.actuatorIdentifier}"
+                    )
+            catalogs_to_try.extend(additionalCatalogs)
 
         for catalog in catalogs_to_try:
             log.debug(
-                f"Resolving {reference} from catalog {catalog} with {match_on} mode"
+                f"Looking up {reference} from catalog {catalog} with match_on={match_on}, resolve={resolve}"
             )
             try:
-                return catalog.resolve_reference(reference, match_on=match_on)
+                experiment = catalog.experimentForReference(
+                    reference, match_on=match_on, resolve=resolve
+                )
             except ExperimentVersionMismatchError:
                 raise
             except UnknownExperimentError:
                 actuator_catalog = catalog
                 log.debug(f"No experiment matching {reference} found in {catalog}")
+                continue
+            except DeprecatedExperimentError:
+                raise
+            else:
+                if experiment is not None:
+                    log.debug(f"Found {experiment}")
+                    return experiment
+                log.debug(f"No experiment matching {reference} found in {catalog}")
 
-        message = (
-            f"The {reference.actuatorIdentifier} actuator was found but a match to "
-            f"{reference} was not found using mode {match_on}."
+        if resolve:
+            message = (
+                f"The {reference.actuatorIdentifier} actuator was found but a match to "
+                f"{reference} was not found using mode {match_on}."
+            )
+            if actuator_catalog is not None:
+                candidates = actuator_catalog.experiments_matching_identifier(reference)
+                if candidates:
+                    available_versions = ", ".join(
+                        sorted({e.version for e in candidates if e.version})
+                    )
+                    message = f"{message} Available versions in catalog: {available_versions}."
+            raise UnknownExperimentError(message)
+
+        if not self.actuatorForIdentifier(reference.actuatorIdentifier):
+            raise UnknownActuatorError(reference.actuatorIdentifier)
+        log.error(
+            f"The {reference.actuatorIdentifier}  actuator was found but it did not contain "
+            f"the {reference.experimentIdentifier} experiment."
         )
-        if actuator_catalog is not None:
+        message = (
+            f"The {reference.actuatorIdentifier} actuator was found but it did not "
+            f"contain the {reference} experiment."
+        )
+        if reference.experimentVersion is None and actuator_catalog:
             candidates = actuator_catalog.experiments_matching_identifier(reference)
             if candidates:
                 available_versions = ", ".join(
                     sorted({e.version for e in candidates if e.version})
                 )
-                message = (
-                    f"{message} Available versions in catalog: {available_versions}."
-                )
+                message = f"{message}Available versions: {available_versions}."
         raise UnknownExperimentError(message)
 
     @property
@@ -616,8 +579,8 @@ class ActuatorRegistry:
     ) -> list:
         """Check that all actuators and experiments in *measurement_space* are available.
 
-        Uses :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.resolve_reference`
-        so that major version mismatches  are detected and reported.
+        Uses :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.experimentForReference`
+        with ``resolve=True`` so that major version mismatches are detected and reported.
 
         Returns:
             A list with one entry per experiment that is not supported.
@@ -630,7 +593,7 @@ class ActuatorRegistry:
             ref = experiment.reference
             try:
                 catalog = self.catalogForActuatorIdentifier(ref.actuatorIdentifier)
-                catalog.resolve_reference(ref)
+                catalog.experimentForReference(ref, resolve=True)
             except ExperimentVersionMismatchError as error:  # noqa: PERF203
                 issues.append(f"AlgorithmVersionMismatchError: {error!s}")
             except UnknownExperimentError as error:

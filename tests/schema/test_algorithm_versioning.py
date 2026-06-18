@@ -104,13 +104,13 @@ def _catalog_with_versioned_experiment(
     return catalog
 
 
-def test_experiment_semantic_identifier_with_version() -> None:
+def test_experiment_major_version_identifier_with_version() -> None:
     """major_version_identifier includes @vMAJOR when version is set."""
     exp = _make_experiment("solve_mip", version="1.2.3")
     assert exp.major_version_identifier == "solve_mip@v1"
 
 
-def test_experiment_semantic_identifier_without_version() -> None:
+def test_experiment_major_version_identifier_without_version() -> None:
     """major_version_identifier falls back to base identifier when version is None."""
     exp = _make_experiment("solve_mip")
     assert exp.major_version_identifier == "solve_mip"
@@ -202,7 +202,7 @@ def _make_parameterizable_experiment(
     )
 
 
-def test_parameterized_identifier_uses_semantic_prefix() -> None:
+def test_parameterized_identifier_uses_major_version_prefix() -> None:
     """ParameterizedExperiment.major_version_parameterized_identifier encodes major version."""
     base = _make_parameterizable_experiment("solve_mip", version="1.0.0")
     parameterization = [
@@ -229,7 +229,7 @@ def test_parameterized_identifier_unversioned_no_at_sign() -> None:
 # ─── ExperimentReference identifiers ─────────────────────────────────────────
 
 
-def test_reference_semantic_identifier_with_version() -> None:
+def test_reference_major_version_identifier_with_version() -> None:
     """major_version_experiment_identifier includes @vMAJOR when experimentVersion is set."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
@@ -239,7 +239,7 @@ def test_reference_semantic_identifier_with_version() -> None:
     assert ref.major_version_experiment_identifier == "solve_mip@v1"
 
 
-def test_reference_semantic_identifier_without_version() -> None:
+def test_reference_major_version_identifier_without_version() -> None:
     """major_version_experiment_identifier falls back to experimentIdentifier when unversioned."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
@@ -258,8 +258,8 @@ def test_reference_fully_qualified_identifier_with_version() -> None:
     assert ref.fully_qualified_experiment_identifier == "solve_mip@1.2.3"
 
 
-def test_reference_parameterized_experiment_identifier_semantic() -> None:
-    """major_version_parameterized_experiment_identifier uses semantic form when version is set."""
+def test_reference_parameterized_experiment_identifier_major_version() -> None:
+    """major_version_parameterized_experiment_identifier uses major version form when version is set."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="test_actuator",
@@ -344,7 +344,7 @@ def test_reference_from_string_rejects_legacy_v1_suffix() -> None:
 
 
 def test_catalog_lookup_both_versioned_same_major() -> None:
-    """Catalog matches references with the same semantic major version."""
+    """Catalog matches references with the same major version."""
     catalog = _catalog_with_versioned_experiment(version="1.0.0")
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
@@ -392,7 +392,7 @@ def test_catalog_lookup_both_unversioned() -> None:
 # ─── ExperimentCatalog ────────────────────────────────────────────────────────
 
 
-def test_catalog_keys_on_semantic_identifier() -> None:
+def test_catalog_keys_on_major_version_identifier() -> None:
     """Catalog keys on major_version_identifier — v1.0.0 and v1.2.0 map to the same key."""
     exp = _make_experiment("solve_mip", version="1.2.0")
     catalog = ExperimentCatalog(catalogIdentifier="test")
@@ -412,8 +412,8 @@ def test_catalog_add_same_experiment_idempotent() -> None:
         catalog.addExperiment(exp)  # should not raise
 
 
-def test_catalog_add_different_experiment_same_semantic_id_raises() -> None:
-    """Adding two different experiments with the same semantic identifier raises ValueError."""
+def test_catalog_add_different_experiment_same_major_version_id_raises() -> None:
+    """Adding two different experiments with the same major version identifier raises ValueError."""
     exp_v100 = _make_experiment("solve_mip", version="1.0.0")
     exp_v120 = Experiment(
         actuatorIdentifier="test_actuator",
@@ -428,7 +428,7 @@ def test_catalog_add_different_experiment_same_semantic_id_raises() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         catalog.addExperiment(exp_v100)
-        with pytest.raises(ValueError, match="semantic identifier"):
+        with pytest.raises(ValueError, match="major version identifier"):
             catalog.addExperiment(exp_v120)
 
 
@@ -448,7 +448,7 @@ def test_catalog_different_major_versions_coexist() -> None:
 # ─── experimentForReference with resolve=True ─────────────────────────────────
 
 
-def test_experiment_for_reference_resolve_semantic_mode_same_major() -> None:
+def test_experiment_for_reference_resolve_major_version_mode_same_major() -> None:
     """experimentForReference with resolve=True succeeds when major matches."""
     catalog = _catalog_with_versioned_experiment(version="1.0.0")
     ref = ExperimentReference(
@@ -461,7 +461,7 @@ def test_experiment_for_reference_resolve_semantic_mode_same_major() -> None:
     assert result.identifier == "solve_mip"
 
 
-def test_experiment_for_reference_resolve_semantic_mode_different_major_raises() -> (
+def test_experiment_for_reference_resolve_major_version_mode_different_major_raises() -> (
     None
 ):
     """experimentForReference with resolve=True raises when major mismatches."""
@@ -601,7 +601,7 @@ def test_memoisation_major_bump_is_cache_miss() -> None:
 
 
 def test_reference_str_uses_fully_qualified_form() -> None:
-    """__str__ uses FQ version, not semantic @vMAJOR form."""
+    """__str__ uses FQ version, not major version @vMAJOR form."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="act",

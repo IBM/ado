@@ -569,8 +569,9 @@ def graph_traversal_query(
         kind: Starting resource kind.
         hierarchy_direction: ``'up'``, ``'down'`` or ``'both'``.
         origin_identifiers: Set of start resource identifiers to bind.
-        stop_at_resource_kind: When provided, recursion stops once a row of this
-            kind is reached. Not supported for ``hierarchy_direction='both'``.
+        stop_at_resource_kind: When provided, the stop-kind row is included in
+            results but recursion does not continue beyond it. Not supported for
+            ``hierarchy_direction='both'``.
 
     Returns:
         A bound :class:`sqlalchemy.TextClause` ready to execute.
@@ -594,7 +595,8 @@ def graph_traversal_query(
             "stop_at_resource_kind is not supported for hierarchy_direction='both'"
         )
 
-    reachable_kinds_by_direction: dict[
+    # Used only to validate stop_at_resource_kind; does not drive the SQL traversal.
+    _valid_stop_kinds: dict[
         Literal["up", "down"], dict[CoreResourceKinds, list[CoreResourceKinds]]
     ] = {
         "up": {
@@ -637,21 +639,21 @@ def graph_traversal_query(
     }
 
     if stop_at_resource_kind is not None:
-        reachable_kinds = reachable_kinds_by_direction[hierarchy_direction].get(
-            kind, []
-        )
-        if stop_at_resource_kind not in reachable_kinds:
+        valid_stops = _valid_stop_kinds[hierarchy_direction].get(kind, [])
+        if stop_at_resource_kind not in valid_stops:
             raise ValueError(
                 f"stop_at_resource_kind={stop_at_resource_kind!r} is not reachable from "
                 f"kind={kind!r} with hierarchy_direction={hierarchy_direction!r}. "
-                f"Reachable kinds: {reachable_kinds}"
+                f"Reachable kinds: {valid_stops}"
             )
 
     stop_kind = (
         stop_at_resource_kind.value if stop_at_resource_kind is not None else None
     )
 
-    traversal_sql = """
+    # logical_edges is a non-recursive CTE; WITH RECURSIVE is required at the
+    # clause level by SQLite because the subsequent traversal CTEs are recursive.
+    logical_edges_sql = """
         WITH RECURSIVE logical_edges AS (
             SELECT parent.identifier AS from_identifier,
                    parent.kind       AS from_kind,
@@ -668,18 +670,26 @@ def graph_traversal_query(
 
             UNION ALL
 
-            SELECT operation.identifier AS from_identifier,
-                   operation.kind       AS from_kind,
-                   actconf.identifier   AS to_identifier,
-                   actconf.kind         AS to_kind
+            -- actuatorconfiguration is stored as subject with operation as object,
+            -- so the logical parent→child direction is reversed compared to the
+            -- other relationships above.
+            SELECT parent.identifier AS from_identifier,
+                   parent.kind       AS from_kind,
+                   child.identifier  AS to_identifier,
+                   child.kind        AS to_kind
             FROM   resource_relationships rr
-            JOIN   resources actconf
-              ON   actconf.identifier = rr.subject_identifier
-             AND   actconf.kind = 'actuatorconfiguration'
-            JOIN   resources operation
-              ON   operation.identifier = rr.object_identifier
-             AND   operation.kind = 'operation'
-        ),
+            JOIN   resources child
+              ON   child.identifier = rr.subject_identifier
+             AND   child.kind = 'actuatorconfiguration'
+            JOIN   resources parent
+              ON   parent.identifier = rr.object_identifier
+             AND   parent.kind = 'operation'
+        )
+    """
+
+    if hierarchy_direction == "up":
+        # Only the up_traversal CTE is needed; max depth == 3 hops (4 kinds).
+        traversal_sql = """,
         up_traversal AS (
             SELECT origin.identifier AS origin_identifier,
                    origin.kind       AS current_kind,
@@ -700,7 +710,16 @@ def graph_traversal_query(
               ON   logical_edges.to_identifier = up_traversal.current_identifier
             WHERE  (:stop_kind IS NULL OR up_traversal.current_kind != :stop_kind)
               AND  up_traversal.depth < 4
-        ),
+        )
+        SELECT up_traversal.origin_identifier AS origin_identifier,
+               up_traversal.current_identifier AS identifier,
+               up_traversal.current_kind AS kind
+        FROM   up_traversal
+        WHERE  up_traversal.depth > 0
+        """
+    elif hierarchy_direction == "down":
+        # Only the down_traversal CTE is needed; max depth == 3 hops (4 kinds).
+        traversal_sql = """,
         down_traversal AS (
             SELECT origin.identifier AS origin_identifier,
                    origin.kind       AS current_kind,
@@ -722,18 +741,6 @@ def graph_traversal_query(
             WHERE  (:stop_kind IS NULL OR down_traversal.current_kind != :stop_kind)
               AND  down_traversal.depth < 4
         )
-    """
-
-    if hierarchy_direction == "up":
-        final_select = """
-        SELECT up_traversal.origin_identifier AS origin_identifier,
-               up_traversal.current_identifier AS identifier,
-               up_traversal.current_kind AS kind
-        FROM   up_traversal
-        WHERE  up_traversal.depth > 0
-        """
-    elif hierarchy_direction == "down":
-        final_select = """
         SELECT down_traversal.origin_identifier AS origin_identifier,
                down_traversal.current_identifier AS identifier,
                down_traversal.current_kind AS kind
@@ -741,7 +748,49 @@ def graph_traversal_query(
         WHERE  down_traversal.depth > 0
         """
     else:
-        final_select = """
+        # Both directions: emit up_traversal and down_traversal, then UNION.
+        # stop_kind is not supported for 'both' (validated above).
+        traversal_sql = """,
+        up_traversal AS (
+            SELECT origin.identifier AS origin_identifier,
+                   origin.kind       AS current_kind,
+                   origin.identifier AS current_identifier,
+                   0                 AS depth
+            FROM   resources origin
+            WHERE  origin.kind = :start_kind
+              AND  origin.identifier IN :origins
+
+            UNION
+
+            SELECT up_traversal.origin_identifier AS origin_identifier,
+                   logical_edges.from_kind        AS current_kind,
+                   logical_edges.from_identifier  AS current_identifier,
+                   up_traversal.depth + 1         AS depth
+            FROM   up_traversal
+            JOIN   logical_edges
+              ON   logical_edges.to_identifier = up_traversal.current_identifier
+            WHERE  up_traversal.depth < 4
+        ),
+        down_traversal AS (
+            SELECT origin.identifier AS origin_identifier,
+                   origin.kind       AS current_kind,
+                   origin.identifier AS current_identifier,
+                   0                 AS depth
+            FROM   resources origin
+            WHERE  origin.kind = :start_kind
+              AND  origin.identifier IN :origins
+
+            UNION
+
+            SELECT down_traversal.origin_identifier AS origin_identifier,
+                   logical_edges.to_kind            AS current_kind,
+                   logical_edges.to_identifier      AS current_identifier,
+                   down_traversal.depth + 1         AS depth
+            FROM   down_traversal
+            JOIN   logical_edges
+              ON   logical_edges.from_identifier = down_traversal.current_identifier
+            WHERE  down_traversal.depth < 4
+        )
         SELECT related.origin_identifier AS origin_identifier,
                related.identifier AS identifier,
                related.kind AS kind
@@ -762,10 +811,15 @@ def graph_traversal_query(
         ) related
         """
 
-    return sqlalchemy.text(traversal_sql + final_select).bindparams(
+    binds = [
         sqlalchemy.bindparam(key="start_kind", value=kind.value),
         sqlalchemy.bindparam(
             key="origins", value=list(origin_identifiers), expanding=True
         ),
-        sqlalchemy.bindparam(key="stop_kind", value=stop_kind),
-    )
+    ]
+    # :stop_kind is only referenced in the up/down SQL; omit it for 'both'
+    # to avoid SQLAlchemy raising ArgumentError for an unrecognised parameter.
+    if hierarchy_direction != "both":
+        binds.append(sqlalchemy.bindparam(key="stop_kind", value=stop_kind))
+
+    return sqlalchemy.text(logical_edges_sql + traversal_sql).bindparams(*binds)

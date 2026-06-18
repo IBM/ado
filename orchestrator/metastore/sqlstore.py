@@ -4,7 +4,7 @@
 import json
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pydantic
 import sqlalchemy
@@ -1570,3 +1570,242 @@ class SQLResourceStore(ResourceStore):
                     resource_kind=CoreResourceKinds.ACTUATORCONFIGURATION,
                     rollback_occurred=True,
                 ) from e
+
+    # ---------------------------------------------------------------------------
+    # Graph-aware traversal
+    # ---------------------------------------------------------------------------
+
+    def get_related_resources_by_relationship(
+        self,
+        kind: CoreResourceKinds,
+        identifier: str | set[str] | None,
+        hierarchy_direction: Literal["up", "down"],
+        stop_at_resource_kind: CoreResourceKinds | None = None,
+        identifiers_only: bool = False,
+    ) -> (
+        dict[CoreResourceKinds, list[str]]
+        | dict[str, dict[CoreResourceKinds, list[str]]]
+        | dict[CoreResourceKinds, dict[str, "orchestrator.core.resources.ADOResource"]]
+        | dict[
+            str,
+            dict[
+                CoreResourceKinds,
+                dict[str, "orchestrator.core.resources.ADOResource"],
+            ],
+        ]
+    ):
+        """Walk the resource hierarchy stored in ``resource_relationships``.
+
+        The method issues at most **three** SQL queries: when ``identifier=None``
+        a seed query fetches all identifiers of ``kind`` via
+        :meth:`getResourceIdentifiersOfKind`; then one traversal query
+        (assembled from pre-defined path branches via
+        :func:`orchestrator.metastore.sql.statements.graph_traversal_query`);
+        and, when ``identifiers_only=False``, one additional batched resource
+        query via :meth:`getResources`.  When ``identifier`` is a ``str`` or
+        ``set[str]`` only the latter two queries (or one, if
+        ``identifiers_only=True``) are issued.
+
+        Hierarchy
+        ---------
+        The supported resource hierarchy is::
+
+            samplestore
+              └── discoveryspace
+                    └── operation
+                          ├── datacontainer
+                          └── actuatorconfiguration
+
+        Parent resources are stored as ``subject_identifier`` and child
+        resources as ``object_identifier`` in the ``resource_relationships``
+        table (see :meth:`addResourceWithRelationships`).  Accordingly,
+        ``hierarchy_direction='down'`` follows subject → object, and
+        ``hierarchy_direction='up'`` follows object → subject.
+
+        Allowed traversal families
+        --------------------------
+        * ``up`` from ``operation``
+        * ``up`` from ``discoveryspace``
+        * ``down`` from ``samplestore``
+        * ``down`` from ``discoveryspace``
+        * ``down`` from ``operation``
+
+        Parameters
+        ----------
+        kind:
+            The :class:`~orchestrator.core.resources.CoreResourceKinds` of the
+            starting resources.
+        identifier:
+            * ``str`` — a single start resource identifier; the return value
+              is unwrapped (no outer origin key).
+            * ``set[str]`` — multiple explicit start resource identifiers.
+            * ``None`` — all resources of ``kind`` are used as start resources
+              (seeded via :meth:`getResourceIdentifiersOfKind`).
+            * An **empty set** returns an empty result immediately.
+        hierarchy_direction:
+            ``'up'`` (child → parent) or ``'down'`` (parent → child).
+        stop_at_resource_kind:
+            When provided, only traversal branches that reach resources of
+            kinds *up to and including* ``stop_at_resource_kind`` are included.
+            Must be a valid kind reachable from ``kind`` in the requested
+            ``hierarchy_direction``.  Raises ``ValueError`` for invalid combinations.
+        identifiers_only:
+            When ``False`` (default) discovered identifiers are hydrated into
+            full :class:`~orchestrator.core.resources.ADOResource` objects via
+            :meth:`getResources`.
+            When ``True`` only discovered identifiers are returned.
+
+        Returns
+        -------
+        The return type depends on whether a single identifier (str) or
+        multiple identifiers (set / None) were requested, and whether
+        ``identifiers_only`` is set:
+
+        * single identifier, hydrated     → ``dict[CoreResourceKinds, dict[str, ADOResource]]``
+        * multiple identifiers, hydrated  → ``dict[str, dict[CoreResourceKinds, dict[str, ADOResource]]]``
+        * single identifier, identifiers  → ``dict[CoreResourceKinds, list[str]]``
+        * multiple identifiers, identifiers  → ``dict[str, dict[CoreResourceKinds, list[str]]]``
+
+        Start identifiers are **excluded** from the returned results.
+
+        Raises
+        ------
+        ValueError
+            If ``hierarchy_direction`` is not ``'up'`` or ``'down'``.
+        ValueError
+            If the ``(kind, hierarchy_direction)`` combination is not a supported
+            traversal family.
+        ValueError
+            If ``stop_at_resource_kind`` is not reachable from ``kind`` in the
+            requested ``hierarchy_direction``.
+        """
+        # ------------------------------------------------------------------
+        # 1. Resolve the requested identifiers and record whether a single
+        #    identifier was requested (determines the unwrapped return shape)
+        # ------------------------------------------------------------------
+        _single_identifier_requested: bool
+        _identifiers_requested: set[str]
+
+        if isinstance(identifier, str):
+            _single_identifier_requested = True
+            _identifiers_requested = {identifier}
+        elif identifier is None:
+            _single_identifier_requested = False
+            df = self.getResourceIdentifiersOfKind(kind=kind.value)
+            _identifiers_requested = set(df["IDENTIFIER"].tolist())
+        else:
+            # set[str]
+            _single_identifier_requested = False
+            _identifiers_requested = identifier
+
+        # Empty identifier set → immediate empty result
+        if not _identifiers_requested:
+            return {}
+
+        # ------------------------------------------------------------------
+        # 2. Build and execute the single traversal query
+        # ------------------------------------------------------------------
+        query = orchestrator.metastore.sql.statements.graph_traversal_query(
+            kind=kind,
+            hierarchy_direction=hierarchy_direction,
+            origin_identifiers=_identifiers_requested,
+            stop_at_resource_kind=stop_at_resource_kind,
+        )
+
+        with self.engine.connect() as connectable:
+            raw_rows = connectable.execute(query).fetchall()
+
+        # ------------------------------------------------------------------
+        # 3. Process raw rows into two parallel data structures:
+        #
+        #    relationship_graph
+        #        Maps each origin identifier to the related identifiers it
+        #        reached, grouped by kind.  This is the final return value
+        #        for identifier mode, and the skeleton used to build the
+        #        hydrated return value.
+        #            { origin_id -> { CoreResourceKinds -> [related_id, ...] } }
+        #
+        #    ordered_identifiers_retrieved / identifiers_retrieved
+        #        A deduplication-paired list+set of every discovered
+        #        identifier across all origins, in first-seen row order.
+        #        Used in hydrated mode to fetch all resources in a single
+        #        batched query while preserving a stable ordering.
+        #
+        #    Start identifiers (_identifiers_requested) are excluded from
+        #    both structures so they never appear in the result.
+        # ------------------------------------------------------------------
+        relationship_graph: dict[str, dict[CoreResourceKinds, list[str]]] = {}
+        ordered_identifiers_retrieved: list[str] = []
+        identifiers_retrieved: set[str] = set()
+
+        for row in raw_rows:
+            identifier_from = row.origin_identifier
+            identifier_to = row.identifier
+            identifier_to_kind = row.kind
+
+            # Never include the start identifiers in discovered results
+            if identifier_to in _identifiers_requested:
+                continue
+
+            resource_kind = CoreResourceKinds(identifier_to_kind)
+            # Register identifier_to under its origin and kind, deduplicating
+            # within each list by only appending when not already present.
+            # On the first row for a given (identifier_from, resource_kind) pair,
+            # setdefault seeds the list with [identifier_to] and returns it; the
+            # subsequent guard finds it already present and skips the append.
+            # For later rows with the same pair, setdefault returns the existing
+            # list and the guard appends only if identifier_to is not yet in it.
+            related_identifiers_by_kind = relationship_graph.setdefault(
+                identifier_from, {}
+            ).setdefault(resource_kind, [identifier_to])
+            if identifier_to not in related_identifiers_by_kind:
+                related_identifiers_by_kind.append(identifier_to)
+
+            if identifier_to not in identifiers_retrieved:
+                ordered_identifiers_retrieved.append(identifier_to)
+                identifiers_retrieved.add(identifier_to)
+
+        # ------------------------------------------------------------------
+        # 4. Shape the result
+        # ------------------------------------------------------------------
+        if identifiers_only:
+            # Identifier mode
+            if _single_identifier_requested:
+                return relationship_graph.get(next(iter(_identifiers_requested)), {})
+            return relationship_graph
+
+        # Hydrated mode: fetch all discovered identifiers in one query,
+        # then rebuild the graph with full resources
+        resources_by_identifier = self.getResources(
+            identifiers=ordered_identifiers_retrieved
+        )
+
+        hydrated: dict[
+            str,
+            dict[CoreResourceKinds, dict[str, orchestrator.core.resources.ADOResource]],
+        ] = {}
+
+        for identifier_from, related_identifiers_by_kind in relationship_graph.items():
+
+            hydrated_related_resources_by_kind: dict[
+                CoreResourceKinds,
+                dict[str, orchestrator.core.resources.ADOResource],
+            ] = {}
+
+            for (
+                resource_kind,
+                related_identifiers,
+            ) in related_identifiers_by_kind.items():
+                hydrated_related_resources_by_kind[resource_kind] = {
+                    identifier_to: resources_by_identifier[identifier_to]
+                    for identifier_to in related_identifiers
+                    if identifier_to in resources_by_identifier
+                }
+
+            if hydrated_related_resources_by_kind:
+                hydrated[identifier_from] = hydrated_related_resources_by_kind
+
+        if _single_identifier_requested:
+            return hydrated.get(next(iter(_identifiers_requested)), {})
+
+        return hydrated

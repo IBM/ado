@@ -3,11 +3,14 @@
 
 import json
 from types import NoneType
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import sqlalchemy
 
 from orchestrator.core.resources import ADOResource
+
+if TYPE_CHECKING:
+    from orchestrator.core.resources import CoreResourceKinds
 
 
 def _quote_sql_identifier(identifier: str) -> str:
@@ -541,3 +544,319 @@ def resource_select_latest_by_kinds(
         FROM ranked_resources
         WHERE rn = 1
     """).bindparams(sqlalchemy.bindparam("kinds", value=kinds, expanding=True))
+
+
+def graph_traversal_query(
+    kind: "CoreResourceKinds",
+    hierarchy_direction: Literal["up", "down"],
+    origin_identifiers: set[str],
+    stop_at_resource_kind: "CoreResourceKinds | None" = None,
+) -> sqlalchemy.TextClause:
+    """Build and return the traversal SQL for the resource hierarchy.
+
+    Each branch of the hierarchy emits three columns:
+
+    * ``origin_identifier`` — the start resource identifier.
+    * ``identifier``        — the discovered resource identifier.
+    * ``kind``              — the kind of the discovered resource.
+
+    All active branches are joined with ``UNION ALL``; Python post-processing
+    handles deduplication.  The ``origins`` binding is expanded as an
+    ``IN``-list by SQLAlchemy.
+
+    Hierarchy::
+
+        samplestore
+          └── discoveryspace
+                └── operation
+                      ├── datacontainer
+                      └── actuatorconfiguration
+
+    Parent resources are stored as ``subject_identifier``; child resources
+    as ``object_identifier`` (see ``addResourceWithRelationships``).
+
+    Allowed traversal families
+    --------------------------
+    * ``up``   from ``operation``      (→ discoveryspace → samplestore)
+    * ``up``   from ``discoveryspace`` (→ samplestore)
+    * ``down`` from ``samplestore``    (→ discoveryspace → operation → dc/ac)
+    * ``down`` from ``discoveryspace`` (→ operation → dc/ac)
+    * ``down`` from ``operation``      (→ datacontainer / actuatorconfiguration)
+
+    Args:
+        kind: Starting resource kind.
+        hierarchy_direction: ``'up'`` (child → parent) or ``'down'`` (parent → child).
+        origin_identifiers: Set of start resource identifiers to bind.
+        stop_at_resource_kind: When provided, only branches reaching up to and
+            including this kind are included.  Must be reachable from
+            ``kind`` in the requested ``hierarchy_direction``; raises ``ValueError``
+            otherwise.
+
+    Returns:
+        A bound :class:`sqlalchemy.TextClause` ready to execute.
+
+    Raises:
+        ValueError: If ``hierarchy_direction`` is not ``'up'`` or ``'down'``.
+        ValueError: If ``(kind, hierarchy_direction)`` is not a supported family.
+        ValueError: If ``stop_at_resource_kind`` is not reachable in the family.
+    """
+    from orchestrator.core.resources import CoreResourceKinds
+
+    if hierarchy_direction not in ("up", "down"):
+        raise ValueError(
+            f"hierarchy_direction must be 'up' or 'down', got {hierarchy_direction!r}"
+        )
+
+    _K = CoreResourceKinds
+    _SS = _K.SAMPLESTORE.value
+    _DS = _K.DISCOVERYSPACE.value
+    _OP = _K.OPERATION.value
+    _DC = _K.DATACONTAINER.value
+    _AC = _K.ACTUATORCONFIGURATION.value
+
+    # Each branch is (deepest CoreResourceKinds reached, sql_string).
+    # The sql_string uses the literal token :origins which is bound below.
+    # All kind values in the SQL are from CoreResourceKinds.value — not user input.
+    _branches: list[tuple[CoreResourceKinds, str]]
+
+    if kind == _K.OPERATION and hierarchy_direction == "up":
+        _branches = [
+            (  # op → discoveryspace
+                _K.DISCOVERYSPACE,
+                f"""
+                SELECT rr1.object_identifier  AS origin_identifier,
+                       rr1.subject_identifier AS identifier,
+                       r1.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.subject_identifier
+                 AND   r1.kind = '{_DS}'
+                WHERE  rr1.object_identifier IN :origins
+                """,  # noqa: S608 - kind values are enum literals, not user input
+            ),
+            (  # op → discoveryspace → samplestore
+                _K.SAMPLESTORE,
+                f"""
+                SELECT rr1.object_identifier  AS origin_identifier,
+                       rr2.subject_identifier AS identifier,
+                       r2.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.subject_identifier
+                 AND   r1.kind = '{_DS}'
+                JOIN   resource_relationships rr2
+                  ON   rr2.object_identifier = rr1.subject_identifier
+                JOIN   resources r2
+                  ON   r2.identifier = rr2.subject_identifier
+                 AND   r2.kind = '{_SS}'
+                WHERE  rr1.object_identifier IN :origins
+                """,  # noqa: S608
+            ),
+        ]
+
+    elif kind == _K.DISCOVERYSPACE and hierarchy_direction == "up":
+        _branches = [
+            (  # discoveryspace → samplestore
+                _K.SAMPLESTORE,
+                f"""
+                SELECT rr1.object_identifier  AS origin_identifier,
+                       rr1.subject_identifier AS identifier,
+                       r1.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.subject_identifier
+                 AND   r1.kind = '{_SS}'
+                WHERE  rr1.object_identifier IN :origins
+                """,  # noqa: S608
+            ),
+        ]
+
+    elif kind == _K.SAMPLESTORE and hierarchy_direction == "down":
+        _branches = [
+            (  # samplestore → discoveryspace
+                _K.DISCOVERYSPACE,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr1.object_identifier  AS identifier,
+                       r1.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_DS}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+            (  # samplestore → discoveryspace → operation
+                _K.OPERATION,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr2.object_identifier  AS identifier,
+                       r2.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_DS}'
+                JOIN   resource_relationships rr2
+                  ON   rr2.subject_identifier = rr1.object_identifier
+                JOIN   resources r2
+                  ON   r2.identifier = rr2.object_identifier
+                 AND   r2.kind = '{_OP}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+            (  # samplestore → discoveryspace → operation → datacontainer
+                _K.DATACONTAINER,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr3.object_identifier  AS identifier,
+                       r3.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_DS}'
+                JOIN   resource_relationships rr2
+                  ON   rr2.subject_identifier = rr1.object_identifier
+                JOIN   resources r2
+                  ON   r2.identifier = rr2.object_identifier
+                 AND   r2.kind = '{_OP}'
+                JOIN   resource_relationships rr3
+                  ON   rr3.subject_identifier = rr2.object_identifier
+                JOIN   resources r3
+                  ON   r3.identifier = rr3.object_identifier
+                 AND   r3.kind = '{_DC}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+            (  # samplestore → discoveryspace → operation → actuatorconfiguration
+                _K.ACTUATORCONFIGURATION,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr3.object_identifier  AS identifier,
+                       r3.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_DS}'
+                JOIN   resource_relationships rr2
+                  ON   rr2.subject_identifier = rr1.object_identifier
+                JOIN   resources r2
+                  ON   r2.identifier = rr2.object_identifier
+                 AND   r2.kind = '{_OP}'
+                JOIN   resource_relationships rr3
+                  ON   rr3.subject_identifier = rr2.object_identifier
+                JOIN   resources r3
+                  ON   r3.identifier = rr3.object_identifier
+                 AND   r3.kind = '{_AC}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+        ]
+
+    elif kind == _K.DISCOVERYSPACE and hierarchy_direction == "down":
+        _branches = [
+            (  # discoveryspace → operation
+                _K.OPERATION,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr1.object_identifier  AS identifier,
+                       r1.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_OP}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+            (  # discoveryspace → operation → datacontainer
+                _K.DATACONTAINER,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr2.object_identifier  AS identifier,
+                       r2.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_OP}'
+                JOIN   resource_relationships rr2
+                  ON   rr2.subject_identifier = rr1.object_identifier
+                JOIN   resources r2
+                  ON   r2.identifier = rr2.object_identifier
+                 AND   r2.kind = '{_DC}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+            (  # discoveryspace → operation → actuatorconfiguration
+                _K.ACTUATORCONFIGURATION,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr2.object_identifier  AS identifier,
+                       r2.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_OP}'
+                JOIN   resource_relationships rr2
+                  ON   rr2.subject_identifier = rr1.object_identifier
+                JOIN   resources r2
+                  ON   r2.identifier = rr2.object_identifier
+                 AND   r2.kind = '{_AC}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+        ]
+
+    elif kind == _K.OPERATION and hierarchy_direction == "down":
+        _branches = [
+            (  # operation → datacontainer
+                _K.DATACONTAINER,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr1.object_identifier  AS identifier,
+                       r1.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_DC}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+            (  # operation → actuatorconfiguration
+                _K.ACTUATORCONFIGURATION,
+                f"""
+                SELECT rr1.subject_identifier AS origin_identifier,
+                       rr1.object_identifier  AS identifier,
+                       r1.kind                AS kind
+                FROM   resource_relationships rr1
+                JOIN   resources r1
+                  ON   r1.identifier = rr1.object_identifier
+                 AND   r1.kind = '{_AC}'
+                WHERE  rr1.subject_identifier IN :origins
+                """,  # noqa: S608
+            ),
+        ]
+
+    else:
+        raise ValueError(
+            f"Unsupported traversal family: kind={kind!r}, hierarchy_direction={hierarchy_direction!r}. "
+            f"Allowed families: up from operation/discoveryspace; "
+            f"down from samplestore/discoveryspace/operation."
+        )
+
+    # Apply stop_at_resource_kind trimming
+    if stop_at_resource_kind is not None:
+        reachable_kinds = [b[0] for b in _branches]
+        if stop_at_resource_kind not in reachable_kinds:
+            raise ValueError(
+                f"stop_at_resource_kind={stop_at_resource_kind!r} is not reachable from "
+                f"kind={kind!r} with hierarchy_direction={hierarchy_direction!r}. "
+                f"Reachable kinds: {reachable_kinds}"
+            )
+        cutoff = reachable_kinds.index(stop_at_resource_kind)
+        _branches = _branches[: cutoff + 1]
+
+    full_sql = "\nUNION ALL\n".join(sql for _, sql in _branches)
+    return sqlalchemy.text(full_sql).bindparams(
+        sqlalchemy.bindparam(
+            key="origins", value=list(origin_identifiers), expanding=True
+        )
+    )

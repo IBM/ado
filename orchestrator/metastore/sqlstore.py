@@ -1752,14 +1752,15 @@ class SQLResourceStore(ResourceStore):
             identifier_to = row.identifier
             identifier_to_kind = row.kind
 
-            # Never include the start identifiers in discovered results
+            # Don't include the start identifiers in discovered results
+            # This should never happen, if it does, we have a bug.
             if identifier_to in _identifiers_requested:
                 continue
 
             resource_kind = CoreResourceKinds(identifier_to_kind)
-
             origin_seen = seen_by_origin.setdefault(identifier_from, {})
             kind_seen = origin_seen.setdefault(resource_kind, set())
+
             if identifier_to not in kind_seen:
                 kind_seen.add(identifier_to)
                 related_by_origin.setdefault(identifier_from, {}).setdefault(

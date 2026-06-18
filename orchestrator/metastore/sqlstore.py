@@ -1723,22 +1723,8 @@ class SQLResourceStore(ResourceStore):
             raw_rows = connectable.execute(query).fetchall()
 
         # ------------------------------------------------------------------
-        # 3. Process raw rows into:
-        #
-        #    related_by_origin
-        #        Maps each origin identifier to the related identifiers it
-        #        reached, grouped by kind.  This is the final return value
-        #        for identifiers_only mode, and the skeleton used to build
-        #        the hydrated return value.
-        #            { origin_id -> { CoreResourceKinds -> {related_id, ...} } }
-        #
-        #    identifiers_to_fetch
-        #        The set of every discovered identifier across all origins.
-        #        Used in hydrated mode to fetch all resources in one batched
-        #        query.
-        #
-        #    Start identifiers (_identifiers_requested) are excluded from
-        #    both structures so they never appear in the result.
+        # 3. Build the mapping
+        #    { origin_id -> { CoreResourceKinds -> {related_id, ...} } }
         # ------------------------------------------------------------------
         related_by_origin: dict[str, dict[CoreResourceKinds, set[str]]] = {}
         identifiers_to_fetch: set[str] = set()

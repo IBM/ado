@@ -54,7 +54,13 @@ class BaseCatalog(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def experimentForReference(self, reference: ExperimentReference) -> Experiment:
+    def experimentForReference(
+        self,
+        reference: ExperimentReference,
+        *,
+        match_on: Literal["major_version", "fully_qualified_version"] = "major_version",
+        resolve: bool = False,
+    ) -> Experiment | ParameterizedExperiment | None:
         pass
 
 
@@ -111,30 +117,90 @@ class ExperimentCatalog(BaseCatalog):
         return [e.major_version_identifier for e in self.experiments]
 
     def experimentForReference(
-        self, reference: ExperimentReference
-    ) -> Experiment | None:
-        """Return the experiment matching reference or None if there is no match.
+        self,
+        reference: ExperimentReference,
+        *,
+        match_on: Literal["major_version", "fully_qualified_version"] = "major_version",
+        resolve: bool = False,
+    ) -> Experiment | ParameterizedExperiment | None:
+        """Return the experiment matching reference.
 
         Matching compares on actuator and major version experiment identifier.
-        Parameterization on the reference is ignored for catalog lookup purposes.
+        When ``match_on='fully_qualified_version'``, the exact version must also
+        match. When ``resolve=True``, deprecated experiments raise and references
+        with parameterization are wrapped in :class:`ParameterizedExperiment`.
 
-        The catalog stores at most one experiment per major version identifier, so
-        this method returns either a single match or ``None``.
+        The catalog stores at most one experiment per major version identifier.
 
         Args:
             reference: The experiment reference to look up.
+            match_on: ``"major_version"`` (default) — match on MAJOR version only.
+                ``"fully_qualified_version"`` — additionally requires the exact
+                version (MAJOR.MINOR.PATCH) to match.
+            resolve: When ``True``, raise on miss or version mismatch, reject
+                deprecated experiments, and apply parameterization from the
+                reference. When ``False``, return ``None`` on miss or version
+                mismatch.
 
         Returns:
-            The matching Experiment, or None if no match is found.
+            The matching :class:`~orchestrator.schema.experiment.Experiment` or
+            :class:`~orchestrator.schema.experiment.ParameterizedExperiment`, or
+            ``None`` if no match is found and ``resolve=False``.
+
+        Raises:
+            ExperimentVersionMismatchError: When ``resolve=True``,
+                ``match_on='fully_qualified_version'``, and the resolved
+                experiment's version does not match the reference's version.
+            :class:`~orchestrator.modules.actuators.registry.UnknownExperimentError`:
+                If no matching experiment is found and ``resolve=True``.
+            :class:`~orchestrator.modules.actuators.base.DeprecatedExperimentError`:
+                If the resolved experiment is marked deprecated and ``resolve=True``.
         """
-        for experiment in self.experiments:
+        from orchestrator.modules.actuators.base import DeprecatedExperimentError
+        from orchestrator.modules.actuators.registry import UnknownExperimentError
+
+        experiment: Experiment | None = None
+        for candidate in self.experiments:
             if (
-                experiment.reference.actuatorIdentifier == reference.actuatorIdentifier
-                and experiment.reference.major_version_experiment_identifier
+                candidate.reference.actuatorIdentifier == reference.actuatorIdentifier
+                and candidate.reference.major_version_experiment_identifier
                 == reference.major_version_experiment_identifier
             ):
-                return experiment
-        return None
+                experiment = candidate
+                break
+
+        if experiment is None:
+            if resolve:
+                raise UnknownExperimentError(
+                    f"No experiment matching {reference!s} found in catalog {self._identifier!r}."
+                )
+            return None
+
+        if (
+            match_on == "fully_qualified_version"
+            and experiment.fully_qualified_identifier
+            != reference.fully_qualified_experiment_identifier
+        ):
+            if resolve:
+                raise ExperimentVersionMismatchError(
+                    f"Algorithm version mismatch for experiment "
+                    f"{reference.experimentIdentifier!r} in catalog {self._identifier!r}. "
+                    f"Reference requires version "
+                    f"{reference.fully_qualified_experiment_identifier!r} but catalog "
+                    f"provides {experiment.fully_qualified_identifier!r}."
+                )
+            return None
+
+        if resolve and experiment.deprecated:
+            raise DeprecatedExperimentError(
+                f"{experiment.actuatorIdentifier}.{experiment.identifier} is deprecated."
+            )
+
+        if resolve and reference.parameterization:
+            return ParameterizedExperiment(
+                parameterization=reference.parameterization, **experiment.model_dump()
+            )
+        return experiment
 
     def experiments_matching_identifier(
         self, reference: ExperimentReference
@@ -178,86 +244,14 @@ class ExperimentCatalog(BaseCatalog):
 
         self._experiments[experiment.major_version_identifier] = experiment
 
-    def resolve_reference(
-        self,
-        reference: ExperimentReference,
-        match_on: Literal["major_version", "fully_qualified_version"] = "major_version",
-    ) -> Experiment | ParameterizedExperiment:
-        """Resolve a reference to an experiment, including parameterization if any
-
-        This is the preferred entry point for execution paths (actuator
-        ``submit`` methods, registry checks).
-
-        The method:
-
-        1. Looks up the experiment using :meth:`experimentForReference` (major version
-           comparison).
-        2. For ``mode='fully_qualified_sersion'`` additionally requires the exact version
-           to match — raises :class:`ExperimentVersionMismatchError` on mismatch.
-        3. Raises :class:`~orchestrator.modules.actuators.base.DeprecatedExperimentError`
-           if the resolved experiment is deprecated.
-        4. Wraps the result in a :class:`~orchestrator.schema.experiment.ParameterizedExperiment`
-           if the reference carries parameterization.
-
-        Args:
-            reference: The experiment reference to resolve.
-            match_on: ``"major_version"`` (default) — Match on MAJOR version
-                ``"fully_qualified_version"`` — additionally requires the exact version
-                (MAJOR.MINOR.PATCH) to match.
-
-        Returns:
-            The resolved :class:`~orchestrator.schema.experiment.Experiment` or
-            :class:`~orchestrator.schema.experiment.ParameterizedExperiment`.
-
-        Raises:
-            ExperimentVersionMismatchError: When ``mode='fully_qualified_version'`` and
-                the resolved experiment's version does not match the reference's
-                version.
-            :class:`~orchestrator.modules.actuators.registry.UnknownExperimentError`:
-                If no matching experiment is found.
-            :class:`~orchestrator.modules.actuators.base.DeprecatedExperimentError`:
-                If the resolved experiment is marked deprecated.
-        """
-        from orchestrator.modules.actuators.base import DeprecatedExperimentError
-        from orchestrator.modules.actuators.registry import UnknownExperimentError
-
-        experiment = self.experimentForReference(reference)
-        if experiment is None:
-            raise UnknownExperimentError(
-                f"No experiment matching {reference!s} found in catalog {self._identifier!r}."
-            )
-
-        if (
-            match_on == "fully_qualified_version"
-            and experiment.fully_qualified_identifier
-            != reference.fully_qualified_experiment_identifier
-        ):
-            raise ExperimentVersionMismatchError(
-                f"Algorithm version mismatch for experiment "
-                f"{reference.experimentIdentifier!r} in catalog {self._identifier!r}. "
-                f"Reference requires version "
-                f"{reference.fully_qualified_experiment_identifier!r} but catalog "
-                f"provides {experiment.fully_qualified_identifier!r}."
-            )
-
-        if experiment.deprecated:
-            raise DeprecatedExperimentError(
-                f"{experiment.actuatorIdentifier}.{experiment.identifier} is deprecated."
-            )
-
-        if reference.parameterization:
-            return ParameterizedExperiment(
-                parameterization=reference.parameterization, **experiment.model_dump()
-            )
-        return experiment
-
 
 class ExperimentVersionMismatchError(Exception):
-    """Raised when the  version of a resolved experiment does not match the reference.
+    """Raised when the version of a resolved experiment does not match the reference.
 
-    This error is only raised when :meth:`ExperimentCatalog.resolve_reference` is
-    called with ``mode='fully_qualified'`` and the exact version in the catalog
-    differs from the version recorded on the :class:`~orchestrator.schema.reference.ExperimentReference`.
+    This error is only raised when :meth:`ExperimentCatalog.experimentForReference` is
+    called with ``resolve=True``, ``match_on='fully_qualified_version'``, and the
+    exact version in the catalog differs from the version recorded on the
+    :class:`~orchestrator.schema.reference.ExperimentReference`.
     """
 
 

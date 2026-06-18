@@ -600,6 +600,47 @@ def graph_traversal_query(
         _MAX_HIERARCHY_HOPS if max_hops is None else min(max_hops, _MAX_HIERARCHY_HOPS)
     )
 
+    # Builds the recursive CTE for one direction. Going "up" follows edges
+    # backward (to→from); going "down" follows them forward (from→to).
+    def _traversal_cte(direction: Literal["up", "down"], n: int) -> str:
+        cte_name = f"{direction}_traversal"
+        next_kind = "from_kind" if direction == "up" else "to_kind"
+        next_id = "from_identifier" if direction == "up" else "to_identifier"
+        join_col = (
+            "to_identifier" if direction == "up" else "from_identifier"
+        )  # anchor: opposite end of next_id
+        return f""",
+        {cte_name} AS (
+            SELECT origin.identifier AS origin_identifier,
+                   origin.kind       AS current_kind,
+                   origin.identifier AS current_identifier,
+                   0                 AS depth
+            FROM   resources origin
+            WHERE  origin.kind = :start_kind
+              AND  origin.identifier IN :origins
+
+            UNION ALL
+
+            SELECT {cte_name}.origin_identifier AS origin_identifier,
+                   logical_edges.{next_kind}    AS current_kind,
+                   logical_edges.{next_id}      AS current_identifier,
+                   {cte_name}.depth + 1         AS depth
+            FROM   {cte_name}
+            JOIN   logical_edges
+              ON   logical_edges.{join_col} = {cte_name}.current_identifier
+            WHERE  {cte_name}.depth < {n}
+        )"""  # noqa: S608
+
+    # Produces the final SELECT from a single traversal CTE, excluding the seed row (depth > 0).
+    def _single_select(d: Literal["up", "down"]) -> str:
+        cte_name = f"{d}_traversal"
+        return f"""
+        SELECT {cte_name}.origin_identifier AS origin_identifier,
+               {cte_name}.current_identifier AS identifier,
+               {cte_name}.current_kind AS kind
+        FROM   {cte_name}
+        WHERE  {cte_name}.depth > 0"""  # noqa: S608
+
     # logical_edges is a non-recursive CTE; WITH RECURSIVE is required at the
     # clause level by SQLite because the subsequent traversal CTEs are recursive.
     logical_edges_sql = """
@@ -637,122 +678,26 @@ def graph_traversal_query(
     """
 
     if hierarchy_direction == "up":
-        traversal_sql = f""",
-        up_traversal AS (
-            SELECT origin.identifier AS origin_identifier,
-                   origin.kind       AS current_kind,
-                   origin.identifier AS current_identifier,
-                   0                 AS depth
-            FROM   resources origin
-            WHERE  origin.kind = :start_kind
-              AND  origin.identifier IN :origins
-
-            UNION ALL
-
-            SELECT up_traversal.origin_identifier AS origin_identifier,
-                   logical_edges.from_kind        AS current_kind,
-                   logical_edges.from_identifier  AS current_identifier,
-                   up_traversal.depth + 1         AS depth
-            FROM   up_traversal
-            JOIN   logical_edges
-              ON   logical_edges.to_identifier = up_traversal.current_identifier
-            WHERE  up_traversal.depth < {effective_max_hops}
-        )
-        SELECT up_traversal.origin_identifier AS origin_identifier,
-               up_traversal.current_identifier AS identifier,
-               up_traversal.current_kind AS kind
-        FROM   up_traversal
-        WHERE  up_traversal.depth > 0
-        """  # noqa: S608
+        traversal_sql = _traversal_cte("up", effective_max_hops) + _single_select("up")
     elif hierarchy_direction == "down":
-        traversal_sql = f""",
-        down_traversal AS (
-            SELECT origin.identifier AS origin_identifier,
-                   origin.kind       AS current_kind,
-                   origin.identifier AS current_identifier,
-                   0                 AS depth
-            FROM   resources origin
-            WHERE  origin.kind = :start_kind
-              AND  origin.identifier IN :origins
-
-            UNION ALL
-
-            SELECT down_traversal.origin_identifier AS origin_identifier,
-                   logical_edges.to_kind            AS current_kind,
-                   logical_edges.to_identifier      AS current_identifier,
-                   down_traversal.depth + 1         AS depth
-            FROM   down_traversal
-            JOIN   logical_edges
-              ON   logical_edges.from_identifier = down_traversal.current_identifier
-            WHERE  down_traversal.depth < {effective_max_hops}
+        traversal_sql = _traversal_cte("down", effective_max_hops) + _single_select(
+            "down"
         )
-        SELECT down_traversal.origin_identifier AS origin_identifier,
-               down_traversal.current_identifier AS identifier,
-               down_traversal.current_kind AS kind
-        FROM   down_traversal
-        WHERE  down_traversal.depth > 0
-        """  # noqa: S608
     else:
         # Both directions: up_traversal and down_traversal run independently,
         # each bounded by effective_max_hops, then UNIONed.
-        traversal_sql = f""",
-        up_traversal AS (
-            SELECT origin.identifier AS origin_identifier,
-                   origin.kind       AS current_kind,
-                   origin.identifier AS current_identifier,
-                   0                 AS depth
-            FROM   resources origin
-            WHERE  origin.kind = :start_kind
-              AND  origin.identifier IN :origins
-
-            UNION ALL
-
-            SELECT up_traversal.origin_identifier AS origin_identifier,
-                   logical_edges.from_kind        AS current_kind,
-                   logical_edges.from_identifier  AS current_identifier,
-                   up_traversal.depth + 1         AS depth
-            FROM   up_traversal
-            JOIN   logical_edges
-              ON   logical_edges.to_identifier = up_traversal.current_identifier
-            WHERE  up_traversal.depth < {effective_max_hops}
-        ),
-        down_traversal AS (
-            SELECT origin.identifier AS origin_identifier,
-                   origin.kind       AS current_kind,
-                   origin.identifier AS current_identifier,
-                   0                 AS depth
-            FROM   resources origin
-            WHERE  origin.kind = :start_kind
-              AND  origin.identifier IN :origins
-
-            UNION ALL
-
-            SELECT down_traversal.origin_identifier AS origin_identifier,
-                   logical_edges.to_kind            AS current_kind,
-                   logical_edges.to_identifier      AS current_identifier,
-                   down_traversal.depth + 1         AS depth
-            FROM   down_traversal
-            JOIN   logical_edges
-              ON   logical_edges.from_identifier = down_traversal.current_identifier
-            WHERE  down_traversal.depth < {effective_max_hops}
-        )
+        traversal_sql = f"""
+        {_traversal_cte("up", effective_max_hops).strip()},
+        {_traversal_cte("down", effective_max_hops).strip()}
         SELECT related.origin_identifier AS origin_identifier,
                related.identifier AS identifier,
                related.kind AS kind
         FROM   (
-            SELECT up_traversal.origin_identifier AS origin_identifier,
-                   up_traversal.current_identifier AS identifier,
-                   up_traversal.current_kind AS kind
-            FROM   up_traversal
-            WHERE  up_traversal.depth > 0
+            {_single_select("up").strip()}
 
             UNION ALL
 
-            SELECT down_traversal.origin_identifier AS origin_identifier,
-                   down_traversal.current_identifier AS identifier,
-                   down_traversal.current_kind AS kind
-            FROM   down_traversal
-            WHERE  down_traversal.depth > 0
+            {_single_select("down").strip()}
         ) related
         """  # noqa: S608
 

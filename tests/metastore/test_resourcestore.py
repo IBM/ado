@@ -1441,13 +1441,46 @@ def test_invalid_direction_raises_value_error(
 ) -> None:
     """Unsupported hierarchy_direction raises ValueError."""
     store: SQLStore = resource_hierarchy["store"]
+    op_id = resource_hierarchy["operation_id"]
     with pytest.raises(
         ValueError, match="hierarchy_direction must be 'up', 'down' or 'both'"
     ):
         store.get_resources_by_relationship(
             kind=CoreResourceKinds.OPERATION,
-            identifier="any",
+            identifier=op_id,
             hierarchy_direction="sideways",  # type: ignore[arg-type]
+        )
+
+
+def test_invalid_max_hops_zero_raises_value_error(
+    resource_hierarchy: dict,
+) -> None:
+    """max_hops=0 raises ValueError before any DB query."""
+    store: SQLStore = resource_hierarchy["store"]
+    op_id = resource_hierarchy["operation_id"]
+    with pytest.raises(ValueError, match="max_hops must be a positive integer"):
+        store.get_resources_by_relationship(
+            kind=CoreResourceKinds.OPERATION,
+            identifier=op_id,
+            hierarchy_direction="up",
+            max_hops=0,
+            identifiers_only=True,
+        )
+
+
+def test_invalid_max_hops_negative_raises_value_error(
+    resource_hierarchy: dict,
+) -> None:
+    """max_hops=-1 raises ValueError before any DB query."""
+    store: SQLStore = resource_hierarchy["store"]
+    op_id = resource_hierarchy["operation_id"]
+    with pytest.raises(ValueError, match="max_hops must be a positive integer"):
+        store.get_resources_by_relationship(
+            kind=CoreResourceKinds.OPERATION,
+            identifier=op_id,
+            hierarchy_direction="down",
+            max_hops=-1,
+            identifiers_only=True,
         )
 
 

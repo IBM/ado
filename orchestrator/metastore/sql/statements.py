@@ -587,8 +587,6 @@ def graph_traversal_query(
     Raises:
         ValueError: If ``hierarchy_direction`` is invalid.
     """
-    from orchestrator.core.resources import CoreResourceKinds  # noqa: F401 (type check)
-
     if hierarchy_direction not in ("up", "down", "both"):
         raise ValueError(
             "hierarchy_direction must be 'up', 'down' or 'both', "
@@ -615,9 +613,9 @@ def graph_traversal_query(
               ON   parent.identifier = rr.subject_identifier
             JOIN   resources child
               ON   child.identifier = rr.object_identifier
-            WHERE  (parent.kind = 'samplestore' AND child.kind = 'discoveryspace')
-                OR (parent.kind = 'discoveryspace' AND child.kind = 'operation')
-                OR (parent.kind = 'operation' AND child.kind = 'datacontainer')
+            WHERE  (parent.kind = :samplestore_kind AND child.kind = :discoveryspace_kind)
+                OR (parent.kind = :discoveryspace_kind AND child.kind = :operation_kind)
+                OR (parent.kind = :operation_kind AND child.kind = :datacontainer_kind)
 
             UNION ALL
 
@@ -631,10 +629,10 @@ def graph_traversal_query(
             FROM   resource_relationships rr
             JOIN   resources child
               ON   child.identifier = rr.subject_identifier
-             AND   child.kind = 'actuatorconfiguration'
+             AND   child.kind = :actuatorconfiguration_kind
             JOIN   resources parent
               ON   parent.identifier = rr.object_identifier
-             AND   parent.kind = 'operation'
+             AND   parent.kind = :operation_kind
         )
     """
 
@@ -649,7 +647,7 @@ def graph_traversal_query(
             WHERE  origin.kind = :start_kind
               AND  origin.identifier IN :origins
 
-            UNION
+            UNION ALL
 
             SELECT up_traversal.origin_identifier AS origin_identifier,
                    logical_edges.from_kind        AS current_kind,
@@ -677,7 +675,7 @@ def graph_traversal_query(
             WHERE  origin.kind = :start_kind
               AND  origin.identifier IN :origins
 
-            UNION
+            UNION ALL
 
             SELECT down_traversal.origin_identifier AS origin_identifier,
                    logical_edges.to_kind            AS current_kind,
@@ -707,7 +705,7 @@ def graph_traversal_query(
             WHERE  origin.kind = :start_kind
               AND  origin.identifier IN :origins
 
-            UNION
+            UNION ALL
 
             SELECT up_traversal.origin_identifier AS origin_identifier,
                    logical_edges.from_kind        AS current_kind,
@@ -727,7 +725,7 @@ def graph_traversal_query(
             WHERE  origin.kind = :start_kind
               AND  origin.identifier IN :origins
 
-            UNION
+            UNION ALL
 
             SELECT down_traversal.origin_identifier AS origin_identifier,
                    logical_edges.to_kind            AS current_kind,
@@ -748,7 +746,7 @@ def graph_traversal_query(
             FROM   up_traversal
             WHERE  up_traversal.depth > 0
 
-            UNION
+            UNION ALL
 
             SELECT down_traversal.origin_identifier AS origin_identifier,
                    down_traversal.current_identifier AS identifier,
@@ -758,10 +756,28 @@ def graph_traversal_query(
         ) related
         """  # noqa: S608
 
+    from orchestrator.core.resources import CoreResourceKinds
+
     binds = [
         sqlalchemy.bindparam(key="start_kind", value=kind.value),
         sqlalchemy.bindparam(
             key="origins", value=list(origin_identifiers), expanding=True
+        ),
+        sqlalchemy.bindparam(
+            key="samplestore_kind", value=CoreResourceKinds.SAMPLESTORE.value
+        ),
+        sqlalchemy.bindparam(
+            key="discoveryspace_kind", value=CoreResourceKinds.DISCOVERYSPACE.value
+        ),
+        sqlalchemy.bindparam(
+            key="operation_kind", value=CoreResourceKinds.OPERATION.value
+        ),
+        sqlalchemy.bindparam(
+            key="datacontainer_kind", value=CoreResourceKinds.DATACONTAINER.value
+        ),
+        sqlalchemy.bindparam(
+            key="actuatorconfiguration_kind",
+            value=CoreResourceKinds.ACTUATORCONFIGURATION.value,
         ),
     ]
 

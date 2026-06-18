@@ -1664,8 +1664,11 @@ class SQLResourceStore(ResourceStore):
                 ``identifier=None``.
         """
         # ------------------------------------------------------------------
-        # 0. Validate incompatible flag combination
+        # 0. Validate parameters eagerly
         # ------------------------------------------------------------------
+        if max_hops is not None and max_hops < 1:
+            raise ValueError(f"max_hops must be a positive integer, got {max_hops!r}")
+
         if include_start_resources and identifiers_only:
             raise ValueError(
                 "include_start_resources=True requires identifiers_only=False"
@@ -1779,9 +1782,7 @@ class SQLResourceStore(ResourceStore):
         # so they can be merged into each origin's result under their own kind.
         all_identifiers_to_fetch = list(identifiers_to_fetch)
         if include_start_resources:
-            # Start identifiers are always excluded from seen_identifiers (filtered
-            # out in the loop above), so extend unconditionally.
-            all_identifiers_to_fetch.extend(_identifiers_requested - seen_identifiers)
+            all_identifiers_to_fetch.extend(_identifiers_requested)
 
         resources_by_identifier = self.getResources(
             identifiers=all_identifiers_to_fetch

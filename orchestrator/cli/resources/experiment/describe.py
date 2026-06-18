@@ -74,7 +74,7 @@ def describe_experiment(parameters: AdoDescribeCommandParameters) -> None:
         raise typer.Exit(1) from error
 
     if reference.experimentVersion is not None:
-        experiment = registry.resolve_reference(
+        experiment = registry.experimentForReference(
             reference, match_on="fully_qualified_version"
         )
     else:

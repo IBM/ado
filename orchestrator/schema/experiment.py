@@ -128,18 +128,18 @@ class Experiment(pydantic.BaseModel):
     ] = None
 
     @property
-    def semantic_identifier(self) -> str:
-        """Return the semantic identifier encoding major version.
+    def major_version_identifier(self) -> str:
+        """Return the major version identifier.
 
         For versioned experiments this is ``'{identifier}@v{major}'``,
         e.g. ``'solve_mip@v1'``.  For unversioned experiments (legacy) this
         is identical to :attr:`identifier`.
 
-        Two experiments with the same semantic identifier perform the same
+        Two experiments with the same major version identifier perform the same
         science — their results are interchangeable.
 
         Returns:
-            The semantic identifier string.
+            The major version identifier string.
         """
         if self.version is not None:
             return f"{self.identifier}@v{semver_major(self.version)}"
@@ -161,25 +161,25 @@ class Experiment(pydantic.BaseModel):
         return self.identifier
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """Two experiments are equal when they share the same semantic identifier.
+        """Two experiments are equal when they share the same major version identifier.
 
         Experiments with the same base name and same major version are
         considered to perform the same science regardless of minor/patch
         version differences.
 
         Returns:
-            True if both experiments have the same actuator and semantic
+            True if both experiments have the same actuator and major version
             identifier.
         """
         if not isinstance(other, Experiment):
             return False
         return (
             self.actuatorIdentifier == other.actuatorIdentifier
-            and self.semantic_identifier == other.semantic_identifier
+            and self.major_version_identifier == other.major_version_identifier
         )
 
     def __hash__(self) -> int:
-        return hash((self.actuatorIdentifier, self.semantic_identifier))
+        return hash((self.actuatorIdentifier, self.major_version_identifier))
 
     @classmethod
     def experimentWithAbstractPropertyIdentifiers(
@@ -478,7 +478,7 @@ class Experiment(pydantic.BaseModel):
         """Return an ExperimentReference for the receiver.
 
         The reference carries the experiment's algorithm version so that
-        memoisation and comparison use the semantic identifier automatically.
+        memoisation and comparison use the major version identifier automatically.
 
         Returns:
             An ExperimentReference for this experiment.
@@ -904,15 +904,15 @@ class ParameterizedExperiment(Experiment):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     @property
-    def parameterizedIdentifier(self) -> str:
-        """Return the semantic parameterized identifier.
+    def major_version_parameterized_identifier(self) -> str:
+        """Return the major version parameterized identifier.
 
-        Uses the base experiment's :attr:`~Experiment.semantic_identifier`
+        Uses the base experiment's :attr:`~Experiment.major_version_identifier`
         as the prefix so that the memoisation key encodes the major algorithm
         version.  For example: ``'solve_mip@v1-time_limit_s.3600'``.
 
         Returns:
-            Semantic parameterized identifier string.
+            major version parameterized identifier string.
 
         Raises:
             ValueError: If parameterization is empty.
@@ -923,11 +923,11 @@ class ParameterizedExperiment(Experiment):
             )
 
         return identifier_for_parameterized_experiment(
-            self.semantic_identifier, self.parameterization
+            self.major_version_identifier, self.parameterization
         )
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """ParameterizedExperiments are equal when they share the same parameterizedIdentifier.
+        """ParameterizedExperiments are equal when they share the same major_version_parameterized_identifier.
 
         A ParameterizedExperiment can only be equal to another
         ParameterizedExperiment; it is never equal to its parent Experiment.
@@ -938,7 +938,8 @@ class ParameterizedExperiment(Experiment):
         retval = False
         if isinstance(other, ParameterizedExperiment):
             retval = (self.actuatorIdentifier == other.actuatorIdentifier) and (
-                self.parameterizedIdentifier == other.parameterizedIdentifier
+                self.major_version_parameterized_identifier
+                == other.major_version_parameterized_identifier
             )
 
         return retval
@@ -947,7 +948,7 @@ class ParameterizedExperiment(Experiment):
 
         return reference_string_from_fields(
             actuator_identifier=self.actuatorIdentifier,
-            experiment_identifier=self.parameterizedIdentifier,
+            experiment_identifier=self.major_version_parameterized_identifier,
         )
 
     def __hash__(self) -> int:
@@ -964,7 +965,9 @@ class ParameterizedExperiment(Experiment):
 
         content = []
         content.append(
-            Text(f"Parameterized Identifier: {self.parameterizedIdentifier}")
+            Text(
+                f"Parameterized Identifier: {self.major_version_parameterized_identifier}"
+            )
         )
         content.append(Text())
 

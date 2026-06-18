@@ -466,7 +466,9 @@ class ActuatorRegistry:
         self,
         reference: ExperimentReference,
         additional_catalogs: list[ExperimentCatalog] | None = None,
-        match_on: typing.Literal["semantic", "fully_qualified"] = "semantic",
+        match_on: typing.Literal[
+            "major_version", "fully_qualified_version"
+        ] = "major_version",
     ) -> "Experiment | ParameterizedExperiment":
         """Resolve an experiment reference when building a measurement space.
 
@@ -476,9 +478,9 @@ class ActuatorRegistry:
             reference: ExperimentReference instance
             additional_catalogs: Optional external catalogs to search after the
                 actuator's primary catalog.
-            match_on: If "fully_qualified" reference is compared to registry contents
-            using full_qualified identifiers. If "semantic" (default) its compared
-            using semantic identifiers
+            match_on: If "fully_qualified_version" reference is compared to registry contents
+            using full_qualified identifiers. If "major_version" (default) its compared
+            using major_version identifiers
 
         Returns:
             The resolved :class:`~orchestrator.schema.experiment.Experiment` or
@@ -615,7 +617,7 @@ class ActuatorRegistry:
         """Check that all actuators and experiments in *measurement_space* are available.
 
         Uses :meth:`~orchestrator.modules.actuators.catalog.ExperimentCatalog.resolve_reference`
-        so that semantic version mismatches  are detected and reported.
+        so that major version mismatches  are detected and reported.
 
         Returns:
             A list with one entry per experiment that is not supported.

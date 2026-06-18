@@ -780,7 +780,7 @@ class CustomExperiments(ActuatorBase):
             if self._catalog.experiments:
                 raise ValueError(
                     f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog. "
-                    f"Known experiments are {self._catalog.experiment_semantic_identifiers}"
+                    f"Known experiments are {self._catalog.experiment_major_version_identifiers}"
                 ) from error
             raise ValueError(
                 f"Requested experiments {experimentReference} is not in the CustomExperiments actuator catalog (which is empty). "

@@ -50,7 +50,7 @@ class BaseCatalog(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def experiment_semantic_identifiers(self) -> list[str]:
+    def experiment_major_version_identifiers(self) -> list[str]:
         pass
 
     @abc.abstractmethod
@@ -102,23 +102,23 @@ class ExperimentCatalog(BaseCatalog):
         return self._identifier
 
     @property
-    def experiment_semantic_identifiers(self) -> list[str]:
-        """Return the semantic identifiers of the experiments in the catalog
+    def experiment_major_version_identifiers(self) -> list[str]:
+        """Return the major version identifiers of the experiments in the catalog
 
         Returns:
-            A list of semantic identifiers.
+            A list of major version identifiers.
         """
-        return [e.semantic_identifier for e in self.experiments]
+        return [e.major_version_identifier for e in self.experiments]
 
     def experimentForReference(
         self, reference: ExperimentReference
     ) -> Experiment | None:
         """Return the experiment matching reference or None if there is no match.
 
-        Matching compares on actuator and semantic experiment identifier.
+        Matching compares on actuator and major version experiment identifier.
         Parameterization on the reference is ignored for catalog lookup purposes.
 
-        The catalog stores at most one experiment per semantic identifier, so
+        The catalog stores at most one experiment per major version identifier, so
         this method returns either a single match or ``None``.
 
         Args:
@@ -130,8 +130,8 @@ class ExperimentCatalog(BaseCatalog):
         for experiment in self.experiments:
             if (
                 experiment.reference.actuatorIdentifier == reference.actuatorIdentifier
-                and experiment.reference.semantic_experiment_identifier
-                == reference.semantic_experiment_identifier
+                and experiment.reference.major_version_experiment_identifier
+                == reference.major_version_experiment_identifier
             ):
                 return experiment
         return None
@@ -162,26 +162,26 @@ class ExperimentCatalog(BaseCatalog):
             experiment: The experiment to add.
 
         Raises:
-            ValueError: If an experiment with the same semantic identifier is
+            ValueError: If an experiment with the same major version identifier is
                 already present
         """
 
-        existing = self._experiments.get(experiment.semantic_identifier)
+        existing = self._experiments.get(experiment.major_version_identifier)
         if existing is not None:
             if existing.model_dump() == experiment.model_dump():
                 # Identical experiment already registered — idempotent re-add is fine
                 return
             raise ValueError(
-                f"An experiment with semantic identifier {experiment.semantic_identifier!r} "
+                f"An experiment with major version identifier {experiment.major_version_identifier!r} "
                 f"is already registered in catalog {self._identifier!r}. "
             )
 
-        self._experiments[experiment.semantic_identifier] = experiment
+        self._experiments[experiment.major_version_identifier] = experiment
 
     def resolve_reference(
         self,
         reference: ExperimentReference,
-        match_on: Literal["semantic", "fully_qualified"] = "semantic",
+        match_on: Literal["major_version", "fully_qualified_version"] = "major_version",
     ) -> Experiment | ParameterizedExperiment:
         """Resolve a reference to an experiment, including parameterization if any
 
@@ -190,10 +190,10 @@ class ExperimentCatalog(BaseCatalog):
 
         The method:
 
-        1. Looks up the experiment using :meth:`experimentForReference` (semantic
+        1. Looks up the experiment using :meth:`experimentForReference` (major version
            comparison).
-        2. For ``mode='fully_qualified'`` additionally requires the exact version
-           to match — raises :class:`AlgorithmVersionMismatchError` on mismatch.
+        2. For ``mode='fully_qualified_sersion'`` additionally requires the exact version
+           to match — raises :class:`ExperimentVersionMismatchError` on mismatch.
         3. Raises :class:`~orchestrator.modules.actuators.base.DeprecatedExperimentError`
            if the resolved experiment is deprecated.
         4. Wraps the result in a :class:`~orchestrator.schema.experiment.ParameterizedExperiment`
@@ -201,8 +201,8 @@ class ExperimentCatalog(BaseCatalog):
 
         Args:
             reference: The experiment reference to resolve.
-            match_on: ``"semantic"`` (default) — Match on MAJOR version
-                ``"fully_qualified"`` — additionally requires the exact version
+            match_on: ``"major_version"`` (default) — Match on MAJOR version
+                ``"fully_qualified_version"`` — additionally requires the exact version
                 (MAJOR.MINOR.PATCH) to match.
 
         Returns:
@@ -210,7 +210,7 @@ class ExperimentCatalog(BaseCatalog):
             :class:`~orchestrator.schema.experiment.ParameterizedExperiment`.
 
         Raises:
-            AlgorithmVersionMismatchError: When ``mode='fully_qualified'`` and
+            ExperimentVersionMismatchError: When ``mode='fully_qualified_version'`` and
                 the resolved experiment's version does not match the reference's
                 version.
             :class:`~orchestrator.modules.actuators.registry.UnknownExperimentError`:
@@ -228,7 +228,7 @@ class ExperimentCatalog(BaseCatalog):
             )
 
         if (
-            match_on == "fully_qualified"
+            match_on == "fully_qualified_version"
             and experiment.fully_qualified_identifier
             != reference.fully_qualified_experiment_identifier
         ):

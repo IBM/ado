@@ -66,7 +66,7 @@ class ObservedProperty(pydantic.BaseModel):
 
     @property
     def identifier(self) -> str:
-        return f"{self.experimentReference.parameterizedExperimentIdentifier}-{self.targetProperty.identifier}"
+        return f"{self.experimentReference.major_version_parameterized_experiment_identifier}-{self.targetProperty.identifier}"
 
     def __str__(self) -> str:
         return self.identifier

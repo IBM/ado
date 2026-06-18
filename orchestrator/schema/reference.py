@@ -167,15 +167,15 @@ class ExperimentReference(pydantic.BaseModel):
         return value
 
     @property
-    def semantic_experiment_identifier(self) -> str:
-        """Return the semantic experiment identifier encoding the major version.
+    def major_version_experiment_identifier(self) -> str:
+        """Return the major version experiment identifier.
 
         For versioned references this is ``'{base_name}@v{MAJOR}'``, e.g.
         ``'solve_mip@v1'``.  For unversioned references this is identical to
         :attr:`experimentIdentifier`.
 
         Returns:
-            Semantic experiment identifier string.
+            major version experiment identifier string.
         """
         if self.experimentVersion is not None:
             return (
@@ -260,14 +260,14 @@ class ExperimentReference(pydantic.BaseModel):
         )
 
     def __eq__(self, other: object) -> bool:  # noqa: ANN401
-        """Two references are equal when they have the same parameterizedExperimentIdentifier.
+        """Two references are equal when they have the same major_version_parameterized_experiment_identifier.
 
-        Equality is based on the semantic parameterized identifier, so references
+        Equality is based on the major version parameterized identifier, so references
         with the same base name, same major version, and same parameterization are
         equal regardless of minor/patch version differences.
 
         Note: when the references have no parameterization this is equivalent to
-        comparing the semantic experiment identifier.
+        comparing the major version experiment identifier.
 
         Returns:
             True if both references are for the same actuator and have the same
@@ -276,14 +276,19 @@ class ExperimentReference(pydantic.BaseModel):
         retval = False
         if isinstance(other, ExperimentReference):
             retval = (self.actuatorIdentifier == other.actuatorIdentifier) and (
-                self.parameterizedExperimentIdentifier
-                == other.parameterizedExperimentIdentifier
+                self.major_version_parameterized_experiment_identifier
+                == other.major_version_parameterized_experiment_identifier
             )
 
         return retval
 
     def __hash__(self) -> int:
-        return hash((self.actuatorIdentifier, self.parameterizedExperimentIdentifier))
+        return hash(
+            (
+                self.actuatorIdentifier,
+                self.major_version_parameterized_experiment_identifier,
+            )
+        )
 
     def validate_parameterization(self) -> None:
         """Validate the parameterization of this reference against the actuator catalog.
@@ -327,10 +332,10 @@ class ExperimentReference(pydantic.BaseModel):
             )
 
     @property
-    def parameterizedExperimentIdentifier(self) -> str:
-        """Return the semantic parameterized experiment identifier.
+    def major_version_parameterized_experiment_identifier(self) -> str:
+        """Return the major version parameterized experiment identifier.
 
-        Uses :attr:`semantic_experiment_identifier` as the prefix so that the
+        Uses :attr:`major_version_experiment_identifier` as the prefix so that the
         memoisation key encodes the major algorithm version.
 
         * No version, no params: ``'solve_mip'`` (backward-compatible)
@@ -339,14 +344,14 @@ class ExperimentReference(pydantic.BaseModel):
         * Version ``1.0.0``, with params: ``'solve_mip@v1-time_limit_s.3600'``
 
         Returns:
-            Semantic parameterized identifier string.
+            major version parameterized identifier string.
         """
         return (
             identifier_for_parameterized_experiment(
-                self.semantic_experiment_identifier, self.parameterization
+                self.major_version_experiment_identifier, self.parameterization
             )
             if self.parameterization
-            else self.semantic_experiment_identifier
+            else self.major_version_experiment_identifier
         )
 
     @property

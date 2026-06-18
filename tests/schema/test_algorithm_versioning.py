@@ -104,15 +104,15 @@ def _catalog_with_versioned_experiment(
 
 
 def test_experiment_semantic_identifier_with_version() -> None:
-    """semantic_identifier includes @vMAJOR when version is set."""
+    """major_version_identifier includes @vMAJOR when version is set."""
     exp = _make_experiment("solve_mip", version="1.2.3")
-    assert exp.semantic_identifier == "solve_mip@v1"
+    assert exp.major_version_identifier == "solve_mip@v1"
 
 
 def test_experiment_semantic_identifier_without_version() -> None:
-    """semantic_identifier falls back to base identifier when version is None."""
+    """major_version_identifier falls back to base identifier when version is None."""
     exp = _make_experiment("solve_mip")
-    assert exp.semantic_identifier == "solve_mip"
+    assert exp.major_version_identifier == "solve_mip"
 
 
 def test_experiment_fully_qualified_identifier_with_version() -> None:
@@ -175,7 +175,7 @@ def test_experiment_reference_carries_version() -> None:
     assert ref.experimentVersion == "1.2.3"
 
 
-# ─── ParameterizedExperiment.parameterizedIdentifier ──────────────────────────
+# ─── ParameterizedExperiment.major_version_parameterized_identifier ──────────────────────────
 
 
 def _make_parameterizable_experiment(
@@ -202,7 +202,7 @@ def _make_parameterizable_experiment(
 
 
 def test_parameterized_identifier_uses_semantic_prefix() -> None:
-    """ParameterizedExperiment.parameterizedIdentifier encodes major version."""
+    """ParameterizedExperiment.major_version_parameterized_identifier encodes major version."""
     base = _make_parameterizable_experiment("solve_mip", version="1.0.0")
     parameterization = [
         ConstitutivePropertyValue(
@@ -210,11 +210,11 @@ def test_parameterized_identifier_uses_semantic_prefix() -> None:
         )
     ]
     pe = ParameterizedExperiment(parameterization=parameterization, **base.model_dump())
-    assert pe.parameterizedIdentifier == "solve_mip@v1-timeout.120"
+    assert pe.major_version_parameterized_identifier == "solve_mip@v1-timeout.120"
 
 
 def test_parameterized_identifier_unversioned_no_at_sign() -> None:
-    """ParameterizedExperiment.parameterizedIdentifier has no @version when unversioned."""
+    """ParameterizedExperiment.major_version_parameterized_identifier has no @version when unversioned."""
     base = _make_parameterizable_experiment("solve_mip")
     parameterization = [
         ConstitutivePropertyValue(
@@ -222,29 +222,29 @@ def test_parameterized_identifier_unversioned_no_at_sign() -> None:
         )
     ]
     pe = ParameterizedExperiment(parameterization=parameterization, **base.model_dump())
-    assert pe.parameterizedIdentifier == "solve_mip-timeout.120"
+    assert pe.major_version_parameterized_identifier == "solve_mip-timeout.120"
 
 
 # ─── ExperimentReference identifiers ─────────────────────────────────────────
 
 
 def test_reference_semantic_identifier_with_version() -> None:
-    """semantic_experiment_identifier includes @vMAJOR when experimentVersion is set."""
+    """major_version_experiment_identifier includes @vMAJOR when experimentVersion is set."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="test_actuator",
         experimentVersion="1.2.3",
     )
-    assert ref.semantic_experiment_identifier == "solve_mip@v1"
+    assert ref.major_version_experiment_identifier == "solve_mip@v1"
 
 
 def test_reference_semantic_identifier_without_version() -> None:
-    """semantic_experiment_identifier falls back to experimentIdentifier when unversioned."""
+    """major_version_experiment_identifier falls back to experimentIdentifier when unversioned."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="test_actuator",
     )
-    assert ref.semantic_experiment_identifier == "solve_mip"
+    assert ref.major_version_experiment_identifier == "solve_mip"
 
 
 def test_reference_fully_qualified_identifier_with_version() -> None:
@@ -258,7 +258,7 @@ def test_reference_fully_qualified_identifier_with_version() -> None:
 
 
 def test_reference_parameterized_experiment_identifier_semantic() -> None:
-    """parameterizedExperimentIdentifier uses semantic form when version is set."""
+    """major_version_parameterized_experiment_identifier uses semantic form when version is set."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="test_actuator",
@@ -269,11 +269,14 @@ def test_reference_parameterized_experiment_identifier_semantic() -> None:
             )
         ],
     )
-    assert ref.parameterizedExperimentIdentifier == "solve_mip@v1-timeout.120"
+    assert (
+        ref.major_version_parameterized_experiment_identifier
+        == "solve_mip@v1-timeout.120"
+    )
 
 
 def test_reference_parameterized_experiment_identifier_no_version() -> None:
-    """parameterizedExperimentIdentifier uses base form when unversioned (backward compat)."""
+    """major_version_parameterized_experiment_identifier uses base form when unversioned (backward compat)."""
     ref = ExperimentReference(
         experimentIdentifier="solve_mip",
         actuatorIdentifier="test_actuator",
@@ -283,7 +286,9 @@ def test_reference_parameterized_experiment_identifier_no_version() -> None:
             )
         ],
     )
-    assert ref.parameterizedExperimentIdentifier == "solve_mip-timeout.120"
+    assert (
+        ref.major_version_parameterized_experiment_identifier == "solve_mip-timeout.120"
+    )
 
 
 def test_reference_eq_same_major_different_minor() -> None:
@@ -387,13 +392,13 @@ def test_catalog_lookup_both_unversioned() -> None:
 
 
 def test_catalog_keys_on_semantic_identifier() -> None:
-    """Catalog keys on semantic_identifier — v1.0.0 and v1.2.0 map to the same key."""
+    """Catalog keys on major_version_identifier — v1.0.0 and v1.2.0 map to the same key."""
     exp = _make_experiment("solve_mip", version="1.2.0")
     catalog = ExperimentCatalog(catalogIdentifier="test")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
         catalog.addExperiment(exp)
-    assert "solve_mip@v1" in catalog.experiment_semantic_identifiers
+    assert "solve_mip@v1" in catalog.experiment_major_version_identifiers
 
 
 def test_catalog_add_same_experiment_idempotent() -> None:
@@ -435,8 +440,8 @@ def test_catalog_different_major_versions_coexist() -> None:
         warnings.simplefilter("ignore", DeprecationWarning)
         catalog.addExperiment(exp_v1)
         catalog.addExperiment(exp_v2)
-    assert "solve_mip@v1" in catalog.experiment_semantic_identifiers
-    assert "solve_mip@v2" in catalog.experiment_semantic_identifiers
+    assert "solve_mip@v1" in catalog.experiment_major_version_identifiers
+    assert "solve_mip@v2" in catalog.experiment_major_version_identifiers
 
 
 # ─── resolve_reference ────────────────────────────────────────────────────────
@@ -521,7 +526,7 @@ def test_resolve_reference_with_parameterization_returns_parameterized() -> None
     )
     result = catalog.resolve_reference(ref)
     assert isinstance(result, ParameterizedExperiment)
-    assert result.parameterizedIdentifier == "solve_mip@v1-timeout.120"
+    assert result.major_version_parameterized_identifier == "solve_mip@v1-timeout.120"
 
 
 # ─── Memoisation cache miss / hit ─────────────────────────────────────────────
@@ -540,8 +545,8 @@ def test_memoisation_minor_bump_is_cache_hit() -> None:
         experimentVersion="1.2.0",
     )
     assert (
-        ref_v100.parameterizedExperimentIdentifier
-        == ref_v120.parameterizedExperimentIdentifier
+        ref_v100.major_version_parameterized_experiment_identifier
+        == ref_v120.major_version_parameterized_experiment_identifier
     )
 
 
@@ -558,8 +563,8 @@ def test_memoisation_major_bump_is_cache_miss() -> None:
         experimentVersion="2.0.0",
     )
     assert (
-        ref_v1.parameterizedExperimentIdentifier
-        != ref_v2.parameterizedExperimentIdentifier
+        ref_v1.major_version_parameterized_experiment_identifier
+        != ref_v2.major_version_parameterized_experiment_identifier
     )
 
 

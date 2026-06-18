@@ -499,7 +499,10 @@ def test_create_parameterized_experiment(
     assert p != experimentWithOptions
     assert p == p
     assert p == param_copy
-    assert p.parameterizedIdentifier == param_copy.parameterizedIdentifier
+    assert (
+        p.major_version_parameterized_identifier
+        == param_copy.major_version_parameterized_identifier
+    )
     assert p.identifier == param_copy.identifier
 
     # To test the reference we have to add the experiment to the registry
@@ -508,8 +511,8 @@ def test_create_parameterized_experiment(
     ).addExperiment(experimentWithOptions)
 
     assert (
-        p.reference.parameterizedExperimentIdentifier
-        == param_copy.reference.parameterizedExperimentIdentifier
+        p.reference.major_version_parameterized_experiment_identifier
+        == param_copy.reference.major_version_parameterized_experiment_identifier
     )
 
     # Check the parameterized experiments id is as expected.
@@ -517,7 +520,10 @@ def test_create_parameterized_experiment(
     pstr = "-".join(
         [f"{v.property.identifier}.{v.value}" for v in customParameterization]
     )
-    assert p.parameterizedIdentifier == f"{experimentWithOptions.identifier}-{pstr}"
+    assert (
+        p.major_version_parameterized_identifier
+        == f"{experimentWithOptions.identifier}-{pstr}"
+    )
 
     # Test parameterization with duplicate property fails
     with pytest.raises(

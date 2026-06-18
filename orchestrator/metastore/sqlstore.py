@@ -1579,7 +1579,7 @@ class SQLResourceStore(ResourceStore):
         self,
         kind: CoreResourceKinds,
         identifier: str | set[str] | None,
-        hierarchy_direction: Literal["up", "down"],
+        hierarchy_direction: Literal["up", "down", "both"],
         stop_at_resource_kind: CoreResourceKinds | None = None,
         identifiers_only: bool = False,
     ) -> (
@@ -1598,41 +1598,12 @@ class SQLResourceStore(ResourceStore):
 
         The method issues at most **three** SQL queries: when ``identifier=None``
         a seed query fetches all identifiers of ``kind`` via
-        :meth:`getResourceIdentifiersOfKind`; then one traversal query
-        (assembled from pre-defined path branches via
-        :func:`orchestrator.metastore.sql.statements.graph_traversal_query`);
+        :meth:`getResourceIdentifiersOfKind`; then one recursive traversal query
+        via :func:`orchestrator.metastore.sql.statements.graph_traversal_query`;
         and, when ``identifiers_only=False``, one additional batched resource
-        query via :meth:`getResources`.  When ``identifier`` is a ``str`` or
+        query via :meth:`getResources`. When ``identifier`` is a ``str`` or
         ``set[str]`` only the latter two queries (or one, if
         ``identifiers_only=True``) are issued.
-
-        Resource relationships
-        ----------------------
-        ::
-
-            samplestore
-              └── discoveryspace
-                    └── operation
-                          └── datacontainer
-
-            actuatorconfiguration ──► operation
-                                   (subject)  (object)
-
-        actuatorconfiguration resources exist independently and are associated
-        with an operation at creation time.  The association is recorded as
-        ``subject_identifier=actconf``, ``object_identifier=operation`` — the
-        opposite direction from the samplestore/discoveryspace/operation/datacontainer
-        chain, where parent resources are ``subject_identifier`` and children
-        are ``object_identifier``
-        (see :meth:`addResourceWithRelationships`).
-
-        Allowed traversal families
-        --------------------------
-        * ``up`` from ``operation``
-        * ``up`` from ``discoveryspace``
-        * ``down`` from ``samplestore``
-        * ``down`` from ``discoveryspace``
-        * ``down`` from ``operation``
 
         Parameters
         ----------
@@ -1644,15 +1615,17 @@ class SQLResourceStore(ResourceStore):
               is unwrapped (no outer origin key).
             * ``set[str]`` — multiple explicit start resource identifiers.
             * ``None`` — all resources of ``kind`` are used as start resources
-              (seeded via :meth:`getResourceIdentifiersOfKind`).
+              (seeded via :meth:`getResourceIdentifiersOfKind`). Not supported
+              when ``hierarchy_direction='both'``.
             * An **empty set** returns an empty result immediately.
         hierarchy_direction:
-            ``'up'`` (child → parent) or ``'down'`` (parent → child).
+            ``'up'`` (child → parent), ``'down'`` (parent → child), or
+            ``'both'``.
         stop_at_resource_kind:
-            When provided, only traversal branches that reach resources of
-            kinds *up to and including* ``stop_at_resource_kind`` are included.
-            Must be a valid kind reachable from ``kind`` in the requested
-            ``hierarchy_direction``.  Raises ``ValueError`` for invalid combinations.
+            When provided, recursion stops once this kind is reached. Must be a
+            valid kind reachable from ``kind`` in the requested
+            ``hierarchy_direction``. Not supported when
+            ``hierarchy_direction='both'``.
         identifiers_only:
             When ``False`` (default) discovered identifiers are hydrated into
             full :class:`~orchestrator.core.resources.ADOResource` objects via
@@ -1675,13 +1648,14 @@ class SQLResourceStore(ResourceStore):
         Raises
         ------
         ValueError
-            If ``hierarchy_direction`` is not ``'up'`` or ``'down'``.
+            If ``hierarchy_direction`` is not ``'up'``, ``'down'`` or ``'both'``.
         ValueError
-            If the ``(kind, hierarchy_direction)`` combination is not a supported
-            traversal family.
+            If ``identifier=None`` is used with ``hierarchy_direction='both'``.
         ValueError
             If ``stop_at_resource_kind`` is not reachable from ``kind`` in the
             requested ``hierarchy_direction``.
+        ValueError
+            If ``stop_at_resource_kind`` is used with ``hierarchy_direction='both'``.
         """
         # ------------------------------------------------------------------
         # 1. Resolve the requested identifiers and record whether a single
@@ -1694,6 +1668,10 @@ class SQLResourceStore(ResourceStore):
             _single_identifier_requested = True
             _identifiers_requested = {identifier}
         elif identifier is None:
+            if hierarchy_direction == "both":
+                raise ValueError(
+                    "identifier=None is not supported for hierarchy_direction='both'"
+                )
             _single_identifier_requested = False
             df = self.getResourceIdentifiersOfKind(kind=kind.value)
             _identifiers_requested = set(df["IDENTIFIER"].tolist())

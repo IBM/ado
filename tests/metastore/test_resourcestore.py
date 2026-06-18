@@ -756,10 +756,10 @@ def resource_hierarchy(
 
 
 @requires_sqlite_3_38
-def test_up_from_operation_capped_at_discoveryspace(
+def test_up_from_operation_max_hops_1(
     resource_hierarchy: dict,
 ) -> None:
-    """up from operation capped at discoveryspace returns only discoveryspace ids."""
+    """up from operation with max_hops=1 returns only discoveryspace ids."""
     store: SQLStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
@@ -768,7 +768,7 @@ def test_up_from_operation_capped_at_discoveryspace(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
         hierarchy_direction="up",
-        stop_at_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
+        max_hops=1,
         identifiers_only=True,
     )
 
@@ -801,10 +801,10 @@ def test_up_from_operation_uncapped_returns_discoveryspace_and_samplestore(
 
 
 @requires_sqlite_3_38
-def test_up_from_operation_capped_at_samplestore_returns_both_kinds(
+def test_up_from_operation_max_hops_2(
     resource_hierarchy: dict,
 ) -> None:
-    """up from operation capped at samplestore returns both discoveryspace and samplestore."""
+    """up from operation with max_hops=2 returns both discoveryspace and samplestore."""
     store: SQLStore = resource_hierarchy["store"]
     op_id = resource_hierarchy["operation_id"]
 
@@ -812,7 +812,7 @@ def test_up_from_operation_capped_at_samplestore_returns_both_kinds(
         kind=CoreResourceKinds.OPERATION,
         identifier=op_id,
         hierarchy_direction="up",
-        stop_at_resource_kind=CoreResourceKinds.SAMPLESTORE,
+        max_hops=2,
         identifiers_only=True,
     )
 
@@ -851,10 +851,10 @@ def test_up_from_discoveryspace_returns_samplestore_only(
 
 
 @requires_sqlite_3_38
-def test_down_from_samplestore_capped_at_discoveryspace(
+def test_down_from_samplestore_max_hops_1(
     resource_hierarchy: dict,
 ) -> None:
-    """down from samplestore capped at discoveryspace returns only discoveryspace ids."""
+    """down from samplestore with max_hops=1 returns only discoveryspace ids."""
     store: SQLStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]
     ds_id = resource_hierarchy["discoveryspace_id"]
@@ -863,7 +863,7 @@ def test_down_from_samplestore_capped_at_discoveryspace(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
         hierarchy_direction="down",
-        stop_at_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
+        max_hops=1,
         identifiers_only=True,
     )
 
@@ -875,10 +875,10 @@ def test_down_from_samplestore_capped_at_discoveryspace(
 
 
 @requires_sqlite_3_38
-def test_down_from_samplestore_capped_at_operation(
+def test_down_from_samplestore_max_hops_2(
     resource_hierarchy: dict,
 ) -> None:
-    """down from samplestore capped at operation returns discoveryspace and operation ids."""
+    """down from samplestore with max_hops=2 returns discoveryspace and operation ids."""
     store: SQLStore = resource_hierarchy["store"]
     ss_id = resource_hierarchy["samplestore_id"]
     op_id = resource_hierarchy["operation_id"]
@@ -887,7 +887,7 @@ def test_down_from_samplestore_capped_at_operation(
         kind=CoreResourceKinds.SAMPLESTORE,
         identifier=ss_id,
         hierarchy_direction="down",
-        stop_at_resource_kind=CoreResourceKinds.OPERATION,
+        max_hops=2,
         identifiers_only=True,
     )
 
@@ -929,10 +929,10 @@ def test_down_from_samplestore_uncapped_returns_full_hierarchy(
 
 
 @requires_sqlite_3_38
-def test_down_from_discoveryspace_capped_at_operation(
+def test_down_from_discoveryspace_max_hops_1(
     resource_hierarchy: dict,
 ) -> None:
-    """down from discoveryspace capped at operation returns only operation ids."""
+    """down from discoveryspace with max_hops=1 returns only operation ids."""
     store: SQLStore = resource_hierarchy["store"]
     ds_id = resource_hierarchy["discoveryspace_id"]
     op_id = resource_hierarchy["operation_id"]
@@ -941,7 +941,7 @@ def test_down_from_discoveryspace_capped_at_operation(
         kind=CoreResourceKinds.DISCOVERYSPACE,
         identifier=ds_id,
         hierarchy_direction="down",
-        stop_at_resource_kind=CoreResourceKinds.OPERATION,
+        max_hops=1,
         identifiers_only=True,
     )
 
@@ -1467,20 +1467,6 @@ def test_valid_kind_direction_combo_with_no_reachable_resources_returns_empty(
     assert result == {}
 
 
-def test_invalid_max_target_kind_raises_value_error(
-    resource_hierarchy: dict,
-) -> None:
-    """max_target_kind not reachable in selected family raises ValueError."""
-    store: SQLStore = resource_hierarchy["store"]
-    with pytest.raises(ValueError, match="stop_at_resource_kind="):
-        store.get_resources_by_relationship(
-            kind=CoreResourceKinds.OPERATION,
-            identifier="any",
-            hierarchy_direction="up",
-            stop_at_resource_kind=CoreResourceKinds.DATACONTAINER,
-        )
-
-
 @requires_sqlite_3_38
 def test_identifier_none_with_both_raises_value_error(
     resource_hierarchy: dict,
@@ -1501,23 +1487,33 @@ def test_identifier_none_with_both_raises_value_error(
 
 
 @requires_sqlite_3_38
-def test_stop_at_resource_kind_with_both_raises_value_error(
+def test_both_from_operation_max_hops_1_returns_one_level_each_direction(
     resource_hierarchy: dict,
 ) -> None:
-    """stop_at_resource_kind is not supported when hierarchy_direction is both."""
+    """both from operation with max_hops=1 returns one hop up and one hop down."""
     store: SQLStore = resource_hierarchy["store"]
+    op_id = resource_hierarchy["operation_id"]
+    ds_id = resource_hierarchy["discoveryspace_id"]
+    dc_id = resource_hierarchy["datacontainer_id"]
+    ac_id = resource_hierarchy["actuatorconfiguration_id"]
 
-    with pytest.raises(
-        ValueError,
-        match="stop_at_resource_kind is not supported for hierarchy_direction='both'",
-    ):
-        store.get_resources_by_relationship(
-            kind=CoreResourceKinds.OPERATION,
-            identifier=resource_hierarchy["operation_id"],
-            hierarchy_direction="both",  # type: ignore[arg-type]
-            stop_at_resource_kind=CoreResourceKinds.DISCOVERYSPACE,
-            identifiers_only=True,
-        )
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=op_id,
+        hierarchy_direction="both",  # type: ignore[arg-type]
+        max_hops=1,
+        identifiers_only=True,
+    )
+
+    # One hop up → discoveryspace only (not samplestore)
+    assert CoreResourceKinds.DISCOVERYSPACE in result
+    assert ds_id in result[CoreResourceKinds.DISCOVERYSPACE]
+    assert CoreResourceKinds.SAMPLESTORE not in result
+    # One hop down → datacontainer and actuatorconfiguration
+    assert CoreResourceKinds.DATACONTAINER in result
+    assert dc_id in result[CoreResourceKinds.DATACONTAINER]
+    assert CoreResourceKinds.ACTUATORCONFIGURATION in result
+    assert ac_id in result[CoreResourceKinds.ACTUATORCONFIGURATION]
 
 
 def test_empty_identifier_set_returns_empty(

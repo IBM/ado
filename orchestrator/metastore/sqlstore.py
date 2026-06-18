@@ -1580,7 +1580,7 @@ class SQLResourceStore(ResourceStore):
         kind: CoreResourceKinds,
         identifier: str | set[str] | None,
         hierarchy_direction: Literal["up", "down", "both"],
-        stop_at_resource_kind: CoreResourceKinds | None = None,
+        max_hops: int | None = None,
         identifiers_only: bool = False,
     ) -> (
         dict[CoreResourceKinds, list[str]]
@@ -1620,11 +1620,13 @@ class SQLResourceStore(ResourceStore):
 
             hierarchy_direction: ``'up'`` (child → parent), ``'down'``
                 (parent → child), or ``'both'``.
-            stop_at_resource_kind: When provided, the stop-kind row is included
-                in results but recursion does not continue beyond it. Must be a
-                valid kind reachable from ``kind`` in the requested
-                ``hierarchy_direction``. Not supported when
-                ``hierarchy_direction='both'``.
+            max_hops: Maximum number of relationship hops to follow from each
+                start resource. When ``None`` the traversal runs to the full
+                depth of the hierarchy. For ``hierarchy_direction='both'`` the
+                limit is applied independently to each direction (e.g.
+                ``max_hops=1`` yields one hop up *and* one hop down). Values
+                exceeding the hierarchy maximum (currently 3, matching the 4
+                resource levels) are silently capped at that maximum.
             identifiers_only: When ``False`` (default) discovered identifiers
                 are hydrated into full
                 :class:`~orchestrator.core.resources.ADOResource` objects via
@@ -1647,10 +1649,6 @@ class SQLResourceStore(ResourceStore):
             ValueError: If ``hierarchy_direction`` is not ``'up'``, ``'down'``
                 or ``'both'``.
             ValueError: If ``identifier=None`` is used with
-                ``hierarchy_direction='both'``.
-            ValueError: If ``stop_at_resource_kind`` is not reachable from
-                ``kind`` in the requested ``hierarchy_direction``.
-            ValueError: If ``stop_at_resource_kind`` is used with
                 ``hierarchy_direction='both'``.
         """
         # ------------------------------------------------------------------
@@ -1683,11 +1681,13 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # 2. Build and execute the single traversal query
         # ------------------------------------------------------------------
+        # The hierarchy maximum (3 hops across 4 levels) is enforced inside
+        # graph_traversal_query; passing max_hops=None lets it use the full cap.
         query = orchestrator.metastore.sql.statements.graph_traversal_query(
             kind=kind,
             hierarchy_direction=hierarchy_direction,
             origin_identifiers=_identifiers_requested,
-            stop_at_resource_kind=stop_at_resource_kind,
+            max_hops=max_hops,
         )
 
         with self.engine.connect() as connectable:

@@ -550,7 +550,7 @@ def graph_traversal_query(
     kind: "CoreResourceKinds",
     hierarchy_direction: Literal["up", "down", "both"],
     origin_identifiers: set[str],
-    stop_at_resource_kind: "CoreResourceKinds | None" = None,
+    max_hops: int | None = None,
 ) -> sqlalchemy.TextClause:
     """Build and return a recursive CTE traversal SQL for the resource hierarchy.
 
@@ -569,20 +569,20 @@ def graph_traversal_query(
         kind: Starting resource kind.
         hierarchy_direction: ``'up'``, ``'down'`` or ``'both'``.
         origin_identifiers: Set of start resource identifiers to bind.
-        stop_at_resource_kind: When provided, the stop-kind row is included in
-            results but recursion does not continue beyond it. Not supported for
-            ``hierarchy_direction='both'``.
+        max_hops: Maximum number of hops to follow from the start resource.
+            When ``None`` the traversal runs to the full depth of the
+            hierarchy. For ``hierarchy_direction='both'`` the limit is applied
+            independently to each direction (up and down). Must be a positive
+            integer; values exceeding the hierarchy maximum are silently capped
+            at that maximum.
 
     Returns:
         A bound :class:`sqlalchemy.TextClause` ready to execute.
 
     Raises:
         ValueError: If ``hierarchy_direction`` is invalid.
-        ValueError: If ``stop_at_resource_kind`` is not reachable from ``kind`` in
-            the requested direction.
-        ValueError: If ``stop_at_resource_kind`` is used with ``both``.
     """
-    from orchestrator.core.resources import CoreResourceKinds
+    from orchestrator.core.resources import CoreResourceKinds  # noqa: F401 (type check)
 
     if hierarchy_direction not in ("up", "down", "both"):
         raise ValueError(
@@ -590,66 +590,15 @@ def graph_traversal_query(
             f"got {hierarchy_direction!r}"
         )
 
-    if hierarchy_direction == "both" and stop_at_resource_kind is not None:
-        raise ValueError(
-            "stop_at_resource_kind is not supported for hierarchy_direction='both'"
-        )
+    # The resource hierarchy has 4 levels (samplestore → discoveryspace →
+    # operation → {datacontainer, actuatorconfiguration}), so the maximum
+    # meaningful hop count between any two levels is 3.
+    #
+    # If the hierarchy ever gains a new level, update this constant and the
+    # corresponding cap in get_resources_by_relationship().
+    _MAX_HOPS = 3
 
-    # Used only to validate stop_at_resource_kind; does not drive the SQL traversal.
-    _valid_stop_kinds: dict[
-        Literal["up", "down"], dict[CoreResourceKinds, list[CoreResourceKinds]]
-    ] = {
-        "up": {
-            CoreResourceKinds.SAMPLESTORE: [],
-            CoreResourceKinds.DISCOVERYSPACE: [CoreResourceKinds.SAMPLESTORE],
-            CoreResourceKinds.OPERATION: [
-                CoreResourceKinds.DISCOVERYSPACE,
-                CoreResourceKinds.SAMPLESTORE,
-            ],
-            CoreResourceKinds.DATACONTAINER: [
-                CoreResourceKinds.OPERATION,
-                CoreResourceKinds.DISCOVERYSPACE,
-                CoreResourceKinds.SAMPLESTORE,
-            ],
-            CoreResourceKinds.ACTUATORCONFIGURATION: [
-                CoreResourceKinds.OPERATION,
-                CoreResourceKinds.DISCOVERYSPACE,
-                CoreResourceKinds.SAMPLESTORE,
-            ],
-        },
-        "down": {
-            CoreResourceKinds.SAMPLESTORE: [
-                CoreResourceKinds.DISCOVERYSPACE,
-                CoreResourceKinds.OPERATION,
-                CoreResourceKinds.DATACONTAINER,
-                CoreResourceKinds.ACTUATORCONFIGURATION,
-            ],
-            CoreResourceKinds.DISCOVERYSPACE: [
-                CoreResourceKinds.OPERATION,
-                CoreResourceKinds.DATACONTAINER,
-                CoreResourceKinds.ACTUATORCONFIGURATION,
-            ],
-            CoreResourceKinds.OPERATION: [
-                CoreResourceKinds.DATACONTAINER,
-                CoreResourceKinds.ACTUATORCONFIGURATION,
-            ],
-            CoreResourceKinds.DATACONTAINER: [],
-            CoreResourceKinds.ACTUATORCONFIGURATION: [],
-        },
-    }
-
-    if stop_at_resource_kind is not None:
-        valid_stops = _valid_stop_kinds[hierarchy_direction].get(kind, [])
-        if stop_at_resource_kind not in valid_stops:
-            raise ValueError(
-                f"stop_at_resource_kind={stop_at_resource_kind!r} is not reachable from "
-                f"kind={kind!r} with hierarchy_direction={hierarchy_direction!r}. "
-                f"Reachable kinds: {valid_stops}"
-            )
-
-    stop_kind = (
-        stop_at_resource_kind.value if stop_at_resource_kind is not None else None
-    )
+    effective_max_hops = _MAX_HOPS if max_hops is None else min(max_hops, _MAX_HOPS)
 
     # logical_edges is a non-recursive CTE; WITH RECURSIVE is required at the
     # clause level by SQLite because the subsequent traversal CTEs are recursive.
@@ -688,8 +637,7 @@ def graph_traversal_query(
     """
 
     if hierarchy_direction == "up":
-        # Only the up_traversal CTE is needed; max depth == 3 hops (4 kinds).
-        traversal_sql = """,
+        traversal_sql = f""",
         up_traversal AS (
             SELECT origin.identifier AS origin_identifier,
                    origin.kind       AS current_kind,
@@ -708,18 +656,16 @@ def graph_traversal_query(
             FROM   up_traversal
             JOIN   logical_edges
               ON   logical_edges.to_identifier = up_traversal.current_identifier
-            WHERE  (:stop_kind IS NULL OR up_traversal.current_kind != :stop_kind)
-              AND  up_traversal.depth < 4
+            WHERE  up_traversal.depth < {effective_max_hops}
         )
         SELECT up_traversal.origin_identifier AS origin_identifier,
                up_traversal.current_identifier AS identifier,
                up_traversal.current_kind AS kind
         FROM   up_traversal
         WHERE  up_traversal.depth > 0
-        """
+        """  # noqa: S608
     elif hierarchy_direction == "down":
-        # Only the down_traversal CTE is needed; max depth == 3 hops (4 kinds).
-        traversal_sql = """,
+        traversal_sql = f""",
         down_traversal AS (
             SELECT origin.identifier AS origin_identifier,
                    origin.kind       AS current_kind,
@@ -738,19 +684,18 @@ def graph_traversal_query(
             FROM   down_traversal
             JOIN   logical_edges
               ON   logical_edges.from_identifier = down_traversal.current_identifier
-            WHERE  (:stop_kind IS NULL OR down_traversal.current_kind != :stop_kind)
-              AND  down_traversal.depth < 4
+            WHERE  down_traversal.depth < {effective_max_hops}
         )
         SELECT down_traversal.origin_identifier AS origin_identifier,
                down_traversal.current_identifier AS identifier,
                down_traversal.current_kind AS kind
         FROM   down_traversal
         WHERE  down_traversal.depth > 0
-        """
+        """  # noqa: S608
     else:
-        # Both directions: emit up_traversal and down_traversal, then UNION.
-        # stop_kind is not supported for 'both' (validated above).
-        traversal_sql = """,
+        # Both directions: up_traversal and down_traversal run independently,
+        # each bounded by effective_max_hops, then UNIONed.
+        traversal_sql = f""",
         up_traversal AS (
             SELECT origin.identifier AS origin_identifier,
                    origin.kind       AS current_kind,
@@ -769,7 +714,7 @@ def graph_traversal_query(
             FROM   up_traversal
             JOIN   logical_edges
               ON   logical_edges.to_identifier = up_traversal.current_identifier
-            WHERE  up_traversal.depth < 4
+            WHERE  up_traversal.depth < {effective_max_hops}
         ),
         down_traversal AS (
             SELECT origin.identifier AS origin_identifier,
@@ -789,7 +734,7 @@ def graph_traversal_query(
             FROM   down_traversal
             JOIN   logical_edges
               ON   logical_edges.from_identifier = down_traversal.current_identifier
-            WHERE  down_traversal.depth < 4
+            WHERE  down_traversal.depth < {effective_max_hops}
         )
         SELECT related.origin_identifier AS origin_identifier,
                related.identifier AS identifier,
@@ -809,7 +754,7 @@ def graph_traversal_query(
             FROM   down_traversal
             WHERE  down_traversal.depth > 0
         ) related
-        """
+        """  # noqa: S608
 
     binds = [
         sqlalchemy.bindparam(key="start_kind", value=kind.value),
@@ -817,9 +762,5 @@ def graph_traversal_query(
             key="origins", value=list(origin_identifiers), expanding=True
         ),
     ]
-    # :stop_kind is only referenced in the up/down SQL; omit it for 'both'
-    # to avoid SQLAlchemy raising ArgumentError for an unrecognised parameter.
-    if hierarchy_direction != "both":
-        binds.append(sqlalchemy.bindparam(key="stop_kind", value=stop_kind))
 
     return sqlalchemy.text(logical_edges_sql + traversal_sql).bindparams(*binds)

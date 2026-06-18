@@ -57,6 +57,8 @@ if TYPE_CHECKING:
     import pandas as pd
     from rich.console import RenderableType
 
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
 # Process-level cache of (db_url, tablename) pairs for which the four DDL tables
 # have already been verified to exist, along with their reflected metadata.
 # Skips the four `CREATE TABLE IF NOT EXISTS` round-trips and metadata reflection
@@ -1480,6 +1482,126 @@ class SQLSampleStore(ActiveSampleStore):
                 }
         except SQLAlchemyError as error:
             msg = f"Unable to get entity statistics for operation {operation_id}"
+            self.log.critical(f"{msg}. Error: {error}")
+            raise SystemError(f"{msg}. Error: {error}") from error
+
+    def operation_measurement_statistics(
+        self, operation_id: str
+    ) -> "OperationMeasurementStatistics":
+        """Compute aggregated measurement statistics for an operation.
+
+        Computes all seven statistics in a single query to avoid multiple
+        DB round-trips: request counts (total/failed/successful), result counts
+        (total/valid/invalid), and distinct measured entity count.
+
+        Args:
+            operation_id: The operation identifier.
+
+        Returns:
+            An OperationMeasurementStatistics instance.
+        """
+        from sqlalchemy import case, func, select
+
+        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+        req_table = self._request_table
+        reqres_table = self._request_result_table
+        res_table = self._result_table
+
+        # Equivalent SQL:
+        #
+        #   SELECT
+        #     COUNT(DISTINCT req.uid) AS total_requests,
+        #     COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
+        #     COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
+        #     COUNT(res.uid) AS total_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL     THEN 1 ELSE 0 END) AS successful_results,
+        #     SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
+        #     COUNT(DISTINCT res.entity_id) AS measured_entities
+        #   FROM <tablename>_measurement_requests req
+        #   LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
+        #   LEFT JOIN <tablename>_measurement_results            res  ON reqres.result_uid  = res.uid
+        #   WHERE req.operation_id = :operation_id
+
+        reason_is_null = func.json_extract(res_table.c.data, "$.reason").is_(None)
+
+        stmt = (
+            select(
+                # COUNT(DISTINCT req.uid) AS total_requests,
+                func.count(func.distinct(req_table.c.uid)).label("total_requests"),
+                # COUNT(DISTINCT CASE WHEN req.status = 'Failed' THEN req.uid END) AS failed_requests,
+                func.count(
+                    func.distinct(
+                        case(
+                            (
+                                req_table.c.status
+                                == MeasurementRequestStateEnum.FAILED.value,
+                                req_table.c.uid,
+                            ),
+                            else_=None,
+                        )
+                    )
+                ).label("failed_requests"),
+                # COUNT(DISTINCT CASE WHEN req.status = 'Success' THEN req.uid END) AS successful_requests,
+                func.count(
+                    func.distinct(
+                        case(
+                            (
+                                req_table.c.status
+                                == MeasurementRequestStateEnum.SUCCESS.value,
+                                req_table.c.uid,
+                            ),
+                            else_=None,
+                        )
+                    )
+                ).label("successful_requests"),
+                # COUNT(res.uid) AS total_results,
+                func.count(res_table.c.uid).label("total_results"),
+                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NULL THEN 1 ELSE 0 END) AS successful_results,
+                func.sum(case((reason_is_null, 1), else_=0)).label(
+                    "successful_results"
+                ),
+                # SUM(CASE WHEN JSON_EXTRACT(res.data, '$.reason') IS NOT NULL THEN 1 ELSE 0 END) AS failed_results,
+                func.sum(case((~reason_is_null, 1), else_=0)).label("failed_results"),
+                # COUNT(DISTINCT res.entity_id) AS measured_entities
+                func.count(func.distinct(res_table.c.entity_id)).label(
+                    "measured_entities"
+                ),
+            )
+            # FROM <tablename>_measurement_requests req
+            .select_from(req_table)
+            # LEFT JOIN <tablename>_measurement_requests_results reqres ON reqres.request_uid = req.uid
+            .outerjoin(reqres_table, reqres_table.c.request_uid == req_table.c.uid)
+            # LEFT JOIN <tablename>_measurement_results res ON reqres.result_uid = res.uid
+            .outerjoin(res_table, reqres_table.c.result_uid == res_table.c.uid)
+            # WHERE req.operation_id =:operation_id
+            .where(req_table.c.operation_id == operation_id)
+        )
+
+        try:
+            with self.engine.begin() as connectable:
+                row = connectable.execute(stmt).one()
+                (
+                    total_requests,
+                    failed_requests,
+                    successful_requests,
+                    total_results,
+                    successful_results,
+                    failed_results,
+                    measured_entities,
+                ) = row
+
+                return OperationMeasurementStatistics(
+                    total_requests=total_requests or 0,
+                    failed_requests=failed_requests or 0,
+                    successful_requests=successful_requests or 0,
+                    total_results=total_results or 0,
+                    successful_results=successful_results or 0,
+                    failed_results=failed_results or 0,
+                    measured_entities=measured_entities or 0,
+                )
+        except SQLAlchemyError as error:
+            msg = f"Unable to get measurement statistics for operation {operation_id}"
             self.log.critical(f"{msg}. Error: {error}")
             raise SystemError(f"{msg}. Error: {error}") from error
 

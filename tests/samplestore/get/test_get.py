@@ -901,3 +901,201 @@ def test_entities_in_operation_deduplication(
     retrieved_entity_ids = {e.identifier for e in retrieved_entities}
     assert len(retrieved_entity_ids) == len(retrieved_entities)  # No duplicates
     assert retrieved_entity_ids == all_entity_ids
+
+
+@requires_sqlite_3_38
+def test_operation_measurement_statistics_all_valid(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Test operation_measurement_statistics with all valid measurement results."""
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+    number_entities = 3
+    number_requests = 4
+    measurements_per_result = 2
+    operation_id = random_identifier()
+
+    sample_store, requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
+    )
+
+    expected_entities = {
+        result.entityIdentifier
+        for request in requests
+        for result in request.measurements
+    }
+
+    stats = sample_store.operation_measurement_statistics(operation_id=operation_id)
+
+    assert isinstance(stats, OperationMeasurementStatistics)
+    assert stats.total_requests == number_requests
+    assert stats.failed_requests == 0
+    assert stats.successful_requests == number_requests
+    assert stats.total_results == number_requests * number_entities
+    assert stats.successful_results == number_requests * number_entities
+    assert stats.failed_results == 0
+    assert stats.measured_entities == len(expected_entities)
+
+
+@requires_sqlite_3_38
+def test_operation_measurement_statistics_mixed_valid_invalid(
+    random_identifier: Callable[[], str],
+    ml_multi_cloud_sample_store: SQLSampleStore,
+    random_ml_multi_cloud_benchmark_performance_entities: Callable[[int], list[Entity]],
+    random_ml_multi_cloud_benchmark_performance_measurement_results: Callable[
+        [Entity, int, MeasurementResultStateEnum | None], MeasurementResult
+    ],
+    random_ml_multi_cloud_benchmark_performance_measurement_requests: Callable[
+        [int, int, MeasurementRequestStateEnum | None, str | None],
+        ReplayedMeasurement,
+    ],
+    valid_ado_project_context: "ProjectContext",
+    ml_multi_cloud_operation_configuration: "DiscoveryOperationResourceConfiguration",
+) -> None:
+    """Test operation_measurement_statistics with mixed valid/invalid results and a failed request."""
+    from orchestrator.core import OperationResource
+    from orchestrator.core.operation.config import DiscoveryOperationEnum
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+    from orchestrator.metastore.sqlstore import SQLResourceStore
+    from orchestrator.schema.reference import ExperimentReference
+
+    number_entities = 3
+    measurements_per_result = 2
+    operation_id = random_identifier()
+    sample_store = ml_multi_cloud_sample_store
+
+    sql = SQLResourceStore(project_context=valid_ado_project_context, ensureExists=True)
+    sql.addResourceWithRelationships(
+        OperationResource(
+            identifier=operation_id,
+            config=ml_multi_cloud_operation_configuration,
+            operationType=DiscoveryOperationEnum.SEARCH,
+            operatorIdentifier="test-operator",
+        ),
+        relatedIdentifiers=ml_multi_cloud_operation_configuration.spaces,
+    )
+
+    entities = random_ml_multi_cloud_benchmark_performance_entities(number_entities)
+
+    # Request 0 (SUCCESS): entity0=valid, entity1=valid, entity2=invalid — built manually
+    # so we can control the per-entity result status (the fixture always produces valid results)
+    measurements_req0 = [
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[0],
+            measurements_per_result=measurements_per_result,
+            status=MeasurementResultStateEnum.VALID,
+        ),
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[1],
+            measurements_per_result=measurements_per_result,
+            status=MeasurementResultStateEnum.VALID,
+        ),
+        random_ml_multi_cloud_benchmark_performance_measurement_results(
+            entity=entities[2],
+            measurements_per_result=measurements_per_result,
+            status=MeasurementResultStateEnum.INVALID,
+        ),
+    ]
+    request0 = ReplayedMeasurement(
+        operation_id=operation_id,
+        requestIndex=0,
+        experimentReference=ExperimentReference(
+            experimentIdentifier="benchmark_performance",
+            actuatorIdentifier="replay",
+        ),
+        entities=entities,
+        requestid=random_identifier(),
+        status=MeasurementRequestStateEnum.SUCCESS,
+        measurements=tuple(measurements_req0),
+    )
+    request_id0 = sample_store.add_measurement_request(request=request0)
+    sample_store.add_measurement_results(
+        results=measurements_req0,
+        skip_relationship_to_request=False,
+        request_db_id=request_id0,
+    )
+
+    # Request 1 (FAILED): use the fixture — it sets the request status and generates
+    # valid results for all entities (valid results on a failed request are fine here;
+    # we are testing the request-level failed_requests count, not result validity)
+    request1 = random_ml_multi_cloud_benchmark_performance_measurement_requests(
+        number_entities=number_entities,
+        measurements_per_result=measurements_per_result,
+        status=MeasurementRequestStateEnum.FAILED,
+        operation_id=operation_id,
+    )
+    request_id1 = sample_store.add_measurement_request(request=request1)
+    sample_store.add_measurement_results(
+        results=list(request1.measurements),
+        skip_relationship_to_request=False,
+        request_db_id=request_id1,
+    )
+
+    # The fixture creates its own fresh entities for request1, so the two requests
+    # cover different entity sets; collect the full expected distinct set.
+    expected_entities = {r.entityIdentifier for r in request0.measurements} | {
+        r.entityIdentifier for r in request1.measurements
+    }
+
+    stats = sample_store.operation_measurement_statistics(operation_id=operation_id)
+
+    assert isinstance(stats, OperationMeasurementStatistics)
+    assert stats.total_requests == 2
+    assert stats.failed_requests == 1
+    assert stats.successful_requests == 1
+    # request0: 3 results (2 valid + 1 invalid); request1: 3 results (all valid)
+    assert stats.total_results == number_entities * 2
+    assert stats.successful_results == 5  # 2 from req0 + 3 from req1
+    assert stats.failed_results == 1  # entity2 from req0 only
+    assert stats.measured_entities == len(expected_entities)
+
+
+@requires_sqlite_3_38
+def test_operation_measurement_statistics_measured_entities_distinct(
+    random_identifier: Callable[[], str],
+    simulate_ml_multi_cloud_random_walk_operation: Callable[
+        [int, int, int, str | None],
+        tuple[SQLSampleStore, list[MeasurementRequest], list[str]],
+    ],
+) -> None:
+    """Test that measured_entities counts distinct entities across all results."""
+    from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+    # Use more requests than entities so the same entities appear in multiple requests
+    number_entities = 3
+    number_requests = 5
+    measurements_per_result = 2
+    operation_id = random_identifier()
+
+    sample_store, requests, _request_ids = (
+        simulate_ml_multi_cloud_random_walk_operation(
+            number_entities=number_entities,
+            number_requests=number_requests,
+            measurements_per_result=measurements_per_result,
+            operation_id=operation_id,
+        )
+    )
+
+    expected_entities = {
+        result.entityIdentifier
+        for request in requests
+        for result in request.measurements
+    }
+
+    stats = sample_store.operation_measurement_statistics(operation_id=operation_id)
+
+    assert isinstance(stats, OperationMeasurementStatistics)
+    # measured_entities is DISTINCT — repeated entities across requests count once
+    assert stats.measured_entities == len(expected_entities)
+    # total_results counts every result row, including repeats
+    assert stats.total_results == number_requests * number_entities
+    assert stats.total_results >= stats.measured_entities

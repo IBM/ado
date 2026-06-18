@@ -1077,6 +1077,7 @@ class DiscoverySpace:
             operation_id=operation_id
         )
 
+    @_perform_preflight_checks_for_sample_store_methods
     def operation_entity_statistics(self, operation_id: str) -> dict[str, int]:
         """
         Compute entity-level statistics for an operation using SQL aggregation.
@@ -1122,3 +1123,68 @@ class DiscoverySpace:
                 {result.entityIdentifier for result in measurement_results}
             ),
         }
+
+    @_perform_preflight_checks_for_sample_store_methods
+    def operation_measurement_statistics(
+        self, operation_id: str
+    ) -> "orchestrator.core.operation.stats.OperationMeasurementStatistics":
+        """Compute aggregated measurement statistics for an operation.
+
+        Delegates to the SQL implementation for SQL-backed stores. For all
+        other stores, falls back to a Python implementation that iterates the
+        measurement requests for the operation.
+
+        Args:
+            operation_id: The operation identifier.
+
+        Returns:
+            An OperationMeasurementStatistics instance with request-level,
+            result-level, and entity-level counts.
+        """
+        import orchestrator.core.samplestore.sql
+        from orchestrator.core.operation.stats import OperationMeasurementStatistics
+
+        if isinstance(
+            self.sample_store, orchestrator.core.samplestore.sql.SQLSampleStore
+        ):
+            return self.sample_store.operation_measurement_statistics(
+                operation_id=operation_id
+            )
+
+        # Python fallback for non-SQL stores
+        from orchestrator.schema.request import MeasurementRequestStateEnum
+        from orchestrator.schema.result import ValidMeasurementResult
+
+        requests = self.measurement_requests_for_operation(operation_id=operation_id)
+
+        total_requests = len(requests)
+        failed_requests = sum(
+            1 for r in requests if r.status == MeasurementRequestStateEnum.FAILED
+        )
+        successful_requests = sum(
+            1 for r in requests if r.status == MeasurementRequestStateEnum.SUCCESS
+        )
+
+        total_results = 0
+        successful_results = 0
+        failed_results = 0
+        measured_entity_ids: set[str] = set()
+
+        for request in requests:
+            for result in request.measurements:
+                total_results += 1
+                if isinstance(result, ValidMeasurementResult):
+                    successful_results += 1
+                else:
+                    failed_results += 1
+                measured_entity_ids.add(result.entityIdentifier)
+
+        return OperationMeasurementStatistics(
+            total_requests=total_requests,
+            failed_requests=failed_requests,
+            successful_requests=successful_requests,
+            total_results=total_results,
+            successful_results=successful_results,
+            failed_results=failed_results,
+            measured_entities=len(measured_entity_ids),
+        )

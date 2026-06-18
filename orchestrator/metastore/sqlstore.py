@@ -1666,6 +1666,11 @@ class SQLResourceStore(ResourceStore):
         # ------------------------------------------------------------------
         # 0. Validate parameters eagerly
         # ------------------------------------------------------------------
+        if hierarchy_direction not in {"up", "down", "both"}:
+            raise ValueError(
+                f"hierarchy_direction must be 'up', 'down' or 'both', got {hierarchy_direction!r}"
+            )
+
         if max_hops is not None and max_hops < 1:
             raise ValueError(f"max_hops must be a positive integer, got {max_hops!r}")
 

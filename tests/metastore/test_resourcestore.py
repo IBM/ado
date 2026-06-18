@@ -1484,6 +1484,7 @@ def test_invalid_max_hops_negative_raises_value_error(
         )
 
 
+@requires_sqlite_3_38
 def test_valid_kind_direction_combo_with_no_reachable_resources_returns_empty(
     resource_hierarchy: dict,
 ) -> None:

@@ -1,16 +1,15 @@
 # Migrating from ado 1.x to ado 2.x
 
 ado 2.x introduces a set of breaking changes that remove obsolete commands and
-APIs. There are no deprecation warnings or backwards-compatibility shims — the
-removed functionality no longer exists at runtime. This guide describes each
-breaking change and shows how to update your workflows.
+APIs. This guide describes each breaking change and shows how to update your
+workflows.
 
 ## Breaking Changes
 
 ### Removed: `ado show requests` and `ado show results`
 
-The `ado show requests` and `ado show results` commands have been removed.
-They displayed `MeasurementRequest` and `MeasurementResult` metadata for an explore
+The `ado show requests` and `ado show results` commands have been removed. They
+displayed `MeasurementRequest` and `MeasurementResult` metadata for an explore
 operation in separate views. The `ado show trace` command supersedes both: it
 provides the same information in a single, unified view with additional
 capabilities such as field filtering, and YAML output.
@@ -31,7 +30,8 @@ ado show results operation randomwalk-0.5.0-123abc -o csv --output-file results.
 
 #### After (ado 2.x)
 
-Use `ado show trace` to inspect the trace of measurement requests and optionally metadata about the individual entity measurements made (the result metadata)
+Use `ado show trace` to inspect the trace of measurement requests and optionally
+metadata about the individual entity measurements made (the result metadata)
 
 ```shell
 ado show trace operation randomwalk-0.5.0-123abc -o csv --output-file trace.csv

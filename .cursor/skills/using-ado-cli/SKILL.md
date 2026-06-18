@@ -1,6 +1,12 @@
 ---
 name: using-ado-cli
-description: "Reference for ado CLI command syntax, flags, and usage patterns — covers get, create, edit, show, and describe subcommands, output formatting with -o and --output-file, convenience flags (--use-latest, --set, --with), debugging with -l, and run_experiment for local point testing. Use when writing or verifying ado CLI commands, looking up correct command syntax or flags, debugging unexpected CLI output, or explaining ado command patterns."
+description:
+  "Reference for ado CLI command syntax, flags, and usage patterns — covers get,
+  create, edit, show, and describe subcommands, output formatting with -o and
+  --output-file, convenience flags (--use-latest, --set, --with), debugging with
+  -l, and run_experiment for local point testing. Use when writing or verifying
+  ado CLI commands, looking up correct command syntax or flags, debugging
+  unexpected CLI output, or explaining ado command patterns."
 ---
 
 # Using the ado CLI
@@ -38,8 +44,8 @@ Shell redirects (`>`) work for simple cases. Prefer `--output-file` when:
 
 - **Pre-flight checks**: ado validates the path is writable before fetching,
   avoiding failure after a long data fetch.
-- **Stdout pollution**: `--output-file` writes only formatted output to the file;
-  logs stay on stderr. A redirect captures both.
+- **Stdout pollution**: `--output-file` writes only formatted output to the
+  file; logs stay on stderr. A redirect captures both.
 - **Table truncation**: terminal-width column truncation applies to redirected
   output but not to `--output-file`.
 
@@ -194,11 +200,11 @@ plus measured properties (outputs).
 
 <!-- markdownlint-disable line-length -->
 
-| Command                       | What It Shows                                                          |
-| ----------------------------- | ---------------------------------------------------------------------- |
-| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation |
-| `show measurements space`     | All entities and measurements collected in this space                  |
-| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata    |
+| Command                       | What It Shows                                                                                                           |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `show measurements operation` | Entities (inputs) and their measurements (outputs) from this operation                                                  |
+| `show measurements space`     | All entities and measurements collected in this space                                                                   |
+| `show trace operation`        | The trace of measurement requests made during an explore operation. Optionally can show per entity measurement metadata |
 
 <!-- markdownlint-enable line-length -->
 

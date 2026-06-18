@@ -1571,3 +1571,121 @@ def test_valid_traversal_with_no_related_resources(
     )
 
     assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# include_start_resources
+# ---------------------------------------------------------------------------
+
+
+@requires_sqlite_3_38
+def test_include_start_resources_single_identifier(
+    resource_hierarchy: dict,
+) -> None:
+    """include_start_resources=True adds the start resource to the result."""
+    from orchestrator.core.resources import ADOResource
+
+    store: SQLStore = resource_hierarchy["store"]
+    op_id = resource_hierarchy["operation_id"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=op_id,
+        hierarchy_direction="down",
+        identifiers_only=False,
+        include_start_resources=True,
+    )
+
+    assert CoreResourceKinds.OPERATION in result
+    assert op_id in result[CoreResourceKinds.OPERATION]
+    assert isinstance(result[CoreResourceKinds.OPERATION][op_id], ADOResource)
+
+
+@requires_sqlite_3_38
+def test_include_start_resources_multi_identifier(
+    two_op_hierarchy: dict,
+) -> None:
+    """include_start_resources=True adds each start resource in the multi-identifier result."""
+    from orchestrator.core.resources import ADOResource
+
+    store: SQLStore = two_op_hierarchy["store"]
+    op1_id = two_op_hierarchy["op1_id"]
+    op2_id = two_op_hierarchy["op2_id"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier={op1_id, op2_id},
+        hierarchy_direction="down",
+        identifiers_only=False,
+        include_start_resources=True,
+    )
+
+    for op_id in [op1_id, op2_id]:
+        assert op_id in result
+        assert CoreResourceKinds.OPERATION in result[op_id]
+        assert op_id in result[op_id][CoreResourceKinds.OPERATION]
+        assert isinstance(
+            result[op_id][CoreResourceKinds.OPERATION][op_id], ADOResource
+        )
+
+
+@requires_sqlite_3_38
+def test_include_start_resources_no_related_resources(
+    resource_hierarchy: dict,
+) -> None:
+    """include_start_resources=True still returns the start resource when traversal finds nothing."""
+    from orchestrator.core.resources import ADOResource
+
+    store: SQLStore = resource_hierarchy["store"]
+    ss_id = resource_hierarchy["samplestore_id"]
+
+    result = store.get_resources_by_relationship(
+        kind=CoreResourceKinds.SAMPLESTORE,
+        identifier=ss_id,
+        hierarchy_direction="up",
+        identifiers_only=False,
+        include_start_resources=True,
+    )
+
+    assert CoreResourceKinds.SAMPLESTORE in result
+    assert ss_id in result[CoreResourceKinds.SAMPLESTORE]
+    assert isinstance(result[CoreResourceKinds.SAMPLESTORE][ss_id], ADOResource)
+
+
+def test_include_start_resources_with_identifiers_only_raises(
+    resource_hierarchy: dict,
+) -> None:
+    """include_start_resources=True combined with identifiers_only=True raises ValueError."""
+    store: SQLStore = resource_hierarchy["store"]
+    op_id = resource_hierarchy["operation_id"]
+
+    with pytest.raises(
+        ValueError,
+        match="include_start_resources=True requires identifiers_only=False",
+    ):
+        store.get_resources_by_relationship(
+            kind=CoreResourceKinds.OPERATION,
+            identifier=op_id,
+            hierarchy_direction="down",
+            identifiers_only=True,
+            include_start_resources=True,
+        )
+
+
+def test_include_start_resources_with_identifier_none_raises(
+    resource_hierarchy: dict,
+) -> None:
+    """include_start_resources=True combined with identifier=None raises ValueError."""
+    store: SQLStore = resource_hierarchy["store"]
+
+    with pytest.raises(
+        ValueError,
+        match="include_start_resources=True requires identifier to be a str or set",
+    ):
+        store.get_resources_by_relationship(
+            kind=CoreResourceKinds.OPERATION,
+            identifier=None,
+            hierarchy_direction="down",
+            identifiers_only=False,
+            include_start_resources=True,
+        )

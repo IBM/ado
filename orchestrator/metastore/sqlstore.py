@@ -1582,6 +1582,7 @@ class SQLResourceStore(ResourceStore):
         hierarchy_direction: Literal["up", "down", "both"],
         max_hops: int | None = None,
         identifiers_only: bool = False,
+        include_start_resources: bool = False,
     ) -> (
         dict[CoreResourceKinds, list[str]]
         | dict[str, dict[CoreResourceKinds, list[str]]]
@@ -1632,6 +1633,12 @@ class SQLResourceStore(ResourceStore):
                 :class:`~orchestrator.core.resources.ADOResource` objects via
                 :meth:`getResources`. When ``True`` only discovered identifiers
                 are returned.
+            include_start_resources: When ``True``, the start resource(s)
+                provided via ``identifier`` are included in the returned result
+                under their own ``kind`` key, alongside the discovered related
+                resources. Requires ``identifiers_only=False`` and
+                ``identifier`` to be a ``str`` or ``set[str]`` (not ``None``);
+                raises ``ValueError`` if either constraint is violated.
 
         Returns:
             The return type depends on whether a single identifier (``str``) or
@@ -1643,14 +1650,31 @@ class SQLResourceStore(ResourceStore):
             * single identifier, ids only    → ``dict[CoreResourceKinds, list[str]]``
             * multiple identifiers, ids only → ``dict[str, dict[CoreResourceKinds, list[str]]]``
 
-            Start identifiers are **excluded** from the returned results.
+            By default start identifiers are **excluded** from the returned
+            results. Pass ``include_start_resources=True`` to include them.
 
         Raises:
             ValueError: If ``hierarchy_direction`` is not ``'up'``, ``'down'``
                 or ``'both'``.
             ValueError: If ``identifier=None`` is used with
                 ``hierarchy_direction='both'``.
+            ValueError: If ``include_start_resources=True`` is used together
+                with ``identifiers_only=True``.
+            ValueError: If ``include_start_resources=True`` is used with
+                ``identifier=None``.
         """
+        # ------------------------------------------------------------------
+        # 0. Validate incompatible flag combination
+        # ------------------------------------------------------------------
+        if include_start_resources and identifiers_only:
+            raise ValueError(
+                "include_start_resources=True requires identifiers_only=False"
+            )
+        if include_start_resources and identifier is None:
+            raise ValueError(
+                "include_start_resources=True requires identifier to be a str or set[str], not None"
+            )
+
         # ------------------------------------------------------------------
         # 1. Resolve the requested identifiers and record whether a single
         #    identifier was requested (determines the unwrapped return shape)
@@ -1745,8 +1769,20 @@ class SQLResourceStore(ResourceStore):
             return related_by_origin
 
         # Hydrated mode: fetch all discovered identifiers in one query,
-        # then rebuild the graph with full resources
-        resources_by_identifier = self.getResources(identifiers=identifiers_to_fetch)
+        # then rebuild the graph with full resources.
+        # When include_start_resources is True, also fetch the start resources
+        # so they can be merged into each origin's result under their own kind.
+        all_identifiers_to_fetch = list(identifiers_to_fetch)
+        if include_start_resources:
+            all_identifiers_to_fetch.extend(
+                start_id
+                for start_id in _identifiers_requested
+                if start_id not in seen_identifiers
+            )
+
+        resources_by_identifier = self.getResources(
+            identifiers=all_identifiers_to_fetch
+        )
 
         hydrated: dict[
             str,
@@ -1770,8 +1806,24 @@ class SQLResourceStore(ResourceStore):
                     if identifier_to in resources_by_identifier
                 }
 
+            if include_start_resources and identifier_from in resources_by_identifier:
+                start_resource = resources_by_identifier[identifier_from]
+                hydrated_related_resources_by_kind.setdefault(kind, {})[
+                    identifier_from
+                ] = start_resource
+
             if hydrated_related_resources_by_kind:
                 hydrated[identifier_from] = hydrated_related_resources_by_kind
+
+        # When include_start_resources is True but a start identifier had no
+        # related resources, it won't appear in related_by_origin yet — ensure
+        # it still gets an entry in hydrated.
+        if include_start_resources:
+            for start_id in _identifiers_requested:
+                if start_id not in hydrated and start_id in resources_by_identifier:
+                    hydrated[start_id] = {
+                        kind: {start_id: resources_by_identifier[start_id]}
+                    }
 
         if _single_identifier_requested:
             return hydrated.get(next(iter(_identifiers_requested)), {})

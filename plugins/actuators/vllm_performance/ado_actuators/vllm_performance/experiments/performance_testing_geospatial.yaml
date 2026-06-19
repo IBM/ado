@@ -277,7 +277,7 @@ performance_testing-geospatial-full:
       value: false
     - property:
         identifier: 'renderer_num_workers'
-      value: 1
+      value: 0
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -488,7 +488,7 @@ performance_testing-geospatial-full-custom-dataset:
       value: false
     - property:
         identifier: 'renderer_num_workers'
-      value: 1
+      value: 0
   # measurements
   targetProperties:
     - identifier: "duration"
@@ -850,7 +850,7 @@ performance_testing-geospatial-full-guidellm:
       value: false
     - property:
         identifier: 'renderer_num_workers'
-      value: 1
+      value: 0
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"
@@ -1059,7 +1059,7 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
       value: false
     - property:
         identifier: 'renderer_num_workers'
-      value: 1
+      value: 0
   targetProperties:
     - identifier: "duration"
     - identifier: "completed"

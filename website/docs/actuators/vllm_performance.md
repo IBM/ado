@@ -98,11 +98,12 @@ The `vllm_performance` actuator implements twelve experiments:
 >
 > **Version Requirements:** Threadpool support requires vLLM version 0.20.0 or
 > later. The actuator automatically validates version compatibility when you
-> specify an `image` parameter. If you request threadpool (renderer_num_workers > 0)
-> with an incompatible vLLM version, the experiment will fail with an
-> `UnsupportedThreadpoolConfigurationError`.
+> specify an `image` parameter. If you request threadpool
+> (renderer_num_workers > 0) with an incompatible vLLM version, the experiment
+> will fail with an `UnsupportedThreadpoolConfigurationError`.
 >
 > **Example:**
+>
 > ```yaml
 > # Test v0.18.0 without threadpool
 > - image: ["quay.io/mgazzetti/vllm-performance/vllm:v0.18.0-tt.v1.2.5", "0.18.0"]

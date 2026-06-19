@@ -201,7 +201,7 @@ class ComponentsYaml:
         if otlp_traces_endpoint is not None:
             vllm_serve_args.append("--otlp-traces-endpoint")
             vllm_serve_args.append(str(otlp_traces_endpoint))
-        if renderer_num_workers is not None:
+        if renderer_num_workers is not None and renderer_num_workers > 0:
             vllm_serve_args.extend(
                 [
                     "--renderer-num-workers",

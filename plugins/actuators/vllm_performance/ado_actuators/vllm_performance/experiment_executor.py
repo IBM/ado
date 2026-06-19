@@ -298,6 +298,7 @@ def _create_environment(
                         renderer_num_workers=(
                             int(values.get("renderer_num_workers"))
                             if values.get("renderer_num_workers") is not None
+                            and int(values.get("renderer_num_workers")) > 0
                             else None
                         ),
                         check_interval=check_interval,

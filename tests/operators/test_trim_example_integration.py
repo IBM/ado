@@ -97,7 +97,7 @@ def test_trim_example_operation_succeeds(
         noPriorParameters=NoPriorsParameters(
             targetOutput="pressure",
             samples=8,
-            batchSize=2,
+            batchSize=1,
             sampling_strategy="random",
         ),
     )

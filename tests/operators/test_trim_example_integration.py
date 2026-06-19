@@ -69,13 +69,12 @@ def trim_minimal_discovery_space(
     )
 
 
-# Lightweight AutoGluon settings for CI: no stacking avoids flaky missing-model.pkl
-# races when training on the minimal 8-row integration space under parallel pytest.
+# Lightweight AutoGluon settings for CI
 _TRIM_TEST_AUTOGLUON_FIT_ARGS = {
     "time_limit": 60,
     "presets": "medium_quality",
     "auto_stack": False,
-    "excluded_model_types": ["CatBoost"],
+    "excluded_model_types": ["CAT"],
 }
 
 

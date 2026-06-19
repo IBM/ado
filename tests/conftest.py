@@ -61,6 +61,7 @@ def initialize_ray() -> Generator[None, None, None]:
     """
     ray.init(
         ignore_reinit_error=True,
+        object_store_memory=200 * 1024 * 1024,  # 200 MB per xdist worker
     )
     yield
     ray.shutdown()

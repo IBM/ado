@@ -60,56 +60,29 @@ logger = logging.getLogger(__name__)
 
 def _determine_threadpool_usage(values: dict[str, Any]) -> bool:
     """
-    Determine whether to enable threadpool based on use_threadpool and renderer_num_workers.
+    Determine whether threadpool-related functionality is requested.
 
-    Logic:
-    - If use_threadpool is explicitly set, honor that value regardless of renderer_num_workers
-    - If use_threadpool is not set, default to True only if renderer_num_workers is set and non-zero
+    Threadpool is implied whenever renderer_num_workers is explicitly provided
+    with a positive value. A value of 0 means "no threadpool".
 
     :param values: experiment values dictionary
-    :return: True if threadpool should be enabled, False otherwise
-    :raises ValueError: if use_threadpool has an invalid value
+    :return: True if threadpool-related functionality should be enabled
+    :raises ValueError: if renderer_num_workers is negative
     """
-    if "use_threadpool" in values:
-        # Explicit value provided - always honor it
-        use_tp = values.get("use_threadpool")
-        # Handle string representations
-        if isinstance(use_tp, str):
-            lower_val = use_tp.lower()
-            if lower_val in ("0", "false"):
-                return False
-            elif lower_val in ("1", "true"):
-                return True
-            else:
-                raise ValueError(
-                    f"Invalid value for use_threadpool: '{use_tp}'. "
-                    f"If set via string, Expected 'true' or 'false'."
-                )
-        # Handle integer representations
-        if isinstance(use_tp, int):
-            if use_tp in (0, 1):
-                return bool(use_tp)
-            else:
-                raise ValueError(
-                    f"Invalid integer value for use_threadpool: {use_tp}. "
-                    f"If set via integer, expected 1 or 0."
-                )
-        if use_tp is None:
-            return False
+    if "renderer_num_workers" not in values:
+        return False
 
+    renderer_workers = values.get("renderer_num_workers")
+    if renderer_workers is None:
+        return False
+
+    renderer_workers_int = int(renderer_workers)
+    if renderer_workers_int < 0:
         raise ValueError(
-            f"Invalid integer value for use_threadpool: {use_tp}. "
-            f"Expected 1, 0,'true', or 'false'."
+            f"renderer_num_workers must be non-negative, got {renderer_workers}"
         )
-    else:
-        # Not set - infer from renderer_num_workers
-        renderer_workers = values.get("renderer_num_workers")
-        if renderer_workers is None:
-            return False
-        # Handle string representations
-        if isinstance(renderer_workers, str):
-            return renderer_workers not in ("", "0")
-        return bool(renderer_workers)
+
+    return renderer_workers_int > 0
 
 
 def _build_entity_env(values: dict[str, str]) -> str:
@@ -144,7 +117,6 @@ def _build_entity_env(values: dict[str, str]) -> str:
         "dtype": values.get("dtype"),
         "cpu_offload": values.get("cpu_offload"),
         "max_num_seq": values.get("max_num_seq"),
-        "use_threadpool": values.get("use_threadpool"),
         "renderer_num_workers": values.get("renderer_num_workers"),
     }
     return json.dumps(env_values)
@@ -323,8 +295,11 @@ def _create_environment(
                         enforce_eager=values.get("enforce_eager", 0) == 1,
                         io_processor_plugin=values.get("io_processor_plugin"),
                         otlp_traces_endpoint=otlp_traces_endpoint,
-                        use_threadpool=threadpool_requested,
-                        renderer_num_workers=int(values.get("renderer_num_workers")),
+                        renderer_num_workers=(
+                            int(values.get("renderer_num_workers"))
+                            if values.get("renderer_num_workers") is not None
+                            else None
+                        ),
                         check_interval=check_interval,
                         timeout=timeout,
                     )

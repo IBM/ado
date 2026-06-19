@@ -215,10 +215,10 @@ performance_testing-geospatial-full:
         values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
-        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128]
+        domainRange: [0, 128]
         interval: 1
   defaultParameterization:
     - property:
@@ -429,10 +429,10 @@ performance_testing-geospatial-full-custom-dataset:
         values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
-        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128]
+        domainRange: [0, 128]
         interval: 1
   defaultParameterization:
     - property:
@@ -788,10 +788,10 @@ performance_testing-geospatial-full-guidellm:
         values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
-        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128]
+        domainRange: [0, 128]
         interval: 1
   defaultParameterization:
     - property:
@@ -1000,10 +1000,10 @@ performance_testing-geospatial-guidellm-deployment-custom-dataset:
         values: [false, true]
     - identifier: 'renderer_num_workers'
       metadata:
-        description: "Number of renderer workers when threadpool is enabled. Only used when threadpool=1."
+        description: "Number of renderer workers for threadpool-based rendering. Set to 0 to disable threadpool (for vLLM versions < 0.20.0). Set to a positive value to enable threadpool (requires vLLM >= 0.20.0). If not specified, threadpool is disabled."
       propertyDomain:
         variableType: 'DISCRETE_VARIABLE_TYPE'
-        domainRange: [1, 128]
+        domainRange: [0, 128]
         interval: 1
   defaultParameterization:
     - property:

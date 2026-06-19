@@ -47,6 +47,8 @@ class VLLMVersionChecker:
         try:
             return version.parse(image).base_version
         except version.InvalidVersion:
+            if "/" in image:
+                return image
             return None
 
     @classmethod

@@ -80,7 +80,7 @@ def test_trim_example_operation_succeeds(
     params = TrimParameters(
         targetOutput="pressure",
         samplingBudget=SamplingBudget(minPoints=8, maxPoints=8),
-        iterationSize=5,
+        iterationSize=1,
         outputDirectory="trim_integration_models",
         stoppingCriterion=StoppingCriterion(enabled=False),
         autoGluonArgs=AutoGluonArgs(

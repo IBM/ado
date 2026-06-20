@@ -848,9 +848,6 @@ class SQLResourceStore(ResourceStore):
             getRelatedObjectResourceIdentifiers
                 The inverse relationship: fetches subjects where the given
                 identifier is the *subject*.
-            getRelatedResourceIdentifiers
-                Convenience wrapper that returns a dataframe with both subject
-                and object relationships merged.
         """
 
         import pandas as pd
@@ -920,9 +917,6 @@ class SQLResourceStore(ResourceStore):
             getRelatedSubjectResourceIdentifiers
                 The inverse relationship: fetches subjects where the given
                 identifier is the *object*.
-            getRelatedResourceIdentifiers
-                Convenience wrapper that returns a dataframe with both subject
-                and object relationships merged.
         """
 
         import pandas as pd
@@ -951,88 +945,6 @@ class SQLResourceStore(ResourceStore):
         related_kinds = table["kind"].values
 
         return pd.DataFrame({"IDENTIFIER": related_identifiers, "TYPE": related_kinds})
-
-    def getRelatedResourceIdentifiers(
-        self, identifier: str, kind: str | None = None, version: str | None = None
-    ) -> "pd.DataFrame":
-        """
-        Retrieve identifiers of resources that are related to ``identifier`` either as a
-        subject or an object.
-
-        This method concatenates the results of
-        :meth:`getRelatedObjectResourceIdentifiers` and
-        :meth:`getRelatedSubjectResourceIdentifiers`.  The returned
-        :class:`pandas.DataFrame` has two columns:
-
-        * ``IDENTIFIER`` - the resource identifier
-        * ``TYPE``      - the resource kind
-
-        Args:
-            identifier : str
-                The resource identifier for which related resources are being
-                queried.
-            kind : str, optional
-                Filter by the resource *kind*.  If ``None`` (default) no kind
-                filtering is applied.
-            version : str, optional
-                Filter by the resource *version*.  If ``None`` (default) no
-                version filtering is applied.
-
-        Returns:
-            pandas.DataFrame
-                A DataFrame containing the identifiers of all related resources.
-                If no relationships exist an empty DataFrame is returned.
-        """
-
-        import pandas as pd
-
-        relatedAsObject = self.getRelatedObjectResourceIdentifiers(
-            identifier=identifier, kind=kind, version=version
-        )
-        relatedAsSubject = self.getRelatedSubjectResourceIdentifiers(
-            identifier=identifier, kind=kind, version=version
-        )
-
-        return pd.DataFrame(
-            {
-                "IDENTIFIER": relatedAsObject["IDENTIFIER"].values.tolist()
-                + relatedAsSubject["IDENTIFIER"].values.tolist(),
-                "TYPE": relatedAsObject["TYPE"].values.tolist()
-                + relatedAsSubject["TYPE"].values.tolist(),
-            }
-        )
-
-    def getRelatedResources(
-        self, identifier: str, kind: CoreResourceKinds | None = None
-    ) -> dict[str, orchestrator.core.resources.ADOResource]:
-        """
-        Retrieve all resources that are related to a given identifier.
-
-        Args:
-            identifier (str):
-                The identifier of the primary resource.  The method will fetch
-                every other resource that shares a relationship with this
-                identifier - either as the **subject** or **object** of a
-                relationship entry in ``resource_relationships``.
-            kind (orchestrator.core.resources.CoreResourceKinds, optional):
-                If supplied, only resources whose ``kind`` matches this value
-                are returned.  Pass ``None`` (the default) to retrieve
-                resources of any kind.
-
-        Returns:
-            dict[str, orchestrator.core.resources.ADOResource]:
-                A mapping from resource identifier to a fully deserialized
-                ``ADOResource`` instance.  The dictionary keys are the
-                identifiers of all resources that are related to
-                ``identifier``; the values are the corresponding
-                resource objects.  When ``kind`` is set, the dictionary
-                contains only resources of that kind.
-        """
-
-        identifiers = self.getRelatedResourceIdentifiers(
-            identifier=identifier, kind=kind.value
-        )
-        return self.getResources(identifiers=identifiers["IDENTIFIER"])
 
     def containsResourceWithIdentifier(
         self, identifier: str, kind: CoreResourceKinds | None = None

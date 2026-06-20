@@ -3,7 +3,6 @@
 import re
 from collections.abc import Callable
 
-import pandas as pd
 import pytest
 
 from orchestrator.core import DiscoverySpaceResource, OperationResource
@@ -69,7 +68,9 @@ def test_create_operation_with_related_space(
     get_single_resource_by_identifier: Callable[
         [str, CoreResourceKinds], ADOResource | None
     ],
-    get_related_resource_identifiers_by_identifier: Callable[[str], pd.DataFrame],
+    get_related_resource_identifiers_by_identifier: Callable[
+        [str, CoreResourceKinds, str], dict[CoreResourceKinds, set[str]]
+    ],
 ) -> None:
     quantity = 3
 
@@ -88,8 +89,10 @@ def test_create_operation_with_related_space(
         is not None
     )
     related_resource_identifiers = get_related_resource_identifiers_by_identifier(
-        identifier=operation.identifier
-    )["IDENTIFIER"].values
+        operation.identifier,
+        CoreResourceKinds.OPERATION,
+        "up",
+    ).get(CoreResourceKinds.DISCOVERYSPACE, set())
     for space_id in space_ids:
         assert space_id in related_resource_identifiers
 

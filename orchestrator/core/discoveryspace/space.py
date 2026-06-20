@@ -610,19 +610,15 @@ class DiscoverySpace:
     def sampledEntities(self) -> list[Entity]:
         """Returns the entities sampled so far in the space"""
 
-        operation_ids_series = self.operations["IDENTIFIER"]
+        operation_ids = self.operations
 
-        # Convert pandas Series to list for easier handling
-        # Check if empty using .empty property (pandas Series can't be used in boolean context)
-        if operation_ids_series.empty:
+        if not operation_ids:
             return []
-
-        operation_ids = operation_ids_series.tolist()
 
         # Optimize for single operation: use direct query (1 query instead of 2)
         if len(operation_ids) == 1:
             sampled_entities = self.sample_store.entities_in_operation(
-                operation_id=operation_ids[0]
+                operation_id=next(iter(operation_ids))
             )
         else:
             # Multiple operations: get entity IDs first, then fetch entities
@@ -897,13 +893,16 @@ class DiscoverySpace:
         return self._metadataStore
 
     @property
-    def operations(self) -> "DataFrame":
-        """Returns a table of all the operations executed on this space"""
+    def operations(self) -> set[str]:
+        """Returns the identifiers of all operations executed on this space"""
 
-        return self._metadataStore.getRelatedResourceIdentifiers(
+        return self._metadataStore.get_resources_by_relationship(
+            kind=orchestrator.core.resources.CoreResourceKinds.DISCOVERYSPACE,
             identifier=self.uri,
-            kind=orchestrator.core.resources.CoreResourceKinds.OPERATION.value,
-        )
+            hierarchy_direction="down",
+            max_hops=1,
+            identifiers_only=True,
+        ).get(orchestrator.core.resources.CoreResourceKinds.OPERATION, set())
 
     def addOperation(self, operation: OperationResource) -> None:
         """Add information on a new operation on the space

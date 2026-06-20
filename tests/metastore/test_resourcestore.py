@@ -4,7 +4,6 @@ import re
 import uuid
 from collections.abc import Callable
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -139,12 +138,11 @@ def test_get_resources_sorted_by_created_ascending(
 
 
 @requires_sqlite_3_38
-def test_get_related_resource_identifiers(
+def test_get_resources_by_relationship(
     sql_store_with_resources_preloaded: SQLStore, resource_type: CoreResourceKinds
 ) -> None:
     """
-    Tests getting the identifiers of related resources
-
+    Tests getting the identifiers of related resources via get_resources_by_relationship.
     """
 
     identifiers = sql_store_with_resources_preloaded.getResourceIdentifiersOfKind(
@@ -152,36 +150,25 @@ def test_get_related_resource_identifiers(
     )
     if identifiers.shape[0] > 0:
         identifier = identifiers["IDENTIFIER"][0]
-        for rt2 in list(CoreResourceKinds):
-            x = sql_store_with_resources_preloaded.getRelatedResourceIdentifiers(
-                identifier, kind=rt2.value
-            )
-            assert x is not None
+        result = sql_store_with_resources_preloaded.get_resources_by_relationship(
+            kind=resource_type,
+            identifier=identifier,
+            hierarchy_direction="both",
+            max_hops=None,
+            identifiers_only=True,
+        )
+        assert result is not None
 
-            # Test some relationships know to exist
-            # All operations should have related discovery space
-            # All DiscoverySpaces should have related SampleStore
-            if (
-                resource_type == CoreResourceKinds.OPERATION
-                and rt2 == CoreResourceKinds.DISCOVERYSPACE
-            ):
-                assert x.shape[0] > 0
-                assert x.columns[0] == "IDENTIFIER"
-                assert x.columns[1] == "TYPE"
-                if x.shape[0] > 0:
-                    types = np.unique(x["TYPE"].values)
-                    assert len(types) == 1
-                    assert types[0] == rt2.value
-            elif (
-                resource_type == CoreResourceKinds.DISCOVERYSPACE
-                and rt2 == CoreResourceKinds.SAMPLESTORE
-            ):
-                assert x.columns[0] == "IDENTIFIER"
-                assert x.columns[1] == "TYPE"
-                if x.shape[0] > 0:
-                    types = np.unique(x["TYPE"].values)
-                    assert len(types) == 1
-                    assert types[0] == rt2.value
+        # Test some relationships known to exist:
+        # All operations should have a related discovery space
+        if resource_type == CoreResourceKinds.OPERATION:
+            assert CoreResourceKinds.DISCOVERYSPACE in result
+            assert len(result[CoreResourceKinds.DISCOVERYSPACE]) == 1
+
+        # All DiscoverySpaces should have a related SampleStore
+        if resource_type == CoreResourceKinds.DISCOVERYSPACE:
+            assert CoreResourceKinds.SAMPLESTORE in result
+            assert len(result[CoreResourceKinds.SAMPLESTORE]) == 1
 
 
 #
@@ -241,11 +228,12 @@ def test_add_and_delete_discovery_space(
         identifier=space_resource.identifier
     )
 
-    assert (
-        sql_store.getRelatedResourceIdentifiers(
-            identifier=space_resource.identifier
-        ).shape[0]
-        == 0
+    assert not sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+        identifier=space_resource.identifier,
+        hierarchy_direction="both",
+        max_hops=None,
+        identifiers_only=True,
     )
 
 
@@ -277,21 +265,23 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
         )["IDENTIFIER"].values
     )
 
-    # Test the relationship to space_identifier is there
-    assert (
-        space_identifier
-        in sql_store.getRelatedResourceIdentifiers(
-            identifier=operation_resource.identifier
-        )["IDENTIFIER"].values
-    )
+    # Test the relationship to space_identifier is there (operation → space: up)
+    assert space_identifier in sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=operation_resource.identifier,
+        hierarchy_direction="up",
+        max_hops=1,
+        identifiers_only=True,
+    ).get(CoreResourceKinds.DISCOVERYSPACE, set())
 
-    # Test is there in the other direction
-    assert (
-        operation_resource.identifier
-        in sql_store.getRelatedResourceIdentifiers(identifier=space_identifier)[
-            "IDENTIFIER"
-        ].values
-    )
+    # Test is there in the other direction (space → operation: down)
+    assert operation_resource.identifier in sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+        identifier=space_identifier,
+        hierarchy_direction="down",
+        max_hops=1,
+        identifiers_only=True,
+    ).get(CoreResourceKinds.OPERATION, set())
 
     # Update
 
@@ -331,18 +321,20 @@ def test_add_update_and_delete_operation_related_to_discovery_space(
         )["IDENTIFIER"].values
     )
 
-    assert (
-        operation_resource.identifier
-        not in sql_store.getRelatedResourceIdentifiers(identifier=space_identifier)[
-            "IDENTIFIER"
-        ].values
-    )
+    assert operation_resource.identifier not in sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.DISCOVERYSPACE,
+        identifier=space_identifier,
+        hierarchy_direction="down",
+        max_hops=1,
+        identifiers_only=True,
+    ).get(CoreResourceKinds.OPERATION, set())
 
-    assert (
-        sql_store.getRelatedResourceIdentifiers(
-            identifier=operation_resource.identifier
-        ).shape[0]
-        == 0
+    assert not sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=operation_resource.identifier,
+        hierarchy_direction="both",
+        max_hops=None,
+        identifiers_only=True,
     )
 
 
@@ -370,12 +362,16 @@ def test_add_operation_and_output(
     )
 
     # Test we can get the datacontainer
-    dcs = sql_store.getRelatedResourceIdentifiers(
-        identifier=op_resource.identifier, kind=CoreResourceKinds.DATACONTAINER.value
-    )
+    dcs = sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=op_resource.identifier,
+        hierarchy_direction="down",
+        max_hops=1,
+        identifiers_only=True,
+    ).get(CoreResourceKinds.DATACONTAINER, set())
 
-    assert (dcs.shape[0]) == 1
-    ident = dcs["IDENTIFIER"][0]
+    assert len(dcs) == 1
+    ident = next(iter(dcs))
 
     res = sql_store.getResource(identifier=ident, kind=CoreResourceKinds.DATACONTAINER)
     assert isinstance(res, DataContainerResource)
@@ -414,12 +410,13 @@ def test_add_operation_and_output(
         )["IDENTIFIER"].values
     )
 
-    assert (
-        res.identifier
-        not in sql_store.getRelatedResourceIdentifiers(
-            identifier=op_resource.identifier
-        )["IDENTIFIER"].values
-    )
+    assert res.identifier not in sql_store.get_resources_by_relationship(
+        kind=CoreResourceKinds.OPERATION,
+        identifier=op_resource.identifier,
+        hierarchy_direction="down",
+        max_hops=1,
+        identifiers_only=True,
+    ).get(CoreResourceKinds.DATACONTAINER, set())
 
     # Delete the resource
     sql_store.deleteResource(identifier=op_resource.identifier)
